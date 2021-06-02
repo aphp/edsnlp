@@ -5,12 +5,12 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.3'
-      jupytext_version: 1.11.2
+      format_version: '1.2'
+      jupytext_version: 1.6.0
   kernelspec:
-    display_name: spacy
+    display_name: Python 3
     language: python
-    name: spacy
+    name: python3
 ---
 
 ```python
@@ -28,7 +28,7 @@ import spacy
 ```
 
 ```python
-import negparhyp.baseline
+import nlptools.rules
 ```
 
 # Baselines
@@ -40,14 +40,16 @@ nlp = spacy.blank('fr')
 ```python
 nlp.add_pipe('sentencizer')
 nlp.add_pipe('sections')
-nlp.add_pipe('negation')
-nlp.add_pipe('hypothesis')
-nlp.add_pipe('context')
+nlp.add_pipe('pollution')
 ```
 
 ```python
-text = "Le patient est admis pour des douleurs dans le bras droit, mais n'a pas de problème de locomotion. " \
-       "Historique d'AVC dans la famille. pourrait être un cas de rhume."
+text = (
+    "Le patient est admis pour des douleurs dans le bras droit, mais n'a pas de problème de locomotion. "
+    "Historique d'AVC dans la famille. pourrait être un cas de rhume.\n"
+    "NBNbWbWbNbWbNBNbNbWbWbNBNbWbNbNbWbNBNbWbNbNBWbWbNbNbNBWbNbWbNbWBNbNbWbNbNBNbWbWbNbWBNbNbWbNBNbWbWbNb\n"
+    "Pourrait être un cas de rhume.\n"
+)
 ```
 
 ```python
@@ -55,21 +57,21 @@ doc = nlp(text)
 ```
 
 ```python
-print(f'{"Token":<16}{"Polarity":<12} {"Hypothesis":<12} {"Context":<5}')
-print(f'{"-----":<16}{"--------":<12} {"----------":<12} {"-------":<5}')
-
-for token in doc:
-    print(f'{token.text:<16}{token._.polarity_:<12} {token._.hypothesis_:<12} {token._.context_:<5}')
+doc._.clean_
 ```
 
 ```python
-doc._.family
+doc._.clean_[165:181]
 ```
 
 ```python
-doc._.negations
+doc.text[165:181]
 ```
 
 ```python
-doc._.hypothesis
+doc._.char_clean_span(165, 181)
+```
+
+```python
+
 ```

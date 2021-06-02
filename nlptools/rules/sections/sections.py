@@ -1,4 +1,3 @@
-from itertools import chain
 from typing import List, Tuple, Dict
 
 from spacy.language import Language
@@ -6,7 +5,6 @@ from spacy.matcher import PhraseMatcher
 from spacy.tokens import Doc, Span
 
 from nlptools.rules.base import BaseComponent
-
 
 if not Doc.has_extension('note_id'):
     Doc.set_extension('note_id', default=None)

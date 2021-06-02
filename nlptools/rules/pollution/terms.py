@@ -10,8 +10,7 @@ informations = (
 # Exemple : NBNbWbWbNbWbNBNbNbWbWbNBNbWbNbNbWbNBNbW...
 bars = r"(?i)\b([nbw]{5,}|[_\-]{5,})\b"
 
-
-pollutions = dict(
+pollution = dict(
     informations=informations,
     bars=bars,
 )

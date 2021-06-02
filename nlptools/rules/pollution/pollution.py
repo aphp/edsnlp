@@ -1,14 +1,12 @@
 from typing import List, Tuple, Dict, Optional
 
+import numpy as np
 from spacy.language import Language
 from spacy.tokens import Token, Span, Doc
 from spaczz.matcher import RegexMatcher
 
 from nlptools.rules.base import BaseComponent
 from nlptools.rules.pollution import terms
-
-import numpy as np
-
 
 if not Doc.has_extension('note_id'):
     Doc.set_extension('note_id', default=None)
@@ -26,7 +24,7 @@ def clean_getter(doc: Doc) -> List[Token]:
     -------
     tokens: List of clean tokens.
     """
-    
+
     tokens = []
 
     for token in doc:
@@ -49,7 +47,7 @@ def clean2original(doc: Doc) -> np.ndarray:
     -------
     alignement: Alignment array.
     """
-    
+
     lengths = np.array([len(token.text_with_ws) for token in doc])
     pollution = np.array([token._.pollution for token in doc])
 
@@ -62,9 +60,9 @@ def clean2original(doc: Doc) -> np.ndarray:
             current += l
         clean.append(current)
     clean = np.array(clean)
-    
+
     alignment = np.stack([lengths.cumsum(), clean])
-    
+
     return alignment
 
 
@@ -82,20 +80,21 @@ def align(doc: Doc, index: int) -> int:
     -------
     index: Character index in the original text.
     """
-    
+
     if index < 0:
         index = len(doc._.clean_) - index
-        
+
     alignment = clean2original(doc)
     offset = alignment[0] - alignment[1]
-    
+
     return index + offset[alignment[1] < index][-1]
 
+
 def char_clean2original(
-    doc: Doc, 
-    start: int, 
-    end: int, 
-    alignment_mode: Optional[str] = 'strict',
+        doc: Doc,
+        start: int,
+        end: int,
+        alignment_mode: Optional[str] = 'strict',
 ) -> Span:
     """
     Returns a Spacy Span object from character span computed on the clean text.
@@ -111,7 +110,7 @@ def char_clean2original(
     -------
     span: Span in the original text.
     """
-    
+
     start, end = align(doc, start), align(doc, end)
     return doc.char_span(start, end, alignment_mode=alignment_mode)
 
@@ -146,7 +145,7 @@ class Pollution(BaseComponent):
 
         if not Doc.has_extension('clean_'):
             Doc.set_extension('clean_', getter=lambda doc: ''.join([t.text_with_ws for t in doc._.clean]))
-            
+
         if not Doc.has_extension('char_clean_span'):
             Doc.set_extension('char_clean_span', method=char_clean2original)
 
@@ -156,10 +155,10 @@ class Pollution(BaseComponent):
         """
         Builds the patterns for phrase matching.
         """
-        
+
         # efficiently build spaCy matcher patterns
         self.matcher = RegexMatcher(self.nlp.vocab)
-        
+
         for term in self.pollution.values():
             self.matcher.add("pollution", [term])
 
@@ -205,11 +204,11 @@ class Pollution(BaseComponent):
 
             for token in pollution:
                 token._.pollution = True
-        
+
         # for token in doc:
         #     if token.is_space:
         #         token._.pollution = True
-        
+
         return doc
 
 

@@ -8,9 +8,9 @@ jupyter:
       format_version: '1.2'
       jupytext_version: 1.6.0
   kernelspec:
-    display_name: Python 3
+    display_name: spacy
     language: python
-    name: python3
+    name: spacy
 ---
 
 ```python
@@ -60,16 +60,23 @@ doc = nlp(text)
 doc._.clean_
 ```
 
+On peut tester l'extraction d'entité dans le texte nettoyé :
+
 ```python
 doc._.clean_[165:181]
 ```
+
+Les deux textes ne sont plus alignés :
 
 ```python
 doc.text[165:181]
 ```
 
+Mais la méthode `char_clean_span` permet de réaligner les deux représentations :
+
 ```python
-doc._.char_clean_span(165, 181)
+span = doc._.char_clean_span(165, 181)
+span
 ```
 
 ```python

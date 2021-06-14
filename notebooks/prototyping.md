@@ -28,20 +28,29 @@ import spacy
 ```
 
 ```python
-# One-shot import of all declared Spacy components
-import nlptools.components
+# Import components without declaring them
+from nlptools.rules.pollution import Pollution, terms
+```
+
+```python
+from nlptools.rules.sections import Sections, terms as section_terms
 ```
 
 # Baselines
+
+
+In this notebook, we avoid declaring the components to Spacy. Hence the `autoreload` function will work properly, making prototyping way easier.
 
 ```python
 nlp = spacy.blank('fr')
 ```
 
 ```python
-nlp.add_pipe('sentencizer')
-nlp.add_pipe('sections')
-nlp.add_pipe('pollution')
+sections = Sections(nlp, section_terms.sections)
+```
+
+```python
+pollution = Pollution(nlp, terms.pollution)
 ```
 
 ```python
@@ -57,6 +66,14 @@ text = (
 
 ```python
 doc = nlp(text)
+```
+
+```python
+doc = sections(doc)
+```
+
+```python
+doc = pollution(doc)
 ```
 
 ```python
@@ -88,6 +105,10 @@ span
 
 ```python
 doc._.sections[0]
+```
+
+```python
+
 ```
 
 ```python

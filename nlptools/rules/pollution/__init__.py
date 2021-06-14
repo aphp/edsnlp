@@ -1,2 +1,2 @@
 from .pollution import Pollution
-from .terms import pollution
+from nlptools.rules.pollution import terms

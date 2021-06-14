@@ -215,12 +215,3 @@ class Pollution(BaseComponent):
 default_config = dict(
     pollution=terms.pollution,
 )
-
-
-@Language.factory("pollution", default_config=default_config)
-def create_pollution_component(
-        nlp: Language,
-        name: str,
-        pollution: Dict[str, str],
-):
-    return Pollution(nlp, pollution=pollution)

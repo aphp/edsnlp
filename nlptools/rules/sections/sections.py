@@ -4,6 +4,8 @@ from spacy.language import Language
 from spacy.matcher import PhraseMatcher
 from spacy.tokens import Doc, Span
 
+from loguru import logger
+
 from nlptools.rules.base import BaseComponent
 
 if not Doc.has_extension('note_id'):
@@ -20,7 +22,9 @@ class Sections(BaseComponent):
             nlp: Language,
             sections: Dict[str, List[str]],
     ):
-
+        
+        logger.warning('The component Sections is still in Beta. Use at your own risks.')
+        
         self.nlp = nlp
 
         self.sections = sections
@@ -32,7 +36,7 @@ class Sections(BaseComponent):
 
     def build_patterns(self) -> None:
         # efficiently build spaCy matcher patterns
-        self.matcher = PhraseMatcher(self.nlp.vocab)
+        self.matcher = PhraseMatcher(self.nlp.vocab, attr='LOWER')
 
         for section, expressions in self.sections.items():
             patterns = list(self.nlp.tokenizer.pipe(expressions))
@@ -87,24 +91,3 @@ class Sections(BaseComponent):
         doc._.sections = ents
 
         return doc
-
-
-try:
-    # We use a list provided by PyMedExt : 
-    # https://github.com/equipe22/pymedext_eds/blob/master/pymedext_eds/constants.py
-    from pymedext_eds.constants import SECTION_DICT as SECTIONS
-except ImportError:
-    SECTIONS = dict()
-
-default_config = dict(
-    sections=SECTIONS,
-)
-
-
-@Language.factory("sections", default_config=default_config)
-def create_negation_component(
-        nlp: Language,
-        name: str,
-        sections: Dict[str, List[str]],
-):
-    return Sections(nlp, sections=sections)

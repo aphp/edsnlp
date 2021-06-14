@@ -1,20 +1,28 @@
-from typing import List, Tuple, Dict
+from typing import List, Dict
 
+from loguru import logger
 from spacy.language import Language
 from spacy.matcher import PhraseMatcher
 from spacy.tokens import Doc, Span
 
-from loguru import logger
-
 from nlptools.rules.base import BaseComponent
-
-if not Doc.has_extension('note_id'):
-    Doc.set_extension('note_id', default=None)
 
 
 class Sections(BaseComponent):
     """
     Divides the document into sections.
+    
+    By default, we are using a dataset of documents annotated for section titles,
+    using the wonderful work done by Ivan Lerner.
+
+    The component looks for section titles within the document,
+    and stores them in the `section_title` extension.
+
+    For ease-of-use, the component also populates a `section` extension,
+    which contains a list of spans corresponding to the "sections" of the
+    document. These span from the start of one section title to the next,
+    which can introduce obvious bias should an intermediate section title
+    goes undetected.
     """
 
     def __init__(
@@ -22,9 +30,9 @@ class Sections(BaseComponent):
             nlp: Language,
             sections: Dict[str, List[str]],
     ):
-        
+
         logger.warning('The component Sections is still in Beta. Use at your own risks.')
-        
+
         self.nlp = nlp
 
         self.sections = sections
@@ -32,17 +40,23 @@ class Sections(BaseComponent):
         if not Doc.has_extension('sections'):
             Doc.set_extension('sections', default=[])
 
+        if not Doc.has_extension('section_titles'):
+            Doc.set_extension('section_titles', default=[])
+
+        if not Span.has_extension('section_title'):
+            Span.set_extension('section_title', default=None)
+
+        self.matcher = PhraseMatcher(self.nlp.vocab, attr='LOWER')
         self.build_patterns()
 
     def build_patterns(self) -> None:
         # efficiently build spaCy matcher patterns
-        self.matcher = PhraseMatcher(self.nlp.vocab, attr='LOWER')
 
         for section, expressions in self.sections.items():
             patterns = list(self.nlp.tokenizer.pipe(expressions))
-            self.matcher.add(section, None, *patterns)
+            self.matcher.add(section, patterns)
 
-    def process(self, doc: Doc) -> Tuple[List[Span], List[Span], List[Span]]:
+    def process(self, doc: Doc) -> List[Span]:
         """
         Find section references in doc and filter out duplicates and inclusions
 
@@ -65,6 +79,7 @@ class Sections(BaseComponent):
 
         return sections
 
+    # noinspection PyProtectedMember
     def __call__(self, doc: Doc) -> Doc:
         """
         Divides the doc into sections
@@ -77,17 +92,22 @@ class Sections(BaseComponent):
         -------
         doc: spaCy Doc object, annotated for sections
         """
-        sections = self.process(doc)
+        titles = self.process(doc)
 
-        ents = []
+        sections = []
 
-        for s1, s2 in zip(sections[:-1], sections[1:]):
-            section = Span(doc, s1.start, s2.start, label=s1.label)
-            ents.append(section)
+        for t1, t2 in zip(titles[:-1], titles[1:]):
+            section = Span(doc, t1.start, t2.start, label=t1.label)
+            section._.section_title = t1
+            sections.append(section)
 
         if sections:
-            ents.append(Span(doc, sections[-1].start, len(doc), label=sections[-1].label))
+            t = sections[-1]
+            section = Span(doc, t.start, len(doc), label=t.label)
+            section._.section_title = t
+            sections.append(section)
 
-        doc._.sections = ents
+        doc._.sections = sections
+        doc._.section_titles = titles
 
         return doc

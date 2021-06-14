@@ -5,12 +5,12 @@ from spacy.language import Language
 from nlptools.rules.pollution import Pollution, terms as pollution_terms
 from nlptools.rules.sections import Sections, terms as section_terms
 
-
 pollution_default_config = dict(
     pollution=pollution_terms.pollution,
 )
 
 
+# noinspection PyUnusedLocal
 @Language.factory("pollution", default_config=pollution_default_config)
 def create_pollution_component(
         nlp: Language,
@@ -20,14 +20,12 @@ def create_pollution_component(
     return Pollution(nlp, pollution=pollution)
 
 
-
-
-
 sections_default_config = dict(
     sections=section_terms.sections,
 )
 
 
+# noinspection PyUnusedLocal
 @Language.factory("sections", default_config=sections_default_config)
 def create_negation_component(
         nlp: Language,

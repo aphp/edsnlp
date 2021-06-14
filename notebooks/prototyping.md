@@ -29,7 +29,7 @@ import spacy
 
 ```python
 # Import components without declaring them
-from nlptools.rules.pollution import Pollution, terms
+from nlptools.rules.pollution import Pollution, terms as pollution_terms
 ```
 
 ```python
@@ -77,7 +77,7 @@ doc = pollution(doc)
 ```
 
 ```python
-doc._.sections
+{s.label_: s for s in doc._.sections}
 ```
 
 ```python

@@ -14,7 +14,7 @@ class BaseComponent(object):
     - match filtering
     """
 
-    split_on_punct = True
+    split_on_punctuation = True
 
     @staticmethod
     def _filter_matches(matches: List[Span]) -> List[Span]:
@@ -77,7 +77,7 @@ class BaseComponent(object):
         sent_starts = [sent.start for sent in doc.sents]
         termination_starts = [t.start for t in terminations]
 
-        if self.split_on_punct:
+        if self.split_on_punctuation:
             punctuations = [t.i for t in doc if t.is_punct and '-' not in t.text]
         else:
             punctuations = []

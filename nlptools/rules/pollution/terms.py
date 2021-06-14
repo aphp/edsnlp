@@ -1,5 +1,5 @@
-# Droits et information des patients
-informations = (
+# noinspection SpellCheckingInspection
+information = (
     r"(?s)(=====+\s*)?(L\s*e\s*s\sdonnées\s*administratives,\s*sociales\s*|"
     r"I?nfo\s*rmation\s*aux?\s*patients?|"
     r"L’AP-HP\s*collecte\s*vos\s*données\s*administratives|"
@@ -7,10 +7,10 @@ informations = (
     r".{,2000}https?:\/\/recherche\.aphp\.fr\/eds\/droit-opposition[\s\.]*"
 )
 
-# Exemple : NBNbWbWbNbWbNBNbNbWbWbNBNbWbNbNbWbNBNbW...
-bars = r"(?i)\b([nbw]{5,}|[_\-]{5,})\b"
+# Example : NBNbWbWbNbWbNBNbNbWbWbNBNbWbNbNbWbNBNbW...
+bars = r"(?i)([nbw]|_|-|=){5,}"
 
 pollution = dict(
-    informations=informations,
+    information=information,
     bars=bars,
 )

@@ -64,6 +64,10 @@ doc._.sections
 ```
 
 ```python
+doc[17]._.ascii_
+```
+
+```python
 doc._.clean_
 ```
 

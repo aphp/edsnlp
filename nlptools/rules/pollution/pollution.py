@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict, Optional
+from typing import List, Dict, Optional
 
 import numpy as np
 from spacy.language import Language
@@ -8,10 +8,8 @@ from spaczz.matcher import RegexMatcher
 from nlptools.rules.base import BaseComponent
 from nlptools.rules.pollution import terms
 
-if not Doc.has_extension('note_id'):
-    Doc.set_extension('note_id', default=None)
 
-
+# noinspection PyProtectedMember
 def clean_getter(doc: Doc) -> List[Token]:
     """
     Gets a list of tokens with pollution removed.
@@ -34,6 +32,7 @@ def clean_getter(doc: Doc) -> List[Token]:
     return tokens
 
 
+# noinspection PyProtectedMember
 def clean2original(doc: Doc) -> np.ndarray:
     """
     Creates an alignment array to convert spans from the cleaned 
@@ -45,7 +44,7 @@ def clean2original(doc: Doc) -> np.ndarray:
     
     Returns
     -------
-    alignement: Alignment array.
+    alignment: Alignment array.
     """
 
     lengths = np.array([len(token.text_with_ws) for token in doc])
@@ -55,9 +54,9 @@ def clean2original(doc: Doc) -> np.ndarray:
 
     clean = []
 
-    for l, p in zip(lengths, pollution):
+    for length, p in zip(lengths, pollution):
         if not p:
-            current += l
+            current += length
         clean.append(current)
     clean = np.array(clean)
 
@@ -66,6 +65,7 @@ def clean2original(doc: Doc) -> np.ndarray:
     return alignment
 
 
+# noinspection PyProtectedMember
 def align(doc: Doc, index: int) -> int:
     """
     Aligns a character found in the clean text with 
@@ -127,12 +127,14 @@ class Pollution(BaseComponent):
       indices extracted using the cleaned text.
     """
 
+    # noinspection PyProtectedMember
     def __init__(
             self,
             nlp: Language,
             pollution: Dict[str, str],
     ):
 
+        self.matcher = RegexMatcher(self.nlp.vocab)
         self.nlp = nlp
 
         self.pollution = pollution
@@ -157,12 +159,11 @@ class Pollution(BaseComponent):
         """
 
         # efficiently build spaCy matcher patterns
-        self.matcher = RegexMatcher(self.nlp.vocab)
 
         for term in self.pollution.values():
             self.matcher.add("pollution", [term])
 
-    def process_pollutions(self, doc: Doc) -> Tuple[List[Span], List[Span], List[Span]]:
+    def process_pollutions(self, doc: Doc) -> List[Span]:
         """
         Find pollutions in doc and clean candidate negations to remove pseudo negations
 
@@ -186,6 +187,7 @@ class Pollution(BaseComponent):
 
         return pollutions
 
+    # noinspection PyProtectedMember
     def __call__(self, doc: Doc) -> Doc:
         """
         Tags pollutions.
@@ -204,10 +206,6 @@ class Pollution(BaseComponent):
 
             for token in pollution:
                 token._.pollution = True
-
-        # for token in doc:
-        #     if token.is_space:
-        #         token._.pollution = True
 
         return doc
 

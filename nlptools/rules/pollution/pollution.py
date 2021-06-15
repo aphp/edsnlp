@@ -134,13 +134,15 @@ class Pollution(BaseComponent):
             pollution: Dict[str, str],
     ):
 
-        self.matcher = RegexMatcher(self.nlp.vocab)
         self.nlp = nlp
 
         self.pollution = pollution
 
         if not Token.has_extension('pollution'):
             Token.set_extension('pollution', default=False)
+
+        if not Doc.has_extension('pollutions'):
+            Doc.set_extension('pollutions', default=[])
 
         if not Doc.has_extension('clean'):
             Doc.set_extension('clean', getter=clean_getter)
@@ -151,6 +153,7 @@ class Pollution(BaseComponent):
         if not Doc.has_extension('char_clean_span'):
             Doc.set_extension('char_clean_span', method=char_clean2original)
 
+        self.matcher = RegexMatcher(self.nlp.vocab)
         self.build_patterns()
 
     def build_patterns(self) -> None:
@@ -206,6 +209,8 @@ class Pollution(BaseComponent):
 
             for token in pollution:
                 token._.pollution = True
+                
+        doc._.pollutions = pollutions
 
         return doc
 

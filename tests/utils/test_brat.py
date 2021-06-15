@@ -14,8 +14,8 @@ def brat2(tmpdir):
     return BratConnector(tmpdir)
 
 
-def test_brat2pandas(brat):
-    texts, annotations = brat.get_brat()
+# def test_brat2pandas(brat):
+#     texts, annotations = brat.get_brat()
 
 
 def test_docs2brat(nlp, brat2):

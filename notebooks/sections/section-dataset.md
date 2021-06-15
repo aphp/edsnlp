@@ -26,6 +26,14 @@ import pandas as pd
 import os
 ```
 
+```python
+import context
+```
+
+```python
+from nlptools.utils.brat import BratConnector
+```
+
 # Sections dataset
 
 
@@ -36,56 +44,11 @@ data_dir = '../../data/section_dataset/'
 ```
 
 ```python
-files = os.listdir(data_dir)
+brat = BratConnector(data_dir)
 ```
 
 ```python
-texts = [f[:-4] for f in files if f.endswith('.txt')]
-```
-
-```python
-df = pd.DataFrame(dict(filename=texts))
-```
-
-```python
-df
-```
-
-```python
-def read_file(filename):
-    with open(filename, 'r') as f:
-        return f.read()
-```
-
-```python
-df['text'] = df.filename.apply(lambda f: read_file(data_dir + f + '.txt'))
-```
-
-```python
-df['annotation'] = df.filename.apply(lambda f: read_file(data_dir + f + '.ann'))
-```
-
-```python
-df
-```
-
-```python
-annotations = []
-
-for filename in df[df.annotation.str.len() > 0].filename:
-    annotations.append(pd.read_csv(data_dir + filename + '.ann', sep='\t', header=None))
-```
-
-```python
-annotations = pd.concat(annotations)
-```
-
-```python
-annotations.columns = ['index', 'annotation', 'lexical_variant']
-```
-
-```python
-annotations.to_csv('annotations.csv', index=False)
+texts, annotations = brat.get_brat()
 ```
 
 ```python

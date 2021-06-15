@@ -45,6 +45,7 @@ coverage.xml
 *.xlsx
 *.tar.gz
 *.tsv
+*.ann
 
 # Editors
 .idea

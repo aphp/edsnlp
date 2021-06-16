@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.11.2
+      jupytext_version: 1.11.3
   kernelspec:
     display_name: Python 3
     language: python
@@ -36,6 +36,10 @@ from nlptools.rules.pollution import Pollution, terms as pollution_terms
 from nlptools.rules.sections import Sections, terms as section_terms
 ```
 
+```python
+from nlptools.rules.quickumls import QuickUMLSComponent
+```
+
 # Baselines
 
 
@@ -50,7 +54,7 @@ sections = Sections(nlp, section_terms.sections)
 ```
 
 ```python
-pollution = Pollution(nlp, terms.pollution)
+pollution = Pollution(nlp, pollution_terms.pollution)
 ```
 
 ```python
@@ -70,6 +74,10 @@ doc = nlp(text)
 
 ```python
 doc = sections(doc)
+```
+
+```python
+doc._.sections
 ```
 
 ```python

@@ -1,0 +1,1 @@
+from .quickumls import QuickUMLSComponent

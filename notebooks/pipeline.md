@@ -60,7 +60,7 @@ doc = nlp(text)
 ```
 
 ```python
-doc._.sections
+doc._.section_titles
 ```
 
 ```python

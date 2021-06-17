@@ -50,7 +50,7 @@ sections = Sections(nlp, section_terms.sections)
 ```
 
 ```python
-pollution = Pollution(nlp, terms.pollution)
+pollution = Pollution(nlp, pollution_terms.pollution)
 ```
 
 ```python
@@ -77,7 +77,15 @@ doc = pollution(doc)
 ```
 
 ```python
-{s.label_: s for s in doc._.sections}
+doc._.section_titles
+```
+
+```python
+doc._.sections
+```
+
+```python
+{s.label_: s for s in doc._.section_titles}
 ```
 
 ```python

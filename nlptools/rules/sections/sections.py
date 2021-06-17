@@ -101,8 +101,8 @@ class Sections(BaseComponent):
             section._.section_title = t1
             sections.append(section)
 
-        if sections:
-            t = sections[-1]
+        if titles:
+            t = titles[-1]
             section = Span(doc, t.start, len(doc), label=t.label)
             section._.section_title = t
             sections.append(section)

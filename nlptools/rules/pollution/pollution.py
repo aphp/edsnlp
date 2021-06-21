@@ -166,7 +166,7 @@ class Pollution(BaseComponent):
         for term in self.pollution.values():
             self.matcher.add("pollution", [term])
 
-    def process_pollutions(self, doc: Doc) -> List[Span]:
+    def process(self, doc: Doc) -> List[Span]:
         """
         Find pollutions in doc and clean candidate negations to remove pseudo negations
 
@@ -203,7 +203,7 @@ class Pollution(BaseComponent):
         -------
         doc: spaCy Doc object, annotated for negation
         """
-        pollutions = self.process_pollutions(doc)
+        pollutions = self.process(doc)
 
         for pollution in pollutions:
 

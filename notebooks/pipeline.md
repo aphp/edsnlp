@@ -39,7 +39,7 @@ nlp = spacy.blank('fr')
 ```
 
 ```python
-nlp.add_pipe('sentencizer')
+# nlp.add_pipe('sentencizer')
 nlp.add_pipe('sections')
 nlp.add_pipe('pollution')
 ```
@@ -60,7 +60,11 @@ doc = nlp(text)
 ```
 
 ```python
-doc._.section_titles
+doc._.sections
+```
+
+```python
+doc._.clean_
 ```
 
 ```python

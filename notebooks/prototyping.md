@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.11.2
+      jupytext_version: 1.11.3
   kernelspec:
     display_name: Python 3
     language: python
@@ -36,6 +36,10 @@ from nlptools.rules.pollution import Pollution, terms as pollution_terms
 from nlptools.rules.sections import Sections, terms as section_terms
 ```
 
+```python
+from nlptools.rules.generic import GenericMatcher
+```
+
 # Baselines
 
 
@@ -46,7 +50,11 @@ nlp = spacy.blank('fr')
 ```
 
 ```python
-sections = Sections(nlp, section_terms.sections)
+sections = Sections(nlp, section_terms.sections, fuzzy=True)
+```
+
+```python
+matcher = GenericMatcher(nlp, terms=dict(problem=['douleurs', 'rhume']), regex=dict(famille=[r'fam\w\wle']), fuzzy=True)
 ```
 
 ```python
@@ -55,10 +63,10 @@ pollution = Pollution(nlp, pollution_terms.pollution)
 
 ```python
 text = (
-    "Le patient est admis pour des douleurs dans le bras droit, mais n'a pas de problème de locomotion. "
+    "Le patient est admis pour des douleuurs dans le bras droit, mais n'a pas de problème de locomotion. "
     "Historique d'AVC dans la famille. pourrait être un cas de rhume.\n"
     "NBNbWbWbNbWbNBNbNbWbWbNBNbWbNbNbWbNBNbWbNbNBWbWbNbNbNBWbNbWbNbWBNbNbWbNbNBNbWbWbNbWBNbNbWbNBNbWbWbNb\n"
-    "Pourrait être un cas de rhume.\n"
+    "Pourrait être un cas de rhume. \n"
     "Motif :\n"
     "Douleurs dans le bras droit."
 )
@@ -69,7 +77,19 @@ doc = nlp(text)
 ```
 
 ```python
-doc = sections(doc)
+doc = matcher(doc)
+```
+
+```python
+doc.ents
+```
+
+```python
+doc.ents[0].label_
+```
+
+```python
+doc._.sections
 ```
 
 ```python

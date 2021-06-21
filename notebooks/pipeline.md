@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.11.2
+      jupytext_version: 1.11.3
   kernelspec:
     display_name: Python 3
     language: python
@@ -39,7 +39,7 @@ nlp = spacy.blank('fr')
 ```
 
 ```python
-nlp.add_pipe('sentencizer')
+# nlp.add_pipe('sentencizer')
 nlp.add_pipe('sections')
 nlp.add_pipe('pollution')
 ```
@@ -61,6 +61,10 @@ doc = nlp(text)
 
 ```python
 doc._.sections
+```
+
+```python
+doc._.clean_
 ```
 
 ```python

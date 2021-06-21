@@ -2,13 +2,12 @@ from typing import List, Dict
 
 from loguru import logger
 from spacy.language import Language
-from spacy.matcher import PhraseMatcher
 from spacy.tokens import Doc, Span
 
-from nlptools.rules.base import BaseComponent
+from nlptools.rules.generic import GenericMatcher
 
 
-class Sections(BaseComponent):
+class Sections(GenericMatcher):
     """
     Divides the document into sections.
     
@@ -29,13 +28,12 @@ class Sections(BaseComponent):
             self,
             nlp: Language,
             sections: Dict[str, List[str]],
+            **kwargs,
     ):
 
         logger.warning('The component Sections is still in Beta. Use at your own risks.')
 
-        self.nlp = nlp
-
-        self.sections = sections
+        super().__init__(nlp, terms=sections, **kwargs)
 
         if not Doc.has_extension('sections'):
             Doc.set_extension('sections', default=[])
@@ -45,39 +43,6 @@ class Sections(BaseComponent):
 
         if not Span.has_extension('section_title'):
             Span.set_extension('section_title', default=None)
-
-        self.matcher = PhraseMatcher(self.nlp.vocab, attr='LOWER')
-        self.build_patterns()
-
-    def build_patterns(self) -> None:
-        # efficiently build spaCy matcher patterns
-
-        for section, expressions in self.sections.items():
-            patterns = list(self.nlp.tokenizer.pipe(expressions))
-            self.matcher.add(section, patterns)
-
-    def process(self, doc: Doc) -> List[Span]:
-        """
-        Find section references in doc and filter out duplicates and inclusions
-
-        Parameters
-        ----------
-        doc: spaCy Doc object
-
-        Returns
-        -------
-        sections: List of Spans referring to sections.
-        """
-        matches = self.matcher(doc)
-
-        sections = [
-            Span(doc, start, end, label=self.nlp.vocab.strings[match_id])
-            for match_id, start, end in matches
-        ]
-
-        sections = self._filter_matches(sections)
-
-        return sections
 
     # noinspection PyProtectedMember
     def __call__(self, doc: Doc) -> Doc:
@@ -101,8 +66,8 @@ class Sections(BaseComponent):
             section._.section_title = t1
             sections.append(section)
 
-        if sections:
-            t = sections[-1]
+        if titles:
+            t = titles[-1]
             section = Span(doc, t.start, len(doc), label=t.label)
             section._.section_title = t
             sections.append(section)

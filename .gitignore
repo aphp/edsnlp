@@ -33,6 +33,9 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+# Documentation
+_build/
+
 # Notebooks
 .ipynb_checkpoints/
 *.ipynb

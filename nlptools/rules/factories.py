@@ -1,10 +1,11 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from spacy.language import Language
 
 from nlptools.rules.pollution import Pollution, terms as pollution_terms
 from nlptools.rules.sections import Sections, terms as section_terms
 from nlptools.rules.quickumls import QuickUMLSComponent
+from nlptools.rules.generic import GenericMatcher
 
 pollution_default_config = dict(
     pollution=pollution_terms.pollution,
@@ -44,3 +45,19 @@ def create_quickumls_component(
         distribution: str,
 ):
     return QuickUMLSComponent(nlp, distribution=distribution)
+
+
+# noinspection PyUnusedLocal
+@Language.factory("matcher")
+def create_matcher_component(
+        nlp: Language,
+        name: str,
+        terms: Optional[Dict[str, List[str]]] = None,
+        regex: Optional[Dict[str, List[str]]] = None,
+        fuzzy: Optional[bool] = False,
+):
+    if terms is None:
+        terms = dict()
+    if regex is None:
+        regex = dict()
+    return GenericMatcher(nlp, terms=terms, regex=regex, fuzzy=fuzzy)

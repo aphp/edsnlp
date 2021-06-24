@@ -1,6 +1,7 @@
 import re
-
 from typing import Optional, List
+
+from loguru import logger
 
 
 class RegexMatcher(object):
@@ -19,6 +20,7 @@ class RegexMatcher(object):
         for key, patterns in self.regex.items():
             for pattern in patterns:
                 for match in pattern.finditer(doc.text):
+                    logger.trace(f'Matched a regex from {key}: {repr(match.group())}')
                     span = doc.char_span(
                         match.start(),
                         match.end(),

@@ -1,12 +1,12 @@
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 
 import numpy as np
 from spacy.language import Language
 from spacy.tokens import Token, Span, Doc
-from spaczz.matcher import RegexMatcher
 
 from nlptools.rules.base import BaseComponent
 from nlptools.rules.pollution import terms
+from nlptools.rules.regex import RegexMatcher
 
 
 # noinspection PyProtectedMember
@@ -131,12 +131,16 @@ class Pollution(BaseComponent):
     def __init__(
             self,
             nlp: Language,
-            pollution: Dict[str, str],
+            pollution: Dict[str, Union[str, List[str]]],
     ):
 
         self.nlp = nlp
 
         self.pollution = pollution
+
+        for k, v in self.pollution.items():
+            if isinstance(v, str):
+                self.pollution[k] = [v]
 
         if not Token.has_extension('pollution'):
             Token.set_extension('pollution', default=False)
@@ -153,7 +157,7 @@ class Pollution(BaseComponent):
         if not Doc.has_extension('char_clean_span'):
             Doc.set_extension('char_clean_span', method=char_clean2original)
 
-        self.matcher = RegexMatcher(self.nlp.vocab)
+        self.matcher = RegexMatcher()
         self.build_patterns()
 
     def build_patterns(self) -> None:
@@ -163,8 +167,8 @@ class Pollution(BaseComponent):
 
         # efficiently build spaCy matcher patterns
 
-        for term in self.pollution.values():
-            self.matcher.add("pollution", [term])
+        for k, v in self.pollution.items():
+            self.matcher.add(k, v)
 
     def process(self, doc: Doc) -> List[Span]:
         """
@@ -179,12 +183,7 @@ class Pollution(BaseComponent):
         pollution: list of pollution spans
         """
 
-        matches = self.matcher(doc)
-        pollutions = [
-            Span(doc, start, end, label='neg_pseudo')
-            for match_id, start, end, ratio in matches
-            if match_id == "pollution"
-        ]
+        pollutions = self.matcher(doc)
 
         pollutions = self._filter_matches(pollutions)
 
@@ -209,7 +208,7 @@ class Pollution(BaseComponent):
 
             for token in pollution:
                 token._.pollution = True
-                
+
         doc._.pollutions = pollutions
 
         return doc

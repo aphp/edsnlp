@@ -5,6 +5,8 @@ from spacy.matcher import PhraseMatcher
 from spacy.tokens import Doc, Span
 from spaczz.matcher import FuzzyMatcher, RegexMatcher
 
+from spacy.util import filter_spans
+
 from nlptools.rules.base import BaseComponent
 
 
@@ -20,7 +22,7 @@ class GenericMatcher(BaseComponent):
             regex: Optional[Dict[str, List[str]]] = None,
             fuzzy: Optional[bool] = False,
             fuzzy_kwargs: Optional[Dict[str, Any]] = None,
-            filter_matches: Optional[bool] = True,
+            filter_matches: Optional[bool] = False,
     ):
         """
         Initialises the pipeline.
@@ -93,7 +95,7 @@ class GenericMatcher(BaseComponent):
             spans.append(span)
 
         if self.filter_matches:
-            spans = self._filter_matches(spans)
+            spans = filter_spans(spans)
 
         return spans
 

@@ -13,4 +13,13 @@ setup(
     long_description_content_type="text/markdown",
     python_requires=">=3.6",
     packages=find_packages(),
+    install_requires=[
+        'loguru',
+        'mlconjug3',
+        'numpy',
+        'pandas',
+        'spacy',
+        'spaczz',
+        'unidecode',
+    ]
 )

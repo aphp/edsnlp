@@ -3,7 +3,9 @@ from typing import List, Dict, Optional, Any
 from spacy.language import Language
 from spacy.matcher import PhraseMatcher
 from spacy.tokens import Doc, Span
-from spaczz.matcher import FuzzyMatcher, RegexMatcher
+from spaczz.matcher import FuzzyMatcher
+
+from nlptools.rules.regex import RegexMatcher
 
 from nlptools.rules.base import BaseComponent
 
@@ -51,7 +53,7 @@ class GenericMatcher(BaseComponent):
         else:
             self.matcher = PhraseMatcher(self.nlp.vocab, attr='LOWER')
 
-        self.regex_matcher = RegexMatcher(self.nlp.vocab)
+        self.regex_matcher = RegexMatcher()
 
         self.build_patterns()
 
@@ -60,8 +62,8 @@ class GenericMatcher(BaseComponent):
             patterns = list(self.nlp.tokenizer.pipe(expressions))
             self.matcher.add(key, patterns)
 
-        for key, expressions in self.regex.items():
-            self.regex_matcher.add(key, expressions)
+        for key, patterns in self.regex.items():
+            self.regex_matcher.add(key, patterns)
 
     def process(self, doc: Doc) -> List[Span]:
         """
@@ -88,9 +90,7 @@ class GenericMatcher(BaseComponent):
             spans.append(span)
 
         for match in regex_matches:
-            match_id, start, end = match[:3]
-            span = Span(doc, start, end, label=match_id)
-            spans.append(span)
+            spans.append(match)
 
         if self.filter_matches:
             spans = self._filter_matches(spans)

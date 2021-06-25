@@ -1,10 +1,11 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from spacy.language import Language
 
 from nlptools.rules.pollution import Pollution, terms as pollution_terms
 from nlptools.rules.sections import Sections, terms as section_terms
 from nlptools.rules.quickumls import QuickUMLSComponent
+from nlptools.rules.sentences import SentenceSegmenter
 from nlptools.rules.generic import GenericMatcher
 
 pollution_default_config = dict(
@@ -48,12 +49,22 @@ def create_quickumls_component(
 
 
 # noinspection PyUnusedLocal
+@Language.factory("sentences")
+def create_sentences_component(
+        nlp: Language,
+        name: str,
+        punct_chars: Optional[List[str]] = None,
+):
+    return SentenceSegmenter(punct_chars)
+
+
+# noinspection PyUnusedLocal
 @Language.factory("matcher")
 def create_matcher_component(
         nlp: Language,
         name: str,
-        terms: Optional[Dict[str, List[str]]] = None,
-        regex: Optional[Dict[str, List[str]]] = None,
+        terms: Optional[Dict[str, Union[str, List[str]]]] = None,
+        regex: Optional[Dict[str, Union[str, List[str]]]] = None,
         fuzzy: Optional[bool] = False,
 ):
     if terms is None:

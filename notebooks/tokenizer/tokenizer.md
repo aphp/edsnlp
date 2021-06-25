@@ -43,13 +43,16 @@ from spacy.util import compile_prefix_regex, compile_suffix_regex
 
 # Ajout de règles supplémentaires pour gérer les infix
 def custom_tokenizer(nlp):
-    infix_re = re.compile(r'''[\,\?\:\;\‘\’\`\“\”\"\'~/]''')
+    infix_re = re.compile(r'''[\,\?\:\;\‘\’\`\“\”\"\'~/\(\)\.\+=(->)\$]''')
     prefix_re = compile_prefix_regex(nlp.Defaults.prefixes + ['-'])
     suffix_re = compile_suffix_regex(nlp.Defaults.suffixes)
-    return Tokenizer(nlp.vocab, prefix_search=prefix_re.search,
-                                suffix_search=suffix_re.search,
-                                infix_finditer=infix_re.finditer,
-                                token_match=None)
+    return Tokenizer(
+        nlp.vocab, 
+        prefix_search=prefix_re.search,
+        suffix_search=suffix_re.search,
+        infix_finditer=infix_re.finditer,
+    )
+
 def new_nlp():
     
     nlp = spacy.blank('fr')
@@ -64,19 +67,20 @@ nlp = new_nlp()
 
 ```python
 # nlp.add_pipe('sentencizer')
-nlp.add_pipe('matcher', config=dict(regex=dict(douleurs=['blème de locomotion', 'douleurs'])))
+nlp.add_pipe('matcher', config=dict(regex=dict(douleurs=['blème de locomotion', 'douleurs', 'IMV'])))
 nlp.add_pipe('sections')
 nlp.add_pipe('pollution')
 ```
 
 ```python
 text = (
-    "Le patient est admis pour des douleurs dans le bras droit, mais n'a pas de problème de locomotion. "
+    "Le patient est admis pour des douleurs dans le bras droit, mais n'a pas de problème de locomotion. Test(et oui) "
     "Historique d'AVC dans la famille. pourrait être un cas de rhume.\n"
     "NBNbWbWbNbWbNBNbNbWbWbNBNbWbNbNbWbNBNbWbNbNBWbWbNbNbNBWbNbWbNbWBNbNbWbNbNBNbWbWbNbWBNbNbWbNBNbWbWbNb\n"
+    "IMV--deshabillé\n"
     "Pourrait être un cas de rhume.\n"
     "Motif :\n"
-    "-problème de locomotions\n"
+    "-problème de locomotions==+test\n"
     "Douleurs dans le bras droit."
 )
 ```
@@ -87,6 +91,10 @@ doc = nlp(text)
 
 ```python
 doc.ents
+```
+
+```python
+doc[19]
 ```
 
 ```python
@@ -108,24 +116,24 @@ doc._.clean_
 On peut tester l'extraction d'entité dans le texte nettoyé :
 
 ```python
-doc._.clean_[165:181]
+doc_clean = nlp(doc._.clean_)
+```
+
+```python
+ent = doc_clean[64:68]
+ent
 ```
 
 Les deux textes ne sont plus alignés :
 
 ```python
-doc.text[165:181]
+doc.text[ent.start_char:ent.end_char]
 ```
 
 Mais la méthode `char_clean_span` permet de réaligner les deux représentations :
 
 ```python
-span = doc._.char_clean_span(165, 181)
-span
-```
-
-```python
-doc._.sections[0]
+doc._.char_clean_span(ent.start_char, ent.end_char)
 ```
 
 ```python

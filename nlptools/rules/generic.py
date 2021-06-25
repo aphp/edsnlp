@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Union
 
 from spacy.language import Language
 from spacy.matcher import PhraseMatcher
@@ -20,8 +20,8 @@ class GenericMatcher(BaseComponent):
     def __init__(
             self,
             nlp: Language,
-            terms: Optional[Dict[str, List[str]]] = None,
-            regex: Optional[Dict[str, List[str]]] = None,
+            terms: Optional[Dict[str, Union[List[str], str]]] = None,
+            regex: Optional[Dict[str, Union[List[str], str]]] = None,
             fuzzy: Optional[bool] = False,
             fuzzy_kwargs: Optional[Dict[str, Any]] = None,
             filter_matches: Optional[bool] = False,
@@ -42,7 +42,14 @@ class GenericMatcher(BaseComponent):
         self.nlp = nlp
 
         self.terms = terms or dict()
+        for k, v in self.terms.items():
+            if isinstance(v, str):
+                self.terms[k] = [v]
+
         self.regex = regex or dict()
+        for k, v in self.regex.items():
+            if isinstance(v, str):
+                self.regex[k] = [v]
 
         self.fuzzy = fuzzy
 

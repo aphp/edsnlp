@@ -40,6 +40,10 @@ from nlptools.rules.sections import Sections, terms as section_terms
 from nlptools.rules.quickumls import QuickUMLSComponent
 ```
 
+```python
+from nlptools.rules.generic import GenericMatcher
+```
+
 # Baselines
 
 
@@ -54,7 +58,13 @@ sections = Sections(nlp, section_terms.sections, fuzzy=True)
 ```
 
 ```python
-matcher = GenericMatcher(nlp, terms=dict(problem=['douleurs', 'rhume']), regex=dict(famille=[r'fam\w\wle']), fuzzy=True)
+matcher = GenericMatcher(
+    nlp, 
+    terms=dict(problem=['douleurs', 'rhume']), 
+    regex=dict(famille=[r'fam\w\wle', r'\b\w+\b']), 
+    fuzzy=True,
+    filter_matches=True,
+)
 ```
 
 ```python
@@ -78,6 +88,18 @@ doc = nlp(text)
 
 ```python
 doc = matcher(doc)
+```
+
+```python
+from spacy.util import filter_spans
+```
+
+```python
+%timeit filter_spans(doc.ents)
+```
+
+```python
+%timeit matcher._filter_matches(doc.ents)
 ```
 
 ```python

@@ -5,6 +5,8 @@ import mlconjug3
 import pandas as pd
 from spacy.tokens import Doc, Span
 
+from spacy.util import filter_spans
+
 if not Doc.has_extension('note_id'):
     Doc.set_extension('note_id', default=None)
 
@@ -33,32 +35,7 @@ class BaseComponent(object):
         filtered_matches: List of filtered matches.
         """
 
-        filtered_matches = []
-
-        for span in matches:
-
-            if not set(range(span.start, span.end)).intersection(
-                    chain(*[set(range(s.start, s.end)) for s in filtered_matches])
-            ):
-                filtered_matches.append(span)
-
-            else:
-                s = set(range(span.start, span.end))
-
-                for match in filtered_matches[:]:
-                    m = set(range(match.start, match.end))
-
-                    if m & s:
-                        tokens = sorted(list(s | m))
-                        start, end = tokens[0], tokens[-1]
-
-                        new_span = Span(span.doc, start, end + 1, label=span.label_)
-
-                        filtered_matches.remove(match)
-                        filtered_matches.append(new_span)
-                        break
-
-        return filtered_matches
+        return filter_spans(matches)
 
     def _boundaries(self, doc: Doc, terminations: Optional[List[Span]] = None) -> List[Tuple[int, int]]:
         """

@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 from spacy.tokens import Doc
 
 
@@ -5,6 +7,10 @@ class SentenceSegmenter(object):
     """
     Segments the Doc into sentences using a rule-based strategy,
     specific to AP-HP documents.
+
+    Applies the same rule-based pipeline as Spacy's sentencizer,
+    and adds a simple rule on the new lines : if a new line is followed by a
+    capitalised word, then it is also an end of sentence.
 
     DOCS: https://spacy.io/api/sentencizer
     """
@@ -24,13 +30,31 @@ class SentenceSegmenter(object):
         '｡', '。'
     ]
 
-    def __init__(self, punct_chars=None):
+    def __init__(self, punct_chars: Optional[List[str]] = None):
+        """
+        Initialises the component.
+
+        Arguments
+        ---------
+        punct_chars: Punctuation characters.
+        """
         if punct_chars:
             self.punct_chars = set(punct_chars)
         else:
             self.punct_chars = set(self.default_punct_chars)
 
     def __call__(self, doc: Doc) -> Doc:
+        """
+        Segments the document in sentences.
+
+        Arguments
+        ---------
+        doc: A spacy Doc object.
+
+        Returns
+        -------
+        doc: A Spacy Doc object, annotated for sentences.
+        """
 
         seen_period = False
         seen_newline = False
@@ -56,7 +80,5 @@ class SentenceSegmenter(object):
                 seen_period = True
             elif is_newline:
                 seen_newline = True
-
-            # print(repr(token.text), is_newline, token.sent_start)
 
         return doc

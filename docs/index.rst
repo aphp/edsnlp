@@ -1,29 +1,60 @@
-.. NLP Tools documentation master file, created by
-   sphinx-quickstart on Mon Jun 14 14:41:03 2021.
+.. eds-timeliness documentation master file, created by
+   sphinx-quickstart on Fri June 18 2021.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to NLP Tools's documentation!
-=====================================
+################################################
+Welcome to NLP Tools documentation!
+################################################
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :hidden:
+   :caption: User Guide
 
-.. automodule:: nlptools.utils.brat
-   :members:
-   :no-undoc-members:
+   user-guide/pollution
 
-.. autoclass:: nlptools.utils.brat.BratConnector
-   :members:
-   :member-order: bysource
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: API
+
+   api/normalisation
+   api/connectors
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: Connectors
+
+   connectors/brat
 
 
+`User guide <user-guide/index.html>`_
+------------------------------------------
 
+Some documentation describing the functionality of the package with a set of examples illustrating
+the use of the different functionalities.
 
-Indices and tables
-==================
+`API Documentation <api/api.html>`_
+-----------------------------------
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+The exact API of all functions, as given in the
+doctring. The API documents expected types and allowed features for
+all functions, and all parameters available.
+
+`Tutorial <tutorial/real_use_case.html>`_
+------------------------------------------
+
+A real use case like example.
+
+`Contributing <extra/contributing.html>`_
+-----------------------------------------
+
+Since the library is still in being structured, it is not possible to contribute for the moment.
+
+`About eds-timeliness <extra/version_history.html>`_
+----------------------------------------------------
+
+Just to know about history of this package.
+

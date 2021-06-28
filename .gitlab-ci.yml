@@ -12,14 +12,13 @@ test:
     - flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - python -m pytest
 
-# pages:
-#   script:
-#     - pip install sphinx sphinx-rtd-theme
-#     - cd doc ; make html
-#     - mv build/html/ ../public/
-#   artifacts:
-#     paths:
-#       - public
+ pages:
+   script:
+     - pip install -r requirements-docs.txt
+     - cd docs ; make html
+     - mv _build/html/ ../public/
+   artifacts:
+     paths:
+       - public
 #   rules:
 #     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-

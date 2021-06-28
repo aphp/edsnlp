@@ -68,7 +68,7 @@ text = (
     "Pourrait aussi être un cas de rhume.\n"
     "Motif :\n"
     "-problème de locomotions\n"
-    "Douleurs dans le bras droit."
+    "Douleurs dans le bras droit.\n\n\n\n"
 )
 ```
 
@@ -102,6 +102,8 @@ doc = sentencer(nlp(text))
 for sent in doc.sents:
     print('##', repr(sent.text))
 ```
+
+Note that the newline character is now linked to the preceding sentence. That is especially relevant if the note ends on a newline.
 
 ```python
 

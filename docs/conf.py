@@ -35,7 +35,13 @@ extensions = [
 ]
 
 # Autodoc options
-autodoc_member_order = 'bysource'
+autodoc_default_options = {
+    'members': True,
+    'member-order': 'bysource',
+    'undoc-members': '__module__, __weakref__',
+}
+
+autodoc_typehints = 'description'
 
 # MyST options
 source_suffix = {

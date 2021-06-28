@@ -14,6 +14,8 @@ Welcome to NLP Tools documentation!
 
    user-guide/anatomy
    user-guide/pollution
+   user-guide/sections
+   user-guide/quickumls
 
 .. toctree::
    :maxdepth: 2
@@ -21,7 +23,9 @@ Welcome to NLP Tools documentation!
    :caption: API
 
    api/base
-   api/normalisation
+   api/pollution
+   api/sections
+   api/quickumls
    api/connectors
 
 .. toctree::

@@ -13,6 +13,11 @@ class SentenceSegmenter(object):
     capitalised word, then it is also an end of sentence.
 
     DOCS: https://spacy.io/api/sentencizer
+
+    Arguments
+    ---------
+    punct_chars:
+        Punctuation characters.
     """
 
     # Default punctuation defined for the sentencizer : https://spacy.io/api/sentencizer
@@ -31,14 +36,6 @@ class SentenceSegmenter(object):
     ]
 
     def __init__(self, punct_chars: Optional[List[str]] = None):
-        """
-        Initialises the component.
-
-        Arguments
-        ---------
-        punct_chars:
-            Punctuation characters.
-        """
         if punct_chars:
             self.punct_chars = set(punct_chars)
         else:

@@ -37,7 +37,7 @@ Welcome to NLP Tools documentation!
 Some documentation describing the functionality of the package with a set of examples illustrating the use of the different functionalities.
 
 
-`User guide <api/index.html>`_
+`API <api/index.html>`_
 ------------------------------------------
 
 A rundown of the full API.

@@ -36,7 +36,8 @@ class SentenceSegmenter(object):
 
         Arguments
         ---------
-        punct_chars: Punctuation characters.
+        punct_chars:
+            Punctuation characters.
         """
         if punct_chars:
             self.punct_chars = set(punct_chars)
@@ -49,11 +50,13 @@ class SentenceSegmenter(object):
 
         Arguments
         ---------
-        doc: A spacy Doc object.
+        doc:
+            A spacy Doc object.
 
         Returns
         -------
-        doc: A Spacy Doc object, annotated for sentences.
+        doc:
+            A Spacy Doc object, annotated for sentences.
         """
 
         seen_period = False

@@ -12,6 +12,7 @@ Welcome to NLP Tools documentation!
    :hidden:
    :caption: User Guide
 
+   user-guide/anatomy
    user-guide/pollution
 
 .. toctree::
@@ -19,6 +20,7 @@ Welcome to NLP Tools documentation!
    :hidden:
    :caption: API
 
+   api/base
    api/normalisation
    api/connectors
 
@@ -36,24 +38,12 @@ Welcome to NLP Tools documentation!
 Some documentation describing the functionality of the package with a set of examples illustrating
 the use of the different functionalities.
 
-`API Documentation <api/api.html>`_
------------------------------------
-
-The exact API of all functions, as given in the
-doctring. The API documents expected types and allowed features for
-all functions, and all parameters available.
-
-`Tutorial <tutorial/real_use_case.html>`_
-------------------------------------------
-
-A real use case like example.
-
 `Contributing <extra/contributing.html>`_
 -----------------------------------------
 
 Since the library is still in being structured, it is not possible to contribute for the moment.
 
-`About eds-timeliness <extra/version_history.html>`_
+`About eds-timeliness <extra/version-history.html>`_
 ----------------------------------------------------
 
 Just to know about history of this package.

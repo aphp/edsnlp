@@ -12,7 +12,7 @@ allergies = ['allergies', 'allergies :']
 antecedents = ['antecedents', 'antecedents :', 'antecedents medicaux et chirurgicaux', 'antecedents personnels',
                'antécédents', 'antécédents :', 'antécédents médicaux et chirurgicaux', 'antécédents personnels']
 
-antecedents_familiaux = ['antecedents familiaux', 'antécédents familiaux']
+antecedents_familiaux = ['antecedents familiaux', 'antécédents familiaux', '- familiaux :']
 
 traitements_entree = ['attitude therapeutique initiale', 'attitude thérapeutique initiale', "traitement a l'entree",
                       "traitement a l'entrée", 'traitement actuel :', 'traitement en cours', "traitement à l'entrée",

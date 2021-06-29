@@ -124,16 +124,12 @@ annotated
 ```
 
 ```python
-annotated.section = annotated.section.str.replace(' ', '_')
-```
-
-```python
 annotated = annotated.drop_duplicates()
 ```
 
 ```python
 sections = {
-    section: list(annotated.query('section == @section').lexical_variant)
+    section.replace(' ', '_'): list(annotated.query('section == @section').lexical_variant)
     for section in annotated.section.unique()
 }
 ```
@@ -149,10 +145,6 @@ sections = {
     section: unidecode(section.replace(' ', '_'))
     for section in annotated.section.unique()
 }
-```
-
-```python
-annotated.section.unique()
 ```
 
 ```python

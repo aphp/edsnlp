@@ -72,6 +72,22 @@ annotated.to_csv('annotated_sections.csv', index=False)
 ```
 
 ```python
+annotated = pd.read_excel('sections.xlsx', sheet_name='Annotation', engine='openpyxl')
+```
+
+```python
+annotated.columns = ['lexical_variant', 'section', 'keep', 'comment']
+```
+
+```python
+annotated.keep = annotated.keep.fillna('Oui') == 'Oui'
+```
+
+```python
+annotated = annotated.query('keep')[['lexical_variant', 'section']]
+```
+
+```python
 annotated.merge(annotations, on='lexical_variant').section.value_counts()
 ```
 
@@ -80,11 +96,31 @@ annotated.lexical_variant = annotated.lexical_variant.str.lower()
 ```
 
 ```python
+annotated_unnaccented = annotated.copy()
+```
+
+```python
 from unidecode import unidecode
 ```
 
 ```python
-annotated.lexical_variant = annotated.lexical_variant.apply(unidecode)
+annotated_unnaccented.lexical_variant = annotated_unnaccented.lexical_variant.apply(unidecode)
+```
+
+```python
+annotated = pd.concat([annotated, annotated_unnaccented])
+```
+
+```python
+annotated = annotated.drop_duplicates()
+```
+
+```python
+annotated = annotated.sort_values(['lexical_variant', 'section'])
+```
+
+```python
+annotated
 ```
 
 ```python
@@ -104,8 +140,24 @@ sections = {
 
 ```python
 for k, v in sections.items():
-    print(unidecode(k.replace(' ', '_')), '=', [unidecode(v_) for v_ in v])
+    print(unidecode(k.replace(' ', '_')), '=', v)
     print()
+```
+
+```python
+sections = {
+    section: unidecode(section.replace(' ', '_'))
+    for section in annotated.section.unique()
+}
+```
+
+```python
+annotated.section.unique()
+```
+
+```python
+for k, v in sections.items():
+    print(f"{repr(k)}: {v},")
 ```
 
 ```python

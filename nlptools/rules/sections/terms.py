@@ -2,167 +2,83 @@
 These section titles were extracted from a work performed by Ivan Lerner at AP-HP.
 It supplied a number of documents annotated for section titles.
 
+The section titles were reviewed by Gilles Chatellier, who gave meaningful insights.
+
 See sections/section-dataset notebook for detail.
 """
 
-motif = [
-    "motif d'hospitalisation",
-    "motif de l'hospitalisation :",
-    "motif",
-    "motif de l'hospitalisation",
-]
+allergies = ['allergies', 'allergies :']
 
-habitus = [
-    "mode de vie",
-    "mode de vie :",
-    "habitus",
-    "mode de vie - scolarite",
-    "situation sociale, mode de vie",
-    "contexte familial et social",
-]
+antecedents = ['antecedents', 'antecedents :', 'antecedents medicaux et chirurgicaux', 'antecedents personnels',
+               'antécédents', 'antécédents :', 'antécédents médicaux et chirurgicaux', 'antécédents personnels']
 
-antecedents = [
-    "antecedents",
-    "antecedents personnels",
-    "antecedents medicaux et chirurgicaux",
-    "antecedents :",
-]
+antecedents_familiaux = ['antecedents familiaux', 'antécédents familiaux']
 
-traitements_entree = ["traitement a l'entree", "traitements a l'entree"]
+traitements_entree = ['attitude therapeutique initiale', 'attitude thérapeutique initiale', "traitement a l'entree",
+                      "traitement a l'entrée", 'traitement actuel :', 'traitement en cours', "traitement à l'entrée",
+                      "traitements a l'entree", "traitements à l'entrée"]
 
-histoire_de_la_maladie = [
-    "histoire de la maladie",
-    "histoire de la maladie actuelle",
-    "histoire de la maladie - explorations",
-    "histoire recente de la maladie",
-]
+conclusion = ['au total', 'conclusion', 'conclusion :', 'conclusion de sortie', 'syntese medicale / conclusion',
+              'synthese', 'synthese medicale', 'synthese medicale :', 'synthese medicale/conclusion', 'synthèse',
+              'synthèse médicale', 'synthèse médicale :', 'syntèse médicale / conclusion']
 
-examens_entree = ["examen clinique a l'entree", "examen clinique a l'entree :"]
+conclusion_entree = ["conclusion a l'entree", "conclusion à l'entrée"]
 
-examens_complementaires = [
-    "examens complementaires realises pendant le sejour",
-    "examens complementaires",
-    "examen(s) complementaire(s) :",
-    "examens complementaires a l'entree",
-    "examens complementaires :",
-    "examens para-cliniques",
-]
+habitus = ['contexte familial et social', 'habitus', 'mode de vie', 'mode de vie - scolarite',
+           'mode de vie - scolarité', 'mode de vie :', 'situation sociale, mode de vie']
 
-evolution = ["evolution", "evolution depuis la derniere consultation"]
+correspondants = ['correspondants']
 
-traitements_sortie = ["traitement de sortie", "traitement de sortie :"]
+diagnostic = ['diagnostic retenu']
 
-conclusion = [
-    "au total",
-    "conclusion de sortie",
-    "synthese medicale/conclusion",
-    "conclusion",
-    "conclusion :",
-    "synthese",
-    "syntese medicale / conclusion",
-]
+donnees_biometriques_entree = ["donnees biometriques et parametres vitaux a l'entree",
+                               "données biométriques et paramètres vitaux à l'entrée",
+                               "parametres vitaux et donnees biometriques a l'entree",
+                               "paramètres vitaux et données biométriques a l'entrée"]
 
-facteurs_de_risques = ["facteurs de risques", "facteurs de risque"]
+examens = ['examen clinique', 'examen clinique :', "examen clinique a l'entree", "examen clinique a l'entree :",
+           "examen clinique a l'entrée", "examen clinique à l'entrée", "examen clinique à l'entrée :"]
 
-donnees_biometriques_entree = [
-    "parametres vitaux et donnees biometriques a l'entree",
-    "donnees biometriques et parametres vitaux a l'entree",
-]
+examens_complementaires = ['examen(s) complementaire(s) :', 'examen(s) complémentaire(s) :', 'examens complementaires',
+                           'examens complementaires :', "examens complementaires a l'entree",
+                           'examens complementaires realises pendant le sejour', 'examens complémentaires',
+                           'examens complémentaires :', 'examens complémentaires réalisés pendant le séjour',
+                           "examens complémentaires à l'entrée", 'examens para-cliniques']
 
-projet = ["projet diagnostique et therapeutique"]
+facteurs_de_risques = ['facteurs de risque', 'facteurs de risques']
 
-examens = ["examen clinique", "examen clinique :"]
+histoire_de_la_maladie = ['histoire de la maladie', 'histoire de la maladie - explorations', 'histoire de la maladie :',
+                          'histoire de la maladie actuelle', 'histoire du poids :', 'histoire recente',
+                          'histoire recente de la maladie', 'histoire récente de la maladie', 'rappel clinique',
+                          'resume', 'resume clinique', 'résumé clinique']
 
-vaccination = ["vaccinations"]
+actes = ['intervention']
 
-planification = ["planification des soins"]
+motif = ['motif', "motif d'hospitalisation", "motif de l'hospitalisation", "motif de l'hospitalisation :"]
 
-traitements_actuels = ["traitement actuel :"]
+prescriptions = ['prescriptions de sortie :', 'prescriptions medicales de sortie',
+                 'prescriptions medicales de sortie :', 'prescriptions médicales de sortie',
+                 'prescriptions médicales de sortie :']
 
-histoire_poids = ["histoire du poids :"]
+traitements_sortie = ['traitement de sortie', 'traitement de sortie :']
 
-activite_physique = ["enquete activite physique :"]
-
-diagnostic = ["diagnostic", "diagnostics :", "diagnostics", "diagnostic retenu"]
-
-actes = [
-    "intervention",
-    "actes realises :",
-    "intervention(s) - acte(s) realise(s) :",
-    "actes realises",
-]
-
-rappel_clinique = ["rappel clinique"]
-
-description = ["description detaillee"]
-
-histoire = ["histoire recente", "histoire de la maladie", "histoire de la maladie :"]
-
-hemopathie = ["hemopathie"]
-
-consignes = ["consignes a la sortie", "conduite a tenir :"]
-
-suites = ["suites operatoires :"]
-
-prescriptions = [
-    "prescriptions medicales de sortie :",
-    "prescriptions de sortie :",
-    "prescriptions medicales de sortie",
-]
-
-indications = ["indication de l'acte"]
-
-resultats = ["resultat de la coronarographie", "resultats d'examens"]
-
-observations = ["observation"]
-
-prise_en_charge = ["prise en charge"]
-
-scores_entree = ["scores a l'entree"]
-
-scores_sortie = ["scores a la sortie"]
-
-resume = ["resume clinique", "resume"]
-
-plan = ["planification des soins / suites a donner"]
-
-entree = ["entree"]
-
-traitements = ["traitement", "traitement en cours"]
-
-suivi = ["suivi"]
-
-antecedents_familiaux = ["antecedents familiaux"]
-
-grossesse = ["grossesse - periode neonatale"]
-
-conclusion_entree = ["conclusion a l'entree"]
-
-plan_initial = ["attitude therapeutique initiale"]
-
-depistages = ["depistages"]
-
-destination = ["destination de sortie"]
-
-pose_catheter = ["pose de catheter central"]
-
-statut_sortie = ["statut fonctionnel de sortie"]
-
-correspondants = ["correspondants"]
-
-soins = ["soins infirmiers"]
-
-sections = dict(
-    motif=motif,
-    habitus=habitus,
-    antecedents=antecedents + antecedents_familiaux,
-    traitement=traitements + traitements_actuels + traitements_entree + traitements_sortie,
-    examens=examens + examens_entree + examens_complementaires,
-    conclusion=conclusion + conclusion_entree,
-    plan=plan + plan_initial + planification,
-    resultats=resultats + scores_entree + scores_sortie,
-    evolution=evolution,
-    histoire=histoire + histoire_poids + histoire_de_la_maladie,
-    diagnostic=diagnostic,
-    prescriptions=prescriptions,
-)
+sections = {
+    'allergies': allergies,
+    'antécédents': antecedents,
+    'antécédents familiaux': antecedents_familiaux,
+    'traitements entrée': traitements_entree,
+    'conclusion': conclusion,
+    'conclusion entrée': conclusion_entree,
+    'habitus': habitus,
+    'correspondants': correspondants,
+    'diagnostic': diagnostic,
+    'données biométriques entrée': donnees_biometriques_entree,
+    'examens': examens,
+    'examens complémentaires': examens_complementaires,
+    'facteurs de risques': facteurs_de_risques,
+    'histoire de la maladie': histoire_de_la_maladie,
+    'actes': actes,
+    'motif': motif,
+    'prescriptions': prescriptions,
+    'traitements sortie': traitements_sortie,
+}

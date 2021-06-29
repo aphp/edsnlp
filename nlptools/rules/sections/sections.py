@@ -33,7 +33,7 @@ class Sections(GenericMatcher):
 
         logger.warning('The component Sections is still in Beta. Use at your own risks.')
 
-        super().__init__(nlp, terms=sections, **kwargs)
+        super().__init__(nlp, terms=sections, filter_matches=True, **kwargs)
 
         if not Doc.has_extension('sections'):
             Doc.set_extension('sections', default=[])

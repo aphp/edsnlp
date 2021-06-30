@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.11.2
+      jupytext_version: 1.11.3
   kernelspec:
     display_name: Python 3
     language: python
@@ -45,7 +45,7 @@ import spacy
 # Sections dataset
 
 
-Réutilisation du [travail réalisé par Ivan Lerner à l'EDS](https://gitlab.eds.aphp.fr/IvanL/section_dataset).
+We are using [Ivan Lerner's work at EDS](https://gitlab.eds.aphp.fr/IvanL/section_dataset). Make sure you clone the repo.
 
 ```python
 data_dir = '../../data/section_dataset/'

@@ -33,6 +33,9 @@ class Sections(GenericMatcher):
 
         logger.warning('The component Sections is still in Beta. Use at your own risks.')
 
+        for k, v in sections.items():
+            sections[k] = ['\n' + v_ for v_ in v]
+
         super().__init__(nlp, terms=sections, filter_matches=True, **kwargs)
 
         if not Doc.has_extension('sections'):
@@ -58,6 +61,7 @@ class Sections(GenericMatcher):
         doc: spaCy Doc object, annotated for sections
         """
         titles = self.process(doc)
+        titles = [Span(doc, title.start + 1, title.end, label=title.label_) for title in titles]
 
         sections = []
 

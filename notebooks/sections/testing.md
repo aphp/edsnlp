@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.11.3
+      jupytext_version: 1.11.2
   kernelspec:
     display_name: Python 3
     language: python
@@ -115,6 +115,52 @@ df = df.drop('matches', axis=1)
 
 ```python
 df.head(20)
+```
+
+```python
+df = df.rename(columns={'start': 'offset_begin', 'end': 'offset_end', 'label': 'label_result'})
+```
+
+```python
+df['label_type'] = df.label_result
+```
+
+```python
+df['modifier_type'] = ''
+df['modifier_result'] = ''
+```
+
+```python
+from ipywidgets import Output, Button, VBox, Layout, Text, HTML
+from IPython.display import display
+from labeltool.labelling import GlobalLabels, Labels, Labelling
+
+out = Output()
+```
+
+```python
+labels = Labels()
+
+for label in df.label_result.unique():
+    labels.add(name = label, 
+               color = 'green',
+               selection_type = 'button')
+```
+
+```python
+labeller = Labelling(
+    df, 
+    labels_dict=labels.labels_dict,
+    from_save=False,
+    use_snippets=False,
+    out=out, 
+    display=display,
+)
+```
+
+```python
+labeller.run()
+out
 ```
 
 ```python

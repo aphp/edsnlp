@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from loguru import logger
 from spacy.language import Language
@@ -22,19 +22,36 @@ class Sections(GenericMatcher):
     document. These span from the start of one section title to the next,
     which can introduce obvious bias should an intermediate section title
     goes undetected.
+
+    Parameters
+    ----------
+    nlp:
+        Spacy pipeline object.
+    sections:
+        Dictionary of terms to look for
+    add_newline:
+        Whether to add a new line character before each expression, to improve precision.
+
+    Other Parameters
+    ----------------
+    fuzzy:
+        Whether to use fuzzy matching. Be aware, this significantly increases compute time.
     """
 
     def __init__(
             self,
             nlp: Language,
             sections: Dict[str, List[str]],
+            add_newline: Optional[bool] = False,
             **kwargs,
     ):
 
         logger.warning('The component Sections is still in Beta. Use at your own risks.')
 
-        for k, v in sections.items():
-            sections[k] = ['\n' + v_ for v_ in v]
+        self.add_newline = add_newline
+        if add_newline:
+            for k, v in sections.items():
+                sections[k] = ['\n' + v_ for v_ in v]
 
         super().__init__(nlp, terms=sections, filter_matches=True, **kwargs)
 
@@ -61,7 +78,10 @@ class Sections(GenericMatcher):
         doc: spaCy Doc object, annotated for sections
         """
         titles = self.process(doc)
-        titles = [Span(doc, title.start + 1, title.end, label=title.label_) for title in titles]
+
+        if self.add_newline:
+            # Remove preceding newline
+            titles = [Span(doc, title.start + 1, title.end, label=title.label_) for title in titles]
 
         sections = []
 

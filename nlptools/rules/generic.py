@@ -15,6 +15,21 @@ from nlptools.rules.base import BaseComponent
 class GenericMatcher(BaseComponent):
     """
     Provides a generic matcher component.
+
+    Parameters
+    ----------
+    nlp:
+        The Spacy object.
+    terms:
+        A dictionary of terms to look for.
+    regex:
+        A dictionary of regex patterns.
+    fuzzy:
+        Whether to perform fuzzy matching on the terms.
+    fuzzy_kwargs:
+        Default options for the fuzzy matcher, if used.
+    filter_matches:
+        Whether to filter out matches.
     """
 
     def __init__(
@@ -26,18 +41,6 @@ class GenericMatcher(BaseComponent):
             fuzzy_kwargs: Optional[Dict[str, Any]] = None,
             filter_matches: Optional[bool] = False,
     ):
-        """
-        Initialises the pipeline.
-
-        Parameters
-        ----------
-        nlp: The Spacy object.
-        terms: A dictionary of terms to look for.
-        regex: A dictionary of regex patterns.
-        fuzzy: Whether to perform fuzzy matching on the terms.
-        fuzzy_kwargs: Default options for the fuzzy matcher, if used.
-        filter_matches: Whether to filter out matches.
-        """
 
         self.nlp = nlp
 
@@ -80,11 +83,13 @@ class GenericMatcher(BaseComponent):
 
         Parameters
         ----------
-        doc: spaCy Doc object
+        doc:
+            spaCy Doc object
 
         Returns
         -------
-        sections: List of Spans referring to sections.
+        sections:
+            List of Spans referring to sections.
         """
         matches = self.matcher(doc)
         regex_matches = self.regex_matcher(doc)
@@ -112,11 +117,13 @@ class GenericMatcher(BaseComponent):
 
         Parameters
         ----------
-        doc: spaCy Doc object
+        doc:
+            spaCy Doc object
         
         Returns
         -------
-        doc: spaCy Doc object, annotated for extracted terms.
+        doc:
+            spaCy Doc object, annotated for extracted terms.
         """
         spans = self.process(doc)
 

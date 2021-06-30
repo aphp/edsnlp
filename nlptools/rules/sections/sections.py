@@ -22,6 +22,13 @@ class Sections(GenericMatcher):
     document. These span from the start of one section title to the next,
     which can introduce obvious bias should an intermediate section title
     goes undetected.
+
+    Parameters
+    ----------
+    nlp:
+        Spacy NLP pipeline
+    sections:
+        Dictionary containing section titles.
     """
 
     def __init__(
@@ -51,11 +58,13 @@ class Sections(GenericMatcher):
 
         Parameters
         ----------
-        doc: spaCy Doc object
+        doc:
+            spaCy Doc object
         
         Returns
         -------
-        doc: spaCy Doc object, annotated for sections
+        doc:
+            spaCy Doc object, annotated for sections
         """
         titles = self.process(doc)
 

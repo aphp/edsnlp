@@ -5,6 +5,22 @@ from typing import Optional
 
 
 class QuickUMLSComponent(BaseComponent):
+    """
+    This creates a QuickUMLS spaCy component which can be used in modular pipelines.
+
+    Arguments
+    ---------
+    nlp:
+        Existing spaCy pipeline.  This is needed to update the vocabulary with UMLS CUI values
+    distribution:
+        Path to QuickUMLS data
+    best_match:
+        Whether to return only the top match or all overlapping candidates. Defaults to True.
+    ignore_syntax:
+        Whether to use the heuristics introduced in the paper (Soldaini and Goharian, 2016).
+    **kwargs:
+        QuickUMLS keyword arguments (see QuickUMLS in core.py)
+    """
 
     def __init__(
             self,
@@ -14,19 +30,6 @@ class QuickUMLSComponent(BaseComponent):
             ignore_syntax: Optional[bool] = False,
             **kwargs
     ):
-        """
-        Instantiate SpacyQuickUMLS object
-
-        This creates a QuickUMLS spaCy component which can be used in modular pipelines.
-
-        Arguments
-        ---------
-        nlp: Existing spaCy pipeline.  This is needed to update the vocabulary with UMLS CUI values
-        distribution (str): Path to QuickUMLS data
-        best_match: Whether to return only the top match or all overlapping candidates. Defaults to True.
-        ignore_syntax: Whether to use the heuristics introduced in the paper (Soldaini and Goharian, 2016).
-        **kwargs: QuickUMLS keyword arguments (see QuickUMLS in core.py)
-        """
 
         from quickumls import QuickUMLS
 

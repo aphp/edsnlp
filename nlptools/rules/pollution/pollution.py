@@ -224,8 +224,3 @@ class Pollution(BaseComponent):
         doc._.pollutions = pollutions
 
         return doc
-
-
-default_config = dict(
-    pollution=terms.pollution,
-)

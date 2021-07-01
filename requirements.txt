@@ -1,6 +1,6 @@
 loguru~=0.5.3
 numpy~=1.19.1
-pandas~=1.1.1
+pandas~=1.2
 rapidfuzz~=1.4.1
 spacy~=3.0.6
 spaczz~=0.5.3

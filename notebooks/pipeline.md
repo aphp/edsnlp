@@ -5,12 +5,12 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.3'
-      jupytext_version: 1.11.3
+      format_version: '1.2'
+      jupytext_version: 1.6.0
   kernelspec:
-    display_name: Python 3
+    display_name: '[2.4.3] Py3'
     language: python
-    name: python3
+    name: pyspark-2.4.3
 ---
 
 ```python
@@ -20,7 +20,7 @@ jupyter:
 
 ```python
 # Importation du "contexte", ie la bibliothèque sans installation
-import context
+#import context
 ```
 
 ```python
@@ -41,7 +41,7 @@ nlp = spacy.blank('fr')
 ```python
 # nlp.add_pipe('sentencizer')
 nlp.add_pipe('sentences')
-nlp.add_pipe('matcher', config=dict(terms=dict(douleurs=['problème de locomotion', 'locomotion']), attr='TEXT'))
+nlp.add_pipe('matcher', config=dict(regex=dict(douleurs=['probl[eè]me de locomotion', 'locomotion', '[Dd]ouleurs'])))
 nlp.add_pipe('sections')
 nlp.add_pipe('pollution')
 ```
@@ -62,11 +62,7 @@ doc = nlp(text)
 ```
 
 ```python
-doc.ents
-```
-
-```python
-doc._.sections
+doc.ents[2]._.section_title
 ```
 
 ```python

@@ -36,10 +36,11 @@ class GenericMatcher(BaseComponent):
             self,
             nlp: Language,
             terms: Optional[Dict[str, Union[List[str], str]]] = None,
+            attr: str = "TEXT",
             regex: Optional[Dict[str, Union[List[str], str]]] = None,
-            fuzzy: Optional[bool] = False,
+            fuzzy: bool = False,
             fuzzy_kwargs: Optional[Dict[str, Any]] = None,
-            filter_matches: Optional[bool] = False,
+            filter_matches: bool = True,
     ):
 
         self.nlp = nlp
@@ -61,9 +62,9 @@ class GenericMatcher(BaseComponent):
         if fuzzy:
             if fuzzy_kwargs is None:
                 fuzzy_kwargs = {"min_r2": 90, "ignore_case": True}
-            self.matcher = FuzzyMatcher(self.nlp.vocab, attr='LOWER', **fuzzy_kwargs)
+            self.matcher = FuzzyMatcher(self.nlp.vocab, attr=attr, **fuzzy_kwargs)
         else:
-            self.matcher = PhraseMatcher(self.nlp.vocab, attr='LOWER')
+            self.matcher = PhraseMatcher(self.nlp.vocab, attr=attr)
 
         self.regex_matcher = RegexMatcher()
 

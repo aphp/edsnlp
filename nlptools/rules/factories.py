@@ -7,6 +7,7 @@ from nlptools.rules.sections import Sections, terms as section_terms
 from nlptools.rules.quickumls import QuickUMLSComponent
 from nlptools.rules.sentences import SentenceSegmenter
 from nlptools.rules.generic import GenericMatcher
+from nlptools.rules.normalise import Normaliser
 
 pollution_default_config = dict(
     pollution=pollution_terms.pollution,
@@ -84,3 +85,14 @@ def create_matcher_component(
         fuzzy_kwargs=fuzzy_kwargs,
         filter_matches=filter_matches,
     )
+
+
+# noinspection PyUnusedLocal
+@Language.factory("normaliser")
+def create_normaliser_component(
+        nlp: Language,
+        name: str,
+        deaccentuate: bool = True,
+        lowercase: bool = True,
+):
+    return Normaliser(deaccentuate=deaccentuate, lowercase=lowercase)

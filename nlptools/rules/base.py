@@ -14,6 +14,7 @@ if not Doc.has_extension('note_id'):
 class BaseComponent(object):
     """
     Base component that contains the logic for :
+
     - boundaries selections
     - match filtering
     - verbs conjugation
@@ -43,12 +44,15 @@ class BaseComponent(object):
         
         Parameters
         ----------
-        doc: spaCy Doc object
-        terminations: List of tuples with (match_id, start, end)
+        doc:
+            spaCy Doc object
+        terminations:
+            List of tuples with (match_id, start, end)
             
         Returns
         -------
-        boundaries: List of tuples with (start, end) of spans
+        boundaries:
+            List of tuples with (start, end) of spans
         """
 
         if terminations is None:
@@ -81,11 +85,13 @@ class BaseComponent(object):
 
         Parameters
         ----------
-        verbs: List of infinitive verbs to conjugate
+        verbs:
+            List of infinitive verbs to conjugate
 
         Returns
         ----------
-        conjugated_verbs: Dataframe of conjugated verbs at all tenses
+        conjugated_verbs:
+            Dataframe of conjugated verbs at all tenses
         """
 
         default_conjugator = mlconjug3.Conjugator(language='fr')

@@ -17,11 +17,13 @@ def read_brat_annotation(filename: str) -> pd.DataFrame:
 
     Parameters
     ----------
-    filename: Path to the annotation file.
+    filename:
+        Path to the annotation file.
 
     Returns
     -------
-    annotations: DataFrame containing the annotations.
+    annotations:
+        DataFrame containing the annotations.
     """
 
     try:
@@ -60,11 +62,13 @@ class BratConnector(object):
 
         Parameters
         ----------
-        filename: The path to the file within the BRAT directory.
+        filename:
+            The path to the file within the BRAT directory.
 
         Returns
         -------
-        text: The text content of the file.
+        text:
+            The text content of the file.
         """
         with open(self.full_path(filename), 'r', encoding='utf-8') as f:
             return f.read()
@@ -75,7 +79,8 @@ class BratConnector(object):
 
         Returns
         -------
-        texts: DataFrame containing all texts in the BRAT directory.
+        texts:
+            DataFrame containing all texts in the BRAT directory.
         """
         files = os.listdir(self.directory)
         filenames = [f[:-4] for f in files if f.endswith('.txt')]
@@ -92,11 +97,13 @@ class BratConnector(object):
 
         Parameters
         ----------
-        note_id: Note ID within the BRAT directory.
+        note_id:
+            Note ID within the BRAT directory.
 
         Returns
         -------
-        annotations: DataFrame containing the annotations for the given note.
+        annotations:
+            DataFrame containing the annotations for the given note.
         """
         filename = f"{note_id}.ann"
         annotations = read_brat_annotation(self.full_path(filename))
@@ -108,8 +115,10 @@ class BratConnector(object):
 
         Returns
         -------
-        texts: A DataFrame containing two fields, `note_id` and `note_text`
-        annotations: A DataFrame containing the annotations.
+        texts:
+            A DataFrame containing two fields, `note_id` and `note_text`
+        annotations:
+            A DataFrame containing the annotations.
         """
 
         texts = self.read_texts()
@@ -135,11 +144,13 @@ class BratConnector(object):
 
         Parameters
         ----------
-        nlp: A Spacy pipeline.
+        nlp:
+            A Spacy pipeline.
 
         Returns
         -------
-        docs: List of Spacy documents, with annotations in the `ents` attribute.
+        docs:
+            List of Spacy documents, with annotations in the `ents` attribute.
         """
         texts, annotations = self.get_brat()
 
@@ -172,7 +183,8 @@ class BratConnector(object):
 
         Parameters
         ----------
-        doc: Spacy Doc object. The spans in `ents` will populate the `note_id.ann` file.
+        doc:
+            Spacy Doc object. The spans in `ents` will populate the `note_id.ann` file.
         """
         filename = str(doc._.note_id)
 
@@ -215,7 +227,8 @@ class BratConnector(object):
 
         Parameters
         ----------
-        docs: List of Spacy documents.
+        docs:
+            List of Spacy documents.
         """
         for doc in docs:
             self.doc2brat(doc)

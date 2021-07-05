@@ -120,11 +120,19 @@ class Pollution(BaseComponent):
     Tags pollution tokens.
 
     Populates a number of Spacy extensions :
+
     - `Token._.pollution` : indicates whether the token is a pollution
     - `Doc._.clean` : lists non-pollution tokens
     - `Doc._.clean_` : original text with pollutions removed.
     - `Doc._.char_clean_span` : method to create a Span using character 
       indices extracted using the cleaned text.
+
+    Parameters
+    ----------
+    nlp:
+        Language pipeline object
+    pollution:
+        Dictionary containing regular expressions of pollution.
     """
 
     # noinspection PyProtectedMember
@@ -176,11 +184,13 @@ class Pollution(BaseComponent):
 
         Parameters
         ----------
-        doc: spaCy Doc object
+        doc:
+            spaCy Doc object
 
         Returns
         -------
-        pollution: list of pollution spans
+        pollution:
+            list of pollution spans
         """
 
         pollutions = self.matcher(doc)
@@ -196,11 +206,13 @@ class Pollution(BaseComponent):
 
         Parameters
         ----------
-        doc: spaCy Doc object
+        doc:
+            spaCy Doc object
         
         Returns
         -------
-        doc: spaCy Doc object, annotated for negation
+        doc:
+            spaCy Doc object, annotated for negation
         """
         pollutions = self.process(doc)
 
@@ -212,8 +224,3 @@ class Pollution(BaseComponent):
         doc._.pollutions = pollutions
 
         return doc
-
-
-default_config = dict(
-    pollution=terms.pollution,
-)

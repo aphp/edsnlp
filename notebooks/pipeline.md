@@ -40,7 +40,9 @@ nlp = spacy.blank('fr')
 
 ```python
 # nlp.add_pipe('sentencizer')
-nlp.add_pipe('matcher', config=dict(terms=dict(douleurs=['problème de locomotion', 'douleurs'])))
+nlp.add_pipe('sentences')
+nlp.add_pipe('normaliser')
+nlp.add_pipe('matcher', config=dict(terms=dict(douleurs=['probleme de locomotion', 'douleurs']), attr='NORM'))
 nlp.add_pipe('sections')
 nlp.add_pipe('pollution')
 ```

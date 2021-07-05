@@ -1,45 +1,48 @@
 from typing import List, Dict, Optional, Any, Union
 
 from loguru import logger
+from loguru import logger
 
 from spacy.language import Language
 from spacy.matcher import PhraseMatcher
 from spacy.tokens import Doc, Span
+from spacy.util import filter_spans
 from spaczz.matcher import FuzzyMatcher
 
-from nlptools.rules.regex import RegexMatcher
-
-from spacy.util import filter_spans
-
 from nlptools.rules.base import BaseComponent
+from nlptools.rules.regex import RegexMatcher
 
 
 class GenericMatcher(BaseComponent):
     """
     Provides a generic matcher component.
+
+    Parameters
+    ----------
+    nlp:
+        The Spacy object.
+    terms:
+        A dictionary of terms to look for.
+    regex:
+        A dictionary of regex patterns.
+    fuzzy:
+        Whether to perform fuzzy matching on the terms.
+    fuzzy_kwargs:
+        Default options for the fuzzy matcher, if used.
+    filter_matches:
+        Whether to filter out matches.
     """
 
     def __init__(
             self,
             nlp: Language,
             terms: Optional[Dict[str, Union[List[str], str]]] = None,
+            attr: str = "TEXT",
             regex: Optional[Dict[str, Union[List[str], str]]] = None,
-            fuzzy: Optional[bool] = False,
+            fuzzy: bool = False,
             fuzzy_kwargs: Optional[Dict[str, Any]] = None,
-            filter_matches: Optional[bool] = False,
+            filter_matches: bool = True,
     ):
-        """
-        Initialises the pipeline.
-
-        Parameters
-        ----------
-        nlp: The Spacy object.
-        terms: A dictionary of terms to look for.
-        regex: A dictionary of regex patterns.
-        fuzzy: Whether to perform fuzzy matching on the terms.
-        fuzzy_kwargs: Default options for the fuzzy matcher, if used.
-        filter_matches: Whether to filter out matches.
-        """
 
         self.nlp = nlp
 
@@ -57,6 +60,9 @@ class GenericMatcher(BaseComponent):
 
         self.filter_matches = filter_matches
 
+        if attr.upper() == "NORM" and ('normaliser' not in nlp.pipe_names):
+            logger.warning("You are using the NORM attribute but no normaliser is set.")
+
         if fuzzy:
             logger.warning(
                 'You have requested fuzzy matching, which significantly increases'
@@ -64,9 +70,9 @@ class GenericMatcher(BaseComponent):
             )
             if fuzzy_kwargs is None:
                 fuzzy_kwargs = {"min_r2": 90, "ignore_case": True}
-            self.matcher = FuzzyMatcher(self.nlp.vocab, attr='LOWER', **fuzzy_kwargs)
+            self.matcher = FuzzyMatcher(self.nlp.vocab, attr=attr, **fuzzy_kwargs)
         else:
-            self.matcher = PhraseMatcher(self.nlp.vocab, attr='LOWER')
+            self.matcher = PhraseMatcher(self.nlp.vocab, attr=attr)
 
         self.regex_matcher = RegexMatcher()
 
@@ -86,11 +92,13 @@ class GenericMatcher(BaseComponent):
 
         Parameters
         ----------
-        doc: spaCy Doc object
+        doc:
+            spaCy Doc object
 
         Returns
         -------
-        sections: List of Spans referring to sections.
+        sections:
+            List of Spans referring to sections.
         """
         matches = self.matcher(doc)
         regex_matches = self.regex_matcher(doc)
@@ -118,11 +126,13 @@ class GenericMatcher(BaseComponent):
 
         Parameters
         ----------
-        doc: spaCy Doc object
+        doc:
+            spaCy Doc object
         
         Returns
         -------
-        doc: spaCy Doc object, annotated for extracted terms.
+        doc:
+            spaCy Doc object, annotated for extracted terms.
         """
         spans = self.process(doc)
 

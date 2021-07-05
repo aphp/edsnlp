@@ -43,6 +43,7 @@ class Sections(GenericMatcher):
             nlp: Language,
             sections: Dict[str, List[str]],
             add_newline: bool = False,
+            attr: str = 'NORM',
             **kwargs,
     ):
 
@@ -53,7 +54,7 @@ class Sections(GenericMatcher):
             for k, v in sections.items():
                 sections[k] = ['\n' + v_ for v_ in v]
 
-        super().__init__(nlp, terms=sections, attr='LOWER', **kwargs)
+        super().__init__(nlp, terms=sections, filter_matches=True, attr=attr, **kwargs)
 
         if not Doc.has_extension('sections'):
             Doc.set_extension('sections', default=[])

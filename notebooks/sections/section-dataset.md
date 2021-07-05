@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.11.2
+      jupytext_version: 1.11.3
   kernelspec:
     display_name: Python 3
     language: python
@@ -108,7 +108,8 @@ annotated_unnaccented.lexical_variant = annotated_unnaccented.lexical_variant.ap
 ```
 
 ```python
-annotated = pd.concat([annotated, annotated_unnaccented])
+# annotated = pd.concat([annotated, annotated_unnaccented])
+annotated = annotated_unnaccented
 ```
 
 ```python

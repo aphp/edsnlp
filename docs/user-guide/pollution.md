@@ -22,7 +22,7 @@ avez été pris en charge ou remplir le formulaire d’opposition électronique 
 The latter example is not a pollution *per se*, but the snippet is present in some form or another in more than 20% of AP-HP documents edited after August 2017, and bears no relevant information. To wit, the project `Embeddings` decided to remove this paragraph from their training set, to avoid skewing the language model towards it.
 
 
-## Adding pollutions
+## Adding pollution patterns
 
 By default, the `pollution` pipeline looks for regular expressions representing a few known pollution sources (see [source code for details](https://gitlab.eds.aphp.fr/equipedatascience/nlptools/-/blob/master/nlptools/rules/pollution/terms.py)).
 

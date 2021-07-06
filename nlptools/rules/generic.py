@@ -30,7 +30,7 @@ class GenericMatcher(BaseComponent):
     filter_matches:
         Whether to filter out matches.
     on_ents_only:
-        Whether to look on matches around detected entities only.
+        Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.
     """
 

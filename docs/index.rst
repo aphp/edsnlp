@@ -1,6 +1,6 @@
-###################################
-Welcome to NLP Tools documentation!
-###################################
+#########################
+Documentation for EDS-NLP
+#########################
 
 .. toctree::
    :maxdepth: 2

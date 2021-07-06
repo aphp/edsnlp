@@ -95,7 +95,7 @@ class RegexMatcher(object):
                     if span is not None:
                         yield span
 
-    def __call__(self, doclike: Union[Doc, Span], as_spans=False) -> Span:
+    def __call__(self, doclike: Union[Doc, Span], as_spans=True) -> Span:
         """
         Performs matching. Yields matches.
 

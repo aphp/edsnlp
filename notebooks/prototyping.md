@@ -54,16 +54,29 @@ nlp = spacy.blank('fr')
 ```
 
 ```python
+nlp.add_pipe('sentencizer')
+```
+
+```python
 sections = Sections(nlp, section_terms.sections, fuzzy=True)
 ```
 
 ```python
 matcher = GenericMatcher(
     nlp, 
-    terms=dict(problem=['douleurs', 'rhume']), 
-    regex=dict(famille=[r'fam\w\wle', r'\b\w+\b']), 
+    regex=dict(famille=[r'douleuur']), 
     fuzzy=True,
     filter_matches=True,
+)
+```
+
+```python
+matcher2 = GenericMatcher(
+    nlp, 
+    regex=dict(test=[r'\b\w+\b']), 
+    fuzzy=True,
+    filter_matches=True,
+    on_ents_only=True
 )
 ```
 
@@ -88,6 +101,22 @@ doc = nlp(text)
 
 ```python
 doc = matcher(doc)
+```
+
+```python
+doc.ents
+```
+
+```python
+doc = matcher2(doc)
+```
+
+```python
+doc.ents
+```
+
+```python
+
 ```
 
 ```python

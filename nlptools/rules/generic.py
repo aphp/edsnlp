@@ -29,6 +29,9 @@ class GenericMatcher(BaseComponent):
         Default options for the fuzzy matcher, if used.
     filter_matches:
         Whether to filter out matches.
+    on_ents_only:
+        Whether to look on matches around detected entities only.
+        Useful for faster inference in downstream tasks.
     """
 
     def __init__(
@@ -40,9 +43,12 @@ class GenericMatcher(BaseComponent):
             fuzzy: bool = False,
             fuzzy_kwargs: Optional[Dict[str, Any]] = None,
             filter_matches: bool = True,
+            on_ents_only: bool = False,
     ):
 
         self.nlp = nlp
+
+        self.on_ents_only = on_ents_only
 
         self.terms = terms or dict()
         for k, v in self.terms.items():
@@ -94,8 +100,18 @@ class GenericMatcher(BaseComponent):
         sections:
             List of Spans referring to sections.
         """
-        matches = self.matcher(doc)
-        regex_matches = self.regex_matcher(doc)
+
+        if self.on_ents_only:
+            matches = []
+            regex_matches = []
+
+            for sent in set([ent.sent for ent in doc.ents]):
+                matches += self.matcher(sent)
+                regex_matches += self.regex_matcher(sent, as_spans=True)
+
+        else:
+            matches = self.matcher(doc)
+            regex_matches = self.regex_matcher(doc, as_spans=True)
 
         spans = []
 
@@ -106,8 +122,7 @@ class GenericMatcher(BaseComponent):
             span = Span(doc, start, end, label=match_id)
             spans.append(span)
 
-        for match in regex_matches:
-            spans.append(match)
+        spans.extend(regex_matches)
 
         if self.filter_matches:
             spans = filter_spans(spans)

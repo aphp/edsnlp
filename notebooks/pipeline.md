@@ -20,11 +20,16 @@ jupyter:
 
 ```python
 # Importation du "contexte", ie la bibliothèque sans installation
-#import context
+import context
 ```
 
 ```python
 import spacy
+import pandas as pd
+```
+
+```python
+import time
 ```
 
 ```python
@@ -32,19 +37,33 @@ import spacy
 import nlptools.components
 ```
 
-# Baselines
+```python
+regex_config = {
+    'douleurs':{
+        'regex':[r'[Dd]ouleur'],
+        'before_exclude':'azaza',
+        'after_exclude':'azaza',
+        'before_extract':'des',
+        'after_extract':'(?:bras )(droit)'
+    },
+    'locomotion':{
+        'regex':[r'thoracique gauche'],
+        'before_include':'test'
+    }
+}
+```
 
 ```python
 nlp = spacy.blank('fr')
-```
-
-```python
-# nlp.add_pipe('sentencizer')
+nlp.add_pipe('sentencizer')
 nlp.add_pipe('sentences')
-nlp.add_pipe('matcher', config=dict(regex=dict(douleurs=['probl[eè]me de locomotion', 'locomotion', '[Dd]ouleurs'])))
+nlp.add_pipe('advanced_regex', config=dict(regex_config=regex_config,
+                                           window=5))
 nlp.add_pipe('sections')
 nlp.add_pipe('pollution')
 ```
+
+---
 
 ```python
 text = (
@@ -57,12 +76,16 @@ text = (
 )
 ```
 
-```python
+```python tags=[]
 doc = nlp(text)
 ```
 
 ```python
-doc.ents[2]._.section_title
+span.text
+```
+
+```python
+doc.ents[2].label_
 ```
 
 ```python

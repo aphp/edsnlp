@@ -71,6 +71,7 @@ def create_matcher_component(
         fuzzy: bool = False,
         fuzzy_kwargs: Optional[Dict[str, Any]] = None,
         filter_matches: bool = True,
+        on_ents_only: bool = False
 ):
     if terms is None:
         terms = dict()
@@ -85,6 +86,7 @@ def create_matcher_component(
         fuzzy=fuzzy,
         fuzzy_kwargs=fuzzy_kwargs,
         filter_matches=filter_matches,
+        on_ents_only=on_ents_only
     )
 
 @Language.factory("advanced_regex")

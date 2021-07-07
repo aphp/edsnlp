@@ -71,7 +71,7 @@ class GenericMatcher(BaseComponent):
 
         if fuzzy:
             logger.warning(
-                'You have requested fuzzy matching, which significantly increases'
+                'You have requested fuzzy matching, which significantly increases '
                 'compute times (x60 increases are common).'
             )
             if fuzzy_kwargs is None:

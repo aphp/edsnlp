@@ -9,9 +9,11 @@ See sections/section-dataset notebook for detail.
 
 allergies = ['allergies', 'allergies :']
 
-antecedents = ['antecedents', 'antecedents :', 'antecedents medicaux et chirurgicaux', 'antecedents personnels']
+antecedents = ['antecedents', 'antecedents :', 'antecedents medicaux et chirurgicaux',
+               'antecedents personnels', "antecedents personnels :", 'antecedents medicaux',
+               'antecedents medicaux :', 'antecedents chirurgicaux', 'antecedents chirurgicaux :']
 
-antecedents_familiaux = ['antecedents familiaux']
+antecedents_familiaux = ['antecedents familiaux', 'antecedents familiaux :']
 
 traitements_entree = ['attitude therapeutique initiale', "traitement a l'entree", 'traitement actuel :',
                       'traitement en cours', "traitements a l'entree"]
@@ -45,7 +47,8 @@ histoire_de_la_maladie = ['histoire de la maladie', 'histoire de la maladie - ex
 
 actes = ['intervention']
 
-motif = ['motif', "motif d'hospitalisation", "motif de l'hospitalisation", "motif de l'hospitalisation :"]
+motif = ['motif', "motif d'hospitalisation", "motif de l'hospitalisation",
+         "motif de l'hospitalisation :", "motif medical"]
 
 prescriptions = ['prescriptions de sortie :', 'prescriptions medicales de sortie',
                  'prescriptions medicales de sortie :']

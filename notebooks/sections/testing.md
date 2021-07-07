@@ -68,6 +68,7 @@ nlp = spacy.blank('fr')
 ```
 
 ```python
+nlp.add_pipe('normaliser')
 nlp.add_pipe('sections')
 ```
 
@@ -118,11 +119,11 @@ df.head(20)
 ```
 
 ```python
-df = df.rename(columns={'start': 'offset_begin', 'end': 'offset_end', 'label': 'label_result'})
+df = df.rename(columns={'start': 'offset_begin', 'end': 'offset_end', 'label': 'label_value'})
 ```
 
 ```python
-df['label_type'] = df.label_result
+df['label_name'] = df.label_value
 ```
 
 ```python
@@ -141,7 +142,7 @@ out = Output()
 ```python
 labels = Labels()
 
-for label in df.label_result.unique():
+for label in df.label_value.unique():
     labels.add(name = label, 
                color = 'green',
                selection_type = 'button')
@@ -149,10 +150,10 @@ for label in df.label_result.unique():
 
 ```python
 labeller = Labelling(
-    df, 
-    labels_dict=labels.labels_dict,
-    from_save=False,
-    use_snippets=False,
+    df,
+    save_path='testing.pickle',
+    labels_dict=labels.dict,
+    from_save=True,
     out=out, 
     display=display,
 )

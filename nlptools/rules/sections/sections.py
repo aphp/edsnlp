@@ -43,7 +43,7 @@ class Sections(GenericMatcher):
             self,
             nlp: Language,
             sections: Dict[str, List[str]],
-            add_newline: bool = False,
+            add_newline: bool = True,
             attr: str = 'NORM',
             **kwargs,
     ):
@@ -53,7 +53,10 @@ class Sections(GenericMatcher):
         self.add_newline = add_newline
         if add_newline:
             for k, v in sections.items():
-                sections[k] = ['\n' + v_ for v_ in v]
+                with_endline = ['\n' + v_ for v_ in v]
+                with_v = ['\nv ' + v_ for v_ in v]
+                sections[k] = with_v + with_endline
+                sections[k] = [ent + '\n' for ent in sections[k]]
 
         super().__init__(nlp, terms=sections, filter_matches=True, attr=attr, **kwargs)
 
@@ -85,7 +88,7 @@ class Sections(GenericMatcher):
 
         if self.add_newline:
             # Remove preceding newline
-            titles = [Span(doc, title.start + 1, title.end, label=title.label_) for title in titles]
+            titles = [Span(doc, title.start + 1, title.end - 1, label=title.label_) for title in titles]
 
         sections = []
 

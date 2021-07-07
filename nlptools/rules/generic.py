@@ -1,6 +1,8 @@
 from typing import List, Dict, Optional, Any, Union
 
 from loguru import logger
+from loguru import logger
+
 from spacy.language import Language
 from spacy.matcher import PhraseMatcher
 from spacy.tokens import Doc, Span
@@ -68,6 +70,10 @@ class GenericMatcher(BaseComponent):
             logger.warning("You are using the NORM attribute but no normaliser is set.")
 
         if fuzzy:
+            logger.warning(
+                'You have requested fuzzy matching, which significantly increases '
+                'compute times (x60 increases are common).'
+            )
             if fuzzy_kwargs is None:
                 fuzzy_kwargs = {"min_r2": 90, "ignore_case": True}
             self.matcher = FuzzyMatcher(self.nlp.vocab, attr=attr, **fuzzy_kwargs)

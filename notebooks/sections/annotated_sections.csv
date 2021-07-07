@@ -1,121 +1,121 @@
 lexical_variant,section
-MOTIF D'HOSPITALISATION,motif
-MODE DE VIE,habitus
-ANTÉCÉDENTS,antécédents
-TRAITEMENT A L'ENTRÉE,traitements entrée
-HISTOIRE DE LA MALADIE,histoire de la maladie
-EXAMEN CLINIQUE A L'ENTRÉE,examens entrée
-EXAMENS COMPLÉMENTAIRES RÉALISÉS PENDANT LE SÉJOUR,examens complémentaires
-ÉVOLUTION,évolution
-TRAITEMENT DE SORTIE,traitements sortie
-AU TOTAL,conclusion
-FACTEURS DE RISQUES,facteurs de risques
-ANTECEDENTS,antécédents
-Antécédents personnels,antécédents
-EXAMEN CLINIQUE A L'ENTREE,examens entrée
-EVOLUTION,évolution
-EXAMENS COMPLEMENTAIRES,examens complémentaires
-TRAITEMENT A L'ENTREE,traitements entrée
-PARAMÈTRES VITAUX ET DONNÉES BIOMÉTRIQUES A L'ENTRÉE,données biométriques entrée
-PROJET DIAGNOSTIQUE ET THÉRAPEUTIQUE,projet
-PARAMETRES VITAUX ET DONNEES BIOMETRIQUES A L'ENTREE,données biométriques entrée
-Examen clinique,examens
-Antécédents médicaux et chirurgicaux,antécédents
-Vaccinations,vaccination
-Histoire de la maladie actuelle,histoire de la maladie
-Traitements à l'entrée,traitements entrée
-Examen clinique à l'entrée,examens entrée
-Examens complémentaires,examens complémentaires
-Evolution,évolution
-Conclusion de sortie,conclusion
-Traitement de sortie,traitements sortie
-Planification des soins,planification
-ANTECEDENTS :,antécédents
-MODE DE VIE :,habitus
-TRAITEMENT ACTUEL :,traitements actuels
-HISTOIRE DU POIDS :,histoire poids
-EXAMEN CLINIQUE :,examens
-ENQUETE ACTIVITE PHYSIQUE :,activité physique
-SYNTHESE MEDICALE/CONCLUSION,conclusion
-TRAITEMENT À L'ENTRÉE,traitements entrée
-EXAMEN CLINIQUE À L'ENTRÉE,examens entrée
-EXAMENS COMPLÉMENTAIRES,examens complémentaires
-DIAGNOSTIC,diagnostic
-INTERVENTION,actes
-RAPPEL CLINIQUE,rappel clinique
-DESCRIPTION DETAILLEE,description
-HABITUS,habitus
-HISTOIRE RECENTE,histoire
-HEMOPATHIE,hémopathie
-CONCLUSION DE SORTIE,conclusion
-CONSIGNES A LA SORTIE,consignes
-Motif de l'hospitalisation :,motif
-Diagnostics :,diagnostic
-Actes réalisés :,actes
-Suites opératoires :,suites
-Prescriptions médicales de sortie :,prescriptions
-Antécédents,antécédents
-Mode de vie - Scolarité,habitus
-Indication de l'acte,indications
-Facteurs de risque,facteurs de risques
-Résultat de la coronarographie,résultats
-Conclusion,conclusion
-EXAMEN CLINIQUE,examens
-OBSERVATION,observations
-PRISE EN CHARGE,prise en charge
-CONCLUSION,conclusion
-Scores à l'entrée,scores entrée
-Mode de vie,habitus
-Habitus,habitus
-Histoire de la maladie,histoire
-Données biométriques et paramètres vitaux à l'entrée,données biométriques entrée
-Scores à la sortie,scores sortie
-Résumé clinique,résumé
-Evolution depuis la dernière consultation,évolution
-Antécédents :,antécédents
-Histoire de la maladie :,histoire
-Examen clinique à l'entrée :,examens entrée
-Examen(s) complémentaire(s) :,examens complémentaires
-Intervention(s) - acte(s) réalisé(s) :,actes
-"Situation sociale, mode de vie",habitus
-PLANIFICATION DES SOINS / SUITES À DONNER,plan
-Motif,motif
-ENTREE,entrée
-Conduite à tenir :,consignes
-Prescriptions de sortie :,prescriptions
-Conclusion :,conclusion
-Résultats d'examens,résultats
-Traitement,traitements
-Synthèse,conclusion
-VACCINATIONS,vaccination
-Examen clinique,examens
-Actes réalisés,actes
-Traitement en cours,traitements
-Suivi,suivi
-Contexte familial et social,habitus
-Antécédents familiaux,antécédents familiaux
-Grossesse - Période néonatale,grossesse
-Examens complémentaires à l'entrée,examens complémentaires
-Conclusion à l'entrée,conclusion entrée
-Attitude thérapeutique initiale,plan initial
-Dépistages,depistages
-Destination de sortie,destination
-Examen clinique :,examens
-Examens complémentaires :,examens complémentaires
-RESUME,résumé
-POSE DE CATHETER CENTRAL,pose cathéter
-STATUT FONCTIONNEL DE SORTIE,statut sortie
-CORRESPONDANTS,correspondants
-ANTÉCÉDENTS :,antécédents
-ENQUÊTE ACTIVITÉ PHYSIQUE :,activité physique
-SYNTÈSE MÉDICALE / CONCLUSION,conclusion
-Motif de l'hospitalisation,motif
-Diagnostics,diagnostic
-Prescriptions médicales de sortie,prescriptions
-Soins infirmiers,soins
-Traitement de sortie :,traitements sortie
-CONCLUSION :,conclusion
-Histoire de la maladie - Explorations,histoire de la maladie
-Histoire récente de la maladie,histoire de la maladie
-Examens para-cliniques,examens complémentaires
-Diagnostic retenu,diagnostic
+ENTREE,
+OBSERVATION,
+PRISE EN CHARGE,
+CONCLUSION,
+CORRESPONDANTS,
+Antécédents,
+Motif,
+Résumé clinique,
+Traitement en cours,
+Evolution depuis la dernière consultation,
+Suivi,
+Examen clinique,
+Examens complémentaires,
+Conclusion,
+Synthèse,
+Histoire de la maladie actuelle,
+Traitement,
+Habitus,
+Résultats d'examens,
+Indication de l'acte,
+Facteurs de risque,
+Résultat de la coronarographie,
+ANTECEDENTS :,
+MODE DE VIE :,
+TRAITEMENT ACTUEL :,
+HISTOIRE DU POIDS :,
+EXAMEN CLINIQUE :,
+ENQUETE ACTIVITE PHYSIQUE :,
+SYNTHESE MEDICALE/CONCLUSION,
+ANTÉCÉDENTS :,
+ENQUÊTE ACTIVITÉ PHYSIQUE :,
+SYNTÈSE MÉDICALE / CONCLUSION,
+DIAGNOSTIC,
+INTERVENTION,
+RAPPEL CLINIQUE,
+DESCRIPTION DETAILLEE,
+Motif de l'hospitalisation :,
+Histoire de la maladie :,
+Examen clinique à l'entrée :,
+Examen(s) complémentaire(s) :,
+Intervention(s) - acte(s) réalisé(s) :,
+Suites opératoires :,
+Conduite à tenir :,
+Prescriptions de sortie :,
+Conclusion :,
+Antécédents :,
+CONCLUSION :,
+MOTIF D'HOSPITALISATION,
+MODE DE VIE,
+HABITUS,
+ANTECEDENTS,
+HISTOIRE RECENTE,
+EXAMEN CLINIQUE A L'ENTREE,
+HEMOPATHIE,
+EVOLUTION,
+CONCLUSION DE SORTIE,
+CONSIGNES A LA SORTIE,
+RESUME,
+TRAITEMENT A L'ENTREE,
+POSE DE CATHETER CENTRAL,
+STATUT FONCTIONNEL DE SORTIE,
+TRAITEMENT DE SORTIE,
+FACTEURS DE RISQUES,
+Antécédents personnels,
+HISTOIRE DE LA MALADIE,
+EXAMENS COMPLEMENTAIRES,
+AU TOTAL,
+Motif de l'hospitalisation,
+Diagnostics,
+Prescriptions médicales de sortie,
+Soins infirmiers,
+Traitement de sortie :,
+EXAMEN CLINIQUE,
+Examen clinique ,
+EXAMENS COMPLÉMENTAIRES,
+Actes réalisés,
+VACCINATIONS,
+Examen clinique :,
+Examens complémentaires :,
+ANTÉCÉDENTS,
+TRAITEMENT À L'ENTRÉE,
+EXAMEN CLINIQUE À L'ENTRÉE,
+TRAITEMENT A L'ENTRÉE,
+EXAMENS COMPLÉMENTAIRES RÉALISÉS PENDANT LE SÉJOUR,
+ÉVOLUTION,
+PROJET DIAGNOSTIQUE ET THÉRAPEUTIQUE,
+Contexte familial et social,
+Antécédents familiaux,
+Grossesse - Période néonatale,
+Histoire de la maladie,
+Examen clinique à l'entrée,
+Examens complémentaires à l'entrée,
+Conclusion à l'entrée,
+Attitude thérapeutique initiale,
+Dépistages,
+Conclusion de sortie,
+Destination de sortie,
+Traitement de sortie,
+Planification des soins,
+Scores à l'entrée,
+Mode de vie,
+Traitements à l'entrée,
+Données biométriques et paramètres vitaux à l'entrée,
+Evolution,
+Scores à la sortie,
+"Situation sociale, mode de vie",
+Histoire de la maladie - Explorations,
+Histoire récente de la maladie,
+Examens para-cliniques,
+Diagnostic retenu,
+Diagnostics :,
+Prescriptions médicales de sortie :,
+Actes réalisés :,
+Antécédents médicaux et chirurgicaux,
+Vaccinations,
+Mode de vie - Scolarité,
+EXAMEN CLINIQUE A L'ENTRÉE,
+PARAMÈTRES VITAUX ET DONNÉES BIOMÉTRIQUES A L'ENTRÉE,
+PLANIFICATION DES SOINS / SUITES À DONNER,
+PARAMETRES VITAUX ET DONNEES BIOMETRIQUES A L'ENTREE,

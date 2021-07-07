@@ -1,14 +1,14 @@
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional
 
 from spacy.language import Language
 
-from nlptools.rules.pollution import Pollution, terms as pollution_terms
-from nlptools.rules.sections import Sections, terms as section_terms
-from nlptools.rules.quickumls import QuickUMLSComponent
-from nlptools.rules.sentences import SentenceSegmenter
+from nlptools.rules.advanced import AdvancedRegex
 from nlptools.rules.generic import GenericMatcher
 from nlptools.rules.normalise import Normaliser
-from nlptools.rules.advanced import AdvancedRegex
+from nlptools.rules.pollution import Pollution, terms as pollution_terms
+from nlptools.rules.quickumls import QuickUMLSComponent
+from nlptools.rules.sections import Sections, terms as section_terms
+from nlptools.rules.sentences import SentenceSegmenter
 
 pollution_default_config = dict(
     pollution=pollution_terms.pollution,
@@ -36,8 +36,10 @@ def create_sections_component(
         nlp: Language,
         name: str,
         sections: Dict[str, List[str]],
+        add_patterns: bool = True,
+        attr: str = 'NORM',
 ):
-    return Sections(nlp, sections=sections)
+    return Sections(nlp, sections=sections, add_patterns=add_patterns, attr=attr)
 
 
 # noinspection PyUnusedLocal
@@ -88,6 +90,7 @@ def create_matcher_component(
         filter_matches=filter_matches,
         on_ents_only=on_ents_only
     )
+
 
 @Language.factory("advanced_regex")
 def create_adv_regex_component(

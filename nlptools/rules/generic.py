@@ -10,7 +10,6 @@ from spaczz.matcher import FuzzyMatcher
 from nlptools.rules.base import BaseComponent
 from nlptools.rules.regex import RegexMatcher
 
-
 class GenericMatcher(BaseComponent):
     """
     Provides a generic matcher component.

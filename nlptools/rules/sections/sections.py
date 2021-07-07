@@ -19,7 +19,7 @@ class Sections(GenericMatcher):
 
     - allergies ;
     - antécédents ;
-    - antécédents ;
+    - antécédents familiaux ;
     - traitements entrée ;
     - conclusion ;
     - conclusion entrée ;

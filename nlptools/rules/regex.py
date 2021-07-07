@@ -1,8 +1,6 @@
 import re
 from typing import Optional, List
 
-from ..utils.spacy import span_from_span
-
 from loguru import logger
 
 

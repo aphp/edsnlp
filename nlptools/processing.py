@@ -1,13 +1,38 @@
-from spacy.tokens import Doc
-import spacy
 from tqdm import tqdm
+from typing import Tuple, List, Union, Any, Callable
+
+import pandas as pd
+
+import spacy
+from spacy import Language
+from spacy.tokens import Doc
+
 from joblib import Parallel, delayed
 
 nlp = spacy.blank('fr')
 
-def df_to_spacy(df, 
-                text_col='note_text',
-                context_cols=[]):
+def df_to_spacy(df: pd.DataFrame, 
+                text_col: str='note_text',
+                context_cols: Union[str,List[str]]=[]):
+    """
+    Takes a Pandas DataFrame and return a generator that can be used in
+    `nlp.pipe()`
+
+    Parameters
+    ----------
+    df:
+        A Pandas DataFrame. 
+        A `Doc` object will be created for each line.
+    text_col (str):
+        The name of the column from `df` containing the to-be-analyzed text
+    context_cols (str or list of str):
+        column name or list of columns names of `df` containing attributes to add to the corresponding `Doc` object
+
+    Returns
+    -------
+    generator:
+        A generator which items are of the form (text, context), with `text` being a string and `context` a dictionnary
+    """
     
     if type(context_cols)==str:
         context_cols = [context_cols]
@@ -24,13 +49,13 @@ def df_to_spacy(df,
         text = d.pop(text_col)
         yield (text, d)
         
-def pipe(nlp,
-         df, 
-         text_col='note_text',
-         context_cols=[],
-         batch_size=1000,
-         pick_results = lambda x:x,
-         progress_bar=True):
+def pipe(nlp: Language,
+         df: pd.DataFrame, 
+         text_col: str='note_text',
+         context_cols: Union[str,List[str]]=[],
+         batch_size: int=1000,
+         pick_results: Callable[Doc, Any] = lambda x:x,
+         progress_bar: bool=True):
 
     """
     Provides a generator based on the pipeline of the provided `nlp` object
@@ -73,19 +98,28 @@ def pipe(nlp,
 from tqdm import tqdm
 
 def define_nlp(new_nlp):
+    """
+    Set the global nlp variable
+    Doing it this way saves non negligeable amount of time
+    """
     global nlp
     nlp = new_nlp
     
 def chunker(iterable, total_length, chunksize):
+    """
+    Takes an iterable and chunk it
+    """
     return (iterable[pos: pos + chunksize] for pos in range(0, total_length, chunksize))
 
 def flatten(list_of_lists):
-    "Flatten a list of lists to a combined list"
+    """
+    Flatten a list of lists to a combined list
+    """
     return [item for sublist in list_of_lists for item in sublist]
 
 def default_pick_results(doc):
     """
-    Function used well Parallelizing tasks via joblib
+    Function used when Parallelizing tasks via joblib
     Takes a Doc as input, and returns a list of serializable objects
     """
     return [{'note_id':e.doc._.note_id if doc.has_extension('note_id') else None,
@@ -109,11 +143,11 @@ def process_chunk(df,
 
     return list_results
 
-def parallel_pipe(nlp, 
-                  df,
-                  chunksize=100, 
-                  n_jobs=10,
-                  progress_bar=True,
+def parallel_pipe(nlp: Language, 
+                  df: pd.DataFrame,
+                  chunksize: int=100, 
+                  n_jobs: int=10,
+                  progress_bar: bool=True,
                   **pipe_kwargs):
     """
     Wrapper to handle parallelisation of the provided nlp pipeline
@@ -147,6 +181,8 @@ def parallel_pipe(nlp,
         A list of outputs
         In pseudo-code, results is obtained as [pick_results(nlp(text)) for text in df.iterrows()]
     """
+    
+    #Setting the nlp variable
     define_nlp(nlp)
     
     verbose = 10 if progress_bar else 0

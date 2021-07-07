@@ -5,6 +5,7 @@ from spacy.language import Language
 from spacy.tokens import Doc, Span
 
 from nlptools.rules.generic import GenericMatcher
+from nlptools.utils.spacy import check_spans_inclusion
 
 
 class Sections(GenericMatcher):
@@ -101,5 +102,11 @@ class Sections(GenericMatcher):
 
         doc._.sections = sections
         doc._.section_titles = titles
+        
+        for ent in doc.ents:
+            for section in doc._.sections:
+                if check_spans_inclusion(ent, section):
+                    ent._.section_title = section._.section_title
+                    break
 
         return doc

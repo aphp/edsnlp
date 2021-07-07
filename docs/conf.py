@@ -17,9 +17,12 @@ sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'NLP Tools'
+project = 'EDS-NLP'
 copyright = '2021, Équipe Data Science - DSI APHP'
 author = 'Équipe Data Science - DSI APHP'
+
+html_logo = '_static/logo.png'
+html_favicon = '_static/logo.png'
 
 
 # -- General configuration ---------------------------------------------------

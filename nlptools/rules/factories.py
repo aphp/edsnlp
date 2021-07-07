@@ -8,6 +8,7 @@ from nlptools.rules.quickumls import QuickUMLSComponent
 from nlptools.rules.sentences import SentenceSegmenter
 from nlptools.rules.generic import GenericMatcher
 from nlptools.rules.normalise import Normaliser
+from nlptools.rules.advanced import AdvancedRegex
 
 pollution_default_config = dict(
     pollution=pollution_terms.pollution,
@@ -70,6 +71,7 @@ def create_matcher_component(
         fuzzy: bool = False,
         fuzzy_kwargs: Optional[Dict[str, Any]] = None,
         filter_matches: bool = True,
+        on_ents_only: bool = False
 ):
     if terms is None:
         terms = dict()
@@ -84,6 +86,21 @@ def create_matcher_component(
         fuzzy=fuzzy,
         fuzzy_kwargs=fuzzy_kwargs,
         filter_matches=filter_matches,
+        on_ents_only=on_ents_only
+    )
+
+@Language.factory("advanced_regex")
+def create_adv_regex_component(
+        nlp: Language,
+        name: str,
+        regex_config: Dict[str, Any],
+        window: int
+):
+
+    return AdvancedRegex(
+        nlp,
+        regex_config,
+        window
     )
 
 

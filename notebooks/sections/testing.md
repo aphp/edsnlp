@@ -31,11 +31,11 @@ import context
 ```
 
 ```python
-from nlptools.utils.brat import BratConnector
+from edsnlp.utils.brat import BratConnector
 ```
 
 ```python
-from nlptools import components
+from edsnlp import components
 ```
 
 ```python

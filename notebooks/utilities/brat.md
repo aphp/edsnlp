@@ -33,7 +33,7 @@ import pandas as pd
 
 ```python
 # One-shot import of all declared Spacy components
-from nlptools.utils.brat import BratConnector
+from edsnlp.utils.brat import BratConnector
 ```
 
 # BRAT connector

@@ -29,19 +29,19 @@ import spacy
 
 ```python
 # Import components without declaring them
-from nlptools.rules.pollution import Pollution, terms as pollution_terms
+from edsnlp.rules.pollution import Pollution, terms as pollution_terms
 ```
 
 ```python
-from nlptools.rules.sections import Sections, terms as section_terms
+from edsnlp.rules.sections import Sections, terms as section_terms
 ```
 
 ```python
-from nlptools.rules.quickumls import QuickUMLSComponent
+from edsnlp.rules.quickumls import QuickUMLSComponent
 ```
 
 ```python
-from nlptools.rules.generic import GenericMatcher
+from edsnlp.rules.generic import GenericMatcher
 ```
 
 # Baselines

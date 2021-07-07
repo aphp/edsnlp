@@ -6,12 +6,12 @@ Most of NLP Tools builds on the `GenericMatcher` component, a model apt to look 
 ## Base component
 
 ```{eval-rst}
-.. automodule:: nlptools.rules.base
+.. automodule:: edsnlp.rules.base
 ```
 
 
 ## Generic matcher
 
 ```{eval-rst}
-.. automodule:: nlptools.rules.generic
+.. automodule:: edsnlp.rules.generic
 ```

@@ -31,7 +31,7 @@ import context
 ```
 
 ```python
-from nlptools.utils.brat import BratConnector
+from edsnlp.utils.brat import BratConnector
 ```
 
 # Sections dataset

@@ -12,12 +12,12 @@ from spacy.matcher import PhraseMatcher
 from spacy.tokens import Doc, Span
 from spaczz.matcher import FuzzyMatcher
 
-from nlptools.rules.regex import RegexMatcher
+from edsnlp.rules.regex import RegexMatcher
 
 from spacy.util import filter_spans
 
-from nlptools.rules.base import BaseComponent
-from nlptools.rules.generic import GenericMatcher
+from edsnlp.rules.base import BaseComponent
+from edsnlp.rules.generic import GenericMatcher
 
 if not Span.has_extension('before_extract'):
     Span.set_extension('before_extract', default=None)

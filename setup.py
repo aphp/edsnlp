@@ -10,8 +10,8 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="nlptools",
-    version="0.0.3",
+    name="edsnlp",
+    version="0.1.0",
     author="Data Science - DSI APHP",
     author_email="basile.dura-ext@aphp.fr",
     description="NLP tools for human consumption at AP-HP",

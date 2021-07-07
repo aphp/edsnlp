@@ -19,7 +19,7 @@ The point of the BRAT connector is to go from the standoff annotation format to 
 
 ```python
 import spacy
-from nlptools.utils.brat import BratConnector
+from edsnlp.utils.brat import BratConnector
 
 # Instantiate the connector
 brat = BratConnector('path/to/brat')

@@ -1,4 +1,4 @@
-from nlptools.utils.brat import BratConnector
+from edsnlp.utils.brat import BratConnector
 import pytest
 
 BRAT_FILES = 'data/section_dataset'

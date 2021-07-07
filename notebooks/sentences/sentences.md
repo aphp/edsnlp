@@ -28,7 +28,7 @@ import spacy
 ```
 
 ```python
-from nlptools.rules.sentences import SentenceSegmenter
+from edsnlp.rules.sentences import SentenceSegmenter
 ```
 
 # Sentences

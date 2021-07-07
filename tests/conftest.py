@@ -3,7 +3,7 @@ import context
 import spacy
 from pytest import fixture
 
-import nlptools.components
+import edsnlp.components
 
 
 @fixture(scope='session')

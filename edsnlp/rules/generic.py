@@ -9,8 +9,8 @@ from spacy.tokens import Doc, Span
 from spacy.util import filter_spans
 from spaczz.matcher import FuzzyMatcher
 
-from nlptools.rules.base import BaseComponent
-from nlptools.rules.regex import RegexMatcher
+from edsnlp.rules.base import BaseComponent
+from edsnlp.rules.regex import RegexMatcher
 
 
 class GenericMatcher(BaseComponent):

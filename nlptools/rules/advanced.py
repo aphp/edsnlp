@@ -78,16 +78,16 @@ class AdvancedRegex(GenericMatcher):
             spaCy Doc object, annotated for extracted terms.
         """
         
-        doc = super(AdvancedRegex, AdvancedRegex).__call__(self, doc)
+        ents = super(AdvancedRegex, AdvancedRegex).process(self, doc)
         
-        doc.ents = self._postprocessing_pipeline(doc)
+        doc.ents += self._postprocessing_pipeline(ents)
         
         return doc
     
-    def _postprocessing_pipeline(self, doc: Doc):
+    def _postprocessing_pipeline(self, ents: List[Span]):
         
         # Removing entities based on the snippet located just before and after the entity
-        ents = [self._exclude_filter(ent) for ent in doc.ents]
+        ents = [self._exclude_filter(ent) for ent in ents]
         
         # Extract informations from the entity's context via regex
         ents = [self._snippet_extraction(ent) for ent in ents if ent is not None]

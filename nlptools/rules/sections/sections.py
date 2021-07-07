@@ -13,7 +13,28 @@ class Sections(GenericMatcher):
     Divides the document into sections.
     
     By default, we are using a dataset of documents annotated for section titles,
-    using the wonderful work done by Ivan Lerner.
+    using the work done by Ivan Lerner, reviewed by Gilles Chatellier.
+
+    Detected sections are :
+
+    - allergies ;
+    - antécédents ;
+    - antécédents ;
+    - traitements entrée ;
+    - conclusion ;
+    - conclusion entrée ;
+    - habitus ;
+    - correspondants ;
+    - diagnostic ;
+    - données biométriques entrée ;
+    - examens ;
+    - examens complémentaires ;
+    - facteurs de risques ;
+    - histoire de la maladie ;
+    - actes ;
+    - motif ;
+    - prescriptions ;
+    - traitements sortie.
 
     The component looks for section titles within the document,
     and stores them in the `section_title` extension.

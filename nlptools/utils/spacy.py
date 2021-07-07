@@ -19,7 +19,7 @@ def check_spans_inclusion(span1: Span, span2: Span) -> bool:
 
     return (span1.start>=span2.start) & (span1.end<=span2.end)
     
-def span_from_span(span: Span, start_idx: int, alignment_mode: str='expand') -> Span:
+def span_from_span(span: Span, start_idx: int, label: str, alignment_mode: str='expand') -> Span:
     """
     Create a `Span` object from the slice `span.text[start : end]`.
     
@@ -29,6 +29,8 @@ def span_from_span(span: Span, start_idx: int, alignment_mode: str='expand') -> 
         The index of the first character of the span.
     end (int): 
         The index of the first character after the span.
+    label (str):
+        The label to add to the created Span
     alignment_mode (str) : 
         See the doc for `doc.char_span`
     
@@ -40,4 +42,4 @@ def span_from_span(span: Span, start_idx: int, alignment_mode: str='expand') -> 
     start_idx += span.start_char
     end_idx += span.start_char
 
-    return span.doc.char_span(start_idx, end_idx, label=label, kb_id=kb_id, vector=vector, alignment_mode=alignment_mode)
+    return span.doc.char_span(start_idx, end_idx, label=label, alignment_mode=alignment_mode)

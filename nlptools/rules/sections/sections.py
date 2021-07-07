@@ -43,19 +43,21 @@ class Sections(GenericMatcher):
             self,
             nlp: Language,
             sections: Dict[str, List[str]],
-            add_newline: bool = True,
+            add_patterns: bool = True,
             attr: str = 'NORM',
             **kwargs,
     ):
 
         logger.warning('The component Sections is still in Beta. Use at your own risks.')
 
-        self.add_newline = add_newline
-        if add_newline:
+        self.add_patterns = add_patterns
+        if add_patterns:
             for k, v in sections.items():
                 with_endline = ['\n' + v_ for v_ in v]
                 with_v = ['\nv ' + v_ for v_ in v]
-                sections[k] = with_v + with_endline
+                with_hyphen = ['\n- ' + v_ for v_ in v]
+                sections[k] = with_v + with_endline + with_hyphen
+                sections[k] += [v_ + ' :' for v_ in sections[k]]
                 sections[k] = [ent + '\n' for ent in sections[k]]
 
         super().__init__(nlp, terms=sections, filter_matches=True, attr=attr, **kwargs)
@@ -86,7 +88,7 @@ class Sections(GenericMatcher):
         """
         titles = self.process(doc)
 
-        if self.add_newline:
+        if self.add_patterns:
             # Remove preceding newline
             titles = [Span(doc, title.start + 1, title.end - 1, label=title.label_) for title in titles]
 

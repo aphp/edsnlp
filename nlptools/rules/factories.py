@@ -36,10 +36,10 @@ def create_sections_component(
         nlp: Language,
         name: str,
         sections: Dict[str, List[str]],
-        add_newline: bool = True,
+        add_patterns: bool = True,
         attr: str = 'NORM',
 ):
-    return Sections(nlp, sections=sections, add_newline=add_newline, attr=attr)
+    return Sections(nlp, sections=sections, add_patterns=add_patterns, attr=attr)
 
 
 # noinspection PyUnusedLocal

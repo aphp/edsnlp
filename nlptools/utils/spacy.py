@@ -19,7 +19,7 @@ def check_spans_inclusion(span1: Span, span2: Span) -> bool:
 
     return (span1.start>=span2.start) & (span1.end<=span2.end)
     
-def span_from_span(span: Span, start_idx: int, label: str, alignment_mode: str='expand') -> Span:
+def span_from_span(span: Span, start_idx: int, end_idx: int, label: str, alignment_mode: str='expand') -> Span:
     """
     Create a `Span` object from the slice `span.text[start : end]`.
     

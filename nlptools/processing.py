@@ -54,7 +54,7 @@ def pipe(nlp: Language,
          text_col: str='note_text',
          context_cols: Union[str,List[str]]=[],
          batch_size: int=1000,
-         pick_results: Callable[Doc, Any] = lambda x:x,
+         pick_results: Callable[[Doc], Any] = lambda x:x,
          progress_bar: bool=True):
 
     """

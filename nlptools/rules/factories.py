@@ -7,6 +7,7 @@ from nlptools.rules.sections import Sections, terms as section_terms
 from nlptools.rules.quickumls import QuickUMLSComponent
 from nlptools.rules.sentences import SentenceSegmenter
 from nlptools.rules.generic import GenericMatcher
+from nlptools.rules.normalise import Normaliser
 from nlptools.rules.advanced import AdvancedRegex
 
 pollution_default_config = dict(
@@ -99,3 +100,14 @@ def create_adv_regex_component(
         regex_config,
         window
     )
+
+
+# noinspection PyUnusedLocal
+@Language.factory("normaliser")
+def create_normaliser_component(
+        nlp: Language,
+        name: str,
+        deaccentuate: bool = True,
+        lowercase: bool = True,
+):
+    return Normaliser(deaccentuate=deaccentuate, lowercase=lowercase)

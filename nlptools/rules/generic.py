@@ -1,15 +1,14 @@
 from typing import List, Dict, Optional, Any, Union
 
+from loguru import logger
 from spacy.language import Language
 from spacy.matcher import PhraseMatcher
 from spacy.tokens import Doc, Span
+from spacy.util import filter_spans
 from spaczz.matcher import FuzzyMatcher
 
-from nlptools.rules.regex import RegexMatcher
-
-from spacy.util import filter_spans
-
 from nlptools.rules.base import BaseComponent
+from nlptools.rules.regex import RegexMatcher
 
 
 class GenericMatcher(BaseComponent):
@@ -58,6 +57,9 @@ class GenericMatcher(BaseComponent):
         self.fuzzy = fuzzy
 
         self.filter_matches = filter_matches
+
+        if attr.upper() == "NORM" and ('normaliser' not in nlp.pipe_names):
+            logger.warning("You are using the NORM attribute but no normaliser is set.")
 
         if fuzzy:
             if fuzzy_kwargs is None:

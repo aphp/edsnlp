@@ -5,12 +5,12 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.2'
-      jupytext_version: 1.6.0
+      format_version: '1.3'
+      jupytext_version: 1.11.3
   kernelspec:
-    display_name: '[2.4.3] Py3'
+    display_name: Python 3
     language: python
-    name: pyspark-2.4.3
+    name: python3
 ---
 
 ```python
@@ -25,11 +25,6 @@ import context
 
 ```python
 import spacy
-import pandas as pd
-```
-
-```python
-import time
 ```
 
 ```python
@@ -37,33 +32,20 @@ import time
 import nlptools.components
 ```
 
-```python
-regex_config = {
-    'douleurs':{
-        'regex':[r'[Dd]ouleur'],
-        'before_exclude':'azaza',
-        'after_exclude':'azaza',
-        'before_extract':'des',
-        'after_extract':'(?:bras )(droit)'
-    },
-    'locomotion':{
-        'regex':[r'thoracique gauche'],
-        'before_include':'test'
-    }
-}
-```
+# Baselines
 
 ```python
 nlp = spacy.blank('fr')
-nlp.add_pipe('sentencizer')
+```
+
+```python
+# nlp.add_pipe('sentencizer')
 nlp.add_pipe('sentences')
-nlp.add_pipe('advanced_regex', config=dict(regex_config=regex_config,
-                                           window=5))
+nlp.add_pipe('normaliser')
+nlp.add_pipe('matcher', config=dict(terms=dict(douleurs=['probleme de locomotion', 'douleurs']), attr='NORM'))
 nlp.add_pipe('sections')
 nlp.add_pipe('pollution')
 ```
-
----
 
 ```python
 text = (
@@ -76,16 +58,16 @@ text = (
 )
 ```
 
-```python tags=[]
+```python
 doc = nlp(text)
 ```
 
 ```python
-span.text
+doc.ents
 ```
 
 ```python
-doc.ents[2].label_
+doc._.sections
 ```
 
 ```python

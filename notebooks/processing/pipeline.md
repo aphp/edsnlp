@@ -35,11 +35,11 @@ from tqdm import tqdm
 
 ```python
 # One-shot import of all declared Spacy components
-import nlptools.components
+import edsnlp.components
 ```
 
 ```python
-import nlptools.processing as nlprocess
+import edsnlp.processing as nlprocess
 ```
 
 ```python

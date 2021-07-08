@@ -1,4 +1,4 @@
-# NLPTools
+# EDS-NLP
 
 A simple library to group together the different pre-processing pipelines that are used at AP-HP, as Spacy components.
 
@@ -19,10 +19,10 @@ pip install ./nlptools
 
 ### Available pipelines
 
-- [`matcher`](nlptools/rules/generic.py): a generic matching tool, with RegEx/term and fuzzy matching support.
-- [`pollution`](nlptools/rules/pollution/pollution.py): non-destructive detection of pollutions
-- [`sections`](nlptools/rules/sections/sections.py): detection of section titles and inference of section spans
-- [`quickumls`](nlptools/rules/quickumls/quickumls.py): a basic re-implementation of the spacy component from Georgetown's [QuickUMLS](https://github.com/Georgetown-IR-Lab/QuickUMLS)
+- [`matcher`](edsnlp/rules/generic.py): a generic matching tool, with RegEx/term and fuzzy matching support.
+- [`pollution`](edsnlp/rules/pollution/pollution.py): non-destructive detection of pollutions
+- [`sections`](edsnlp/rules/sections/sections.py): detection of section titles and inference of section spans
+- [`quickumls`](edsnlp/rules/quickumls/quickumls.py): a basic re-implementation of the spacy component from Georgetown's [QuickUMLS](https://github.com/Georgetown-IR-Lab/QuickUMLS)
 
 
 ### Creating a pipeline
@@ -31,7 +31,7 @@ pip install ./nlptools
 import spacy
 
 # Load declared pipelines
-from nlptools import components
+from edsnlp import components
 
 nlp = spacy.blank('fr')
 nlp.add_pipe('sections')

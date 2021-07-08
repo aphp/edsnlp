@@ -1,6 +1,6 @@
 from spacy.tokens import Span
 from spacy import Language
-from nlptools.rules.base import BaseComponent
+from edsnlp.rules.base import BaseComponent
 from typing import Optional
 
 

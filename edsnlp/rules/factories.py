@@ -2,13 +2,13 @@ from typing import Dict, Any, List, Optional
 
 from spacy.language import Language
 
-from nlptools.rules.advanced import AdvancedRegex
-from nlptools.rules.generic import GenericMatcher
-from nlptools.rules.normalise import Normaliser
-from nlptools.rules.pollution import Pollution, terms as pollution_terms
-from nlptools.rules.quickumls import QuickUMLSComponent
-from nlptools.rules.sections import Sections, terms as section_terms
-from nlptools.rules.sentences import SentenceSegmenter
+from edsnlp.rules.advanced import AdvancedRegex
+from edsnlp.rules.generic import GenericMatcher
+from edsnlp.rules.normalise import Normaliser
+from edsnlp.rules.pollution import Pollution, terms as pollution_terms
+from edsnlp.rules.quickumls import QuickUMLSComponent
+from edsnlp.rules.sections import Sections, terms as section_terms
+from edsnlp.rules.sentences import SentenceSegmenter
 
 pollution_default_config = dict(
     pollution=pollution_terms.pollution,

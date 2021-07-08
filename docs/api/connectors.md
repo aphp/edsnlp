@@ -3,5 +3,5 @@
 ## BRAT
 
 ```{eval-rst}
-.. automodule:: nlptools.utils.brat
+.. automodule:: edsnlp.utils.brat
 ```

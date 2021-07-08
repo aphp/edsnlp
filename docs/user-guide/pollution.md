@@ -46,10 +46,10 @@ Hence, the strategy chosen for the pollution pipeline is the following:
 
 ```python
 import spacy
-from nlptools import components
+from edsnlp import components
 
 nlp = spacy.blank('fr')
-nlp.add_pipe('pollution')  # exposed via nlptools.components
+nlp.add_pipe('pollution')  # exposed via edsnlp.components
 
 text = (
     "Le patient est admis pour des douleurs dans le bras droit, mais n'a pas de problème de locomotion. "

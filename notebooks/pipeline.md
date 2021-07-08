@@ -29,7 +29,7 @@ import spacy
 
 ```python
 # One-shot import of all declared Spacy components
-import nlptools.components
+import edsnlp.components
 ```
 
 # Baselines

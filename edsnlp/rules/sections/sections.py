@@ -4,8 +4,8 @@ from loguru import logger
 from spacy.language import Language
 from spacy.tokens import Doc, Span
 
-from nlptools.rules.generic import GenericMatcher
-from nlptools.utils.spacy import check_spans_inclusion
+from edsnlp.rules.generic import GenericMatcher
+from edsnlp.utils.spacy import check_spans_inclusion
 
 
 class Sections(GenericMatcher):

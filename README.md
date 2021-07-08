@@ -52,12 +52,11 @@ See the documentation for detail.
 
 ## Documentation
 
-Due to an issue with Gitlab pages, the documentation is currently unavailable. You can build it yourself :
+The documentation is available [here](https://equipedatascience-pages.eds.aphp.fr/edsnlp/). Due to an issue with Gitlab Pages, you will need to change the address, to put an hyphen in place of the first point :
 
-```shell script
-pip install -r requirements-docs.txt
-cd docs
-make html
+```diff
+- https://projects.pages.eds.aphp.fr/blabla...
++ https://projects-pages.eds.aphp.fr/blabla...
 ```
 
 The documentation will be available in `docs/_build/html` (open `index.html` in your favorite web browser).

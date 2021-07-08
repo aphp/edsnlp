@@ -64,7 +64,7 @@ class SentenceSegmenter(object):
         for i, token in enumerate(doc):
             is_in_punct_chars = token.text in self.punct_chars
             is_newline = token.is_space and '\n' in token.text
-
+            token.sent_start = (i==0) # To set the attributes at False by default for the other tokens
             if seen_period or seen_newline:
                 if token.is_punct or is_in_punct_chars or is_newline:
                     continue

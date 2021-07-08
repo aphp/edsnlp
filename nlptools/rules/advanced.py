@@ -19,6 +19,9 @@ from spacy.util import filter_spans
 from nlptools.rules.base import BaseComponent
 from nlptools.rules.generic import GenericMatcher
 
+if not Span.has_extension('matcher_name'):
+    Span.set_extension('matcher_name', default=None)
+
 if not Span.has_extension('before_extract'):
     Span.set_extension('before_extract', default=None)
 if not Span.has_extension('after_extract'):
@@ -63,6 +66,27 @@ class AdvancedRegex(GenericMatcher):
                          terms=dict(),
                          regex=regex)
 
+    def process(self, doc: Doc) -> List[Span]:
+        """
+        Find matching spans in doc and apply some postprocessing
+        
+        Parameters
+        ----------
+        doc:
+            spaCy Doc object
+
+        Returns
+        -------
+        sections:
+            List of Spans referring to sections.
+        """
+        
+        ents = super(AdvancedRegex, AdvancedRegex).process(self, doc)
+        
+        ents = self._postprocessing_pipeline(ents)
+        
+        return ents
+    
     def __call__(self, doc: Doc) -> Doc:
         """
         Adds spans to document.
@@ -78,9 +102,9 @@ class AdvancedRegex(GenericMatcher):
             spaCy Doc object, annotated for extracted terms.
         """
         
-        ents = super(AdvancedRegex, AdvancedRegex).process(self, doc)
+        ents = self.process(doc)
         
-        doc.ents += self._postprocessing_pipeline(ents)
+        doc.ents += ents
         
         return doc
     

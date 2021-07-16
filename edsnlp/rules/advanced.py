@@ -145,12 +145,11 @@ class AdvancedRegex(GenericMatcher):
         if type(after_extract) == str:
             after_extract = [after_extract]
         
+        # add 1 to ent.start so that we can extract the number when it is attached to the word, e.g. "3PA"
         before_snippet = ent.doc[ent._.window.start:ent.start+1].text # todo: change tokenizer and remove +1 ?
         ent._.before_extract = []
         for pattern in before_extract:
             pattern = re.compile(pattern)
-            # add 1 to ent.start so that we can extract the number when it is attached to the word, e.g. "3PA"
-#             before_snippet = ent.doc[max(0, ent.start - self.window):ent.start].text
             match = pattern.search(before_snippet)
             ent._.before_extract.append(match.groups()[0] if match else None)
         
@@ -158,7 +157,6 @@ class AdvancedRegex(GenericMatcher):
         ent._.after_extract = []
         for pattern in after_extract:
             pattern = re.compile(pattern)
-#             after_snippet = ent.doc[ent.end:ent.end + self.window].text
             match = pattern.search(after_snippet)
             ent._.after_extract.append(match.groups()[0] if match else None)
             
@@ -174,8 +172,10 @@ def _check_regex_config(regex_config):
         
         for single_group_regex_key in single_group_regex_keys:
             if single_group_regex_key in v:
+                # ensure it is a list
                 if type(v[single_group_regex_key]) is not list:
                     v[single_group_regex_key] = [v[single_group_regex_key]]
+                
                 for i, regex in enumerate(v[single_group_regex_key]):
                     n_groups = re.compile(regex).groups
 

@@ -26,41 +26,29 @@ if not Span.has_extension('before_extract'):
     Span.set_extension('before_extract', default=None)
 if not Span.has_extension('after_extract'):
     Span.set_extension('after_extract', default=None)
+
+if not Span.has_extension('window'):
+    Span.set_extension('window', default=None)
+
+# todo: not used
 if not Span.has_extension('before_snippet'):
     Span.set_extension('before_snippet', default=None)
 if not Span.has_extension('after_snippet'):
     Span.set_extension('after_snippet', default=None)
     
 class AdvancedRegex(GenericMatcher):
-    """
-    Provides a generic matcher component.
-
-    Parameters
-    ----------
-    nlp:
-        The Spacy object.
-    terms:
-        A dictionary of terms to look for.
-    regex:
-        A dictionary of regex patterns.
-    fuzzy:
-        Whether to perform fuzzy matching on the terms.
-    fuzzy_kwargs:
-        Default options for the fuzzy matcher, if used.
-    filter_matches:
-        Whether to filter out matches.
-    """
-
     def __init__(
             self,
             nlp: Language,
             regex_config: Dict[str, Any],
-            window: int=10
+            window: int=10,
+            verbose: int=0,
     ):
         
         self.regex_config = _check_regex_config(regex_config)
         self.window = window
         regex = {k:v['regex'] for k,v in regex_config.items()}
+        self.verbose = verbose
         
         super().__init__(nlp=nlp,
                          terms=dict(),
@@ -109,75 +97,93 @@ class AdvancedRegex(GenericMatcher):
         return doc
     
     def _postprocessing_pipeline(self, ents: List[Span]):
+        # add a window within the sentence around entities
+        ents = [self._add_window(ent) for ent in ents]
         
-        # Removing entities based on the snippet located just before and after the entity
-        ents = [self._exclude_filter(ent) for ent in ents]
+        # Remove entities based on the snippet located just before and after the entity
+        ents = filter(self._exclude_filter, ents)
         
         # Extract informations from the entity's context via regex
-        ents = [self._snippet_extraction(ent) for ent in ents if ent is not None]
+        ents = [self._snippet_extraction(ent) for ent in ents]
         
         return tuple(ents)
-        
+    
+    def _add_window(self, ent: Span) -> Span:
+        ent._.window = ent.doc[max(ent.start-self.window, ent.sent.start) : min(ent.end+self.window, ent.sent.end)]
+        return ent
+    
     def _exclude_filter(self, ent: Span) -> Span:
-        
         label = ent.label_
         
         before_exclude = self.regex_config[label].get('before_exclude', None)
         after_exclude = self.regex_config[label].get('after_exclude', None)
         
-        to_keep = True
-        
         if before_exclude is not None:
-            before_exclude = re.compile(self.regex_config[label]['before_exclude'])
-            before_snippet = ent.doc[max(0, ent.start - self.window):ent.start].text
-            to_keep = to_keep & (before_exclude.search(before_snippet) is None)
+            before_snippet = ent.doc[ent._.window.start:ent.start+1].text
+            if re.compile(before_exclude).search(before_snippet) is not None:
+                if self.verbose:
+                    logger.info("excluded (before) string: " + str(before_snippet) + " - pattern: " + before_exclude)
+                return False
             
         if after_exclude is not None:
-            after_exclude = re.compile(self.regex_config[label]['after_exclude'])
-            after_snippet = ent.doc[ent.end:ent.end + self.window].text
-            to_keep = to_keep & (after_exclude.search(after_snippet) is None)
+            after_snippet = ent.doc[ent.end-1:ent._.window.end].text
+            if re.compile(after_exclude).search(after_snippet) is not None:
+                if self.verbose:
+                    logger.info("excluded (after) string: " + str(after_snippet) + " - pattern: " + after_exclude)
+                return False
         
-        return ent
+        return True
     
     def _snippet_extraction(self, ent: Span) -> Span:
-        
         label = ent.label_
         
-        before_extract = self.regex_config[label].get('before_extract', None)
-        after_extract = self.regex_config[label].get('after_extract', None)
-
-        if before_extract is not None:
-            before_extract = re.compile(self.regex_config[label]['before_extract'])
-            before_snippet = ent.doc[max(0, ent.start - self.window):ent.start].text
-            match = before_extract.search(before_snippet)
-            ent._.before_extract = match.groups()[0] if match is not None else None
+        before_extract = self.regex_config[label].get('before_extract', [])
+        after_extract = self.regex_config[label].get('after_extract', [])
+        
+        if type(before_extract) == str:
+            before_extract = [before_extract]
+        if type(after_extract) == str:
+            after_extract = [after_extract]
+        
+        before_snippet = ent.doc[ent._.window.start:ent.start+1].text # todo: change tokenizer and remove +1 ?
+        ent._.before_extract = []
+        for pattern in before_extract:
+            pattern = re.compile(pattern)
+            # add 1 to ent.start so that we can extract the number when it is attached to the word, e.g. "3PA"
+#             before_snippet = ent.doc[max(0, ent.start - self.window):ent.start].text
+            match = pattern.search(before_snippet)
+            ent._.before_extract.append(match.groups()[0] if match else None)
+        
+        after_snippet = ent.doc[ent.end-1:ent._.window.end].text
+        ent._.after_extract = []
+        for pattern in after_extract:
+            pattern = re.compile(pattern)
+#             after_snippet = ent.doc[ent.end:ent.end + self.window].text
+            match = pattern.search(after_snippet)
+            ent._.after_extract.append(match.groups()[0] if match else None)
             
-        if after_extract is not None:
-            after_extract = re.compile(self.regex_config[label]['after_extract'])
-            after_snippet = ent.doc[ent.end:ent.end + self.window].text
-            match = after_extract.search(after_snippet)
-            ent._.after_extract = match.groups()[0] if match is not None else None
 
         return ent
         
 def _check_regex_config(regex_config):
-    
     for k,v in regex_config.items():
-        
         if type(v) is not dict:
             raise TypeError(f"The value of the key {k} is of type {type(v)}, but a dict is expected")
         
         single_group_regex_keys = ['before_extract','after_extract']
         
         for single_group_regex_key in single_group_regex_keys:
-            regex = v.get(single_group_regex_key,'()')
-            n_groups = re.compile(regex).groups
-            
-            if n_groups == 0:
-                # Adding grouping parenthesis
-                regex_config[k][single_group_regex_key] = r'(' + regex_config[k][single_group_regex_key] + r')'
-            elif n_groups != 1:
-                # Accepting only 1 group per regex
-                raise ValueError(f"The RegEx for {repr(k)} ({repr(regex)}) stored in {repr(single_group_regex_key)} contains {n_groups} capturing groups, 1 expected")
+            if single_group_regex_key in v:
+                if type(v[single_group_regex_key]) is not list:
+                    v[single_group_regex_key] = [v[single_group_regex_key]]
+                for i, regex in enumerate(v[single_group_regex_key]):
+                    n_groups = re.compile(regex).groups
+
+                    if n_groups == 0:
+                        # Adding grouping parenthesis
+                        v[single_group_regex_key][i] = r'(' + regex + r')'
+                    elif n_groups != 1:
+                        # Accepting only 1 group per regex
+                        raise ValueError(f"The RegEx for {repr(k)} ({repr(regex)}) stored in {repr(single_group_regex_key)} contains {n_groups} capturing groups, 1 expected")
                 
     return regex_config

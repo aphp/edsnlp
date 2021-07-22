@@ -110,6 +110,8 @@ class AdvancedRegex(GenericMatcher):
     
     def _add_window(self, ent: Span) -> Span:
         ent._.window = ent.doc[max(ent.start-self.window, ent.sent.start) : min(ent.end+self.window, ent.sent.end)]
+        ent._.before_snippet = ent.doc[max(ent.start-self.window, ent.sent.start) : ent.start]
+        ent._.after_snippet = ent.doc[ent.end : min(ent.end+self.window, ent.sent.end)]
         return ent
     
     def _exclude_filter(self, ent: Span) -> Span:

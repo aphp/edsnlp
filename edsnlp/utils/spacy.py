@@ -1,5 +1,6 @@
 from spacy.tokens import Span
 
+
 def check_spans_inclusion(span1: Span, span2: Span) -> bool:
     """
     Check if a Span in included in another Span
@@ -17,9 +18,10 @@ def check_spans_inclusion(span1: Span, span2: Span) -> bool:
         Boolean set to True if span1 in span2, false else
     """
 
-    return (span1.start>=span2.start) & (span1.end<=span2.end)
-    
-def span_from_span(span: Span, start_idx: int, end_idx: int, label: str, alignment_mode: str='expand') -> Span:
+    return (span1.start >= span2.start) & (span1.end <= span2.end)
+
+
+def span_from_span(span: Span, start_idx: int, end_idx: int, label: str, alignment_mode: str = 'expand') -> Span:
     """
     Create a `Span` object from the slice `span.text[start : end]`.
     
@@ -38,7 +40,7 @@ def span_from_span(span: Span, start_idx: int, end_idx: int, label: str, alignme
     -------
         (Span): The newly constructed object.
     """
-    
+
     start_idx += span.start_char
     end_idx += span.start_char
 

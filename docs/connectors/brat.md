@@ -1,6 +1,6 @@
 # BRAT Connector
 
-BRAT is currently the only supported annotation editor at EDS. BRAT annotations are in the standoff format. Consider the following document:
+BRAT is currently the only supported in-text annotation editor at EDS. BRAT annotations are in the standoff format. Consider the following document:
 
 ```
 Le patient est admis pour une pneumopathie au coronavirus.

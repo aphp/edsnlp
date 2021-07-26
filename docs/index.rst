@@ -29,6 +29,7 @@ Documentation for EDS-NLP
    :caption: Connectors
 
    connectors/brat
+   connectors/labeltool
 
 
 `User guide <user-guide/index.html>`_

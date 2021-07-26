@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
 
 from spacy.language import Language
 
@@ -67,9 +67,9 @@ def create_sentences_component(
 def create_matcher_component(
         nlp: Language,
         name: str,
-        terms: Optional[Dict[str, List[str]]] = None,
+        terms: Optional[Dict[str, Union[str, List[str]]]] = None,
         attr: str = 'TEXT',
-        regex: Optional[Dict[str, List[str]]] = None,
+        regex: Optional[Dict[str, Union[str, List[str]]]] = None,
         fuzzy: bool = False,
         fuzzy_kwargs: Optional[Dict[str, Any]] = None,
         filter_matches: bool = True,

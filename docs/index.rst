@@ -3,33 +3,34 @@ Documentation for EDS-NLP
 #########################
 
 .. toctree::
-   :maxdepth: 2
-   :hidden:
-   :caption: User Guide
+    :maxdepth: 2
+    :hidden:
+    :caption: User Guide
 
-   user-guide/anatomy
-   user-guide/pollution
-   user-guide/sections
-   user-guide/quickumls
-
-.. toctree::
-   :maxdepth: 2
-   :hidden:
-   :caption: API
-
-   api/base
-   api/pollution
-   api/sections
-   api/quickumls
-   api/connectors
+    user-guide/terminology-matching
+    user-guide/anatomy
+    user-guide/pollution
+    user-guide/sections
+    user-guide/quickumls
 
 .. toctree::
-   :maxdepth: 2
-   :hidden:
-   :caption: Connectors
+    :maxdepth: 2
+    :hidden:
+    :caption: API
 
-   connectors/brat
-   connectors/labeltool
+    api/base
+    api/pollution
+    api/sections
+    api/quickumls
+    api/connectors
+
+.. toctree::
+    :maxdepth: 2
+    :hidden:
+    :caption: Connectors
+
+    connectors/brat
+    connectors/labeltool
 
 
 `User guide <user-guide/index.html>`_

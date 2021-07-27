@@ -29,7 +29,7 @@ By default, the `pollution` pipeline looks for regular expressions representing 
 
 ## Non-destruction
 
-All text normalisation in NLP Tools is non-destructive, ie
+All text normalisation in EDS-NLP is non-destructive, ie
 
 ```python
 nlp(text).text == text

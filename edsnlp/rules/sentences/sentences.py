@@ -59,6 +59,8 @@ class SentenceSegmenter(object):
         seen_period = False
         seen_newline = False
 
+        if len(doc)==0:
+            return doc
         doc[0].sent_start = True
 
         for i, token in enumerate(doc):

@@ -59,7 +59,7 @@ class SentenceSegmenter(object):
         seen_period = False
         seen_newline = False
 
-        if len(doc)==0:
+        if not doc:
             return doc
         doc[0].sent_start = True
 

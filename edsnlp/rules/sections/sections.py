@@ -91,6 +91,9 @@ class Sections(GenericMatcher):
 
         if not Span.has_extension('section_title'):
             Span.set_extension('section_title', default=None)
+            
+        if not Span.has_extension('section'):
+            Span.set_extension('section', default=None)
 
     # noinspection PyProtectedMember
     def __call__(self, doc: Doc) -> Doc:

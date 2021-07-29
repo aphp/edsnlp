@@ -133,6 +133,7 @@ class Sections(GenericMatcher):
             for section in doc._.sections:
                 if check_spans_inclusion(ent, section):
                     ent._.section_title = section._.section_title
+                    ent._.section = section.label_
                     break
 
         return doc

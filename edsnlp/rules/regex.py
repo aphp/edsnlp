@@ -23,9 +23,12 @@ class RegexMatcher(object):
     def __init__(self, alignment_mode: str = 'expand'):
         self.alignment_mode = alignment_mode
         self.regex = dict()
+        self.attr = dict()
 
-    def add(self, key: str, patterns: List[str]):
+    def add(self, key: str, patterns: List[str], attr: str="TEXT"):
+        assert attr in ["TEXT", "NORM"]
         self.regex[key] = [re.compile(pattern) for pattern in patterns]
+        self.attr[key] = attr
 
     def remove(self, key: str):
         del self.regex[key]
@@ -82,9 +85,12 @@ class RegexMatcher(object):
         span:
             A match.
         """
+        normalized_text = doclike[:]._.norm if any([self.attr[k]=="NORM" for k in self.regex]) else None
+        
         for key, patterns in self.regex.items():
+            text = normalized_text if self.attr[key]=="NORM" else doclike.text
             for pattern in patterns:
-                for match in pattern.finditer(doclike.text):
+                for match in pattern.finditer(text):
                     logger.trace(f'Matched a regex from {key}: {repr(match.group())}')
                     span = self.create_span(
                         doclike,

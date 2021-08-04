@@ -68,7 +68,7 @@ def create_matcher_component(
         nlp: Language,
         name: str,
         terms: Optional[Dict[str, Union[str, List[str]]]] = None,
-        attr: str = 'TEXT',
+        attr: Union[str, Dict[str, str]] = 'TEXT',
         regex: Optional[Dict[str, Union[str, List[str]]]] = None,
         fuzzy: bool = False,
         fuzzy_kwargs: Optional[Dict[str, Any]] = None,

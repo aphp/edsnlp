@@ -48,11 +48,14 @@ class AdvancedRegex(GenericMatcher):
         self.regex_config = _check_regex_config(regex_config)
         self.window = window
         regex = {k:v['regex'] for k,v in regex_config.items()}
+        attr = {k:v['attr'] for k,v in regex_config.items() if 'attr' in v}
+        
         self.verbose = verbose
         
         super().__init__(nlp=nlp,
                          terms=dict(),
-                         regex=regex)
+                         regex=regex,
+                         attr=attr)
 
     def process(self, doc: Doc) -> List[Span]:
         """
@@ -121,14 +124,16 @@ class AdvancedRegex(GenericMatcher):
         after_exclude = self.regex_config[label].get('after_exclude', None)
         
         if before_exclude is not None:
-            before_snippet = ent.doc[ent._.window.start:ent.start+1].text
+            before_snippet = ent.doc[ent._.window.start:ent.start+1]
+            before_snippet = before_snippet._.norm if self.regex_config[label].get("attr")=="NORM" else before_snippet.text
             if re.compile(before_exclude).search(before_snippet) is not None:
                 if self.verbose:
                     logger.info("excluded (before) string: " + str(before_snippet) + " - pattern: " + before_exclude)
                 return False
             
         if after_exclude is not None:
-            after_snippet = ent.doc[ent.end-1:ent._.window.end].text
+            after_snippet = ent.doc[ent.end-1:ent._.window.end]
+            after_snippet = after_snippet._.norm if self.regex_config[label].get("attr")=="NORM" else after_snippet.text
             if re.compile(after_exclude).search(after_snippet) is not None:
                 if self.verbose:
                     logger.info("excluded (after) string: " + str(after_snippet) + " - pattern: " + after_exclude)
@@ -148,14 +153,16 @@ class AdvancedRegex(GenericMatcher):
             after_extract = [after_extract]
         
         # add 1 to ent.start so that we can extract the number when it is attached to the word, e.g. "3PA"
-        before_snippet = ent.doc[ent._.window.start:ent.start+1].text # todo: change tokenizer and remove +1 ?
+        before_snippet = ent.doc[ent._.window.start:ent.start+1] # todo: change tokenizer and remove +1 ?
+        before_snippet = before_snippet._.norm if self.regex_config[label].get("attr")=="NORM" else before_snippet.text
         ent._.before_extract = []
         for pattern in before_extract:
             pattern = re.compile(pattern)
             match = pattern.search(before_snippet)
             ent._.before_extract.append(match.groups()[0] if match else None)
         
-        after_snippet = ent.doc[ent.end-1:ent._.window.end].text
+        after_snippet = ent.doc[ent.end-1:ent._.window.end]
+        after_snippet = after_snippet._.norm if self.regex_config[label].get("attr")=="NORM" else after_snippet.text
         ent._.after_extract = []
         for pattern in after_extract:
             pattern = re.compile(pattern)

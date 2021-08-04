@@ -1,7 +1,6 @@
 from typing import List, Dict, Optional, Any, Union
 
 from loguru import logger
-from loguru import logger
 
 from spacy.language import Language
 from spacy.matcher import PhraseMatcher
@@ -11,6 +10,10 @@ from spaczz.matcher import FuzzyMatcher
 
 from edsnlp.rules.base import BaseComponent
 from edsnlp.rules.regex import RegexMatcher
+
+TERM_ATTR = "term_attr"
+DEFAULT_ATTR = "NORM"
+
 
 class GenericMatcher(BaseComponent):
     """
@@ -22,6 +25,10 @@ class GenericMatcher(BaseComponent):
         The Spacy object.
     terms:
         A dictionary of terms to look for.
+    attr:
+        spaCy's attribute to use:
+        a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
+        we can also add a key for each regex.
     regex:
         A dictionary of regex patterns.
     fuzzy:
@@ -39,57 +46,72 @@ class GenericMatcher(BaseComponent):
             self,
             nlp: Language,
             terms: Optional[Dict[str, Union[List[str], str]]] = None,
-            attr: str = "TEXT",
+            attr: Union[Dict[str,str], str] = DEFAULT_ATTR,
             regex: Optional[Dict[str, Union[List[str], str]]] = None,
             fuzzy: bool = False,
             fuzzy_kwargs: Optional[Dict[str, Any]] = None,
             filter_matches: bool = True,
-            on_ents_only: bool = False,
-    ):
-
+            on_ents_only: bool = False):
+        
         self.nlp = nlp
-
         self.on_ents_only = on_ents_only
-
-        self.terms = terms or dict()
-        for k, v in self.terms.items():
-            if isinstance(v, str):
-                self.terms[k] = [v]
-
-        self.regex = regex or dict()
-        for k, v in self.regex.items():
-            if isinstance(v, str):
-                self.regex[k] = [v]
-
+        self.terms = self._to_dict_of_lists(terms)
+        self.regex = self._to_dict_of_lists(regex)
         self.fuzzy = fuzzy
-
         self.filter_matches = filter_matches
+        
+        self.attr = self._prepare_attr(attr, self.regex, nlp.pipe_names)
+        
+        self.matcher = self._create_matcher(fuzzy, fuzzy_kwargs, self.attr[TERM_ATTR])
+        self.regex_matcher = RegexMatcher()
 
-        if attr.upper() == "NORM" and ('normaliser' not in nlp.pipe_names):
-            logger.warning("You are using the NORM attribute but no normaliser is set.")
-
+        self._build_patterns()
+    
+    
+    def _create_matcher(self, fuzzy, fuzzy_kwargs, term_attr):
         if fuzzy:
             logger.warning(
                 'You have requested fuzzy matching, which significantly increases '
-                'compute times (x60 increases are common).'
-            )
+                'compute times (x60 increases are common).')
             if fuzzy_kwargs is None:
                 fuzzy_kwargs = {"min_r2": 90, "ignore_case": True}
-            self.matcher = FuzzyMatcher(self.nlp.vocab, attr=attr, **fuzzy_kwargs)
+            return FuzzyMatcher(self.nlp.vocab, attr=term_attr, **fuzzy_kwargs)
         else:
-            self.matcher = PhraseMatcher(self.nlp.vocab, attr=attr)
+            return PhraseMatcher(self.nlp.vocab, attr=term_attr)
 
-        self.regex_matcher = RegexMatcher()
 
-        self.build_patterns()
+    def _prepare_attr(self, attr, regex, pipe_names):
+        if isinstance(attr, str):
+            attr = {TERM_ATTR: attr}
 
-    def build_patterns(self) -> None:
+        attr = {k:v.upper() for k,v in attr.items()}
+        for k in set(regex) | {TERM_ATTR}:
+            if k not in attr:
+                attr[k] = DEFAULT_ATTR
+        
+        # checkings
+        diff = set(attr) - set(regex) - {TERM_ATTR}
+        if diff:
+            logger.warning(f"some of 'attr' keys are not in 'regex' keys and will be ignored: {diff}")
+
+        vals = {attr[k] for k in regex}
+        if vals - {"NORM", "TEXT"}:
+            raise ValueError(f"Some attributes in 'attr' are not supported: {vals}")
+        
+        vals.add(attr[TERM_ATTR])
+        if "NORM" in vals and ('normaliser' not in pipe_names):
+            logger.warning("You are using the NORM attribute but no normaliser is set.")
+        
+        return attr
+    
+
+    def _build_patterns(self):
         for key, expressions in self.terms.items():
             patterns = list(self.nlp.tokenizer.pipe(expressions))
             self.matcher.add(key, patterns)
 
         for key, patterns in self.regex.items():
-            self.regex_matcher.add(key, patterns)
+            self.regex_matcher.add(key, patterns, self.attr[key])
 
     def process(self, doc: Doc) -> List[Span]:
         """
@@ -153,3 +175,12 @@ class GenericMatcher(BaseComponent):
         doc.ents = spans
 
         return doc
+
+
+
+    def _to_dict_of_lists(self, d):
+        d = d or dict()
+        for k, v in d.items():
+            if isinstance(v, str):
+                d[k] = [v]
+        return d

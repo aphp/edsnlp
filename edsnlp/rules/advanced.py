@@ -33,7 +33,6 @@ if not Span.has_extension('after_extract'):
 if not Span.has_extension('window'):
     Span.set_extension('window', default=None)
 
-# todo: not used
 if not Span.has_extension('before_snippet'):
     Span.set_extension('before_snippet', default=None)
 if not Span.has_extension('after_snippet'):
@@ -116,8 +115,10 @@ class AdvancedRegex(GenericMatcher):
     
     def _add_window(self, ent: Span) -> Span:
         ent._.window = ent.doc[max(ent.start-self.window, ent.sent.start) : min(ent.end+self.window, ent.sent.end)]
-        ent._.before_snippet = ent.doc[max(ent.start-self.window, ent.sent.start) : ent.start]
-        ent._.after_snippet = ent.doc[ent.end : min(ent.end+self.window, ent.sent.end)]
+        
+        # include the entity in the snippets so that we can extract the number when it is attached to the word, e.g. "3PA"
+        ent._.before_snippet = ent.doc[max(ent.start-self.window, ent.sent.start) : ent.end]
+        ent._.after_snippet = ent.doc[ent.start : min(ent.end+self.window, ent.sent.end)]
         return ent
     
     def _exclude_filter(self, ent: Span) -> Span:
@@ -127,19 +128,19 @@ class AdvancedRegex(GenericMatcher):
         after_exclude = self.regex_config[label].get('after_exclude', None)
         
         if before_exclude is not None:
-            before_snippet = ent.doc[ent._.window.start:ent.start+1]
-            before_snippet = before_snippet._.norm if self.regex_config[label].get("attr")=="NORM" else before_snippet.text
-            if re.compile(before_exclude).search(before_snippet) is not None:
+            t = ent._.before_snippet
+            t = t._.norm if self.regex_config[label].get("attr", self.DEFAULT_ATTR)=="NORM" else t.text
+            if re.compile(before_exclude).search(t) is not None:
                 if self.verbose:
-                    logger.info("excluded (before) string: " + str(before_snippet) + " - pattern: " + before_exclude)
+                    logger.info("excluded (before) string: " + str(t) + " - pattern: " + before_exclude)
                 return False
             
         if after_exclude is not None:
-            after_snippet = ent.doc[ent.end-1:ent._.window.end]
-            after_snippet = after_snippet._.norm if self.regex_config[label].get("attr")=="NORM" else after_snippet.text
-            if re.compile(after_exclude).search(after_snippet) is not None:
+            t = ent._.after_snippet
+            t = t._.norm if self.regex_config[label].get("attr", self.DEFAULT_ATTR)=="NORM" else t.text
+            if re.compile(after_exclude).search(t) is not None:
                 if self.verbose:
-                    logger.info("excluded (after) string: " + str(after_snippet) + " - pattern: " + after_exclude)
+                    logger.info("excluded (after) string: " + str(t) + " - pattern: " + after_exclude)
                 return False
         
         return True
@@ -155,21 +156,20 @@ class AdvancedRegex(GenericMatcher):
         if type(after_extract) == str:
             after_extract = [after_extract]
         
-        # add 1 to ent.start so that we can extract the number when it is attached to the word, e.g. "3PA"
-        before_snippet = ent.doc[ent._.window.start:ent.start+1] # todo: change tokenizer and remove +1 ?
-        before_snippet = before_snippet._.norm if self.regex_config[label].get("attr")=="NORM" else before_snippet.text
+        t = ent._.before_snippet
+        t = t._.norm if self.regex_config[label].get("attr", self.DEFAULT_ATTR)=="NORM" else t.text
         ent._.before_extract = []
         for pattern in before_extract:
             pattern = re.compile(pattern)
-            match = pattern.search(before_snippet)
+            match = pattern.search(t)
             ent._.before_extract.append(match.groups()[0] if match else None)
         
-        after_snippet = ent.doc[ent.end-1:ent._.window.end]
-        after_snippet = after_snippet._.norm if self.regex_config[label].get("attr")=="NORM" else after_snippet.text
+        t = ent._.after_snippet
+        t = t._.norm if self.regex_config[label].get("attr", self.DEFAULT_ATTR)=="NORM" else t.text
         ent._.after_extract = []
         for pattern in after_extract:
             pattern = re.compile(pattern)
-            match = pattern.search(after_snippet)
+            match = pattern.search(t)
             ent._.after_extract.append(match.groups()[0] if match else None)
             
 

@@ -66,6 +66,7 @@ class GenericMatcher(BaseComponent):
         self.regex_matcher = RegexMatcher()
 
         self._build_patterns()
+        self.DEFAULT_ATTR = DEFAULT_ATTR
     
     
     def _create_matcher(self, fuzzy, fuzzy_kwargs, term_attr):

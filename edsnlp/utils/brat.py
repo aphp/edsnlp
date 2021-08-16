@@ -2,8 +2,10 @@ import os
 from typing import Tuple, List, Union
 
 import pandas as pd
+
 from spacy import Language
 from spacy.tokens import Doc
+from spacy.util import filter_spans
 
 
 def read_file(filename):
@@ -173,7 +175,7 @@ class BratConnector(object):
                 )
                 spans.append(span)
 
-            doc.ents = spans
+            doc.ents = filter_spans(spans)
 
         return docs
 

@@ -83,7 +83,9 @@ class GenericMatcher(BaseComponent):
 
     def _prepare_attr(self, attr, regex, pipe_names):
         if isinstance(attr, str):
-            attr = {TERM_ATTR: attr}
+            # Setting the provided attribute for every term/regex
+            attr = {k:attr.upper() for k in set(regex) | {TERM_ATTR}}
+            return attr
 
         attr = {k:v.upper() for k,v in attr.items()}
         for k in set(regex) | {TERM_ATTR}:

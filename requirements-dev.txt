@@ -1,5 +1,6 @@
 black
-pytest
-pytest-cov
+flake8
 jupytext
 pre-commit
+pytest
+pytest-cov

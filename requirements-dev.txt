@@ -1,4 +1,6 @@
 black
+flake8
+jupytext
+pre-commit
 pytest
 pytest-cov
-jupytext

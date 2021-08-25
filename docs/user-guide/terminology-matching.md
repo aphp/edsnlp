@@ -2,7 +2,7 @@
 
 Matching a terminology is perhaps the most basic application of an NLP pipeline.
 
-EDS-NLP provides a `GenericMatcher` class that simplifies that task, exposing a `matcher` pipeline 
+EDS-NLP provides a `GenericMatcher` class that simplifies that task, exposing a `matcher` pipeline
 that can match on terms, regular expressions, and even fuzzy matching.
 
 
@@ -19,10 +19,10 @@ text = (
     "Patient atteint de covid 19."
 )
 
-terms = dict(covid=['coronavirus', 'covid19'], patient='patient')
+terms = dict(covid=["coronavirus", "covid19"], patient="patient")
 
-nlp = spacy.blank('fr')
-nlp.add_pipe('matcher', config=dict(terms=terms))
+nlp = spacy.blank("fr")
+nlp.add_pipe("matcher", config=dict(terms=terms))
 
 doc = nlp(text)
 
@@ -37,7 +37,7 @@ Let us unpack what happened:
 3. We apply the pipeline to the texts...
 4. And explore the extracted entities.
 
-This example showcases a limitation of our term dictionary : none of `covid 19` and `Patient` where detected by 
+This example showcases a limitation of our term dictionary : none of `covid 19` and `Patient` where detected by
 the pipeline.
 
 
@@ -46,10 +46,10 @@ the pipeline.
 Let us redefine the pipeline :
 
 ```python
-terms = dict(covid=['coronavirus', 'covid19'], patient='patient')
+terms = dict(covid=["coronavirus", "covid19"], patient="patient")
 
-nlp = spacy.blank('fr')
-nlp.add_pipe('matcher', config=dict(terms=terms, attr='LOWER'))
+nlp = spacy.blank("fr")
+nlp.add_pipe("matcher", config=dict(terms=terms, attr="LOWER"))
 ```
 
 This time, the pipeline will become case insensitive. Hence :
@@ -70,10 +70,10 @@ possibility for COVID (eg `covid-19`, `covid 19`, etc), but this might quickly b
 Let us redefine the pipeline once again :
 
 ```python
-regex = dict(covid='(?i)(coronavirus|covid\s?-?19)', patient='patients?')
+regex = dict(covid="(?i)(coronavirus|covid\s?-?19)", patient="patients?")
 
-nlp = spacy.blank('fr')
-nlp.add_pipe('matcher', config=dict(regex=regex))
+nlp = spacy.blank("fr")
+nlp.add_pipe("matcher", config=dict(regex=regex))
 ```
 
 Using regular expressions can help define richer patterns using more compact queries.

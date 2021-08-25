@@ -127,8 +127,8 @@ small_notes_subset = notes[:1000]
 small_notes_subset.head()
 ```
 
-Les données d'entrée sont ici sous forme d'une DataFrame Pandas.  
-Chaque ligne va générer un objet `Doc` qui va être processé par l'objet `nlp`.  
+Les données d'entrée sont ici sous forme d'une DataFrame Pandas.
+Chaque ligne va générer un objet `Doc` qui va être processé par l'objet `nlp`.
 Pour cela, on peut utiliser la méthode `nlprocess.pipe`:
 
 ```python
@@ -164,9 +164,9 @@ print(f"Type de note: {entite.doc._.note_class_source_value}")
 ## 3. Pipeline distribuée pour un grand nombre de documents
 
 
-Si vous souhaitez processer un grand nombre de textes, il sera plus rapide de paralleliser le travail.  
-Cependant, il vous faut pour cela définir une fonction `pick_results` qui sera appelée sur chaque objet `Doc` en bout de pipeline.  
-La sortie de cette fonction doit être une liste de dictionnaires.  
+Si vous souhaitez processer un grand nombre de textes, il sera plus rapide de paralleliser le travail.
+Cependant, il vous faut pour cela définir une fonction `pick_results` qui sera appelée sur chaque objet `Doc` en bout de pipeline.
+La sortie de cette fonction doit être une liste de dictionnaires.
 Voyons un exemple:
 
 ```python
@@ -199,8 +199,8 @@ help(nlprocess.parallel_pipe)
 ```python
 %%time
 ents = nlprocess.parallel_pipe(nlp,
-                               big_notes_subset, 
-                               chunksize=100, 
+                               big_notes_subset,
+                               chunksize=100,
                                n_jobs=10,
                                context_cols='note_id',
                                progress_bar=False,

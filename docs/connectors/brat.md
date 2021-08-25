@@ -22,10 +22,10 @@ import spacy
 from edsnlp.utils.brat import BratConnector
 
 # Instantiate the connector
-brat = BratConnector('path/to/brat')
+brat = BratConnector("path/to/brat")
 
 # Instantiate the spacy pipeline
-nlp = spacy.blank('fr')
+nlp = spacy.blank("fr")
 
 # Convert all BRAT files to a list of documents
 docs = brat.brat2docs(nlp)

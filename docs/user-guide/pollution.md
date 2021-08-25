@@ -48,8 +48,8 @@ Hence, the strategy chosen for the pollution pipeline is the following:
 import spacy
 from edsnlp import components
 
-nlp = spacy.blank('fr')
-nlp.add_pipe('pollution')  # exposed via edsnlp.components
+nlp = spacy.blank("fr")
+nlp.add_pipe("pollution")  # exposed via edsnlp.components
 
 text = (
     "Le patient est admis pour des douleurs dans le bras droit, mais n'a pas de problème de locomotion. "
@@ -72,10 +72,10 @@ Should you need to implement a pipeline using the cleaned version of the documen
 clean = nlp(doc._.clean)
 span = clean[27:28]
 
-doc._.clean_[span.start_char:span.end_char]
+doc._.clean_[span.start_char : span.end_char]
 # Out: 'rhume'
 
-doc.text[span.start_char:span.end_char]
+doc.text[span.start_char : span.end_char]
 # Out: 'bWbNb'
 
 doc._.char_clean_span(span.start_char, span.end_char)

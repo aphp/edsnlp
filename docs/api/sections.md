@@ -1,5 +1,5 @@
 # Sections
 
 ```{eval-rst}
-.. automodule:: edsnlp.rules.sections.sections
+.. automodule:: edsnlp.pipelines.sections.sections
 ```

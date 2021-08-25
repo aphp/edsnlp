@@ -5,7 +5,7 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.3'
+      format_version: "1.3"
       jupytext_version: 1.11.4
   kernelspec:
     display_name: Python 3
@@ -28,7 +28,7 @@ import spacy
 ```
 
 ```python
-from edsnlp.rules.sentences import SentenceSegmenter
+from edsnlp.pipelines.sentences import SentenceSegmenter
 ```
 
 # Sentences

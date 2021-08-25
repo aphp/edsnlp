@@ -4,7 +4,7 @@ from loguru import logger
 from spacy.language import Language
 from spacy.tokens import Doc, Span
 
-from edsnlp.rules.generic import GenericMatcher
+from edsnlp.pipelines.generic import GenericMatcher
 from edsnlp.utils.spacy import check_spans_inclusion
 
 

@@ -8,7 +8,7 @@ from spacy.tokens import Doc, Span
 from spacy.util import filter_spans
 from spaczz.matcher import FuzzyMatcher
 
-from edsnlp.rules.base import BaseComponent
+from edsnlp.base import BaseComponent
 from edsnlp.matchers.regex import RegexMatcher
 
 TERM_ATTR = "term_attr"
@@ -92,7 +92,7 @@ class GenericMatcher(BaseComponent):
             if k not in attr:
                 attr[k] = DEFAULT_ATTR
 
-        # checkings
+        # Checks
         diff = set(attr) - set(regex) - {TERM_ATTR}
         if diff:
             logger.warning(

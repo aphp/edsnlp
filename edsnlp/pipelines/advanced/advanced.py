@@ -16,8 +16,8 @@ from edsnlp.matchers.regex import RegexMatcher
 
 from spacy.util import filter_spans
 
-from edsnlp.rules.base import BaseComponent
-from edsnlp.rules.generic import GenericMatcher
+from edsnlp.base import BaseComponent
+from edsnlp.pipelines.generic import GenericMatcher
 
 if not Doc.has_extension("my_ents"):
     Doc.set_extension("my_ents", default=[])

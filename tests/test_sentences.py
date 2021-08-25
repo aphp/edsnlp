@@ -1,4 +1,4 @@
-from edsnlp.rules.sentences import SentenceSegmenter
+from edsnlp.pipelines.sentences import SentenceSegmenter
 from spacy.pipeline.sentencizer import Sentencizer
 
 text = (

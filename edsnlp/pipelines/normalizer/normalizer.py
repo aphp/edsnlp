@@ -15,7 +15,7 @@ if not Span.has_extension("norm"):
     Span.set_extension("norm", getter=_get_span_norm)
 
 
-class Normaliser(object):
+class Normalizer(object):
     """
     Pipeline that populates the NORM attribute.
     The goal is to handle accents without changing the document's length, thus

@@ -2,13 +2,13 @@ from typing import Dict, Any, List, Optional, Union
 
 from spacy.language import Language
 
-from edsnlp.rules.advanced import AdvancedRegex
-from edsnlp.rules.generic import GenericMatcher
-from edsnlp.rules.normalise import Normaliser
-from edsnlp.rules.pollution import Pollution, terms as pollution_terms
-from edsnlp.rules.quickumls import QuickUMLSComponent
-from edsnlp.rules.sections import Sections, terms as section_terms
-from edsnlp.rules.sentences import SentenceSegmenter
+from edsnlp.pipelines.advanced import AdvancedRegex
+from edsnlp.pipelines.generic import GenericMatcher
+from edsnlp.pipelines.normalizer import Normalizer
+from edsnlp.pipelines.pollution import Pollution, terms as pollution_terms
+from edsnlp.pipelines.quickumls import QuickUMLSComponent
+from edsnlp.pipelines.sections import Sections, terms as section_terms
+from edsnlp.pipelines.sentences import SentenceSegmenter
 
 pollution_default_config = dict(
     pollution=pollution_terms.pollution,
@@ -108,4 +108,4 @@ def create_normaliser_component(
     deaccentuate: bool = True,
     lowercase: bool = True,
 ):
-    return Normaliser(deaccentuate=deaccentuate, lowercase=lowercase)
+    return Normalizer(deaccentuate=deaccentuate, lowercase=lowercase)

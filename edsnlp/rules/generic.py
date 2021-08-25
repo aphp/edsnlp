@@ -9,7 +9,7 @@ from spacy.util import filter_spans
 from spaczz.matcher import FuzzyMatcher
 
 from edsnlp.rules.base import BaseComponent
-from edsnlp.rules.regex import RegexMatcher
+from edsnlp.matchers.regex import RegexMatcher
 
 TERM_ATTR = "term_attr"
 DEFAULT_ATTR = "NORM"

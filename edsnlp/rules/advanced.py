@@ -12,7 +12,7 @@ from spacy.matcher import PhraseMatcher
 from spacy.tokens import Doc, Span
 from spaczz.matcher import FuzzyMatcher
 
-from edsnlp.rules.regex import RegexMatcher
+from edsnlp.matchers.regex import RegexMatcher
 
 from spacy.util import filter_spans
 

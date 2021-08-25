@@ -28,18 +28,18 @@ import spacy
 # Load declared pipelines
 from edsnlp import components
 
-nlp = spacy.blank('fr')
-nlp.add_pipe('sections')
+nlp = spacy.blank("fr")
+nlp.add_pipe("sections")
 ```
 
 To declare an entity matcher:
 
 ```python
 terms = dict(
-    covid=['covid', 'coronavirus'],
+    covid=["covid", "coronavirus"],
 )
 
-nlp.add_pipe('matcher', config=dict(terms=terms))
+nlp.add_pipe("matcher", config=dict(terms=terms))
 ```
 
 See the documentation for detail.

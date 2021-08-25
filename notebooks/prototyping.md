@@ -63,8 +63,8 @@ sections = Sections(nlp, section_terms.sections, fuzzy=True)
 
 ```python
 matcher = GenericMatcher(
-    nlp, 
-    regex=dict(famille=[r'douleuur']), 
+    nlp,
+    regex=dict(famille=[r'douleuur']),
     fuzzy=True,
     filter_matches=True,
 )
@@ -72,8 +72,8 @@ matcher = GenericMatcher(
 
 ```python
 matcher2 = GenericMatcher(
-    nlp, 
-    regex=dict(test=[r'\b\w+\b']), 
+    nlp,
+    regex=dict(test=[r'\b\w+\b']),
     fuzzy=True,
     filter_matches=True,
     on_ents_only=True

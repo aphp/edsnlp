@@ -14,7 +14,7 @@ the fact that :
    correspond to `["est", "malade"]`, `["malade"]`, `["n'", "est", "pas", "malade", "."]` ?
 
 3. Depending on the design of the algorithm, the span might be off, even though it
-   can correctly assign polarity to a given entity (but considered that the punctuation 
+   can correctly assign polarity to a given entity (but considered that the punctuation
    was negated as well).
    By relaxing the need to infer the correct span, we avoid giving an unfair disadvantage
    to an otherwise great algorithm.

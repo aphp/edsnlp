@@ -93,7 +93,7 @@ df.apply(assign_id, axis=1);
 df['matches'] = df.doc.apply(lambda d: [dict(
     lexical_variant=s.text,
     label=s.label_,
-    start=s.start_char, 
+    start=s.start_char,
     end=s.end_char
 ) for s in d._.section_titles])
 ```
@@ -143,7 +143,7 @@ out = Output()
 labels = Labels()
 
 for label in df.label_value.unique():
-    labels.add(name = label, 
+    labels.add(name = label,
                color = 'green',
                selection_type = 'button')
 ```
@@ -154,7 +154,7 @@ labeller = Labelling(
     save_path='testing.pickle',
     labels_dict=labels.dict,
     from_save=True,
-    out=out, 
+    out=out,
     display=display,
 )
 ```

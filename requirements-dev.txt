@@ -2,3 +2,4 @@ black
 pytest
 pytest-cov
 jupytext
+pre-commit

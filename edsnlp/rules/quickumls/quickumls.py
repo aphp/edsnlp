@@ -23,12 +23,12 @@ class QuickUMLSComponent(BaseComponent):
     """
 
     def __init__(
-            self,
-            nlp: Language,
-            distribution: str,
-            best_match: Optional[bool] = True,
-            ignore_syntax: Optional[bool] = False,
-            **kwargs
+        self,
+        nlp: Language,
+        distribution: str,
+        best_match: Optional[bool] = True,
+        ignore_syntax: Optional[bool] = False,
+        **kwargs
     ):
 
         from quickumls import QuickUMLS
@@ -47,23 +47,25 @@ class QuickUMLSComponent(BaseComponent):
         self.ignore_syntax = ignore_syntax
 
         # let's extend this with some proprties that we want
-        if not Span.has_extension('similarity'):
-            Span.set_extension('similarity', default=-1.0)
-            Span.set_extension('semtypes', default=-1.0)
+        if not Span.has_extension("similarity"):
+            Span.set_extension("similarity", default=-1.0)
+            Span.set_extension("semtypes", default=-1.0)
 
     def __call__(self, doc):
         # pass in the document which has been parsed to this point in the pipeline for ngrams and matches
-        matches = self.quickumls._match(doc, best_match=self.best_match, ignore_syntax=self.ignore_syntax)
+        matches = self.quickumls._match(
+            doc, best_match=self.best_match, ignore_syntax=self.ignore_syntax
+        )
         ents = []
 
         # Convert QuickUMLS match objects into Spans
         for match in matches:
             # each match may match multiple ngrams
             for ngram_match_dict in match:
-                start_char_idx = int(ngram_match_dict['start'])
-                end_char_idx = int(ngram_match_dict['end'])
+                start_char_idx = int(ngram_match_dict["start"])
+                end_char_idx = int(ngram_match_dict["end"])
 
-                cui = ngram_match_dict['cui']
+                cui = ngram_match_dict["cui"]
                 # add the string to the spacy vocab
                 self.nlp.vocab.strings.add(cui)
                 # pull out the value
@@ -71,10 +73,12 @@ class QuickUMLSComponent(BaseComponent):
 
                 # char_span() creates a Span from these character indices
                 # UMLS CUI should work well as the label here
-                span = doc.char_span(start_char_idx, end_char_idx, label=cui_label_value)
+                span = doc.char_span(
+                    start_char_idx, end_char_idx, label=cui_label_value
+                )
                 # add some custom metadata to the spans
-                span._.similarity = ngram_match_dict['similarity']
-                span._.semtypes = ngram_match_dict['semtypes']
+                span._.similarity = ngram_match_dict["similarity"]
+                span._.semtypes = ngram_match_dict["semtypes"]
                 ents.append(span)
 
         doc.ents = self._filter_matches(ents)

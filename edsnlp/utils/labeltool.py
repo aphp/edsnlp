@@ -7,8 +7,8 @@ from tqdm import tqdm
 
 
 def docs2labeltool(
-        docs: List[Doc],
-        extensions: Optional[List[str]] = None,
+    docs: List[Doc],
+    extensions: Optional[List[str]] = None,
 ) -> pd.DataFrame:
     """
     Returns a labeltool-ready dataframe from a list of annotated document.
@@ -26,9 +26,9 @@ def docs2labeltool(
         DataFrame tailored for labeltool.
     """
 
-    note_id = Doc.has_extension('note_id')
+    note_id = Doc.has_extension("note_id")
     if not note_id:
-        logger.info('note_id extension was not set.')
+        logger.info("note_id extension was not set.")
 
     if extensions is None:
         extensions = []
@@ -46,9 +46,9 @@ def docs2labeltool(
             )
 
             if note_id:
-                d['note_id'] = doc._.note_id or i
+                d["note_id"] = doc._.note_id or i
             else:
-                d['note_id'] = i
+                d["note_id"] = i
 
             for ext in extensions:
                 d[ext] = getattr(ent._, ext)
@@ -58,12 +58,12 @@ def docs2labeltool(
     df = pd.DataFrame.from_records(entities)
 
     columns = [
-        'note_id',
-        'note_text',
-        'offset_begin',
-        'offset_end',
-        'label',
-        'lexical_variant',
+        "note_id",
+        "note_text",
+        "offset_begin",
+        "offset_end",
+        "label",
+        "lexical_variant",
     ]
 
     df = df[columns + extensions]

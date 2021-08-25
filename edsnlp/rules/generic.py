@@ -43,70 +43,71 @@ class GenericMatcher(BaseComponent):
     """
 
     def __init__(
-            self,
-            nlp: Language,
-            terms: Optional[Dict[str, Union[List[str], str]]] = None,
-            attr: Union[Dict[str,str], str] = DEFAULT_ATTR,
-            regex: Optional[Dict[str, Union[List[str], str]]] = None,
-            fuzzy: bool = False,
-            fuzzy_kwargs: Optional[Dict[str, Any]] = None,
-            filter_matches: bool = True,
-            on_ents_only: bool = False):
-        
+        self,
+        nlp: Language,
+        terms: Optional[Dict[str, Union[List[str], str]]] = None,
+        attr: Union[Dict[str, str], str] = DEFAULT_ATTR,
+        regex: Optional[Dict[str, Union[List[str], str]]] = None,
+        fuzzy: bool = False,
+        fuzzy_kwargs: Optional[Dict[str, Any]] = None,
+        filter_matches: bool = True,
+        on_ents_only: bool = False,
+    ):
+
         self.nlp = nlp
         self.on_ents_only = on_ents_only
         self.terms = self._to_dict_of_lists(terms)
         self.regex = self._to_dict_of_lists(regex)
         self.fuzzy = fuzzy
         self.filter_matches = filter_matches
-        
+
         self.attr = self._prepare_attr(attr, self.regex, nlp.pipe_names)
-        
+
         self.matcher = self._create_matcher(fuzzy, fuzzy_kwargs, self.attr[TERM_ATTR])
         self.regex_matcher = RegexMatcher()
 
         self._build_patterns()
         self.DEFAULT_ATTR = DEFAULT_ATTR
-    
-    
+
     def _create_matcher(self, fuzzy, fuzzy_kwargs, term_attr):
         if fuzzy:
             logger.warning(
-                'You have requested fuzzy matching, which significantly increases '
-                'compute times (x60 increases are common).')
+                "You have requested fuzzy matching, which significantly increases "
+                "compute times (x60 increases are common)."
+            )
             if fuzzy_kwargs is None:
                 fuzzy_kwargs = {"min_r2": 90, "ignore_case": True}
             return FuzzyMatcher(self.nlp.vocab, attr=term_attr, **fuzzy_kwargs)
         else:
             return PhraseMatcher(self.nlp.vocab, attr=term_attr)
 
-
     def _prepare_attr(self, attr, regex, pipe_names):
         if isinstance(attr, str):
             # Setting the provided attribute for every term/regex
-            attr = {k:attr.upper() for k in set(regex) | {TERM_ATTR}}
+            attr = {k: attr.upper() for k in set(regex) | {TERM_ATTR}}
             return attr
 
-        attr = {k:v.upper() for k,v in attr.items()}
+        attr = {k: v.upper() for k, v in attr.items()}
         for k in set(regex) | {TERM_ATTR}:
             if k not in attr:
                 attr[k] = DEFAULT_ATTR
-        
+
         # checkings
         diff = set(attr) - set(regex) - {TERM_ATTR}
         if diff:
-            logger.warning(f"some of 'attr' keys are not in 'regex' keys and will be ignored: {diff}")
+            logger.warning(
+                f"some of 'attr' keys are not in 'regex' keys and will be ignored: {diff}"
+            )
 
         vals = {attr[k] for k in regex}
         if vals - {"NORM", "TEXT"}:
             raise ValueError(f"Some attributes in 'attr' are not supported: {vals}")
-        
+
         vals.add(attr[TERM_ATTR])
-        if "NORM" in vals and ('normaliser' not in pipe_names):
+        if "NORM" in vals and ("normaliser" not in pipe_names):
             logger.warning("You are using the NORM attribute but no normaliser is set.")
-        
+
         return attr
-    
 
     def _build_patterns(self):
         for key, expressions in self.terms.items():
@@ -167,7 +168,7 @@ class GenericMatcher(BaseComponent):
         ----------
         doc:
             spaCy Doc object
-        
+
         Returns
         -------
         doc:
@@ -178,8 +179,6 @@ class GenericMatcher(BaseComponent):
         doc.ents = spans
 
         return doc
-
-
 
     def _to_dict_of_lists(self, d):
         d = d or dict()

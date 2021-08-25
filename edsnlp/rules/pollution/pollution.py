@@ -13,11 +13,11 @@ from edsnlp.rules.regex import RegexMatcher
 def clean_getter(doc: Doc) -> List[Token]:
     """
     Gets a list of tokens with pollution removed.
-    
+
     Arguments
     ---------
     doc: Spacy Doc object.
-    
+
     Returns
     -------
     tokens: List of clean tokens.
@@ -35,13 +35,13 @@ def clean_getter(doc: Doc) -> List[Token]:
 # noinspection PyProtectedMember
 def clean2original(doc: Doc) -> np.ndarray:
     """
-    Creates an alignment array to convert spans from the cleaned 
+    Creates an alignment array to convert spans from the cleaned
     textual representation to the original text object.
-    
+
     Arguments
     ---------
     doc: Spacy Doc object.
-    
+
     Returns
     -------
     alignment: Alignment array.
@@ -68,14 +68,14 @@ def clean2original(doc: Doc) -> np.ndarray:
 # noinspection PyProtectedMember
 def align(doc: Doc, index: int) -> int:
     """
-    Aligns a character found in the clean text with 
+    Aligns a character found in the clean text with
     its index in the original text.
-    
+
     Arguments
     ---------
     doc: Spacy Doc object.
     index: Character index in the clean text.
-    
+
     Returns
     -------
     index: Character index in the original text.
@@ -91,21 +91,21 @@ def align(doc: Doc, index: int) -> int:
 
 
 def char_clean2original(
-        doc: Doc,
-        start: int,
-        end: int,
-        alignment_mode: Optional[str] = 'strict',
+    doc: Doc,
+    start: int,
+    end: int,
+    alignment_mode: Optional[str] = "strict",
 ) -> Span:
     """
     Returns a Spacy Span object from character span computed on the clean text.
-    
+
     Arguments
     ---------
     doc: Spacy Doc object
     start: Character index of the beginning of the expression in the clean text.
     end: Character index of the end of the expression in the clean text.
     alignment_mode: Alignment mode. See https://spacy.io/api/doc#char_span.
-    
+
     Returns
     -------
     span: Span in the original text.
@@ -124,7 +124,7 @@ class Pollution(BaseComponent):
     - `Token._.pollution` : indicates whether the token is a pollution
     - `Doc._.clean` : lists non-pollution tokens
     - `Doc._.clean_` : original text with pollutions removed.
-    - `Doc._.char_clean_span` : method to create a Span using character 
+    - `Doc._.char_clean_span` : method to create a Span using character
       indices extracted using the cleaned text.
 
     Parameters
@@ -137,9 +137,9 @@ class Pollution(BaseComponent):
 
     # noinspection PyProtectedMember
     def __init__(
-            self,
-            nlp: Language,
-            pollution: Dict[str, Union[str, List[str]]],
+        self,
+        nlp: Language,
+        pollution: Dict[str, Union[str, List[str]]],
     ):
 
         self.nlp = nlp
@@ -150,20 +150,23 @@ class Pollution(BaseComponent):
             if isinstance(v, str):
                 self.pollution[k] = [v]
 
-        if not Token.has_extension('pollution'):
-            Token.set_extension('pollution', default=False)
+        if not Token.has_extension("pollution"):
+            Token.set_extension("pollution", default=False)
 
-        if not Doc.has_extension('pollutions'):
-            Doc.set_extension('pollutions', default=[])
+        if not Doc.has_extension("pollutions"):
+            Doc.set_extension("pollutions", default=[])
 
-        if not Doc.has_extension('clean'):
-            Doc.set_extension('clean', getter=clean_getter)
+        if not Doc.has_extension("clean"):
+            Doc.set_extension("clean", getter=clean_getter)
 
-        if not Doc.has_extension('clean_'):
-            Doc.set_extension('clean_', getter=lambda doc: ''.join([t.text_with_ws for t in doc._.clean]))
+        if not Doc.has_extension("clean_"):
+            Doc.set_extension(
+                "clean_",
+                getter=lambda doc: "".join([t.text_with_ws for t in doc._.clean]),
+            )
 
-        if not Doc.has_extension('char_clean_span'):
-            Doc.set_extension('char_clean_span', method=char_clean2original)
+        if not Doc.has_extension("char_clean_span"):
+            Doc.set_extension("char_clean_span", method=char_clean2original)
 
         self.matcher = RegexMatcher()
         self.build_patterns()
@@ -208,7 +211,7 @@ class Pollution(BaseComponent):
         ----------
         doc:
             spaCy Doc object
-        
+
         Returns
         -------
         doc:

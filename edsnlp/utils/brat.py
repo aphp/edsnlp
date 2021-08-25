@@ -9,7 +9,7 @@ from spacy.util import filter_spans
 
 
 def read_file(filename):
-    with open(filename, 'r') as f:
+    with open(filename, "r") as f:
         return f.read()
 
 
@@ -29,27 +29,28 @@ def read_brat_annotation(filename: str) -> pd.DataFrame:
     """
 
     try:
-        annotations = pd.read_csv(filename, sep='\t', header=None)
+        annotations = pd.read_csv(filename, sep="\t", header=None)
 
-        annotations.columns = ['index', 'annot', 'lexical_variant']
+        annotations.columns = ["index", "annot", "lexical_variant"]
 
-        annotations['end'] = annotations.annot.str.split().str[-1]
-        annotations['annot'] = annotations.annot.str.split(';').str[0]
+        annotations["end"] = annotations.annot.str.split().str[-1]
+        annotations["annot"] = annotations.annot.str.split(";").str[0]
 
-        annotations['label'] = annotations.annot.str.split().str[:-2].str.join(' ')
-        annotations['start'] = annotations.annot.str.split().str[-2]
+        annotations["label"] = annotations.annot.str.split().str[:-2].str.join(" ")
+        annotations["start"] = annotations.annot.str.split().str[-2]
 
-        annotations = annotations[['index', 'start', 'end', 'label', 'lexical_variant']]
+        annotations = annotations[["index", "start", "end", "label", "lexical_variant"]]
 
     except pd.errors.EmptyDataError:
-        annotations = pd.DataFrame(columns=['index', 'start', 'end', 'label', 'lexical_variant'])
+        annotations = pd.DataFrame(
+            columns=["index", "start", "end", "label", "lexical_variant"]
+        )
 
-    annotations[['start', 'end']] = annotations[['start', 'end']].astype(int)
+    annotations[["start", "end"]] = annotations[["start", "end"]].astype(int)
     return annotations
 
 
 class BratConnector(object):
-
     def __init__(self, directory: str):
         self.directory = directory
 
@@ -72,7 +73,7 @@ class BratConnector(object):
         text:
             The text content of the file.
         """
-        with open(self.full_path(filename), 'r', encoding='utf-8') as f:
+        with open(self.full_path(filename), "r", encoding="utf-8") as f:
             return f.read()
 
     def read_texts(self) -> pd.DataFrame:
@@ -85,11 +86,11 @@ class BratConnector(object):
             DataFrame containing all texts in the BRAT directory.
         """
         files = os.listdir(self.directory)
-        filenames = [f[:-4] for f in files if f.endswith('.txt')]
+        filenames = [f[:-4] for f in files if f.endswith(".txt")]
 
         texts = pd.DataFrame(dict(note_id=filenames))
 
-        texts['note_text'] = (texts.note_id + '.txt').apply(self.read_file)
+        texts["note_text"] = (texts.note_id + ".txt").apply(self.read_file)
 
         return texts
 
@@ -125,16 +126,9 @@ class BratConnector(object):
 
         texts = self.read_texts()
 
-        dfs = [
-            self.read_brat_annotation(note_id)
-            for note_id in texts.note_id
-        ]
+        dfs = [self.read_brat_annotation(note_id) for note_id in texts.note_id]
 
-        annotations = pd.concat(
-            dfs,
-            keys=texts.note_id,
-            names=['note_id']
-        )
+        annotations = pd.concat(dfs, keys=texts.note_id, names=["note_id"])
 
         annotations = annotations.droplevel(1).reset_index()
 
@@ -162,7 +156,7 @@ class BratConnector(object):
 
             doc._.note_id = note_id
 
-            ann = annotations.query('note_id == @note_id')
+            ann = annotations.query("note_id == @note_id")
 
             spans = []
 
@@ -171,7 +165,7 @@ class BratConnector(object):
                     row.start,
                     row.end,
                     label=row.label,
-                    alignment_mode='expand',
+                    alignment_mode="expand",
                 )
                 spans.append(span)
 
@@ -190,38 +184,44 @@ class BratConnector(object):
         """
         filename = str(doc._.note_id)
 
-        with open(self.full_path(f'{filename}.txt'), 'w', encoding='utf-8') as f:
+        with open(self.full_path(f"{filename}.txt"), "w", encoding="utf-8") as f:
             f.write(doc.text)
 
-        annotations = pd.DataFrame.from_records([
-            dict(
-                label=ann.label_,
-                lexical_variant=ann.text,
-                start=ann.start_char,
-                end=ann.end_char,
-            )
-            for ann in doc.ents
-        ])
+        annotations = pd.DataFrame.from_records(
+            [
+                dict(
+                    label=ann.label_,
+                    lexical_variant=ann.text,
+                    start=ann.start_char,
+                    end=ann.end_char,
+                )
+                for ann in doc.ents
+            ]
+        )
 
         if len(annotations) > 0:
 
-            annotations['annot'] = annotations.label \
-                                   + ' ' + annotations.start.astype(str) \
-                                   + ' ' + annotations.end.astype(str)
+            annotations["annot"] = (
+                annotations.label
+                + " "
+                + annotations.start.astype(str)
+                + " "
+                + annotations.end.astype(str)
+            )
 
-            annotations['index'] = [f'T{i + 1}' for i in range(len(annotations))]
+            annotations["index"] = [f"T{i + 1}" for i in range(len(annotations))]
 
-            annotations = annotations[['index', 'annot', 'lexical_variant']]
+            annotations = annotations[["index", "annot", "lexical_variant"]]
             annotations.to_csv(
-                self.full_path(f'{filename}.ann'),
-                sep='\t',
+                self.full_path(f"{filename}.ann"),
+                sep="\t",
                 header=None,
                 index=False,
-                encoding='utf-8',
+                encoding="utf-8",
             )
 
         else:
-            open(self.full_path(f'{filename}.ann'), 'w', encoding='utf-8').close()
+            open(self.full_path(f"{filename}.ann"), "w", encoding="utf-8").close()
 
     def docs2brat(self, docs: List[Doc]) -> None:
         """

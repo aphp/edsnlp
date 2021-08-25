@@ -7,8 +7,8 @@ from spacy.tokens import Doc, Span
 
 from spacy.util import filter_spans
 
-if not Doc.has_extension('note_id'):
-    Doc.set_extension('note_id', default=None)
+if not Doc.has_extension("note_id"):
+    Doc.set_extension("note_id", default=None)
 
 
 class BaseComponent(object):
@@ -38,17 +38,19 @@ class BaseComponent(object):
 
         return filter_spans(matches)
 
-    def _boundaries(self, doc: Doc, terminations: Optional[List[Span]] = None) -> List[Tuple[int, int]]:
+    def _boundaries(
+        self, doc: Doc, terminations: Optional[List[Span]] = None
+    ) -> List[Tuple[int, int]]:
         """
         Create sub sentences based sentences and terminations found in text.
-        
+
         Parameters
         ----------
         doc:
             spaCy Doc object
         terminations:
             List of tuples with (match_id, start, end)
-            
+
         Returns
         -------
         boundaries:
@@ -62,7 +64,7 @@ class BaseComponent(object):
         termination_starts = [t.start for t in terminations]
 
         if self.split_on_punctuation:
-            punctuations = [t.i for t in doc if t.is_punct and '-' not in t.text]
+            punctuations = [t.i for t in doc if t.is_punct and "-" not in t.text]
         else:
             punctuations = []
 
@@ -94,9 +96,11 @@ class BaseComponent(object):
             Dataframe of conjugated verbs at all tenses
         """
 
-        default_conjugator = mlconjug3.Conjugator(language='fr')
+        default_conjugator = mlconjug3.Conjugator(language="fr")
 
-        conjugated_verbs = pd.DataFrame(columns=["infinitif", "mode", "temps", "personne", "variant"])
+        conjugated_verbs = pd.DataFrame(
+            columns=["infinitif", "mode", "temps", "personne", "variant"]
+        )
 
         for verb in verbs:
             # Retrieve all conjugations
@@ -104,7 +108,9 @@ class BaseComponent(object):
             all_conjugated_forms = conjugated_verb.iterate()
 
             # Instantiate a dataframe with the retrieved conjugations
-            df_verb = pd.DataFrame(all_conjugated_forms, columns=["mode", "temps", "personne", "variant"])
+            df_verb = pd.DataFrame(
+                all_conjugated_forms, columns=["mode", "temps", "personne", "variant"]
+            )
             df_verb.insert(0, "infinitif", verb)
 
             # Manipulate the infinitive form
@@ -112,8 +118,12 @@ class BaseComponent(object):
             df_verb.loc[df_verb["temps"] == "Infinitif Présent", "personne"] = None
 
             # Manipulate the present participle
-            part_present = df_verb.loc[df_verb["temps"] == "Participe Présent", "personne"]
-            df_verb.loc[df_verb["temps"] == "Participe Présent", "variant"] = part_present
+            part_present = df_verb.loc[
+                df_verb["temps"] == "Participe Présent", "personne"
+            ]
+            df_verb.loc[
+                df_verb["temps"] == "Participe Présent", "variant"
+            ] = part_present
             df_verb.loc[df_verb["temps"] == "Participe Présent", "personne"] = None
 
             conjugated_verbs = conjugated_verbs.append(df_verb)

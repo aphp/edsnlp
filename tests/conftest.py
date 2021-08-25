@@ -6,12 +6,12 @@ from pytest import fixture
 import edsnlp.components
 
 
-@fixture(scope='session')
+@fixture(scope="session")
 def nlp():
-    model = spacy.blank('fr')
+    model = spacy.blank("fr")
 
-    model.add_pipe('sections')
-    model.add_pipe('pollution')
+    model.add_pipe("sections")
+    model.add_pipe("pollution")
 
     return model
 

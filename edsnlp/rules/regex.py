@@ -26,7 +26,7 @@ class RegexMatcher(object):
         self.attr = dict()
 
     def add(self, key: str, patterns: List[str], attr: str = "TEXT"):
-        assert attr in ["TEXT", "NORM"]
+        assert attr in ["TEXT", "NORM", "LOWER"]
         self.regex[key] = [re.compile(pattern) for pattern in patterns]
         self.attr[key] = attr
 

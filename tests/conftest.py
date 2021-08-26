@@ -1,5 +1,3 @@
-import context
-
 import spacy
 from pytest import fixture
 

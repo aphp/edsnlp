@@ -94,11 +94,11 @@ class RegexMatcher(object):
         )
 
         for key, patterns in self.regex.items():
-            if self.attr[key] == "NORM" :
+            if self.attr[key] == "NORM":
                 text = normalized_text 
-            elif self.attr[key] == "LOWER" :
+            elif self.attr[key] == "LOWER":
                 text = doclike.text.lower() 
-            else :
+            else:
                 text = doclike.text
             for pattern in patterns:
                 for match in pattern.finditer(text):

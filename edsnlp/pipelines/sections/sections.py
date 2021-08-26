@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional
+from typing import Any, List, Dict, Optional
 
 from loguru import logger
 from spacy.language import Language
@@ -64,9 +64,10 @@ class Sections(GenericMatcher):
         self,
         nlp: Language,
         sections: Dict[str, List[str]],
-        add_patterns: bool = True,
-        attr: str = "NORM",
-        **kwargs,
+        add_patterns: bool,
+        attr: str,
+        fuzzy: bool,
+        fuzzy_kwargs: Dict[str, Any],
     ):
 
         logger.warning(
@@ -83,7 +84,16 @@ class Sections(GenericMatcher):
                 sections[k] += [v_ + " :" for v_ in sections[k]]
                 sections[k] = [ent + "\n" for ent in sections[k]]
 
-        super().__init__(nlp, terms=sections, filter_matches=True, attr=attr, **kwargs)
+        super().__init__(
+            nlp,
+            terms=sections,
+            regex=None,
+            attr=attr,
+            fuzzy=fuzzy,
+            fuzzy_kwargs=fuzzy_kwargs,
+            filter_matches=True,
+            on_ents_only=False,
+        )
 
         if not Doc.has_extension("sections"):
             Doc.set_extension("sections", default=[])

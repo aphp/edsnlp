@@ -94,7 +94,12 @@ class RegexMatcher(object):
         )
 
         for key, patterns in self.regex.items():
-            text = normalized_text if self.attr[key] == "NORM" else doclike.text
+            if self.attr[key] == "NORM" :
+                text = normalized_text 
+            elif self.attr[key] == "LOWER" :
+                text = doclike.text.lower() 
+            else :
+                text = doclike.text
             for pattern in patterns:
                 for match in pattern.finditer(text):
                     logger.trace(f"Matched a regex from {key}: {repr(match.group())}")

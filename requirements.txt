@@ -1,6 +1,6 @@
 loguru
 numpy
-pandas
+pandas~=1.2
 rapidfuzz
 spacy
 spaczz

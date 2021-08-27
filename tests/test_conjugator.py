@@ -31,7 +31,7 @@ def test_conjugate_verb():
     df = conjugate_verb(verb)
 
     for (v, m, t, p), term in tests:
-        row = df.query("verb == @v & mode == @m & tense == @t & person == @p").first()
+        row = df.query("verb == @v & mode == @m & tense == @t & person == @p").iloc[0]
         assert row.term == term
 
 
@@ -53,7 +53,7 @@ def test_conjugate():
     df = conjugate(["aimer", "convaincre"])
 
     for (v, m, t, p), term in tests:
-        row = df.query("verb == @v & mode == @m & tense == @t & person == @p").first()
+        row = df.query("verb == @v & mode == @m & tense == @t & person == @p").iloc[0]
         assert row.term == term
 
 

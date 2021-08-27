@@ -49,6 +49,8 @@ def conjugate(
 
     df = pd.concat([conjugate_verb(verb, conjugator=conjugator) for verb in verbs])
 
+    df = df.reset_index(drop=True)
+
     return df
 
 

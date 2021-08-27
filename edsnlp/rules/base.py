@@ -99,6 +99,12 @@ class BaseComponent(object):
         """
 
         df = conjugate(verbs)
-        df.columns = [["infinitif", "mode", "temps", "personne", "variant"]]
+        df.columns = [
+            "infinitif",
+            "mode",
+            "temps",
+            "personne",
+            "variant",
+        ]
 
         return df

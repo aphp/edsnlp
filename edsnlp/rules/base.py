@@ -5,6 +5,8 @@ import mlconjug3
 import pandas as pd
 from spacy.tokens import Doc, Span
 
+from edsnlp.conjugator import conjugate
+
 from spacy.util import filter_spans
 
 if not Doc.has_extension("note_id"):
@@ -83,7 +85,7 @@ class BaseComponent(object):
     @staticmethod
     def _conjugate(verbs: List[str]) -> pd.DataFrame:
         """
-        Create a list of conjugated verbs at all tenses from a list of infinitve verbs.
+        Create a list of conjugated verbs at all tenses from a list of infinitive verbs.
 
         Parameters
         ----------
@@ -96,38 +98,9 @@ class BaseComponent(object):
             Dataframe of conjugated verbs at all tenses
         """
 
-        default_conjugator = mlconjug3.Conjugator(language="fr")
-
-        conjugated_verbs = pd.DataFrame(
-            columns=["infinitif", "mode", "temps", "personne", "variant"]
-        )
-
-        for verb in verbs:
-            # Retrieve all conjugations
-            conjugated_verb = default_conjugator.conjugate(verb)
-            all_conjugated_forms = conjugated_verb.iterate()
-
-            # Instantiate a dataframe with the retrieved conjugations
-            df_verb = pd.DataFrame(
-                all_conjugated_forms, columns=["mode", "temps", "personne", "variant"]
-            )
-            df_verb.insert(0, "infinitif", verb)
-
-            # Manipulate the infinitive form
-            df_verb.loc[df_verb["temps"] == "Infinitif Présent", "variant"] = verb
-            df_verb.loc[df_verb["temps"] == "Infinitif Présent", "personne"] = None
-
-            # Manipulate the present participle
-            part_present = df_verb.loc[
-                df_verb["temps"] == "Participe Présent", "personne"
-            ]
-            df_verb.loc[
-                df_verb["temps"] == "Participe Présent", "variant"
-            ] = part_present
-            df_verb.loc[df_verb["temps"] == "Participe Présent", "personne"] = None
-
-            conjugated_verbs = conjugated_verbs.append(df_verb)
-
-        conjugated_verbs = conjugated_verbs.dropna()
+        conjugated_verbs = conjugate(verbs)
+        conjugated_verbs.columns = [
+            ["infinitif", "mode", "temps", "personne", "variant"]
+        ]
 
         return conjugated_verbs

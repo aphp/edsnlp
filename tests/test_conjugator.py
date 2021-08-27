@@ -1,22 +1,10 @@
-from edsnlp.conjugator import normalize, conjugate_verb, conjugate, get_conjugated_verbs
-
-
-def test_normalize():
-
-    t1 = ("Mode", "Tense", "Term")
-    t2 = ("Mode", "Tense", "Person", "Term")
-
-    c1 = normalize(t1)
-    c2 = normalize(t2)
-
-    assert c1.mode == c2.mode == "Mode"
-    assert c1.tense == c2.tense == "Tense"
-    assert c1.person is None
-    assert c2.person == "Person"
-    assert c1.term == c2.term == "Term"
+from edsnlp.conjugator import conjugate_verb, conjugate, get_conjugated_verbs
+from mlconjug3 import Conjugator
 
 
 def test_conjugate_verb():
+
+    conjugator = Conjugator("fr")
 
     tests = [
         (("aimer", "Indicatif", "Présent", "1s"), "aime"),
@@ -28,7 +16,7 @@ def test_conjugate_verb():
 
     verb = "aimer"
 
-    df = conjugate_verb(verb)
+    df = conjugate_verb(verb, conjugator=conjugator)
 
     for (v, m, t, p), term in tests:
         row = df.query("verb == @v & mode == @m & tense == @t & person == @p").iloc[0]

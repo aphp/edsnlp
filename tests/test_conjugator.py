@@ -1,4 +1,4 @@
-from edsnlp.conjugator import normalize, conjugate_verb, conjugate
+from edsnlp.conjugator import normalize, conjugate_verb, conjugate, get_conjugated_verbs
 
 
 def test_normalize():
@@ -31,7 +31,7 @@ def test_conjugate_verb():
     df = conjugate_verb(verb)
 
     for (v, m, t, p), term in tests:
-        row = df.query("verb == @v & mode == @m & tense == @t & person == @p").iloc[0]
+        row = df.query("verb == @v & mode == @m & tense == @t & person == @p").first()
         assert row.term == term
 
 
@@ -53,5 +53,26 @@ def test_conjugate():
     df = conjugate(["aimer", "convaincre"])
 
     for (v, m, t, p), term in tests:
-        row = df.query("verb == @v & mode == @m & tense == @t & person == @p").iloc[0]
+        row = df.query("verb == @v & mode == @m & tense == @t & person == @p").first()
         assert row.term == term
+
+
+def test_get_conjugated_verbs():
+
+    terms = get_conjugated_verbs(
+        ["aimer", "convaincre"],
+        matches=[dict(mode="Indicatif", tense="Présent")],
+    )
+
+    assert set(terms) == {
+        "aime",
+        "aimes",
+        "aimons",
+        "aimez",
+        "aiment",
+        "convainc",
+        "convaincs",
+        "convainquons",
+        "convainquez",
+        "convainquent",
+    }

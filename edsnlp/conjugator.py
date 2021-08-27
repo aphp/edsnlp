@@ -1,5 +1,5 @@
 import pandas as pd
-from typing import List, Union, Tuple, Optional
+from typing import List, Union, Tuple, Optional, Dict
 
 from mlconjug3 import Conjugator
 
@@ -48,7 +48,10 @@ def normalize(
         )
 
 
-def conjugate_verb(verb: str, language: str = "fr") -> pd.DataFrame:
+def conjugate_verb(
+    verb: str,
+    language: str = "fr",
+) -> pd.DataFrame:
     conjugator = Conjugator(language=language)
 
     conjugations = conjugator.conjugate(verb).iterate()
@@ -62,13 +65,16 @@ def conjugate_verb(verb: str, language: str = "fr") -> pd.DataFrame:
     return df[["verb", "mode", "tense", "person", "term"]]
 
 
-def conjugate(verbs: List[str], language: str = "fr") -> pd.DataFrame:
+def conjugate(
+    verbs: Union[List[str]],
+    language: str = "fr",
+) -> pd.DataFrame:
     """
     Conjugate a list of verbs.
 
     Parameters
     ----------
-    verbs : List[str]
+    verbs : Union[str, List[str]]
         List of verbs to conjugate
     language: str
         Language to conjugate. Defaults to French (`fr`).
@@ -79,7 +85,54 @@ def conjugate(verbs: List[str], language: str = "fr") -> pd.DataFrame:
         Dataframe containing the conjugations for the provided verbs.
         Columns: `verb`, `mode`, `tense`, `person`, `term`
     """
+    if isinstance(verbs, str):
+        verbs = [verbs]
 
     df = pd.concat([conjugate_verb(verb, language=language) for verb in verbs])
 
     return df
+
+
+def get_conjugated_verbs(
+    verbs: Union[str, List[str]],
+    matches: Union[List[Dict[str, str]], Dict[str, str]],
+    language: str = "fr",
+) -> List[str]:
+    """
+    Get a list of conjugated verbs.
+
+    Parameters
+    ----------
+    verbs : Union[str, List[str]]
+        List of verbs to conjugate.
+    matches : Union[List[Dict[str, str]], Dict[str, str]]
+        List of dictionary describing the mode/tense/persons to keep.
+    language : str, optional
+        [description], by default "fr" (French)
+
+    Returns
+    -------
+    List[str]
+        List of terms to look for.
+
+    Examples
+    --------
+    >>> get_conjugated_verbs("aimer", dict(mode="Indicatif", tense="Présent", person="1p"))
+    ['aimons']
+    """
+
+    if isinstance(matches, dict):
+        matches = [matches]
+
+    terms = []
+
+    df = conjugate(
+        verbs=verbs,
+        language=language,
+    )
+
+    for match in matches:
+        q = " & ".join([f'{k} == "{v}"' for k, v in match.items()])
+        terms.extend(list(df.query(q).term))
+
+    return list(set(terms))

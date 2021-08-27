@@ -92,7 +92,7 @@ class GenericMatcher(BaseComponent):
             if k not in attr:
                 attr[k] = DEFAULT_ATTR
 
-        # checkings
+        # Checks
         diff = set(attr) - set(regex) - {TERM_ATTR}
         if diff:
             logger.warning(

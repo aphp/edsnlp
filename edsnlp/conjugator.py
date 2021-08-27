@@ -133,6 +133,6 @@ def get_conjugated_verbs(
 
     for match in matches:
         q = " & ".join([f'{k} == "{v}"' for k, v in match.items()])
-        terms.extend(list(df.query(q).term))
+        terms.extend(df.query(q).term.unique())
 
     return list(set(terms))

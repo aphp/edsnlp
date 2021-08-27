@@ -94,13 +94,13 @@ class BaseComponent(object):
 
         Returns
         ----------
-        conjugated_verbs:
+        pd.DataFrame
             Dataframe of conjugated verbs at all tenses
         """
 
-        conjugated_verbs = conjugate(verbs)
-        conjugated_verbs.columns = [
-            ["infinitif", "mode", "temps", "personne", "variant"]
-        ]
+        df = conjugate(verbs)
+        df.columns = [["infinitif", "mode", "temps", "personne", "variant"]]
 
-        return conjugated_verbs
+        df = df.dropna()
+
+        return df

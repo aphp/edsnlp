@@ -7,7 +7,12 @@ from edsnlp.pipelines.normalizer import Normalizer
 def create_normaliser_component(
     nlp: Language,
     name: str,
-    deaccentuate: bool = True,
+    remove_accents: bool = True,
     lowercase: bool = True,
+    normalize_quotes: bool = True,
 ):
-    return Normalizer(deaccentuate=deaccentuate, lowercase=lowercase)
+    return Normalizer(
+        remove_accents=remove_accents,
+        lowercase=lowercase,
+        normalize_quotes=normalize_quotes,
+    )

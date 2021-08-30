@@ -53,20 +53,24 @@ class Normalizer(object):
 
     Parameters
     ----------
-    deaccentuate:
-        Whether to deaccentuate the tokens.
-    lowercase:
+    remove_accents: bool
+        Whether to remove_accents.
+    lowercase: bool
         Whether to transform the tokens to lowercase.
+    normalize_quotes: bool
+        Whether to normalize quotes (strongly advised).
     """
 
     def __init__(
         self,
-        remove_accents: bool = True,
-        lowercase: bool = False,
+        remove_accents: bool,
+        lowercase: bool,
+        normalize_quotes: bool,
     ):
 
         self.remove_accents = remove_accents
         self.lowercase = lowercase
+        self.normalize_quotes = normalize_quotes
 
     def __call__(self, doc: Doc) -> Doc:
         """
@@ -92,7 +96,8 @@ class Normalizer(object):
                 s = replace(text=s, rep=accents)
 
             # Replace quotes and apostrophes.
-            s = replace(text=s, rep=quotes_and_apostrophes)
+            if self.normalize_quotes:
+                s = replace(text=s, rep=quotes_and_apostrophes)
 
             token.norm_ = s
 

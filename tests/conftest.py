@@ -1,6 +1,8 @@
 import spacy
 from pytest import fixture
 
+import context
+
 import edsnlp.components
 
 

@@ -1,5 +1,9 @@
-from spacy.tokens import Token, Doc, Span
-from unidecode import unidecode
+from spacy.tokens import Doc, Span
+
+from loguru import logger
+
+from .terms import quotes_and_apostrophes, accents
+from typing import List, Tuple
 
 
 def _get_span_norm(span: Span):
@@ -15,11 +19,39 @@ if not Span.has_extension("norm"):
     Span.set_extension("norm", getter=_get_span_norm)
 
 
+def replace(
+    text: str,
+    rep: List[Tuple[str, str]],
+) -> str:
+    """
+    Replaces a list of characters in a given text.
+
+    Parameters
+    ----------
+    text : str
+        Text to modify.
+    rep : List[Tuple[str, str]]
+        List of `(old, new)` tuples. `old` can list multiple characters.
+
+    Returns
+    -------
+    str
+        Processed text.
+    """
+
+    for olds, new in rep:
+        for old in olds:
+            text = text.replace(old, new)
+    return text
+
+
 class Normalizer(object):
     """
     Pipeline that populates the NORM attribute.
     The goal is to handle accents without changing the document's length, thus
     keeping a 1-to-1 correspondance between raw and normalized characters.
+
+    We also normalise quotes, following this [source](https://www.cl.cam.ac.uk/~mgk25/ucs/quotes.html).
 
     Parameters
     ----------
@@ -31,25 +63,12 @@ class Normalizer(object):
 
     def __init__(
         self,
-        deaccentuate: bool = True,
+        remove_accents: bool = True,
         lowercase: bool = False,
     ):
 
-        self.deaccentuate = deaccentuate
+        self.remove_accents = remove_accents
         self.lowercase = lowercase
-
-        self.list_rep = [
-            ("ç", "c"),
-            ("àáâä", "a"),
-            ("èéêë", "e"),
-            ("ìíîï", "i"),
-            ("òóôö", "o"),
-            ("ùúûü", "u"),
-        ]
-        if not self.lowercase:
-            self.list_rep += [
-                (c_in.upper(), c_out.upper()) for c_in, c_out in self.list_rep
-            ]
 
     def __call__(self, doc: Doc) -> Doc:
         """
@@ -65,22 +84,18 @@ class Normalizer(object):
         doc:
             Same document, with a modified NORM attribute for each token.
         """
-        if not (self.deaccentuate or self.lowercase):
-            return doc
 
         for token in doc:
+            # Remove case
             s = token.lower_ if self.lowercase else token.text
 
-            if self.deaccentuate:
-                s = _deaccentuate_rep(self.list_rep, s)
+            # Remove accents
+            if self.remove_accents:
+                s = replace(text=s, rep=accents)
+
+            # Replace quotes and apostrophes.
+            s = replace(text=s, rep=quotes_and_apostrophes)
 
             token.norm_ = s
 
         return doc
-
-
-def _deaccentuate_rep(list_rep, s):
-    for l_c_in, c_out in list_rep:
-        for c_in in l_c_in:
-            s = s.replace(c_in, c_out)
-    return s

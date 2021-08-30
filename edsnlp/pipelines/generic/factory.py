@@ -6,11 +6,11 @@ from edsnlp.pipelines.generic import GenericMatcher
 
 # noinspection PyUnusedLocal
 @Language.factory("matcher")
-def create_matcher_component(
+def create_component(
     nlp: Language,
     name: str,
     terms: Optional[Dict[str, Union[str, List[str]]]] = None,
-    attr: Union[str, Dict[str, str]] = "NORM",
+    attr: Union[str, Dict[str, str]] = "TEXT",
     regex: Optional[Dict[str, Union[str, List[str]]]] = None,
     fuzzy: bool = False,
     fuzzy_kwargs: Optional[Dict[str, Any]] = None,

@@ -11,9 +11,12 @@ default_config = dict(
 
 # noinspection PyUnusedLocal
 @Language.factory("pollution", default_config=default_config)
-def create_pollution_component(
+def create_component(
     nlp: Language,
     name: str,
     pollution: Dict[str, str],
 ):
-    return Pollution(nlp, pollution=pollution)
+    return Pollution(
+        nlp,
+        pollution=pollution,
+    )

@@ -26,8 +26,8 @@ class QuickUMLSComponent(BaseComponent):
         self,
         nlp: Language,
         distribution: str,
-        best_match: Optional[bool] = True,
-        ignore_syntax: Optional[bool] = False,
+        best_match: bool,
+        ignore_syntax: bool,
         **kwargs
     ):
 

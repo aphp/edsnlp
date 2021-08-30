@@ -44,8 +44,8 @@ class AdvancedRegex(GenericMatcher):
         self,
         nlp: Language,
         regex_config: Dict[str, Any],
-        window: int = 10,
-        verbose: int = 0,
+        window: int,
+        verbose: int,
     ):
 
         self.regex_config = _check_regex_config(regex_config)

@@ -6,9 +6,16 @@ from edsnlp.pipelines.quickumls import QuickUMLSComponent
 
 # noinspection PyUnusedLocal
 @Language.factory("quickumls")
-def create_quickumls_component(
+def create_component(
     nlp: Language,
     name: str,
     distribution: str,
+    best_match: bool = True,
+    ignore_syntax: bool = False,
 ):
-    return QuickUMLSComponent(nlp, distribution=distribution)
+    return QuickUMLSComponent(
+        nlp,
+        distribution=distribution,
+        best_match=best_match,
+        ignore_syntax=ignore_syntax,
+    )

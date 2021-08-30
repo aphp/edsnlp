@@ -22,7 +22,10 @@ class SentenceSegmenter(object):
         Punctuation characters.
     """
 
-    def __init__(self, punct_chars: Optional[List[str]] = None):
+    def __init__(
+        self,
+        punct_chars: Optional[List[str]],
+    ):
         if punct_chars:
             self.punct_chars = set(punct_chars)
         else:

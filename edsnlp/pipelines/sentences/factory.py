@@ -7,7 +7,7 @@ from . import SentenceSegmenter
 
 # noinspection PyUnusedLocal
 @Language.factory("sentences")
-def create_sentences_component(
+def create_component(
     nlp: Language,
     name: str,
     punct_chars: Optional[List[str]] = None,

@@ -14,7 +14,7 @@ text = (
 def test_sentences(nlp):
 
     sentencizer = Sentencizer()
-    segmenter = SentenceSegmenter()
+    segmenter = SentenceSegmenter(punct_chars=None)
 
     doc = nlp(text)
     assert len(list(sentencizer(doc).sents)) == 4

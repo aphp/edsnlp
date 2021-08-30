@@ -1,7 +1,5 @@
 from spacy.tokens import Doc, Span
 
-from loguru import logger
-
 from .terms import quotes_and_apostrophes, accents
 from typing import List, Tuple
 

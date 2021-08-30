@@ -15,7 +15,7 @@ def create_matcher_component(
     fuzzy: bool = False,
     fuzzy_kwargs: Optional[Dict[str, Any]] = None,
     filter_matches: bool = True,
-    on_ents_only: bool = False,
+    on_ents_only: bool = True,
 ):
     if terms is None:
         terms = dict()

@@ -1,4 +1,4 @@
-from edsnlp.rules.sentences import SentenceSegmenter
+from edsnlp.pipelines.sentences import SentenceSegmenter
 from spacy.pipeline.sentencizer import Sentencizer
 
 text = (
@@ -14,7 +14,7 @@ text = (
 def test_sentences(nlp):
 
     sentencizer = Sentencizer()
-    segmenter = SentenceSegmenter()
+    segmenter = SentenceSegmenter(punct_chars=None)
 
     doc = nlp(text)
     assert len(list(sentencizer(doc).sents)) == 4

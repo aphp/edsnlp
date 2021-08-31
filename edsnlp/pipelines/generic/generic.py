@@ -8,8 +8,8 @@ from spacy.tokens import Doc, Span
 from spacy.util import filter_spans
 from spaczz.matcher import FuzzyMatcher
 
-from edsnlp.rules.base import BaseComponent
-from edsnlp.rules.regex import RegexMatcher
+from edsnlp.base import BaseComponent
+from edsnlp.matchers.regex import RegexMatcher
 
 TERM_ATTR = "term_attr"
 DEFAULT_ATTR = "NORM"
@@ -45,13 +45,13 @@ class GenericMatcher(BaseComponent):
     def __init__(
         self,
         nlp: Language,
-        terms: Optional[Dict[str, Union[List[str], str]]] = None,
-        attr: Union[Dict[str, str], str] = DEFAULT_ATTR,
-        regex: Optional[Dict[str, Union[List[str], str]]] = None,
-        fuzzy: bool = False,
-        fuzzy_kwargs: Optional[Dict[str, Any]] = None,
-        filter_matches: bool = True,
-        on_ents_only: bool = False,
+        terms: Optional[Dict[str, Union[List[str], str]]],
+        attr: Union[Dict[str, str], str],
+        regex: Optional[Dict[str, Union[List[str], str]]],
+        fuzzy: bool,
+        fuzzy_kwargs: Optional[Dict[str, Any]],
+        filter_matches: bool,
+        on_ents_only: bool,
     ):
 
         self.nlp = nlp
@@ -92,7 +92,7 @@ class GenericMatcher(BaseComponent):
             if k not in attr:
                 attr[k] = DEFAULT_ATTR
 
-        # checkings
+        # Checks
         diff = set(attr) - set(regex) - {TERM_ATTR}
         if diff:
             logger.warning(

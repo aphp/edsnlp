@@ -4,9 +4,9 @@ import numpy as np
 from spacy.language import Language
 from spacy.tokens import Token, Span, Doc
 
-from edsnlp.rules.base import BaseComponent
-from edsnlp.rules.pollution import terms
-from edsnlp.rules.regex import RegexMatcher
+from edsnlp.base import BaseComponent
+from edsnlp.pipelines.pollution import terms
+from edsnlp.matchers.regex import RegexMatcher
 
 
 # noinspection PyProtectedMember

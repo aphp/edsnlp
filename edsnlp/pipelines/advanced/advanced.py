@@ -12,12 +12,12 @@ from spacy.matcher import PhraseMatcher
 from spacy.tokens import Doc, Span
 from spaczz.matcher import FuzzyMatcher
 
-from edsnlp.rules.regex import RegexMatcher
+from edsnlp.matchers.regex import RegexMatcher
 
 from spacy.util import filter_spans
 
-from edsnlp.rules.base import BaseComponent
-from edsnlp.rules.generic import GenericMatcher
+from edsnlp.base import BaseComponent
+from edsnlp.pipelines.generic import GenericMatcher
 
 if not Doc.has_extension("my_ents"):
     Doc.set_extension("my_ents", default=[])
@@ -44,8 +44,8 @@ class AdvancedRegex(GenericMatcher):
         self,
         nlp: Language,
         regex_config: Dict[str, Any],
-        window: int = 10,
-        verbose: int = 0,
+        window: int,
+        verbose: int,
     ):
 
         self.regex_config = _check_regex_config(regex_config)

@@ -1,6 +1,6 @@
 from spacy.tokens import Span
 from spacy import Language
-from edsnlp.rules.base import BaseComponent
+from edsnlp.base import BaseComponent
 from typing import Optional
 
 
@@ -26,8 +26,8 @@ class QuickUMLSComponent(BaseComponent):
         self,
         nlp: Language,
         distribution: str,
-        best_match: Optional[bool] = True,
-        ignore_syntax: Optional[bool] = False,
+        best_match: bool,
+        ignore_syntax: bool,
         **kwargs
     ):
 
@@ -46,7 +46,7 @@ class QuickUMLSComponent(BaseComponent):
         self.best_match = best_match
         self.ignore_syntax = ignore_syntax
 
-        # let's extend this with some proprties that we want
+        # let's extend this with some properties that we want
         if not Span.has_extension("similarity"):
             Span.set_extension("similarity", default=-1.0)
             Span.set_extension("semtypes", default=-1.0)

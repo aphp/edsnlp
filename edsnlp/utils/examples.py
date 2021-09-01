@@ -28,10 +28,36 @@ modifiers_pattern = re.compile((r"<ent\s?(.*)>.+</ent>"))
 
 
 def find_matches(example: str) -> List[re.Match]:
+    """
+    Finds entities within the example.
+
+    Parameters
+    ----------
+    example : str
+        Example to process.
+
+    Returns
+    -------
+    List[re.Match]
+        List of matches for entities.
+    """
     return list(entity_pattern.finditer(example))
 
 
 def parse_match(match: re.Match) -> Match:
+    """
+    Parse a regex match representing an entity.
+
+    Parameters
+    ----------
+    match : re.Match
+        Match for an entity.
+
+    Returns
+    -------
+    Match
+        Usable representation for the entity match.
+    """
 
     lexical_variant = match.group()
     start_char = match.start()
@@ -46,6 +72,19 @@ def parse_match(match: re.Match) -> Match:
 
 
 def parse_example(example: str) -> Tuple[str, List[Entity]]:
+    """
+    Parses an example : finds examples and removes the tags.
+
+    Parameters
+    ----------
+    example : str
+        Example to process.
+
+    Returns
+    -------
+    Tuple[str, List[Entity]]
+        Cleaned text and extracted entities.
+    """
 
     matches = [parse_match(match) for match in find_matches(example=example)]
     text = ""

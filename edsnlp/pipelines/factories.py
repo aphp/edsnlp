@@ -1,5 +1,6 @@
 from .advanced import factory
 from .generic import factory
+from .negation import factory
 from .normalizer import factory
 from .pollution import factory
 from .quickumls import factory

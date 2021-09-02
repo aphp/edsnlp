@@ -1,4 +1,5 @@
 import sys
 from os.path import join, dirname, abspath
 
-sys.path.insert(0, abspath(join(dirname(__file__), "..")))
+REPO_PATH = abspath(join(dirname(__file__), ".."))
+sys.path.insert(0, REPO_PATH)

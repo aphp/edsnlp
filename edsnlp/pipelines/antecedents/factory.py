@@ -13,7 +13,7 @@ antecedents_default_config = dict(
 
 
 @Language.factory("antecedents", default_config=antecedents_default_config)
-def create_antecedents_component(
+def create_component(
     nlp: Language,
     name: str,
     antecedents: List[str],

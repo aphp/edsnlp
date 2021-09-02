@@ -50,14 +50,6 @@ sentencizer = Sentencizer()
 ```
 
 ```python
-
-```
-
-```python
-
-```
-
-```python
 nlp = spacy.blank('fr')
 ```
 

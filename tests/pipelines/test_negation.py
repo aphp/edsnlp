@@ -1,5 +1,5 @@
 from typing import List
-from edsnlp.utils.examples import parse_match, parse_example, find_matches
+from edsnlp.utils.examples import parse_example
 
 negation_examples: List[str] = [
     "Le patient n'est pas <ent polarity_=NEG>malade</ent>.",
@@ -15,12 +15,12 @@ def test_negation(nlp):
 
         doc = nlp(text)
 
-        for entity in entities:
+        for ent in entities:
 
-            span = doc.char_span(entity.start_char, entity.end_char)
+            span = doc.char_span(ent.start_char, ent.end_char)
 
-            m1 = entity.modifiers[0]
+            for modifier in ent.modifiers:
 
-            assert all(
-                [token._.polarity_ == m1.value for token in span]
-            ), f"{text} : Polarity labels don't match."
+                assert all(
+                    [getattr(token._, modifier.key) == modifier.value for token in span]
+                ), f"{modifier.key} labels don't match."

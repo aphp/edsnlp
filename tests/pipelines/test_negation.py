@@ -23,4 +23,4 @@ def test_negation(nlp):
 
             assert all(
                 [token._.polarity_ == m1.value for token in span]
-            ), f"{text} : Polarity labels don't match. {[token._.polarity_ for token in span]}"
+            ), f"{text} : Polarity labels don't match."

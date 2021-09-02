@@ -11,8 +11,9 @@ def nlp():
     model = spacy.blank("fr")
 
     model.add_pipe("sentences")
-    model.add_pipe("sections")
     model.add_pipe("pollution")
+    model.add_pipe("sections")
+    model.add_pipe("hypothesis", config=dict(on_ents_only=False))
     model.add_pipe("negation", config=dict(on_ents_only=False))
 
     return model

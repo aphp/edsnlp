@@ -6,13 +6,51 @@ from spacy.tokens import Token, Span, Doc
 
 from edsnlp.utils.filter_matches import _filter_matches
 
-if not Doc.has_extension("note_id"):
-    Doc.set_extension("note_id", default=None)
-
 
 class Hypothesis(GenericMatcher):
     """
     Hypothesis detection with Spacy.
+
+    The component looks for five kinds of expressions in the text :
+
+    - preceding hypothesis, ie cues that precede a hypothetic expression
+    - following hypothesis, ie cues that follow a hypothetic expression
+    - pseudo hypothesis : contain a hypothesis cue, but are not hypothesis (eg "pas de doute"/"no doubt")
+    - hypothetic verbs : verbs indicating hypothesis (eg "douter")
+    - classic verbs conjugated to the conditional, thus indicating hypothesis
+
+    Parameters
+    ----------
+    nlp: Language
+        spaCy nlp pipeline to use for matching.
+    pseudo: List[str]
+        List of pseudo hypothesis cues.
+    preceding: List[str]
+        List of preceding hypothesis cues
+    following: List[str]
+        List of following hypothesis cues.
+    verbs_hyp: List[str]
+        List of hypothetic verbs.
+    verbs_eds: List[str]
+        List of mainstream verbs.
+    fuzzy: bool
+         Whether to perform fuzzy matching on the terms.
+    filter_matches: bool
+        Whether to filter out overlapping matches.
+    annotation_scheme: str
+        Whether to require that all tokens in the matching span possess the desired label (`annotation_scheme = 'all'`),
+        or at least one token matching (`annotation_scheme = 'any'`).
+    attr: str
+        spaCy's attribute to use:
+        a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
+        we can also add a key for each regex.
+    on_ents_only: bool
+        Whether to look for matches around detected entities only.
+        Useful for faster inference in downstream tasks.
+    regex: Optional[Dict[str, Union[List[str], str]]]
+        A dictionnary of regex patterns.
+    fuzzy_kwargs: Optional[Dict[str, Any]]
+        Default options for the fuzzy matcher, if used.
     """
 
     def __init__(

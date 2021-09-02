@@ -4,7 +4,7 @@ from edsnlp.pipelines.normalizer import Normalizer
 
 # noinspection PyUnusedLocal
 @Language.factory("normalizer")
-def create_normaliser_component(
+def create_component(
     nlp: Language,
     name: str,
     remove_accents: bool = True,

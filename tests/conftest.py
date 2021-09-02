@@ -15,6 +15,7 @@ def nlp():
     model.add_pipe("sections")
     model.add_pipe("hypothesis", config=dict(on_ents_only=False))
     model.add_pipe("negation", config=dict(on_ents_only=False))
+    model.add_pipe("family", config=dict(on_ents_only=False))
 
     return model
 

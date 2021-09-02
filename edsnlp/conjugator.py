@@ -8,6 +8,23 @@ def conjugate_verb(
     verb: str,
     conjugator: mlconjug3.Conjugator,
 ) -> pd.DataFrame:
+    """
+    Conjugates the verb using an instance of mlconjug3,
+    and formats the results in a pandas ``DataFrame``.
+
+    Parameters
+    ----------
+    verb : str
+        Verb to conjugate.
+    conjugator : mlconjug3.Conjugator
+        mlconjug3 instance for conjugating.
+
+    Returns
+    -------
+    pd.DataFrame
+        Normalized dataframe containing all conjugated forms
+        for the verb.
+    """
 
     df = pd.DataFrame(
         conjugator.conjugate(verb).iterate(),

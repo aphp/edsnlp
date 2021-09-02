@@ -1,4 +1,5 @@
 from .advanced import factory
+from .family import factory
 from .generic import factory
 from .hypothesis import factory
 from .negation import factory

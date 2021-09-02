@@ -12,12 +12,11 @@ hypothesis_default_config = dict(
     following=terms.following,
     verbs_hyp=terms.verbs_hyp,
     verbs_eds=terms.verbs_eds,
-    on_ents_only=True,
 )
 
 
 @Language.factory("hypothesis", default_config=hypothesis_default_config)
-def create_hypothesis_component(
+def create_component(
     nlp: Language,
     name: str,
     pseudo: List[str],

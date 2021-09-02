@@ -4,10 +4,7 @@ from edsnlp.pipelines.generic import GenericMatcher
 from spacy.language import Language
 from spacy.tokens import Token, Span, Doc
 
-from .terms import pseudo, preceding, following, verbs
-
 from edsnlp.utils.filter_matches import _filter_matches
-from ..terminations import termination
 
 
 class Negation(GenericMatcher):

@@ -1,16 +1,17 @@
 from typing import List
 from edsnlp.utils.examples import parse_example
 
-hypothesis_examples: List[str] = [
-    "Plusieurs <ent hypothesis_=HYP>diagnostics</ent> sont envisagés.",
-    "Suspicion de <ent hypothesis_=HYP>diabète</ent>.",
-    "Le ligament est <ent hypothesis_=CERT>rompu</ent>.",
+antecedent_examples: List[str] = [
+    "Antécédents d'<ent antecedent_=ATCD>AVC</ent>.",
+    "atcd <ent antecedent_=ATCD>chirurgicaux</ent> : aucun.",
+    "Le patient est <ent antecedent_=CURRENT>fumeur</ent>.",
 ]
 
 
-def test_hypothesis(nlp):
+def test_antecedent(nlp):
 
-    for example in hypothesis_examples:
+    for example in antecedent_examples:
+
         text, entities = parse_example(example=example)
 
         doc = nlp(text)

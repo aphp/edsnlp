@@ -104,8 +104,8 @@ class GenericMatcher(BaseComponent):
             raise ValueError(f"Some attributes in 'attr' are not supported: {vals}")
 
         vals.add(attr[TERM_ATTR])
-        if "NORM" in vals and ("normaliser" not in pipe_names):
-            logger.warning("You are using the NORM attribute but no normaliser is set.")
+        if "NORM" in vals and ("normalizer" not in pipe_names):
+            logger.warning("You are using the NORM attribute but no normalizer is set.")
 
         return attr
 

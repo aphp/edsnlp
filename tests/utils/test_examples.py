@@ -1,7 +1,10 @@
 from edsnlp.utils.examples import parse_match, parse_example, find_matches
 
 
-example = "Le <ent int_value=1 float_value=.3>patient</ent> n'est pas <ent polarity_=NEG negation=true>malade</ent>."
+example = (
+    "Le <ent int_value=1 float_value=.3>patient</ent> "
+    "n'est pas <ent polarity_=NEG negation=true>malade</ent>."
+)
 
 
 def test_find_matches():

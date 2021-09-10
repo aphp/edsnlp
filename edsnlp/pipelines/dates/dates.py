@@ -1,8 +1,7 @@
-from typing import List, Dict, Optional, Union
-from dateparser import DateDataParser, parse
-import numpy as np
+from typing import List, Union
+from dateparser import DateDataParser
 from spacy.language import Language
-from spacy.tokens import Token, Span, Doc
+from spacy.tokens import Span, Doc
 
 from datetime import datetime, timedelta
 

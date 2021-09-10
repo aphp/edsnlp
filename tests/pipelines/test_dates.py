@@ -1,6 +1,6 @@
 from dateparser import DateDataParser
 from pytest import fixture, raises
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 
 from edsnlp.pipelines.dates import Dates, terms
 
@@ -46,7 +46,11 @@ text = (
 
 @fixture
 def dates(nlp):
-    return Dates(nlp, dates=terms.dates)
+    return Dates(
+        nlp,
+        absolute=terms.absolute,
+        relative=terms.relative,
+    )
 
 
 def test_dates_component(nlp, dates):
@@ -59,3 +63,20 @@ def test_dates_component(nlp, dates):
     doc = dates(doc)
 
     assert len(doc.spans["dates"]) == 3
+
+    d1, _, d3 = doc.spans["dates"]
+
+    assert d1.label_ == "TD-1"
+    assert d3.label_ == "TD-7"
+
+
+def test_dates_with_base_date(nlp, dates):
+
+    doc = nlp(text)
+    doc._.note_datetime = datetime(2020, 10, 10)
+    doc = dates(doc)
+
+    d1, _, d3 = doc.spans["dates"]
+
+    assert d1.label_ == "2020-10-09"
+    assert d3.label_ == "2020-10-03"

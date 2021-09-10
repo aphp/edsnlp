@@ -4,7 +4,8 @@ numeric_dates: List[str] = [
     r"[0123]?\d[\/\.\-][01]?\d[\/\.\-](?:19\d\d|20[012]\d|\d\d)",
 ]
 
-relative_dates: List[str] = [
+
+relative_expressions: List[str] = [
     r"(?:avant\-)?hier",
     r"(?:après )?demain",
     r"l['ae] ?(?:semaine|année|mois) derni[èe]re?",
@@ -12,4 +13,6 @@ relative_dates: List[str] = [
     r"il y a .{,10} (?:heures?|jours?|mois|années?)",
 ]
 
-dates = numeric_dates + relative_dates
+absolute = "|".join(numeric_dates)
+
+relative = "|".join(relative_expressions)

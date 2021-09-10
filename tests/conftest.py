@@ -13,6 +13,12 @@ def nlp():
     model.add_pipe("sentences")
     model.add_pipe("pollution")
     model.add_pipe("sections")
+    model.add_pipe(
+        "matcher",
+        config=dict(
+            terms=dict(patient="patient", anomalie="anomalie"),
+        ),
+    )
     model.add_pipe("hypothesis", config=dict(on_ents_only=False))
     model.add_pipe("negation", config=dict(on_ents_only=False))
     model.add_pipe("family", config=dict(on_ents_only=False))
@@ -22,13 +28,20 @@ def nlp():
     return model
 
 
+@fixture(scope="session")
+def blank_nlp():
+    model = spacy.blank("fr")
+    return model
+
+
 text = (
     "Le patient est admis pour des douleurs dans le bras droit, mais n'a pas de problème de locomotion. "
     "Historique d'AVC dans la famille. pourrait être un cas de rhume.\n"
     "NBNbWbWbNbWbNBNbNbWbWbNBNbWbNbNbWbNBNbWbNbNBWbWbNbNbNBWbNbWbNbWBNbNbWbNbNBNbWbWbNbWBNbNbWbNBNbWbWbNb\n"
     "Pourrait être un cas de rhume.\n"
     "Motif :\n"
-    "Douleurs dans le bras droit."
+    "Douleurs dans le bras droit.\n"
+    "Pas d'anomalie détectée."
 )
 
 

@@ -1,4 +1,4 @@
-image: python:3.9
+image: harbor.eds.aphp.fr/public/python:3.7
 
 default:
   tags:

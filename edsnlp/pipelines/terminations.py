@@ -25,4 +25,12 @@ termination: List[str] = [
     "ainsi que",
     "avec",
     "toutefois",
+    ".",
+    ",",
+    ";",
+    "...",
+    "…",
+    "(",
+    ")",
+    '"',
 ]

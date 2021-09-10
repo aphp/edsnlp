@@ -3,6 +3,8 @@ from dateparser import DateDataParser
 from spacy.language import Language
 from spacy.tokens import Span, Doc
 
+from spacy.util import filter_spans
+
 from datetime import datetime, timedelta
 
 from loguru import logger
@@ -42,6 +44,8 @@ class Dates(BaseComponent):
         List of regular expressions for absolute dates.
     relative: List[str]
         List of regular expressions for relative dates.
+    no_year: List[str]
+        List of regular expressions for dates that do not display a year.
     """
 
     # noinspection PyProtectedMember
@@ -50,6 +54,7 @@ class Dates(BaseComponent):
         nlp: Language,
         absolute: Union[List[str], str],
         relative: Union[List[str], str],
+        no_year: Union[List[str], str],
     ):
 
         logger.warning("``dates`` pipeline is still in beta.")
@@ -60,10 +65,13 @@ class Dates(BaseComponent):
             absolute = [absolute]
         if isinstance(relative, str):
             relative = [relative]
+        if isinstance(no_year, str):
+            no_year = [no_year]
 
         self.matcher = RegexMatcher(attr="LOWER")
         self.matcher.add("absolute", absolute)
         self.matcher.add("relative", relative)
+        self.matcher.add("no_year", no_year)
 
         self.parser = DateDataParser(languages=["fr"])
 
@@ -87,7 +95,7 @@ class Dates(BaseComponent):
 
         dates = self.matcher(doc)
 
-        dates = self._filter_matches(dates)
+        dates = filter_spans(dates)
 
         return dates
 
@@ -114,6 +122,12 @@ class Dates(BaseComponent):
 
             if date.label_ == "absolute":
                 date.label_ = d.strftime("%Y-%m-%d")
+            elif date.label_ == "no_year":
+                if note_datetime:
+                    year = note_datetime.strftime("%Y")
+                else:
+                    year = "????"
+                date.label_ = d.strftime(f"{year}-%m-%d")
             else:
                 if note_datetime:
                     # We need to adjust the timedelta, since most dates are set at 00h00.

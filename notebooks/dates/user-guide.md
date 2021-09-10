@@ -21,6 +21,10 @@ from edsnlp.pipelines.dates import Dates, terms
 ```
 
 ```python
+from datetime import datetime
+```
+
+```python
 import spacy
 ```
 
@@ -43,7 +47,12 @@ doc = nlp(text)
 ```
 
 ```python
-dates = Dates(nlp, absolute=terms.absolute, relative=terms.relative)
+dates = Dates(
+    nlp,
+    absolute=terms.absolute,
+    relative=terms.relative,
+    no_year=terms.no_year,
+)
 ```
 
 ```python
@@ -63,3 +72,22 @@ for span in doc.spans['dates']:
 ```
 
 Lorsque la date du document n'est pas connue, le label des dates relatives (hier, il y a quinze jours, etc) devient `TD±<nb-de-jours>`
+
+
+Si on renseigne l'extension `note_datetime` :
+
+```python
+doc._.note_datetime = datetime(2020, 10, 10)
+```
+
+```python
+dates(doc)
+```
+
+```python
+print(f"{'expression':<20}  label")
+print(f"{'----------':<20}  -----")
+
+for span in doc.spans['dates']:
+    print(f"{span.text:<20}  {span.label_}")
+```

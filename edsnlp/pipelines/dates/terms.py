@@ -25,14 +25,19 @@ months: List[str] = [
 month_pattern = "(?:" + "|".join(months) + ")"
 
 numeric_dates: List[str] = [
-    r"[0123]?\d[\/\.\-][01]?\d(?:[\/\.\-](?:19\d\d|20[012]\d|\d\d))?",
-    r"(?:19\d\d|20[012]\d|\d\d)[\/\.\-][01]?\d[\/\.\-][0123]?\d",
+    r"[0123]?\d[\/\.\-\s][01]?\d[\/\.\-\s](?:19\d\d|20[012]\d|\d\d)",
+    r"(?:19\d\d|20[012]\d|\d\d)[\/\.\-\s][01]?\d[\/\.\-\s][0123]?\d",
 ]
 
 text_dates: List[str] = [
     r"(?:depuis|en)\s*" + month_pattern + r"?\s+(?:19\d\d|20[012]\d|\d\d)",
-    r"(?:depuis|en)\s+" + month_pattern + r"\s*(?:19\d\d|20[012]\d|\d\d)?",
-    r"[0123]?\d\d+\s*" + month_pattern + r"\s+(?:19\d\d|20[012]\d|\d\d)?",
+    r"[0123]?\d\d+\s*" + month_pattern + r"\s+(?:19\d\d|20[012]\d|\d\d)",
+]
+
+unknown_year: List[str] = [
+    r"[0123]?\d[\/\.\-\s][01]\d",
+    r"(?:depuis|en)\s+" + month_pattern,
+    r"[0123]?\d\s*" + month_pattern,
 ]
 
 relative_expressions: List[str] = [
@@ -44,6 +49,6 @@ relative_expressions: List[str] = [
     r"depuis .{,10} (?:heures?|jours?|mois|années?)",
 ]
 
+no_year = "|".join(unknown_year)
 absolute = "|".join(numeric_dates + text_dates)
-
 relative = "|".join(relative_expressions)

@@ -50,6 +50,7 @@ def dates(nlp):
         nlp,
         absolute=terms.absolute,
         relative=terms.relative,
+        no_year=terms.no_year,
     )
 
 

@@ -1,6 +1,6 @@
 from dateparser import DateDataParser
 from pytest import fixture, raises
-from datetime import date, time, timedelta
+from datetime import date, timedelta
 
 from edsnlp.pipelines.dates import Dates, terms
 

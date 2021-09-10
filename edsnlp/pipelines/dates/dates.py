@@ -5,6 +5,8 @@ from spacy.tokens import Span, Doc
 
 from datetime import datetime, timedelta
 
+from loguru import logger
+
 from edsnlp.base import BaseComponent
 from edsnlp.matchers.regex import RegexMatcher
 
@@ -50,6 +52,8 @@ class Dates(BaseComponent):
         relative: Union[List[str], str],
     ):
 
+        logger.warning("``dates`` pipeline is still in beta.")
+
         self.nlp = nlp
 
         if isinstance(absolute, str):
@@ -57,7 +61,7 @@ class Dates(BaseComponent):
         if isinstance(relative, str):
             relative = [relative]
 
-        self.matcher = RegexMatcher()
+        self.matcher = RegexMatcher(attr="LOWER")
         self.matcher.add("absolute", absolute)
         self.matcher.add("relative", relative)
 

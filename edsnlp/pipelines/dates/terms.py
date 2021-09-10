@@ -25,14 +25,14 @@ months: List[str] = [
 month_pattern = "(?:" + "|".join(months) + ")"
 
 numeric_dates: List[str] = [
-    r"[0123]?\d[\/\.\-][01]?\d[\/\.\-](?:19\d\d|20[012]\d|\d\d)",
+    r"[0123]?\d[\/\.\-][01]?\d(?:[\/\.\-](?:19\d\d|20[012]\d|\d\d))?",
     r"(?:19\d\d|20[012]\d|\d\d)[\/\.\-][01]?\d[\/\.\-][0123]?\d",
 ]
 
 text_dates: List[str] = [
     r"(?:depuis|en)\s*" + month_pattern + r"?\s+(?:19\d\d|20[012]\d|\d\d)",
     r"(?:depuis|en)\s+" + month_pattern + r"\s*(?:19\d\d|20[012]\d|\d\d)?",
-    r"[0123]?\d\d+" + month_pattern + r"\s+(?:19\d\d|20[012]\d|\d\d)",
+    r"[0123]?\d\d+\s*" + month_pattern + r"\s+(?:19\d\d|20[012]\d|\d\d)?",
 ]
 
 relative_expressions: List[str] = [

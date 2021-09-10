@@ -1,4 +1,3 @@
-from re import S
 from edsnlp.utils.examples import parse_match, parse_example, find_matches
 
 
@@ -46,4 +45,4 @@ def test_parse_example():
     assert m3.value == "NEG"
 
     assert m4.key == "negation"
-    assert m4.value == True
+    assert m4.value

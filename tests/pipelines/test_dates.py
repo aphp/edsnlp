@@ -80,3 +80,19 @@ def test_dates_with_base_date(nlp, dates):
 
     assert d1.label_ == "2020-10-09"
     assert d3.label_ == "2020-10-03"
+
+
+def test_patterns(nlp, dates):
+
+    examples = [
+        "Le patient est venu en 2019 pour une consultation",
+        "Le patient est venu en octobre 2020 pour une consultation",
+        "Le patient est venu il y a trois mois pour une consultation",
+        "Le patient est venu le 20/09/2001 pour une consultation",
+    ]
+
+    for example in examples:
+        doc = nlp(example)
+        doc = dates(doc)
+
+        assert len(doc.spans["dates"]) == 1

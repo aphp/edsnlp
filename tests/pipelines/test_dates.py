@@ -1,6 +1,8 @@
 from dateparser import DateDataParser
-from pytest import fixture
+from pytest import fixture, raises
 from datetime import date, time, timedelta
+
+from edsnlp.pipelines.dates import Dates, terms
 
 
 @fixture(scope="session")
@@ -34,3 +36,26 @@ def test_parser_relative(parser: DateDataParser):
 
     for test, answer in tests:
         assert parser.get_date_data(test).date_obj.date() == date.today() + answer
+
+
+text = (
+    "Le patient est venu hier (le 04/09/2021) pour un test PCR.\n"
+    "Il est cas contact depuis la semaine dernière."
+)
+
+
+@fixture
+def dates(nlp):
+    return Dates(nlp, dates=terms.dates)
+
+
+def test_dates_component(nlp, dates):
+
+    doc = nlp(text)
+
+    with raises(KeyError):
+        doc.spans["dates"]
+
+    doc = dates(doc)
+
+    assert len(doc.spans["dates"]) == 3

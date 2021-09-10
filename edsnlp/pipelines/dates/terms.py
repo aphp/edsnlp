@@ -31,6 +31,7 @@ numeric_dates: List[str] = [
 
 text_dates: List[str] = [
     r"(?:depuis|en)\s*" + month_pattern + r"?\s+(?:19\d\d|20[012]\d|\d\d)",
+    r"(?:depuis|en)\s+" + month_pattern + r"\s*(?:19\d\d|20[012]\d|\d\d)?",
     r"[0123]?\d\d+" + month_pattern + r"\s+(?:19\d\d|20[012]\d|\d\d)",
 ]
 

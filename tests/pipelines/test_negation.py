@@ -4,7 +4,7 @@ from edsnlp.utils.examples import parse_example
 from edsnlp.pipelines.negation import terms, Negation
 from edsnlp.pipelines import terminations
 
-from pytest import fixture
+from pytest import fixture, mark
 
 negation_examples: List[str] = [
     "Le patient n'est pas <ent polarity_=NEG>malade</ent>.",
@@ -49,30 +49,10 @@ def negation_factory(blank_nlp):
     return factory
 
 
-def test_negation_no_ents_only(blank_nlp, negation_factory):
+@mark.parametrize("on_ents_only", [True, False])
+def test_negation(blank_nlp, negation_factory, on_ents_only):
 
-    negation = negation_factory(on_ents_only=False)
-
-    for example in negation_examples:
-        text, entities = parse_example(example=example)
-
-        doc = blank_nlp(text)
-        doc.ents = [doc.char_span(ent.start_char, ent.end_char) for ent in entities]
-
-        doc = negation(doc)
-
-        for entity, ent in zip(entities, doc.ents):
-
-            for modifier in entity.modifiers:
-
-                assert (
-                    getattr(ent._, modifier.key) == modifier.value
-                ), f"{modifier.key} labels don't match."
-
-
-def test_negation_ents_only(blank_nlp, negation_factory):
-
-    negation = negation_factory(on_ents_only=True)
+    negation = negation_factory(on_ents_only=on_ents_only)
 
     for example in negation_examples:
         text, entities = parse_example(example=example)
@@ -89,3 +69,9 @@ def test_negation_ents_only(blank_nlp, negation_factory):
                 assert (
                     getattr(ent._, modifier.key) == modifier.value
                 ), f"{modifier.key} labels don't match."
+
+                if not on_ents_only:
+                    for token in ent:
+                        assert (
+                            getattr(token._, modifier.key) == modifier.value
+                        ), f"{modifier.key} labels don't match."

@@ -11,6 +11,7 @@ negation_examples: List[str] = [
     "Aucun <ent polarity_=NEG>traitement</ent>.",
     "Le <ent polarity_=AFF>scan</ent> révèle une grosseur.",
     "il y a des <ent polarity_=AFF>métastases</ent>",
+    "aucun doute sur les <ent polarity_=AFF>métastases</ent>",
     "il n'y a pas de <ent polarity_=NEG>métastases</ent>",
     "il n'y a pas d' <ent polarity_=NEG>métastases</ent>",
     "il n'y a pas d'<ent polarity_=NEG>métastases</ent>",

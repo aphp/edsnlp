@@ -39,9 +39,6 @@ class Negation(GenericMatcher):
          Whether to perform fuzzy matching on the terms.
     filter_matches: bool
         Whether to filter out overlapping matches.
-    annotation_scheme: str
-        Whether to require that all tokens in the matching span possess the desired label (`annotation_scheme = 'all'`),
-        or at least one token matching (`annotation_scheme = 'any'`).
     attr: str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
@@ -67,7 +64,6 @@ class Negation(GenericMatcher):
         verbs: List[str],
         fuzzy: bool,
         filter_matches: bool,
-        annotation_scheme: str,
         attr: str,
         on_ents_only: bool,
         regex: Optional[Dict[str, Union[List[str], str]]],
@@ -92,8 +88,6 @@ class Negation(GenericMatcher):
             fuzzy_kwargs=fuzzy_kwargs,
             **kwargs,
         )
-
-        self.annotation_scheme = annotation_scheme
 
         if not Token.has_extension("negated"):
             Token.set_extension("negated", default=False)
@@ -139,23 +133,6 @@ class Negation(GenericMatcher):
         list_neg_verbs = list(neg_verbs["variant"].unique())
 
         return list_neg_verbs
-
-    def annotate_entity(self, span: Span) -> bool:
-        """
-        Annotates entities.
-
-        Parameters
-        ----------
-        span: A given span to annotate.
-
-        Returns
-        -------
-        The annotation for the entity.
-        """
-        if self.annotation_scheme == "all":
-            return all([t._.negated for t in span])
-        elif self.annotation_scheme == "any":
-            return any([t._.negated for t in span])
 
     def __call__(self, doc: Doc) -> Doc:
         """
@@ -220,8 +197,10 @@ class Negation(GenericMatcher):
                         m.end <= token.i for m in sub_preceding + sub_verbs
                     ) or any(m.start > token.i for m in sub_following)
             for ent in doc[start:end].ents:
-                ent._.negated = any(
-                    m.end <= ent.start for m in sub_preceding + sub_verbs
-                ) or any(m.start > ent.end for m in sub_following)
+                ent._.negated = (
+                    ent._.negated
+                    or any(m.end <= ent.start for m in sub_preceding + sub_verbs)
+                    or any(m.start > ent.end for m in sub_following)
+                )
 
         return doc

@@ -21,9 +21,6 @@ class FamilyContext(GenericMatcher):
          Whether to perform fuzzy matching on the terms.
     filter_matches: bool
         Whether to filter out overlapping matches.
-    annotation_scheme: str
-        Whether to require that all tokens in the matching span possess the desired label (`annotation_scheme = 'all'`),
-        or at least one token matching (`annotation_scheme = 'any'`).
     attr: str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
@@ -45,7 +42,6 @@ class FamilyContext(GenericMatcher):
         family: List[str],
         fuzzy: Optional[bool],
         filter_matches: Optional[bool],
-        annotation_scheme: Optional[str],
         attr: str,
         on_ents_only: bool,
         regex: Optional[Dict[str, Union[List[str], str]]],
@@ -64,8 +60,6 @@ class FamilyContext(GenericMatcher):
             fuzzy_kwargs=fuzzy_kwargs,
             **kwargs,
         )
-
-        self.annotation_scheme = annotation_scheme
 
         if not Token.has_extension("family"):
             Token.set_extension("family", default=False)
@@ -89,23 +83,6 @@ class FamilyContext(GenericMatcher):
             Doc.set_extension("family", default=[])
 
         self.sections = "sections" in self.nlp.pipe_names
-
-    def annotate_entity(self, span: Span) -> bool:
-        """
-        Annotates entities.
-
-        Parameters
-        ----------
-        span: A given span to annotate.
-
-        Returns
-        -------
-        The annotation for the entity.
-        """
-        if self.annotation_scheme == "all":
-            return all([t._.family for t in span])
-        elif self.annotation_scheme == "any":
-            return any([t._.family for t in span])
 
     def __call__(self, doc: Doc) -> Doc:
         """

@@ -17,6 +17,7 @@
     user-guide/terminology-matching
     user-guide/dates
     user-guide/negation
+    user-guide/family
     user-guide/pollution
     user-guide/sections
     user-guide/quickumls

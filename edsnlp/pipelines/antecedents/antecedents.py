@@ -155,10 +155,10 @@ class Antecedents(GenericMatcher):
 
         boundaries = self._boundaries(doc, terminations=terminations)
 
-        ents = []
+        sections = []
 
         if self.sections:
-            ents = [
+            sections = [
                 Span(doc, section.start, section.end, label="ATCD")
                 for section in doc._.sections
                 if section.label_ == "antécédents"
@@ -168,23 +168,19 @@ class Antecedents(GenericMatcher):
             if self.on_ents_only and not doc[start:end].ents:
                 continue
 
-            for token in doc[start:end]:
-                token._.antecedent = False
-
             sub_matches = [m for m in antecedents if start <= m.start < end]
 
-            if sub_matches:
-                span = Span(doc, start, end, label="ATCD")
-                span._.antecedent = True
-                ents.append(span)
+            antecedent = bool(sub_matches)
 
-        doc._.antecedents = ents
+            if not self.on_ents_only:
+                for token in doc[start:end]:
+                    token._.antecedent = antecedent
+            for ent in doc[start:end].ents:
+                ent._.antecedent = antecedent
 
-        for ent in ents:
-            for token in ent:
-                token._.antecedent = True
-
-        for ent in doc.ents:
-            ent._.antecedent = self.annotate_entity(ent)
+        if not self.on_ents_only:
+            for section in sections:
+                for token in section:
+                    token._.antecedent = True
 
         return doc

@@ -7,7 +7,8 @@ from pytest import fixture, mark
 
 
 examples: List[str] = [
-    "Plusieurs <ent hypothesis_=HYP>diagnostics</ent> sont envisagés.",
+    "Plusieurs <ent hypothesis_=HYP>diagnostics</ent> sont envisagés ",
+    "même si <ent hypothesis=False>le patient est jeune</ent>.",
     "Suspicion de <ent hypothesis_=HYP>diabète</ent>.",
     "Le ligament est <ent hypothesis_=CERT>rompu</ent>.",
 ]
@@ -64,3 +65,9 @@ def test_hypothesis(blank_nlp, hypothesis_factory, on_ents_only):
                 assert (
                     getattr(ent._, modifier.key) == modifier.value
                 ), f"{modifier.key} labels don't match."
+
+                if not on_ents_only:
+                    for token in ent:
+                        assert (
+                            getattr(token._, modifier.key) == modifier.value
+                        ), f"{modifier.key} labels don't match."

@@ -129,23 +129,6 @@ class Hypothesis(GenericMatcher):
 
         return list_hypo_verbs + list_classic_verbs
 
-    def annotate_entity(self, span: Span) -> bool:
-        """
-        Annotates entities.
-
-        Parameters
-        ----------
-        span: A given span to annotate.
-
-        Returns
-        -------
-        The annotation for the entity.
-        """
-        if self.annotation_scheme == "all":
-            return all([t._.hypothesis for t in span])
-        elif self.annotation_scheme == "any":
-            return any([t._.hypothesis for t in span])
-
     def __call__(self, doc: Doc) -> Doc:
         """
         Finds entities related to hypothesis.

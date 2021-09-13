@@ -4,8 +4,6 @@ from edsnlp.pipelines.generic import GenericMatcher
 from spacy.language import Language
 from spacy.tokens import Token, Span, Doc
 
-from edsnlp.utils.filter_matches import _filter_matches
-
 
 class FamilyContext(GenericMatcher):
     """
@@ -124,10 +122,10 @@ class FamilyContext(GenericMatcher):
         matches = self.process(doc)
         boundaries = self._boundaries(doc)
 
-        ents = []
+        sections = []
 
         if self.sections:
-            ents = [
+            sections = [
                 Span(doc, section.start, section.end, label="FAMILY")
                 for section in doc._.sections
                 if section.label_ == "antécédents familiaux"
@@ -139,21 +137,18 @@ class FamilyContext(GenericMatcher):
 
             sub_matches = [m for m in matches if start <= m.start < end]
 
-            if sub_matches:
+            if not sub_matches:
+                continue
+
+            if not self.on_ents_only:
                 for token in doc[start:end]:
                     token._.family = True
-                ents.append(Span(doc, start, end, label="FAMILY"))
-
-        doc._.family = ents
-
-        for ent in ents:
-            for token in ent:
-                token._.family = True
-
-        for ent in doc.ents:
-            if self.annotate_entity(ent):
-                # The "family" extension can be set upstream (via another pipe)
-                # The family pipeline won't overwrite it if so
+            for ent in doc[start:end].ents:
                 ent._.family = True
+
+        if not self.on_ents_only:
+            for section in sections:
+                for token in section:
+                    token._.family = True
 
         return doc

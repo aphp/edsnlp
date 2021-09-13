@@ -1,4 +1,4 @@
-from typing import List, Union, Dict, Any, Optional
+from typing import List, Dict, Any, Optional
 
 from edsnlp.pipelines.generic import GenericMatcher
 from spacy.language import Language

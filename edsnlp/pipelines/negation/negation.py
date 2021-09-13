@@ -214,33 +214,14 @@ class Negation(GenericMatcher):
             if not sub_preceding + sub_following + sub_verbs:
                 continue
 
-            for token in doc[start:end]:
-                token._.negated = (
-                    any(m.end <= token.i for m in sub_preceding)
-                    or any(m.start > token.i for m in sub_following)
-                    or any(sub_verbs)
-                )
-
-        start_neg = -1
-        ents = []
-
-        for token in doc:
-            if token._.negated:
-                if start_neg > -1:
-                    continue
-                else:
-                    start_neg = token.i
-            else:
-                if start_neg > -1:
-                    ents.append(Span(doc, start_neg, token.i, label="NEG"))
-                    start_neg = -1
-
-        doc._.negations = ents
-
-        for ent in doc.ents:
-            if self.annotate_entity(ent):
-                # An entity can be negated upstream (via another pipe)
-                # The negation pipeline won't overwrite it if a negation was found
-                ent._.negated = True
+            if not self.on_ents_only:
+                for token in doc[start:end]:
+                    token._.negated = any(
+                        m.end <= token.i for m in sub_preceding + sub_verbs
+                    ) or any(m.start > token.i for m in sub_following)
+            for ent in doc[start:end].ents:
+                ent._.negated = any(
+                    m.end <= ent.start for m in sub_preceding + sub_verbs
+                ) or any(m.start > ent.end for m in sub_following)
 
         return doc

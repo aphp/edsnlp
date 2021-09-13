@@ -44,6 +44,8 @@
     :hidden:
     :caption: Tutorials
 
+    tutorials/first-pipeline
+    tutorials/notebooks
     tutorials/word-vectors
 
 .. toctree::

@@ -22,7 +22,7 @@ class BaseComponent(object):
     - verbs conjugation
     """
 
-    split_on_punctuation = True
+    split_on_punctuation = False
 
     @staticmethod
     def _filter_matches(matches: List[Span]) -> List[Span]:

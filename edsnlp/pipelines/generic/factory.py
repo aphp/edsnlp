@@ -15,7 +15,7 @@ def create_component(
     fuzzy: bool = False,
     fuzzy_kwargs: Optional[Dict[str, Any]] = None,
     filter_matches: bool = True,
-    on_ents_only: bool = True,
+    on_ents_only: bool = False,
 ):
     if terms is None:
         terms = dict()

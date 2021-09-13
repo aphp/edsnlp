@@ -15,7 +15,6 @@
     :caption: User Guide
 
     user-guide/terminology-matching
-    user-guide/anatomy
     user-guide/dates
     user-guide/pollution
     user-guide/sections

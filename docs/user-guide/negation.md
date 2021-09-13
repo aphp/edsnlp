@@ -1,6 +1,6 @@
 # Negation
 
-The `negation` pipeline uses a simple rule-based algorithm to detect negated spans. It was designed at AP-HP's EDS, following the insights of the NegEx algorithm by {cite:t}`chapman_simple_2001`.
+The `negation` pipeline uses a simple rule-based algorithm to detect negated spans. It was designed at AP-HP's EDS, following the insights of the NegEx algorithm by {footcite:t}`chapman_simple_2001`.
 
 ## Scope
 
@@ -55,7 +55,7 @@ doc.ents[1]._.polarity_
 
 The pipeline's performance are measured on three datasets
 
-- The ESSAI ({cite:t}`dalloux:hal-01659637`) and CAS ({cite:t}`grabar:hal-01937096`) datasets were developped at the CNRS. See the [dedicated EDS-Datasets page](https://equipedatascience-pages.eds.aphp.fr/eds-datasets/datasets/essai-cas.html) for more information.
+- The ESSAI ({footcite:t}`dalloux:hal-01659637`) and CAS ({footcite:t}`grabar:hal-01937096`) datasets were developped at the CNRS. See the [dedicated EDS-Datasets page](https://equipedatascience-pages.eds.aphp.fr/eds-datasets/datasets/essai-cas.html) for more information.
 - The NegParHyp corpus was specifically developed at EDS to test the pipeline on actual medical notes, using pseudonymised notes from the EDS. See [EDS-Datasets](https://equipedatascience-pages.eds.aphp.fr/eds-datasets/datasets/negparhyp.html) for more information.
 
 | Version | Dataset   | Negation F1 |
@@ -73,5 +73,5 @@ The `negation` pipeline was developed by the Data Science team at EDS.
 ## References
 
 ```{eval-rst}
-.. bibliography::
+.. footbibliography::
 ```

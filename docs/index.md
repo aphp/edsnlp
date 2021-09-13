@@ -36,11 +36,23 @@
     :caption: API
 
     api/base
-    api/pollution
-    api/dates
-    api/sections
-    api/quickumls
+    api/pipelines
     api/connectors
+
+.. toctree::
+    :maxdepth: 2
+    :hidden:
+    :caption: Tutorials
+
+    tutorials/word-vectors
+
+.. toctree::
+    :maxdepth: 2
+    :hidden:
+    :caption: Additional information
+
+    additional/contributing
+    additional/changelog
 ```
 
 ## User guide

@@ -1,5 +1,5 @@
 import re
-from typing import List, Union, Iterable
+from typing import List, Union, Optional
 
 from loguru import logger
 from spacy.tokens import Span, Doc
@@ -18,23 +18,68 @@ class RegexMatcher(object):
         within the character span), "expand" (span of all tokens at least
         partially covered by the character span).
         Defaults to `expand`.
+    attr: str
+        Default attribute to match on, by default "TEXT".
+        Can be overiden in the ``add`` method.
     """
 
-    def __init__(self, alignment_mode: str = "expand"):
+    def __init__(
+        self,
+        alignment_mode: str = "expand",
+        attr: str = "TEXT",
+    ):
         self.alignment_mode = alignment_mode
         self.regex = dict()
         self.attr = dict()
 
-    def add(self, key: str, patterns: List[str], attr: str = "TEXT"):
+        self.default_attr = attr
+
+    def add(
+        self,
+        key: str,
+        patterns: List[str],
+        attr: Optional[str] = None,
+    ):
+        """
+        Add a pattern.
+
+        Parameters
+        ----------
+        key : str
+            Key of the new/updated pattern.
+        patterns : List[str]
+            List of patterns to add.
+        attr : str, optional
+            Attribute to use for matching, by default "TEXT"
+        """
+
+        if not attr:
+            attr = self.default_attr
+
         assert attr in ["TEXT", "NORM", "LOWER"]
         self.regex[key] = [re.compile(pattern) for pattern in patterns]
         self.attr[key] = attr
 
-    def remove(self, key: str):
+    def remove(
+        self,
+        key: str,
+    ):
+        """
+        Remove a pattern.
+
+        Parameters
+        ----------
+        key : str
+            key of the pattern to remove.
+        """
         del self.regex[key]
 
     def create_span(
-        self, doclike: Union[Doc, Span], start: int, end: int, key: str
+        self,
+        doclike: Union[Doc, Span],
+        start: int,
+        end: int,
+        key: str,
     ) -> Span:
         """
         Spacy only allows strict alignment mode for char_span on Spans.
@@ -73,7 +118,10 @@ class RegexMatcher(object):
 
         return span
 
-    def match(self, doclike: Union[Doc, Span]) -> Span:
+    def match(
+        self,
+        doclike: Union[Doc, Span],
+    ) -> Span:
         """
         Iterates on the matches.
 
@@ -112,7 +160,11 @@ class RegexMatcher(object):
                     if span is not None:
                         yield span
 
-    def __call__(self, doclike: Union[Doc, Span], as_spans=True) -> Span:
+    def __call__(
+        self,
+        doclike: Union[Doc, Span],
+        as_spans=True,
+    ) -> Span:
         """
         Performs matching. Yields matches.
 

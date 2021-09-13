@@ -7,3 +7,4 @@ spaczz
 unidecode
 mlconjug3
 tqdm
+dateparser

@@ -4,8 +4,6 @@ from edsnlp.pipelines.generic import GenericMatcher
 from spacy.language import Language
 from spacy.tokens import Token, Span, Doc
 
-from edsnlp.utils.filter_matches import _filter_matches
-
 
 class FamilyContext(GenericMatcher):
     """

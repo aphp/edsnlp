@@ -4,6 +4,14 @@
 .. toctree::
     :maxdepth: 2
     :hidden:
+    :caption: Getting Started
+
+    getting-started/installation
+    getting-started/quickstart
+
+.. toctree::
+    :maxdepth: 2
+    :hidden:
     :caption: User Guide
 
     user-guide/terminology-matching

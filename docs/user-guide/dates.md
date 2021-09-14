@@ -23,7 +23,7 @@ nlp.add_pipe("dates")  # exposed via edsnlp.components
 
 text = (
     "Le patient est admis le 23 août 2021 pour une douleur à l'estomac. "
-    "Il lui était arrivé la même chose il y a deux ans."
+    "Il lui était arrivé la même chose il y a un an."
 )
 
 doc = nlp(text)

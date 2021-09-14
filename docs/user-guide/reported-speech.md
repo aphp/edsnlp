@@ -35,10 +35,10 @@ doc = nlp(text)
 doc.ents
 # Out: [patient, alcoolisé]
 
-doc.ents[0]._.polarity_
+doc.ents[0]._.reported_speech_
 # Out: 'DIRECT'
 
-doc.ents[1]._.polarity_
+doc.ents[1]._.reported_speech_
 # Out: 'REPORTED'
 ```
 

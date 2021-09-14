@@ -41,7 +41,7 @@ Hence, the strategy chosen for the pollution pipeline is the following:
 1. Tag, **but do not remove**, pollutions on the `Token._.pollution` extension.
 2. Propose a `Doc._.clean_` extension, to retrieve the cleaned text.
 
-## Recipes
+## Usage
 
 ```python
 import spacy
@@ -66,6 +66,11 @@ doc = nlp(text)
 
 Should you need to implement a pipeline using the cleaned version of the documents, the Pollution pipeline also exposes a `Doc._.clean_char_span` method to realign annotations made on the clean text with the original document.
 
+
+## Authors and citation
+
+The `pollution` pipeline was developed by the Data Science team at EDS.
+
 ```python
 clean = nlp(doc._.clean)
 span = clean[27:28]
@@ -79,3 +84,7 @@ doc.text[span.start_char : span.end_char]
 doc._.char_clean_span(span.start_char, span.end_char)
 # Out: rhume
 ```
+
+## Authors and citation
+
+The `pollution` pipeline was developed at AP-HP's EDS by the Data Science team.

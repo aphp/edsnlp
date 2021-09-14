@@ -35,7 +35,7 @@ Let's unpack what happened :
    nlp = spacy.blank("fr")
    ```
 
-2. Then, we add three pipes : a sentencizer, a matcher and a negation detector.
+2. Then, we add three pipes : a [sentencizer](../user-guide/sentences.md), a [matcher](../user-guide/matcher.md) and a [negation detector](../user-guide/negation.md).
 
    ```python
    nlp.add_pipe("sentences")
@@ -46,7 +46,7 @@ Let's unpack what happened :
    nlp.add_pipe("negation")
    ```
 
-   As the name suggests, the sentencizer detects sentences and populates the `doc.sents` attribute.
+   As the name suggests, the sentencizer detects sentence boundaries and populates the `doc.sents` attribute.
 
    The matcher extracts entities based on a dictionary of terms or regular expressions. Here, the component looks for synonyms of covid.
 
@@ -73,4 +73,4 @@ Let's unpack what happened :
    # Out: 'NEG'
    ```
 
-This was just a very simple example, using only three of the numerous components defined by EDS-NLP. To get a better sense of what EDS-NLP can do for you, look at the user guides or the tutorials.
+This was just a very simple example, using only three of the numerous components defined by EDS-NLP. To get a better sense of what EDS-NLP can do for you, check out the user guides or the tutorials.

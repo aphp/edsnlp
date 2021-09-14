@@ -53,10 +53,10 @@ doc.ents[1]._.polarity_
 
 ## Performance
 
-The pipeline's performance are measured on three datasets
+The pipeline's performance are measured on three datasets :
 
 - The ESSAI ({footcite:t}`dalloux:hal-01659637`) and CAS ({footcite:t}`grabar:hal-01937096`) datasets were developped at the CNRS. See the [dedicated EDS-Datasets page](https://equipedatascience-pages.eds.aphp.fr/eds-datasets/datasets/essai-cas.html) for more information.
-- The NegParHyp corpus was specifically developed at EDS to test the pipeline on actual medical notes, using pseudonymised notes from the EDS. See [EDS-Datasets](https://equipedatascience-pages.eds.aphp.fr/eds-datasets/datasets/negparhyp.html) for more information.
+- The NegParHyp corpus was specifically developed at EDS to test the pipeline on actual medical notes, using pseudonymised notes from the EDS. See [EDS-Datasets](https://equipedatascience-pages.eds.aphp.fr/eds-datasets/datasets/negparhyp.html) for more information and access to the annotation guide.
 
 | Version | Dataset   | Negation F1 |
 | ------- | --------- | ----------- |

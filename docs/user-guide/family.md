@@ -32,7 +32,7 @@ nlp.add_pipe(
     "matcher",
     config=dict(terms=dict(douleur="douleur", ostheoporose="osthéoporose")),
 )
-nlp.add_pipe("negation")
+nlp.add_pipe("family")
 
 text = (
     "Le patient est admis le 23 août 2021 pour une douleur au bras. "
@@ -42,7 +42,7 @@ text = (
 doc = nlp(text)
 
 doc.ents
-# Out: [patient, fracture]
+# Out: [patient, osthéoporose]
 
 doc.ents[0]._.family_
 # Out: 'PATIENT'

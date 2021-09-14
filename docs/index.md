@@ -18,6 +18,7 @@
     user-guide/dates
     user-guide/negation
     user-guide/family
+    user-guide/hypothesis
     user-guide/pollution
     user-guide/sections
     user-guide/quickumls

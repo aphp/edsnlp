@@ -16,32 +16,6 @@ DEFAULT_ATTR = "NORM"
 
 
 class GenericMatcher(BaseComponent):
-    """
-    Provides a generic matcher component.
-
-    Parameters
-    ----------
-    nlp:
-        The Spacy object.
-    terms:
-        A dictionary of terms to look for.
-    attr:
-        spaCy's attribute to use:
-        a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
-        we can also add a key for each regex.
-    regex:
-        A dictionary of regex patterns.
-    fuzzy:
-        Whether to perform fuzzy matching on the terms.
-    fuzzy_kwargs:
-        Default options for the fuzzy matcher, if used.
-    filter_matches:
-        Whether to filter out matches.
-    on_ents_only:
-        Whether to look for matches around detected entities only.
-        Useful for faster inference in downstream tasks.
-    """
-
     def __init__(
         self,
         nlp: Language,
@@ -53,6 +27,28 @@ class GenericMatcher(BaseComponent):
         filter_matches: bool,
         on_ents_only: bool,
     ):
+        """
+        Provides a generic matcher component.
+
+        Parameters
+        ----------
+        nlp : Language
+            The Spacy object.
+        terms : Optional[Dict[str, Union[List[str], str]]]
+            A dictionary of terms.
+        attr : Union[Dict[str, str], str]
+            The attribute to use for matching.
+        regex : Optional[Dict[str, Union[List[str], str]]]
+            A dictionary of regular expressions.
+        fuzzy : bool
+            Whether to do fuzzy matching.
+        fuzzy_kwargs : Optional[Dict[str, Any]]
+            Default options for the fuzzy matcher.
+        filter_matches : bool
+            Whether to filter out matches.
+        on_ents_only : bool
+            Whether to to look for matches around pre-extracted entities only.
+        """
 
         self.nlp = nlp
         self.on_ents_only = on_ents_only

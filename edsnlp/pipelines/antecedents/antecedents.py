@@ -45,8 +45,6 @@ class Antecedents(GenericMatcher):
         Default options for the fuzzy matcher, if used.
     """
 
-    split_on_punctuation = False
-
     def __init__(
         self,
         nlp: Language,

@@ -1,0 +1,1 @@
+git+https://gitlab.eds.aphp.fr/datasciencetools/labeltool.git

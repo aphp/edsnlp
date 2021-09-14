@@ -19,8 +19,11 @@ def test_docs2labeltool(nlp):
     modifiers = ["negated", "hypothesis", "reported_speech"]
 
     docs = list(nlp.pipe(texts))
-    df = docs2labeltool(docs, extensions=modifiers)
 
+    df = docs2labeltool(docs, extensions=modifiers)
+    assert len(df)
+
+    df = docs2labeltool(docs)
     assert len(df)
 
     # labels = Labels()

@@ -14,7 +14,8 @@
     :hidden:
     :caption: User Guide
 
-    user-guide/terminology-matching
+    user-guide/normalizer
+    user-guide/matcher
     user-guide/dates
     user-guide/negation
     user-guide/family

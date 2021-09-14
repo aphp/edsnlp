@@ -2,7 +2,7 @@
 
 The `antecedents` pipeline uses a simple rule-based algorithm to detect spans that describe medical antecedent rather than the diagnostic of a given visit. It was designed at AP-HP's EDS.
 
-The mere definition of an antecedent is not straightforward. Hence, this component only tags entities that are _explicitly described as antecedents_, preceded by a synonym of "antecedent".
+The mere definition of an antecedent is not straightforward. Hence, this component only tags entities that are _explicitly described as antecedents_, eg preceded by a synonym of "antecedent".
 
 This component may also use the output of the [`sections` pipeline](sections.md). In that case, the entire `antécédent` section is tagged as an antecedent.
 

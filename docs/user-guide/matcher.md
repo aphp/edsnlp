@@ -79,3 +79,7 @@ Using regular expressions can help define richer patterns using more compact que
 
 The `GenericMatcher` can also perform fuzzy matching ! It is however extremely computationally intensive,
 and can easily increase compute times by 60x.
+
+## Authors and citation
+
+The `negation` pipeline was developed by the Data Science team at EDS.

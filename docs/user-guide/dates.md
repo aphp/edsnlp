@@ -38,3 +38,7 @@ dates[0].label_
 dates[1].label_
 # Out: "TD-365"
 ```
+
+## Authors and citation
+
+The `dates` pipeline was developed by the Data Science team at EDS. It uses the [Dateparser library](https://dateparser.readthedocs.io/en/latest/index.html) to normalize dates.

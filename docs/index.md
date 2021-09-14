@@ -16,8 +16,8 @@
     :caption: User Guide
 
     user-guide/normalizer
+    user-guide/sentences
     user-guide/matcher
-    user-guide/dates
     user-guide/negation
     user-guide/family
     user-guide/hypothesis
@@ -25,6 +25,7 @@
     user-guide/antecedents
     user-guide/pollution
     user-guide/sections
+    user-guide/dates
     user-guide/quickumls
 
 .. toctree::

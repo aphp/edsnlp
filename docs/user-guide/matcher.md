@@ -82,4 +82,4 @@ and can easily increase compute times by 60x.
 
 ## Authors and citation
 
-The `negation` pipeline was developed by the Data Science team at EDS.
+The `matcher` pipeline was developed by the Data Science team at EDS.

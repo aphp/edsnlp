@@ -79,3 +79,7 @@ doc.text[span.start_char : span.end_char]
 doc._.char_clean_span(span.start_char, span.end_char)
 # Out: rhume
 ```
+
+## Authors and citation
+
+The `pollution` pipeline was developed at AP-HP's EDS by the Data Science team.

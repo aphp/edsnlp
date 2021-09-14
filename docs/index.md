@@ -63,10 +63,49 @@
     additional/changelog
 ```
 
-## User guide
+EDS-NLP provides a set of Spacy components that are used at AP-HP. We focus on usability and non-destructiveness.
 
-Some documentation describing the functionality of the package with a set of examples illustrating the use of the different functionalities.
+## Available pipelines
 
-## API
+| Pipeline     | Description                                                           |
+| ------------ | --------------------------------------------------------------------- |
+| `normalizer` | Non-destructive input text normalization                              |
+| `sentences`  | Better sentence boundary detection                                    |
+| `matcher`    | A simple yet powerful entity extractor                                |
+| `negation`   | Rule-based negation detection                                         |
+| `family`     | Rule-based family context detection                                   |
+| `hypothesis` | Rule-based speculation detection                                      |
+| `antecedent` | Rule-based antecedent detection                                       |
+| `rspeech`    | Rule-based reported speech detection                                  |
+| `sections`   | Section detection                                                     |
+| `pollution`  | Pollution detection and non-destructive removal                       |
+| `dates`      | Date extraction and normalization                                     |
+| `quickumls`  | A basic Spacy v3 re-implementation of Georgetown's QuickUMLS pipeline |
 
-A rundown of the full API.
+## Creating a pipeline
+
+```python
+import spacy
+
+# Load declared pipelines
+from edsnlp import components
+
+nlp = spacy.blank("fr")
+nlp.add_pipe("sections")
+```
+
+To declare an entity matcher:
+
+```python
+terms = dict(
+    covid=["covid", "coronavirus"],
+)
+
+nlp.add_pipe("matcher", config=dict(terms=terms))
+```
+
+Check out the user guides and tutorials for a better sense of what EDS-NLP can do for you.
+
+## Contributing to EDS-NLP
+
+We welcome contributions ! Fork the project and propose a pull request. Take a look at the [dedicated page](https://equipedatascience-pages.eds.aphp.fr/edsnlp/additional/contributing.html) for detail.

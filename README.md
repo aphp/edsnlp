@@ -23,6 +23,7 @@ pip install git+https://gitlab.eds.aphp.fr/equipedatascience/edsnlp.git@v0.2.0
 | Pipeline     | Description                                                           |
 | ------------ | --------------------------------------------------------------------- |
 | `normalizer` | Non-destructive input text normalization                              |
+| `sentences`  | Better sentence boundary detection                                    |
 | `matcher`    | A simple yet powerful entity extractor                                |
 | `negation`   | Rule-based negation detection                                         |
 | `family`     | Rule-based family context detection                                   |
@@ -33,6 +34,8 @@ pip install git+https://gitlab.eds.aphp.fr/equipedatascience/edsnlp.git@v0.2.0
 | `pollution`  | Pollution detection and non-destructive removal                       |
 | `dates`      | Date extraction and normalization                                     |
 | `quickumls`  | A basic Spacy v3 re-implementation of Georgetown's QuickUMLS pipeline |
+
+Check out the [documentation](https://equipedatascience-pages.eds.aphp.fr/edsnlp) for more detail.
 
 ### Creating a pipeline
 

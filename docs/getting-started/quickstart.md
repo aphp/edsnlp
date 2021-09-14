@@ -50,7 +50,7 @@ Let's unpack what happened :
 
    The matcher extracts entities based on a dictionary of terms or regular expressions. Here, the component looks for synonyms of covid.
 
-   The `negation` components performs negation detection on matched entities, to limit false positives.
+   The `negation` component performs negation detection on matched entities, to limit false positives.
 
 3. We defined a text and the pipeline to it.
 

@@ -57,7 +57,7 @@ The pipeline's performance are measured on three datasets :
 
 ## Authors and citation
 
-The `family` pipeline was developed by the Data Science team at EDS.
+The `hypothesis` pipeline was developed by the Data Science team at EDS.
 
 ## References
 

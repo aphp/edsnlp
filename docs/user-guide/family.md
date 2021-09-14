@@ -51,7 +51,7 @@ The pipeline's performance are measured on the NegParHyp corpus. This dataset wa
 | train | 71%       | 83      |
 | test  | 25%       | 4       |
 
-The low performance on family labels can be explained the low number of testing examples (4 occurrences). The F1-scores goes up to 71% on the training dataset (for 83 occurrences).
+The low performance on family labels can be explained by the low number of testing examples (4 occurrences). The F1-scores goes up to 71% on the training dataset (for 83 occurrences).
 
 ## Authors and citation
 

@@ -39,7 +39,7 @@ Let us unpack what happened:
 This example showcases a limitation of our term dictionary : none of `covid 19` and `Patient` where detected by
 the pipeline.
 
-## Matching on normalised text
+## Matching on normalized text
 
 Let us redefine the pipeline :
 

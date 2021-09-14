@@ -11,7 +11,7 @@ Most pipelines provided by EDS-NLP aim to qualify pre-extracted entities. To wit
 Since the basic usage of EDS-NLP components is to qualify entities, most pipelines can function in two modes :
 
 1. Annotation of the extracted entities (this is the default). To increase throughput, only pre-extracted entities (found in `doc.ents`) are processed.
-2. Full-text, token-wise annotation. This mode is activated with by setting the `on_ents_only` parameter to `False`.
+2. Full-text, token-wise annotation. This mode is activated by setting the `on_ents_only` parameter to `False`.
 
 The possibility to do full-text annotation implies that one could use the pipelines the other way around, eg detecting all negations once and for all in an ETL phase, and reusing the results consequently. However, this is not the intended use of the library, which aims to help researchers downstream as a standalone application.
 

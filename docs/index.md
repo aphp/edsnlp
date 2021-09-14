@@ -93,17 +93,16 @@ import spacy
 from edsnlp import components
 
 nlp = spacy.blank("fr")
-nlp.add_pipe("sections")
-```
 
-To declare an entity matcher:
-
-```python
 terms = dict(
     covid=["covid", "coronavirus"],
 )
 
 nlp.add_pipe("matcher", config=dict(terms=terms))
+
+doc = nlp("Le patient est atteint de covid")
+doc.ents
+# Out: (covid,)
 ```
 
 See the [documentation](https://equipedatascience-pages.eds.aphp.fr/edsnlp/) for detail.

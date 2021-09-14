@@ -6,21 +6,40 @@ A simple library to group together the different pre-processing pipelines that a
 
 ### Installation
 
-We recommend cloning the repository to install the library. That way, you will be able to get started faster thanks to the example notebooks.
+Installation is straightforward. To get the latest version :
 
 ```
-git clone https://gitlab.eds.aphp.fr/equipedatascience/nlptools.git
-pip install ./nlptools
+pip install git+https://gitlab.eds.aphp.fr/equipedatascience/edsnlp.git
+```
+
+We recommand pinning the version of the library :
+
+```
+pip install git+https://gitlab.eds.aphp.fr/equipedatascience/edsnlp.git@v0.2.0
 ```
 
 ### Available pipelines
 
-- [`matcher`](edsnlp/rules/generic.py): a generic matching tool, with RegEx/term and fuzzy matching support.
-- [`pollution`](edsnlp/rules/pollution/pollution.py): non-destructive detection of pollutions
-- [`sections`](edsnlp/rules/sections/sections.py): detection of section titles and inference of section spans
-- [`quickumls`](edsnlp/rules/quickumls/quickumls.py): a basic re-implementation of the spacy component from Georgetown's [QuickUMLS](https://github.com/Georgetown-IR-Lab/QuickUMLS)
+| Pipeline     | Description                                                           |
+| ------------ | --------------------------------------------------------------------- |
+| `normalizer` | Non-destructive input text normalization                              |
+| `sentences`  | Better sentence boundary detection                                    |
+| `matcher`    | A simple yet powerful entity extractor                                |
+| `negation`   | Rule-based negation detection                                         |
+| `family`     | Rule-based family context detection                                   |
+| `hypothesis` | Rule-based speculation detection                                      |
+| `antecedent` | Rule-based antecedent detection                                       |
+| `rspeech`    | Rule-based reported speech detection                                  |
+| `sections`   | Section detection                                                     |
+| `pollution`  | Pollution detection and non-destructive removal                       |
+| `dates`      | Date extraction and normalization                                     |
+| `quickumls`  | A basic Spacy v3 re-implementation of Georgetown's QuickUMLS pipeline |
 
-### Creating a pipeline
+Check out the [documentation](https://equipedatascience-pages.eds.aphp.fr/edsnlp) for more detail.
+
+### Quick start
+
+The following example is complete, it should run as-is.
 
 ```python
 import spacy
@@ -29,54 +48,24 @@ import spacy
 from edsnlp import components
 
 nlp = spacy.blank("fr")
-nlp.add_pipe("sections")
-```
 
-To declare an entity matcher:
-
-```python
 terms = dict(
     covid=["covid", "coronavirus"],
 )
 
 nlp.add_pipe("matcher", config=dict(terms=terms))
+
+doc = nlp("Le patient est atteint de covid")
+doc.ents
+# Out: (covid,)
 ```
 
-See the documentation for detail.
+See the [documentation](https://equipedatascience-pages.eds.aphp.fr/edsnlp/) for detail.
 
-## Documentation
+## Disclaimer
 
-The documentation is available [here](https://equipedatascience-pages.eds.aphp.fr/edsnlp/). Due to an issue with Gitlab Pages, you will need to change the address, to put an hyphen in place of the first point :
-
-```diff
-- https://projects.pages.eds.aphp.fr/blabla...
-+ https://projects-pages.eds.aphp.fr/blabla...
-```
+EDS-NLP is still young and in constant evolution. Although we strive to remain backward-compatible, the API can be subject to breaking changes. Moreover, you should properly validate your pipelines before deploying them. Some (but not all) components from EDS-NLP underwent some form of validation, but you should nonetheless always verify the results on your own data.
 
 ## Contributing to EDS-NLP
 
-We welcome contributions ! Fork the project and propose a pull request.
-
-At the very least, your changes should :
-
-- Be well-documented ;
-- Pass every tests, and preferably implement its own ;
-- Follow the style guide.
-
-### Testing your code
-
-We use the Pytest test suite.
-
-The following command will run the test suite. Writing your own tests is encouraged !
-
-```shell script
-python -m pytest
-```
-
-Should your contribution propose a bug fix, we require the bug be thoroughly tested.
-
-### Style Guide
-
-We use [Black](https://github.com/psf/black) to reformat the code. While other formatter only enforce PEP8 compliance, Black also makes the code uniform. In short :
-
-> Black reformats entire files in place. It is not configurable.
+We welcome contributions ! Fork the project and propose a pull request. Take a look at the [dedicated page](https://equipedatascience-pages.eds.aphp.fr/edsnlp/additional/contributing.html) for detail.

@@ -23,7 +23,7 @@ nlp.add_pipe("dates")  # exposed via edsnlp.components
 
 text = (
     "Le patient est admis le 23 août 2021 pour une douleur à l'estomac. "
-    "Il lui était arrivé la même chose il y a deux ans."
+    "Il lui était arrivé la même chose il y a un an."
 )
 
 doc = nlp(text)
@@ -38,3 +38,7 @@ dates[0].label_
 dates[1].label_
 # Out: "TD-365"
 ```
+
+## Authors and citation
+
+The `dates` pipeline was developed by the Data Science team at EDS. It uses the [Dateparser library](https://dateparser.readthedocs.io/en/latest/index.html) to normalize dates.

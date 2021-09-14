@@ -1,22 +1,13 @@
-from typing import List, Dict, Optional, Any, Union
-from collections import defaultdict
-
-import pandas as pd
+from typing import List, Dict, Any
 
 import re
 
 from loguru import logger
 
 from spacy.language import Language
+
 from spacy.matcher import PhraseMatcher
 from spacy.tokens import Doc, Span
-from spaczz.matcher import FuzzyMatcher
-
-from edsnlp.matchers.regex import RegexMatcher
-
-from spacy.util import filter_spans
-
-from edsnlp.base import BaseComponent
 from edsnlp.pipelines.generic import GenericMatcher
 
 if not Doc.has_extension("my_ents"):

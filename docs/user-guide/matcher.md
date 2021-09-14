@@ -1,10 +1,9 @@
-# Matching a terminology
+# Matcher
 
 Matching a terminology is perhaps the most basic application of an NLP pipeline.
 
 EDS-NLP provides a `GenericMatcher` class that simplifies that task, exposing a `matcher` pipeline
 that can match on terms, regular expressions, and even fuzzy matching.
-
 
 ## A simple use case : finding COVID
 
@@ -40,8 +39,7 @@ Let us unpack what happened:
 This example showcases a limitation of our term dictionary : none of `covid 19` and `Patient` where detected by
 the pipeline.
 
-
-## Matching on normalised text
+## Matching on normalized text
 
 Let us redefine the pipeline :
 
@@ -64,7 +62,6 @@ doc.ents
 We have matched `Patient` ! `covid 19`, however, is still at large. We could write out every
 possibility for COVID (eg `covid-19`, `covid 19`, etc), but this might quickly become tedious.
 
-
 ## Using regular expressions
 
 Let us redefine the pipeline once again :
@@ -78,8 +75,11 @@ nlp.add_pipe("matcher", config=dict(regex=regex))
 
 Using regular expressions can help define richer patterns using more compact queries.
 
-
 ## Performing fuzzy matching
 
 The `GenericMatcher` can also perform fuzzy matching ! It is however extremely computationally intensive,
 and can easily increase compute times by 60x.
+
+## Authors and citation
+
+The `matcher` pipeline was developed by the Data Science team at EDS.

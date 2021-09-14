@@ -15,6 +15,7 @@ text = (
     "Il lui était arrivé la même chose il y a deux ans."
 )
 
+# Using Spacy's default sentencizer
 nlp = spacy.blank("fr")
 nlp.add_pipe("sentencizer")
 
@@ -25,6 +26,7 @@ for sentence in doc.sents:
 # Out: <s> Le patient est admis le 23 août 2021 pour une douleur à l'estomac
 # Out: Il lui était arrivé la même chose il y a deux ans. <\s>
 
+# Using EDS-NLP's sentences
 nlp = spacy.blank("fr")
 nlp.add_pipe("sentences")  # exposed via edsnlp.components
 

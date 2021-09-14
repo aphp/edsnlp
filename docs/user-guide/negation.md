@@ -2,15 +2,6 @@
 
 The `negation` pipeline uses a simple rule-based algorithm to detect negated spans. It was designed at AP-HP's EDS, following the insights of the NegEx algorithm by {footcite:t}`chapman_simple_2001`.
 
-## Scope
-
-The `negation` pipeline can functions in two modes :
-
-1. Annotation of the extracted entities (this is the default). To increase throughput, only preextracted entities (found in `doc.ents`) are processed and tagged as positive or negative.
-2. Full-text, token-wise annotation. This mode is activated with by setting the `on_ents_only` parameter to `False`.
-
-Since the natural way to use EDS-NLP is to extract entities and then check their polarity, the second mode is generally unused.
-
 ## Declared extensions
 
 The `negation` pipeline declares two [Spacy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :

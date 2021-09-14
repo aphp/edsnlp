@@ -2,15 +2,6 @@
 
 The `hypothesis` pipeline uses a simple rule-based algorithm to detect spans that are speculations rather than certain statements. It was designed at AP-HP's EDS.
 
-## Scope
-
-The `hypothesis` pipeline can functions in two modes :
-
-1. Annotation of the extracted entities (this is the default). To increase throughput, only pre-extracted entities (found in `doc.ents`) are processed.
-2. Full-text, token-wise annotation. This mode is activated with by setting the `on_ents_only` parameter to `False`.
-
-Since the natural way to use EDS-NLP is to extract entities and then check whether they are related to the patient themself, the second mode is generally unused.
-
 ## Declared extensions
 
 The `hypothesis` pipeline declares two [Spacy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :

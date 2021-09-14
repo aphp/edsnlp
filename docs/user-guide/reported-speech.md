@@ -2,15 +2,6 @@
 
 The `rspeech` pipeline uses a simple rule-based algorithm to detect spans that relate to reported speech (eg when the doctor quotes the patient). It was designed at AP-HP's EDS.
 
-## Scope
-
-The `rspeech` pipeline can functions in two modes :
-
-1. Annotation of the extracted entities (this is the default). To increase throughput, only preextracted entities (found in `doc.ents`) are processed and tagged as positive or negative.
-2. Full-text, token-wise annotation. This mode is activated with by setting the `on_ents_only` parameter to `False`.
-
-Since the natural way to use EDS-NLP is to extract entities and then check their polarity, the second mode is generally unused.
-
 ## Declared extensions
 
 The `rspeech` pipeline declares two [Spacy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :

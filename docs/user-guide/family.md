@@ -44,7 +44,7 @@ doc.ents[1]._.family_
 
 ## Performance
 
-The pipeline's performance are measured on the NegParHyp corpus. This dataset was specifically developed at EDS to test the pipeline on actual medical notes, using pseudonymised notes from the EDS. See [EDS-Datasets](https://equipedatascience-pages.eds.aphp.fr/eds-datasets/datasets/negparhyp.html) for more information.
+The pipeline's performance are measured on the NegParHyp corpus. This dataset was specifically developed at EDS to test the pipeline on actual medical notes, using pseudonymised notes from the EDS.
 
 | Split | Family F1 | support |
 | ----- | --------- | ------- |

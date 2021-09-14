@@ -28,7 +28,7 @@ def docs2labeltool(
 
     note_id = Doc.has_extension("note_id")
     if not note_id:
-        logger.info("note_id extension was not set.")
+        logger.info("note_id extension was not set. Recreating index.")
 
     if extensions is None:
         extensions = []
@@ -41,8 +41,8 @@ def docs2labeltool(
                 note_text=doc.text,
                 offset_begin=ent.start_char,
                 offset_end=ent.end_char,
-                label=ent.label_,
-                lexical_variant=ent.text,
+                label_name=ent.label_,
+                label_value=ent.text,
             )
 
             if note_id:
@@ -62,8 +62,8 @@ def docs2labeltool(
         "note_text",
         "offset_begin",
         "offset_end",
-        "label",
-        "lexical_variant",
+        "label_name",
+        "label_value",
     ]
 
     df = df[columns + extensions]

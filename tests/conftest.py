@@ -2,7 +2,6 @@ import spacy
 from pytest import fixture
 
 import context
-
 import edsnlp.components
 
 
@@ -16,7 +15,7 @@ def nlp():
     model.add_pipe(
         "matcher",
         config=dict(
-            terms=dict(patient="patient", anomalie="anomalie"),
+            terms=dict(patient="patient", anomalie="anomalie", malade="malade"),
         ),
     )
     model.add_pipe("hypothesis", config=dict(on_ents_only=False))

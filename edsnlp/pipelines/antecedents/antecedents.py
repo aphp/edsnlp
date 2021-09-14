@@ -29,9 +29,6 @@ class Antecedents(GenericMatcher):
          Whether to perform fuzzy matching on the terms.
     filter_matches: bool
         Whether to filter out overlapping matches.
-    annotation_scheme: str
-        Whether to require that all tokens in the matching span possess the desired label (`annotation_scheme = 'all'`),
-        or at least one token matching (`annotation_scheme = 'any'`).
     attr: str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
@@ -55,7 +52,6 @@ class Antecedents(GenericMatcher):
         use_sections: bool,
         fuzzy: bool,
         filter_matches: bool,
-        annotation_scheme: str,
         attr: str,
         on_ents_only: bool,
         regex: Optional[Dict[str, Union[List[str], str]]],
@@ -74,8 +70,6 @@ class Antecedents(GenericMatcher):
             fuzzy_kwargs=fuzzy_kwargs,
             **kwargs,
         )
-
-        self.annotation_scheme = annotation_scheme
 
         def antecedent_getter(token_or_span: Union[Token, Span]):
             if token_or_span._.antecedent is None:
@@ -114,25 +108,6 @@ class Antecedents(GenericMatcher):
                 "Skipping that step."
             )
 
-    def annotate_entity(self, span: Span) -> bool:
-        """
-        Annotates entities.
-
-        Parameters
-        ----------
-        span:
-            A given span to annotate.
-
-        Returns
-        -------
-        The annotation for the entity.
-        """
-        if self.annotation_scheme == "all":
-            return all([t._.antecedent for t in span])
-        elif self.annotation_scheme == "any":
-            return any([t._.antecedent for t in span])
-        raise KeyError(f"The annotation scheme {self.annotate_scheme} is not defined.")
-
     def __call__(self, doc: Doc) -> Doc:
         """
         Finds entities related to antecedents.
@@ -155,10 +130,10 @@ class Antecedents(GenericMatcher):
 
         boundaries = self._boundaries(doc, terminations=terminations)
 
-        ents = []
+        sections = []
 
         if self.sections:
-            ents = [
+            sections = [
                 Span(doc, section.start, section.end, label="ATCD")
                 for section in doc._.sections
                 if section.label_ == "antécédents"
@@ -168,23 +143,19 @@ class Antecedents(GenericMatcher):
             if self.on_ents_only and not doc[start:end].ents:
                 continue
 
-            for token in doc[start:end]:
-                token._.antecedent = False
-
             sub_matches = [m for m in antecedents if start <= m.start < end]
 
-            if sub_matches:
-                span = Span(doc, start, end, label="ATCD")
-                span._.antecedent = True
-                ents.append(span)
+            antecedent = bool(sub_matches)
 
-        doc._.antecedents = ents
+            if not self.on_ents_only:
+                for token in doc[start:end]:
+                    token._.antecedent = antecedent
+            for ent in doc[start:end].ents:
+                ent._.antecedent = antecedent
 
-        for ent in ents:
-            for token in ent:
-                token._.antecedent = True
-
-        for ent in doc.ents:
-            ent._.antecedent = self.annotate_entity(ent)
+        if not self.on_ents_only:
+            for section in sections:
+                for token in section:
+                    token._.antecedent = True
 
         return doc

@@ -1,4 +1,4 @@
-from typing import List, Union, Dict, Any, Optional
+from typing import List, Dict, Any, Optional
 
 from edsnlp.pipelines.generic import GenericMatcher
 from spacy.language import Language
@@ -30,9 +30,6 @@ class ReportedSpeech(GenericMatcher):
          Whether to perform fuzzy matching on the terms.
     filter_matches: bool
         Whether to filter out overlapping matches.
-    annotation_scheme: str
-        Whether to require that all tokens in the matching span possess the desired label (`annotation_scheme = 'all'`),
-        or at least one token matching (`annotation_scheme = 'any'`).
     attr: str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
@@ -55,7 +52,6 @@ class ReportedSpeech(GenericMatcher):
         preceding: List[str],
         fuzzy: bool,
         filter_matches: bool,
-        annotation_scheme: str,
         attr: str,
         on_ents_only: bool,
         fuzzy_kwargs: Optional[Dict[str, Any]],
@@ -75,8 +71,6 @@ class ReportedSpeech(GenericMatcher):
             fuzzy_kwargs=fuzzy_kwargs,
             **kwargs,
         )
-
-        self.annotation_scheme = annotation_scheme
 
         if not Token.has_extension("reported_speech"):
             Token.set_extension("reported_speech", default=False)
@@ -173,14 +167,13 @@ class ReportedSpeech(GenericMatcher):
                             for m in sub_quotation
                         )
                     )
-            else:
-                for ent in doc[start:end].ents:
-                    ent._.reported_speech = (
-                        any(m.end <= ent.start for m in sub_preceding + sub_verbs)
-                        or any(m.start > ent.end for m in sub_following)
-                        or any(
-                            ((m.start < ent.start) & (m.end > ent.end))
-                            for m in sub_quotation
-                        )
+            for ent in doc[start:end].ents:
+                ent._.reported_speech = (
+                    any(m.end <= ent.start for m in sub_preceding + sub_verbs)
+                    or any(m.start > ent.end for m in sub_following)
+                    or any(
+                        ((m.start < ent.start) & (m.end > ent.end))
+                        for m in sub_quotation
                     )
+                )
         return doc

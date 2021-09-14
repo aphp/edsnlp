@@ -1,4 +1,4 @@
-from typing import Any, List, Dict, Optional
+from typing import Any, List, Dict
 
 from loguru import logger
 from spacy.language import Language

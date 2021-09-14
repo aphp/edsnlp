@@ -8,6 +8,7 @@
 
     getting-started/installation
     getting-started/quickstart
+    getting-started/architecture
 
 .. toctree::
     :maxdepth: 2

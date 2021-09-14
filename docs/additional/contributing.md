@@ -25,3 +25,16 @@ Should your contribution propose a bug fix, we require the bug be thoroughly tes
 We use [Black](https://github.com/psf/black) to reformat the code. While other formatter only enforce PEP8 compliance, Black also makes the code uniform. In short :
 
 > Black reformats entire files in place. It is not configurable.
+
+## Architecture of a pipeline
+
+All pipelines should follow the same pattern :
+
+```
+edsnlp/pipelines/<pipeline>
+   |-- <pipeline>.py                # Defines the component logic
+   |-- terms.py                     # Defines matched patterns
+   |-- factory.py                   # Declares the pipeline to Spacy
+```
+
+Supplementary modules may also be included. To make reproducibility possible, legacy implementations should live in a `leg` sub-module. `<pipeline>` always maps to the latest implementation, and older versions can be retrieved using `.v<version-number>` suffix, eg `<pipeline>.v0`.

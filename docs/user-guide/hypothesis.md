@@ -1,6 +1,6 @@
 # Hypothesis
 
-The `hypothesis` pipeline uses a simple rule-based algorithm to detect spans that relate to speculation rather than certain statement. It was designed at AP-HP's EDS.
+The `hypothesis` pipeline uses a simple rule-based algorithm to detect spans that are speculations rather than certain statements. It was designed at AP-HP's EDS.
 
 ## Scope
 
@@ -15,7 +15,7 @@ Since the natural way to use EDS-NLP is to extract entities and then check wheth
 
 The `hypothesis` pipeline declares two [Spacy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :
 
-1. The `hypothesis` attribute is a boolean, set to `True` if the pipeline predicts that the span/token relates to a family member.
+1. The `hypothesis` attribute is a boolean, set to `True` if the pipeline predicts that the span/token is a speculation.
 2. The `hypothesis_` property is a human-readable string, computed from the `hypothesis` attribute. It implements a simple getter function that outputs `HYP` or `CERT`, depending on the value of `hypothesis`.
 
 ## Usage
@@ -67,3 +67,9 @@ The pipeline's performance are measured on three datasets :
 ## Authors and citation
 
 The `family` pipeline was developed by the Data Science team at EDS.
+
+## References
+
+```{eval-rst}
+.. footbibliography::
+```

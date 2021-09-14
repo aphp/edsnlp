@@ -56,20 +56,6 @@
 
 ## Antecedents
 
-## Family
-
-```{eval-rst}
-.. automodule:: edsnlp.pipelines.family.family
-```
-
-## Hypothesis
-
-```{eval-rst}
-.. automodule:: edsnlp.pipelines.hypothesis.hypothesis
-```
-
-## Antecedents
-
 ```{eval-rst}
 .. automodule:: edsnlp.pipelines.antecedents.antecedents
 ```

@@ -19,6 +19,7 @@
     user-guide/negation
     user-guide/family
     user-guide/hypothesis
+    user-guide/reported-speech
     user-guide/pollution
     user-guide/sections
     user-guide/quickumls

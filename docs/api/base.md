@@ -7,9 +7,3 @@ Most of NLP Tools builds on the `GenericMatcher` component, a model apt to look 
 ```{eval-rst}
 .. automodule:: edsnlp.base.component
 ```
-
-## Generic matcher
-
-```{eval-rst}
-.. automodule:: edsnlp.pipelines.generic.generic
-```

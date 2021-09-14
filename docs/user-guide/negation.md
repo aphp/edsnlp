@@ -55,7 +55,7 @@ The pipeline's performance are measured on three datasets :
 | v0.0.2  | CAS/ESSAI | 71%         |
 | v0.0.2  | NegParHyp | 88%         |
 
-The table shows that we overfit on the NegParHyp corpus.
+Note that we favour the NegParHyp corpus, since it is comprised of actual medical notes from the data warehouse. The table shows that the pipeline generalises rather poorly on other datasets.
 
 ## Authors and citation
 

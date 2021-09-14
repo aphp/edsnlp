@@ -37,7 +37,9 @@ pip install git+https://gitlab.eds.aphp.fr/equipedatascience/edsnlp.git@v0.2.0
 
 Check out the [documentation](https://equipedatascience-pages.eds.aphp.fr/edsnlp) for more detail.
 
-### Creating a pipeline
+### Quick start
+
+The following example is complete, it should run as-is.
 
 ```python
 import spacy
@@ -60,6 +62,10 @@ nlp.add_pipe("matcher", config=dict(terms=terms))
 ```
 
 See the [documentation](https://equipedatascience-pages.eds.aphp.fr/edsnlp/) for detail.
+
+## Disclaimer
+
+EDS-NLP is still young and in constant evolution. Although we strive to remain backward-compatible, the API can be subject to breaking changes. Moreover, you should properly validate your pipelines before deploying them. Some (but not all) components from EDS-NLP underwent some form of validation, but you should nonetheless always verify the results on your own data.
 
 ## Contributing to EDS-NLP
 

@@ -66,11 +66,6 @@ doc = nlp(text)
 
 Should you need to implement a pipeline using the cleaned version of the documents, the Pollution pipeline also exposes a `Doc._.clean_char_span` method to realign annotations made on the clean text with the original document.
 
-
-## Authors and citation
-
-The `pollution` pipeline was developed by the Data Science team at EDS.
-
 ```python
 clean = nlp(doc._.clean)
 span = clean[27:28]

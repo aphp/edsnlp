@@ -22,8 +22,8 @@ project = "EDS-NLP"
 copyright = "2021, Équipe Data Science - DSI APHP"
 author = "Équipe Data Science - DSI APHP"
 
-html_logo = "_static/aphp.png"
-html_favicon = "_static/logo.png"
+html_logo = "_static/aphp-white.png"
+html_favicon = "_static/aphp-blue.png"
 
 
 # -- General configuration ---------------------------------------------------

@@ -1,7 +1,7 @@
 # Dates
 
 The `dates` pipeline's role is to detect and normalize dates within a medical document.
-We use simple regular expressions to extract date mentions, and apply the `dateparser` library
+We use simple regular expressions to extract date mentions, and apply the `[dateparser` library](https://dateparser.readthedocs.io/en/latest/index.html)
 for the normalization.
 
 ## Scope
@@ -23,7 +23,7 @@ nlp.add_pipe("dates")  # exposed via edsnlp.components
 
 text = (
     "Le patient est admis le 23 août 2021 pour une douleur à l'estomac. "
-    "Il lui était arrivé la même chose il y a deux ans."
+    "Il lui était arrivé la même chose il y a un an."
 )
 
 doc = nlp(text)
@@ -38,3 +38,7 @@ dates[0].label_
 dates[1].label_
 # Out: "TD-365"
 ```
+
+## Authors and citation
+
+The `dates` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.

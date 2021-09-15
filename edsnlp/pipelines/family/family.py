@@ -21,9 +21,6 @@ class FamilyContext(GenericMatcher):
          Whether to perform fuzzy matching on the terms.
     filter_matches: bool
         Whether to filter out overlapping matches.
-    annotation_scheme: str
-        Whether to require that all tokens in the matching span possess the desired label (`annotation_scheme = 'all'`),
-        or at least one token matching (`annotation_scheme = 'any'`).
     attr: str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
@@ -37,15 +34,12 @@ class FamilyContext(GenericMatcher):
         Default options for the fuzzy matcher, if used.
     """
 
-    split_on_punctuation = False
-
     def __init__(
         self,
         nlp: Language,
         family: List[str],
         fuzzy: Optional[bool],
         filter_matches: Optional[bool],
-        annotation_scheme: Optional[str],
         attr: str,
         on_ents_only: bool,
         regex: Optional[Dict[str, Union[List[str], str]]],
@@ -64,8 +58,6 @@ class FamilyContext(GenericMatcher):
             fuzzy_kwargs=fuzzy_kwargs,
             **kwargs,
         )
-
-        self.annotation_scheme = annotation_scheme
 
         if not Token.has_extension("family"):
             Token.set_extension("family", default=False)
@@ -90,23 +82,6 @@ class FamilyContext(GenericMatcher):
 
         self.sections = "sections" in self.nlp.pipe_names
 
-    def annotate_entity(self, span: Span) -> bool:
-        """
-        Annotates entities.
-
-        Parameters
-        ----------
-        span: A given span to annotate.
-
-        Returns
-        -------
-        The annotation for the entity.
-        """
-        if self.annotation_scheme == "all":
-            return all([t._.family for t in span])
-        elif self.annotation_scheme == "any":
-            return any([t._.family for t in span])
-
     def __call__(self, doc: Doc) -> Doc:
         """
         Finds entities related to family context.
@@ -122,10 +97,10 @@ class FamilyContext(GenericMatcher):
         matches = self.process(doc)
         boundaries = self._boundaries(doc)
 
-        ents = []
+        sections = []
 
         if self.sections:
-            ents = [
+            sections = [
                 Span(doc, section.start, section.end, label="FAMILY")
                 for section in doc._.sections
                 if section.label_ == "antécédents familiaux"
@@ -137,21 +112,18 @@ class FamilyContext(GenericMatcher):
 
             sub_matches = [m for m in matches if start <= m.start < end]
 
-            if sub_matches:
+            if not sub_matches:
+                continue
+
+            if not self.on_ents_only:
                 for token in doc[start:end]:
                     token._.family = True
-                ents.append(Span(doc, start, end, label="FAMILY"))
-
-        doc._.family = ents
-
-        for ent in ents:
-            for token in ent:
-                token._.family = True
-
-        for ent in doc.ents:
-            if self.annotate_entity(ent):
-                # The "family" extension can be set upstream (via another pipe)
-                # The family pipeline won't overwrite it if so
+            for ent in doc[start:end].ents:
                 ent._.family = True
+
+        if not self.on_ents_only:
+            for section in sections:
+                for token in section:
+                    token._.family = True
 
         return doc

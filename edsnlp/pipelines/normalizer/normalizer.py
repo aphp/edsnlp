@@ -29,7 +29,7 @@ def replace(
     text : str
         Text to modify.
     rep : List[Tuple[str, str]]
-        List of `(old, new)` tuples. `old` can list multiple characters.
+        List of ``(old, new)`` tuples. ``old`` can list multiple characters.
 
     Returns
     -------
@@ -45,11 +45,11 @@ def replace(
 
 class Normalizer(object):
     """
-    Pipeline that populates the NORM attribute.
+    Pipeline that populates the ``NORM`` attribute.
     The goal is to handle accents without changing the document's length, thus
     keeping a 1-to-1 correspondance between raw and normalized characters.
 
-    We also normalise quotes, following this [source](https://www.cl.cam.ac.uk/~mgk25/ucs/quotes.html).
+    We also normalise quotes, following this `source <https://www.cl.cam.ac.uk/~mgk25/ucs/quotes.html>`_.
 
     Parameters
     ----------

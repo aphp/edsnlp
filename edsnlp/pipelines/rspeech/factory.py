@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional
 
 from spacy.language import Language
 
@@ -22,7 +22,6 @@ def create_component(
     verbs: List[str],
     fuzzy: bool = False,
     filter_matches: bool = False,
-    annotation_scheme: str = "all",
     attr: str = "LOWER",
     on_ents_only: bool = True,
     fuzzy_kwargs: Optional[Dict[str, Any]] = None,
@@ -35,7 +34,6 @@ def create_component(
         verbs=verbs,
         fuzzy=fuzzy,
         filter_matches=filter_matches,
-        annotation_scheme=annotation_scheme,
         attr=attr,
         on_ents_only=on_ents_only,
         fuzzy_kwargs=fuzzy_kwargs,

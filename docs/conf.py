@@ -22,8 +22,8 @@ project = "EDS-NLP"
 copyright = "2021, Équipe Data Science - DSI APHP"
 author = "Équipe Data Science - DSI APHP"
 
-html_logo = "_static/logo.png"
-html_favicon = "_static/logo.png"
+html_logo = "_static/aphp-white.png"
+html_favicon = "_static/aphp-blue.png"
 
 
 # -- General configuration ---------------------------------------------------
@@ -37,6 +37,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
     "myst_parser",
+    "sphinxcontrib.bibtex",
 ]
 
 # Autodoc options
@@ -76,3 +77,6 @@ html_theme = "sphinx_rtd_theme"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+
+# Options for bibtex
+bibtex_bibfiles = ["references.bib"]

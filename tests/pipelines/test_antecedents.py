@@ -1,27 +1,71 @@
 from typing import List
 from edsnlp.utils.examples import parse_example
 
-antecedent_examples: List[str] = [
+from pytest import fixture, mark
+
+from edsnlp.pipelines.antecedents import Antecedents, terms
+from edsnlp.pipelines import terminations
+
+examples: List[str] = [
     "Antécédents d'<ent antecedent_=ATCD>AVC</ent>.",
     "atcd <ent antecedent_=ATCD>chirurgicaux</ent> : aucun.",
     "Le patient est <ent antecedent_=CURRENT>fumeur</ent>.",
+    # Les sections ne sont pas utilisées par défaut
+    "\nv Antecedents :\n- <ent antecedent_=CURRENT>appendicite</ent>\nv Motif :\n<ent antecedent_=CURRENT>malaise</ent>",
 ]
 
 
-def test_antecedent(nlp):
+@fixture
+def antecedents_factory(blank_nlp):
 
-    for example in antecedent_examples:
+    default_config = dict(
+        antecedents=terms.antecedents,
+        termination=terminations.termination,
+        use_sections=False,
+        fuzzy=False,
+        filter_matches=False,
+        attr="LOWER",
+        regex=None,
+        fuzzy_kwargs=None,
+    )
 
+    def factory(on_ents_only, **kwargs):
+
+        config = dict(**default_config)
+        config.update(kwargs)
+
+        return Antecedents(
+            nlp=blank_nlp,
+            on_ents_only=on_ents_only,
+            **config,
+        )
+
+    return factory
+
+
+@mark.parametrize("on_ents_only", [True, False])
+def test_antecedents(blank_nlp, antecedents_factory, on_ents_only):
+
+    antecedents = antecedents_factory(on_ents_only)
+
+    for example in examples:
         text, entities = parse_example(example=example)
 
-        doc = nlp(text)
+        doc = blank_nlp(text)
+        doc.ents = [doc.char_span(ent.start_char, ent.end_char) for ent in entities]
 
-        for ent in entities:
+        doc = antecedents(doc)
 
-            span = doc.char_span(ent.start_char, ent.end_char)
+        for entity, ent in zip(entities, doc.ents):
 
-            for modifier in ent.modifiers:
+            for modifier in entity.modifiers:
 
-                assert all(
-                    [getattr(token._, modifier.key) == modifier.value for token in span]
+                assert (
+                    getattr(ent._, modifier.key) == modifier.value
                 ), f"{modifier.key} labels don't match."
+
+                if not on_ents_only:
+                    for token in ent:
+                        assert (
+                            getattr(token._, modifier.key) == modifier.value
+                        ), f"{modifier.key} labels don't match."

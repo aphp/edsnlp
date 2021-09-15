@@ -37,9 +37,6 @@ class Hypothesis(GenericMatcher):
          Whether to perform fuzzy matching on the terms.
     filter_matches: bool
         Whether to filter out overlapping matches.
-    annotation_scheme: str
-        Whether to require that all tokens in the matching span possess the desired label (`annotation_scheme = 'all'`),
-        or at least one token matching (`annotation_scheme = 'any'`).
     attr: str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
@@ -64,7 +61,6 @@ class Hypothesis(GenericMatcher):
         verbs_eds: List[str],
         fuzzy: bool,
         filter_matches: bool,
-        annotation_scheme: str,
         attr: str,
         on_ents_only: bool,
         regex: Optional[Dict[str, Union[List[str], str]]],
@@ -89,8 +85,6 @@ class Hypothesis(GenericMatcher):
             fuzzy_kwargs=fuzzy_kwargs,
             **kwargs,
         )
-
-        self.annotation_scheme = annotation_scheme
 
         if not Token.has_extension("hypothesis"):
             Token.set_extension("hypothesis", default=False)
@@ -135,23 +129,6 @@ class Hypothesis(GenericMatcher):
 
         return list_hypo_verbs + list_classic_verbs
 
-    def annotate_entity(self, span: Span) -> bool:
-        """
-        Annotates entities.
-
-        Parameters
-        ----------
-        span: A given span to annotate.
-
-        Returns
-        -------
-        The annotation for the entity.
-        """
-        if self.annotation_scheme == "all":
-            return all([t._.hypothesis for t in span])
-        elif self.annotation_scheme == "any":
-            return any([t._.hypothesis for t in span])
-
     def __call__(self, doc: Doc) -> Doc:
         """
         Finds entities related to hypothesis.
@@ -168,7 +145,7 @@ class Hypothesis(GenericMatcher):
         matches = self.process(doc)
         boundaries = self._boundaries(doc)
 
-        confirmation = _filter_matches(matches, "confirmation")
+        # confirmation = _filter_matches(matches, "confirmation")
         pseudo = _filter_matches(matches, "pseudo")
         preceding = _filter_matches(matches, "preceding")
         following = _filter_matches(matches, "following")
@@ -208,33 +185,16 @@ class Hypothesis(GenericMatcher):
             if not sub_preceding + sub_following + sub_verbs:
                 continue
 
-            for token in doc[start:end]:
-                token._.hypothesis = (
-                    any(m.end <= token.i for m in sub_preceding)
-                    or any(m.start > token.i for m in sub_following)
-                    or any(sub_verbs)
+            if not self.on_ents_only:
+                for token in doc[start:end]:
+                    token._.hypothesis = any(
+                        m.end <= token.i for m in sub_preceding + sub_verbs
+                    ) or any(m.start > token.i for m in sub_following)
+            for ent in doc[start:end].ents:
+                ent._.hypothesis = (
+                    ent._.hypothesis
+                    or any(m.end <= ent.start for m in sub_preceding + sub_verbs)
+                    or any(m.start > ent.end for m in sub_following)
                 )
-
-        start_hyp = -1
-        ents = []
-
-        for token in doc:
-            if token._.hypothesis:
-                if start_hyp > -1:
-                    continue
-                else:
-                    start_hyp = token.i
-            else:
-                if start_hyp > -1:
-                    ents.append(Span(doc, start_hyp, token.i, label="HYP"))
-                    start_hyp = -1
-
-        doc._.hypothesis = ents
-
-        for ent in doc.ents:
-            if self.annotate_entity(ent):
-                # An entity can be negated upstream (via another pipe)
-                # The negation pipeline won't overwrite it if a negation was found
-                ent._.hypothesis = True
 
         return doc

@@ -41,4 +41,4 @@ for sentence in doc.sents:
 
 ## Authors and citation
 
-The `sentences` pipeline was developed by the Data Science team at EDS.
+The `sentences` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.

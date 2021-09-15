@@ -62,4 +62,4 @@ The pipeline's performance is still being evaluated.
 
 ## Authors and citation
 
-The `antecedent` pipeline was developed by the Data Science team at EDS.
+The `antecedent` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.

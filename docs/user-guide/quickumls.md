@@ -27,4 +27,4 @@ doc.ents
 
 ## Authors and citation
 
-The `quickumls` pipeline was developed at AP-HP's EDS by the Data Science team, **relying heavily on previous work by Georgetown**.
+The `quickumls` pipeline was developed at the Data and Innovation unit, IT department, AP-HP, **relying heavily on previous work by Georgetown**.

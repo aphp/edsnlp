@@ -39,4 +39,4 @@ The `sections` pipeline declares two [Spacy extensions](https://spacy.io/usage/p
 
 ## Authors and citation
 
-The `sections` pipeline was developed by the Data Science team at EDS. It uses [Ivan Lerner's dataset](https://gitlab.eds.aphp.fr/IvanL/section_dataset) of annotated section titles. It was reviewed by Gilles Chatellier, who helped group section titles by type.
+The `sections` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.

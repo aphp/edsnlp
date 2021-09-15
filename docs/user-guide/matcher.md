@@ -82,4 +82,4 @@ and can easily increase compute times by 60x.
 
 ## Authors and citation
 
-The `matcher` pipeline was developed by the Data Science team at EDS.
+The `matcher` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.

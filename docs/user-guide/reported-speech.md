@@ -48,4 +48,4 @@ The pipeline's performance is still being evaluated.
 
 ## Authors and citation
 
-The `rspeech` pipeline was developed by the Data Science team at EDS.
+The `rspeech` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.

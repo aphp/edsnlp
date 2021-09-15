@@ -57,7 +57,7 @@ The pipeline's performance are measured on three datasets :
 
 ## Authors and citation
 
-The `hypothesis` pipeline was developed by the Data Science team at EDS.
+The `hypothesis` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.
 
 ## References
 

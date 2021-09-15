@@ -38,4 +38,4 @@ doc[6].norm_
 
 ## Authors and citation
 
-The `normalizer` pipeline was developed at AP-HP's EDS by the Data Science team.
+The `normalizer` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.

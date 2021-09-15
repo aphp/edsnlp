@@ -59,7 +59,7 @@ Note that we favour the NegParHyp corpus, since it is comprised of actual medica
 
 ## Authors and citation
 
-The `negation` pipeline was developed by the Data Science team at EDS.
+The `negation` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.
 
 ## References
 

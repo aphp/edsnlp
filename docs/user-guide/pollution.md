@@ -82,4 +82,4 @@ doc._.char_clean_span(span.start_char, span.end_char)
 
 ## Authors and citation
 
-The `pollution` pipeline was developed at AP-HP's EDS by the Data Science team.
+The `pollution` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.

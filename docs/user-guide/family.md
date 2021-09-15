@@ -55,4 +55,4 @@ The low performance on family labels can be explained by the low number of testi
 
 ## Authors and citation
 
-The `family` pipeline was developed by the Data Science team at EDS.
+The `family` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.

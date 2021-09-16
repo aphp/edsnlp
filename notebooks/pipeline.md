@@ -5,8 +5,8 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.2'
-      jupytext_version: 1.6.0
+      format_version: '1.3'
+      jupytext_version: 1.11.4
   kernelspec:
     display_name: Python 3
     language: python
@@ -35,13 +35,28 @@ import edsnlp.components
 # Baselines
 
 ```python
+from spacy.pipeline.sentencizer import Sentencizer
+
+text = (
+    "Le patient est admis pour des douleurs dans le bras droit. mais n'a pas de problème de locomotion. \n"
+    "Historique d'AVC dans la famille\n"
+    "mais ne semble pas en être un\n"
+    "Pourrait être un cas de rhume.\n"
+    "Motif :\n"
+    "Douleurs dans le bras droit."
+)
+
+sentencizer = Sentencizer()
+```
+
+```python
 nlp = spacy.blank('fr')
 ```
 
 ```python
 # nlp.add_pipe('sentencizer')
 nlp.add_pipe('sentences')
-nlp.add_pipe('normaliser')
+nlp.add_pipe('normalizer')
 nlp.add_pipe('matcher', config=dict(terms=dict(douleurs=['probleme de locomotion', 'douleurs']), attr='NORM'))
 nlp.add_pipe('sections')
 nlp.add_pipe('pollution')

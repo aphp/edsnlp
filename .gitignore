@@ -50,9 +50,14 @@ _build/
 *.tsv
 *.ann
 
+!requirements*.txt
+
 # Editors
 .idea
 .vscode
 
 # Files
 .DS_Store
+
+# Environment
+.env

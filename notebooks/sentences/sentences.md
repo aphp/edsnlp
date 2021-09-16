@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.11.3
+      jupytext_version: 1.11.4
   kernelspec:
     display_name: Python 3
     language: python
@@ -28,7 +28,7 @@ import spacy
 ```
 
 ```python
-from edsnlp.rules.sentences import SentenceSegmenter
+from edsnlp.pipelines.sentences import SentenceSegmenter
 ```
 
 # Sentences
@@ -46,17 +46,17 @@ def custom_tokenizer(nlp):
     prefix_re = compile_prefix_regex(nlp.Defaults.prefixes + ['-'])
     suffix_re = compile_suffix_regex(nlp.Defaults.suffixes)
     return Tokenizer(
-        nlp.vocab, 
+        nlp.vocab,
         prefix_search=prefix_re.search,
         suffix_search=suffix_re.search,
         infix_finditer=infix_re.finditer,
     )
 
 def new_nlp():
-    
+
     nlp = spacy.blank('fr')
     nlp.tokenizer = custom_tokenizer(nlp)
-    
+
     return nlp
 ```
 

@@ -11,7 +11,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="edsnlp",
-    version="0.1.0",
+    version="0.2.0",
     author="Data Science - DSI APHP",
     author_email="basile.dura-ext@aphp.fr",
     description="NLP tools for human consumption at AP-HP",
@@ -19,5 +19,5 @@ setup(
     long_description_content_type="text/markdown",
     python_requires=">=3.6",
     packages=find_packages(),
-    install_requires=get_lines('requirements.txt'),
+    install_requires=get_lines("requirements.txt"),
 )

@@ -2,3 +2,4 @@ myst-parser
 sphinx
 sphinx-book-theme
 sphinx-rtd-theme
+sphinxcontrib-bibtex

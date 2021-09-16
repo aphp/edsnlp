@@ -1,10 +1,10 @@
 from edsnlp.utils.brat import BratConnector
 import pytest
 
-BRAT_FILES = 'data/section_dataset'
+BRAT_FILES = "data/section_dataset"
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def brat():
     return BratConnector(BRAT_FILES)
 
@@ -27,16 +27,15 @@ def test_docs2brat(nlp, brat2):
         "Motif :\n"
         "Douleurs dans le bras droit."
     )
-    
+
     doc1 = nlp(text)
     doc1.ents = doc1._.pollutions
-    
+
     doc2 = nlp(text)
     doc2.ents = doc2._.section_titles
-    
+
     docs = [doc1, doc2]
     for i, doc in enumerate(docs):
         doc._.note_id = i + 1
-    
+
     brat2.docs2brat(docs)
-    

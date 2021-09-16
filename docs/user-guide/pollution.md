@@ -2,7 +2,8 @@
 
 Many documents from the EDS present uninformative snippets of text that hamper their readability.
 
-An example of such "pollution":
+An example of such "pollution" found in EDS medical note (here the transcription of a bar code):
+
 ```
 NBNbWbWbNbWbNBNbNbWbWbNBNbWbNbNbWbNBNbWbNbNBWbWbNbNbN...
 ```
@@ -19,13 +20,11 @@ vous opposer à l’utilisation des données vous concernant à des fins de rech
 avez été pris en charge ou remplir le formulaire d’opposition électronique disponible à l’adresse http://recherche.aphp.fr/eds/droit-opposition.
 ```
 
-The latter example is not a pollution *per se*, but the snippet is present in some form or another in more than 20% of AP-HP documents edited after August 2017, and bears no relevant information. To wit, the project `Embeddings` decided to remove this paragraph from their training set, to avoid skewing the language model towards it.
-
+The latter example is not a pollution _per se_, but the snippet is present in some form or another in more than 20% of AP-HP documents edited after August 2017, and bears no relevant information. To wit, the project `Embeddings` decided to remove this paragraph from their training set, to avoid skewing the language model towards it.
 
 ## Adding pollution patterns
 
 By default, the `pollution` pipeline looks for regular expressions representing a few known pollution sources (see [source code for details](https://gitlab.eds.aphp.fr/equipedatascience/nlptools/-/blob/master/nlptools/rules/pollution/terms.py)).
-
 
 ## Non-destruction
 
@@ -38,18 +37,18 @@ nlp(text).text == text
 is always true.
 
 Hence, the strategy chosen for the pollution pipeline is the following:
+
 1. Tag, **but do not remove**, pollutions on the `Token._.pollution` extension.
 2. Propose a `Doc._.clean_` extension, to retrieve the cleaned text.
 
-
-## Recipes
+## Usage
 
 ```python
 import spacy
 from edsnlp import components
 
-nlp = spacy.blank('fr')
-nlp.add_pipe('pollution')  # exposed via edsnlp.components
+nlp = spacy.blank("fr")
+nlp.add_pipe("pollution")  # exposed via edsnlp.components
 
 text = (
     "Le patient est admis pour des douleurs dans le bras droit, mais n'a pas de problème de locomotion. "
@@ -63,7 +62,6 @@ text = (
 doc = nlp(text)
 ```
 
-
 ## Working on the cleaned text
 
 Should you need to implement a pipeline using the cleaned version of the documents, the Pollution pipeline also exposes a `Doc._.clean_char_span` method to realign annotations made on the clean text with the original document.
@@ -72,12 +70,16 @@ Should you need to implement a pipeline using the cleaned version of the documen
 clean = nlp(doc._.clean)
 span = clean[27:28]
 
-doc._.clean_[span.start_char:span.end_char]
+doc._.clean_[span.start_char : span.end_char]
 # Out: 'rhume'
 
-doc.text[span.start_char:span.end_char]
+doc.text[span.start_char : span.end_char]
 # Out: 'bWbNb'
 
 doc._.char_clean_span(span.start_char, span.end_char)
 # Out: rhume
 ```
+
+## Authors and citation
+
+The `pollution` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.

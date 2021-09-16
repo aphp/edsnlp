@@ -16,22 +16,22 @@ corpus = [
 ]
 
 # Instantiate the spacy pipeline
-nlp = spacy.blank('fr')
-nlp.add_pipe('sentences')
-nlp.add_pipe('matcher', config=dict(terms=dict(medical='médical', malade='malade')))
-nlp.add_pipe('negation')
+nlp = spacy.blank("fr")
+nlp.add_pipe("sentences")
+nlp.add_pipe("matcher", config=dict(terms=dict(medical="médical", malade="malade")))
+nlp.add_pipe("negation")
 
 # Convert all BRAT files to a list of documents
 docs = nlp.pipe(corpus)
 
-df = docs2labeltool(docs, extensions=['negated'])
+df = docs2labeltool(docs, extensions=["negated"])
 
 print(df)
 #    note_id                      note_text  offset_begin  offset_end    label  \
-# 0        0  Ceci est un document médical.            21          28  medical   
-# 1        1   Le patient n'est pas malade.            21          27   malade   
-# 
-#   lexical_variant  negated  
-# 0         médical    False  
-# 1          malade     True  
+# 0        0  Ceci est un document médical.            21          28  medical
+# 1        1   Le patient n'est pas malade.            21          27   malade
+#
+#   lexical_variant  negated
+# 0         médical    False
+# 1          malade     True
 ```

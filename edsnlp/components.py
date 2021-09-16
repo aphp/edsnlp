@@ -1,1 +1,1 @@
-import edsnlp.rules.factories
+import edsnlp.pipelines.factories

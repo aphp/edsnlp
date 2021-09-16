@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.11.3
+      jupytext_version: 1.11.4
   kernelspec:
     display_name: Python 3
     language: python
@@ -29,23 +29,22 @@ import spacy
 
 ```python
 # Import components without declaring them
-from edsnlp.rules.pollution import Pollution, terms as pollution_terms
+from edsnlp.pipelines.pollution import Pollution, terms as pollution_terms
 ```
 
 ```python
-from edsnlp.rules.sections import Sections, terms as section_terms
+from edsnlp.pipelines.sections import Sections, terms as section_terms
 ```
 
 ```python
-from edsnlp.rules.quickumls import QuickUMLSComponent
+from edsnlp.pipelines.quickumls import QuickUMLSComponent
 ```
 
 ```python
-from edsnlp.rules.generic import GenericMatcher
+from edsnlp.pipelines.generic import GenericMatcher
 ```
 
 # Baselines
-
 
 In this notebook, we avoid declaring the components to Spacy. Hence the `autoreload` function will work properly, making prototyping way easier.
 
@@ -63,8 +62,8 @@ sections = Sections(nlp, section_terms.sections, fuzzy=True)
 
 ```python
 matcher = GenericMatcher(
-    nlp, 
-    regex=dict(famille=[r'douleuur']), 
+    nlp,
+    regex=dict(famille=[r'douleuur']),
     fuzzy=True,
     filter_matches=True,
 )
@@ -72,8 +71,8 @@ matcher = GenericMatcher(
 
 ```python
 matcher2 = GenericMatcher(
-    nlp, 
-    regex=dict(test=[r'\b\w+\b']), 
+    nlp,
+    regex=dict(test=[r'\b\w+\b']),
     fuzzy=True,
     filter_matches=True,
     on_ents_only=True

@@ -46,7 +46,16 @@ class AdvancedRegex(GenericMatcher):
 
         self.verbose = verbose
 
-        super().__init__(nlp=nlp, terms=dict(), regex=regex, attr=attr)
+        super().__init__(
+            nlp=nlp,
+            terms=dict(),
+            regex=regex,
+            attr=attr,
+            fuzzy=False,
+            fuzzy_kwargs=None,
+            filter_matches=True,
+            on_ents_only=False,
+        )
 
     def process(self, doc: Doc) -> List[Span]:
         """

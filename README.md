@@ -35,7 +35,7 @@ pip install git+https://gitlab.eds.aphp.fr/datasciencetools/edsnlp.git@v0.2.0
 | `dates`      | Date extraction and normalization                                     |
 | `quickumls`  | A basic Spacy v3 re-implementation of Georgetown's QuickUMLS pipeline |
 
-Check out the [documentation](https://gitlab.eds.aphp.fr/datasciencetools/edsnlp) for more detail.
+Check out the [documentation](https://datasciencetools-pages.eds.aphp.fr/edsnlp/) for more detail.
 
 ### Quick start
 

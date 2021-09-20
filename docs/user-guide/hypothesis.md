@@ -11,7 +11,7 @@ The `hypothesis` pipeline declares two [Spacy extensions](https://spacy.io/usage
 
 ## Usage
 
-The following snippet matches a simple terminology, and checks the family context of the extracted entities. It is complete, and should run _as is_.
+The following snippet matches a simple terminology, and checks the family context of the extracted entities. It is complete and can be run _as is_.
 
 ```python
 import spacy
@@ -19,6 +19,7 @@ from edsnlp import components
 
 nlp = spacy.blank("fr")
 nlp.add_pipe("sentences")
+# Dummy matcher
 nlp.add_pipe(
     "matcher",
     config=dict(terms=dict(douleur="douleur", fracture="fracture")),
@@ -44,9 +45,9 @@ doc.ents[1]._.hypothesis
 
 ## Performance
 
-The pipeline's performance are measured on three datasets :
+The pipeline's performance is measured on three datasets :
 
-- The ESSAI ({footcite:t}`dalloux:hal-01659637`) and CAS ({footcite:t}`grabar:hal-01937096`) datasets were developped at the CNRS.
+- The ESSAI ({footcite:t}`dalloux:hal-01659637`) and CAS ({footcite:t}`grabar:hal-01937096`) datasets were developped at the CNRS. The two are concatenated.
 - The NegParHyp corpus was specifically developed at EDS to test the pipeline on actual medical notes, using pseudonymised notes from the EDS.
 
 | Version | Dataset   | Hypothesis F1 |

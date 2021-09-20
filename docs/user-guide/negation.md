@@ -11,7 +11,7 @@ The `negation` pipeline declares two [Spacy extensions](https://spacy.io/usage/p
 
 ## Usage
 
-The following snippet matches a simple terminology, and checks the polarity of the extracted entities.
+The following snippet matches a simple terminology, and checks the polarity of the extracted entities. It is complete and can be run _as is_.
 
 ```python
 import spacy
@@ -19,6 +19,7 @@ from edsnlp import components
 
 nlp = spacy.blank("fr")
 nlp.add_pipe("sentences")
+# Dummy matcher
 nlp.add_pipe(
     "matcher",
     config=dict(terms=dict(patient="patient", fracture="fracture")),
@@ -44,9 +45,9 @@ doc.ents[1]._.polarity_
 
 ## Performance
 
-The pipeline's performance are measured on three datasets :
+The pipeline's performance is measured on three datasets :
 
-- The ESSAI ({footcite:t}`dalloux:hal-01659637`) and CAS ({footcite:t}`grabar:hal-01937096`) datasets were developped at the CNRS.
+- The ESSAI ({footcite:t}`dalloux:hal-01659637`) and CAS ({footcite:t}`grabar:hal-01937096`) datasets were developped at the CNRS. The two are concatenated.
 - The NegParHyp corpus was specifically developed at EDS to test the pipeline on actual medical notes, using pseudonymised notes from the EDS.
 
 | Version | Dataset   | Negation F1 |
@@ -55,7 +56,7 @@ The pipeline's performance are measured on three datasets :
 | v0.0.2  | CAS/ESSAI | 71%         |
 | v0.0.2  | NegParHyp | 88%         |
 
-Note that we favour the NegParHyp corpus, since it is comprised of actual medical notes from the data warehouse. The table shows that the pipeline generalises rather poorly on other datasets.
+Note that we favour the NegParHyp corpus, since it is comprised of actual medical notes from the data warehouse. The table shows that the pipeline does not perform as well on other datasets.
 
 ## Authors and citation
 

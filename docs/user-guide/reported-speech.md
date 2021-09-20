@@ -11,7 +11,7 @@ The `rspeech` pipeline declares two [Spacy extensions](https://spacy.io/usage/pr
 
 ## Usage
 
-The following snippet matches a simple terminology, and checks the polarity of the extracted entities.
+The following snippet matches a simple terminology, and checks the polarity of the extracted entities. It is complete and can be run _as is_.
 
 ```python
 import spacy
@@ -19,6 +19,7 @@ from edsnlp import components
 
 nlp = spacy.blank("fr")
 nlp.add_pipe("sentences")
+# Dummy matcher
 nlp.add_pipe(
     "matcher",
     config=dict(terms=dict(patient="patient", alcool="alcoolisé")),

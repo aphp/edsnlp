@@ -23,3 +23,10 @@ Typically, extensions come in pairs :
 
 1. One is computed during processing. It typically contains a boolean (eg `negation` with the `negated` extension).
 2. The other comes in the form of a property computed from the latter, to provide a human-readable format. We follow Spacy naming convention and end these extensions with a trailing `_`.
+
+Some pipelines write their output to the `Doc.spans` dictionary. We enforce the following doctrine :
+
+- Should the pipe extract entities that are directly informative (typically the output of the `matcher` component), said entities are stashed in the `Doc.ents` attribute.
+- On the other hand, should the entity be useful to another pipe, but less so in itself (eg the output of the `sections` or `dates` component), it will be stashed in a specific key within the `Doc.spans` attribute.
+
+Note that Spacy prohibits overlapping entities within the `Doc.ents` attribute. To circumvent this limitation, we [filter spans](../api/utilities.md), and keep all discarded entities within the `discarded` key of the `Doc.spans` attribute.

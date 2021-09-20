@@ -38,6 +38,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "myst_parser",
     "sphinxcontrib.bibtex",
+    "sphinx.ext.autosectionlabel",
 ]
 
 # Autodoc options
@@ -80,3 +81,7 @@ html_static_path = ["_static"]
 
 # Options for bibtex
 bibtex_bibfiles = ["references.bib"]
+
+# Prefix document path to section labels, to use:
+# `path/to/file:heading` instead of just `heading`
+autosectionlabel_prefix_document = True

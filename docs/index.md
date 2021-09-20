@@ -105,14 +105,12 @@ doc.ents
 # Out: (covid,)
 ```
 
-See the [documentation](https://equipedatascience-pages.eds.aphp.fr/edsnlp/) for detail.
-
 ## Disclaimer
 
 EDS-NLP is still young and in constant evolution. Although we strive to remain backward-compatible, the API can be subject to breaking changes. Moreover, you should properly validate your pipelines before deploying them. Some (but not all) components from EDS-NLP underwent some form of validation, but the performance varies and you should always verify the results on your own data.
 
-We recommand using [EDS-Labelling](https://gitlab.eds.aphp.fr/datasciencetools/labeltool) to validate your pipelines. EDS-Labelling enables quick and easy annotation from the notebook.
+We recommend using [EDS-LabelTool](https://gitlab.eds.aphp.fr/datasciencetools/labeltool) to validate your pipelines. EDS-LabelTool enables quick and easy annotation from the notebook.
 
 ## Contributing to EDS-NLP
 
-We welcome contributions ! Fork the project and propose a pull request. Take a look at the [dedicated page](https://equipedatascience-pages.eds.aphp.fr/edsnlp/additional/contributing.html) for detail.
+We welcome contributions ! Fork the project and propose a pull request. Take a look at the [dedicated page](additional/contributing.md) for detail.

@@ -45,7 +45,7 @@ doc.ents[1]._.hypothesis
 
 ## Performance
 
-The pipeline's performance are measured on three datasets :
+The pipeline's performance is measured on three datasets :
 
 - The ESSAI ({footcite:t}`dalloux:hal-01659637`) and CAS ({footcite:t}`grabar:hal-01937096`) datasets were developped at the CNRS. The two are concatenated.
 - The NegParHyp corpus was specifically developed at EDS to test the pipeline on actual medical notes, using pseudonymised notes from the EDS.

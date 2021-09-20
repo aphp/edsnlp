@@ -6,9 +6,10 @@ from loguru import logger
 
 from spacy.language import Language
 
-from spacy.matcher import PhraseMatcher
 from spacy.tokens import Doc, Span
+
 from edsnlp.pipelines.generic import GenericMatcher
+from edsnlp.utils.filter import filter_spans
 
 if not Doc.has_extension("my_ents"):
     Doc.set_extension("my_ents", default=[])
@@ -57,27 +58,6 @@ class AdvancedRegex(GenericMatcher):
             on_ents_only=False,
         )
 
-    def process(self, doc: Doc) -> List[Span]:
-        """
-        Find matching spans in doc and apply some postprocessing
-
-        Parameters
-        ----------
-        doc:
-            spaCy Doc object
-
-        Returns
-        -------
-        sections:
-            List of Spans referring to sections.
-        """
-
-        ents = super(AdvancedRegex, AdvancedRegex).process(self, doc)
-
-        ents = self._postprocessing_pipeline(ents)
-
-        return ents
-
     def __call__(self, doc: Doc) -> Doc:
         """
         Adds spans to document.
@@ -94,8 +74,12 @@ class AdvancedRegex(GenericMatcher):
         """
 
         ents = self.process(doc)
+        ents = self._postprocessing_pipeline(ents)
 
-        doc.ents += ents
+        ents, discarded = filter_spans(list(doc.ents) + ents, return_discarded=True)
+
+        doc.ents = ents
+        doc.spans["discarded"] = discarded
 
         return doc
 
@@ -109,7 +93,7 @@ class AdvancedRegex(GenericMatcher):
         # Extract informations from the entity's context via regex
         ents = [self._snippet_extraction(ent) for ent in ents]
 
-        return tuple(ents)
+        return ents
 
     def _add_window(self, ent: Span) -> Span:
         ent._.window = ent.doc[

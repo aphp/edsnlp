@@ -215,7 +215,8 @@ def _check_regex_config(regex_config):
                     elif n_groups != 1:
                         # Accepting only 1 group per regex
                         raise ValueError(
-                            f"The RegEx for {repr(k)} ({repr(regex)}) stored in {repr(single_group_regex_key)} contains {n_groups} capturing groups, 1 expected"
+                            f"The RegEx for {repr(k)} ({repr(regex)}) stored in {repr(single_group_regex_key)} "
+                            f"contains {n_groups} capturing groups, 1 expected"
                         )
 
     return regex_config

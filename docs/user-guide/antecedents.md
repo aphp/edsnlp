@@ -25,7 +25,7 @@ The `antecedents` pipeline declares two [Spacy extensions](https://spacy.io/usag
 
 ## Usage
 
-The following snippet matches a simple terminology, and checks whether the extracted entities are antecedents or not. It is complete, and should run _as is_.
+The following snippet matches a simple terminology, and checks whether the extracted entities are antecedents or not. It is complete and can be run _as is_.
 
 ```python
 import spacy
@@ -33,6 +33,7 @@ from edsnlp import components
 
 nlp = spacy.blank("fr")
 nlp.add_pipe("sentences")
+# Dummy matcher
 nlp.add_pipe(
     "matcher",
     config=dict(terms=dict(douleur="douleur", malaise="malaises")),

@@ -44,6 +44,7 @@
     api/base
     api/pipelines
     api/connectors
+    api/utilities
 
 .. toctree::
     :maxdepth: 2

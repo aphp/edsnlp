@@ -62,9 +62,3 @@ def test_sections(blank_nlp, sections_factory):
             assert (
                 getattr(ent._, modifier.key) == modifier.value
             ), f"{modifier.key} labels don't match."
-
-            if not on_ents_only:
-                for token in ent:
-                    assert (
-                        getattr(token._, modifier.key) == modifier.value
-                    ), f"{modifier.key} labels don't match."

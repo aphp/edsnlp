@@ -32,7 +32,7 @@ def test_docs2brat(nlp, brat2):
     doc1.ents = doc1._.pollutions
 
     doc2 = nlp(text)
-    doc2.ents = doc2._.section_titles
+    doc2.ents = doc2.spans["section_titles"]
 
     docs = [doc1, doc2]
     for i, doc in enumerate(docs):

@@ -95,12 +95,6 @@ class Sections(GenericMatcher):
             on_ents_only=False,
         )
 
-        if not Doc.has_extension("sections"):
-            Doc.set_extension("sections", default=[])
-
-        if not Doc.has_extension("section_titles"):
-            Doc.set_extension("section_titles", default=[])
-
         if not Span.has_extension("section_title"):
             Span.set_extension("section_title", default=None)
 
@@ -144,8 +138,8 @@ class Sections(GenericMatcher):
             section._.section_title = t
             sections.append(section)
 
-        doc._.sections = sections
-        doc._.section_titles = titles
+        doc.spans["sections"] = sections
+        doc.spans["section_titles"] = titles
 
         for ent in doc.ents:
             for section in doc._.sections:

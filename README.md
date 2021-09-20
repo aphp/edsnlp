@@ -9,20 +9,20 @@ A simple library to group together the different pre-processing pipelines that a
 Installation is straightforward. To get the latest version :
 
 ```
-pip install git+https://gitlab.eds.aphp.fr/equipedatascience/edsnlp.git
+pip install git+https://gitlab.eds.aphp.fr/datasciencetools/edsnlp.git
 ```
 
 We recommand pinning the version of the library :
 
 ```
-pip install git+https://gitlab.eds.aphp.fr/equipedatascience/edsnlp.git@v0.2.0
+pip install git+https://gitlab.eds.aphp.fr/datasciencetools/edsnlp.git@v0.2.0
 ```
 
 ### Available pipelines
 
 | Pipeline     | Description                                                           |
 | ------------ | --------------------------------------------------------------------- |
-| `normalizer` | Non-destructive input text normalization                              |
+| `normalizer` | Non-destructive text normalization                                    |
 | `sentences`  | Better sentence boundary detection                                    |
 | `matcher`    | A simple yet powerful entity extractor                                |
 | `negation`   | Rule-based negation detection                                         |
@@ -35,7 +35,7 @@ pip install git+https://gitlab.eds.aphp.fr/equipedatascience/edsnlp.git@v0.2.0
 | `dates`      | Date extraction and normalization                                     |
 | `quickumls`  | A basic Spacy v3 re-implementation of Georgetown's QuickUMLS pipeline |
 
-Check out the [documentation](https://equipedatascience-pages.eds.aphp.fr/edsnlp) for more detail.
+Check out the [documentation](https://gitlab.eds.aphp.fr/datasciencetools/edsnlp) for more detail.
 
 ### Quick start
 
@@ -60,7 +60,7 @@ doc.ents
 # Out: (covid,)
 ```
 
-See the [documentation](https://equipedatascience-pages.eds.aphp.fr/edsnlp/) for detail.
+See the [documentation](https://datasciencetools-pages.eds.aphp.fr/edsnlp/) for detail.
 
 ## Disclaimer
 
@@ -68,4 +68,4 @@ EDS-NLP is still young and in constant evolution. Although we strive to remain b
 
 ## Contributing to EDS-NLP
 
-We welcome contributions ! Fork the project and propose a pull request. Take a look at the [dedicated page](https://equipedatascience-pages.eds.aphp.fr/edsnlp/additional/contributing.html) for detail.
+We welcome contributions ! Fork the project and propose a pull request. Take a look at the [dedicated page](https://datasciencetools-pages.eds.aphp.fr/edsnlp/additional/contributing.html) for detail.

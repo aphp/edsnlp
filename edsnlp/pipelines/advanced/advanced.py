@@ -58,6 +58,26 @@ class AdvancedRegex(GenericMatcher):
             on_ents_only=False,
         )
 
+    def process(self, doc: Doc) -> List[Span]:
+        """
+        Process the document, looking for named entities.
+
+        Parameters
+        ----------
+        doc : Doc
+            Spacy Doc object
+
+        Returns
+        -------
+        List[Span]
+            List of detected spans.
+        """
+
+        ents = super().process(doc)
+        ents = self._postprocessing_pipeline(ents)
+
+        return ents
+
     def __call__(self, doc: Doc) -> Doc:
         """
         Adds spans to document.
@@ -74,7 +94,6 @@ class AdvancedRegex(GenericMatcher):
         """
 
         ents = self.process(doc)
-        ents = self._postprocessing_pipeline(ents)
 
         ents, discarded = filter_spans(list(doc.ents) + ents, return_discarded=True)
 

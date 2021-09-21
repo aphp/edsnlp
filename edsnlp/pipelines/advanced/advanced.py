@@ -6,9 +6,10 @@ from loguru import logger
 
 from spacy.language import Language
 
-from spacy.matcher import PhraseMatcher
 from spacy.tokens import Doc, Span
+
 from edsnlp.pipelines.generic import GenericMatcher
+from edsnlp.utils.filter import filter_spans
 
 if not Doc.has_extension("my_ents"):
     Doc.set_extension("my_ents", default=[])
@@ -59,21 +60,20 @@ class AdvancedRegex(GenericMatcher):
 
     def process(self, doc: Doc) -> List[Span]:
         """
-        Find matching spans in doc and apply some postprocessing
+        Process the document, looking for named entities.
 
         Parameters
         ----------
-        doc:
-            spaCy Doc object
+        doc : Doc
+            Spacy Doc object
 
         Returns
         -------
-        sections:
-            List of Spans referring to sections.
+        List[Span]
+            List of detected spans.
         """
 
-        ents = super(AdvancedRegex, AdvancedRegex).process(self, doc)
-
+        ents = super().process(doc)
         ents = self._postprocessing_pipeline(ents)
 
         return ents
@@ -95,7 +95,10 @@ class AdvancedRegex(GenericMatcher):
 
         ents = self.process(doc)
 
-        doc.ents += ents
+        ents, discarded = filter_spans(list(doc.ents) + ents, return_discarded=True)
+
+        doc.ents = ents
+        doc.spans["discarded"] = discarded
 
         return doc
 
@@ -109,7 +112,7 @@ class AdvancedRegex(GenericMatcher):
         # Extract informations from the entity's context via regex
         ents = [self._snippet_extraction(ent) for ent in ents]
 
-        return tuple(ents)
+        return ents
 
     def _add_window(self, ent: Span) -> Span:
         ent._.window = ent.doc[
@@ -231,7 +234,8 @@ def _check_regex_config(regex_config):
                     elif n_groups != 1:
                         # Accepting only 1 group per regex
                         raise ValueError(
-                            f"The RegEx for {repr(k)} ({repr(regex)}) stored in {repr(single_group_regex_key)} contains {n_groups} capturing groups, 1 expected"
+                            f"The RegEx for {repr(k)} ({repr(regex)}) stored in {repr(single_group_regex_key)} "
+                            f"contains {n_groups} capturing groups, 1 expected"
                         )
 
     return regex_config

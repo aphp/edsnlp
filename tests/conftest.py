@@ -15,7 +15,14 @@ def nlp():
     model.add_pipe(
         "matcher",
         config=dict(
-            terms=dict(patient="patient", anomalie="anomalie", malade="malade"),
+            terms=dict(patient="patient"),
+        ),
+    )
+    model.add_pipe(
+        "matcher",
+        name="matcher2",
+        config=dict(
+            terms=dict(anomalie="anomalie"),
         ),
     )
     model.add_pipe("hypothesis", config=dict(on_ents_only=False))

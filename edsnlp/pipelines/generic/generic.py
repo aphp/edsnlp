@@ -5,11 +5,12 @@ from loguru import logger
 from spacy.language import Language
 from spacy.matcher import PhraseMatcher
 from spacy.tokens import Doc, Span
-from spacy.util import filter_spans
 from spaczz.matcher import FuzzyMatcher
 
 from edsnlp.base import BaseComponent
 from edsnlp.matchers.regex import RegexMatcher
+
+from edsnlp.utils.filter import filter_spans
 
 TERM_ATTR = "term_attr"
 DEFAULT_ATTR = "NORM"
@@ -151,9 +152,6 @@ class GenericMatcher(BaseComponent):
 
         spans.extend(regex_matches)
 
-        if self.filter_matches:
-            spans = filter_spans(spans)
-
         return spans
 
     def __call__(self, doc: Doc) -> Doc:
@@ -172,7 +170,10 @@ class GenericMatcher(BaseComponent):
         """
         spans = self.process(doc)
 
-        doc.ents = spans
+        ents, discarded = filter_spans(list(doc.ents) + spans, return_discarded=True)
+
+        doc.ents = ents
+        doc.spans["discarded"] = discarded
 
         return doc
 

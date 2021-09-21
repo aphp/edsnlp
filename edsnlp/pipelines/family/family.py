@@ -102,7 +102,7 @@ class FamilyContext(GenericMatcher):
         if self.sections:
             sections = [
                 Span(doc, section.start, section.end, label="FAMILY")
-                for section in doc._.sections
+                for section in doc.spans["sections"]
                 if section.label_ == "antécédents familiaux"
             ]
 

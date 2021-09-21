@@ -133,7 +133,7 @@ class Antecedents(GenericMatcher):
         if self.sections:
             sections = [
                 Span(doc, section.start, section.end, label="ATCD")
-                for section in doc._.sections
+                for section in doc.spans["sections"]
                 if section.label_ == "antécédents"
             ]
 

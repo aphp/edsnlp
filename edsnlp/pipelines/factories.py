@@ -11,3 +11,4 @@ from .rspeech import factory
 from .sections import factory
 from .sentences import factory
 from .dates import factory
+from .scores import factory

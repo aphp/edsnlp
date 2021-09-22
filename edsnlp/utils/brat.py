@@ -1,16 +1,18 @@
 import os
+
 from typing import Tuple, List, Union
 
 import pandas as pd
+
+from loguru import logger
 
 from spacy import Language
 from spacy.tokens import Doc
 from spacy.util import filter_spans
 
+from joblib import Parallel, delayed
 
-def read_file(filename):
-    with open(filename, "r") as f:
-        return f.read()
+from tqdm import tqdm
 
 
 def read_brat_annotation(filename: str) -> pd.DataFrame:
@@ -28,31 +30,36 @@ def read_brat_annotation(filename: str) -> pd.DataFrame:
         DataFrame containing the annotations.
     """
 
-    try:
-        annotations = pd.read_csv(filename, sep="\t", header=None)
+    lines = []
 
-        annotations.columns = ["index", "annot", "lexical_variant"]
+    with open(filename, "r") as f:
+        for line in f.readlines():
+            lines.append(tuple(line.rstrip("\n").split("\t", 2)))
 
-        annotations["end"] = annotations.annot.str.split().str[-1]
-        annotations["annot"] = annotations.annot.str.split(";").str[0]
-
-        annotations["label"] = annotations.annot.str.split().str[:-2].str.join(" ")
-        annotations["start"] = annotations.annot.str.split().str[-2]
-
-        annotations = annotations[["index", "start", "end", "label", "lexical_variant"]]
-
-    except pd.errors.EmptyDataError:
-        annotations = pd.DataFrame(
+    if not lines or len(lines[0]) == 1:
+        return pd.DataFrame(
             columns=["index", "start", "end", "label", "lexical_variant"]
         )
 
+    annotations = pd.DataFrame(lines, columns=["index", "annot", "lexical_variant"])
+
+    annotations["end"] = annotations.annot.str.split().str[-1]
+    annotations["annot"] = annotations.annot.str.split(";").str[0]
+
+    annotations["label"] = annotations.annot.str.split().str[:-2].str.join(" ")
+    annotations["start"] = annotations.annot.str.split().str[-2]
+
     annotations[["start", "end"]] = annotations[["start", "end"]].astype(int)
+
+    annotations = annotations.drop(columns=["annot"])
+
     return annotations
 
 
 class BratConnector(object):
-    def __init__(self, directory: str):
+    def __init__(self, directory: str, n_jobs=1):
         self.directory = directory
+        self.n_jobs = n_jobs
 
         os.makedirs(directory, exist_ok=True)
 
@@ -88,9 +95,20 @@ class BratConnector(object):
         files = os.listdir(self.directory)
         filenames = [f[:-4] for f in files if f.endswith(".txt")]
 
+        assert filenames, f"BRAT directory {self.directory} is empty!"
+
+        logger.info(
+            f"The BRAT directory contains {len(filenames)} annotated documents."
+        )
+
         texts = pd.DataFrame(dict(note_id=filenames))
 
-        texts["note_text"] = (texts.note_id + ".txt").apply(self.read_file)
+        with tqdm(
+            texts.note_id, ascii=True, ncols=100, desc="Text extraction"
+        ) as iterator:
+            texts["note_text"] = [
+                self.read_file(note_id + ".txt") for note_id in iterator
+            ]
 
         return texts
 
@@ -112,6 +130,24 @@ class BratConnector(object):
         annotations = read_brat_annotation(self.full_path(filename))
         return annotations
 
+    def read_annotations(self, texts: pd.DataFrame) -> pd.DataFrame:
+        dfs = []
+
+        with tqdm(
+            texts.note_id, ascii=True, ncols=100, desc="Annotation extraction"
+        ) as iterator:
+            dfs = Parallel(n_jobs=self.n_jobs)(
+                delayed(self.read_brat_annotation)(note_id) for note_id in iterator
+            )
+            # for note_id in iterator:
+            #     dfs.append(self.read_brat_annotation(note_id))
+
+        annotations = pd.concat(dfs, keys=texts.note_id, names=["note_id"])
+
+        annotations = annotations.droplevel(1).reset_index()
+
+        return annotations
+
     def get_brat(self) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """
         Reads texts and annotations, and returns two DataFrame objects.
@@ -125,12 +161,7 @@ class BratConnector(object):
         """
 
         texts = self.read_texts()
-
-        dfs = [self.read_brat_annotation(note_id) for note_id in texts.note_id]
-
-        annotations = pd.concat(dfs, keys=texts.note_id, names=["note_id"])
-
-        annotations = annotations.droplevel(1).reset_index()
+        annotations = self.read_annotations(texts)
 
         return texts, annotations
 
@@ -150,26 +181,38 @@ class BratConnector(object):
         """
         texts, annotations = self.get_brat()
 
-        docs = list(nlp.pipe(texts.note_text))
+        docs = []
 
-        for note_id, doc in zip(texts.note_id, docs):
+        with tqdm(
+            zip(
+                texts.note_id,
+                nlp.pipe(texts.note_text, batch_size=50, n_process=self.n_jobs),
+            ),
+            ascii=True,
+            ncols=100,
+            desc="Spacy conversion",
+            total=len(texts),
+        ) as iterator:
+            for note_id, doc in iterator:
 
-            doc._.note_id = note_id
+                doc._.note_id = note_id
 
-            ann = annotations.query("note_id == @note_id")
+                ann = annotations.query("note_id == @note_id")
 
-            spans = []
+                spans = []
 
-            for _, row in ann.iterrows():
-                span = doc.char_span(
-                    row.start,
-                    row.end,
-                    label=row.label,
-                    alignment_mode="expand",
-                )
-                spans.append(span)
+                for _, row in ann.iterrows():
+                    span = doc.char_span(
+                        row.start,
+                        row.end,
+                        label=row.label,
+                        alignment_mode="expand",
+                    )
+                    spans.append(span)
 
-            doc.ents = filter_spans(spans)
+                doc.ents = filter_spans(spans)
+
+                docs.append(doc)
 
         return docs
 

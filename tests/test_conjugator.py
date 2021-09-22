@@ -38,6 +38,7 @@ def test_conjugate():
         (("convaincre", "Indicatif", "Présent", "3p"), "convainquent"),
     ]
 
+    conjugate("aimer")
     df = conjugate(["aimer", "convaincre"])
 
     for (v, m, t, p), term in tests:
@@ -50,6 +51,11 @@ def test_get_conjugated_verbs():
     terms = get_conjugated_verbs(
         ["aimer", "convaincre"],
         matches=[dict(mode="Indicatif", tense="Présent")],
+    )
+
+    get_conjugated_verbs(
+        "aimer",
+        matches=dict(mode="Indicatif", tense="Présent"),
     )
 
     assert set(terms) == {

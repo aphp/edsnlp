@@ -27,6 +27,7 @@
     user-guide/sections
     user-guide/dates
     user-guide/quickumls
+    user-guide/score
 
 .. toctree::
     :maxdepth: 2
@@ -82,6 +83,7 @@ EDS-NLP provides a set of Spacy components that are used at AP-HP. We focus on u
 | `pollution`  | Pollution detection and non-destructive removal                       |
 | `dates`      | Date extraction and normalization                                     |
 | `quickumls`  | A basic Spacy v3 re-implementation of Georgetown's QuickUMLS pipeline |
+| `score`      | A simple clinical score extractor                                     |
 
 ## Quick start
 

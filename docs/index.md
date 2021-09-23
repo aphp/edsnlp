@@ -53,6 +53,7 @@
     :caption: Tutorials
 
     tutorials/first-pipeline
+    tutorials/getting-faster
     tutorials/notebooks
     tutorials/word-vectors
 

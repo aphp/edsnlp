@@ -5,12 +5,12 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.3'
-      jupytext_version: 1.11.4
+      format_version: '1.2'
+      jupytext_version: 1.6.0
   kernelspec:
-    display_name: Python 3
+    display_name: '[2.4.3] Py3'
     language: python
-    name: python3
+    name: pyspark-2.4.3
 ---
 
 ```python
@@ -32,25 +32,63 @@ import spacy
 import edsnlp.components
 ```
 
+```python
+a = spacy.registry.get('factories','charlson')
+```
+
+```python
+a()
+```
+
 # Baselines
 
 ```python
-from spacy.pipeline.sentencizer import Sentencizer
-
 text = (
     "Le patient est admis pour des douleurs dans le bras droit. mais n'a pas de problème de locomotion. \n"
     "Historique d'AVC dans la famille\n"
     "mais ne semble pas en être un\n"
+    "Charlson 7.\n"
     "Pourrait être un cas de rhume.\n"
     "Motif :\n"
     "Douleurs dans le bras droit."
 )
-
-sentencizer = Sentencizer()
 ```
 
 ```python
 nlp = spacy.blank('fr')
+nlp.add_pipe('sentences')
+nlp.add_pipe('normalizer')
+#nlp.add_pipe('charlson')
+```
+
+```python
+import thinc
+
+registered_func = spacy.registry.get("misc", "score_norm")
+```
+
+```python
+@spacy.registry.misc("score_normalization.charlson")
+def score_normalization(extracted_score):
+    """
+    Charlson score normalization.
+    If available, returns the integer value of the Charlson score.
+    """
+    score_range = list(range(0, 30))
+    if (extracted_score is not None) and (int(extracted_score) in score_range):
+        return int(extracted_score)
+
+charlson_config = dict(
+    score_name = 'charlson',
+    regex = [r'charlson'],
+    after_extract = r"(\d+)",
+    score_normalization = "score_normalization.charlson"
+)
+
+nlp = spacy.blank('fr')
+nlp.add_pipe('sentences')
+nlp.add_pipe('normalizer')
+nlp.add_pipe('score', config = charlson_config)
 ```
 
 ```python
@@ -78,7 +116,7 @@ doc = nlp(text)
 ```
 
 ```python
-doc.ents
+doc.ents[0]._.after_snippet
 ```
 
 ```python

@@ -1,6 +1,8 @@
 import spacy
 from pytest import fixture
 
+import pandas as pd
+
 import context
 import edsnlp.components
 
@@ -55,3 +57,14 @@ text = (
 @fixture
 def doc(nlp):
     return nlp(text)
+
+
+@fixture
+def df_notes():
+
+    N_LINES = 100
+    notes = pd.DataFrame(
+        data={"note_id": list(range(N_LINES)), "note_text": N_LINES * [text]}
+    )
+
+    return notes

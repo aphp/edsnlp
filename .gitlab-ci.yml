@@ -12,9 +12,16 @@ test:
     - black --check .
     - flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
     - flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - python -m pytest --cov edsnlp --junitxml=report.xml
-    - coverage xml
+    - python -m pytest --cov edsnlp --junitxml=report.xml --html=report.html --self-contained-html
+  after_script:
+    - coverage xml -o coverage.xml
+    - coverage html -d htmlcov
   artifacts:
+    paths:
+      - htmlcov/
+      - coverage.xml
+      - report.html
+      - report.xml
     reports:
       cobertura: coverage.xml
       junit: report.xml

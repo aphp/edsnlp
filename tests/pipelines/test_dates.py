@@ -54,9 +54,9 @@ def dates(nlp):
     )
 
 
-def test_dates_component(nlp, dates):
+def test_dates_component(blank_nlp, dates):
 
-    doc = nlp(text)
+    doc = blank_nlp(text)
 
     with raises(KeyError):
         doc.spans["dates"]
@@ -71,9 +71,9 @@ def test_dates_component(nlp, dates):
     assert d4._.date == "????-08-29"
 
 
-def test_dates_with_base_date(nlp, dates):
+def test_dates_with_base_date(blank_nlp, dates):
 
-    doc = nlp(text)
+    doc = blank_nlp(text)
     doc = dates(doc)
 
     doc._.note_datetime = datetime(2020, 10, 10)
@@ -86,7 +86,7 @@ def test_dates_with_base_date(nlp, dates):
     assert d4._.date == "2020-08-29"
 
 
-def test_patterns(nlp, dates):
+def test_patterns(blank_nlp, dates):
 
     examples = [
         "Le patient est venu en 2019 pour une consultation",
@@ -96,7 +96,7 @@ def test_patterns(nlp, dates):
     ]
 
     for example in examples:
-        doc = nlp(example)
+        doc = blank_nlp(example)
         doc = dates(doc)
 
         assert len(doc.spans["dates"]) == 1

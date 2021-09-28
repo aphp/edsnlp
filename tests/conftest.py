@@ -16,6 +16,7 @@ def nlp():
     model.add_pipe("sentences")
     model.add_pipe("pollution")
     model.add_pipe("sections")
+
     model.add_pipe(
         "matcher",
         config=dict(
@@ -27,6 +28,20 @@ def nlp():
         name="matcher2",
         config=dict(
             terms=dict(anomalie="anomalie"),
+        ),
+    )
+
+    model.add_pipe(
+        "advanced-regex",
+        config=dict(
+            regex_config=dict(
+                fracture=dict(
+                    regex=[r"fracture", r"felure"],
+                    attr="NORM",
+                    before_exclude="petite|faible",
+                    after_exclude="legere|de fatigue",
+                )
+            )
         ),
     )
 

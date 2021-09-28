@@ -5,7 +5,7 @@ from spacy.language import Language
 from edsnlp.pipelines.advanced import AdvancedRegex
 
 
-@Language.factory("advanced_regex")
+@Language.factory("advanced-regex")
 def create_component(
     nlp: Language,
     name: str,

@@ -32,6 +32,49 @@ def td2str(td: timedelta):
     return f"TD{days:+d}"
 
 
+def date_getter(date: Span) -> str:
+    """
+    Getter for dates. Uses the information from ``note_datetime``.
+
+    Parameters
+    ----------
+    date : Span
+        Date detected by the pipeline.
+
+    Returns
+    -------
+    str
+        Normalized date.
+    """
+
+    d = date._.parsed_date
+
+    if d is None:
+        return None
+
+    delta = date._.parsed_delta
+    note_datetime = date.doc._.note_datetime
+
+    if date.label_ == "absolute":
+        normalized = d.strftime("%Y-%m-%d")
+    elif date.label_ == "no_year":
+        if note_datetime:
+            year = note_datetime.strftime("%Y")
+        else:
+            year = "????"
+        normalized = d.strftime(f"{year}-%m-%d")
+    else:
+        if note_datetime:
+            # We need to adjust the timedelta, since most dates are set at 00h00.
+            # The slightest difference leads to a day difference.
+            d = note_datetime + delta
+            normalized = d.strftime("%Y-%m-%d")
+        else:
+            normalized = td2str(d - datetime.now())
+
+    return normalized
+
+
 class Dates(BaseComponent):
     """
     Tags dates.
@@ -78,6 +121,15 @@ class Dates(BaseComponent):
         if not Doc.has_extension("note_datetime"):
             Doc.set_extension("note_datetime", default=None)
 
+        if not Span.has_extension("parsed_date"):
+            Span.set_extension("parsed_date", default=None)
+
+        if not Span.has_extension("parsed_delta"):
+            Span.set_extension("parsed_delta", default=None)
+
+        if not Span.has_extension("date"):
+            Span.set_extension("date", getter=date_getter)
+
     def process(self, doc: Doc) -> List[Span]:
         """
         Find dates in doc.
@@ -115,27 +167,11 @@ class Dates(BaseComponent):
             spaCy Doc object, annotated for dates
         """
         dates = self.process(doc)
-        note_datetime = doc._.note_datetime
 
         for date in dates:
             d = self.parser.get_date_data(date.text).date_obj
-
-            if date.label_ == "absolute":
-                date.label_ = d.strftime("%Y-%m-%d")
-            elif date.label_ == "no_year":
-                if note_datetime:
-                    year = note_datetime.strftime("%Y")
-                else:
-                    year = "????"
-                date.label_ = d.strftime(f"{year}-%m-%d")
-            else:
-                if note_datetime:
-                    # We need to adjust the timedelta, since most dates are set at 00h00.
-                    # The slightest difference leads to a day difference.
-                    d = d - datetime.now() + note_datetime + timedelta(seconds=2)
-                    date.label_ = d.strftime("%Y-%m-%d")
-                else:
-                    date.label_ = td2str(d - datetime.now())
+            date._.parsed_date = d
+            date._.parsed_delta = d - datetime.now() + timedelta(seconds=10)
 
         doc.spans["dates"] = dates
 

@@ -67,20 +67,21 @@ def test_dates_component(nlp, dates):
 
     d1, _, d3 = doc.spans["dates"]
 
-    assert d1.label_ == "TD-1"
-    assert d3.label_ == "TD-7"
+    assert d1._.date == "TD-1"
+    assert d3._.date == "TD-7"
 
 
 def test_dates_with_base_date(nlp, dates):
 
     doc = nlp(text)
-    doc._.note_datetime = datetime(2020, 10, 10)
     doc = dates(doc)
+
+    doc._.note_datetime = datetime(2020, 10, 10)
 
     d1, _, d3 = doc.spans["dates"]
 
-    assert d1.label_ == "2020-10-09"
-    assert d3.label_ == "2020-10-03"
+    assert d1._.date == "2020-10-09"
+    assert d3._.date == "2020-10-03"
 
 
 def test_patterns(nlp, dates):

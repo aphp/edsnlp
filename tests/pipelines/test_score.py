@@ -39,7 +39,6 @@ def test_scores(blank_nlp):
 
     charlson = create_charlson(blank_nlp, "charlson", **charlson_default_config)
 
-    @spacy.registry.misc("score_normalization.testscore")
     def testscore_normalization(raw_score: str):
         if raw_score is not None and int(raw_score) == 0:
             return int(raw_score)
@@ -50,7 +49,7 @@ def test_scores(blank_nlp):
         regex=[r"test+score"],
         attr="NORM",
         after_extract=r"(\d+)",
-        score_normalization="score_normalization.testscore",
+        score_normalization=testscore_normalization,
         window=4,
         verbose=0,
     )

@@ -54,7 +54,9 @@ def test_hypothesis(blank_nlp, hypothesis_factory, on_ents_only):
         text, entities = parse_example(example=example)
 
         doc = blank_nlp(text)
-        doc.ents = [doc.char_span(ent.start_char, ent.end_char) for ent in entities]
+        doc.ents = [
+            doc.char_span(ent.start_char, ent.end_char, label="ent") for ent in entities
+        ]
 
         doc = hypothesis(doc)
 

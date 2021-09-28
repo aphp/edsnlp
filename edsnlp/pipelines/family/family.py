@@ -4,6 +4,8 @@ from edsnlp.pipelines.generic import GenericMatcher
 from spacy.language import Language
 from spacy.tokens import Token, Span, Doc
 
+from edsnlp.utils.spacy import check_inclusion
+
 
 class FamilyContext(GenericMatcher):
     """
@@ -108,7 +110,9 @@ class FamilyContext(GenericMatcher):
             ]
 
         for start, end in boundaries:
-            if self.on_ents_only and not doc[start:end].ents:
+            ents = [ent for ent in doc.ents if check_inclusion(ent, start, end)]
+
+            if self.on_ents_only and not ents:
                 continue
 
             sub_matches = [m for m in matches if start <= m.start < end]
@@ -119,8 +123,11 @@ class FamilyContext(GenericMatcher):
             if not self.on_ents_only:
                 for token in doc[start:end]:
                     token._.family = True
-            for ent in doc[start:end].ents:
+            for ent in ents:
                 ent._.family = True
+                if not self.on_ents_only:
+                    for token in ent:
+                        token._.family = True
 
         if not self.on_ents_only:
             for section in sections:

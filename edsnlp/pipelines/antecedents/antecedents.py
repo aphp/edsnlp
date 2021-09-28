@@ -7,6 +7,7 @@ from spacy.tokens import Token, Span, Doc
 from loguru import logger
 
 from edsnlp.utils.filter_matches import _filter_matches
+from edsnlp.utils.spacy import check_inclusion
 
 
 class Antecedents(GenericMatcher):
@@ -138,18 +139,25 @@ class Antecedents(GenericMatcher):
             ]
 
         for start, end in boundaries:
-            if self.on_ents_only and not doc[start:end].ents:
+            ents = [ent for ent in doc.ents if check_inclusion(ent, start, end)]
+
+            if self.on_ents_only and not ents:
                 continue
 
-            sub_matches = [m for m in antecedents if start <= m.start < end]
+            sub_antecedents = [m for m in antecedents if start <= m.start < end]
 
-            antecedent = bool(sub_matches)
+            antecedent = bool(sub_antecedents)
 
             if not self.on_ents_only:
                 for token in doc[start:end]:
                     token._.antecedent = antecedent
-            for ent in doc[start:end].ents:
+
+            for ent in ents:
                 ent._.antecedent = antecedent
+
+                if not self.on_ents_only:
+                    for token in ent:
+                        token._.antecedent = antecedent
 
         if not self.on_ents_only:
             for section in sections:

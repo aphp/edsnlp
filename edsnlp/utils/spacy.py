@@ -20,7 +20,7 @@ def check_inclusion(span: Span, start: int, end: int) -> bool:
         Whether the span is included.
     """
 
-    if span.start > end or span.end < start:
+    if span.start >= end or span.end <= start:
         return False
     return True
 

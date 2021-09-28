@@ -117,21 +117,17 @@ class FamilyContext(GenericMatcher):
 
             sub_matches = [m for m in matches if start <= m.start < end]
 
-            if not sub_matches:
+            if (not sub_matches) or any([doc[start] in s for s in sections]):
                 continue
 
             if not self.on_ents_only:
                 for token in doc[start:end]:
                     token._.family = True
+
             for ent in ents:
                 ent._.family = True
                 if not self.on_ents_only:
                     for token in ent:
                         token._.family = True
-
-        if not self.on_ents_only:
-            for section in sections:
-                for token in section:
-                    token._.family = True
 
         return doc

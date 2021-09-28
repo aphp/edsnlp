@@ -45,6 +45,7 @@ def nlp():
 def blank_nlp():
     model = spacy.blank("fr")
     model.add_pipe("sentences")
+    model.add_pipe("sections")
     return model
 
 

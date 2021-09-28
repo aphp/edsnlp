@@ -146,7 +146,9 @@ class Antecedents(GenericMatcher):
 
             sub_antecedents = [m for m in antecedents if start <= m.start < end]
 
-            antecedent = bool(sub_antecedents)
+            antecedent = bool(sub_antecedents) or any(
+                [doc[start] in s for s in sections]
+            )
 
             if not self.on_ents_only:
                 for token in doc[start:end]:
@@ -158,10 +160,5 @@ class Antecedents(GenericMatcher):
                 if not self.on_ents_only:
                     for token in ent:
                         token._.antecedent = antecedent
-
-        if not self.on_ents_only:
-            for section in sections:
-                for token in section:
-                    token._.antecedent = True
 
         return doc

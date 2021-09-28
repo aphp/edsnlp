@@ -11,8 +11,8 @@ def test_regex(doc):
 
     matches = matcher(doc, as_spans=False)
 
-    assert matches
+    assert list(matches)
 
     matches = matcher(doc[:10])
 
-    assert matches
+    assert list(matches)

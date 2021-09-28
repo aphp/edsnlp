@@ -27,7 +27,7 @@ def nlp():
         "matcher",
         name="matcher2",
         config=dict(
-            terms=dict(anomalie="anomalie"),
+            regex=dict(anomalie=r"anomalie"),
         ),
     )
 

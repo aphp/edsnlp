@@ -1,16 +1,11 @@
-from itertools import chain
 from typing import List, Optional, Tuple
 
-import mlconjug3
 import pandas as pd
 from spacy.tokens import Doc, Span
 
 from edsnlp.conjugator import conjugate
 
 from spacy.util import filter_spans
-
-if not Doc.has_extension("note_id"):
-    Doc.set_extension("note_id", default=None)
 
 
 class BaseComponent(object):

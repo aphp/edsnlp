@@ -7,6 +7,7 @@ from edsnlp.pipelines import terminations
 from pytest import fixture, mark
 
 negation_examples: List[str] = [
+    "il n'y a pas de <ent polarity_=NEG>métas,tases</ent>",
     "Le patient n'est pas <ent polarity_=NEG>malade</ent>.",
     "Aucun <ent polarity_=NEG>traitement</ent>.",
     "Le <ent polarity_=AFF>scan</ent> révèle une grosseur.",
@@ -15,7 +16,6 @@ negation_examples: List[str] = [
     "il n'y a pas de <ent polarity_=NEG>métastases</ent>",
     "il n'y a pas d' <ent polarity_=NEG>métastases</ent>",
     "il n'y a pas d'<ent polarity_=NEG>métastases</ent>",
-    "il n'y a pas de <ent polarity_=NEG>métas,tases</ent>",
     "<ent polarity_=NEG>métas,tases</ent> : non",
     "il n'y a pas d'amélioration de la <ent negated=false>maladie</ent>",
 ]
@@ -37,7 +37,7 @@ def negation_factory(blank_nlp):
         fuzzy_kwargs=None,
     )
 
-    def factory(on_ents_only, **kwargs):
+    def factory(on_ents_only, **kwargs) -> Negation:
 
         config = dict(**default_config)
         config.update(kwargs)

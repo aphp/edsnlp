@@ -1,6 +1,10 @@
 from typing import List
 
 pseudo: List[str] = [
+    "aucun changement",
+    "aucun doute",
+    "aucune hésitation",
+    "aucune diminution",
     "ne permet pas d",
     "ne permet pas de",
     "n'exclut pas",

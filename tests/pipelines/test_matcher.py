@@ -1,4 +1,4 @@
-from edsnlp.pipelines.generic import GenericMatcher
+from edsnlp.pipelines.matcher import GenericMatcher
 from pytest import fixture
 
 

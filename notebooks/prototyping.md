@@ -5,7 +5,7 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.3'
+      format_version: "1.3"
       jupytext_version: 1.11.4
   kernelspec:
     display_name: Python 3
@@ -41,7 +41,7 @@ from edsnlp.pipelines.quickumls import QuickUMLSComponent
 ```
 
 ```python
-from edsnlp.pipelines.generic import GenericMatcher
+from edsnlp.pipelines.matcher import GenericMatcher
 ```
 
 # Baselines

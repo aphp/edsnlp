@@ -35,7 +35,7 @@ pseudo: List[str] = [
 
 preceding: List[str] = [
     "à la place de",
-    "absence d'",
+    "absence",
     "absence de signe de",
     "absence de",
     "aucun signe de",

@@ -7,7 +7,7 @@ from pytest import fixture, mark
 
 
 examples: List[str] = [
-    "Plusieurs <ent hypothesis_=HYP>diagnostics</ent> sont envisagés ",
+    "Plusieurs <ent hypothesis_=HYP>diagnostics</ent> sont envisagés. Le patient est informé.",
     "même si <ent hypothesis=False>le patient est jeune</ent>.",
     "Suspicion de <ent hypothesis_=HYP>diabète</ent>.",
     "Le ligament est <ent hypothesis_=CERT>rompu</ent>.",

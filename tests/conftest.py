@@ -29,11 +29,12 @@ def nlp():
             terms=dict(anomalie="anomalie"),
         ),
     )
+
     model.add_pipe("hypothesis")
-    model.add_pipe("negation", config=dict(on_ents_only=False))
-    model.add_pipe("family", config=dict(on_ents_only=False))
+    model.add_pipe("negation")
+    model.add_pipe("family")
     model.add_pipe("antecedents")
-    model.add_pipe("rspeech", config=dict(on_ents_only=False))
+    model.add_pipe("rspeech")
 
     model.add_pipe("dates")
 
@@ -54,6 +55,8 @@ text = (
     "Pourrait être un cas de rhume.\n"
     "Motif :\n"
     "Douleurs dans le bras droit.\n"
+    "ANTÉCÉDENTS\n"
+    "Le patient est déjà venu\n"
     "Pas d'anomalie détectée."
 )
 
@@ -61,6 +64,11 @@ text = (
 @fixture
 def doc(nlp):
     return nlp(text)
+
+
+@fixture
+def blank_doc(blank_nlp):
+    return blank_nlp(text)
 
 
 @fixture

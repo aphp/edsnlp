@@ -39,3 +39,12 @@ def test_terms(doc, matcher_factory, fuzzy):
     )
     doc = matcher(doc)
     assert len(doc.ents) == 2, "There should be two entities."
+
+
+def test_regex(doc, matcher_factory):
+    matcher = matcher_factory(
+        regex=dict(patient=r"patient", anomalie=r"anomalie"),
+        attr="TEXT",
+    )
+    doc = matcher(doc)
+    assert len(doc.ents) == 2, "There should be two entities."

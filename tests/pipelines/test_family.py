@@ -39,15 +39,18 @@ def family_factory(blank_nlp):
 
 
 @mark.parametrize("on_ents_only", [True, False])
-def test_family(blank_nlp, family_factory, on_ents_only):
+@mark.parametrize("use_sections", [True, False])
+def test_family(blank_nlp, family_factory, on_ents_only, use_sections):
 
-    family = family_factory(on_ents_only=on_ents_only)
+    family = family_factory(on_ents_only=on_ents_only, use_sections=use_sections)
 
     for example in examples:
         text, entities = parse_example(example=example)
 
         doc = blank_nlp(text)
-        doc.ents = [doc.char_span(ent.start_char, ent.end_char) for ent in entities]
+        doc.ents = [
+            doc.char_span(ent.start_char, ent.end_char, label="ent") for ent in entities
+        ]
 
         doc = family(doc)
 

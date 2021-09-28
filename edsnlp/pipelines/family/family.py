@@ -44,6 +44,7 @@ class FamilyContext(GenericMatcher):
         on_ents_only: bool,
         regex: Optional[Dict[str, Union[List[str], str]]],
         fuzzy_kwargs: Optional[Dict[str, Any]],
+        use_sections: bool = False,
         **kwargs,
     ):
 
@@ -80,7 +81,7 @@ class FamilyContext(GenericMatcher):
         if not Doc.has_extension("family"):
             Doc.set_extension("family", default=[])
 
-        self.sections = "sections" in self.nlp.pipe_names
+        self.sections = use_sections and "sections" in self.nlp.pipe_names
 
     def __call__(self, doc: Doc) -> Doc:
         """

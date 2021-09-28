@@ -6,5 +6,7 @@ def test_pollution_detection(doc):
 def test_pollution_alignment(doc):
     clean_extraction = doc._.clean_[165:181]
 
+    print(doc._.char_clean_span(5, -10))
+
     # Testing realignment
     assert clean_extraction == doc._.char_clean_span(165, 181).text

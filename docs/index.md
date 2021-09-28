@@ -70,21 +70,20 @@ EDS-NLP provides a set of Spacy components that are used at AP-HP. We focus on u
 
 ## Available pipelines
 
-| Pipeline     | Description                                                           |
-| ------------ | --------------------------------------------------------------------- |
-| `normalizer` | Non-destructive input text normalization                              |
-| `sentences`  | Better sentence boundary detection                                    |
-| `matcher`    | A simple yet powerful entity extractor                                |
-| `negation`   | Rule-based negation detection                                         |
-| `family`     | Rule-based family context detection                                   |
-| `hypothesis` | Rule-based speculation detection                                      |
-| `antecedent` | Rule-based antecedent detection                                       |
-| `rspeech`    | Rule-based reported speech detection                                  |
-| `sections`   | Section detection                                                     |
-| `pollution`  | Pollution detection and non-destructive removal                       |
-| `dates`      | Date extraction and normalization                                     |
-| `quickumls`  | A basic Spacy v3 re-implementation of Georgetown's QuickUMLS pipeline |
-| `score`      | A simple clinical score extractor                                     |
+| Pipeline     | Description                                     |
+| ------------ | ----------------------------------------------- |
+| `normalizer` | Non-destructive input text normalization        |
+| `sentences`  | Better sentence boundary detection              |
+| `matcher`    | A simple yet powerful entity extractor          |
+| `negation`   | Rule-based negation detection                   |
+| `family`     | Rule-based family context detection             |
+| `hypothesis` | Rule-based speculation detection                |
+| `antecedent` | Rule-based antecedent detection                 |
+| `rspeech`    | Rule-based reported speech detection            |
+| `sections`   | Section detection                               |
+| `pollution`  | Pollution detection and non-destructive removal |
+| `dates`      | Date extraction and normalization               |
+| `score`      | A simple clinical score extractor               |
 
 ## Quick start
 

@@ -66,12 +66,6 @@
 .. automodule:: edsnlp.pipelines.rspeech.rspeech
 ```
 
-## QuickUMLS
-
-```{eval-rst}
-.. automodule:: edsnlp.pipelines.quickumls.quickumls
-```
-
 ## Scores
 
 ### Base class

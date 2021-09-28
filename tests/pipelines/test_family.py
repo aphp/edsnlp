@@ -6,7 +6,7 @@ from pytest import fixture, mark
 from edsnlp.pipelines.family import FamilyContext, terms
 
 examples: List[str] = [
-    "Le père du patient a eu un <ent family_=FAMILY>cancer du colon</ent>.",
+    "Le père du patient a eu un <ent family_=FAMILY>cancer du colon</ent>. La mère se porte bien.",
     "Antécédents familiaux : <ent family_=FAMILY>diabète</ent>.",
     "Un <ent family_=PATIENT>relevé</ent> sanguin a été effectué.",
 ]

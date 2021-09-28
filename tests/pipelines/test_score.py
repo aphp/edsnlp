@@ -67,3 +67,18 @@ def test_scores(blank_nlp):
             assert (
                 getattr(ent._, modifier.key) == modifier.value
             ), f"{modifier.key} labels don't match."
+
+
+def test_score_factory(blank_nlp):
+    factory = spacy.registry.get("factories", "score")
+    assert factory(
+        blank_nlp,
+        "score",
+        score_name="TestScore",
+        regex=[r"test+score"],
+        attr="NORM",
+        after_extract=r"(\d+)",
+        score_normalization=terms.score_normalization_str,
+        window=4,
+        verbose=0,
+    )

@@ -1,4 +1,6 @@
-import edsnlp.processing as nlprocess
+from edsnlp.processing import pipe, parallel_pipe
+
+import pytest
 
 
 def test_pipelines(doc):
@@ -12,7 +14,7 @@ def test_pipelines(doc):
 def test_pipeline_methods(nlp, df_notes):
 
     # 2nd method
-    ents_2 = nlprocess.parallel_pipe(
+    ents_2 = parallel_pipe(
         nlp,
         df_notes,
         chunksize=10,
@@ -25,11 +27,11 @@ def test_pipeline_methods(nlp, df_notes):
 
     # 1st method
     ents_1 = []
-    for doc in nlprocess.pipe(
+    for doc in pipe(
         nlp,
         df_notes,
         text_col="note_text",
-        context_cols=["note_id"],
+        context_cols=["note_id", "note_datetime"],
         progress_bar=False,
     ):
         if len(doc.ents) > 0:
@@ -40,3 +42,29 @@ def test_pipeline_methods(nlp, df_notes):
     assert len(ents_2) >= 2 * len(df_notes)
 
     assert len(ents_1) == len(ents_2)
+
+
+def test_parallel_pipe(nlp, df_notes):
+    parallel_pipe(
+        nlp,
+        df_notes,
+        chunksize=10,
+        n_jobs=1,
+        context_cols="note_id",
+        text_col="note_text",
+        progress_bar=True,
+        return_df=True,
+    )
+
+
+def test_pipe(nlp, df_notes):
+
+    with pytest.raises(ValueError):
+        for doc in pipe(
+            nlp,
+            df_notes,
+            text_col="note_text",
+            context_cols=["note_ids"],
+            progress_bar=False,
+        ):
+            pass

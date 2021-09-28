@@ -3,6 +3,8 @@ from pytest import fixture
 
 import pandas as pd
 
+from datetime import datetime
+
 import context
 import edsnlp.components
 
@@ -64,7 +66,11 @@ def df_notes():
 
     N_LINES = 100
     notes = pd.DataFrame(
-        data={"note_id": list(range(N_LINES)), "note_text": N_LINES * [text]}
+        data={
+            "note_id": list(range(N_LINES)),
+            "note_text": N_LINES * [text],
+            "note_datetime": N_LINES * [datetime.today()],
+        }
     )
 
     return notes

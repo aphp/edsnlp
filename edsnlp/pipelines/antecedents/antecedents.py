@@ -7,7 +7,7 @@ from spacy.tokens import Token, Span, Doc
 from loguru import logger
 
 from edsnlp.utils.filter_matches import _filter_matches
-from edsnlp.utils.spacy import check_inclusion
+from edsnlp.utils.inclusion import check_inclusion
 
 
 class Antecedents(GenericMatcher):

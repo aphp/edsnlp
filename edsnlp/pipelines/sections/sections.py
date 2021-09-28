@@ -5,7 +5,6 @@ from spacy.language import Language
 from spacy.tokens import Doc, Span
 
 from edsnlp.pipelines.matcher import GenericMatcher
-from edsnlp.utils.spacy import check_spans_inclusion
 
 
 class Sections(GenericMatcher):

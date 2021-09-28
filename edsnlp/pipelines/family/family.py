@@ -4,7 +4,7 @@ from edsnlp.pipelines.matcher import GenericMatcher
 from spacy.language import Language
 from spacy.tokens import Token, Span, Doc
 
-from edsnlp.utils.spacy import check_inclusion
+from edsnlp.utils.inclusion import check_inclusion
 
 
 class FamilyContext(GenericMatcher):

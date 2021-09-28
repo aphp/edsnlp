@@ -43,10 +43,11 @@ def antecedents_factory(blank_nlp):
     return factory
 
 
+@mark.parametrize("use_sections", [True, False])
 @mark.parametrize("on_ents_only", [True, False])
-def test_antecedents(blank_nlp, antecedents_factory, on_ents_only):
+def test_antecedents(blank_nlp, antecedents_factory, on_ents_only, use_sections):
 
-    antecedents = antecedents_factory(on_ents_only)
+    antecedents = antecedents_factory(on_ents_only, use_sections=use_sections)
 
     for example in examples:
         text, entities = parse_example(example=example)

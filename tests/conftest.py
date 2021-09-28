@@ -29,10 +29,10 @@ def nlp():
             terms=dict(anomalie="anomalie"),
         ),
     )
-    model.add_pipe("hypothesis", config=dict(on_ents_only=False))
+    model.add_pipe("hypothesis")
     model.add_pipe("negation", config=dict(on_ents_only=False))
     model.add_pipe("family", config=dict(on_ents_only=False))
-    model.add_pipe("antecedents", config=dict(on_ents_only=False, use_sections=False))
+    model.add_pipe("antecedents")
     model.add_pipe("rspeech", config=dict(on_ents_only=False))
 
     model.add_pipe("dates")

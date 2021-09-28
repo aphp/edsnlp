@@ -1,8 +1,10 @@
 from typing import List, Optional, Union, Dict, Any
 
-from edsnlp.pipelines.generic import GenericMatcher
+from edsnlp.pipelines.matcher import GenericMatcher
 from spacy.language import Language
 from spacy.tokens import Token, Span, Doc
+
+from edsnlp.utils.inclusion import check_inclusion
 
 
 class FamilyContext(GenericMatcher):
@@ -44,6 +46,7 @@ class FamilyContext(GenericMatcher):
         on_ents_only: bool,
         regex: Optional[Dict[str, Union[List[str], str]]],
         fuzzy_kwargs: Optional[Dict[str, Any]],
+        use_sections: bool = False,
         **kwargs,
     ):
 
@@ -80,7 +83,7 @@ class FamilyContext(GenericMatcher):
         if not Doc.has_extension("family"):
             Doc.set_extension("family", default=[])
 
-        self.sections = "sections" in self.nlp.pipe_names
+        self.sections = use_sections and "sections" in self.nlp.pipe_names
 
     def __call__(self, doc: Doc) -> Doc:
         """
@@ -107,23 +110,24 @@ class FamilyContext(GenericMatcher):
             ]
 
         for start, end in boundaries:
-            if self.on_ents_only and not doc[start:end].ents:
+            ents = [ent for ent in doc.ents if check_inclusion(ent, start, end)]
+
+            if self.on_ents_only and not ents:
                 continue
 
             sub_matches = [m for m in matches if start <= m.start < end]
 
-            if not sub_matches:
+            if not (sub_matches or any([doc[start] in s for s in sections])):
                 continue
 
             if not self.on_ents_only:
                 for token in doc[start:end]:
                     token._.family = True
-            for ent in doc[start:end].ents:
-                ent._.family = True
 
-        if not self.on_ents_only:
-            for section in sections:
-                for token in section:
-                    token._.family = True
+            for ent in ents:
+                ent._.family = True
+                if not self.on_ents_only:
+                    for token in ent:
+                        token._.family = True
 
         return doc

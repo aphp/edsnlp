@@ -39,7 +39,6 @@ def test_scores(blank_nlp):
 
     charlson = create_charlson(blank_nlp, "charlson", **charlson_default_config)
 
-    @spacy.registry.misc("score_normalization.testscore")
     def testscore_normalization(raw_score: str):
         if raw_score is not None and int(raw_score) == 0:
             return int(raw_score)
@@ -50,7 +49,7 @@ def test_scores(blank_nlp):
         regex=[r"test+score"],
         attr="NORM",
         after_extract=r"(\d+)",
-        score_normalization="score_normalization.testscore",
+        score_normalization=testscore_normalization,
         window=4,
         verbose=0,
     )
@@ -68,3 +67,18 @@ def test_scores(blank_nlp):
             assert (
                 getattr(ent._, modifier.key) == modifier.value
             ), f"{modifier.key} labels don't match."
+
+
+def test_score_factory(blank_nlp):
+    factory = spacy.registry.get("factories", "score")
+    assert factory(
+        blank_nlp,
+        "score",
+        score_name="TestScore",
+        regex=[r"test+score"],
+        attr="NORM",
+        after_extract=r"(\d+)",
+        score_normalization=terms.score_normalization_str,
+        window=4,
+        verbose=0,
+    )

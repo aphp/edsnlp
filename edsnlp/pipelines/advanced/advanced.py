@@ -8,7 +8,7 @@ from spacy.language import Language
 
 from spacy.tokens import Doc, Span
 
-from edsnlp.pipelines.generic import GenericMatcher
+from edsnlp.pipelines.matcher import GenericMatcher
 from edsnlp.utils.filter import filter_spans
 
 if not Doc.has_extension("my_ents"):

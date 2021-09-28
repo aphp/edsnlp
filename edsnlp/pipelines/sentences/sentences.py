@@ -2,8 +2,6 @@ from typing import List, Optional
 
 from spacy.tokens import Doc
 
-from .terms import punctuation
-
 
 class SentenceSegmenter(object):
     """
@@ -26,10 +24,7 @@ class SentenceSegmenter(object):
         self,
         punct_chars: Optional[List[str]],
     ):
-        if punct_chars:
-            self.punct_chars = set(punct_chars)
-        else:
-            self.punct_chars = set(punctuation)
+        self.punct_chars = set(punct_chars)
 
     def __call__(self, doc: Doc) -> Doc:
         """

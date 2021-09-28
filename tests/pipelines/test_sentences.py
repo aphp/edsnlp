@@ -1,6 +1,6 @@
 import spacy
 
-from edsnlp.pipelines.sentences import SentenceSegmenter
+from edsnlp.pipelines.sentences import SentenceSegmenter, terms
 from spacy.pipeline.sentencizer import Sentencizer
 
 text = (
@@ -16,7 +16,7 @@ text = (
 def test_sentences(nlp):
     nlp_blank = spacy.blank("fr")
     sentencizer = Sentencizer()
-    segmenter = SentenceSegmenter(punct_chars=None)
+    segmenter = SentenceSegmenter(punct_chars=terms.punctuation)
 
     doc = nlp(text)
     doc_blank = nlp_blank(text)
@@ -24,3 +24,5 @@ def test_sentences(nlp):
 
     doc = nlp(text)
     assert len(list(segmenter(doc).sents)) == 6
+
+    segmenter(nlp_blank(""))

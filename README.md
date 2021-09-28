@@ -20,20 +20,20 @@ pip install git+https://gitlab.eds.aphp.fr/datasciencetools/edsnlp.git@v0.2.0
 
 ### Available pipelines
 
-| Pipeline     | Description                                                           |
-| ------------ | --------------------------------------------------------------------- |
-| `normalizer` | Non-destructive text normalization                                    |
-| `sentences`  | Better sentence boundary detection                                    |
-| `matcher`    | A simple yet powerful entity extractor                                |
-| `negation`   | Rule-based negation detection                                         |
-| `family`     | Rule-based family context detection                                   |
-| `hypothesis` | Rule-based speculation detection                                      |
-| `antecedent` | Rule-based antecedent detection                                       |
-| `rspeech`    | Rule-based reported speech detection                                  |
-| `sections`   | Section detection                                                     |
-| `pollution`  | Pollution detection and non-destructive removal                       |
-| `dates`      | Date extraction and normalization                                     |
-| `quickumls`  | A basic Spacy v3 re-implementation of Georgetown's QuickUMLS pipeline |
+| Pipeline     | Description                                     |
+| ------------ | ----------------------------------------------- |
+| `normalizer` | Non-destructive text normalization              |
+| `sentences`  | Better sentence boundary detection              |
+| `matcher`    | A simple yet powerful entity extractor          |
+| `negation`   | Rule-based negation detection                   |
+| `family`     | Rule-based family context detection             |
+| `hypothesis` | Rule-based speculation detection                |
+| `antecedent` | Rule-based antecedent detection                 |
+| `rspeech`    | Rule-based reported speech detection            |
+| `sections`   | Section detection                               |
+| `pollution`  | Pollution detection and non-destructive removal |
+| `dates`      | Date extraction and normalization               |
+| `score`      | A simple clinical score extractor               |
 
 Check out the [documentation](https://datasciencetools-pages.eds.aphp.fr/edsnlp/) for more detail.
 

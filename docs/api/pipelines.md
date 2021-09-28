@@ -3,7 +3,7 @@
 ## Matcher
 
 ```{eval-rst}
-.. automodule:: edsnlp.pipelines.generic.generic
+.. automodule:: edsnlp.pipelines.matcher.matcher
 ```
 
 ## Pollution
@@ -66,12 +66,6 @@
 .. automodule:: edsnlp.pipelines.rspeech.rspeech
 ```
 
-## QuickUMLS
-
-```{eval-rst}
-.. automodule:: edsnlp.pipelines.quickumls.quickumls
-```
-
 ## Scores
 
 ### Base class
@@ -91,8 +85,9 @@ after_extract = r"charlson.*[\n\W]*(\d+)"
 
 score_normalization_str = "score_normalization.charlson"
 
+
 @spacy.registry.misc(score_normalization_str)
-def score_normalization(extracted_score: Union[str,None]):
+def score_normalization(extracted_score: Union[str, None]):
     """
     Charlson score normalization.
     If available, returns the integer value of the Charlson score.

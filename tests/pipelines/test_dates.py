@@ -40,7 +40,7 @@ def test_parser_relative(parser: DateDataParser):
 
 text = (
     "Le patient est venu hier (le 04/09/2021) pour un test PCR.\n"
-    "Il est cas contact depuis la semaine dernière."
+    "Il est cas contact depuis la semaine dernière, le 29/08."
 )
 
 
@@ -54,36 +54,39 @@ def dates(nlp):
     )
 
 
-def test_dates_component(nlp, dates):
+def test_dates_component(blank_nlp, dates):
 
-    doc = nlp(text)
+    doc = blank_nlp(text)
 
     with raises(KeyError):
         doc.spans["dates"]
 
     doc = dates(doc)
 
-    assert len(doc.spans["dates"]) == 3
+    d1, d2, d3, d4 = doc.spans["dates"]
 
-    d1, _, d3 = doc.spans["dates"]
+    assert d1._.date == "TD-1"
+    assert d2._.date == "2021-09-04"
+    assert d3._.date == "TD-7"
+    assert d4._.date == "????-08-29"
 
-    assert d1.label_ == "TD-1"
-    assert d3.label_ == "TD-7"
 
+def test_dates_with_base_date(blank_nlp, dates):
 
-def test_dates_with_base_date(nlp, dates):
-
-    doc = nlp(text)
-    doc._.note_datetime = datetime(2020, 10, 10)
+    doc = blank_nlp(text)
     doc = dates(doc)
 
-    d1, _, d3 = doc.spans["dates"]
+    doc._.note_datetime = datetime(2020, 10, 10)
 
-    assert d1.label_ == "2020-10-09"
-    assert d3.label_ == "2020-10-03"
+    d1, d2, d3, d4 = doc.spans["dates"]
+
+    assert d1._.date == "2020-10-09"
+    assert d2._.date == "2021-09-04"
+    assert d3._.date == "2020-10-03"
+    assert d4._.date == "2020-08-29"
 
 
-def test_patterns(nlp, dates):
+def test_patterns(blank_nlp, dates):
 
     examples = [
         "Le patient est venu en 2019 pour une consultation",
@@ -93,7 +96,7 @@ def test_patterns(nlp, dates):
     ]
 
     for example in examples:
-        doc = nlp(example)
+        doc = blank_nlp(example)
         doc = dates(doc)
 
         assert len(doc.spans["dates"]) == 1

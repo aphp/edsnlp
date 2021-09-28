@@ -1,16 +1,11 @@
-from itertools import chain
 from typing import List, Optional, Tuple
 
-import mlconjug3
 import pandas as pd
 from spacy.tokens import Doc, Span
 
 from edsnlp.conjugator import conjugate
 
 from spacy.util import filter_spans
-
-if not Doc.has_extension("note_id"):
-    Doc.set_extension("note_id", default=None)
 
 
 class BaseComponent(object):
@@ -21,8 +16,6 @@ class BaseComponent(object):
     - match filtering
     - verbs conjugation
     """
-
-    split_on_punctuation = False
 
     @staticmethod
     def _filter_matches(matches: List[Span]) -> List[Span]:
@@ -65,12 +58,7 @@ class BaseComponent(object):
         sent_starts = [sent.start for sent in doc.sents]
         termination_starts = [t.start for t in terminations]
 
-        if self.split_on_punctuation:
-            punctuations = [t.i for t in doc if t.is_punct and "-" not in t.text]
-        else:
-            punctuations = []
-
-        starts = sent_starts + termination_starts + punctuations + [len(doc)]
+        starts = sent_starts + termination_starts + [len(doc)]
 
         # Remove duplicates
         starts = list(set(starts))

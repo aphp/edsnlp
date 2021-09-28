@@ -1,7 +1,4 @@
 from typing import List
-
-from edsnlp.pipelines.generic import GenericMatcher
-from spacy.language import Language
 from spacy.tokens import Span
 
 

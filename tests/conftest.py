@@ -3,6 +3,8 @@ from pytest import fixture
 
 import pandas as pd
 
+from datetime import datetime
+
 import context
 import edsnlp.components
 
@@ -14,6 +16,7 @@ def nlp():
     model.add_pipe("sentences")
     model.add_pipe("pollution")
     model.add_pipe("sections")
+
     model.add_pipe(
         "matcher",
         config=dict(
@@ -24,14 +27,31 @@ def nlp():
         "matcher",
         name="matcher2",
         config=dict(
-            terms=dict(anomalie="anomalie"),
+            regex=dict(anomalie=r"anomalie"),
         ),
     )
-    model.add_pipe("hypothesis", config=dict(on_ents_only=False))
-    model.add_pipe("negation", config=dict(on_ents_only=False))
-    model.add_pipe("family", config=dict(on_ents_only=False))
-    model.add_pipe("antecedents", config=dict(on_ents_only=False, use_sections=False))
-    model.add_pipe("rspeech", config=dict(on_ents_only=False))
+
+    model.add_pipe(
+        "advanced-regex",
+        config=dict(
+            regex_config=dict(
+                fracture=dict(
+                    regex=[r"fracture", r"felure"],
+                    attr="NORM",
+                    before_exclude="petite|faible",
+                    after_exclude="legere|de fatigue",
+                )
+            )
+        ),
+    )
+
+    model.add_pipe("hypothesis")
+    model.add_pipe("negation")
+    model.add_pipe("family")
+    model.add_pipe("antecedents")
+    model.add_pipe("rspeech")
+
+    model.add_pipe("dates")
 
     return model
 
@@ -40,6 +60,7 @@ def nlp():
 def blank_nlp():
     model = spacy.blank("fr")
     model.add_pipe("sentences")
+    model.add_pipe("sections")
     return model
 
 
@@ -50,6 +71,8 @@ text = (
     "Pourrait être un cas de rhume.\n"
     "Motif :\n"
     "Douleurs dans le bras droit.\n"
+    "ANTÉCÉDENTS\n"
+    "Le patient est déjà venu\n"
     "Pas d'anomalie détectée."
 )
 
@@ -60,11 +83,20 @@ def doc(nlp):
 
 
 @fixture
+def blank_doc(blank_nlp):
+    return blank_nlp(text)
+
+
+@fixture
 def df_notes():
 
     N_LINES = 100
     notes = pd.DataFrame(
-        data={"note_id": list(range(N_LINES)), "note_text": N_LINES * [text]}
+        data={
+            "note_id": list(range(N_LINES)),
+            "note_text": N_LINES * [text],
+            "note_datetime": N_LINES * [datetime.today()],
+        }
     )
 
     return notes

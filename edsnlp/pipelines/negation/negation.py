@@ -1,10 +1,11 @@
 from typing import List, Union, Dict, Any, Optional
 
-from edsnlp.pipelines.generic import GenericMatcher
+from edsnlp.pipelines.matcher import GenericMatcher
 from spacy.language import Language
 from spacy.tokens import Token, Span, Doc
 
 from edsnlp.utils.filter_matches import _filter_matches
+from edsnlp.utils.inclusion import check_inclusion
 
 
 class Negation(GenericMatcher):
@@ -169,7 +170,10 @@ class Negation(GenericMatcher):
                 true_matches.append(match)
 
         for start, end in boundaries:
-            if self.on_ents_only and not doc[start:end].ents:
+
+            ents = [ent for ent in doc.ents if check_inclusion(ent, start, end)]
+
+            if self.on_ents_only and not ents:
                 continue
 
             sub_preceding = [
@@ -194,11 +198,16 @@ class Negation(GenericMatcher):
                     token._.negated = any(
                         m.end <= token.i for m in sub_preceding + sub_verbs
                     ) or any(m.start > token.i for m in sub_following)
-            for ent in doc[start:end].ents:
-                ent._.negated = (
+            for ent in ents:
+                negated = (
                     ent._.negated
                     or any(m.end <= ent.start for m in sub_preceding + sub_verbs)
                     or any(m.start > ent.end for m in sub_following)
                 )
+                ent._.negated = negated
+
+                if not self.on_ents_only:
+                    for token in ent:
+                        token._.negated = negated
 
         return doc

@@ -26,10 +26,6 @@ def docs2labeltool(
         DataFrame tailored for labeltool.
     """
 
-    note_id = Doc.has_extension("note_id")
-    if not note_id:
-        logger.info("note_id extension was not set. Recreating index.")
-
     if extensions is None:
         extensions = []
 
@@ -45,10 +41,7 @@ def docs2labeltool(
                 label_value=ent.text,
             )
 
-            if note_id:
-                d["note_id"] = doc._.note_id or i
-            else:
-                d["note_id"] = i
+            d["note_id"] = doc._.note_id or i
 
             for ext in extensions:
                 d[ext] = getattr(ent._, ext)

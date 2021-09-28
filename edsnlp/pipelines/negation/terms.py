@@ -1,6 +1,10 @@
 from typing import List
 
 pseudo: List[str] = [
+    "aucun changement",
+    "aucun doute",
+    "aucune hésitation",
+    "aucune diminution",
     "ne permet pas d",
     "ne permet pas de",
     "n'exclut pas",
@@ -31,7 +35,7 @@ pseudo: List[str] = [
 
 preceding: List[str] = [
     "à la place de",
-    "absence d'",
+    "absence",
     "absence de signe de",
     "absence de",
     "aucun signe de",

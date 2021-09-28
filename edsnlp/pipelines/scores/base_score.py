@@ -70,7 +70,7 @@ class Score(AdvancedRegex):
 
         self.score_name = score_name
 
-        if type(score_normalization == str):
+        if isinstance(score_normalization, str):
             self.score_normalization = registry.get("misc", score_normalization)
         else:
             self.score_normalization = score_normalization

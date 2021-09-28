@@ -2,7 +2,8 @@ from typing import Dict, Any, List, Optional, Union
 
 from spacy.language import Language
 
-from edsnlp.pipelines.generic import GenericMatcher
+from edsnlp.pipelines.matcher import GenericMatcher
+
 
 # noinspection PyUnusedLocal
 @Language.factory("matcher")

@@ -7,7 +7,7 @@ from pytest import fixture, mark
 
 
 examples: List[str] = [
-    "Plusieurs <ent hypothesis_=HYP>diagnostics</ent> sont envisagés ",
+    "Plusieurs <ent hypothesis_=HYP>diagnostics</ent> sont envisagés. Le patient est informé.",
     "même si <ent hypothesis=False>le patient est jeune</ent>.",
     "Suspicion de <ent hypothesis_=HYP>diabète</ent>.",
     "Le ligament est <ent hypothesis_=CERT>rompu</ent>.",
@@ -54,7 +54,9 @@ def test_hypothesis(blank_nlp, hypothesis_factory, on_ents_only):
         text, entities = parse_example(example=example)
 
         doc = blank_nlp(text)
-        doc.ents = [doc.char_span(ent.start_char, ent.end_char) for ent in entities]
+        doc.ents = [
+            doc.char_span(ent.start_char, ent.end_char, label="ent") for ent in entities
+        ]
 
         doc = hypothesis(doc)
 

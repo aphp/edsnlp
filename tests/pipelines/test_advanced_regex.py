@@ -30,7 +30,10 @@ def test_advanced(blank_nlp):
     )
 
     advanced_regex = AdvancedRegex(
-        nlp=blank_nlp, regex_config=regex_config, window=5, verbose=False
+        nlp=blank_nlp,
+        regex_config=regex_config,
+        window=5,
+        verbose=True,
     )
 
     text, entities = parse_example(example=example)

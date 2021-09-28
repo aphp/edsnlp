@@ -1,5 +1,5 @@
-from edsnlp.pipelines.generic import GenericMatcher
-from pytest import fixture
+from edsnlp.pipelines.matcher import GenericMatcher
+from pytest import fixture, mark
 
 
 @fixture
@@ -30,9 +30,21 @@ def matcher_factory(blank_nlp):
     return factory
 
 
-def test_terms(doc, matcher_factory):
+@mark.parametrize("fuzzy", [True, False])
+def test_terms(blank_doc, matcher_factory, fuzzy):
     matcher = matcher_factory(
-        terms=dict(patient="patient", anomalie="anomalie"), attr="NORM"
+        terms=dict(patient="patient", anomalie="anomalie"),
+        attr="NORM",
+        fuzzy=fuzzy,
     )
-    doc = matcher(doc)
-    assert len(doc.ents) == 2, "There should be two entities."
+    doc = matcher(blank_doc)
+    assert len(doc.ents) == 3, "There should be two entities."
+
+
+def test_regex(blank_doc, matcher_factory):
+    matcher = matcher_factory(
+        regex=dict(patient=r"patient", anomalie=r"anomalie"),
+        attr="TEXT",
+    )
+    doc = matcher(blank_doc)
+    assert len(doc.ents) == 3, "There should be two entities."

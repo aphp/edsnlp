@@ -1,5 +1,5 @@
 from tqdm import tqdm
-from typing import Tuple, List, Union, Any, Callable
+from typing import List, Union, Any, Callable
 
 import pandas as pd
 
@@ -12,24 +12,24 @@ from joblib import Parallel, delayed
 nlp = spacy.blank("fr")
 
 
-def df_to_spacy(
+def _df_to_spacy(
     df: pd.DataFrame,
     text_col: str = "note_text",
     context_cols: Union[str, List[str]] = [],
 ):
     """
     Takes a Pandas DataFrame and return a generator that can be used in
-    `nlp.pipe()`
+    ``nlp.pipe()``
 
     Parameters
     ----------
-    df:
+    df: pd.DataFrame
         A Pandas DataFrame.
         A `Doc` object will be created for each line.
-    text_col (str):
+    text_col: str
         The name of the column from `df` containing the to-be-analyzed text
-    context_cols (str or list of str):
-        column name or list of columns names of `df` containing attributes to add to the corresponding `Doc` object
+    context_cols: Union[str, List[str]]
+        Column name or list of column names of ``df`` containing attributes to add to the corresponding ``Doc`` object
 
     Returns
     -------
@@ -64,33 +64,32 @@ def pipe(
 ):
 
     """
-    Provides a generator based on the pipeline of the provided `nlp` object
+    Provides a generator based on the pipeline of the provided ``nlp`` object
 
     Parameters
     ----------
-    nlp:
+    nlp: Language
         The Spacy object.
-    df:
-        A Pandas DataFrame.
-        A `Doc` object will be created for each line.
-    text_col (str):
+    df: pd.DataFrame
+        A Pandas DataFrame from which a ``Doc`` object will be created for each line.
+    text_col: str
         The name of the column from `df` containing the to-be-analyzed text
-    context_cols (str or list of str):
+    context_cols: Union[str, List[str]]
         column name or list of columns names of `df` containing attributes to add to the corresponding `Doc` object
-    batch_size  (int):
-        Batching size used for `nlp.pipe`
-    pick_results (function, optionnal):
-        Function applied to each `Doc` object before its yielded.
-    progress_bar (bool):
+    batch_size: int
+        Batching size used for ``nlp.pipe``
+    pick_results: Callable[[Doc], Any]
+        Function applied to each ``Doc`` object before its yielded.
+    progress_bar: bool
         Whether to display a progress bar or not
 
     Return
     ------
     gen:
-        A generator yielding a processed Doc object for each row from `df`
+        A generator yielding a processed ``Doc`` object for each row from ``df``
     """
 
-    gen = df_to_spacy(df, text_col, context_cols)
+    gen = _df_to_spacy(df, text_col, context_cols)
     n_docs = len(df)
     pipeline = nlp.pipe(gen, as_tuples=True, batch_size=batch_size)
 
@@ -102,10 +101,8 @@ def pipe(
 
 # Below are functions used for multiprocessing
 
-from tqdm import tqdm
 
-
-def define_nlp(new_nlp):
+def _define_nlp(new_nlp):
     """
     Set the global nlp variable
     Doing it this way saves non negligeable amount of time
@@ -114,26 +111,35 @@ def define_nlp(new_nlp):
     nlp = new_nlp
 
 
-def chunker(iterable, total_length, chunksize):
+def _chunker(iterable, total_length, chunksize):
     """
-    Takes an iterable and chunk it
+    Takes an iterable and chunk it.
     """
     return (
         iterable[pos : pos + chunksize] for pos in range(0, total_length, chunksize)
     )
 
 
-def flatten(list_of_lists):
+def _flatten(list_of_lists):
     """
-    Flatten a list of lists to a combined list
+    Flatten a list of lists to a combined list.
     """
     return [item for sublist in list_of_lists for item in sublist]
 
 
 def default_pick_results(doc):
     """
-    Function used when Parallelizing tasks via joblib
+    Function used when Parallelizing tasks via joblib.
     Takes a Doc as input, and returns a list of serializable objects
+
+    .. note ::
+
+        The parallelization needs for output objects to be **serializable**: after splitting the task into
+        separate jobs, intermediate results are saved on memory before being aggregated, thus the need to be serializable.
+        For instance, SpaCy's spans aren't serializable since they are merely a *view* of the parent document.
+
+        Check the source code of this function for an example.
+
     """
     return [
         {
@@ -148,7 +154,7 @@ def default_pick_results(doc):
     ]
 
 
-def process_chunk(df, **pipe_kwargs):
+def _process_chunk(df, **pipe_kwargs):
 
     list_results = []
 
@@ -164,35 +170,35 @@ def parallel_pipe(
     nlp: Language,
     df: pd.DataFrame,
     chunksize: int = 100,
-    n_jobs: int = 10,
+    n_jobs: int = -2,
     progress_bar: bool = True,
+    return_df: bool = True,
     **pipe_kwargs,
 ):
     """
-    Wrapper to handle parallelisation of the provided nlp pipeline
-    The method accepts the same parameters as the module.pipe() method, plus the additionnal `chunksize` and `n_jobs` params
+    Wrapper to handle parallelisation of the provided nlp pipeline.
+    The method accepts the same parameters as the :py:func:`~pipe` method, plus the additionnal `chunksize` and `n_jobs` params
 
     Parameters
     ----------
-    nlp:
+    nlp: Language
         The Spacy object.
-    df:
+    df: pd.DataFrame
         A Pandas DataFrame.
         A `Doc` object will be created for each line.
-    text_col (str):
-        The name of the column from `df` containing the to-be-analyzed text
-    context_cols (str or list of str):
-        column name or list of columns names of `df` containing attributes to add to the corresponding `Doc` object
-    batch_size  (int):
-        Batching size used for `nlp.pipe`
-    pick_results (function, optionnal):
+    pick_results: Callable[[Doc], Any]
         Function applied to each `Doc` object before its yielded.
-    progress_bar (bool):
-        Whether to display a progress bar or not,
-    chunksize (int):
+        To paralellize tasks, the output of this function should be serializable.
+        For instance, one cannot directly use SpaCy's Spans.
+    chunksize: int
         Batch size used to split tasks
-    n_jobs (int):
+    n_jobs: int
         Max number of parallel jobs
+    return_df: bool
+        Wether to return a list of dictionnaries, or a Pandas DataFrame
+    **pipe_kwargs:
+        Arguments exposed in `processing.pipe` are also available here
+
 
     Return
     ------
@@ -202,7 +208,7 @@ def parallel_pipe(
     """
 
     # Setting the nlp variable
-    define_nlp(nlp)
+    _define_nlp(nlp)
 
     verbose = 10 if progress_bar else 0
 
@@ -217,11 +223,16 @@ def parallel_pipe(
     if verbose:
         executor.warn(f"{int(len(df)/chunksize)} tasks to complete")
 
-    do = delayed(process_chunk)
+    do = delayed(_process_chunk)
 
     tasks = (
-        do(chunk, **pipe_kwargs) for chunk in chunker(df, len(df), chunksize=chunksize)
+        do(chunk, **pipe_kwargs) for chunk in _chunker(df, len(df), chunksize=chunksize)
     )
     result = executor(tasks)
 
-    return flatten(result)
+    out = _flatten(result)
+
+    if return_df:
+        return pd.DataFrame(out)
+
+    return out

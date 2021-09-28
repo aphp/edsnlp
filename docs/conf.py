@@ -39,6 +39,8 @@ extensions = [
     "myst_parser",
     "sphinxcontrib.bibtex",
     "sphinx.ext.autosectionlabel",
+    "nbsphinx",
+    "IPython.sphinxext.ipython_console_highlighting",
 ]
 
 # Autodoc options
@@ -51,11 +53,7 @@ autodoc_default_options = {
 autodoc_typehints = "description"
 
 # MyST options
-source_suffix = {
-    ".rst": "restructuredtext",
-    ".txt": "markdown",
-    ".md": "markdown",
-}
+source_suffix = {".rst": "restructuredtext", ".txt": "markdown", ".md": "markdown"}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]

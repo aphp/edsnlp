@@ -1,21 +1,93 @@
 from edsnlp.utils.brat import BratConnector
 import pytest
 
-BRAT_FILES = "data/section_dataset"
+from os.path import join
+from os import listdir
+
+from spacy.language import Language
+
+import re
+
+import filecmp
+
+from random import randint, choice, random
+from string import ascii_letters, ascii_lowercase
 
 
-@pytest.fixture(scope="module")
-def brat():
-    return BratConnector(BRAT_FILES)
+def random_word():
+    n = randint(1, 20)
+    return "".join(
+        [choice(ascii_letters)] + [choice(ascii_lowercase) for _ in range(n)]
+    )
+
+
+def random_text():
+    n = randint(30, 60)
+    return " ".join([random_word() for _ in range(n)])
+
+
+def random_brat_file(text):
+
+    brat = []
+
+    for match in re.finditer(r"\w+", text):
+        if random() > 0.8:
+            line = (
+                f"T{len(brat) + 1}\tTEST {match.start()} {match.end()}\t{match.group()}"
+            )
+            brat.append(line)
+
+    return "\n".join(brat) + "\n"
 
 
 @pytest.fixture
-def brat2(tmpdir):
+def brat_folder(tmpdir):
+    for i in range(100):
+        text = random_text()
+        brat = random_brat_file(text)
+
+        with open(join(tmpdir, f"{i}.txt"), "w") as f:
+            f.write(text)
+
+        with open(join(tmpdir, f"{i}.ann"), "w") as f:
+            if i == 0:
+                f.write("\n")
+            else:
+                f.write(brat)
+
+    return tmpdir
+
+
+@pytest.fixture
+def brat1(brat_folder) -> BratConnector:
+    return BratConnector(brat_folder)
+
+
+@pytest.fixture
+def brat2(tmpdir) -> BratConnector:
     return BratConnector(tmpdir)
 
 
-# def test_brat2pandas(brat):
-#     texts, annotations = brat.get_brat()
+def test_empty_brat(brat2: BratConnector, blank_nlp: Language):
+    with pytest.raises(AssertionError):
+        brat2.brat2docs(blank_nlp)
+
+
+def test_brat2pandas(brat1: BratConnector):
+    brat1.get_brat()
+
+
+def test_brat2brat(brat1: BratConnector, brat2: BratConnector, blank_nlp: Language):
+    docs = brat1.brat2docs(blank_nlp)
+    brat2.docs2brat(docs)
+
+    files = listdir(brat1.directory)
+
+    assert files
+
+    for file in files:
+        assert file in listdir(brat2.directory)
+        assert filecmp.cmp(join(brat1.directory, file), join(brat2.directory, file))
 
 
 def test_docs2brat(nlp, brat2):

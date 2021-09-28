@@ -5,174 +5,155 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.3'
-      jupytext_version: 1.11.4
+      format_version: '1.2'
+      jupytext_version: 1.6.0
   kernelspec:
     display_name: '[2.4.3] Py3'
     language: python
     name: pyspark-2.4.3
 ---
 
-```python
-%reload_ext autoreload
-%autoreload 2
-```
+# Using and speeding-up EDS-NLP
 
-```python
-# Importation du "contexte", ie la bibliothèque sans installation
-import context
-```
+The way EDS-NLP is used may depend on how many documents you are working with.  Once working with tens of thousands of them,
+parallelizing the processing can be really efficient (up to 8x faster), but will require a (tiny) bit more work.
+Here are shown 3 ways to analyse texts depending on your needs:
+
+- [Testing / Using on a single string](#1.-Pipeline-on-a-single-string)
+- [Using on a few documents](#2.-Pipeline-on-a-few-documents)
+- [Using on many documents](#3.-Pipeline-on-many-documents)
 
 ```python
 import spacy
 import pandas as pd
-```
 
-```python
 import time
-from tqdm import tqdm
-```
+from datetime import timedelta
 
-```python
+from tqdm import tqdm
+
 # One-shot import of all declared Spacy components
 import edsnlp.components
-```
 
-```python
+# Module containing processing helpers
 import edsnlp.processing as nlprocess
-```
-
-```python
-regex_config = {
-    'douleurs':{
-        'regex':[r'[Dd]ouleur'],
-        'before_exclude':'azaza',
-        'after_exclude':'azaza',
-        'before_extract':'des',
-        'after_extract':'(?:bras )(droit)'
-    },
-    'locomotion':{
-        'regex':[r'locomotion'],
-        'before_include':'test'
-    }
-}
 ```
 
 ```python
 nlp = spacy.blank('fr')
 nlp.add_pipe('sentences')
-nlp.add_pipe('advanced_regex', config=dict(regex_config=regex_config,
-                                           window=5))
-nlp.add_pipe('sections')
-nlp.add_pipe('pollution')
+nlp.add_pipe('normalizer')
+
+terms = dict(covid=["coronavirus", "covid19", "covid"])
+
+nlp.add_pipe("matcher", config=dict(terms=terms, attr="NORM"))
+nlp.add_pipe('negation')
+nlp.add_pipe('hypothesis')
+nlp.add_pipe('family')
 ```
 
-## 1. Pipeline sur un document unique
+## 1. Pipeline on a single string
 
 ```python
-text = (
-    "Le patient est admis pour des douleurs dans le bras droit, mais n'a pas de problème de locomotion. "
-    "Historique d'AVC dans la famille. pourrait être un cas de rhume.\n"
-    "NBNbWbWbNbWbNBNbNbWbWbNBNbWbNbNbWbNBNbWbNbNBWbWbNbNbNBWbNbWbNbWBNbNbWbNbNBNbWbWbNbWBNbNbWbNBNbWbWbNb\n"
-    "Pourrait être un cas de rhume.\n"
-    "Motif :\n"
-    "Douleurs dans le bras droit."
-)
+text = """
+    Patient admis pour suspicion de Covid.
+    Pas de cas de coronavirus dans ce service.
+    Le père du patient est atteind du covid.
+"""
 ```
+
+Simply apply `nlp()` to the piece of text:
 
 ```python
 doc = nlp(text)
 ```
 
-Chaque `pipe` a rajouté des informations a l'objet `doc`
-
-
-- Extraction via les RegEx:
+We can have a quick look at what was extracted here:
 
 ```python
-for entite in doc.ents:
-    print(f"Label: {entite.label_} / Extraction: {entite.text} / Span: ({entite.start_char},{entite.end_char})")
-```
+def pretty_ents_printer(ents, limit=5):
 
-- Extraction des phrases:
+    headers = "{:<15} {:<20} {:<30} {:<6} {:<6} {:<6}"
+
+    print (headers.format('Text', 'Label','Span','Neg','Par','Hyp'))
+    for entite in ents[:limit]:
+        print(headers.format(entite.text,
+                             entite.label_,
+                             f"({entite.start_char},{entite.end_char})",
+                             entite._.negated,
+                             entite._.family,
+                             entite._.hypothesis))
+```
 
 ```python
-for i, sent in enumerate(doc.sents):
-    print(i, sent)
+pretty_ents_printer(doc.ents)
+```
+
+## 2. Pipeline on a few documents
+
+We will here get documents from the cluster. Depending on your acces, change the following parameters:
+
+```python
+DB_NAME = "edsomop_prod_a"
+TABLE_NAME = "orbis_note"
+NOTE_ID_COL = "note_id"
+NOTE_TEXT_COL = "note_text"
 ```
 
 ```python
-doc.ents[1].sent
+notes = sql(
+    f"""
+    SELECT
+        {NOTE_ID_COL} AS note_id,
+        {NOTE_TEXT_COL} AS note_text
+    FROM
+        {DB_NAME}.{TABLE_NAME}
+    WHERE
+        {NOTE_TEXT_COL} IS NOT NULL
+    LIMIT 100000
+    """
+).toPandas()
 ```
 
-- Extraction des  sections
-
-```python
-for section in doc._.sections:
-    print(f"Label: {section._.section_title} / Span: ({section.start_char},{section.end_char})")
-```
-
-## 2. Pipeline sur un petit nombre de documents
-
-```python
-notes = sql("select note_id, note_text, note_class_source_value from edsomop_prod_a.orbis_note limit 100000").toPandas()
-notes = notes[notes.note_text.notna()]
-```
+Let us keep 1000 documents to make a small set of notes
 
 ```python
 small_notes_subset = notes[:1000]
 ```
 
-```python
-small_notes_subset.head()
-```
-
-Les données d'entrée sont ici sous forme d'une DataFrame Pandas.
-Chaque ligne va générer un objet `Doc` qui va être processé par l'objet `nlp`.
-Pour cela, on peut utiliser la méthode `nlprocess.pipe`:
+Using the `nlprocess.pipe` method (see its documentation for more details), we can directly give the DataFrame as input.
+A SpaCy document will be created from each line.
+If entities are extracted, we will store them in a list:
 
 ```python
-help(nlprocess.pipe)
-```
-
-```python
-%%time
 ents = []
 for doc in nlprocess.pipe(nlp,
-                          big_notes_subset,
+                          small_notes_subset,
                           text_col='note_text',
-                          context_cols=['note_id','note_class_source_value'],
-                          progress_bar=True):
+                          context_cols=['note_id'],
+                          progress_bar=False):
     if len(doc.ents) > 0:
         ents.extend(list(doc.ents))
 ```
 
 ```python
-len(ents)
+pretty_ents_printer(ents, limit=15)
 ```
 
-De la même manière qu'avec un document unique, on peut facilement accéder aux extractions, ainsi qu'au éléments de contexte renseignés via l'argument `context_cols`
-
-```python
-entite = ents[0]
-
-print(f"Label: {entite.label_} / Extraction: {entite.text} / Span: ({entite.start_char},{entite.end_char})")
-print(f"note_id: {entite.doc._.note_id}")
-print(f"Type de note: {entite.doc._.note_class_source_value}")
-```
-
-## 3. Pipeline distribuée pour un grand nombre de documents
+## 3. Pipeline on many documents
 
 
-Si vous souhaitez processer un grand nombre de textes, il sera plus rapide de paralleliser le travail.
-Cependant, il vous faut pour cela définir une fonction `pick_results` qui sera appelée sur chaque objet `Doc` en bout de pipeline.
-La sortie de cette fonction doit être une liste de dictionnaires.
-Voyons un exemple:
+To go even faster, we have to **parallelize** the task.
 
-```python
-big_notes_subset = notes
-len(big_notes_subset)
-```
+For more details, check the documentation in `Tutorials - Getting faster`
+
+To sum up what changes when parallelizing:
+1. The task is broken up into multiple processes.
+2. Each process saves intermediary results on memory.
+3. At the end, those results are aggregated and returned.
+
+The step 2. imposes that the intermediary results are **serializable**, i.e. we cannot simply save the SpaCy `Doc` object.
+We need to tell the pipe what to save for each document: it is the goal of the `pick_results` function defined here:
 
 ```python
 def pick_results(doc):
@@ -184,27 +165,100 @@ def pick_results(doc):
              'lexical_variant':e.text,
              'offset_start':e.start_char,
              'offset_end':e.end_char,
-             'label':e.label_} for e in doc.ents if doc.ents]
+             'label':e.label_,
+             'negation':e._.negated,
+             'family':e._.family,
+             'hypothesis':e._.hypothesis} for e in doc.ents if doc.ents]
 ```
 
-Il suffit ensuite d'appeler la méthode `nlprocess.parallel_pipe`, qui accepte les mêmes arguments que `nlprocess.pipe` avec en plus:
-- `chunksize` (int) : Taille des batchs créés pour la perallelisation
-- `n_jobs` (int) : Nombre de jobs parallèles max.
-- `pick_results` (func) : Voir plus haut
+You can adjust this function however suits your needs the best.
+
+Finally, the method `parallel_pipe` wraps everything up:
 
 ```python
-help(nlprocess.parallel_pipe)
-```
-
-```python
-%%time
 ents = nlprocess.parallel_pipe(nlp,
-                               big_notes_subset,
+                               notes,
                                chunksize=100,
-                               n_jobs=10,
+                               n_jobs=-2,
                                context_cols='note_id',
                                progress_bar=False,
+                               return_df=True,
                                pick_results = pick_results)
 ```
 
----
+```python
+ents.head()
+```
+
+By giving the `note_id` into the `context_cols` argument, you can easily merge the results with your input DataFrame and keep on with your analysis
+
+```python
+ents = ents.merge(notes, on='note_id', how='inner')
+```
+
+## 4. Time comparison
+
+Let us compare the last 2 methods on various number of documents
+
+```python
+def process(notes, method):
+    """
+    Compare runtime between the two methods
+    """
+    n = len(notes)
+    t0 = time.time()
+
+    if method == "Single process":
+
+        results = []
+        for doc in nlprocess.pipe(nlp,
+                                  notes,
+                                  text_col='note_text',
+                                  context_cols=['note_id'],
+                                  progress_bar=False):
+            if len(doc.ents) > 0:
+                results.extend(list(doc.ents))
+
+    elif method == "Parallel":
+
+        results = nlprocess.parallel_pipe(nlp,
+                                          notes,
+                                          chunksize=100,
+                                          n_jobs=-2,
+                                          context_cols='note_id',
+                                          progress_bar=False,
+                                          return_df=True,
+                                          pick_results = pick_results)
+
+    t1 = round(time.time() - t0)
+    str_time = str(timedelta(seconds=t1))
+    speed = round(60*n/t1)
+
+    print(f"{method}: Took {str_time} for {n} documents --> Mean of {speed} docs/minute")
+```
+
+```python
+list_notes = [
+    notes[:100],
+    notes[:1000],
+    notes[:10000]
+]
+
+list_methods = [
+    "Single process", # 2. Pipeline on a few documents
+    "Parallel"  # 3. Pipeline on many documents
+]
+```
+
+```python
+for notes_subset in list_notes:
+    for method in list_methods:
+        process(notes_subset, method)
+```
+
+We can see that while the parallel method has some overhead with a few hundreds of documents, it gets way quicker with the number of inputs increasing.
+It can run on the full 100.000 documents fairly quickly:
+
+```python
+process(notes, "Parallel")
+```

@@ -29,7 +29,7 @@ class GenericMatcher(BaseComponent):
         on_ents_only: bool,
     ):
         """
-        Provides a matcher matcher component.
+        Provides a generic matcher component.
 
         Parameters
         ----------

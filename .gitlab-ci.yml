@@ -26,7 +26,7 @@ test:
       cobertura: coverage.xml
       junit: report.xml
 
-documentation:
+pages:
   script:
     - apt-get update
     - apt-get install -y pandoc

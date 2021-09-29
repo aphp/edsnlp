@@ -39,17 +39,3 @@ documentation:
       - public
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-
-test-documentation:
-  script:
-    - apt-get update
-    - apt-get install -y pandoc
-    - pip install -r requirements.txt
-    - pip install -r requirements-docs.txt
-    - cd docs ; make html
-    - mv _build/html/ ../test-doc/
-  artifacts:
-    paths:
-      - test-doc
-  rules:
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH

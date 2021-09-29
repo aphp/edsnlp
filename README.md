@@ -15,7 +15,7 @@ pip install git+https://gitlab.eds.aphp.fr/datasciencetools/edsnlp.git
 We recommand pinning the version of the library :
 
 ```
-pip install git+https://gitlab.eds.aphp.fr/datasciencetools/edsnlp.git@v0.2.0
+pip install git+https://gitlab.eds.aphp.fr/datasciencetools/edsnlp.git@v0.3.0
 ```
 
 ### Available pipelines

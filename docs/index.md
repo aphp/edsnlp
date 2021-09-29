@@ -7,7 +7,6 @@
     :caption: Getting Started
 
     getting-started/installation
-    getting-started/quickstart
     getting-started/architecture
 
 .. toctree::
@@ -26,7 +25,6 @@
     user-guide/pollution
     user-guide/sections
     user-guide/dates
-    user-guide/quickumls
     user-guide/score
 
 .. toctree::

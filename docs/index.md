@@ -66,6 +66,39 @@
 
 EDS-NLP provides a set of Spacy components that are used at AP-HP. We focus on usability and non-destructiveness.
 
+## Quick start
+
+Let us begin with a very simple example that extracts mentions of COVID in a text, and detects whether they are negated.
+
+```python
+import spacy
+
+# Load declared pipelines
+from edsnlp import components
+
+nlp = spacy.blank("fr")
+
+terms = dict(
+    covid=["covid", "coronavirus"],
+)
+
+# Matcher component
+nlp.add_pipe("matcher", config=dict(terms=terms))
+# Negation detection
+nlp.add_pipe("negation")
+
+# Process your text in one call !
+doc = nlp("Le patient est atteint de covid")
+
+doc.ents
+# Out: (covid,)
+
+doc.ents[0]._.negated
+# Out: False
+```
+
+This example is complete, it should run as-is.
+
 ## Available pipelines
 
 | Pipeline     | Description                                     |
@@ -82,29 +115,6 @@ EDS-NLP provides a set of Spacy components that are used at AP-HP. We focus on u
 | `pollution`  | Pollution detection and non-destructive removal |
 | `dates`      | Date extraction and normalization               |
 | `score`      | A simple clinical score extractor               |
-
-## Quick start
-
-The following example is complete, it should run as-is.
-
-```python
-import spacy
-
-# Load declared pipelines
-from edsnlp import components
-
-nlp = spacy.blank("fr")
-
-terms = dict(
-    covid=["covid", "coronavirus"],
-)
-
-nlp.add_pipe("matcher", config=dict(terms=terms))
-
-doc = nlp("Le patient est atteint de covid")
-doc.ents
-# Out: (covid,)
-```
 
 ## Disclaimer
 

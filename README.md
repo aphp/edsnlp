@@ -18,6 +18,39 @@ We recommand pinning the version of the library :
 pip install git+https://gitlab.eds.aphp.fr/datasciencetools/edsnlp.git@v0.3.0
 ```
 
+### Quick start
+
+Let us begin with a very simple example that extracts mentions of COVID in a text, and detects whether they are negated.
+
+```python
+import spacy
+
+# Load declared pipelines
+from edsnlp import components
+
+nlp = spacy.blank("fr")
+
+terms = dict(
+    covid=["covid", "coronavirus"],
+)
+
+# Matcher component
+nlp.add_pipe("matcher", config=dict(terms=terms))
+# Negation detection
+nlp.add_pipe("negation")
+
+# Process your text in one call !
+doc = nlp("Le patient est atteint de covid")
+
+doc.ents
+# Out: (covid,)
+
+doc.ents[0]._.negated
+# Out: False
+```
+
+This example is complete, it should run as-is. See the [documentation](https://datasciencetools-pages.eds.aphp.fr/edsnlp/) for detail.
+
 ### Available pipelines
 
 | Pipeline     | Description                                     |
@@ -34,33 +67,6 @@ pip install git+https://gitlab.eds.aphp.fr/datasciencetools/edsnlp.git@v0.3.0
 | `pollution`  | Pollution detection and non-destructive removal |
 | `dates`      | Date extraction and normalization               |
 | `score`      | A simple clinical score extractor               |
-
-Check out the [documentation](https://datasciencetools-pages.eds.aphp.fr/edsnlp/) for more detail.
-
-### Quick start
-
-The following example is complete, it should run as-is.
-
-```python
-import spacy
-
-# Load declared pipelines
-from edsnlp import components
-
-nlp = spacy.blank("fr")
-
-terms = dict(
-    covid=["covid", "coronavirus"],
-)
-
-nlp.add_pipe("matcher", config=dict(terms=terms))
-
-doc = nlp("Le patient est atteint de covid")
-doc.ents
-# Out: (covid,)
-```
-
-See the [documentation](https://datasciencetools-pages.eds.aphp.fr/edsnlp/) for detail.
 
 ## Disclaimer
 

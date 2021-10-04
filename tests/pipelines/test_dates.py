@@ -27,15 +27,28 @@ def test_parser_absolute(parser: DateDataParser):
 
 def test_parser_relative(parser: DateDataParser):
     tests = [
-        ("hier", timedelta(days=-1)),
-        ("le mois dernier", timedelta(days=-31)),
-        ("il y a trois jours", timedelta(days=-3)),
-        ("l'année dernière", timedelta(days=-365)),
+        ("hier", [timedelta(days=-1)]),
+        (
+            "le mois dernier",
+            [
+                timedelta(days=-31),
+                timedelta(days=-30),
+                timedelta(days=-29),
+                timedelta(days=-28),
+            ],
+        ),
+        ("il y a trois jours", [timedelta(days=-3)]),
+        ("l'année dernière", [timedelta(days=-365), timedelta(days=-366)]),
         # ("l'an dernier", timedelta(days=-365)),
     ]
 
-    for test, answer in tests:
-        assert parser.get_date_data(test).date_obj.date() == date.today() + answer
+    for test, answers in tests:
+        assert any(
+            [
+                parser.get_date_data(test).date_obj.date() == (date.today() + a)
+                for a in answers
+            ]
+        )
 
 
 text = (

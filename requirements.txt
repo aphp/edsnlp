@@ -2,7 +2,7 @@ loguru
 numpy
 pandas~=1.2
 rapidfuzz
-spacy
+spacy>=3.1
 spaczz
 unidecode
 mlconjug3

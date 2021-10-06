@@ -50,7 +50,8 @@ def date_getter(date: Span) -> str:
     d = date._.parsed_date
 
     if d is None:
-        return None
+        # dateparser could not interpret the date.
+        return "????-??-??"
 
     delta = date._.parsed_delta
     note_datetime = date.doc._.note_datetime
@@ -170,8 +171,12 @@ class Dates(BaseComponent):
 
         for date in dates:
             d = self.parser.get_date_data(date.text).date_obj
-            date._.parsed_date = d
-            date._.parsed_delta = d - datetime.now() + timedelta(seconds=10)
+
+            if d is None:
+                date._.parsed_date = None
+            else:
+                date._.parsed_date = d
+                date._.parsed_delta = d - datetime.now() + timedelta(seconds=10)
 
         doc.spans["dates"] = dates
 

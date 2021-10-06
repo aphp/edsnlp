@@ -38,7 +38,7 @@
 .. toctree::
     :maxdepth: 2
     :hidden:
-    :caption: API
+    :caption: List of functions
 
     api/base
     api/pipelines

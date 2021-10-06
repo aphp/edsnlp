@@ -8,6 +8,7 @@ default_config = dict(
     no_year=terms.no_year, absolute=terms.absolute, relative=terms.relative
 )
 
+
 # noinspection PyUnusedLocal
 @Language.factory("dates", default_config=default_config)
 def create_component(

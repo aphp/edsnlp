@@ -67,6 +67,24 @@ def dates(nlp):
     )
 
 
+def test_dateparser_failure_cases(blank_nlp, dates, parser: DateDataParser):
+    examples = [
+        "le 23/08/20212",
+        "le premier juillet 2021",
+        "l'an dernier",
+    ]
+
+    for example in examples:
+        assert parser.get_date_data(example).date_obj is None
+
+        doc = blank_nlp(example)
+        doc = dates(doc)
+
+        d = doc.spans["dates"][0]
+
+        assert d._.date == "????-??-??"
+
+
 def test_dates_component(blank_nlp, dates):
 
     doc = blank_nlp(text)
@@ -105,6 +123,8 @@ def test_patterns(blank_nlp, dates):
         "Le patient est venu en 2019 pour une consultation",
         "Le patient est venu en octobre 2020 pour une consultation",
         "Le patient est venu il y a trois mois pour une consultation",
+        "Le patient est venu il y a un an pour une consultation",
+        "Il lui était arrivé la même chose il y a un an.",
         "Le patient est venu le 20/09/2001 pour une consultation",
     ]
 

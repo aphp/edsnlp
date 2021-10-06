@@ -27,6 +27,7 @@ def hypothesis_factory(blank_nlp):
         fuzzy=False,
         filter_matches=True,
         attr="LOWER",
+        explain=True,
         regex=None,
         fuzzy_kwargs=None,
     )
@@ -63,6 +64,8 @@ def test_hypothesis(blank_nlp, hypothesis_factory, on_ents_only):
         for entity, ent in zip(entities, doc.ents):
 
             for modifier in entity.modifiers:
+
+                assert bool(ent._.hypothesis_cues) == (modifier.value in {"HYP", True})
 
                 assert (
                     getattr(ent._, modifier.key) == modifier.value

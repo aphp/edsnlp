@@ -43,6 +43,7 @@ class FamilyContext(GenericMatcher):
         fuzzy: Optional[bool],
         filter_matches: Optional[bool],
         attr: str,
+        explain: bool,
         on_ents_only: bool,
         regex: Optional[Dict[str, Union[List[str], str]]],
         fuzzy_kwargs: Optional[Dict[str, Any]],
@@ -80,6 +81,9 @@ class FamilyContext(GenericMatcher):
                 getter=lambda span: "FAMILY" if span._.family else "PATIENT",
             )
 
+        if not Span.has_extension("family_cues"):
+            Span.set_extension("family_cues", default=[])
+
         if not Doc.has_extension("family"):
             Doc.set_extension("family", default=[])
 
@@ -115,9 +119,12 @@ class FamilyContext(GenericMatcher):
             if self.on_ents_only and not ents:
                 continue
 
-            sub_matches = [m for m in matches if start <= m.start < end]
+            cues = [m for m in matches if start <= m.start < end]
+            cues += [s._.section_title for s in sections if doc[start] in s]
 
-            if not (sub_matches or any([doc[start] in s for s in sections])):
+            family = bool(cues)
+
+            if not family:
                 continue
 
             if not self.on_ents_only:
@@ -126,6 +133,7 @@ class FamilyContext(GenericMatcher):
 
             for ent in ents:
                 ent._.family = True
+                ent._.family_cues += cues
                 if not self.on_ents_only:
                     for token in ent:
                         token._.family = True

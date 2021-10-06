@@ -37,6 +37,7 @@ def negation_factory(blank_nlp):
         attr="LOWER",
         regex=None,
         fuzzy_kwargs=None,
+        explain=True,
     )
 
     def factory(on_ents_only, **kwargs) -> Negation:
@@ -72,12 +73,16 @@ def test_negation(blank_nlp, negation_factory, on_ents_only):
 
             for modifier in entity.modifiers:
 
+                assert bool(ent._.negation_cues) == (modifier.value in {True, "NEG"})
+
                 assert (
                     getattr(ent._, modifier.key) == modifier.value
                 ), f"{modifier.key} labels don't match."
 
                 if not on_ents_only:
                     for token in ent:
+                        if not (getattr(token._, modifier.key) == modifier.value):
+                            print()
                         assert (
                             getattr(token._, modifier.key) == modifier.value
                         ), f"{modifier.key} labels don't match."

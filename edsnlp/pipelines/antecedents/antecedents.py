@@ -52,6 +52,7 @@ class Antecedents(GenericMatcher):
         fuzzy: bool,
         filter_matches: bool,
         attr: str,
+        explain: bool,
         on_ents_only: bool,
         regex: Optional[Dict[str, Union[List[str], str]]],
         fuzzy_kwargs: Optional[Dict[str, Any]],
@@ -96,6 +97,9 @@ class Antecedents(GenericMatcher):
                 getter=antecedent_getter,
             )
 
+        if not Span.has_extension("antecedent_cues"):
+            Span.set_extension("antecedent_cues", default=[])
+
         if not Doc.has_extension("antecedents"):
             Doc.set_extension("antecedents", default=[])
 
@@ -106,6 +110,8 @@ class Antecedents(GenericMatcher):
                 "provided by the `section` pipeline, but it was not set. "
                 "Skipping that step."
             )
+
+        self.explain = explain
 
     def __call__(self, doc: Doc) -> Doc:
         """
@@ -144,11 +150,10 @@ class Antecedents(GenericMatcher):
             if self.on_ents_only and not ents:
                 continue
 
-            sub_antecedents = [m for m in antecedents if start <= m.start < end]
+            cues = [m for m in antecedents if start <= m.start < end]
+            cues += [s._.section_title for s in sections if doc[start] in s]
 
-            antecedent = bool(sub_antecedents) or any(
-                [doc[start] in s for s in sections]
-            )
+            antecedent = bool(cues)
 
             if not self.on_ents_only:
                 for token in doc[start:end]:
@@ -156,6 +161,9 @@ class Antecedents(GenericMatcher):
 
             for ent in ents:
                 ent._.antecedent = antecedent
+
+                if self.explain:
+                    ent._.antecedent_cues += cues
 
                 if not self.on_ents_only:
                     for token in ent:

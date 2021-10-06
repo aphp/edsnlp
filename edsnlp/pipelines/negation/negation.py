@@ -67,6 +67,7 @@ class Negation(GenericMatcher):
         on_ents_only: bool,
         regex: Optional[Dict[str, Union[List[str], str]]],
         fuzzy_kwargs: Optional[Dict[str, Any]],
+        explain: bool,
         **kwargs,
     ):
 
@@ -100,6 +101,9 @@ class Negation(GenericMatcher):
         if not Span.has_extension("negated"):
             Span.set_extension("negated", default=False)
 
+        if not Span.has_extension("negation_cues"):
+            Span.set_extension("negation_cues", default=[])
+
         if not Span.has_extension("polarity_"):
             Span.set_extension(
                 "polarity_",
@@ -108,6 +112,8 @@ class Negation(GenericMatcher):
 
         if not Doc.has_extension("negations"):
             Doc.set_extension("negations", default=[])
+
+        self.explain = explain
 
     def load_verbs(self, verbs: List[str]) -> List[str]:
         """
@@ -199,15 +205,19 @@ class Negation(GenericMatcher):
                         m.end <= token.i for m in sub_preceding + sub_verbs
                     ) or any(m.start > token.i for m in sub_following)
             for ent in ents:
-                negated = (
-                    ent._.negated
-                    or any(m.end <= ent.start for m in sub_preceding + sub_verbs)
-                    or any(m.start > ent.end for m in sub_following)
-                )
+
+                cues = [m for m in sub_preceding + sub_verbs if m.end <= ent.start]
+                cues += [m for m in sub_following if m.start > ent.end]
+
+                negated = ent._.negated or bool(cues)
+
                 ent._.negated = negated
 
-                if not self.on_ents_only:
+                if self.explain and negated:
+                    ent._.negation_cues += cues
+
+                if not self.on_ents_only and negated:
                     for token in ent:
-                        token._.negated = negated
+                        token._.negated = True
 
         return doc

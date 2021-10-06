@@ -30,6 +30,7 @@ def create_component(
     on_ents_only: bool = True,
     regex: Optional[Dict[str, Union[List[str], str]]] = None,
     fuzzy_kwargs: Optional[Dict[str, Any]] = None,
+    explain: bool = False,
 ):
     return Negation(
         nlp,
@@ -44,4 +45,5 @@ def create_component(
         on_ents_only=on_ents_only,
         regex=regex,
         fuzzy_kwargs=fuzzy_kwargs,
+        explain=explain,
     )

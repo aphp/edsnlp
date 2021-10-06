@@ -25,6 +25,7 @@ def antecedents_factory(blank_nlp):
         fuzzy=False,
         filter_matches=False,
         attr="LOWER",
+        explain=True,
         regex=None,
         fuzzy_kwargs=None,
     )
@@ -62,6 +63,8 @@ def test_antecedents(blank_nlp, antecedents_factory, on_ents_only, use_sections)
         for entity, ent in zip(entities, doc.ents):
 
             for modifier in entity.modifiers:
+
+                assert bool(ent._.antecedent_cues) == (modifier.value in {"ATCD", True})
 
                 assert (
                     getattr(ent._, modifier.key) == modifier.value

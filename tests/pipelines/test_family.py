@@ -2,6 +2,7 @@ from typing import List
 
 from pytest import fixture, mark
 
+from edsnlp.pipelines import terminations
 from edsnlp.pipelines.family import FamilyContext, terms
 from edsnlp.utils.examples import parse_example
 
@@ -9,6 +10,7 @@ examples: List[str] = [
     "Le père du patient a eu un <ent family_=FAMILY>cancer du colon</ent>. La mère se porte bien.",
     "Antécédents familiaux : <ent family_=FAMILY>diabète</ent>.",
     "Un <ent family_=PATIENT>relevé</ent> sanguin a été effectué.",
+    "Antécédent familiaux de diabète mais pas <ent family_=PATIENT>détecté</ent> jusqu'ici.",
 ]
 
 
@@ -17,6 +19,7 @@ def family_factory(blank_nlp):
 
     default_config = dict(
         family=terms.family,
+        termination=terminations.termination,
         fuzzy=False,
         filter_matches=False,
         attr="LOWER",

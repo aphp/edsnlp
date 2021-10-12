@@ -5,8 +5,8 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.2'
-      jupytext_version: 1.6.0
+      format_version: '1.3'
+      jupytext_version: 1.11.2
   kernelspec:
     display_name: '[2.4.3] Py3'
     language: python
@@ -45,10 +45,10 @@ a()
 ```python
 text = (
     "Le patient est admis pour des douleurs dans le bras droit. mais n'a pas de problème de locomotion. \n"
-    "Historique d'AVC dans la famille\n"
+    "Historique d'AVC dans la famille mais pas chez les voisins\n"
     "mais ne semble pas en être un\n"
     "Charlson 7.\n"
-    "Pourrait être un cas de rhume.\n"
+    "Pourrait être un cas de rhume du fait d'un hiver rigoureux.\n"
     "Motif :\n"
     "Douleurs dans le bras droit."
 )
@@ -56,9 +56,39 @@ text = (
 
 ```python
 nlp = spacy.blank('fr')
-nlp.add_pipe('sentences')
+nlp.add_pipe('sentencizer')
+# nlp.add_pipe('sentences')
+nlp.add_pipe('matcher', config=dict(terms=dict(tabac=['Tabac'])))
 nlp.add_pipe('normalizer')
+nlp.add_pipe('hypothesis')
+nlp.add_pipe('family', config=dict(on_ents_only=False))
 #nlp.add_pipe('charlson')
+```
+
+```python
+text = "Tabac:\n"
+```
+
+```python
+doc = nlp(text)
+```
+
+```python
+print([(token.text, token._.hypothesis_) for token in doc if token._.hypothesis==True])
+```
+
+```python
+doc.ents[0].end
+```
+
+```python
+from edsnlp.utils.inclusion import check_inclusion
+ents = [ent for ent in doc.ents if check_inclusion(ent, 0, 2)]
+ents
+```
+
+```python
+print([(ent.text, ent.start, ent.end) for ent in doc.ents])
 ```
 
 ```python

@@ -4,6 +4,7 @@ from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
 
 from edsnlp.pipelines.matcher import GenericMatcher
+from edsnlp.utils.filter_matches import _filter_matches
 from edsnlp.utils.inclusion import check_inclusion
 
 
@@ -40,6 +41,7 @@ class FamilyContext(GenericMatcher):
         self,
         nlp: Language,
         family: List[str],
+        termination: List[str],
         fuzzy: Optional[bool],
         filter_matches: Optional[bool],
         attr: str,
@@ -53,7 +55,10 @@ class FamilyContext(GenericMatcher):
 
         super().__init__(
             nlp,
-            terms=dict(family=family),
+            terms=dict(
+                family=family,
+                termination=termination,
+            ),
             fuzzy=fuzzy,
             filter_matches=filter_matches,
             attr=attr,
@@ -102,7 +107,10 @@ class FamilyContext(GenericMatcher):
         doc: spaCy Doc object, annotated for context
         """
         matches = self.process(doc)
-        boundaries = self._boundaries(doc)
+
+        terminations = _filter_matches(matches, "termination")
+
+        boundaries = self._boundaries(doc, terminations)
 
         sections = []
 
@@ -113,13 +121,19 @@ class FamilyContext(GenericMatcher):
                 if section.label_ == "antécédents familiaux"
             ]
 
+        true_matches = [match for match in matches if match.label_ != "termination"]
+
         for start, end in boundaries:
+
             ents = [ent for ent in doc.ents if check_inclusion(ent, start, end)]
 
             if self.on_ents_only and not ents:
                 continue
 
-            cues = [m for m in matches if start <= m.start < end]
+            cues = [
+                m for m in matches if ((start <= m.start < end) and (m in true_matches))
+            ]
+
             cues += [s._.section_title for s in sections if doc[start] in s]
 
             family = bool(cues)

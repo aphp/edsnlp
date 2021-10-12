@@ -2,6 +2,7 @@ from typing import List
 
 from pytest import fixture, mark
 
+from edsnlp.pipelines import terminations
 from edsnlp.pipelines.hypothesis import Hypothesis, terms
 from edsnlp.utils.examples import parse_example
 
@@ -10,6 +11,8 @@ examples: List[str] = [
     "même si <ent hypothesis=False>le patient est jeune</ent>.",
     "Suspicion de <ent hypothesis_=HYP>diabète</ent>.",
     "Le ligament est <ent hypothesis_=CERT>rompu</ent>.",
+    "Probablement du diabète mais pas de <ent hypothesis_=CERT>cécité</ent>.",
+    "<ent hypothesis_=HYP>Tabac</ent> :\n",
 ]
 
 
@@ -21,6 +24,7 @@ def hypothesis_factory(blank_nlp):
         confirmation=terms.confirmation,
         preceding=terms.preceding,
         following=terms.following,
+        termination=terminations.termination,
         verbs_hyp=terms.verbs_hyp,
         verbs_eds=terms.verbs_eds,
         fuzzy=False,

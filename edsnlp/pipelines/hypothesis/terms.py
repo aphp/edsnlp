@@ -97,6 +97,8 @@ following: List[str] = [
     "potentiels",
     "probable",
     "probables",
+    ": \n",
+    ":\n",
 ]
 
 verbs_hyp: List[str] = [

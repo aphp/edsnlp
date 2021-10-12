@@ -3,12 +3,14 @@ from typing import Any, Dict, List, Optional, Union
 from spacy.language import Language
 
 from edsnlp.pipelines.hypothesis import Hypothesis, terms
+from edsnlp.pipelines.terminations import termination
 
 hypothesis_default_config = dict(
     pseudo=terms.pseudo,
     confirmation=terms.confirmation,
     preceding=terms.preceding,
     following=terms.following,
+    termination=termination,
     verbs_hyp=terms.verbs_hyp,
     verbs_eds=terms.verbs_eds,
 )
@@ -22,6 +24,7 @@ def create_component(
     confirmation: List[str],
     preceding: List[str],
     following: List[str],
+    termination: List[str],
     verbs_hyp: List[str],
     verbs_eds: List[str],
     fuzzy: bool = False,
@@ -38,6 +41,7 @@ def create_component(
         confirmation=confirmation,
         preceding=preceding,
         following=following,
+        termination=termination,
         verbs_hyp=verbs_hyp,
         verbs_eds=verbs_eds,
         fuzzy=fuzzy,

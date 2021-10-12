@@ -1,4 +1,4 @@
-from spacy.tokens import Token, Doc
+from spacy.tokens import Doc, Token
 from unidecode import unidecode
 
 if not Token.has_extension("ascii_"):

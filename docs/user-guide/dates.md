@@ -7,7 +7,6 @@ for the normalisation.
 ```{eval-rst}
 .. warning::
     The ``dates`` pipeline is still in active development and has not been rigorously validated.
-
     If you come across a date expression that goes undetected, please file an issue !
 ```
 

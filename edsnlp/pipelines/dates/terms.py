@@ -1,5 +1,10 @@
 from typing import List
 
+
+def add_break(patterns: List[str]):
+    return [r"\b" + pattern + r"\b" for pattern in patterns]
+
+
 months: List[str] = [
     r"[jJ]anvier",
     r"[jJ]anv\.?",
@@ -25,7 +30,7 @@ months: List[str] = [
 month_pattern = "(?:" + "|".join(months) + ")"
 
 days: List[str] = [
-    "premier",
+    r"(?:premier|1\s*er)",
     "deux",
     "trois",
     "quatre",
@@ -60,33 +65,53 @@ days: List[str] = [
 day_pattern = "(?:" + "|".join(days) + ")"
 
 numeric_dates: List[str] = [
-    r"[0123]?\d[\/\.\-\s][01]?\d[\/\.\-\s](?:19\d\d|20[012]\d|\d\d)",
-    r"(?:19\d\d|20[012]\d|\d\d)[\/\.\-\s][01]?\d[\/\.\-\s][0123]?\d",
+    r"(?<!\d)(?:3[01]|[12][0-9]|0?[1-9]|1er)[\/\.\-\s][01]?\d[\/\.\-\s](?:19\d\d|20[012]\d|\d\d)",
+]
+
+full_dates: List[str] = [
+    r"(?:19\d\d|20[012]\d)[\/\.\-\s][01]?\d[\/\.\-\s](?:3[01]|[12][0-9]|0?[1-9])",
 ]
 
 text_dates: List[str] = [
-    r"(?:depuis|en)\s*" + month_pattern + r"?\s+(?:19\d\d|20[012]\d|\d\d)",
-    r"[0123]?\d\d+\s*" + month_pattern + r"\s+(?:19\d\d|20[012]\d|\d\d)",
+    r"(?:depuis|en)\s+" + month_pattern + r"?\s+(?:19\d\d|20[012]\d|\d\d)",
+    r"(?<!\d)(?:3[01]|[12][0-9]|0?[1-9]|1er)\s*"
+    + month_pattern
+    + r"\s+(?:19\d\d|20[012]\d|\d\d)",
     day_pattern + r"\s+" + month_pattern + r"\s+(?:19\d\d|20[012]\d|\d\d)",
 ]
 
 unknown_year: List[str] = [
-    r"[0123]?\d[\/\.\-\s][01]\d",
+    r"(?<!\d)(?:3[01]|[12][0-9]|0?[1-9]|1er)[\/\.\-\s][01]?\d",
     r"(?:depuis|en)\s+" + month_pattern,
-    r"[0123]?\d\s*" + month_pattern,
+    r"(?<!\d)(?:3[01]|[12][0-9]|0?[1-9]|1er)\s*" + month_pattern,
     day_pattern + r"\s+" + month_pattern,
 ]
 
+year_only: List[str] = [
+    r"(?:depuis|en|d[ée]but|fin)\s+(?:19\d\d|20[012]\d|\d\d)",
+    r"(?:depuis|en|d[ée]but|fin)\s+(?:d'|de\s+l')ann[ée]\s+(?:19\d\d|20[012]\d|\d\d)",
+]
+
 relative_expressions: List[str] = [
-    r"(?:avant\-)?hier",
-    r"(?:apr[èe]s )?demain",
-    r"l['ae] ?(?:semaine|année|an|mois) derni[èe]re?",
-    r"l['ae] ?(?:semaine|année|an|mois) prochaine?",
+    r"(?:avant[-\s])?hier",
+    r"(?:apr[èe]s[-\s])?demain",
+    r"l['ae]\s*(?:semaine|année|an|mois) derni[èe]re?",
+    r"l['ae]\s*(?:semaine|année|an|mois) prochaine?",
     r"il y a .{,10} (?:heures?|jours?|mois|ann[ée]es?|ans?)",
     r"depuis .{,10} (?:heures?|jours?|mois|ann[ée]es?|ans?)",
     r"dans .{,10} (?:heures?|jours?|mois|ann[ée]es?|ans?)",
 ]
 
-no_year = "|".join(unknown_year)
-absolute = "|".join(numeric_dates + text_dates)
-relative = "|".join(relative_expressions)
+hours: str = r"\d?\d[h:]\d\d"
+
+no_year = "|".join(add_break(unknown_year))
+absolute = "|".join(add_break(numeric_dates + text_dates + year_only))
+relative = "|".join(add_break(relative_expressions))
+
+no_year = r"(?:" + no_year + r")(?:\s+" + hours + ")?"
+absolute = r"(?:" + absolute + r")(?:\s+" + hours + ")?"
+relative = r"(?:" + relative + r")(?:\s+" + hours + ")?"
+
+full_date = "|".join(add_break(full_dates))
+
+false_positives = r"(?:\d\d[\s\.\/\-]?){4,}"

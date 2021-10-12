@@ -1,16 +1,14 @@
-from typing import List, Union
-from dateparser import DateDataParser
-from spacy.language import Language
-from spacy.tokens import Span, Doc
-
-from spacy.util import filter_spans
-
+import re
 from datetime import datetime, timedelta
+from typing import List, Optional, Union
 
-from loguru import logger
-
+from dateparser import DateDataParser
 from edsnlp.base import BaseComponent
 from edsnlp.matchers.regex import RegexMatcher
+from loguru import logger
+from spacy.language import Language
+from spacy.tokens import Doc, Span
+from spacy.util import filter_spans
 
 
 def td2str(td: timedelta):
@@ -56,7 +54,7 @@ def date_getter(date: Span) -> str:
     delta = date._.parsed_delta
     note_datetime = date.doc._.note_datetime
 
-    if date.label_ == "absolute":
+    if date.label_ in {"absolute", "full_date"}:
         normalized = d.strftime("%Y-%m-%d")
     elif date.label_ == "no_year":
         if note_datetime:
@@ -86,6 +84,8 @@ class Dates(BaseComponent):
         Language pipeline object
     absolute: List[str]
         List of regular expressions for absolute dates.
+    full_date: List[str]
+        List of regular expressions for full dates in YYYY-MM-DD format.
     relative: List[str]
         List of regular expressions for relative dates.
     no_year: List[str]
@@ -97,8 +97,10 @@ class Dates(BaseComponent):
         self,
         nlp: Language,
         absolute: Union[List[str], str],
+        full_date: Union[List[str], str],
         relative: Union[List[str], str],
         no_year: Union[List[str], str],
+        false_positive: Union[List[str], str],
     ):
 
         logger.warning("``dates`` pipeline is still in beta.")
@@ -111,11 +113,17 @@ class Dates(BaseComponent):
             relative = [relative]
         if isinstance(no_year, str):
             no_year = [no_year]
+        if isinstance(full_date, str):
+            full_date = [full_date]
+        if isinstance(false_positive, str):
+            false_positive = [false_positive]
 
-        self.matcher = RegexMatcher(attr="LOWER")
+        self.matcher = RegexMatcher(attr="LOWER", alignment_mode="contract")
         self.matcher.add("absolute", absolute)
+        self.matcher.add("full_date", full_date)
         self.matcher.add("relative", relative)
         self.matcher.add("no_year", no_year)
+        self.matcher.add("false_positive", false_positive)
 
         self.parser = DateDataParser(languages=["fr"])
 
@@ -149,8 +157,34 @@ class Dates(BaseComponent):
         dates = self.matcher(doc)
 
         dates = filter_spans(dates)
+        dates = [date for date in dates if date.label_ != "false_positive"]
 
         return dates
+
+    def get_date(self, date: Span) -> Optional[datetime]:
+        """
+        Get normalised date using ``dateparser``.
+
+        Parameters
+        ----------
+        date : Span
+            Date span.
+
+        Returns
+        -------
+        Optional[datetime]
+            If a date is recognised, returns a Python ``datetime`` object. Returns ``None`` otherwise.
+        """
+
+        text_date = date.text
+
+        if date.label_ == "full_date":
+            text_date = re.sub(r"[\.\/\s]", "-", text_date)
+
+            return datetime.strptime(text_date, "%Y-%m-%d")
+        else:
+            text_date = re.sub(r"\.", "-", text_date)
+            return self.parser.get_date_data(text_date).date_obj
 
     # noinspection PyProtectedMember
     def __call__(self, doc: Doc) -> Doc:
@@ -170,7 +204,7 @@ class Dates(BaseComponent):
         dates = self.process(doc)
 
         for date in dates:
-            d = self.parser.get_date_data(date.text).date_obj
+            d = self.get_date(date)
 
             if d is None:
                 date._.parsed_date = None

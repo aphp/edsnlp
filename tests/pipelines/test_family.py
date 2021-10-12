@@ -1,9 +1,9 @@
 from typing import List
-from edsnlp.utils.examples import parse_example
 
 from pytest import fixture, mark
 
 from edsnlp.pipelines.family import FamilyContext, terms
+from edsnlp.utils.examples import parse_example
 
 examples: List[str] = [
     "Le père du patient a eu un <ent family_=FAMILY>cancer du colon</ent>. La mère se porte bien.",

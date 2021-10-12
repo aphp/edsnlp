@@ -1,7 +1,6 @@
-from typing import List, Dict, Optional, Any, Union
+from typing import Any, Dict, List, Optional, Union
 
 from loguru import logger
-
 from spacy.language import Language
 from spacy.matcher import PhraseMatcher
 from spacy.tokens import Doc, Span
@@ -9,7 +8,6 @@ from spaczz.matcher import FuzzyMatcher
 
 from edsnlp.base import BaseComponent
 from edsnlp.matchers.regex import RegexMatcher
-
 from edsnlp.utils.filter import filter_spans
 
 TERM_ATTR = "term_attr"

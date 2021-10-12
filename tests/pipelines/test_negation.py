@@ -1,10 +1,10 @@
 from typing import List
-from edsnlp.utils.examples import parse_example
-
-from edsnlp.pipelines.negation import terms, Negation
-from edsnlp.pipelines import terminations
 
 from pytest import fixture, mark
+
+from edsnlp.pipelines import terminations
+from edsnlp.pipelines.negation import Negation, terms
+from edsnlp.utils.examples import parse_example
 
 negation_examples: List[str] = [
     "Absence d'<ent negated=true>image osseuse d'allure évolutive</ent>.",

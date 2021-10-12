@@ -1,7 +1,7 @@
-import pandas as pd
-from typing import List, Union, Dict
+from typing import Dict, List, Union
 
 import mlconjug3
+import pandas as pd
 
 
 def conjugate_verb(

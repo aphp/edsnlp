@@ -1,11 +1,10 @@
-from typing import List, Union, Optional, Dict, Any
-
-from edsnlp.pipelines.matcher import GenericMatcher
-from spacy.language import Language
-from spacy.tokens import Token, Span, Doc
+from typing import Any, Dict, List, Optional, Union
 
 from loguru import logger
+from spacy.language import Language
+from spacy.tokens import Doc, Span, Token
 
+from edsnlp.pipelines.matcher import GenericMatcher
 from edsnlp.utils.filter_matches import _filter_matches
 from edsnlp.utils.inclusion import check_inclusion
 

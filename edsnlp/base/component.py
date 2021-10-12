@@ -2,10 +2,9 @@ from typing import List, Optional, Tuple
 
 import pandas as pd
 from spacy.tokens import Doc, Span
+from spacy.util import filter_spans
 
 from edsnlp.conjugator import conjugate
-
-from spacy.util import filter_spans
 
 
 class BaseComponent(object):

@@ -1,9 +1,9 @@
 from typing import List
-from edsnlp.utils.examples import parse_example
-
-from edsnlp.pipelines.sections import terms, Sections
 
 from pytest import fixture, mark
+
+from edsnlp.pipelines.sections import Sections, terms
+from edsnlp.utils.examples import parse_example
 
 sections_text = (
     "Le patient est admis pour des douleurs dans le bras droit, mais n'a pas de problème de locomotion. "

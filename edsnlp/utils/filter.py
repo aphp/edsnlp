@@ -1,5 +1,6 @@
-from spacy.tokens import Span
 from typing import Iterable, List, Tuple
+
+from spacy.tokens import Span
 
 
 def get_sort_key(span: Span) -> Tuple[int, int]:

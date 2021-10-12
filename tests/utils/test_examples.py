@@ -1,5 +1,4 @@
-from edsnlp.utils.examples import parse_match, parse_example, find_matches
-
+from edsnlp.utils.examples import find_matches, parse_example, parse_match
 
 example = (
     "Le <ent int_value=1 float_value=.3>patient</ent> "

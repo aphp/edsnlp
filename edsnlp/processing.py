@@ -1,13 +1,11 @@
-from tqdm import tqdm
-from typing import List, Union, Any, Callable
+from typing import Any, Callable, List, Union
 
 import pandas as pd
-
 import spacy
+from joblib import Parallel, delayed
 from spacy import Language
 from spacy.tokens import Doc
-
-from joblib import Parallel, delayed
+from tqdm import tqdm
 
 nlp = spacy.blank("fr")
 

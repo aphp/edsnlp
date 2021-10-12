@@ -1,7 +1,7 @@
 import spacy
+from spacy.pipeline.sentencizer import Sentencizer
 
 from edsnlp.pipelines.sentences import SentenceSegmenter, terms
-from spacy.pipeline.sentencizer import Sentencizer
 
 text = (
     "Le patient est admis pour des douleurs dans le bras droit. mais n'a pas de problème de locomotion. \n"

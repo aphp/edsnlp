@@ -1,13 +1,12 @@
-from edsnlp.pipelines.normalizer.normalizer import (
-    Normalizer,
-    replace,
-    accents,
-    quotes_and_apostrophes,
-)
+from pytest import fixture
 
 import edsnlp.components
-
-from pytest import fixture
+from edsnlp.pipelines.normalizer.normalizer import (
+    Normalizer,
+    accents,
+    quotes_and_apostrophes,
+    replace,
+)
 
 
 @fixture

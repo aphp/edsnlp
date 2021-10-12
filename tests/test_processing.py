@@ -1,6 +1,6 @@
-from edsnlp.processing import pipe, parallel_pipe
-
 import pytest
+
+from edsnlp.processing import parallel_pipe, pipe
 
 
 def test_pipeline_methods(nlp, df_notes):

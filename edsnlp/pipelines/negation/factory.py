@@ -1,10 +1,9 @@
-from typing import Dict, Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from spacy.language import Language
 
 from edsnlp.pipelines.negation import Negation, terms
 from edsnlp.pipelines.terminations import termination
-
 
 negation_default_config = dict(
     pseudo=terms.pseudo,

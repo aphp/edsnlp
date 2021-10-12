@@ -1,5 +1,6 @@
-from edsnlp.pipelines.matcher import GenericMatcher
 from pytest import fixture, mark
+
+from edsnlp.pipelines.matcher import GenericMatcher
 
 
 @fixture

@@ -1,5 +1,6 @@
-from edsnlp.conjugator import conjugate_verb, conjugate, get_conjugated_verbs
 from mlconjug3 import Conjugator
+
+from edsnlp.conjugator import conjugate, conjugate_verb, get_conjugated_verbs
 
 
 def test_conjugate_verb():

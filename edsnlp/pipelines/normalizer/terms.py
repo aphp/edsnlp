@@ -1,6 +1,5 @@
 from typing import List, Tuple
 
-
 # Source : https://util.unicode.org/UnicodeJsps/character.jsp?a=02EE
 quotes: List[str] = [
     "＂",

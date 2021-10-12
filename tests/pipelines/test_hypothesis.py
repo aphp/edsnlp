@@ -1,10 +1,9 @@
 from typing import List
-from edsnlp.utils.examples import parse_example
-
-from edsnlp.pipelines.hypothesis import Hypothesis, terms
 
 from pytest import fixture, mark
 
+from edsnlp.pipelines.hypothesis import Hypothesis, terms
+from edsnlp.utils.examples import parse_example
 
 examples: List[str] = [
     "Plusieurs <ent hypothesis_=HYP>diagnostics</ent> sont envisagés. Le patient est informé.",

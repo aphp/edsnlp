@@ -1,9 +1,9 @@
 from typing import List
-from edsnlp.utils.examples import parse_example
 
 from pytest import fixture, mark
 
 from edsnlp.pipelines.rspeech import ReportedSpeech, terms
+from edsnlp.utils.examples import parse_example
 
 examples: List[str] = [
     """Pas de critique de sa TS de nov 2020 "je <ent reported_speech_=REPORTED>regrette</ent> d'avoir raté".""",

@@ -1,10 +1,10 @@
 from typing import List
-from edsnlp.utils.examples import parse_example
 
 from pytest import fixture, mark
 
-from edsnlp.pipelines.antecedents import Antecedents, terms
 from edsnlp.pipelines import terminations
+from edsnlp.pipelines.antecedents import Antecedents, terms
+from edsnlp.utils.examples import parse_example
 
 examples: List[str] = [
     "Antécédents d'<ent antecedent_=ATCD>AVC</ent>.",

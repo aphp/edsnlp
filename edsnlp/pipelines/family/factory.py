@@ -3,8 +3,9 @@ from typing import Any, Dict, List, Optional, Union
 from spacy.language import Language
 
 from edsnlp.pipelines.family import FamilyContext, terms
+from edsnlp.pipelines.terminations import termination
 
-family_default_config = dict(family=terms.family)
+family_default_config = dict(family=terms.family, termination=termination)
 
 
 @Language.factory("family", default_config=family_default_config)
@@ -12,6 +13,7 @@ def create_component(
     nlp: Language,
     name: str,
     family: List[str],
+    termination: List[str],
     fuzzy: bool = False,
     filter_matches: bool = False,
     attr: str = "LOWER",
@@ -23,6 +25,7 @@ def create_component(
     return FamilyContext(
         nlp,
         family=family,
+        termination=termination,
         fuzzy=fuzzy,
         filter_matches=filter_matches,
         attr=attr,

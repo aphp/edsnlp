@@ -58,6 +58,7 @@ class Hypothesis(GenericMatcher):
         confirmation: List[str],
         preceding: List[str],
         following: List[str],
+        termination: List[str],
         verbs_hyp: List[str],
         verbs_eds: List[str],
         fuzzy: bool,
@@ -77,6 +78,7 @@ class Hypothesis(GenericMatcher):
                 confirmation=confirmation,
                 preceding=preceding,
                 following=following,
+                termination=termination,
                 verbs=self.load_verbs(verbs_hyp, verbs_eds),
             ),
             fuzzy=fuzzy,
@@ -150,18 +152,20 @@ class Hypothesis(GenericMatcher):
         """
 
         matches = self.process(doc)
-        boundaries = self._boundaries(doc)
 
         # confirmation = _filter_matches(matches, "confirmation")
+        terminations = _filter_matches(matches, "termination")
         pseudo = _filter_matches(matches, "pseudo")
         preceding = _filter_matches(matches, "preceding")
         following = _filter_matches(matches, "following")
         verbs = _filter_matches(matches, "verbs")
 
+        boundaries = self._boundaries(doc, terminations)
+
         true_matches = []
 
         for match in matches:
-            if match.label_ in {"pseudo", "confirmation"}:
+            if match.label_ in {"pseudo", "termination"}:
                 continue
             pseudo_flag = False
             for p in pseudo:
@@ -202,7 +206,7 @@ class Hypothesis(GenericMatcher):
             for ent in ents:
 
                 cues = [m for m in sub_preceding + sub_verbs if m.end <= ent.start]
-                cues += [m for m in sub_following if m.start > ent.end]
+                cues += [m for m in sub_following if m.start >= ent.end]
 
                 hypothesis = ent._.hypothesis or bool(cues)
 

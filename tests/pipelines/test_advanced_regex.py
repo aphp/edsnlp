@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from typing import List
-from edsnlp.utils.examples import parse_example
 
-from edsnlp.pipelines.normalizer.normalizer import Normalizer
 from edsnlp.pipelines.advanced import AdvancedRegex
+from edsnlp.pipelines.normalizer.normalizer import Normalizer
+from edsnlp.utils.examples import parse_example
 
 example = """
 Faible fracture du pied.

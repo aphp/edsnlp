@@ -1,6 +1,6 @@
-from edsnlp.utils.filter import filter_spans
-
 from spacy.tokens import Doc
+
+from edsnlp.utils.filter import filter_spans
 
 
 def test_filter_spans(doc: Doc):

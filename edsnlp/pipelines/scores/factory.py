@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Optional, Callable, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from spacy.language import Language
 

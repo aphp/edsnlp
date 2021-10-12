@@ -5,7 +5,6 @@ from spacy.language import Language
 from . import SentenceSegmenter
 from .terms import punctuation
 
-
 default_config = dict(punct_chars=punctuation)
 
 

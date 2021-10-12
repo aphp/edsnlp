@@ -1,4 +1,5 @@
 from typing import Union
+
 import spacy
 
 regex = [r"charlson"]

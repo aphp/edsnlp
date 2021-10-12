@@ -1,11 +1,10 @@
-import spacy
-from pytest import fixture
-
-import pandas as pd
-
 from datetime import datetime
 
 import context
+import pandas as pd
+import spacy
+from pytest import fixture
+
 import edsnlp.components
 
 

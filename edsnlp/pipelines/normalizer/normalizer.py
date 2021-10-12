@@ -1,7 +1,8 @@
+from typing import List, Tuple
+
 from spacy.tokens import Doc, Span
 
-from .terms import quotes_and_apostrophes, accents
-from typing import List, Tuple
+from .terms import accents, quotes_and_apostrophes
 
 
 def _get_span_norm(span: Span):

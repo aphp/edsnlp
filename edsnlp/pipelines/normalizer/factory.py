@@ -2,6 +2,7 @@ from spacy.language import Language
 
 from edsnlp.pipelines.normalizer import Normalizer
 
+
 # noinspection PyUnusedLocal
 @Language.factory("normalizer")
 def create_component(

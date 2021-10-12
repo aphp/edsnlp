@@ -1,11 +1,8 @@
-from typing import List, Dict, Any
-
 import re
+from typing import Any, Dict, List
 
 from loguru import logger
-
 from spacy.language import Language
-
 from spacy.tokens import Doc, Span
 
 from edsnlp.pipelines.matcher import GenericMatcher

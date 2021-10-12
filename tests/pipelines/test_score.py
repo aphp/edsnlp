@@ -3,11 +3,10 @@ from typing import List
 
 import spacy
 
-from edsnlp.utils.examples import parse_example
-
 from edsnlp.pipelines.normalizer.normalizer import Normalizer
 from edsnlp.pipelines.scores import Score
 from edsnlp.pipelines.scores.charlson import terms
+from edsnlp.utils.examples import parse_example
 
 example = """
 CR-REA.

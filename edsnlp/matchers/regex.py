@@ -1,8 +1,8 @@
 import re
-from typing import List, Union, Optional
+from typing import List, Optional, Union
 
 from loguru import logger
-from spacy.tokens import Span, Doc
+from spacy.tokens import Doc, Span
 
 
 class RegexMatcher(object):

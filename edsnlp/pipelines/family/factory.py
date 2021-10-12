@@ -1,9 +1,8 @@
-from typing import Dict, Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from spacy.language import Language
 
 from edsnlp.pipelines.family import FamilyContext, terms
-
 
 family_default_config = dict(family=terms.family)
 

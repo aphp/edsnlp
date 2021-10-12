@@ -1,12 +1,12 @@
-from typing import List, Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 from spacy.language import Language
-from spacy.tokens import Token, Span, Doc
+from spacy.tokens import Doc, Span, Token
 
 from edsnlp.base import BaseComponent
-from edsnlp.pipelines.pollution import terms
 from edsnlp.matchers.regex import RegexMatcher
+from edsnlp.pipelines.pollution import terms
 
 
 # noinspection PyProtectedMember

@@ -1,9 +1,8 @@
-from typing import Dict, Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from spacy.language import Language
 
 from edsnlp.pipelines.hypothesis import Hypothesis, terms
-
 
 hypothesis_default_config = dict(
     pseudo=terms.pseudo,

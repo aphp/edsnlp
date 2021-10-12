@@ -1,17 +1,14 @@
-from edsnlp.utils.brat import BratConnector
-import pytest
-
-from os.path import join
+import filecmp
+import re
 from os import listdir
+from os.path import join
+from random import choice, randint, random
+from string import ascii_letters, ascii_lowercase
 
+import pytest
 from spacy.language import Language
 
-import re
-
-import filecmp
-
-from random import randint, choice, random
-from string import ascii_letters, ascii_lowercase
+from edsnlp.utils.brat import BratConnector
 
 
 def random_word():

@@ -1,17 +1,12 @@
 import os
-
-from typing import Tuple, List, Union
+from typing import List, Tuple, Union
 
 import pandas as pd
-
+from joblib import Parallel, delayed
 from loguru import logger
-
 from spacy import Language
 from spacy.tokens import Doc
 from spacy.util import filter_spans
-
-from joblib import Parallel, delayed
-
 from tqdm import tqdm
 
 

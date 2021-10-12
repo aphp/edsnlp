@@ -1,5 +1,5 @@
 import re
-from typing import List, Union, Tuple
+from typing import List, Tuple, Union
 
 from pydantic import BaseModel
 

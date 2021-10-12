@@ -1,17 +1,15 @@
-from typing import List, Dict, Optional, Any, Union, Callable
+import importlib.util
+import json
+import os
+import pathlib
+import re
 from collections import defaultdict
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import pandas as pd
-
-import re
-import json
-import pathlib
-import os
-import importlib.util
-
+from spacy import registry
 from spacy.language import Language
 from spacy.tokens import Doc, Span
-from spacy import registry
 
 from edsnlp.pipelines.advanced import AdvancedRegex
 from edsnlp.utils.filter import filter_spans

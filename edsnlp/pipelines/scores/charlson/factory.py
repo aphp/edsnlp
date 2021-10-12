@@ -1,4 +1,4 @@
-from typing import Any, List, Callable, Union
+from typing import Any, Callable, List, Union
 
 from spacy.language import Language
 

@@ -2,8 +2,10 @@ from typing import Any, Dict, List, Optional, Union
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
+from spacy.util import filter_spans
 
 from edsnlp.pipelines.matcher import GenericMatcher
+from edsnlp.utils.filter import consume_spans
 from edsnlp.utils.filter_matches import _filter_matches
 from edsnlp.utils.inclusion import check_inclusion
 
@@ -56,8 +58,8 @@ class FamilyContext(GenericMatcher):
         super().__init__(
             nlp,
             terms=dict(
-                family=family,
                 termination=termination,
+                family=family,
             ),
             fuzzy=fuzzy,
             filter_matches=filter_matches,
@@ -109,8 +111,13 @@ class FamilyContext(GenericMatcher):
         matches = self.process(doc)
 
         terminations = _filter_matches(matches, "termination")
-
         boundaries = self._boundaries(doc, terminations)
+
+        # Removes duplicate matches and pseudo-expressions in one statement
+        matches = filter_spans(matches)
+
+        entities = list(doc.ents)
+        ents = None
 
         sections = []
 
@@ -121,20 +128,28 @@ class FamilyContext(GenericMatcher):
                 if section.label_ == "antécédents familiaux"
             ]
 
-        true_matches = [match for match in matches if match.label_ != "termination"]
-
         for start, end in boundaries:
 
-            ents = [ent for ent in doc.ents if check_inclusion(ent, start, end)]
+            ents, entities = consume_spans(
+                entities,
+                filter=lambda s: check_inclusion(s, start, end),
+                second_chance=ents,
+            )
+
+            sub_matches, matches = consume_spans(
+                matches, lambda s: start <= s.start < end
+            )
+
+            sub_sections, sections = consume_spans(sections, lambda s: doc[start] in s)
 
             if self.on_ents_only and not ents:
                 continue
 
-            cues = [
-                m for m in matches if ((start <= m.start < end) and (m in true_matches))
-            ]
+            cues = _filter_matches(sub_matches, "family")
+            cues += sub_sections
 
-            cues += [s._.section_title for s in sections if doc[start] in s]
+            if not cues:
+                continue
 
             family = bool(cues)
 

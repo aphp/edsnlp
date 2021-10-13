@@ -3,8 +3,10 @@ from typing import Any, Dict, List, Optional, Union
 from loguru import logger
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
+from spacy.util import filter_spans
 
 from edsnlp.pipelines.matcher import GenericMatcher
+from edsnlp.utils.filter import consume_spans
 from edsnlp.utils.filter_matches import _filter_matches
 from edsnlp.utils.inclusion import check_inclusion
 
@@ -60,7 +62,10 @@ class Antecedents(GenericMatcher):
 
         super().__init__(
             nlp,
-            terms=dict(antecedent=antecedents, termination=termination),
+            terms=dict(
+                termination=termination,
+                antecedent=antecedents,
+            ),
             fuzzy=fuzzy,
             filter_matches=filter_matches,
             attr=attr,
@@ -130,9 +135,13 @@ class Antecedents(GenericMatcher):
         matches = self.process(doc)
 
         terminations = _filter_matches(matches, "termination")
-        antecedents = _filter_matches(matches, "antecedent")
+        boundaries = self._boundaries(doc, terminations)
 
-        boundaries = self._boundaries(doc, terminations=terminations)
+        # Removes duplicate matches and pseudo-expressions in one statement
+        matches = filter_spans(matches)
+
+        entities = list(doc.ents)
+        ents = None
 
         sections = []
 
@@ -144,13 +153,23 @@ class Antecedents(GenericMatcher):
             ]
 
         for start, end in boundaries:
-            ents = [ent for ent in doc.ents if check_inclusion(ent, start, end)]
+            ents, entities = consume_spans(
+                entities,
+                filter=lambda s: check_inclusion(s, start, end),
+                second_chance=ents,
+            )
+
+            sub_matches, matches = consume_spans(
+                matches, lambda s: start <= s.start < end
+            )
+
+            sub_sections, sections = consume_spans(sections, lambda s: doc[start] in s)
 
             if self.on_ents_only and not ents:
                 continue
 
-            cues = [m for m in antecedents if start <= m.start < end]
-            cues += [s._.section_title for s in sections if doc[start] in s]
+            cues = _filter_matches(sub_matches, "antecedent")
+            cues += sub_sections
 
             antecedent = bool(cues)
 
@@ -159,13 +178,13 @@ class Antecedents(GenericMatcher):
                     token._.antecedent = antecedent
 
             for ent in ents:
-                ent._.antecedent = antecedent
+                ent._.antecedent = ent._.antecedent or antecedent
 
                 if self.explain:
                     ent._.antecedent_cues += cues
 
-                if not self.on_ents_only:
+                if not self.on_ents_only and ent._.antecedent:
                     for token in ent:
-                        token._.antecedent = antecedent
+                        token._.antecedent = True
 
         return doc

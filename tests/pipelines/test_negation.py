@@ -7,6 +7,8 @@ from edsnlp.pipelines.negation import Negation, terms
 from edsnlp.utils.examples import parse_example
 
 negation_examples: List[str] = [
+    # "<ent polarity_=NEG>métas,tases</ent> : non",
+    "Pas de <ent negated=true>lésion pulmonaire avec l'absence de lésion secondaire</ent>.",
     "Absence d'<ent negated=true>image osseuse d'allure évolutive</ent>.",
     "il n'y a pas de <ent polarity_=NEG>métas,tases</ent>",
     "Le patient n'est pas <ent polarity_=NEG>malade</ent>.",
@@ -17,9 +19,7 @@ negation_examples: List[str] = [
     "il n'y a pas de <ent polarity_=NEG>métastases</ent>",
     "il n'y a pas d' <ent polarity_=NEG>métastases</ent>",
     "il n'y a pas d'<ent polarity_=NEG>métastases</ent>",
-    "<ent polarity_=NEG>métas,tases</ent> : non",
     "il n'y a pas d'amélioration de la <ent negated=false>maladie</ent>",
-    "Pas de <ent negated=true>lésion pulmonaire avec l'absence de lésion secondaire</ent>.",
 ]
 
 
@@ -81,8 +81,6 @@ def test_negation(blank_nlp, negation_factory, on_ents_only):
 
                 if not on_ents_only:
                     for token in ent:
-                        if not (getattr(token._, modifier.key) == modifier.value):
-                            print()
                         assert (
                             getattr(token._, modifier.key) == modifier.value
                         ), f"{modifier.key} labels don't match."

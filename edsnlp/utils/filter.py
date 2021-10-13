@@ -1,4 +1,4 @@
-from typing import Iterable, List, Tuple
+from typing import Callable, Iterable, List, Optional, Tuple
 
 from spacy.tokens import Span
 
@@ -69,3 +69,59 @@ def filter_spans(
         return result, discarded
 
     return result
+
+
+def consume_spans(
+    spans: List[Span],
+    filter: Callable,
+    second_chance: Optional[List[Span]] = None,
+) -> Tuple[List[Span], List[Span]]:
+    """
+    Consume a list of span, according to a filter.
+
+    .. warning ::
+        This method makes the hard hypothesis that:
+
+        1. Spans are sorted.
+        2. Spans are consumed in sequence and only once.
+
+        The second item is problematic for the way we treat long entities,
+        hence the ``second_chance`` parameter, which lets entities be seen
+        more than once.
+
+    Parameters
+    ----------
+    spans : List of spans
+        List of spans to filter
+    filter : Callable
+        Filtering function. Should return True when the item is to be included.
+    second_chance : List of spans, optional
+        Optional list of spans to include again (useful for long entities),
+        by default None
+
+    Returns
+    -------
+    matches : List of spans
+        List of spans consumed by the filter.
+    remainder : List of spans
+        List of remaining spans in the original ``spans`` parameter.
+    """
+
+    if not second_chance:
+        second_chance = []
+
+    if not spans:
+        return second_chance, []
+
+    for i, span in enumerate(spans):
+        if not filter(span):
+            break
+        else:
+            i += 1
+
+    matches = spans[:i]
+    remainder = spans[i:]
+
+    matches.extend([m for m in second_chance if filter(m)])
+
+    return matches, remainder

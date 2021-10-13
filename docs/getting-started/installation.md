@@ -8,10 +8,10 @@ Installing EDS-NLP is straightforward :
 pip install git+https://gitlab.eds.aphp.fr/equipedatascience/edsnlp.git
 ```
 
-EDS-NLP is still young, and subject to rapid (as well as backward-incompatible) changes. We thus recommand pinning the library version in your projects :
+EDS-NLP is still young, and subject to rapid (as well as backward-incompatible) changes. We thus recommend pinning the library version in your projects :
 
 ```shell
-pip install git+https://gitlab.eds.aphp.fr/equipedatascience/edsnlp.git@v0.2.0
+pip install git+https://gitlab.eds.aphp.fr/equipedatascience/edsnlp.git@v0.3.1
 ```
 
 ## Development installation

@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.1
+
+- Update `dates` to remove miscellaneous bugs.
+- Add `isort` pre-commit hook.
+- Improve performance for `negation`, `hypothesis`, `antecedents`, `family` and `rspeech` by using Spacy's `filter_spans` and our `consume_spans` methods.
+- Add proposition segmentation to `hypothesis` and `family`, enhancing results.
+
 ## v0.3.0
 
 - Renamed `generic` to `matcher`. This is a non-breaking change for the average user, adding the pipeline is still :

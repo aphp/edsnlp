@@ -2,8 +2,10 @@ from typing import Any, Dict, List, Optional
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
+from spacy.util import filter_spans
 
 from edsnlp.pipelines.matcher import GenericMatcher
+from edsnlp.utils.filter import consume_spans
 from edsnlp.utils.filter_matches import _filter_matches
 from edsnlp.utils.inclusion import check_inclusion
 
@@ -136,24 +138,32 @@ class ReportedSpeech(GenericMatcher):
         """
 
         matches = self.process(doc)
+        boundaries = self._boundaries(doc)
 
-        preceding = _filter_matches(matches, "preceding")
-        following = _filter_matches(matches, "following")
-        verbs = _filter_matches(matches, "verbs")
-        quotation = _filter_matches(matches, "quotation")
+        entities = list(doc.ents)
+        ents = None
 
-        boundaries = self._boundaries(doc, None)
+        # Removes duplicate matches and pseudo-expressions in one statement
+        matches = filter_spans(matches)
 
         for start, end in boundaries:
-            ents = [ent for ent in doc.ents if check_inclusion(ent, start, end)]
+            ents, entities = consume_spans(
+                entities,
+                filter=lambda s: check_inclusion(s, start, end),
+                second_chance=ents,
+            )
+
+            sub_matches, matches = consume_spans(
+                matches, lambda s: start <= s.start < end
+            )
 
             if self.on_ents_only and not ents:
                 continue
 
-            sub_preceding = [m for m in preceding if (start <= m.start < end)]
-            sub_following = [m for m in following if (start <= m.start < end)]
-            sub_verbs = [m for m in verbs if (start <= m.start < end)]
-            sub_quotation = [m for m in quotation if (start <= m.start < end)]
+            sub_preceding = _filter_matches(sub_matches, "preceding")
+            sub_following = _filter_matches(sub_matches, "following")
+            sub_verbs = _filter_matches(sub_matches, "verbs")
+            sub_quotation = _filter_matches(sub_matches, "quotation")
 
             if not sub_preceding + sub_following + sub_verbs + sub_quotation:
                 continue
@@ -180,7 +190,7 @@ class ReportedSpeech(GenericMatcher):
                 )
                 ent._.reported_speech = reported_speech
 
-                if not self.on_ents_only:
+                if not self.on_ents_only and ent._.reported_speech:
                     for token in ent:
-                        token._.reported_speech = reported_speech
+                        token._.reported_speech = True
         return doc

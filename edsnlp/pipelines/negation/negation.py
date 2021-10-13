@@ -2,8 +2,10 @@ from typing import Any, Dict, List, Optional, Union
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
+from spacy.util import filter_spans
 
 from edsnlp.pipelines.matcher import GenericMatcher
+from edsnlp.utils.filter import consume_spans
 from edsnlp.utils.filter_matches import _filter_matches
 from edsnlp.utils.inclusion import check_inclusion
 
@@ -75,9 +77,9 @@ class Negation(GenericMatcher):
             nlp,
             terms=dict(
                 pseudo=pseudo,
+                termination=termination,
                 preceding=preceding,
                 following=following,
-                termination=termination,
                 verbs=self.load_verbs(verbs),
             ),
             fuzzy=fuzzy,
@@ -155,46 +157,32 @@ class Negation(GenericMatcher):
         matches = self.process(doc)
 
         terminations = _filter_matches(matches, "termination")
-        pseudo = _filter_matches(matches, "pseudo")
-        preceding = _filter_matches(matches, "preceding")
-        following = _filter_matches(matches, "following")
-        verbs = _filter_matches(matches, "verbs")
-
         boundaries = self._boundaries(doc, terminations)
 
-        true_matches = []
+        entities = list(doc.ents)
+        ents = None
 
-        for match in matches:
-            if match.label_ in {"pseudo", "termination"}:
-                continue
-            pseudo_flag = False
-            for p in pseudo:
-                if match.start >= p.start and match.end <= p.end:
-                    pseudo_flag = True
-                    break
-            if not pseudo_flag:
-                true_matches.append(match)
+        # Removes duplicate matches and pseudo-expressions in one statement
+        matches = filter_spans(matches)
 
         for start, end in boundaries:
 
-            ents = [ent for ent in doc.ents if check_inclusion(ent, start, end)]
+            ents, entities = consume_spans(
+                entities,
+                filter=lambda s: check_inclusion(s, start, end),
+                second_chance=ents,
+            )
+
+            sub_matches, matches = consume_spans(
+                matches, lambda s: start <= s.start < end
+            )
 
             if self.on_ents_only and not ents:
                 continue
 
-            sub_preceding = [
-                m
-                for m in preceding
-                if ((start <= m.start < end) and (m in true_matches))
-            ]
-
-            sub_following = [
-                m
-                for m in following
-                if ((start <= m.start < end) and (m in true_matches))
-            ]
-
-            sub_verbs = [m for m in verbs if (start <= m.start < end)]
+            sub_preceding = _filter_matches(sub_matches, "preceding")
+            sub_following = _filter_matches(sub_matches, "following")
+            sub_verbs = _filter_matches(sub_matches, "verbs")
 
             if not sub_preceding + sub_following + sub_verbs:
                 continue

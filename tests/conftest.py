@@ -55,7 +55,7 @@ def nlp():
     return model
 
 
-@fixture(scope="session")
+@fixture
 def blank_nlp():
     model = spacy.blank("fr")
     model.add_pipe("sentences")

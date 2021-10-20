@@ -1,6 +1,7 @@
 from .advanced import factory
 from .antecedents import factory
 from .dates import factory
+from .endlines import factory
 from .family import factory
 from .hypothesis import factory
 from .matcher import factory

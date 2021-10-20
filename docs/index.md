@@ -26,6 +26,7 @@
     user-guide/sections
     user-guide/dates
     user-guide/score
+    user-guide/endlines
 
 .. toctree::
     :maxdepth: 2
@@ -54,6 +55,7 @@
     tutorials/getting-faster
     tutorials/notebooks
     tutorials/word-vectors
+    tutorials/endlines-example
 
 .. toctree::
     :maxdepth: 2
@@ -115,6 +117,7 @@ This example is complete, it should run as-is.
 | `pollution`  | Pollution detection and non-destructive removal |
 | `dates`      | Date extraction and normalization               |
 | `score`      | A simple clinical score extractor               |
+| `endlines`   | An unsupervised model to classify each end line |
 
 ## Disclaimer
 

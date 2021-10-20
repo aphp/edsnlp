@@ -66,6 +66,16 @@
 .. automodule:: edsnlp.pipelines.rspeech.rspeech
 ```
 
+## End Lines
+
+```{eval-rst}
+.. automodule:: edsnlp.pipelines.endlines.endlines
+```
+
+```{eval-rst}
+.. automodule:: edsnlp.pipelines.endlines.endlinesmodel
+```
+
 ## Scores
 
 ### Base class

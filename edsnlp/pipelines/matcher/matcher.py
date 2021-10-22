@@ -166,9 +166,14 @@ class GenericMatcher(BaseComponent):
         doc:
             spaCy Doc object, annotated for extracted terms.
         """
-        spans = self.process(doc)
+        matches = self.process(doc)
 
-        ents, discarded = filter_spans(list(doc.ents) + spans, return_discarded=True)
+        for span in matches:
+            if span.label_ not in doc.spans:
+                doc.spans[span.label_] = []
+            doc.spans[span.label_].append(span)
+
+        ents, discarded = filter_spans(list(doc.ents) + matches, return_discarded=True)
 
         doc.ents = ents
         doc.spans["discarded"] = discarded

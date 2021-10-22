@@ -140,7 +140,7 @@ class ReportedSpeech(GenericMatcher):
         matches = self.process(doc)
         boundaries = self._boundaries(doc)
 
-        entities = list(doc.ents)
+        entities = list(doc.ents) + list(doc.spans.get("discarded", []))
         ents = None
 
         # Removes duplicate matches and pseudo-expressions in one statement

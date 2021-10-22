@@ -161,7 +161,7 @@ class Hypothesis(GenericMatcher):
         # Removes duplicate matches and pseudo-expressions in one statement
         matches = filter_spans(matches)
 
-        entities = list(doc.ents)
+        entities = list(doc.ents) + list(doc.spans.get("discarded", []))
         ents = None
 
         for start, end in boundaries:

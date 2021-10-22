@@ -159,7 +159,7 @@ class Negation(GenericMatcher):
         terminations = _filter_matches(matches, "termination")
         boundaries = self._boundaries(doc, terminations)
 
-        entities = list(doc.ents)
+        entities = list(doc.ents) + list(doc.spans.get("discarded", []))
         ents = None
 
         # Removes duplicate matches and pseudo-expressions in one statement

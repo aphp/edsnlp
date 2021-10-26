@@ -208,7 +208,7 @@ class EndLines(GenericMatcher):
 
     def __call__(self, doc: Doc) -> Doc:
         """
-        Finds entities related to negation.
+        Predict for each new line if it's an end of line or a space.
 
         Parameters
         ----------
@@ -216,7 +216,7 @@ class EndLines(GenericMatcher):
 
         Returns
         -------
-        doc: spaCy Doc object, annotated for negation
+        doc: spaCy Doc object, with each new line annotated
         """
 
         matches = self.process(doc)

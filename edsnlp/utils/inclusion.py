@@ -3,7 +3,7 @@ from spacy.tokens import Span
 
 def check_inclusion(span: Span, start: int, end: int) -> bool:
     """
-    Checks whether the span is included in the boundaries.
+    Checks whether the span overlaps the boundaries.
 
     Parameters
     ----------
@@ -17,7 +17,7 @@ def check_inclusion(span: Span, start: int, end: int) -> bool:
     Returns
     -------
     bool
-        Whether the span is included.
+        Whether the span overlaps the boundaries.
     """
 
     if span.start >= end or span.end <= start:

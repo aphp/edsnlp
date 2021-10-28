@@ -37,6 +37,7 @@ def negation_factory(blank_nlp):
         attr="LOWER",
         regex=None,
         fuzzy_kwargs=None,
+        within_ents=False,
         explain=True,
     )
 
@@ -84,3 +85,32 @@ def test_negation(blank_nlp, negation_factory, on_ents_only):
                         assert (
                             getattr(token._, modifier.key) == modifier.value
                         ), f"{modifier.key} labels don't match."
+
+
+def test_negation_within_ents(blank_nlp, negation_factory):
+
+    negation = negation_factory(on_ents_only=True, within_ents=True)
+
+    examples = [
+        "<ent negated=true>Lésion pulmonaire avec absence de lésion secondaire</ent>.",
+    ]
+
+    for example in examples:
+        text, entities = parse_example(example=example)
+
+        doc = blank_nlp(text)
+        doc.ents = [
+            doc.char_span(ent.start_char, ent.end_char, label="ent") for ent in entities
+        ]
+
+        doc = negation(doc)
+
+        for entity, ent in zip(entities, doc.ents):
+
+            for modifier in entity.modifiers:
+
+                assert bool(ent._.negation_cues) == (modifier.value in {True, "NEG"})
+
+                assert (
+                    getattr(ent._, modifier.key) == modifier.value
+                ), f"{modifier.key} labels don't match."

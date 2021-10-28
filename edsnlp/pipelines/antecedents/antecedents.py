@@ -40,6 +40,8 @@ class Antecedents(GenericMatcher):
         Useful for faster inference in downstream tasks.
     regex: Optional[Dict[str, Union[List[str], str]]]
         A dictionnary of regex patterns.
+    explain: bool
+        Whether to keep track of cues for each entity.
     fuzzy_kwargs: Optional[Dict[str, Any]]
         Default options for the fuzzy matcher, if used.
     """

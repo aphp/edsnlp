@@ -24,6 +24,8 @@ def create_component(
     filter_matches: bool = False,
     attr: str = "LOWER",
     on_ents_only: bool = True,
+    within_ents: bool = False,
+    explain: bool = False,
     fuzzy_kwargs: Optional[Dict[str, Any]] = None,
 ):
     return ReportedSpeech(
@@ -36,5 +38,7 @@ def create_component(
         filter_matches=filter_matches,
         attr=attr,
         on_ents_only=on_ents_only,
+        within_ents=within_ents,
+        explain=explain,
         fuzzy_kwargs=fuzzy_kwargs,
     )

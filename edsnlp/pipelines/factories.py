@@ -8,6 +8,7 @@ from .matcher import factory
 from .negation import factory
 from .normalizer import factory
 from .pollution import factory
+from .reason import factory
 from .rspeech import factory
 from .scores import charlson_factory, factory
 from .sections import factory

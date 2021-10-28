@@ -27,6 +27,7 @@
     user-guide/dates
     user-guide/score
     user-guide/endlines
+    user-guide/reason
 
 .. toctree::
     :maxdepth: 2
@@ -56,6 +57,7 @@
     tutorials/notebooks
     tutorials/word-vectors
     tutorials/endlines-example
+    tutorials/reason-example
 
 .. toctree::
     :maxdepth: 2
@@ -118,6 +120,7 @@ This example is complete, it should run as-is.
 | `dates`      | Date extraction and normalization               |
 | `score`      | A simple clinical score extractor               |
 | `endlines`   | An unsupervised model to classify each end line |
+| `reason`     | Rule-based hospitalisation reason detection     |
 
 ## Disclaimer
 

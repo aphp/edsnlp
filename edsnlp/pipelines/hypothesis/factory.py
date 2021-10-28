@@ -32,6 +32,7 @@ def create_component(
     attr: str = "LOWER",
     explain: bool = False,
     on_ents_only: bool = True,
+    within_ents: bool = False,
     regex: Optional[Dict[str, Union[List[str], str]]] = None,
     fuzzy_kwargs: Optional[Dict[str, Any]] = None,
 ):
@@ -49,6 +50,7 @@ def create_component(
         attr=attr,
         explain=explain,
         on_ents_only=on_ents_only,
+        within_ents=within_ents,
         regex=regex,
         fuzzy_kwargs=fuzzy_kwargs,
     )

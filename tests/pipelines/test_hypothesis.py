@@ -33,6 +33,7 @@ def hypothesis_factory(blank_nlp):
         explain=True,
         regex=None,
         fuzzy_kwargs=None,
+        within_ents=False,
     )
 
     def factory(on_ents_only, **kwargs):
@@ -79,3 +80,28 @@ def test_hypothesis(blank_nlp, hypothesis_factory, on_ents_only):
                         assert (
                             getattr(token._, modifier.key) == modifier.value
                         ), f"{modifier.key} labels don't match."
+
+
+def test_hypothesis_within_ents(blank_nlp, hypothesis_factory):
+
+    hypothesis = hypothesis_factory(True, within_ents=True)
+
+    examples = [
+        "<ent hypothesis_=HYP>Diabète, probablement de type 2</ent>.",
+    ]
+
+    for example in examples:
+        text, entities = parse_example(example=example)
+
+        doc = blank_nlp(text)
+        doc.ents = [
+            doc.char_span(ent.start_char, ent.end_char, label="ent") for ent in entities
+        ]
+
+        doc = hypothesis(doc)
+
+        for entity, ent in zip(entities, doc.ents):
+
+            for modifier in entity.modifiers:
+
+                assert bool(ent._.hypothesis_cues) == (modifier.value in {"HYP", True})

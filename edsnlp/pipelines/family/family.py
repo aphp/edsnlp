@@ -35,6 +35,8 @@ class FamilyContext(GenericMatcher):
         Useful for faster inference in downstream tasks.
     regex: Optional[Dict[str, Union[List[str], str]]]
         A dictionnary of regex patterns.
+    explain: bool
+        Whether to keep track of cues for each entity.
     fuzzy_kwargs: Optional[Dict[str, Any]]
         Default options for the fuzzy matcher, if used.
     """
@@ -95,6 +97,8 @@ class FamilyContext(GenericMatcher):
             Doc.set_extension("family", default=[])
 
         self.sections = use_sections and "sections" in self.nlp.pipe_names
+
+        self.explain = explain
 
     def __call__(self, doc: Doc) -> Doc:
         """
@@ -162,7 +166,9 @@ class FamilyContext(GenericMatcher):
 
             for ent in ents:
                 ent._.family = True
-                ent._.family_cues += cues
+
+                if self.explain:
+                    ent._.family_cues += cues
                 if not self.on_ents_only:
                     for token in ent:
                         token._.family = True

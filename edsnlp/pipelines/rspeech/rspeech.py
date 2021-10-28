@@ -40,6 +40,10 @@ class ReportedSpeech(GenericMatcher):
     on_ents_only: bool
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.
+    within_ents: bool
+        Whether to consider cues within entities.
+    explain: bool
+        Whether to keep track of cues for each entity.
     fuzzy_kwargs: Optional[Dict[str, Any]]
         Default options for the fuzzy matcher, if used.
     """
@@ -54,7 +58,9 @@ class ReportedSpeech(GenericMatcher):
         fuzzy: bool,
         filter_matches: bool,
         attr: str,
+        explain: bool,
         on_ents_only: bool,
+        within_ents: bool,
         fuzzy_kwargs: Optional[Dict[str, Any]],
         **kwargs,
     ):
@@ -93,8 +99,14 @@ class ReportedSpeech(GenericMatcher):
                 getter=lambda span: "REPORTED" if span._.reported_speech else "DIRECT",
             )
 
+        if not Span.has_extension("reported_speech_cues"):
+            Span.set_extension("reported_speech_cues", default=[])
+
         if not Doc.has_extension("rspeechs"):
             Doc.set_extension("rspeechs", default=[])
+
+        self.explain = explain
+        self.within_ents = within_ents
 
     def load_verbs(self, verbs: List[str]) -> List[str]:
         """
@@ -179,18 +191,27 @@ class ReportedSpeech(GenericMatcher):
                         )
                     )
             for ent in doc.ents:
-                reported_speech = (
-                    ent._.reported_speech
-                    or any(m.end <= ent.start for m in sub_preceding + sub_verbs)
-                    or any(m.start > ent.end for m in sub_following)
-                    or any(
-                        ((m.start < ent.start) & (m.end > ent.end))
-                        for m in sub_quotation
-                    )
-                )
+
+                if self.within_ents:
+                    cues = [m for m in sub_preceding + sub_verbs if m.end <= ent.end]
+                    cues += [m for m in sub_following if m.start >= ent.start]
+                else:
+                    cues = [m for m in sub_preceding + sub_verbs if m.end <= ent.start]
+                    cues += [m for m in sub_following if m.start >= ent.end]
+
+                cues += [
+                    m
+                    for m in sub_quotation
+                    if (m.start < ent.start) & (m.end > ent.end)
+                ]
+
+                reported_speech = ent._.reported_speech or bool(cues)
                 ent._.reported_speech = reported_speech
 
-                if not self.on_ents_only and ent._.reported_speech:
+                if self.explain:
+                    ent._.reported_speech_cues += cues
+
+                if not self.on_ents_only and reported_speech:
                     for token in ent:
                         token._.reported_speech = True
         return doc

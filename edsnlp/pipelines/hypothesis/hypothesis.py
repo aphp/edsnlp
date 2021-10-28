@@ -47,6 +47,10 @@ class Hypothesis(GenericMatcher):
     on_ents_only: bool
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.
+    within_ents: bool
+        Whether to consider cues within entities.
+    explain: bool
+        Whether to keep track of cues for each entity.
     regex: Optional[Dict[str, Union[List[str], str]]]
         A dictionnary of regex patterns.
     fuzzy_kwargs: Optional[Dict[str, Any]]
@@ -68,6 +72,7 @@ class Hypothesis(GenericMatcher):
         attr: str,
         explain: bool,
         on_ents_only: bool,
+        within_ents: bool,
         regex: Optional[Dict[str, Union[List[str], str]]],
         fuzzy_kwargs: Optional[Dict[str, Any]],
         **kwargs,
@@ -117,6 +122,7 @@ class Hypothesis(GenericMatcher):
             Doc.set_extension("hypothesis", default=[])
 
         self.explain = explain
+        self.within_ents = within_ents
 
     def load_verbs(self, verbs_hyp: List[str], verbs_eds: List[str]) -> List[str]:
         """
@@ -193,8 +199,12 @@ class Hypothesis(GenericMatcher):
                     ) or any(m.start > token.i for m in sub_following)
             for ent in ents:
 
-                cues = [m for m in sub_preceding + sub_verbs if m.end <= ent.start]
-                cues += [m for m in sub_following if m.start >= ent.end]
+                if self.within_ents:
+                    cues = [m for m in sub_preceding + sub_verbs if m.end <= ent.end]
+                    cues += [m for m in sub_following if m.start >= ent.start]
+                else:
+                    cues = [m for m in sub_preceding + sub_verbs if m.end <= ent.start]
+                    cues += [m for m in sub_following if m.start >= ent.end]
 
                 hypothesis = ent._.hypothesis or bool(cues)
 

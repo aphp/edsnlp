@@ -39,3 +39,4 @@ def test_reason():
     entities = reason._.ents_reason
 
     assert entities[0].label_ == "respiratoire"
+    assert reason._.is_reason

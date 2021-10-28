@@ -4,10 +4,11 @@ The `reason` pipeline uses a rule-based algorithm to detect spans that relate to
 
 ## Declared extensions
 
-The `reason` pipeline adds the key `reasons` to doc.spans and declares one [Spacy extension](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on the `Span` objects called `reason`.
+The `reason` pipeline adds the key `reasons` to doc.spans and declares one [Spacy extension](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on the `Span` objects called `ents_reason`.
 
-The `reason` extension is a list of named entities that overlap the `Span`. Tipically entities founded in previous pipeline like `matcher`.
+The `ents_reason` extension is a list of named entities that overlap the `Span`. Tipically entities founded in previous pipeline like `matcher`.
 
+It also declares the boolean extension `is_reason`. This extension is set to True for the Reason Spans but also for the entities that overlap the reason span.
 
 ## Usage
 
@@ -51,12 +52,19 @@ reason = doc.spans["reasons"][0]
 reason
 # Out: 'hospitalisé du 11/08/2019 au 17/08/2019 pour attaque d'asthme.'
 
+reason._.is_reason
+# Out: True
+
 entities = reason._.ents_reason
 entities
 # Out: [asthme]
 
 entities[0].label_
 # Out: 'respiratoire'
+
+ent = entities[0]
+ent._.is_reason
+# Out: True
 ```
 
 ## Performance

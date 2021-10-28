@@ -11,7 +11,9 @@ from edsnlp.utils.inclusion import check_inclusion
 class Reason(GenericMatcher):
     """Pipeline to denftify the reason of the hospitalisation.
 
-    It declares a Span extension called `reason` and adds the key ``reasons`` to doc.spans
+    It declares a Span extension called ``ents_reason`` and adds the key ``reasons`` to doc.spans.
+
+    It also declares the boolean extension ``is_reason``. This extension is set to True for the Reason Spans but also for the entities that overlap the reason span.
 
     Parameters
     ----------
@@ -51,6 +53,9 @@ class Reason(GenericMatcher):
 
         if not Span.has_extension("ents_reason"):
             Span.set_extension("ents_reason", default=None)
+
+        if not Span.has_extension("is_reason"):
+            Span.set_extension("is_reason", default=False)
 
         if use_sections:
             self._add_section_pipeline(nlp)
@@ -126,7 +131,9 @@ class Reason(GenericMatcher):
                 for ent in doc.ents:
                     if check_inclusion(ent, reason.start, reason.end):
                         ent_list.append(ent)
+                        ent._.is_reason = True
 
                 reason._.ents_reason = ent_list
+                reason._.is_reason = True
 
         return doc

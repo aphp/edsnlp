@@ -100,6 +100,9 @@ class Sections(GenericMatcher):
         if not Span.has_extension("section"):
             Span.set_extension("section", default=None)
 
+        if not nlp.has_pipe("normalizer"):
+            logger.warning("You should add pipe `normalizer`")
+
     # noinspection PyProtectedMember
     def __call__(self, doc: Doc) -> Doc:
         """

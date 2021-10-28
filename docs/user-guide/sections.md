@@ -46,6 +46,7 @@ import spacy
 from edsnlp import components
 
 nlp = spacy.blank("fr")
+nlp.add_pipe("normalizer")
 nlp.add_pipe("sections")
 
 text = "CRU du 10/09/2021\n" "Motif :\n" "Patient admis pour suspicion de COVID"

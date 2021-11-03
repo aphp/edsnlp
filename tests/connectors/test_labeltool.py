@@ -1,4 +1,4 @@
-from edsnlp.utils.labeltool import docs2labeltool
+from edsnlp.connectors.labeltool import docs2labeltool
 
 # from labeltool.labelling import Labels, Labelling
 

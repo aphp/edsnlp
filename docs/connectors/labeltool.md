@@ -8,7 +8,7 @@ We provide a ready-to-use function that converts a list of annotated Spacy docum
 import spacy
 from edsnlp import components
 from negparhyp import components
-from edsnlp.utils.labeltool import docs2labeltool
+from edsnlp.connectors.labeltool import docs2labeltool
 
 corpus = [
     "Ceci est un document médical.",

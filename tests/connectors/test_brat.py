@@ -8,7 +8,7 @@ from string import ascii_letters, ascii_lowercase
 import pytest
 from spacy.language import Language
 
-from edsnlp.utils.brat import BratConnector
+from edsnlp.connectors.brat import BratConnector
 
 
 def random_word():

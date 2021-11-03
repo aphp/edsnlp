@@ -1,7 +1,6 @@
 from typing import List, Optional
 
 import pandas as pd
-from loguru import logger
 from spacy.tokens import Doc
 from tqdm import tqdm
 

@@ -34,6 +34,7 @@
     :hidden:
     :caption: Connectors
 
+    connectors/omop
     connectors/brat
     connectors/labeltool
 

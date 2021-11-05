@@ -6,12 +6,6 @@
 .. automodule:: edsnlp.pipelines.matcher.matcher
 ```
 
-## Pollution
-
-```{eval-rst}
-.. automodule:: edsnlp.pipelines.pollution.pollution
-```
-
 ## Sentences
 
 ```{eval-rst}
@@ -28,12 +22,6 @@
 
 ```{eval-rst}
 .. automodule:: edsnlp.pipelines.sections.sections
-```
-
-## Normalizer
-
-```{eval-rst}
-.. automodule:: edsnlp.pipelines.normalizer.normalizer
 ```
 
 ## Negation
@@ -66,14 +54,44 @@
 .. automodule:: edsnlp.pipelines.rspeech.rspeech
 ```
 
-## End Lines
+## Normalizer
 
 ```{eval-rst}
-.. automodule:: edsnlp.pipelines.endlines.endlines
+.. automodule:: edsnlp.pipelines.normalizer.normalizer
+```
+
+### Lowercase
+
+```{eval-rst}
+.. automodule:: edsnlp.pipelines.normalizer.lowercase.lowercase
+```
+
+### Accents
+
+```{eval-rst}
+.. automodule:: edsnlp.pipelines.normalizer.accents.accents
+```
+
+### Quotes
+
+```{eval-rst}
+.. automodule:: edsnlp.pipelines.normalizer.quotes.quotes
+```
+
+### Pollution
+
+```{eval-rst}
+.. automodule:: edsnlp.pipelines.normalizer.pollution.pollution
+```
+
+### End Lines
+
+```{eval-rst}
+.. automodule:: edsnlp.pipelines.normalizer.endlines.endlines
 ```
 
 ```{eval-rst}
-.. automodule:: edsnlp.pipelines.endlines.endlinesmodel
+.. automodule:: edsnlp.pipelines.normalizer.endlines.endlinesmodel
 ```
 
 ## Scores

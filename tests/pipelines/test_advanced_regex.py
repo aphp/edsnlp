@@ -14,10 +14,11 @@ Présence de fractures de fatigues.
 
 def test_advanced(blank_nlp):
 
-    normalizer = Normalizer(
-        lowercase=True,
-        remove_accents=True,
-        normalize_quotes=True,
+    blank_nlp.add_pipe(
+        "normalizer",
+        config=dict(
+            lowercase=True, accents=True, quotes=True, endlines=False, pollution=False
+        ),
     )
 
     regex_config = dict(
@@ -40,7 +41,7 @@ def test_advanced(blank_nlp):
 
     doc = blank_nlp(text)
 
-    doc = advanced_regex(normalizer(doc))
+    doc = advanced_regex(doc)
 
     for entity, ent in zip(entities, doc.ents):
 

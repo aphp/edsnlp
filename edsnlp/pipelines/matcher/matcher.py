@@ -2,11 +2,11 @@ from typing import Any, Dict, List, Optional, Union
 
 from loguru import logger
 from spacy.language import Language
-from spacy.matcher import PhraseMatcher
 from spacy.tokens import Doc, Span
 from spaczz.matcher import FuzzyMatcher
 
 from edsnlp.base import BaseComponent
+from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.utils.filter import filter_spans
 
@@ -74,7 +74,7 @@ class GenericMatcher(BaseComponent):
                 fuzzy_kwargs = {"min_r2": 90, "ignore_case": True}
             return FuzzyMatcher(self.nlp.vocab, attr=term_attr, **fuzzy_kwargs)
         else:
-            return PhraseMatcher(self.nlp.vocab, attr=term_attr)
+            return EDSPhraseMatcher(self.nlp.vocab, attr=term_attr)
 
     def _prepare_attr(self, attr, regex, pipe_names):
         if isinstance(attr, str):
@@ -95,7 +95,7 @@ class GenericMatcher(BaseComponent):
             )
 
         vals = {attr[k] for k in regex}
-        if vals - {"NORM", "TEXT"}:
+        if vals - {"NORM", "TEXT", "CUSTOM_NORM"}:
             raise ValueError(f"Some attributes in 'attr' are not supported: {vals}")
 
         vals.add(attr[TERM_ATTR])

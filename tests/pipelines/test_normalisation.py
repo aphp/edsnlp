@@ -1,17 +1,19 @@
 from pytest import fixture
 
-import edsnlp.components
-from edsnlp.pipelines.normalizer.normalizer import (
-    Normalizer,
-    accents,
-    quotes_and_apostrophes,
-    replace,
-)
+from edsnlp.pipelines.normalizer.accents.terms import accents
+from edsnlp.pipelines.normalizer.pollution.terms import pollution
+from edsnlp.pipelines.normalizer.quotes.terms import quotes_and_apostrophes
+from edsnlp.pipelines.normalizer.terms import accents
+from edsnlp.pipelines.normalizer.utils import replace
 
 
 @fixture
-def doc(nlp):
-    text = "Le patient ʺnˊest pas malade”, écrit-il."
+def text():
+    return "Le patient ʺnˊest pas malade”, écrit-il. Fièvre NBNbWbWbNbWbNB jaune."
+
+
+@fixture
+def doc(nlp, text):
     return nlp(text)
 
 
@@ -20,51 +22,77 @@ def test_replace():
     assert replace(text, accents) == "uiee"
 
 
-def test_normalization_quotes_and_apostrophes(doc):
+def test_full_normalization(doc):
+    norm = doc._.normalized.text
+    assert norm == 'le patient "n\'est pas malade", ecrit-il. fievre jaune.'
 
-    normalizer = Normalizer(
-        lowercase=False,
-        remove_accents=False,
-        normalize_quotes=True,
+
+@fixture
+def nlp_factory(blank_nlp):
+    def f(a=False, lc=False, q=False, p=False):
+
+        if a:
+            a = dict(accents=accents)
+        if q:
+            q = dict(quotes=quotes_and_apostrophes)
+        if p:
+            p = dict(pollution=pollution)
+
+        blank_nlp.add_pipe(
+            "normalizer",
+            config=dict(
+                accents=a,
+                lowercase=lc,
+                quotes=q,
+                pollution=p,
+            ),
+        )
+        return blank_nlp
+
+    return f
+
+
+def test_normalization_accents(nlp_factory, text):
+
+    nlp = nlp_factory(a=True)
+    doc = nlp(text)
+
+    norm = doc._.normalized.text
+
+    assert (
+        norm == "Le patient ʺnˊest pas malade”, ecrit-il. Fievre NBNbWbWbNbWbNB jaune."
     )
 
-    doc = normalizer(doc)
-    norm = "".join([t.norm_ + t.whitespace_ for t in doc])
 
-    assert norm == 'Le patient "n\'est pas malade", écrit-il.'
+def test_normalization_quotes(nlp_factory, text):
 
+    nlp = nlp_factory(q=True)
+    doc = nlp(text)
 
-def test_normalization_accents(doc):
+    norm = doc._.normalized.text
 
-    normalizer = Normalizer(
-        lowercase=False,
-        remove_accents=True,
-        normalize_quotes=True,
+    assert (
+        norm == 'Le patient "n\'est pas malade", écrit-il. Fièvre NBNbWbWbNbWbNB jaune.'
     )
 
-    doc = normalizer(doc)
-    norm = "".join([t.norm_ + t.whitespace_ for t in doc])
 
-    assert norm == 'Le patient "n\'est pas malade", ecrit-il.'
+def test_normalization_lowercase(nlp_factory, text):
 
+    nlp = nlp_factory(lc=True)
+    doc = nlp(text)
 
-def test_normalization_lowercase(doc):
+    norm = doc._.normalized.text
 
-    normalizer = Normalizer(
-        lowercase=True,
-        remove_accents=False,
-        normalize_quotes=True,
+    assert (
+        norm == "le patient ʺnˊest pas malade”, écrit-il. fièvre nbnbwbwbnbwbnb jaune."
     )
 
-    doc = normalizer(doc)
-    norm = "".join([t.norm_ + t.whitespace_ for t in doc])
 
-    assert norm == 'le patient "n\'est pas malade", écrit-il.'
+def test_normalization_pollution(nlp_factory, text):
 
+    nlp = nlp_factory(p=True)
+    doc = nlp(text)
 
-def test_pipeline_component(nlp, doc):
-    normalizer = nlp.add_pipe("normalizer")
-    doc = normalizer(doc)
+    norm = doc._.normalized.text
 
-    norm = "".join([t.norm_ + t.whitespace_ for t in doc])
-    assert norm == 'le patient "n\'est pas malade", ecrit-il.'
+    assert norm == "Le patient ʺnˊest pas malade”, écrit-il. Fièvre jaune."

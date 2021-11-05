@@ -19,7 +19,7 @@ def create_component(
     regex: List[str],
     after_extract: str,
     score_normalization: Union[str, Callable[[Union[str, None]], Any]],
-    attr: str = "NORM",
+    attr: str = "CUSTOM_NORM",
     window: int = 7,
     verbose: int = 0,
 ):

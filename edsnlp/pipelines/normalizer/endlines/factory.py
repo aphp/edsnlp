@@ -2,8 +2,7 @@ from typing import Optional
 
 from spacy.language import Language
 
-from edsnlp.pipelines import endlines
-from edsnlp.pipelines.endlines import EndLines
+from .endlines import EndLines
 
 
 @Language.factory("endlines")

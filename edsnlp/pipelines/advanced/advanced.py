@@ -127,6 +127,13 @@ class AdvancedRegex(GenericMatcher):
         ]
         return ent
 
+    def get_text(self, span: Span, label) -> str:
+        attr = self.regex_config[label].get("attr", self.DEFAULT_ATTR)
+        if attr == "CUSTOM_NORM":
+            return span._.normalized.text
+        else:
+            return span.text
+
     def _exclude_filter(self, ent: Span) -> Span:
         label = ent.label_
 
@@ -135,11 +142,7 @@ class AdvancedRegex(GenericMatcher):
 
         if before_exclude is not None:
             t = ent._.before_snippet
-            t = (
-                t._.norm
-                if self.regex_config[label].get("attr", self.DEFAULT_ATTR) == "NORM"
-                else t.text
-            )
+            t = self.get_text(t, label)
             if re.compile(before_exclude).search(t) is not None:
                 if self.verbose:
                     logger.info(
@@ -152,11 +155,7 @@ class AdvancedRegex(GenericMatcher):
 
         if after_exclude is not None:
             t = ent._.after_snippet
-            t = (
-                t._.norm
-                if self.regex_config[label].get("attr", self.DEFAULT_ATTR) == "NORM"
-                else t.text
-            )
+            t = self.get_text(t, label)
             if re.compile(after_exclude).search(t) is not None:
                 if self.verbose:
                     logger.info(
@@ -181,11 +180,7 @@ class AdvancedRegex(GenericMatcher):
             after_extract = [after_extract]
 
         t = ent._.before_snippet
-        t = (
-            t._.norm
-            if self.regex_config[label].get("attr", self.DEFAULT_ATTR) == "NORM"
-            else t.text
-        )
+        t = self.get_text(t, label)
         ent._.before_extract = []
         for pattern in before_extract:
             pattern = re.compile(pattern)
@@ -193,11 +188,7 @@ class AdvancedRegex(GenericMatcher):
             ent._.before_extract.append(match.groups()[0] if match else None)
 
         t = ent._.after_snippet
-        t = (
-            t._.norm
-            if self.regex_config[label].get("attr", self.DEFAULT_ATTR) == "NORM"
-            else t.text
-        )
+        t = self.get_text(t, label)
         ent._.after_extract = []
         for pattern in after_extract:
             pattern = re.compile(pattern)

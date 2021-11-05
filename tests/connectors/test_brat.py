@@ -98,7 +98,7 @@ def test_docs2brat(nlp, brat2):
     )
 
     doc1 = nlp(text)
-    doc1.ents = doc1._.pollutions
+    doc1.ents = doc1.spans["pollutions"]
 
     doc2 = nlp(text)
     doc2.ents = doc2.spans["section_titles"]

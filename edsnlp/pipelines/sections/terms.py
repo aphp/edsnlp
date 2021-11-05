@@ -7,111 +7,111 @@ The section titles were reviewed by Gilles Chatellier, who gave meaningful insig
 See sections/section-dataset notebook for detail.
 """
 
-allergies = ["allergies"]
+allergies = [r"allergies"]
 
 antecedents = [
-    "antecedents",
-    "antecedents medicaux et chirurgicaux",
-    "antecedents personnels",
-    "antecedents medicaux",
-    "antecedents chirurgicaux",
-    "atcd",
+    r"antecedents",
+    r"antecedents medicaux et chirurgicaux",
+    r"antecedents personnels",
+    r"antecedents medicaux",
+    r"antecedents chirurgicaux",
+    r"atcd",
 ]
 
-antecedents_familiaux = ["antecedents familiaux"]
+antecedents_familiaux = [r"antecedents familiaux"]
 
 traitements_entree = [
-    "attitude therapeutique initiale",
-    "traitement a l'entree",
-    "traitement actuel",
-    "traitement en cours",
-    "traitements a l'entree",
+    r"attitude therapeutique initiale",
+    r"traitement a l'entree",
+    r"traitement actuel",
+    r"traitement en cours",
+    r"traitements a l'entree",
 ]
 
 conclusion = [
-    "au total",
-    "conclusion",
-    "conclusion de sortie",
-    "syntese medicale / conclusion",
-    "synthese",
-    "synthese medicale",
-    "synthese medicale/conclusion",
-    "conclusion medicale",
+    r"au total",
+    r"conclusion",
+    r"conclusion de sortie",
+    r"syntese medicale / conclusion",
+    r"synthese",
+    r"synthese medicale",
+    r"synthese medicale/conclusion",
+    r"conclusion medicale",
 ]
 
-conclusion_entree = ["conclusion a l'entree"]
+conclusion_entree = [r"conclusion a l'entree"]
 
 habitus = [
-    "contexte familial et social",
-    "habitus",
-    "mode de vie",
-    "mode de vie - scolarite",
-    "situation sociale, mode de vie",
+    r"contexte familial et social",
+    r"habitus",
+    r"mode de vie",
+    r"mode de vie - scolarite",
+    r"situation sociale, mode de vie",
 ]
 
-correspondants = ["correspondants"]
+correspondants = [r"correspondants"]
 
-diagnostic = ["diagnostic retenu"]
+diagnostic = [r"diagnostic retenu"]
 
 donnees_biometriques_entree = [
-    "donnees biometriques et parametres vitaux a l'entree",
-    "parametres vitaux et donnees biometriques a l'entree",
+    r"donnees biometriques et parametres vitaux a l'entree",
+    r"parametres vitaux et donnees biometriques a l'entree",
 ]
 
-examens = ["examen clinique", "examen clinique", "examen clinique a l'entree"]
+examens = [r"examen clinique", r"examen clinique a l'entree"]
 
 examens_complementaires = [
-    "examen(s) complementaire(s)",
-    "examens complementaires",
-    "examens complementaires a l'entree",
-    "examens complementaires realises pendant le sejour",
-    "examens para-cliniques",
+    r"examen(s) complementaire(s)",
+    r"examens complementaires",
+    r"examens complementaires a l'entree",
+    r"examens complementaires realises pendant le sejour",
+    r"examens para-cliniques",
 ]
 
-facteurs_de_risques = ["facteurs de risque", "facteurs de risques"]
+facteurs_de_risques = [r"facteurs de risque", r"facteurs de risques"]
 
 histoire_de_la_maladie = [
-    "histoire de la maladie",
-    "histoire de la maladie - explorations",
-    "histoire de la maladie actuelle",
-    "histoire du poids",
-    "histoire recente",
-    "histoire recente de la maladie",
-    "rappel clinique",
-    "resume",
-    "resume clinique",
+    r"histoire de la maladie",
+    r"histoire de la maladie - explorations",
+    r"histoire de la maladie actuelle",
+    r"histoire du poids",
+    r"histoire recente",
+    r"histoire recente de la maladie",
+    r"rappel clinique",
+    r"resume",
+    r"resume clinique",
 ]
 
-actes = ["intervention"]
+actes = [r"intervention"]
 
 motif = [
-    "motif",
-    "motif d'hospitalisation",
-    "motif de l'hospitalisation",
-    "motif medical",
+    r"motif",
+    r"motif d'hospitalisation",
+    r"motif de l'hospitalisation",
+    r"motif medical",
 ]
 
-prescriptions = ["prescriptions de sortie", "prescriptions medicales de sortie"]
+prescriptions = [r"prescriptions de sortie", r"prescriptions medicales de sortie"]
 
-traitements_sortie = ["traitement de sortie"]
+traitements_sortie = [r"traitement de sortie"]
 
 sections = {
-    "allergies": allergies,
-    "antécédents": antecedents,
-    "antécédents familiaux": antecedents_familiaux,
-    "traitements entrée": traitements_entree,
-    "conclusion": conclusion,
-    "conclusion entrée": conclusion_entree,
-    "habitus": habitus,
-    "correspondants": correspondants,
-    "diagnostic": diagnostic,
-    "données biométriques entrée": donnees_biometriques_entree,
-    "examens": examens,
-    "examens complémentaires": examens_complementaires,
-    "facteurs de risques": facteurs_de_risques,
-    "histoire de la maladie": histoire_de_la_maladie,
-    "actes": actes,
-    "motif": motif,
-    "prescriptions": prescriptions,
-    "traitements sortie": traitements_sortie,
+    r"allergies": allergies,
+    r"antécédents": antecedents,
+    r"antécédents familiaux": antecedents_familiaux,
+    r"traitements entrée": traitements_entree,
+    r"conclusion": conclusion,
+    r"conclusion entrée": conclusion_entree,
+    r"habitus": habitus,
+    r"correspondants": correspondants,
+    r"diagnostic": diagnostic,
+    r"données biométriques entrée": donnees_biometriques_entree,
+    r"examens": examens,
+    r"examens complémentaires": examens_complementaires,
+    r"facteurs de risques": facteurs_de_risques,
+    r"histoire de la maladie": histoire_de_la_maladie,
+    r"actes": actes,
+    r"motif": motif,
+    r"prescriptions": prescriptions,
+    r"traitements sortie": traitements_sortie,
 }

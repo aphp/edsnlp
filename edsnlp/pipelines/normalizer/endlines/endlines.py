@@ -1,4 +1,3 @@
-import os
 import pickle
 from typing import List, Optional, Union
 
@@ -7,18 +6,21 @@ import pandas as pd
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
 
-from edsnlp.pipelines.endlines.endlinesmodel import EndLinesModel
-from edsnlp.pipelines.endlines.functional import _get_label, build_path
 from edsnlp.pipelines.matcher import GenericMatcher
 from edsnlp.utils.filter_matches import _filter_matches
+
+from ..utils import first_normalization
+from .endlinesmodel import EndLinesModel
+from .functional import _get_label, build_path
 
 
 class EndLines(GenericMatcher):
     """
     Spacy Pipeline to detect if an end line is a real one or it should be a space.
-    The pipeline will add the extension `end_line` to spans and tokens. The `end_line` attribute is a boolean,
-    set to `True` if the pipeline predicts that the new line is an end line character. Otherwhise, it is  set to
-    `False` if the new line is classified as a space.
+    The pipeline will add the extension ``end_line`` to spans and tokens. The ``end_line``
+    attribute is a boolean, set to ``True`` if the pipeline predicts that the new line
+    is an end line character. Otherwise, it is  set to ``False`` if the new line is
+    classified as a space.
 
 
     Parameters
@@ -26,14 +28,14 @@ class EndLines(GenericMatcher):
     nlp: Language
         spaCy nlp pipeline to use for matching.
 
-    end_lines_model: Any[str,None], by default = None
+    end_lines_model: Optional[Union[str, EndLinesModel]], by default = None
         path to trained model. If None, it will use a default model
     """
 
     def __init__(
         self,
         nlp: Language,
-        end_lines_model: Union[str, EndLinesModel, None],
+        end_lines_model: Optional[Union[str, EndLinesModel]],
         **kwargs,
     ):
 
@@ -59,11 +61,11 @@ class EndLines(GenericMatcher):
 
         self._read_model(end_lines_model)
 
-    def _read_model(self, end_lines_model: Union[str, EndLinesModel, None]):
+    def _read_model(self, end_lines_model: Optional[Union[str, EndLinesModel]]):
         """
         Parameters
         ----------
-        end_lines_model : Union[str, EndLinesModel, None]
+        end_lines_model : Optional[Union[str, EndLinesModel]]
 
         Raises
         ------
@@ -179,7 +181,7 @@ class EndLines(GenericMatcher):
 
             length = self._compute_length(
                 doc, start=start_previous, end=start
-            )  # It's ok cause i count the total legth from the previous up to this one
+            )  # It's ok cause i count the total length from the previous up to this one
 
             data_dict = dict(
                 span_start=start,
@@ -233,7 +235,10 @@ class EndLines(GenericMatcher):
 
             spans.append(span)
             for t in span:
+                first_normalization(t)
                 t._.end_line = prediction
+                if prediction:
+                    t._.keep = False
 
         doc.spans["new_lines"] = spans
         return doc

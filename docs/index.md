@@ -22,7 +22,6 @@
     user-guide/hypothesis
     user-guide/reported-speech
     user-guide/antecedents
-    user-guide/pollution
     user-guide/sections
     user-guide/dates
     user-guide/score

@@ -1,12 +1,10 @@
 import pickle
-from re import MULTILINE, A
 from typing import Any, Dict, Iterable
 
 import numpy as np
 import pandas as pd
 from numpy.lib.function_base import iterable
 from pandas.api.types import CategoricalDtype
-from pandas.core.algorithms import mode
 from pandas.core.groupby import DataFrameGroupBy
 from scipy.sparse import hstack
 from sklearn.naive_bayes import MultinomialNB
@@ -15,7 +13,7 @@ from spacy.language import Language
 from spacy.strings import StringStore
 from spacy.tokens import Doc, Span
 
-from edsnlp.pipelines.endlines.functional import _convert_series_to_array, _get_label
+from .functional import _convert_series_to_array, _get_label
 
 
 class EndLinesModel:

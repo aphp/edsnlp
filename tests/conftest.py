@@ -12,14 +12,16 @@ import edsnlp.components
 def nlp():
     model = spacy.blank("fr")
 
+    model.add_pipe("normalizer")
+
     model.add_pipe("sentences")
-    model.add_pipe("pollution")
     model.add_pipe("sections")
 
     model.add_pipe(
         "matcher",
         config=dict(
             terms=dict(patient="patient"),
+            attr="CUSTOM_NORM",
         ),
     )
     model.add_pipe(
@@ -36,7 +38,7 @@ def nlp():
             regex_config=dict(
                 fracture=dict(
                     regex=[r"fracture", r"felure"],
-                    attr="NORM",
+                    attr="CUSTOM_NORM",
                     before_exclude="petite|faible",
                     after_exclude="legere|de fatigue",
                 )
@@ -59,7 +61,6 @@ def nlp():
 def blank_nlp():
     model = spacy.blank("fr")
     model.add_pipe("sentences")
-    model.add_pipe("sections")
     return model
 
 

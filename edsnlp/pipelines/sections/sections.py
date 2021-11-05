@@ -124,7 +124,7 @@ class Sections(GenericMatcher):
             ]
 
         sections = []
-        print(titles)
+
         for t1, t2 in zip(titles[:-1], titles[1:]):
             section = Span(doc, t1.start, t2.start, label=t1.label)
             section._.section_title = t1

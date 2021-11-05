@@ -22,10 +22,11 @@ testScore de 1.
 
 def test_scores(blank_nlp):
 
-    normalizer = Normalizer(
-        lowercase=True,
-        remove_accents=True,
-        normalize_quotes=True,
+    blank_nlp.add_pipe(
+        "normalizer",
+        config=dict(
+            lowercase=True, accents=True, quotes=True, endlines=False, pollution=False
+        ),
     )
 
     create_charlson = spacy.registry.get("factories", "charlson")
@@ -46,7 +47,7 @@ def test_scores(blank_nlp):
         blank_nlp,
         score_name="TestScore",
         regex=[r"test+score"],
-        attr="NORM",
+        attr="CUSTOM_NORM",
         after_extract=r"(\d+)",
         score_normalization=testscore_normalization,
         window=4,
@@ -56,8 +57,7 @@ def test_scores(blank_nlp):
     text, entities = parse_example(example=example)
 
     doc = blank_nlp(text)
-
-    doc = testscore(charlson(normalizer(doc)))
+    doc = testscore(charlson(doc))
 
     for entity, ent in zip(entities, doc.ents):
 

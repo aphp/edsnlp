@@ -26,7 +26,7 @@ def sections_factory(blank_nlp):
     default_config = dict(
         sections=terms.sections,
         add_patterns=True,
-        attr="NORM",
+        attr="CUSTOM_NORM",
         fuzzy=False,
         fuzzy_kwargs=None,
     )
@@ -45,6 +45,8 @@ def sections_factory(blank_nlp):
 
 
 def test_sections(blank_nlp, sections_factory):
+
+    blank_nlp.add_pipe("normalizer")
 
     sections = sections_factory()
 

@@ -2,8 +2,8 @@ import os
 
 from pytest import fixture
 
-from edsnlp.pipelines.endlines.endlinesmodel import EndLinesModel
-from edsnlp.pipelines.endlines.functional import build_path
+from edsnlp.pipelines.normalizer.endlines.endlinesmodel import EndLinesModel
+from edsnlp.pipelines.normalizer.endlines.functional import build_path
 
 texts = [
     """Le patient est arrivé hier soir.
@@ -64,6 +64,16 @@ def test_endlines(blank_nlp, model_path):
 
     # Use an existing trained model
     blank_nlp.add_pipe("endlines", config=dict(model_path=model_path))
+    docs = list(blank_nlp.pipe(texts))
+
+    assert type(docs[0][0]._.end_line) == bool
+    assert docs[1].spans["new_lines"][0].label_ == "space"
+
+
+def test_normalizer_endlines(blank_nlp, model_path):
+
+    # Use an existing trained model
+    blank_nlp.add_pipe("normalizer", config=dict(endlines=dict(model_path=model_path)))
     docs = list(blank_nlp.pipe(texts))
 
     assert type(docs[0][0]._.end_line) == bool

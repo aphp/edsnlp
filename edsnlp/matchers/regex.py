@@ -13,11 +13,11 @@ class RegexMatcher(object):
     ----------
     alignment_mode:
         How spans should be aligned with tokens.
-        Possible values are `strict` (character indices must be aligned
+        Possible values are ``strict`` (character indices must be aligned
         with token boundaries), "contract" (span of all tokens completely
         within the character span), "expand" (span of all tokens at least
         partially covered by the character span).
-        Defaults to `expand`.
+        Defaults to ``expand``.
     attr: str
         Default attribute to match on, by default "TEXT".
         Can be overiden in the ``add`` method.
@@ -56,7 +56,7 @@ class RegexMatcher(object):
         if not attr:
             attr = self.default_attr
 
-        assert attr in ["TEXT", "NORM", "LOWER"]
+        assert attr in ["TEXT", "NORM", "CUSTOM_NORM", "LOWER"]
         self.regex[key] = [re.compile(pattern) for pattern in patterns]
         self.attr[key] = attr
 
@@ -135,16 +135,17 @@ class RegexMatcher(object):
         span:
             A match.
         """
-        normalized_text = (
-            doclike[:]._.norm
-            if any([self.attr[k] == "NORM" for k in self.regex])
-            else None
-        )
+
+        if isinstance(doclike, Span):
+            doc = doclike.doc
+        else:
+            doc = doclike
 
         for key, patterns in self.regex.items():
-            if self.attr[key] == "NORM":
-                text = normalized_text
-            elif self.attr[key] == "LOWER":
+            attr = self.attr[key]
+            if attr == "CUSTOM_NORM":
+                text = doclike._.normalized.text
+            elif attr == "LOWER":
                 text = doclike.text.lower()
             else:
                 text = doclike.text
@@ -152,13 +153,25 @@ class RegexMatcher(object):
                 for match in pattern.finditer(text):
                     logger.trace(f"Matched a regex from {key}: {repr(match.group())}")
                     span = self.create_span(
-                        doclike,
+                        doclike._.normalized if attr == "CUSTOM_NORM" else doclike,
                         match.start(),
                         match.end(),
                         key,
                     )
-                    if span is not None:
-                        yield span
+
+                    if span is None:
+                        continue
+
+                    if self.attr[key] == "CUSTOM_NORM":
+                        # Going back to the original document
+                        start, end = span.start, span.end
+
+                        start = doc._.norm2original[start]
+                        end = doc._.norm2original[end]
+
+                        span = Span(doc, start, end, label=span.label)
+
+                    yield span
 
     def __call__(
         self,

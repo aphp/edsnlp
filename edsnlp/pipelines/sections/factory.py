@@ -16,7 +16,7 @@ def create_component(
     name: str,
     sections: Dict[str, List[str]],
     add_patterns: bool = True,
-    attr: str = "NORM",
+    attr: str = "CUSTOM_NORM",
     fuzzy: bool = False,
     fuzzy_kwargs: Optional[Dict[str, Any]] = None,
 ):

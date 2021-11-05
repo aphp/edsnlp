@@ -3,6 +3,7 @@ from typing import Any, Dict, List
 from loguru import logger
 from spacy.language import Language
 from spacy.tokens import Doc, Span
+from spacy.util import filter_spans
 
 from edsnlp.pipelines.matcher import GenericMatcher
 
@@ -76,17 +77,12 @@ class Sections(GenericMatcher):
         self.add_patterns = add_patterns
         if add_patterns:
             for k, v in sections.items():
-                with_endline = ["\n" + v_ for v_ in v]
-                with_v = ["\nv " + v_ for v_ in v]
-                with_hyphen = ["\n- " + v_ for v_ in v]
-                sections[k] = with_v + with_endline + with_hyphen
-                sections[k] += [v_ + " :" for v_ in sections[k]]
-                sections[k] = [ent + "\n" for ent in sections[k]]
+                sections[k] = [r"\n[^\n]{0,5}" + ent + r"[^\n]{0,5}\n" for ent in v]
 
         super().__init__(
             nlp,
-            terms=sections,
-            regex=None,
+            terms=None,
+            regex=sections,
             attr=attr,
             fuzzy=fuzzy,
             fuzzy_kwargs=fuzzy_kwargs,
@@ -118,7 +114,7 @@ class Sections(GenericMatcher):
         doc:
             spaCy Doc object, annotated for sections
         """
-        titles = self.process(doc)
+        titles = filter_spans(self.process(doc))
 
         if self.add_patterns:
             # Remove preceding newline
@@ -128,7 +124,7 @@ class Sections(GenericMatcher):
             ]
 
         sections = []
-
+        print(titles)
         for t1, t2 in zip(titles[:-1], titles[1:]):
             section = Span(doc, t1.start, t2.start, label=t1.label)
             section._.section_title = t1

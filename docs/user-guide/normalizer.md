@@ -1,6 +1,6 @@
 # Normalizer
 
-The `normalizer` pipeline's role is to apply normalization on the input text, in order to simplify the extraction of a terminology. The modification only impacts the `NORM` attribute, and therefore adheres to the non-destructive doctrine. In other words,
+The `normalizer` pipeline's role is to apply normalization on the input text, in order to simplify the extraction of a terminology. The modification only impacts a custom attribute, and therefore adheres to the non-destructive doctrine. In other words,
 
 ```python
 nlp(text).text == text
@@ -8,15 +8,54 @@ nlp(text).text == text
 
 remains true.
 
-The normalizer can normalize the input text in three dimensions :
+The normalizer can normalize the input text in five dimensions :
 
 1. Move the text to lowercase.
-2. Remove accents. We use a deterministic approach to avoid modifying the character-length of the text (ie `len(token.norm_) == len(token.text)`). Otherwise, regular expression matching would become a hassle.
+2. Remove accents. We use a deterministic approach to avoid modifying the character-length of the text.
 3. Normalize apostrophes and quotation marks, which are often coded using special characters.
+4. Remove pollutions.
+5. Transform newline characters to spaces.
 
-By default, all three normalizations are activated.
+By default, the first four normalizations are activated. The `endlines` normalisation requires training a model, refer to [the dedicated page for more information](endlines.md).
+
+To enable both regular expressions and phrase matching, the `normalizer` pipeline generates a new Spacy `Doc` object, which populates the `Doc._.normalized` extension. This strategy lets us arbitrarily modify tokens, and even remove tokens altogether. We provide helper methods to efficiently go back and forth between the original document and its normalised version :
+
+```python
+# Create a span in the normalized document
+normalized_span = Span(doc._.normalized, 4, 8, label="norm")
+
+# Go back to the original document
+original_span = normalized_span._.normalized
+
+original_span.label_
+# Out: 'norm'
+```
+
+## Pipelines
+
+### Lowercase
+
+The `lowercase` pipeline transforms every token to lowercase. It is not configurable.
+
+### Accents
+
+The `accents` pipeline removes accents. To avoid edge cases, the uses a specified list of accentuated characters and there unaccentuated representation, making it more predictable than using a library such as `unidecode`.
+
+### Apostrophes and quotation marks
+
+Apostrophes and quotation marks can be encoded using unpredictable special characters. The `quotes` component transforms every such special characters to `'` and `"`, respectively.
+
+### Pollution
+
+The pollution pipeline uses a set of regular expressions to detect pollutions (irrelevant non-medical text that hinders text processing). Corresponding tokens are simply removed from the normalized version of the document, enabling the use of the phrase matcher.
+
+### New lines
+
+The `endlines` pipeline classifies newline characters as actual end of lines or mere spaces. In the latter case, the token is removed from the normalised document.
 
 ## Usage
+
+The following code snippet is complete, and should run as is.
 
 ```python
 import spacy
@@ -25,16 +64,16 @@ from edsnlp import components
 nlp = spacy.blank("fr")
 nlp.add_pipe("normalizer")  # exposed via edsnlp.components
 
-text = "Le patient est admis le 23 août 2021 pour une douleur à l'estomac."
+# Notice the special character used for the apostrophe and the quotes
+text = "Le patient est admis à le 23 août 2021 pour une douleur ʺaffreuse” à l`estomac."
 
 doc = nlp(text)
 
-doc[6]
-# Out: août
-
-doc[6].norm_
-# Out: aout
+doc._.normalized
+# Out: le patient est admis a l'hopital le 23 aout 2021 pour une douleur "affreuse" a l'estomac
 ```
+
+Here, `doc._.normalized` is actually a new Spacy `Doc` object.
 
 ## Authors and citation
 

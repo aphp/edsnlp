@@ -60,4 +60,4 @@ _build/
 .DS_Store
 
 # Environment
-.env
+.venv

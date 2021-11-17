@@ -11,7 +11,7 @@ from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.utils.filter import filter_spans
 
 TERM_ATTR = "term_attr"
-DEFAULT_ATTR = "NORM"
+DEFAULT_ATTR = "TEXT"
 
 
 class GenericMatcher(BaseComponent):

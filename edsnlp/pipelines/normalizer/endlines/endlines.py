@@ -18,9 +18,9 @@ class EndLines(GenericMatcher):
     """
     Spacy Pipeline to detect if an end line is a real one or it should be a space.
     The pipeline will add the extension ``end_line`` to spans and tokens. The ``end_line``
-    attribute is a boolean, set to ``True`` if the pipeline predicts that the new line
+    attribute is a boolean or ``None``, set to ``True`` if the pipeline predicts that the new line
     is an end line character. Otherwise, it is  set to ``False`` if the new line is
-    classified as a space.
+    classified as a space. If no classification has been done over that token, it will remain ``None``.
 
 
     Parameters
@@ -54,10 +54,10 @@ class EndLines(GenericMatcher):
         )
 
         if not Token.has_extension("end_line"):
-            Token.set_extension("end_line", default=False)
+            Token.set_extension("end_line", default=None)
 
         if not Span.has_extension("end_line"):
-            Span.set_extension("end_line", default=False)
+            Span.set_extension("end_line", default=None)
 
         self._read_model(end_lines_model)
 
@@ -237,7 +237,7 @@ class EndLines(GenericMatcher):
             for t in span:
                 first_normalization(t)
                 t._.end_line = prediction
-                if prediction:
+                if not prediction:
                     t._.keep = False
 
         doc.spans["new_lines"] = spans

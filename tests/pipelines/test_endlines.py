@@ -66,7 +66,7 @@ def test_endlines(blank_nlp, model_path):
     blank_nlp.add_pipe("endlines", config=dict(model_path=model_path))
     docs = list(blank_nlp.pipe(texts))
 
-    assert type(docs[0][0]._.end_line) == bool
+    assert docs[0][0]._.end_line is None
     assert docs[1].spans["new_lines"][0].label_ == "space"
 
 
@@ -76,5 +76,5 @@ def test_normalizer_endlines(blank_nlp, model_path):
     blank_nlp.add_pipe("normalizer", config=dict(endlines=dict(model_path=model_path)))
     docs = list(blank_nlp.pipe(texts))
 
-    assert type(docs[0][0]._.end_line) == bool
+    assert docs[0][0]._.end_line is None
     assert docs[1].spans["new_lines"][0].label_ == "space"

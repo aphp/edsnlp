@@ -1,6 +1,6 @@
 from typing import Union
 
-from spacy.tokens import Doc, Span
+from spacy.tokens import Doc, Token
 
 
 class Normalizer(object):
@@ -35,6 +35,13 @@ class Normalizer(object):
             if token._.keep:
                 words.append(token._.normalization)
                 spaces.append(bool(token.whitespace_))
+            else:
+                if Token.has_extension("end_line"):
+                    if (
+                        token._.end_line == False
+                    ):  # I want to enter only if end_line==False, (not when end_line is None)
+                        if len(spaces) > 0:
+                            spaces[-1] = True
 
         normalized = Doc(vocab=doc.vocab, words=words, spaces=spaces)
 

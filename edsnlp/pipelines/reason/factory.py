@@ -5,7 +5,7 @@ from spacy.language import Language
 from edsnlp.pipelines.reason import Reason, terms
 
 reason_default_config = dict(
-    regex=terms.reasons, attr="NORM", terms=None, use_sections=False
+    regex=terms.reasons, attr="TEXT", terms=None, use_sections=False
 )
 
 

@@ -1,5 +1,6 @@
 from typing import Any, Dict, Iterable, List, Optional, Union
 
+from loguru import logger
 from spacy.language import Language
 from spacy.tokens import Doc, Span
 
@@ -49,28 +50,20 @@ class Reason(GenericMatcher):
             filter_matches=False,
             on_ents_only=False,
         )
-        self.use_sections = use_sections
+
+        self.use_sections = use_sections and "sections" in self.nlp.pipe_names
+        if use_sections and not self.use_sections:
+            logger.warning(
+                "You have requested that the pipeline use annotations "
+                "provided by the `section` pipeline, but it was not set. "
+                "Skipping that step."
+            )
 
         if not Span.has_extension("ents_reason"):
             Span.set_extension("ents_reason", default=None)
 
         if not Span.has_extension("is_reason"):
             Span.set_extension("is_reason", default=False)
-
-        if use_sections:
-            self._add_section_pipeline(nlp)
-
-    def _add_section_pipeline(self, nlp: Language):
-        """Add the pipeline ``sections``
-
-        Parameters
-        ----------
-        nlp: Language
-            spaCy nlp pipeline to use for matching.
-        """
-
-        if not nlp.has_pipe("sections"):
-            nlp.add_pipe("sections", last=True)
 
     def _enhance_with_sections(self, sections: Iterable, reasons: Iterable) -> List:
         """Enhance the list of reasons with the section information.

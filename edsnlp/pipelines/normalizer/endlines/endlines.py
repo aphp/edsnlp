@@ -224,21 +224,22 @@ class EndLines(GenericMatcher):
         matches = self.process(doc)
         new_lines = _filter_matches(matches, "new_line")
 
-        df = self._get_df(doc=doc, new_lines=new_lines)
-        df = self.model.predict(df)
+        if len(new_lines) > 0:
+            df = self._get_df(doc=doc, new_lines=new_lines)
+            df = self.model.predict(df)
 
-        spans = []
-        for span, prediction in zip(new_lines, df.PREDICTED_END_LINE):
+            spans = []
+            for span, prediction in zip(new_lines, df.PREDICTED_END_LINE):
 
-            span.label_ = _get_label(prediction)
-            span._.end_line = prediction
+                span.label_ = _get_label(prediction)
+                span._.end_line = prediction
 
-            spans.append(span)
-            for t in span:
-                first_normalization(t)
-                t._.end_line = prediction
-                if not prediction:
-                    t._.keep = False
+                spans.append(span)
+                for t in span:
+                    first_normalization(t)
+                    t._.end_line = prediction
+                    if not prediction:
+                        t._.keep = False
 
-        doc.spans["new_lines"] = spans
+            doc.spans["new_lines"] = spans
         return doc

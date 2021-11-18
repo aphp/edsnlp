@@ -14,5 +14,6 @@ def create_component(
     nlp: Language,
     name: str,
     punct_chars: Optional[List[str]] = None,
+    use_endlines: bool = True,
 ):
-    return SentenceSegmenter(punct_chars)
+    return SentenceSegmenter(punct_chars, use_endlines=use_endlines)

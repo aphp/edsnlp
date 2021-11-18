@@ -23,8 +23,10 @@ class SentenceSegmenter(object):
     def __init__(
         self,
         punct_chars: Optional[List[str]],
+        use_endlines: bool,
     ):
         self.punct_chars = set(punct_chars)
+        self.use_endlines = use_endlines
 
     def __call__(self, doc: Doc) -> Doc:
         """
@@ -41,16 +43,22 @@ class SentenceSegmenter(object):
             A Spacy Doc object, annotated for sentences.
         """
 
-        seen_period = False
-        seen_newline = False
-
         if not doc:
             return doc
+
         doc[0].sent_start = True
+
+        seen_period = False
+        seen_newline = False
 
         for i, token in enumerate(doc):
             is_in_punct_chars = token.text in self.punct_chars
             is_newline = token.is_space and "\n" in token.text
+
+            if self.use_endlines:
+                end_line = getattr(token._, "end_line", None)
+                is_newline = is_newline and (end_line or end_line is None)
+
             token.sent_start = (
                 i == 0
             )  # To set the attributes at False by default for the other tokens

@@ -1,6 +1,5 @@
 from pytest import fixture
 
-from edsnlp.pipelines.normalizer.accents.terms import accents
 from edsnlp.pipelines.normalizer.pollution.terms import pollution
 from edsnlp.pipelines.normalizer.quotes.terms import quotes_and_apostrophes
 from edsnlp.pipelines.normalizer.terms import accents

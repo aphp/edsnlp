@@ -1,5 +1,3 @@
-from typing import Union
-
 from spacy.tokens import Doc, Token
 
 
@@ -38,7 +36,7 @@ class Normalizer(object):
             else:
                 if Token.has_extension("end_line"):
                     if (
-                        token._.end_line == False
+                        token._.end_line is False
                     ):  # I want to enter only if end_line==False, (not when end_line is None)
                         if len(spaces) > 0:
                             spaces[-1] = True

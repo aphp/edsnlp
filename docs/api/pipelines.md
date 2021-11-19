@@ -124,3 +124,14 @@ def score_normalization(extracted_score: Union[str, None]):
     if (extracted_score is not None) and (int(extracted_score) in score_range):
         return int(extracted_score)
 ```
+
+### SOFA Score
+
+The `SOFA` pipeline extracts the SOFA score. each extracted entity exposes three extentions:
+- `score_name`: Set to `"SOFA"`
+- `score_value`: The SOFA score numerical value
+- `score_method`: How/When the SOFA score was obtained. Possible values are:
+   - `"Maximum"`
+   - `"24H"`
+   - `"A l'admission"`
+```

@@ -1,0 +1,1 @@
+from .sofa import Sofa

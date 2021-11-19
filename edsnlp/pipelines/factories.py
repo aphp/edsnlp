@@ -13,6 +13,6 @@ from .normalizer.pollution import factory
 from .normalizer.quotes import factory
 from .reason import factory
 from .rspeech import factory
-from .scores import charlson_factory, factory
+from .scores import charlson_factory, factory, sofa_factory
 from .sections import factory
 from .sentences import factory

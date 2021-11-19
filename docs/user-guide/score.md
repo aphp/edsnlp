@@ -46,6 +46,41 @@ ent._.score_value
 # Out: 7
 ```
 
+## Another example: The SOFA score
+
+The `SOFA` pipe allows how to extract SOFA scores.
+
+```python
+import spacy
+from edsnlp import components
+
+nlp = spacy.blank("fr")
+nlp.add_pipe("sentences")
+nlp.add_pipe("normalizer")
+nlp.add_pipe("SOFA")
+
+text = "SOFA (à 24H) : 12.\n" "OMS: \n"
+
+doc = nlp(text)
+doc.ents
+# Out: (SOFA,)
+```
+
+Each extraction exposes 3 extensions:
+
+```python
+ent._.score_name
+# Out: 'SOFA'
+
+ent._.score_value
+# Out: 12
+
+ent._.score_method
+# Out: "24H"
+```
+
+Score method can here be "24H", "Maximum", "A l'admission" or "Non précisée"
+
 ## Implementing your own score
 
 Using the `score` pipeline, you only have to change its configuration in order to implement a *simple* score extraction algorithm. As an example, let us see the configuration used for the `charlson` pipe

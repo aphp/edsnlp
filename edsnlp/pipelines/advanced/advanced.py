@@ -95,7 +95,10 @@ class AdvancedRegex(GenericMatcher):
         ents, discarded = filter_spans(list(doc.ents) + ents, return_discarded=True)
 
         doc.ents = ents
-        doc.spans["discarded"] = discarded
+
+        if "discarded" not in doc.spans:
+            doc.spans["discarded"] = []
+        doc.spans["discarded"].extend(discarded)
 
         return doc
 

@@ -5,7 +5,8 @@ import spacy
 
 from edsnlp.pipelines.normalizer.normalizer import Normalizer
 from edsnlp.pipelines.scores import Score
-from edsnlp.pipelines.scores.charlson import terms
+from edsnlp.pipelines.scores.charlson import terms as charlson_terms
+from edsnlp.pipelines.scores.sofa import terms as sofa_terms
 from edsnlp.utils.examples import parse_example
 
 example = """
@@ -17,6 +18,9 @@ Cette phrase teste un score qui s'appelle TestScore.
 La seule valeur admissible est 0.
 testScore de 1.
 <ent score_name=TestScore score_value=0>testtscore</ent> de 0.
+Testons également un autre score.
+<ent score_name=SOFA score_value=12 score_method=Maximum>SOFA</ent> maximum : 12.
+
 """
 
 
@@ -30,14 +34,23 @@ def test_scores(blank_nlp):
     )
 
     create_charlson = spacy.registry.get("factories", "charlson")
+    create_sofa = spacy.registry.get("factories", "SOFA")
 
     charlson_default_config = dict(
-        regex=terms.regex,
-        after_extract=terms.after_extract,
-        score_normalization=terms.score_normalization_str,
+        regex=charlson_terms.regex,
+        after_extract=charlson_terms.after_extract,
+        score_normalization=charlson_terms.score_normalization_str,
+    )
+
+    sofa_default_config = dict(
+        regex=sofa_terms.regex,
+        method_regex=sofa_terms.method_regex,
+        value_regex=sofa_terms.value_regex,
+        score_normalization=sofa_terms.score_normalization_str,
     )
 
     charlson = create_charlson(blank_nlp, "charlson", **charlson_default_config)
+    sofa = create_sofa(blank_nlp, "SOFA", **sofa_default_config)
 
     def testscore_normalization(raw_score: str):
         if raw_score is not None and int(raw_score) == 0:
@@ -57,7 +70,9 @@ def test_scores(blank_nlp):
     text, entities = parse_example(example=example)
 
     doc = blank_nlp(text)
-    doc = testscore(charlson(doc))
+    doc = charlson(doc)
+    doc = sofa(doc)
+    doc = testscore(doc)
 
     for entity, ent in zip(entities, doc.ents):
 
@@ -77,7 +92,7 @@ def test_score_factory(blank_nlp):
         regex=[r"test+score"],
         attr="NORM",
         after_extract=r"(\d+)",
-        score_normalization=terms.score_normalization_str,
+        score_normalization=charlson_terms.score_normalization_str,
         window=4,
         verbose=0,
     )

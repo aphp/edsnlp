@@ -96,7 +96,7 @@ doc._.normalized
 
 ### Apostrophes and quotation marks
 
-Apostrophes and quotation marks can be encoded using unpredictable special characters. The `quotes` component transforms every such special characters to `'` and `"`, respectively.
+Apostrophes and quotation marks can be encoded using unpredictable special characters. The `quotes` component transforms every such special character to `'` and `"`, respectively.
 
 Consider the following example :
 

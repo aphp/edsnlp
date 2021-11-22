@@ -4,6 +4,8 @@ The `sentences` pipeline provides an alternative to Spacy's default `sentencizer
 
 Indeed, the `sentencizer` merely looks at period characters to detect the end of a sentence, a strategy that often fails in a medical note settings. Our `sentences` component also classifies end-of-lines as sentence boundaries if the subsequent token begins with an uppercase character, leading to slightly better performances.
 
+Moreover, the `sentences` pipeline can use the output of the `normalizer` pipeline, and more specifically the end-of-line classification. This is activated by default.
+
 ## Usage
 
 ```python

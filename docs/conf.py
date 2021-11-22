@@ -22,8 +22,8 @@ project = "EDS-NLP"
 copyright = "2021, Équipe Data Science - DSI APHP"
 author = "Équipe Data Science - DSI APHP"
 
-html_logo = "_static/aphp-white.png"
-html_favicon = "_static/aphp-blue.png"
+html_logo = "_static/graphics/aphp-white.svg"
+html_favicon = "_static/graphics/aphp-blue.svg"
 
 
 # -- General configuration ---------------------------------------------------
@@ -76,6 +76,12 @@ html_theme = "sphinx_rtd_theme"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+
+# These paths are either relative to html_static_path
+# or fully qualified paths (eg. https://...)
+html_css_files = [
+    "css/custom.css",
+]
 
 # Options for bibtex
 bibtex_bibfiles = ["references.bib"]

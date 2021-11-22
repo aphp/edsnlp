@@ -77,7 +77,7 @@ class EDSPhraseMatcher(object):
             Spacy Doc or Span object to match on.
 
         Yields
-        -------s
+        -------
         span:
             A match.
         """
@@ -109,7 +109,7 @@ class EDSPhraseMatcher(object):
         doclike:
             Spacy Doc or Span object.
         as_spans:
-            Returns matches as spans.
+            Whether to return matches as spans.
 
         Yields
         -------

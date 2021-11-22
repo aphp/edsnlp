@@ -23,11 +23,8 @@ Detected sections are :
 
 It works by extracting section titles. Then, "sections" cover the entire text that is between two section titles (or the last title and the end of the document).
 
-```{eval-rst}
-
-.. warning::
-
-    Use at your own risks : should you rely on ``sections`` for critical downstream tasks, you should validate the pipeline to make sure that the component works. For instance, the ``antecedents`` pipeline can use sections to make its predictions, but that possibility is deactivated by default.
+```{warning}
+Use at your own risks : should you rely on `sections` for critical downstream tasks, you should validate the pipeline to make sure that the component works. For instance, the `antecedents` pipeline can use sections to make its predictions, but that possibility is deactivated by default.
 ```
 
 ## Declared extensions

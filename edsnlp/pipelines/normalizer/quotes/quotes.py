@@ -2,7 +2,7 @@ from typing import List, Tuple
 
 from spacy.tokens import Doc
 
-from ..utils import first_normalization, replace
+from ..utils import replace
 
 
 class Quotes(object):
@@ -12,7 +12,7 @@ class Quotes(object):
     Parameters
     ----------
     quotes : List[Tuple[str, str]]
-        [description]
+        List of quotation characters and their transcription.
     """
 
     def __init__(self, quotes: List[Tuple[str, str]]) -> None:
@@ -34,7 +34,6 @@ class Quotes(object):
         """
 
         for token in doc:
-            first_normalization(token=token)
             token._.normalization = replace(text=token._.normalization, rep=self.quotes)
 
         return doc

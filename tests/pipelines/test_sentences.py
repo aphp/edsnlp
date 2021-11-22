@@ -3,8 +3,6 @@ from pytest import mark
 from spacy.pipeline.sentencizer import Sentencizer
 from spacy.tokens import Token
 
-from edsnlp.pipelines.normalizer import Normalizer
-from edsnlp.pipelines.normalizer.utils import first_normalization
 from edsnlp.pipelines.sentences import SentenceSegmenter, terms
 
 text = (

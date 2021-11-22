@@ -3,11 +3,7 @@ from spacy.tokens import Doc, Token
 
 class Normalizer(object):
     """
-    Pipeline that populates the ``NORM`` attribute.
-    The goal is to handle accents without changing the document's length, thus
-    keeping a 1-to-1 correspondance between raw and normalized characters.
-
-    We also normalise quotes, following this `source <https://www.cl.cam.ac.uk/~mgk25/ucs/quotes.html>`_.
+    Gathers the normalisation and creates the ``normalized`` custom attributes.
     """
 
     def __call__(self, doc: Doc) -> Doc:
@@ -44,5 +40,31 @@ class Normalizer(object):
         normalized = Doc(vocab=doc.vocab, words=words, spaces=spaces)
 
         doc._.normalized = normalized
+
+        return doc
+
+
+class NormalizerPopulate(object):
+    """
+    Pipeline that populates the ``keep`` and ``normalization`` custom attributes.
+    """
+
+    def __call__(self, doc: Doc) -> Doc:
+        """
+        Populates ``Token._.normalization`` with ``token.text``.
+
+        Parameters
+        ----------
+        doc:
+            Spacy Doc object.
+
+        Returns
+        -------
+        doc:
+            Same document, with a modified ``normalization`` attribute for each token.
+        """
+
+        for token in doc:
+            token._.normalization = token.text
 
         return doc

@@ -1,5 +1,6 @@
 loguru
 numpy
+scikit-learn==1.0.0
 pandas~=1.2
 rapidfuzz
 spacy>=3.1

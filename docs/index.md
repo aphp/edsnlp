@@ -86,6 +86,8 @@ terms = dict(
     covid=["covid", "coronavirus"],
 )
 
+# Sentencizer component, needed for negation detection
+nlp.add_pipe("sentences")
 # Matcher component
 nlp.add_pipe("matcher", config=dict(terms=terms))
 # Negation detection

@@ -6,8 +6,6 @@ from spacy.tokens import Doc, Span
 from edsnlp.base import BaseComponent
 from edsnlp.matchers.regex import RegexMatcher
 
-from ..utils import first_normalization
-
 
 class Pollution(BaseComponent):
     """
@@ -91,12 +89,9 @@ class Pollution(BaseComponent):
         Returns
         -------
         doc:
-            spaCy Doc object, annotated for negation
+            spaCy Doc object, annotated for pollutions.
         """
         pollutions = self.process(doc)
-
-        for token in doc:
-            first_normalization(token=token)
 
         for pollution in pollutions:
 

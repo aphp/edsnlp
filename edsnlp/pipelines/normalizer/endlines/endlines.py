@@ -9,7 +9,6 @@ from spacy.tokens import Doc, Span, Token
 from edsnlp.pipelines.matcher import GenericMatcher
 from edsnlp.utils.filter_matches import _filter_matches
 
-from ..utils import first_normalization
 from .endlinesmodel import EndLinesModel
 from .functional import _get_label, build_path
 
@@ -21,7 +20,6 @@ class EndLines(GenericMatcher):
     attribute is a boolean or ``None``, set to ``True`` if the pipeline predicts that the new line
     is an end line character. Otherwise, it is  set to ``False`` if the new line is
     classified as a space. If no classification has been done over that token, it will remain ``None``.
-
 
     Parameters
     ----------
@@ -70,7 +68,6 @@ class EndLines(GenericMatcher):
         Raises
         ------
         TypeError
-
         """
         if end_lines_model is None:
             path = build_path(__file__, "base_model.pkl")
@@ -236,7 +233,6 @@ class EndLines(GenericMatcher):
 
                 spans.append(span)
                 for t in span:
-                    first_normalization(t)
                     t._.end_line = prediction
                     if not prediction:
                         t._.keep = False

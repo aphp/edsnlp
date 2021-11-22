@@ -2,7 +2,7 @@ from typing import List, Tuple
 
 from spacy.tokens import Doc
 
-from ..utils import first_normalization, replace
+from ..utils import replace
 
 
 class Accents(object):
@@ -11,21 +11,20 @@ class Accents(object):
 
     def __call__(self, doc: Doc) -> Doc:
         """
-        Remove accents from norm attribute
+        Remove accents from ``normalization`` custom attribute.
 
         Parameters
         ----------
         doc : Doc
-            [description]
+            The Spacy ``Doc`` object.
 
         Returns
         -------
         Doc
-            [description]
+            The document, with accents removed in ``Token._.normalization``.
         """
 
         for token in doc:
-            first_normalization(token)
             token._.normalization = replace(
                 text=token._.normalization, rep=self.accents
             )

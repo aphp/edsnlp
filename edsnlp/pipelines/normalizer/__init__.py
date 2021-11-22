@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Union
 
 from spacy.tokens import Doc, Span, Token
@@ -21,10 +22,12 @@ if not Doc.has_extension("normalized"):
     Doc.set_extension("normalized", default=None)
 
 
+@lru_cache(maxsize=1)
 def _norm2original(doc):
     return [token.i for token in doc if token._.keep] + [len(doc)]
 
 
+@lru_cache(maxsize=1)
 def _original2norm(doc):
     n2o = doc._.norm2original
     o2n = []

@@ -59,3 +59,9 @@ def _get_normalized_span(span: Span) -> Span:
 
 if not Span.has_extension("normalized"):
     Span.set_extension("normalized", getter=_get_normalized_span)
+
+if not Token.has_extension("normalized"):
+    Token.set_extension(
+        "normalized",
+        getter=lambda token: token.doc._.normalized[token.doc._.original2norm[token.i]],
+    )

@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.3.2
+
+- Major revamp of the normalisation.
+  - The `normalizer` pipeline **now adds atomic components** (`lowercase`, `accents`, `quotes`, `pollution` & `endlines`) to the processing pipeline, and compiles the results into a new `Doc._.normalized` extension. The latter is itself a Spacy `Doc` object, wherein tokens are normalised and pollution tokens are removed altogether. Components that match on the `CUSTOM_NORM` attribute process the `normalized` document, and matches are brought back to the original document using a token-wise mapping.
+  - Update the `RegexMatcher` to use the `CUSTOM_NORM` attribute
+  - Add an `EDSPhraseMatcher`, wrapping Spacy's `PhraseMatcher` to enable matching on `CUSTOM_NORM`.
+  - Update the `matcher` and `advanced` pipelines to enable matching on the `CUSTOM_NORM` attribute.
+- Add an OMOP connector, to help go back and forth between OMOP-formatted pandas dataframes and Spacy documents.
+- Add a `reason` pipeline, that extracts the reason for visit.
+- Add an `endlines` pipeline, that classifies newline characters between spaces and actual ends of line.
+- Add possibility to annotate within entities for qualifiers (`negation`, `hypothesis`, etc), ie if the cue is within the entity. Disabled by default.
+
 ## v0.3.1
 
 - Update `dates` to remove miscellaneous bugs.

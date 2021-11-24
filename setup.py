@@ -11,7 +11,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="edsnlp",
-    version="0.3.1",
+    version="0.3.2",
     author="Data Science - DSI APHP",
     author_email="basile.dura-ext@aphp.fr",
     description="NLP tools for human consumption at AP-HP",

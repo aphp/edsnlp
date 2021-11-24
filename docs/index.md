@@ -118,7 +118,6 @@ This example is complete, it should run as-is.
 | `antecedent` | Rule-based antecedent detection                 |
 | `rspeech`    | Rule-based reported speech detection            |
 | `sections`   | Section detection                               |
-| `pollution`  | Pollution detection and non-destructive removal |
 | `dates`      | Date extraction and normalization               |
 | `score`      | A simple clinical score extractor               |
 | `endlines`   | An unsupervised model to classify each end line |

@@ -15,7 +15,7 @@ pip install git+https://gitlab.eds.aphp.fr/datasciencetools/edsnlp.git
 We recommend pinning the version of the library :
 
 ```
-pip install git+https://gitlab.eds.aphp.fr/datasciencetools/edsnlp.git@v0.3.1
+pip install git+https://gitlab.eds.aphp.fr/datasciencetools/edsnlp.git@v0.3.2
 ```
 
 ### Quick start
@@ -55,20 +55,19 @@ This example is complete, it should run as-is. See the [documentation](https://d
 
 ### Available pipelines
 
-| Pipeline     | Description                                     |
-| ------------ | ----------------------------------------------- |
-| `normalizer` | Non-destructive text normalization              |
-| `sentences`  | Better sentence boundary detection              |
-| `matcher`    | A simple yet powerful entity extractor          |
-| `negation`   | Rule-based negation detection                   |
-| `family`     | Rule-based family context detection             |
-| `hypothesis` | Rule-based speculation detection                |
-| `antecedent` | Rule-based antecedent detection                 |
-| `rspeech`    | Rule-based reported speech detection            |
-| `sections`   | Section detection                               |
-| `pollution`  | Pollution detection and non-destructive removal |
-| `dates`      | Date extraction and normalization               |
-| `score`      | A simple clinical score extractor               |
+| Pipeline     | Description                            |
+| ------------ | -------------------------------------- |
+| `normalizer` | Non-destructive text normalization     |
+| `sentences`  | Better sentence boundary detection     |
+| `matcher`    | A simple yet powerful entity extractor |
+| `negation`   | Rule-based negation detection          |
+| `family`     | Rule-based family context detection    |
+| `hypothesis` | Rule-based speculation detection       |
+| `antecedent` | Rule-based antecedent detection        |
+| `rspeech`    | Rule-based reported speech detection   |
+| `sections`   | Section detection                      |
+| `dates`      | Date extraction and normalization      |
+| `score`      | A simple clinical score extractor      |
 
 ## Disclaimer
 

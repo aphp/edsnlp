@@ -81,15 +81,15 @@ text_dates: List[str] = [
 ]
 
 unknown_year: List[str] = [
-    r"(?<!\d)(?:3[01]|[12][0-9]|0?[1-9]|1er)[\/\.\-\s][01]?\d",
+    r"\b(?<!\d)([01]?[0-9]|3[012]|1er)[\/\.\- ]([1-9](?!\d)|(0[1-9])|(1[012]))\b",
     r"(?:depuis|en)\s+" + month_pattern,
     r"(?<!\d)(?:3[01]|[12][0-9]|0?[1-9]|1er)\s*" + month_pattern,
     day_pattern + r"\s+" + month_pattern,
 ]
 
 year_only: List[str] = [
-    r"(?:depuis|en|d[ée]but|fin)\s+(?:19\d\d|20[012]\d|\d\d)",
-    r"(?:depuis|en|d[ée]but|fin)\s+(?:d'|de\s+l')ann[ée]\s+(?:19\d\d|20[012]\d|\d\d)",
+    r"((?<=depuis)|(?<=en)|(?<=d[ée]but)|(?<=fin))\s*(19\d\d|20[012]\d|\d\d)",
+    r"(?<=ann[ée]e)\s+(19\d\d|20[012]\d|\d\d)",
 ]
 
 relative_expressions: List[str] = [
@@ -114,4 +114,4 @@ relative = r"(?:" + relative + r")(?:\s+" + hours + ")?"
 
 full_date = "|".join(add_break(full_dates))
 
-false_positives = r"(?:\d\d[\s\.\/\-]?){4,}"
+false_positives = r"\b(?:\d\d[\s\.\/\-]){4,}|(?:\d\d{4,})"

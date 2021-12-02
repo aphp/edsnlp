@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Union
 
 from dateparser import DateDataParser
+from dateparser_data.settings import default_parsers
 from loguru import logger
 from spacy.language import Language
 from spacy.tokens import Doc, Span
@@ -10,7 +11,6 @@ from spacy.util import filter_spans
 
 from edsnlp.base import BaseComponent
 from edsnlp.matchers.regex import RegexMatcher
-from dateparser_data.settings import default_parsers
 
 
 def td2str(td: timedelta):

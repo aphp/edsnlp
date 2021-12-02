@@ -81,8 +81,8 @@ text_dates: List[str] = [
 ]
 
 unknown_year: List[str] = [
-    r"\b(?<!\d)([01]?[0-9]|3[012]|1er)[\/\.\- ]([1-9](?!\d)|(0[1-9])|(1[012]))\b",
-    r"(?:depuis|en)\s+" + month_pattern,
+    r"\b(?<!\d)([01]?[0-9]|3[01]|1er)[\/\.\- ]([1-9](?!\d)|(0[1-9])|(1[012]))\b",
+    r"((?<=depuis)|(?<=en)|(?<=d[ée]but)|(?<=fin))\s*" + month_pattern,
     r"(?<!\d)(?:3[01]|[12][0-9]|0?[1-9]|1er)\s*" + month_pattern,
     day_pattern + r"\s+" + month_pattern,
 ]

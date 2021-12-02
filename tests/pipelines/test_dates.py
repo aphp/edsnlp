@@ -29,13 +29,16 @@ def test_parser_absolute(parser):
 
 def test_incomplete_dates(parser):
     tests = [
-        ("le 3 juillet", date(2021, 7, 3)),
         ("en mars 2010", date(2010, 3, 1)),
         ("en 2019", date(2019, 1, 1)),
     ]
 
     for test, answer in tests:
         assert parser(test).date() == answer
+
+    no_year_date = parser("le 3 juillet").date()
+    assert no_year_date.month == 7
+    assert no_year_date.day == 3
 
 
 def test_parser_relative(parser):

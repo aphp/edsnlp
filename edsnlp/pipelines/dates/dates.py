@@ -167,7 +167,7 @@ class Dates(BaseComponent):
         if isinstance(false_positive, str):
             false_positive = [false_positive]
 
-        self.matcher = RegexMatcher(attr="LOWER", alignment_mode="contract")
+        self.matcher = RegexMatcher(attr="LOWER", alignment_mode="expand")
         self.matcher.add("absolute", absolute)
         self.matcher.add("full_date", full_date)
         self.matcher.add("relative", relative)

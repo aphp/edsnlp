@@ -66,6 +66,7 @@ day_pattern = "(?:" + "|".join(days) + ")"
 
 numeric_dates: List[str] = [
     r"(?<!\d)(?:3[01]|[12][0-9]|0?[1-9]|1er)[\/\.\-\s][01]?\d[\/\.\-\s](?:19\d\d|20[012]\d|\d\d)",
+    r"[01]?\d[\/\.\-\s](?:19\d\d|20[012]\d)",
 ]
 
 full_dates: List[str] = [
@@ -73,7 +74,7 @@ full_dates: List[str] = [
 ]
 
 text_dates: List[str] = [
-    r"(?:depuis|en)\s+" + month_pattern + r"?\s+(?:19\d\d|20[012]\d|\d\d)",
+    r"((?<=depuis)|(en))\s+" + month_pattern + r"?\s+(?:19\d\d|20[012]\d|\d\d)",
     r"(?<!\d)(?:3[01]|[12][0-9]|0?[1-9]|1er)\s*"
     + month_pattern
     + r"\s+(?:19\d\d|20[012]\d|\d\d)",
@@ -81,15 +82,16 @@ text_dates: List[str] = [
 ]
 
 unknown_year: List[str] = [
-    r"\b(?<!\d)([01]?[0-9]|3[01]|1er)[\/\.\- ]([1-9](?!\d)|(0[1-9])|(1[012]))\b",
+    r"\b(?<!\d)([012]?[0-9]|3[01]|1er)[\/\- ]([1-9](?!\d)|(0[1-9])|(1[012]))\b",
     r"((?<=depuis)|(?<=en)|(?<=d[ée]but)|(?<=fin))\s*" + month_pattern,
     r"(?<!\d)(?:3[01]|[12][0-9]|0?[1-9]|1er)\s*" + month_pattern,
     day_pattern + r"\s+" + month_pattern,
 ]
 
 year_only: List[str] = [
-    r"((?<=depuis)|(?<=en)|(?<=d[ée]but)|(?<=fin))\s*(19\d\d|20[012]\d|\d\d)",
+    r"((?<=depuis)|(en)|(?<=d[ée]but)|(?<=fin))\s*(19\d\d|20[012]\d|\d\d)",
     r"(?<=ann[ée]e)\s+(19\d\d|20[012]\d|\d\d)",
+    r"\((19\d\d|20[012]\d|\d\d)\)",
 ]
 
 relative_expressions: List[str] = [

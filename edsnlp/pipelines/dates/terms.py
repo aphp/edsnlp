@@ -100,7 +100,7 @@ relative_expressions: List[str] = [
     r"l['ae]\s*(?:semaine|année|an|mois) derni[èe]re?",
     r"l['ae]\s*(?:semaine|année|an|mois) prochaine?",
     r"il y a .{,10} (?:heures?|jours?|mois|ann[ée]es?|ans?)",
-    r"depuis .{,10} (?:heures?|jours?|mois|ann[ée]es?|ans?)",
+    r"(?<=depuis) .{,10} (?:heures?|jours?|mois|ann[ée]es?|ans?)",
     r"dans .{,10} (?:heures?|jours?|mois|ann[ée]es?|ans?)",
 ]
 

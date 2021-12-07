@@ -230,7 +230,14 @@ class Dates(BaseComponent):
         if date.label_ == "full_date":
             text_date = re.sub(r"[\.\/\s]", "-", text_date)
 
-            return datetime.strptime(text_date, "%Y-%m-%d")
+            try:
+                return datetime.strptime(text_date, "%Y-%m-%d")
+            except ValueError:
+                try:
+                    return datetime.strptime(text_date, "%Y-%d-%m")
+                except ValueError:
+                    return None
+
         else:
             text_date = re.sub(r"\.", "-", text_date)
 

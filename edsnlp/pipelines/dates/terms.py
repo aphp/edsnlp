@@ -15,7 +15,7 @@ from .utils import make_pattern
 
 delimiters = [r"\/", r"\.", r"\-", r"\s+"]
 
-hour_pattern = r"([0-1]?\d|2[0-3])[h:][0-6]\d"
+hour_pattern = r"(?<!\d)([0-1]?\d|2[0-3])[h:][0-6]\d(?!\d)"
 
 # Full dates
 absolute_dates: List[str] = [
@@ -34,9 +34,9 @@ full_date_pattern = (
 )
 
 no_year_dates = [day_pattern + d + month_pattern for d in delimiters]
-no_year_dates.extend(
-    [numeric_month_pattern + d + numeric_day_pattern for d in delimiters]
-)
+# no_year_dates.extend(
+#     [numeric_month_pattern + d + numeric_day_pattern for d in delimiters]
+# )
 no_year_pattern = make_pattern(no_year_dates)
 
 no_day_dates = [month_pattern + d + year_pattern for d in delimiters]

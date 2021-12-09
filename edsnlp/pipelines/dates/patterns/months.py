@@ -26,7 +26,7 @@ letter_months: List[str] = [
 
 letter_month_pattern = r"\b(" + "|".join(letter_months) + r")\b"
 
-numeric_month_pattern = r"(0?[1-9]|1[0-2])"
-numeric_month_pattern_with_leading_zero = r"(0[1-9]|1[0-2])"
+numeric_month_pattern = r"(?<!\d)(0?[1-9]|1[0-2])(?!\d)"
+numeric_month_pattern_with_leading_zero = r"(?<!\d)(0[1-9]|1[0-2])(?!\d)"
 
 month_pattern = f"({letter_month_pattern}|{numeric_month_pattern})"

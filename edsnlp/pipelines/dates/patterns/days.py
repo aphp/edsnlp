@@ -37,7 +37,7 @@ letter_days: List[str] = [
 
 letter_day_pattern = "(" + "|".join(letter_days) + ")"
 
-numeric_day_pattern = r"(0?[1-9]|[12]\d|3[01])"
-numeric_day_pattern_with_leading_zero = r"(0[1-9]|[12]\d|3[01])"
+numeric_day_pattern = r"(?<!\d)(0?[1-9]|[12]\d|3[01])(?!\d)"
+numeric_day_pattern_with_leading_zero = r"(?<!\d)(0[1-9]|[12]\d|3[01])(?!\d)"
 
 day_pattern = f"({letter_day_pattern}|{numeric_day_pattern})"

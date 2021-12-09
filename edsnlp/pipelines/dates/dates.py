@@ -56,7 +56,7 @@ def date_getter(date: Span) -> str:
     delta = date._.parsed_delta
     note_datetime = date.doc._.note_datetime
 
-    if date.label_ in {"absolute", "full_date"}:
+    if date.label_ in {"absolute", "full_date", "no_day"}:
         normalized = d.strftime("%Y-%m-%d")
     elif date.label_ == "no_year":
         if note_datetime:
@@ -242,7 +242,10 @@ class Dates(BaseComponent):
 
         text_date = date.text
 
-        if date.label_ == "full_date":
+        if date.label_ == "no_day":
+            text_date = "01/" + re.sub(r"[\.\/\s]", "/", text_date)
+
+        elif date.label_ == "full_date":
             text_date = re.sub(r"[\.\/\s]", "-", text_date)
 
             try:
@@ -253,10 +256,9 @@ class Dates(BaseComponent):
                 except ValueError:
                     return None
 
-        else:
-            text_date = re.sub(r"\.", "-", text_date)
+        # text_date = re.sub(r"\.", "-", text_date)
 
-            return self.parser(text_date)
+        return self.parser(text_date)
 
     # noinspection PyProtectedMember
     def __call__(self, doc: Doc) -> Doc:

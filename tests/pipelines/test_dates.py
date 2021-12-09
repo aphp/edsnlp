@@ -31,7 +31,6 @@ def test_incomplete_dates(parser):
     tests = [
         ("en mars 2010", date(2010, 3, 1)),
         ("en 2019", date(2019, 1, 1)),
-        ("en 09/17", date(2017, 9, 1)),
     ]
 
     for test, answer in tests:
@@ -144,6 +143,7 @@ def test_absolute_dates_patterns(blank_nlp, dates):
         ("Objet : Consultation du 03-07-19", "2019-07-03"),
         ("Objet : Consultation du 03-07-1993", "1993-07-03"),
         ("Objet : Consultation du 1993-12-02", "1993-12-02"),
+        ("en 09/17", "2017-09-01"),
     ]
 
     for example, answer in examples:

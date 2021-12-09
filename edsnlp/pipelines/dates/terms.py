@@ -64,16 +64,24 @@ days: List[str] = [
 ]
 day_pattern = "(?:" + "|".join(days) + ")"
 
+delimiters = [r"\/", r"\.", r"\-", r"\s"]
+
 numeric_dates: List[str] = [
-    r"(?<!\d)(?:3[01]|[12][0-9]|0?[1-9]|1er)[\/\.\-\s][01]?\d[\/\.\-\s](?:19\d\d|20[012]\d|\d\d)",
-]
+    r"(?<!\d)(?:3[01]|[12][0-9]|0?[1-9]|1er)"
+    + d
+    + r"[01]?\d"
+    + d
+    + r"(?:19\d\d|20[012]\d|\d\d)"
+    for d in delimiters
+] + [r"[01]?\d" + d + r"(?:19\d\d|20[012]\d)" for d in delimiters]
 
 full_dates: List[str] = [
-    r"(?:19\d\d|20[012]\d)[\/\.\-\s][01]?\d[\/\.\-\s](?:3[01]|[12][0-9]|0?[1-9])",
+    r"(?:19\d\d|20[012]\d)" + d + r"[01]?\d" + d + r"(?:3[01]|[12][0-9]|0?[1-9])"
+    for d in delimiters
 ]
 
 text_dates: List[str] = [
-    r"(?:depuis|en)\s+" + month_pattern + r"?\s+(?:19\d\d|20[012]\d|\d\d)",
+    r"((?<=depuis)|(en))\s+" + month_pattern + r"?\s+(?:19\d\d|20[012]\d|\d\d)",
     r"(?<!\d)(?:3[01]|[12][0-9]|0?[1-9]|1er)\s*"
     + month_pattern
     + r"\s+(?:19\d\d|20[012]\d|\d\d)",
@@ -81,15 +89,18 @@ text_dates: List[str] = [
 ]
 
 unknown_year: List[str] = [
-    r"(?<!\d)(?:3[01]|[12][0-9]|0?[1-9]|1er)[\/\.\-\s][01]?\d",
-    r"(?:depuis|en)\s+" + month_pattern,
+    r"\b(?<!\d)(0?[1-9]|[12][0-9]|3[01]|1er)" + d + r"(0?[1-9]|1[0-2])\b"
+    for d in delimiters
+] + [
+    r"((?<=depuis)|(?<=en)|(?<=d[ée]but)|(?<=fin))\s*" + month_pattern,
     r"(?<!\d)(?:3[01]|[12][0-9]|0?[1-9]|1er)\s*" + month_pattern,
     day_pattern + r"\s+" + month_pattern,
 ]
 
 year_only: List[str] = [
-    r"(?:depuis|en|d[ée]but|fin)\s+(?:19\d\d|20[012]\d|\d\d)",
-    r"(?:depuis|en|d[ée]but|fin)\s+(?:d'|de\s+l')ann[ée]\s+(?:19\d\d|20[012]\d|\d\d)",
+    r"((?<=depuis)|(en)|(?<=d[ée]but)|(?<=fin))\s*(19\d\d|20[012]\d|\d\d)",
+    r"(?<=ann[ée]e)\s+(19\d\d|20[012]\d|\d\d)",
+    r"\((19\d\d|20[012]\d|\d\d)\)",
 ]
 
 relative_expressions: List[str] = [
@@ -98,7 +109,7 @@ relative_expressions: List[str] = [
     r"l['ae]\s*(?:semaine|année|an|mois) derni[èe]re?",
     r"l['ae]\s*(?:semaine|année|an|mois) prochaine?",
     r"il y a .{,10} (?:heures?|jours?|mois|ann[ée]es?|ans?)",
-    r"depuis .{,10} (?:heures?|jours?|mois|ann[ée]es?|ans?)",
+    r"(?<=depuis) .{,10} (?:heures?|jours?|mois|ann[ée]es?|ans?)",
     r"dans .{,10} (?:heures?|jours?|mois|ann[ée]es?|ans?)",
 ]
 
@@ -114,4 +125,4 @@ relative = r"(?:" + relative + r")(?:\s+" + hours + ")?"
 
 full_date = "|".join(add_break(full_dates))
 
-false_positives = r"(?:\d\d[\s\.\/\-]?){4,}"
+false_positives = r"\b(?:\d\d[\s\.\/\-]){4,}|(?:\d\d{4,})"

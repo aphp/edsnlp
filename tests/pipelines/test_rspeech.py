@@ -15,6 +15,13 @@ examples: List[str] = [
     """Le patient parle "d'en finir", et dit qu'il a pensé plusieurs fois à se pendre où à se faire une <ent reported_speech_=REPORTED>phlébotomie</ent> lorsqu'il était dans la rue, diminution de ces idées noires depuis qu'il vit chez son fils""",
 ]
 
+# A long test to check leakage from one entity to the next.
+examples.append(
+    "le patient est admis pour coronavirus. il dit qu'il n'est pas <ent reported_speech=True>malade</ent>.\n"
+    "les tests sont positifs.\n"
+    "il est <ent reported_speech=False>malade</ent>"
+)
+
 
 @fixture
 def rspeech_factory(blank_nlp):

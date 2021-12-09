@@ -197,6 +197,7 @@ class Hypothesis(GenericMatcher):
                     token._.hypothesis = any(
                         m.end <= token.i for m in sub_preceding + sub_verbs
                     ) or any(m.start > token.i for m in sub_following)
+
             for ent in ents:
 
                 if self.within_ents:

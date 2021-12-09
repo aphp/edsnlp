@@ -198,6 +198,7 @@ class Negation(GenericMatcher):
                     token._.negated = any(
                         m.end <= token.i for m in sub_preceding + sub_verbs
                     ) or any(m.start > token.i for m in sub_following)
+
             for ent in ents:
 
                 if self.within_ents:

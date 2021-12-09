@@ -159,6 +159,7 @@ class ReportedSpeech(GenericMatcher):
         matches = filter_spans(matches)
 
         for start, end in boundaries:
+
             ents, entities = consume_spans(
                 entities,
                 filter=lambda s: check_inclusion(s, start, end),
@@ -190,7 +191,7 @@ class ReportedSpeech(GenericMatcher):
                             for m in sub_quotation
                         )
                     )
-            for ent in doc.ents:
+            for ent in ents:
 
                 if self.within_ents:
                     cues = [m for m in sub_preceding + sub_verbs if m.end <= ent.end]

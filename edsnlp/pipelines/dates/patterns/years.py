@@ -9,3 +9,7 @@ year_patterns: List[str] = [
 
 full_year_pattern = make_pattern(year_patterns)
 year_pattern = make_pattern(year_patterns + [r"\d\d"])
+
+
+full_year_pattern = r"(?<!\d)" + full_year_pattern + r"(?!\d)"
+year_pattern = r"(?<!\d)" + year_pattern + r"(?!\d)"

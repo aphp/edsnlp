@@ -19,7 +19,10 @@ def omop2docs(
     #     note.columns
     # )
 
-    df = note.merge(note_nlp, on=["note_id"])
+    #     df = note.merge(note_nlp, on=["note_id"], how="left")
+
+    note = note.copy()
+    note_nlp = note_nlp.copy()
 
     extensions = extensions or []
 
@@ -34,23 +37,26 @@ def omop2docs(
         return d
 
     # Create entities
-    df["ents"] = df.apply(row2ent, axis=1)
+    note_nlp["ents"] = note_nlp.apply(row2ent, axis=1)
 
-    df = df.groupby("note_id", as_index=False)["ents"].agg(list)
+    note_nlp = note_nlp.groupby("note_id", as_index=False)["ents"].agg(list)
 
-    df = df.merge(note, on=["note_id"])
+    note = note.merge(note_nlp, on=["note_id"], how="left")
 
     # Generate documents
-    df["doc"] = df.note_text.apply(nlp)
+    note["doc"] = note.note_text.apply(nlp)
 
     # Process documents
-    for _, row in df.iterrows():
+    for _, row in note.iterrows():
 
         doc = row.doc
         doc._.note_id = row.note_id
         doc._.note_datetime = row.get("note_datetime")
 
         ents = []
+
+        if not isinstance(row.ents, list):
+            continue
 
         for ent in row.ents:
 
@@ -79,7 +85,7 @@ def omop2docs(
             doc.spans["discarded"] = []
         doc.spans["discarded"].extend(discarded)
 
-    return list(df.doc)
+    return list(note.doc)
 
 
 def docs2omop(

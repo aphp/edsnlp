@@ -109,6 +109,8 @@ def consume_spans(
 
     if not second_chance:
         second_chance = []
+    else:
+        second_chance = [m for m in second_chance if filter(m)]
 
     if not spans:
         return second_chance, []
@@ -122,6 +124,6 @@ def consume_spans(
     matches = spans[:i]
     remainder = spans[i:]
 
-    matches.extend([m for m in second_chance if filter(m)])
+    matches.extend(second_chance)
 
     return matches, remainder

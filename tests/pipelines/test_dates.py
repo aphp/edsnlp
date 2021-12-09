@@ -4,14 +4,15 @@ from dateparser import DateDataParser
 from pytest import fixture, raises
 
 from edsnlp.pipelines.dates import Dates, terms
+from edsnlp.pipelines.dates.dates import date_parser
 
 
 @fixture(scope="session")
 def parser():
-    return DateDataParser(languages=["fr"])
+    return date_parser
 
 
-def test_parser_absolute(parser: DateDataParser):
+def test_parser_absolute(parser):
     tests = [
         ("le 3 juillet 2020", date(2020, 7, 3)),
         ("le 3/7/2020", date(2020, 7, 3)),
@@ -23,10 +24,24 @@ def test_parser_absolute(parser: DateDataParser):
     ]
 
     for test, answer in tests:
-        assert parser.get_date_data(test).date_obj.date() == answer
+        assert parser(test).date() == answer
 
 
-def test_parser_relative(parser: DateDataParser):
+def test_incomplete_dates(parser):
+    tests = [
+        ("en mars 2010", date(2010, 3, 1)),
+        ("en 2019", date(2019, 1, 1)),
+    ]
+
+    for test, answer in tests:
+        assert parser(test).date() == answer
+
+    no_year_date = parser("le 3 juillet").date()
+    assert no_year_date.month == 7
+    assert no_year_date.day == 3
+
+
+def test_parser_relative(parser):
     tests = [
         ("hier", [timedelta(days=-1)]),
         (
@@ -44,12 +59,7 @@ def test_parser_relative(parser: DateDataParser):
     ]
 
     for test, answers in tests:
-        assert any(
-            [
-                parser.get_date_data(test).date_obj.date() == (date.today() + a)
-                for a in answers
-            ]
-        )
+        assert any([parser(test).date() == (date.today() + a) for a in answers])
 
 
 text = (
@@ -70,14 +80,14 @@ def dates(nlp):
     )
 
 
-def test_dateparser_failure_cases(blank_nlp, dates, parser: DateDataParser):
+def test_dateparser_failure_cases(blank_nlp, dates, parser):
     examples = [
         "le premier juillet 2021",
         "l'an dernier",
     ]
 
     for example in examples:
-        assert parser.get_date_data(example).date_obj is None
+        assert parser(example) is None
 
         doc = blank_nlp(example)
         doc = dates(doc)
@@ -169,6 +179,10 @@ def test_false_positives(blank_nlp, dates):
         "bien mais",
         "thierry",
         "436",
+        "12.0-16",
+        "27.0-33",
+        "7.0-11",
+        "03-0.70",
     ]
 
     for example in counter_examples:

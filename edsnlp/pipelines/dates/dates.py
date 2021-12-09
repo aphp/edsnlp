@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Union
 
 from dateparser import DateDataParser
+from dateparser_data.settings import default_parsers
 from loguru import logger
 from spacy.language import Language
 from spacy.tokens import Doc, Span
@@ -75,6 +76,54 @@ def date_getter(date: Span) -> str:
     return normalized
 
 
+parsers = [parser for parser in default_parsers if parser != "relative-time"]
+parser1 = DateDataParser(
+    languages=["fr"],
+    settings={
+        "PREFER_DAY_OF_MONTH": "first",
+        "PREFER_DATES_FROM": "past",
+        "PARSERS": parsers,
+    },
+)
+
+parser2 = DateDataParser(
+    languages=["fr"],
+    settings={
+        "PREFER_DAY_OF_MONTH": "first",
+        "PREFER_DATES_FROM": "past",
+        "PARSERS": ["relative-time"],
+    },
+)
+
+
+def date_parser(text_date: str) -> datetime:
+    """Function to parse dates. It try first all available parsers
+    ('timestamp', 'custom-formats', 'absolute-time') but 'relative-time'.
+    If no date is found, retries with 'relative-time'.
+
+    When just the year is identified. It returns a datetime object with month and day equal to 1.
+
+
+    Parameters
+    ----------
+    text_date : str
+
+    Returns
+    -------
+    datetime
+    """
+
+    parsed_date = parser1.get_date_data(text_date)
+    if parsed_date.date_obj:
+        if parsed_date.period == "year":
+            return datetime(year=parsed_date.date_obj.year, month=1, day=1)
+        else:
+            return parsed_date.date_obj
+    else:
+        parsed_date2 = parser2.get_date_data(text_date)
+        return parsed_date2.date_obj
+
+
 class Dates(BaseComponent):
     """
     Tags dates.
@@ -119,14 +168,14 @@ class Dates(BaseComponent):
         if isinstance(false_positive, str):
             false_positive = [false_positive]
 
-        self.matcher = RegexMatcher(attr="LOWER", alignment_mode="contract")
+        self.matcher = RegexMatcher(attr="LOWER", alignment_mode="expand")
         self.matcher.add("absolute", absolute)
         self.matcher.add("full_date", full_date)
         self.matcher.add("relative", relative)
         self.matcher.add("no_year", no_year)
         self.matcher.add("false_positive", false_positive)
 
-        self.parser = DateDataParser(languages=["fr"])
+        self.parser = date_parser
 
         if not Doc.has_extension("note_datetime"):
             Doc.set_extension("note_datetime", default=None)
@@ -182,10 +231,18 @@ class Dates(BaseComponent):
         if date.label_ == "full_date":
             text_date = re.sub(r"[\.\/\s]", "-", text_date)
 
-            return datetime.strptime(text_date, "%Y-%m-%d")
+            try:
+                return datetime.strptime(text_date, "%Y-%m-%d")
+            except ValueError:
+                try:
+                    return datetime.strptime(text_date, "%Y-%d-%m")
+                except ValueError:
+                    return None
+
         else:
             text_date = re.sub(r"\.", "-", text_date)
-            return self.parser.get_date_data(text_date).date_obj
+
+            return self.parser(text_date)
 
     # noinspection PyProtectedMember
     def __call__(self, doc: Doc) -> Doc:

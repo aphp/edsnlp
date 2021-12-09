@@ -181,13 +181,13 @@ class Dates(BaseComponent):
 
         self.matcher = RegexMatcher(attr="LOWER", alignment_mode="expand")
         # self.matcher.add("since", since)
-        self.matcher.add("false_positive", false_positive)
         self.matcher.add("full_date", full)
         self.matcher.add("absolute", absolute)
         self.matcher.add("relative", relative)
         self.matcher.add("no_year", no_year)
         self.matcher.add("no_day", no_day)
         self.matcher.add("year_only", year_only)
+        self.matcher.add("false_positive", false_positive)
 
         self.parser = date_parser
 

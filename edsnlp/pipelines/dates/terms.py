@@ -55,4 +55,5 @@ since_patterns = [
 ]
 since_pattern = make_pattern(since_patterns)
 
-false_positives = r"\b(?:\d\d[\s\.\/\-]){4,}|(?:\d\d{4,})"
+delimiter_pattern = make_pattern(delimiters)
+false_positive_pattern = r"(\d+" + delimiter_pattern + r"?){3,}"

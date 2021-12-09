@@ -79,7 +79,7 @@ def dates(nlp):
         no_day=terms.no_day_pattern,
         year_only=terms.full_year_pattern,
         since=terms.since_pattern,
-        false_positive=terms.false_positives,
+        false_positive=terms.false_positive_pattern,
     )
 
 
@@ -166,6 +166,12 @@ def test_patterns(blank_nlp, dates):
         "Il lui était arrivé la même chose il y a un an.",
         "Le patient est venu le 20/09/2001 pour une consultation",
         "Objet : Consultation du 03 07 19",
+        "En 11/2017 stabilité sur l'IRM médullaire des lésions",
+        "depuis 3 mois",
+        "- Décembre 2004 :",
+        "- Juin 2005:  ",
+        "-Avril 2011 :",
+        "sept 2017 :",
     ]
 
     for example in examples:
@@ -187,6 +193,7 @@ def test_false_positives(blank_nlp, dates):
         "27.0-33",
         "7.0-11",
         "03-0.70",
+        "4.09-11",
     ]
 
     for example in counter_examples:

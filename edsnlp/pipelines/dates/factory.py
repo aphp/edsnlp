@@ -12,7 +12,7 @@ default_config = dict(
     relative=terms.relative_date_pattern,
     full=terms.full_date_pattern,
     since=terms.since_pattern,
-    false_positive=terms.false_positives,
+    false_positive=terms.false_positive_pattern,
 )
 
 

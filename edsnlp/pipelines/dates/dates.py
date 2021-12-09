@@ -97,10 +97,13 @@ parser2 = DateDataParser(
 
 
 def date_parser(text_date: str) -> datetime:
-    """Function to parse dates. It try first all available parsers ('timestamp', 'custom-formats', 'absolute-time') but 'relative-time'.
+    """
+    Function to parse dates. It try first all available parsers
+    ('timestamp', 'custom-formats', 'absolute-time') but 'relative-time'.
     If no date is found, retries with 'relative-time'.
 
-    When just the year is identified. It returns a datetime object with month and day equal to 1.
+    When just the year is identified, it returns a datetime object with
+    month and day equal to 1.
 
 
     Parameters
@@ -146,9 +149,10 @@ class Dates(BaseComponent):
         self,
         nlp: Language,
         absolute: Union[List[str], str],
-        full_date: Union[List[str], str],
+        full: Union[List[str], str],
         relative: Union[List[str], str],
         no_year: Union[List[str], str],
+        since: Union[List[str], str],
         false_positive: Union[List[str], str],
     ):
 
@@ -162,14 +166,17 @@ class Dates(BaseComponent):
             relative = [relative]
         if isinstance(no_year, str):
             no_year = [no_year]
-        if isinstance(full_date, str):
-            full_date = [full_date]
+        if isinstance(full, str):
+            full = [full]
+        if isinstance(since, str):
+            since = [since]
         if isinstance(false_positive, str):
             false_positive = [false_positive]
 
         self.matcher = RegexMatcher(attr="LOWER", alignment_mode="expand")
+        # self.matcher.add("since", since)
+        self.matcher.add("full_date", full)
         self.matcher.add("absolute", absolute)
-        self.matcher.add("full_date", full_date)
         self.matcher.add("relative", relative)
         self.matcher.add("no_year", no_year)
         self.matcher.add("false_positive", false_positive)

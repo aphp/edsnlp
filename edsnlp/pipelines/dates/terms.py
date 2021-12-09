@@ -1,119 +1,48 @@
 from typing import List
 
+from .patterns import (
+    day_pattern,
+    month_pattern,
+    numeric_day_pattern,
+    numeric_month_pattern,
+    relative_pattern,
+    year_pattern,
+)
+from .utils import make_pattern
 
-def add_break(patterns: List[str]):
-    return [r"\b" + pattern + r"\b" for pattern in patterns]
+delimiters = [r"\/", r"\.", r"\-", r"\s+"]
 
+hour_pattern = r"([0-1]?\d|2[0-3])[h:][0-6]\d"
 
-months: List[str] = [
-    r"[jJ]anvier",
-    r"[jJ]anv\.?",
-    r"[fF][ée]vrier",
-    r"[fF][ée]v\.?",
-    r"[mM]ars",
-    r"[aA]vril",
-    r"[aA]vr\.?",
-    r"[mM]ai",
-    r"[jJ]uin",
-    r"[jJ]uillet",
-    r"[jJ]uill?\.?",
-    r"[aA]o[uû]t",
-    r"[sS]eptembre",
-    r"[sS]ept\.?",
-    r"[oO]ctobre",
-    r"[oO]ct\.?",
-    r"[nN]ovembre",
-    r"[nN]ov\.",
-    r"[dD][ée]cembre",
-    r"[dD][ée]c\.?",
+# Full dates
+absolute_dates: List[str] = [
+    day_pattern + d + month_pattern + d + year_pattern for d in delimiters
+] + [
+    year_pattern + d + numeric_month_pattern + d + numeric_day_pattern
+    for d in delimiters
 ]
-month_pattern = "(?:" + "|".join(months) + ")"
+absolute_date_pattern = make_pattern(absolute_dates, with_breaks=True)
+full_date_pattern = (
+    year_pattern + "-" + numeric_month_pattern + "-" + numeric_day_pattern
+)
 
-days: List[str] = [
-    r"(?:premier|1\s*er)",
-    "deux",
-    "trois",
-    "quatre",
-    "cinq",
-    "six",
-    "sept",
-    "huit",
-    "neuf",
-    "dix",
-    "onze",
-    "douze",
-    "treize",
-    "quatorze",
-    "quinze",
-    "seize",
-    r"dix[-\s]sept",
-    r"dix[-\s]huit",
-    r"dix[-\s]neuf",
-    "vingt",
-    r"vingt[-\s]et[-\s]un",
-    r"vingt[-\s]deux",
-    r"vingt[-\s]trois",
-    r"vingt[-\s]quatre",
-    r"vingt[-\s]cinq",
-    r"vingt[-\s]six",
-    r"vingt[-\s]sept",
-    r"vingt[-\s]huit",
-    r"vingt[-\s]neuf",
-    r"trente",
-    r"trente[-\s]et[-\s]un",
+no_year_dates = [day_pattern + d + month_pattern for d in delimiters]
+no_year_dates.extend(
+    [numeric_month_pattern + d + numeric_day_pattern for d in delimiters]
+)
+no_year_pattern = make_pattern(no_year_dates)
+
+relative_date_pattern = relative_pattern
+
+since_patterns = [
+    r"(?<=depuis)" + r".{,5}" + pattern
+    for pattern in [
+        absolute_date_pattern,
+        full_date_pattern,
+        no_year_pattern,
+        relative_pattern,
+    ]
 ]
-day_pattern = "(?:" + "|".join(days) + ")"
-
-numeric_dates: List[str] = [
-    r"(?<!\d)(?:3[01]|[12][0-9]|0?[1-9]|1er)[\/\.\-\s][01]?\d[\/\.\-\s](?:19\d\d|20[012]\d|\d\d)",
-    r"[01]?\d[\/\.\-\s](?:19\d\d|20[012]\d)",
-]
-
-full_dates: List[str] = [
-    r"(?:19\d\d|20[012]\d)[\/\.\-\s][01]?\d[\/\.\-\s](?:3[01]|[12][0-9]|0?[1-9])",
-]
-
-text_dates: List[str] = [
-    r"((?<=depuis)|(en))\s+" + month_pattern + r"?\s+(?:19\d\d|20[012]\d|\d\d)",
-    r"(?<!\d)(?:3[01]|[12][0-9]|0?[1-9]|1er)\s*"
-    + month_pattern
-    + r"\s+(?:19\d\d|20[012]\d|\d\d)",
-    day_pattern + r"\s+" + month_pattern + r"\s+(?:19\d\d|20[012]\d|\d\d)",
-]
-
-unknown_year: List[str] = [
-    r"\b(?<!\d)([012]?[0-9]|3[01]|1er)[\/\- ]([1-9](?!\d)|(0[1-9])|(1[012]))\b",
-    r"((?<=depuis)|(?<=en)|(?<=d[ée]but)|(?<=fin))\s*" + month_pattern,
-    r"(?<!\d)(?:3[01]|[12][0-9]|0?[1-9]|1er)\s*" + month_pattern,
-    day_pattern + r"\s+" + month_pattern,
-]
-
-year_only: List[str] = [
-    r"((?<=depuis)|(en)|(?<=d[ée]but)|(?<=fin))\s*(19\d\d|20[012]\d|\d\d)",
-    r"(?<=ann[ée]e)\s+(19\d\d|20[012]\d|\d\d)",
-    r"\((19\d\d|20[012]\d|\d\d)\)",
-]
-
-relative_expressions: List[str] = [
-    r"(?:avant[-\s])?hier",
-    r"(?:apr[èe]s[-\s])?demain",
-    r"l['ae]\s*(?:semaine|année|an|mois) derni[èe]re?",
-    r"l['ae]\s*(?:semaine|année|an|mois) prochaine?",
-    r"il y a .{,10} (?:heures?|jours?|mois|ann[ée]es?|ans?)",
-    r"(?<=depuis) .{,10} (?:heures?|jours?|mois|ann[ée]es?|ans?)",
-    r"dans .{,10} (?:heures?|jours?|mois|ann[ée]es?|ans?)",
-]
-
-hours: str = r"\d?\d[h:]\d\d"
-
-no_year = "|".join(add_break(unknown_year))
-absolute = "|".join(add_break(numeric_dates + text_dates + year_only))
-relative = "|".join(add_break(relative_expressions))
-
-no_year = r"(?:" + no_year + r")(?:\s+" + hours + ")?"
-absolute = r"(?:" + absolute + r")(?:\s+" + hours + ")?"
-relative = r"(?:" + relative + r")(?:\s+" + hours + ")?"
-
-full_date = "|".join(add_break(full_dates))
+since_pattern = make_pattern(since_patterns)
 
 false_positives = r"\b(?:\d\d[\s\.\/\-]){4,}|(?:\d\d{4,})"

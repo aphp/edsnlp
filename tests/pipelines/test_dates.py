@@ -72,10 +72,11 @@ text = (
 def dates(nlp):
     return Dates(
         nlp,
-        absolute=terms.absolute,
-        full_date=terms.full_date,
-        relative=terms.relative,
-        no_year=terms.no_year,
+        absolute=terms.absolute_date_pattern,
+        full=terms.full_date_pattern,
+        relative=terms.relative_date_pattern,
+        no_year=terms.no_year_pattern,
+        since=terms.since_pattern,
         false_positive=terms.false_positives,
     )
 
@@ -156,6 +157,7 @@ def test_patterns(blank_nlp, dates):
     examples = [
         "Le patient est venu en 2019 pour une consultation",
         "Le patient est venu le 1er septembre pour une consultation",
+        "Le patient est venu le 1er Septembre pour une consultation",
         "Le patient est venu en octobre 2020 pour une consultation",
         "Le patient est venu il y a trois mois pour une consultation",
         "Le patient est venu il y a un an pour une consultation",
@@ -179,6 +181,10 @@ def test_false_positives(blank_nlp, dates):
         "bien mais",
         "thierry",
         "436",
+        "12.0-16",
+        "27.0-33",
+        "7.0-11",
+        "03-0.70",
     ]
 
     for example in counter_examples:

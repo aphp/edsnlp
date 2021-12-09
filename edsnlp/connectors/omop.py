@@ -93,6 +93,9 @@ def docs2omop(
     df["note_id"] = df.doc.apply(lambda doc: doc._.note_id)
     df["note_datetime"] = df.doc.apply(lambda doc: doc._.note_datetime)
 
+    if df.note_id.isna().any():
+        df["note_id"] = range(len(df))
+
     df["ents"] = df.doc.apply(lambda doc: list(doc.ents))
     df["ents"] += df.doc.apply(lambda doc: list(doc.spans["discarded"]))
 

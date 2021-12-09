@@ -76,6 +76,8 @@ def dates(nlp):
         full=terms.full_date_pattern,
         relative=terms.relative_date_pattern,
         no_year=terms.no_year_pattern,
+        no_day=terms.no_day_pattern,
+        year_only=terms.full_year_pattern,
         since=terms.since_pattern,
         false_positive=terms.false_positives,
     )

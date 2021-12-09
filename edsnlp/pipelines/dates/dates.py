@@ -152,6 +152,8 @@ class Dates(BaseComponent):
         full: Union[List[str], str],
         relative: Union[List[str], str],
         no_year: Union[List[str], str],
+        no_day: Union[List[str], str],
+        year_only: Union[List[str], str],
         since: Union[List[str], str],
         false_positive: Union[List[str], str],
     ):
@@ -166,6 +168,10 @@ class Dates(BaseComponent):
             relative = [relative]
         if isinstance(no_year, str):
             no_year = [no_year]
+        if isinstance(no_day, str):
+            no_day = [no_day]
+        if isinstance(year_only, str):
+            year_only = [year_only]
         if isinstance(full, str):
             full = [full]
         if isinstance(since, str):
@@ -175,11 +181,13 @@ class Dates(BaseComponent):
 
         self.matcher = RegexMatcher(attr="LOWER", alignment_mode="expand")
         # self.matcher.add("since", since)
+        self.matcher.add("false_positive", false_positive)
         self.matcher.add("full_date", full)
         self.matcher.add("absolute", absolute)
         self.matcher.add("relative", relative)
         self.matcher.add("no_year", no_year)
-        self.matcher.add("false_positive", false_positive)
+        self.matcher.add("no_day", no_day)
+        self.matcher.add("year_only", year_only)
 
         self.parser = date_parser
 

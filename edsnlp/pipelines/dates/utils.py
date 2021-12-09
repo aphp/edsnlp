@@ -24,6 +24,6 @@ def make_pattern(
     pattern = "(" + "|".join(patterns) + ")"
 
     if with_breaks:
-        patterns = r"\b" + pattern + r"\b"
+        pattern = r"\b" + pattern + r"\b"
 
     return pattern

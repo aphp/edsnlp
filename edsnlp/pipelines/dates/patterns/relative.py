@@ -12,7 +12,7 @@ week_patterns = [
     r"(avant\-?\s*)?hier",
     r"(apr[èe]s\-?\s*)?demain",
 ]
-week_pattern = make_pattern(week_patterns)
+week_pattern = make_pattern(week_patterns, with_breaks=True)
 
 relative_pattern = make_pattern(
     patterns=[

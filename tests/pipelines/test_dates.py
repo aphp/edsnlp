@@ -31,6 +31,7 @@ def test_incomplete_dates(parser):
     tests = [
         ("en mars 2010", date(2010, 3, 1)),
         ("en 2019", date(2019, 1, 1)),
+        ("en 09/17", date(2017, 9, 1)),
     ]
 
     for test, answer in tests:

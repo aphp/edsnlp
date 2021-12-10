@@ -5,6 +5,7 @@ from spacy.language import Language
 from spacy.tokens import Doc, Span
 
 from edsnlp.pipelines.matcher import GenericMatcher
+from edsnlp.pipelines.reason.terms import section_exclude, sections_reason
 from edsnlp.utils.filter_matches import _filter_matches
 from edsnlp.utils.inclusion import check_inclusion
 
@@ -83,14 +84,10 @@ class Reason(GenericMatcher):
         """
 
         for section in sections:
-            if section.label_ in ["motif", "conclusion"]:
+            if section.label_ in sections_reason:
                 reasons.append(section)
 
-            if section.label_ in [
-                "antécédents",
-                "antécédents familiaux",
-                "histoire de la maladie",
-            ]:
+            if section.label_ in section_exclude:
                 for reason in reasons:
                     if check_inclusion(reason, section.start, section.end):
                         reasons.remove(reason)

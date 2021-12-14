@@ -72,14 +72,11 @@ text = (
 def dates(nlp):
     return Dates(
         nlp,
-        absolute=terms.absolute_date_pattern,
-        full=terms.full_date_pattern,
-        relative=terms.relative_date_pattern,
-        no_year=terms.no_year_pattern,
-        no_day=terms.no_day_pattern,
-        year_only=terms.full_year_pattern,
-        since=terms.since_pattern,
-        false_positive=terms.false_positive_pattern,
+        absolute=terms.absolute,
+        full_date=terms.full_date,
+        relative=terms.relative,
+        no_year=terms.no_year,
+        false_positive=terms.false_positives,
     )
 
 
@@ -143,7 +140,6 @@ def test_absolute_dates_patterns(blank_nlp, dates):
         ("Objet : Consultation du 03-07-19", "2019-07-03"),
         ("Objet : Consultation du 03-07-1993", "1993-07-03"),
         ("Objet : Consultation du 1993-12-02", "1993-12-02"),
-        ("en 09/17", "2017-09-01"),
     ]
 
     for example, answer in examples:
@@ -160,19 +156,12 @@ def test_patterns(blank_nlp, dates):
     examples = [
         "Le patient est venu en 2019 pour une consultation",
         "Le patient est venu le 1er septembre pour une consultation",
-        "Le patient est venu le 1er Septembre pour une consultation",
         "Le patient est venu en octobre 2020 pour une consultation",
         "Le patient est venu il y a trois mois pour une consultation",
         "Le patient est venu il y a un an pour une consultation",
         "Il lui était arrivé la même chose il y a un an.",
         "Le patient est venu le 20/09/2001 pour une consultation",
         "Objet : Consultation du 03 07 19",
-        "En 11/2017 stabilité sur l'IRM médullaire des lésions",
-        "depuis 3 mois",
-        "- Décembre 2004 :",
-        "- Juin 2005:  ",
-        "-Avril 2011 :",
-        "sept 2017 :",
     ]
 
     for example in examples:
@@ -194,7 +183,6 @@ def test_false_positives(blank_nlp, dates):
         "27.0-33",
         "7.0-11",
         "03-0.70",
-        "4.09-11",
     ]
 
     for example in counter_examples:

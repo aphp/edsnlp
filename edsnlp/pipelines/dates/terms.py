@@ -1,59 +1,128 @@
 from typing import List
 
-from .patterns import (
-    day_pattern,
-    full_year_pattern,
-    month_pattern,
-    numeric_day_pattern,
-    numeric_day_pattern_with_leading_zero,
-    numeric_month_pattern,
-    numeric_month_pattern_with_leading_zero,
-    relative_pattern,
-    year_pattern,
-)
-from .utils import make_pattern
 
-delimiters = [r"\/", r"\.", r"\-", r"\s+"]
+def add_break(patterns: List[str]):
+    return [r"\b" + pattern + r"\b" for pattern in patterns]
 
-hour_pattern = r"(?<!\d)([0-1]?\d|2[0-3])[h:][0-6]\d(?!\d)"
 
-# Full dates
-absolute_dates: List[str] = [
-    day_pattern + d + month_pattern + d + year_pattern for d in delimiters
-] + [
-    year_pattern + d + numeric_month_pattern + d + numeric_day_pattern
+months: List[str] = [
+    r"[jJ]anvier",
+    r"[jJ]anv\.?",
+    r"[fF][ée]vrier",
+    r"[fF][ée]v\.?",
+    r"[mM]ars",
+    r"[aA]vril",
+    r"[aA]vr\.?",
+    r"[mM]ai",
+    r"[jJ]uin",
+    r"[jJ]uillet",
+    r"[jJ]uill?\.?",
+    r"[aA]o[uû]t",
+    r"[sS]eptembre",
+    r"[sS]ept\.?",
+    r"[oO]ctobre",
+    r"[oO]ct\.?",
+    r"[nN]ovembre",
+    r"[nN]ov\.",
+    r"[dD][ée]cembre",
+    r"[dD][ée]c\.?",
+]
+month_pattern = "(?:" + "|".join(months) + ")"
+
+days: List[str] = [
+    r"(?:premier|1\s*er)",
+    "deux",
+    "trois",
+    "quatre",
+    "cinq",
+    "six",
+    "sept",
+    "huit",
+    "neuf",
+    "dix",
+    "onze",
+    "douze",
+    "treize",
+    "quatorze",
+    "quinze",
+    "seize",
+    r"dix[-\s]sept",
+    r"dix[-\s]huit",
+    r"dix[-\s]neuf",
+    "vingt",
+    r"vingt[-\s]et[-\s]un",
+    r"vingt[-\s]deux",
+    r"vingt[-\s]trois",
+    r"vingt[-\s]quatre",
+    r"vingt[-\s]cinq",
+    r"vingt[-\s]six",
+    r"vingt[-\s]sept",
+    r"vingt[-\s]huit",
+    r"vingt[-\s]neuf",
+    r"trente",
+    r"trente[-\s]et[-\s]un",
+]
+day_pattern = "(?:" + "|".join(days) + ")"
+
+delimiters = [r"\/", r"\.", r"\-", r"\s"]
+
+numeric_dates: List[str] = [
+    r"(?<!\d)(?:3[01]|[12][0-9]|0?[1-9]|1er)"
+    + d
+    + r"[01]?\d"
+    + d
+    + r"(?:19\d\d|20[012]\d|\d\d)"
+    for d in delimiters
+] + [r"[01]?\d" + d + r"(?:19\d\d|20[012]\d)" for d in delimiters]
+
+full_dates: List[str] = [
+    r"(?:19\d\d|20[012]\d)" + d + r"[01]?\d" + d + r"(?:3[01]|[12][0-9]|0?[1-9])"
     for d in delimiters
 ]
-absolute_date_pattern = make_pattern(absolute_dates, with_breaks=True)
-full_date_pattern = (
-    full_year_pattern
-    + "-"
-    + numeric_month_pattern_with_leading_zero
-    + "-"
-    + numeric_day_pattern_with_leading_zero
-)
 
-no_year_dates = [day_pattern + d + month_pattern for d in delimiters]
-# no_year_dates.extend(
-#     [numeric_month_pattern + d + numeric_day_pattern for d in delimiters]
-# )
-no_year_pattern = make_pattern(no_year_dates)
-
-no_day_dates = [month_pattern + d + year_pattern for d in delimiters]
-no_day_pattern = make_pattern(no_day_dates)
-
-relative_date_pattern = relative_pattern
-
-since_patterns = [
-    r"(?<=depuis)" + r".{,5}" + pattern
-    for pattern in [
-        absolute_date_pattern,
-        full_date_pattern,
-        no_year_pattern,
-        relative_pattern,
-    ]
+text_dates: List[str] = [
+    r"((?<=depuis)|(en))\s+" + month_pattern + r"?\s+(?:19\d\d|20[012]\d|\d\d)",
+    r"(?<!\d)(?:3[01]|[12][0-9]|0?[1-9]|1er)\s*"
+    + month_pattern
+    + r"\s+(?:19\d\d|20[012]\d|\d\d)",
+    day_pattern + r"\s+" + month_pattern + r"\s+(?:19\d\d|20[012]\d|\d\d)",
 ]
-since_pattern = make_pattern(since_patterns)
 
-delimiter_pattern = make_pattern(delimiters)
-false_positive_pattern = r"(\d+" + delimiter_pattern + r"?){3,}"
+unknown_year: List[str] = [
+    r"\b(?<!\d)(0?[1-9]|[12][0-9]|3[01]|1er)" + d + r"(0?[1-9]|1[0-2])\b"
+    for d in delimiters
+] + [
+    r"((?<=depuis)|(?<=en)|(?<=d[ée]but)|(?<=fin))\s*" + month_pattern,
+    r"(?<!\d)(?:3[01]|[12][0-9]|0?[1-9]|1er)\s*" + month_pattern,
+    day_pattern + r"\s+" + month_pattern,
+]
+
+year_only: List[str] = [
+    r"((?<=depuis)|(en)|(?<=d[ée]but)|(?<=fin))\s*(19\d\d|20[012]\d|\d\d)",
+    r"(?<=ann[ée]e)\s+(19\d\d|20[012]\d|\d\d)",
+    r"\((19\d\d|20[012]\d|\d\d)\)",
+]
+
+relative_expressions: List[str] = [
+    r"(?:avant[-\s])?hier",
+    r"(?:apr[èe]s[-\s])?demain",
+    r"l['ae]\s*(?:semaine|année|an|mois) derni[èe]re?",
+    r"l['ae]\s*(?:semaine|année|an|mois) prochaine?",
+    r"il y a .{,10} (?:heures?|jours?|mois|ann[ée]es?|ans?)",
+    r"(?<=depuis) .{,10} (?:heures?|jours?|mois|ann[ée]es?|ans?)",
+    r"dans .{,10} (?:heures?|jours?|mois|ann[ée]es?|ans?)",
+]
+
+hours: str = r"\d?\d[h:]\d\d"
+
+no_year = "|".join(add_break(unknown_year))
+absolute = "|".join(add_break(numeric_dates + text_dates + year_only))
+relative = "|".join(add_break(relative_expressions))
+
+no_year = r"(?:" + no_year + r")(?:\s+" + hours + ")?"
+absolute = r"(?:" + absolute + r")(?:\s+" + hours + ")?"
+relative = r"(?:" + relative + r")(?:\s+" + hours + ")?"
+
+full_date = "|".join(add_break(full_dates))
+
+false_positives = r"\b(?:\d\d[\s\.\/\-]){4,}|(?:\d\d{4,})"

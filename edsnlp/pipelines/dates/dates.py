@@ -56,7 +56,7 @@ def date_getter(date: Span) -> str:
     delta = date._.parsed_delta
     note_datetime = date.doc._.note_datetime
 
-    if date.label_ in {"absolute", "full_date", "no_day"}:
+    if date.label_ in {"absolute", "full_date"}:
         normalized = d.strftime("%Y-%m-%d")
     elif date.label_ == "no_year":
         if note_datetime:
@@ -83,6 +83,7 @@ parser1 = DateDataParser(
         "PREFER_DAY_OF_MONTH": "first",
         "PREFER_DATES_FROM": "past",
         "PARSERS": parsers,
+        "RETURN_AS_TIMEZONE_AWARE": False,
     },
 )
 
@@ -92,18 +93,17 @@ parser2 = DateDataParser(
         "PREFER_DAY_OF_MONTH": "first",
         "PREFER_DATES_FROM": "past",
         "PARSERS": ["relative-time"],
+        "RETURN_AS_TIMEZONE_AWARE": False,
     },
 )
 
 
 def date_parser(text_date: str) -> datetime:
-    """
-    Function to parse dates. It try first all available parsers
+    """Function to parse dates. It try first all available parsers
     ('timestamp', 'custom-formats', 'absolute-time') but 'relative-time'.
     If no date is found, retries with 'relative-time'.
 
-    When just the year is identified, it returns a datetime object with
-    month and day equal to 1.
+    When just the year is identified. It returns a datetime object with month and day equal to 1.
 
 
     Parameters
@@ -149,12 +149,9 @@ class Dates(BaseComponent):
         self,
         nlp: Language,
         absolute: Union[List[str], str],
-        full: Union[List[str], str],
+        full_date: Union[List[str], str],
         relative: Union[List[str], str],
         no_year: Union[List[str], str],
-        no_day: Union[List[str], str],
-        year_only: Union[List[str], str],
-        since: Union[List[str], str],
         false_positive: Union[List[str], str],
     ):
 
@@ -168,25 +165,16 @@ class Dates(BaseComponent):
             relative = [relative]
         if isinstance(no_year, str):
             no_year = [no_year]
-        if isinstance(no_day, str):
-            no_day = [no_day]
-        if isinstance(year_only, str):
-            year_only = [year_only]
-        if isinstance(full, str):
-            full = [full]
-        if isinstance(since, str):
-            since = [since]
+        if isinstance(full_date, str):
+            full_date = [full_date]
         if isinstance(false_positive, str):
             false_positive = [false_positive]
 
         self.matcher = RegexMatcher(attr="LOWER", alignment_mode="expand")
-        # self.matcher.add("since", since)
-        self.matcher.add("full_date", full)
         self.matcher.add("absolute", absolute)
+        self.matcher.add("full_date", full_date)
         self.matcher.add("relative", relative)
         self.matcher.add("no_year", no_year)
-        self.matcher.add("no_day", no_day)
-        self.matcher.add("year_only", year_only)
         self.matcher.add("false_positive", false_positive)
 
         self.parser = date_parser
@@ -242,10 +230,7 @@ class Dates(BaseComponent):
 
         text_date = date.text
 
-        if date.label_ == "no_day":
-            text_date = "01/" + re.sub(r"[\.\/\s]", "/", text_date)
-
-        elif date.label_ == "full_date":
+        if date.label_ == "full_date":
             text_date = re.sub(r"[\.\/\s]", "-", text_date)
 
             try:
@@ -256,9 +241,10 @@ class Dates(BaseComponent):
                 except ValueError:
                     return None
 
-        # text_date = re.sub(r"\.", "-", text_date)
+        else:
+            text_date = re.sub(r"\.", "-", text_date)
 
-        return self.parser(text_date)
+            return self.parser(text_date)
 
     # noinspection PyProtectedMember
     def __call__(self, doc: Doc) -> Doc:

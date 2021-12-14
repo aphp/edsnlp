@@ -70,6 +70,30 @@
 
 EDS-NLP provides a set of Spacy components that are used at AP-HP. We focus on usability and non-destructiveness.
 
+## Running the interactive demo
+
+To get a glimpse of what EDS-NLP can do for you, run the interactive demo !
+
+```shell
+# Clone the repo
+git clone https://gitlab.eds.aphp.fr/equipedatascience/edsnlp.git
+
+# Move to the repo directory
+cd edsnlp
+
+# Install the project with the demo requirements
+pip install '.[demo]'
+
+# Run de demo
+streamlit run demo.py
+```
+
+Go to the provided URL to see the library in action.
+
+```{warning}
+The above code will not work within JupyterLab. You need to execute it locally.
+```
+
 ## Quick start
 
 Let us begin with a very simple example that extracts mentions of COVID in a text, and detects whether they are negated.

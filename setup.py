@@ -20,4 +20,7 @@ setup(
     python_requires=">=3.6",
     packages=find_packages(),
     install_requires=get_lines("requirements.txt"),
+    extras_require=dict(
+        demo=["streamlit>=1.2"],
+    ),
 )

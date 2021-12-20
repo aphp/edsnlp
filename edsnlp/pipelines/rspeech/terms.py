@@ -1,7 +1,7 @@
 from typing import List
 
 verbs: List[str] = [
-    #'admettre', > Faux positives: "admis à l'hopital"
+    # 'admettre', > Faux positives: "admis à l'hopital"
     "affirmer",
     "ajouter",
     "assurer",

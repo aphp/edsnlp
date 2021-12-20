@@ -243,7 +243,8 @@ class Dates(BaseComponent):
         Returns
         -------
         Optional[datetime]
-            If a date is recognised, returns a Python ``datetime`` object. Returns ``None`` otherwise.
+            If a date is recognised, returns a Python ``datetime`` object.
+            Returns ``None`` otherwise.
         """
 
         text_date = date.text

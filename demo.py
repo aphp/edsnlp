@@ -13,7 +13,8 @@ Antécédents familiaux :
 Le père est asthmatique, sans traitement particulier.
 
 HISTOIRE DE LA MALADIE
-Le patient dit avoir de la toux depuis trois jours. Elle a empiré jusqu'à nécessiter un passage aux urgences.
+Le patient dit avoir de la toux depuis trois jours. \
+Elle a empiré jusqu'à nécessiter un passage aux urgences.
 
 Conclusion
 Possible infection au coronavirus\
@@ -118,7 +119,8 @@ center.image("docs/_static/graphics/edsnlp-blue-title.png", use_column_width=Tru
 
 st.sidebar.header("About")
 st.sidebar.markdown(
-    "EDS-NLP is a contributive effort maintained by AP-HP's Data Science team. Have a look at the "
+    "EDS-NLP is a contributive effort maintained by AP-HP's Data Science team. "
+    "Have a look at the "
     "[documentation](https://datasciencetools-pages.eds.aphp.fr/edsnlp/) for "
     "more information on the available pipelines."
 )

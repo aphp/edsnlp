@@ -6,7 +6,8 @@ from spacy.tokens import Token
 from edsnlp.pipelines.sentences import SentenceSegmenter, terms
 
 text = (
-    "Le patient est admis pour des douleurs dans le bras droit. mais n'a pas de problème de locomotion. \n"
+    "Le patient est admis pour des douleurs dans le bras droit. "
+    "mais n'a pas de problème de locomotion. \n"
     "Historique d'AVC dans la famille\n"
     "Mais ne semble pas en être un\n"
     "Pourrait être un cas de rhume.\n"

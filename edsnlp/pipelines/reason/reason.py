@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Dict, Iterable, List, Optional, Union
 
 from loguru import logger
 from spacy.language import Language
@@ -13,9 +13,12 @@ from edsnlp.utils.inclusion import check_inclusion
 class Reason(GenericMatcher):
     """Pipeline to denftify the reason of the hospitalisation.
 
-    It declares a Span extension called ``ents_reason`` and adds the key ``reasons`` to doc.spans.
+    It declares a Span extension called ``ents_reason`` and adds
+    the key ``reasons`` to doc.spans.
 
-    It also declares the boolean extension ``is_reason``. This extension is set to True for the Reason Spans but also for the entities that overlap the reason span.
+    It also declares the boolean extension ``is_reason``.
+    This extension is set to True for the Reason Spans but also
+    for the entities that overlap the reason span.
 
     Parameters
     ----------
@@ -25,8 +28,8 @@ class Reason(GenericMatcher):
         A dictionary of terms.
     attr: str
         spaCy's attribute to use:
-        a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
-        we can also add a key for each regex.
+        a string with the value "TEXT" or "NORM", or a dict with
+        the key 'term_attr'. We can also add a key for each regex.
     regex: Optional[Dict[str, Union[List[str], str]]]
         A dictionnary of regex patterns.
     use_sections: bool,

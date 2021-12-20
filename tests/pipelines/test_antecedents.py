@@ -11,7 +11,10 @@ examples: List[str] = [
     "atcd <ent antecedent_=ATCD>chirurgicaux</ent> : aucun.",
     "Le patient est <ent antecedent_=CURRENT>fumeur</ent>.",
     # Les sections ne sont pas utilisées par défaut
-    "\nv Antecedents :\n- <ent antecedent_=CURRENT>appendicite</ent>\nv Motif :\n<ent antecedent_=CURRENT>malaise</ent>",
+    (
+        "\nv Antecedents :\n- <ent antecedent_=CURRENT>appendicite</ent>\n"
+        "v Motif :\n<ent antecedent_=CURRENT>malaise</ent>"
+    ),
 ]
 
 

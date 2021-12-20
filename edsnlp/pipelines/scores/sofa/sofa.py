@@ -1,18 +1,10 @@
-import importlib.util
-import json
-import os
-import pathlib
 import re
-from collections import defaultdict
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, List, Union
 
-import pandas as pd
-from spacy import registry
 from spacy.language import Language
-from spacy.tokens import Doc, Span
+from spacy.tokens import Span
 
 from edsnlp.pipelines.scores import Score
-from edsnlp.utils.filter import filter_spans
 
 
 class Sofa(Score):

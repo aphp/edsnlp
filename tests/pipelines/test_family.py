@@ -7,10 +7,16 @@ from edsnlp.pipelines.family import FamilyContext, terms
 from edsnlp.utils.examples import parse_example
 
 examples: List[str] = [
-    "Le père du patient a eu un <ent family_=FAMILY>cancer du colon</ent>. La mère se porte bien.",
+    (
+        "Le père du patient a eu un <ent family_=FAMILY>cancer du colon</ent>. "
+        "La mère se porte bien."
+    ),
     "Antécédents familiaux : <ent family_=FAMILY>diabète</ent>.",
     "Un <ent family_=PATIENT>relevé</ent> sanguin a été effectué.",
-    "Antécédent familiaux de diabète mais pas <ent family_=PATIENT>détecté</ent> jusqu'ici.",
+    (
+        "Antécédent familiaux de diabète mais pas "
+        "<ent family_=PATIENT>détecté</ent> jusqu'ici."
+    ),
 ]
 
 

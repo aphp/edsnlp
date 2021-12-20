@@ -15,11 +15,15 @@ from .functional import _get_label, build_path
 
 class EndLines(GenericMatcher):
     """
-    Spacy Pipeline to detect if an end line is a real one or it should be a space.
-    The pipeline will add the extension ``end_line`` to spans and tokens. The ``end_line``
-    attribute is a boolean or ``None``, set to ``True`` if the pipeline predicts that the new line
-    is an end line character. Otherwise, it is  set to ``False`` if the new line is
-    classified as a space. If no classification has been done over that token, it will remain ``None``.
+    Spacy Pipeline to detect whether a newline character should
+    be considered a space (ie introduced by the PDF).
+
+    The pipeline will add the extension ``end_line`` to spans
+    and tokens. The ``end_line`` attribute is a boolean or ``None``,
+    set to ``True`` if the pipeline predicts that the new line
+    is an end line character. Otherwise, it is  set to ``False``
+    if the new line is classified as a space. If no classification
+    has been done over that token, it will remain ``None``.
 
     Parameters
     ----------

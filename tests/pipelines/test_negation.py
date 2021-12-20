@@ -8,7 +8,10 @@ from edsnlp.utils.examples import parse_example
 
 negation_examples: List[str] = [
     "<ent polarity_=NEG>métas,tases</ent> : non",
-    "Pas de <ent negated=true>lésion pulmonaire avec l'absence de lésion secondaire</ent>.",
+    (
+        "Pas de <ent negated=true>lésion pulmonaire avec "
+        "l'absence de lésion secondaire</ent>."
+    ),
     "Absence d'<ent negated=true>image osseuse d'allure évolutive</ent>.",
     "il n'y a pas de <ent polarity_=NEG>métas,tases</ent>",
     "Le patient n'est pas <ent polarity_=NEG>malade</ent>.",

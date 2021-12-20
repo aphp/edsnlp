@@ -32,9 +32,10 @@ def filter_spans(
 
         The **Spacy documentation states**:
 
-            Filter a sequence of spans and remove duplicates or overlaps. Useful for
-            creating named entities (where one token can only be part of one entity) or
-            when merging spans with ``Retokenizer.merge``. When spans overlap, the (first)
+            Filter a sequence of spans and remove duplicates or overlaps.
+            Useful for creating named entities (where one token can only
+            be part of one entity) or when merging spans with
+            ``Retokenizer.merge``. When spans overlap, the (first)
             longest span is preferred over shorter spans.
 
     Parameters

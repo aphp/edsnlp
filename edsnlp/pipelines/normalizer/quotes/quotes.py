@@ -7,7 +7,8 @@ from ..utils import replace
 
 class Quotes(object):
     """
-    We normalise quotes, following this `source <https://www.cl.cam.ac.uk/~mgk25/ucs/quotes.html>`_.
+    We normalise quotes, following this
+    `source <https://www.cl.cam.ac.uk/~mgk25/ucs/quotes.html>`_.
 
     Parameters
     ----------

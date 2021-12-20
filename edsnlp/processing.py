@@ -27,12 +27,14 @@ def _df_to_spacy(
     text_col: str
         The name of the column from `df` containing the to-be-analyzed text
     context_cols: Union[str, List[str]]
-        Column name or list of column names of ``df`` containing attributes to add to the corresponding ``Doc`` object
+        Column name or list of column names of ``df`` containing attributes
+        to add to the corresponding ``Doc`` object
 
     Returns
     -------
     generator:
-        A generator which items are of the form (text, context), with `text` being a string and `context` a dictionnary
+        A generator which items are of the form (text, context), with ``text``
+        being a string and `context` a dictionnary
     """
 
     if type(context_cols) == str:
@@ -71,9 +73,10 @@ def pipe(
     df: pd.DataFrame
         A Pandas DataFrame from which a ``Doc`` object will be created for each line.
     text_col: str
-        The name of the column from `df` containing the to-be-analyzed text
+        The name of the column from ``df`` containing the to-be-analyzed text
     context_cols: Union[str, List[str]]
-        column name or list of columns names of `df` containing attributes to add to the corresponding `Doc` object
+        column name or list of columns names of ``df`` containing attributes
+        to add to the corresponding ``Doc`` object
     batch_size: int
         Batching size used for ``nlp.pipe``
     pick_results: Callable[[Doc], Any]
@@ -132,9 +135,11 @@ def default_pick_results(doc):
 
     .. note ::
 
-        The parallelization needs for output objects to be **serializable**: after splitting the task into
-        separate jobs, intermediate results are saved on memory before being aggregated, thus the need to be serializable.
-        For instance, SpaCy's spans aren't serializable since they are merely a *view* of the parent document.
+        The parallelization needs for output objects to be **serializable**:
+        after splitting the task into separate jobs, intermediate results
+        are saved on memory before being aggregated, thus the need to be
+        serializable. For instance, SpaCy's spans aren't serializable since
+        they are merely a *view* of the parent document.
 
         Check the source code of this function for an example.
 
@@ -157,8 +162,6 @@ def _process_chunk(df, **pipe_kwargs):
     list_results = []
 
     for out in pipe(nlp, df, progress_bar=False, **pipe_kwargs):
-        # Setting progress_bar at false because its comportment isn't satisfying during parallel jobs
-
         list_results += out
 
     return list_results
@@ -175,7 +178,8 @@ def parallel_pipe(
 ):
     """
     Wrapper to handle parallelisation of the provided nlp pipeline.
-    The method accepts the same parameters as the :py:func:`~pipe` method, plus the additionnal `chunksize` and `n_jobs` params
+    The method accepts the same parameters as the :py:func:`~pipe`
+    method, plus the additional `chunksize` and `n_jobs` params
 
     Parameters
     ----------
@@ -186,14 +190,14 @@ def parallel_pipe(
         A `Doc` object will be created for each line.
     pick_results: Callable[[Doc], Any]
         Function applied to each `Doc` object before its yielded.
-        To paralellize tasks, the output of this function should be serializable.
+        To parallelise tasks, the output of this function should be serializable.
         For instance, one cannot directly use SpaCy's Spans.
     chunksize: int
         Batch size used to split tasks
     n_jobs: int
         Max number of parallel jobs
     return_df: bool
-        Wether to return a list of dictionnaries, or a Pandas DataFrame
+        Wether to return a list of dictionaries, or a Pandas DataFrame
     **pipe_kwargs:
         Arguments exposed in `processing.pipe` are also available here
 
@@ -201,8 +205,9 @@ def parallel_pipe(
     Return
     ------
     results (list):
-        A list of outputs
-        In pseudo-code, results is obtained as [pick_results(nlp(text)) for text in df.iterrows()]
+        A list of outputs.
+        In pseudo-code, results is obtained as
+        ``[pick_results(nlp(text)) for text in df.iterrows()]``
     """
 
     # Setting the nlp variable

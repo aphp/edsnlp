@@ -121,7 +121,8 @@ class AdvancedRegex(GenericMatcher):
             )
         ]
 
-        # include the entity in the snippets so that we can extract the number when it is attached to the word, e.g. "3PA"
+        # include the entity in the snippets so that we can extract
+        # the number when it is attached to the word, e.g. "3PA"
         ent._.before_snippet = ent.doc[
             max(ent.start - self.window, ent.sent.start) : ent.end
         ]
@@ -225,7 +226,8 @@ def _check_regex_config(regex_config):
                     elif n_groups != 1:
                         # Accepting only 1 group per regex
                         raise ValueError(
-                            f"The RegEx for {repr(k)} ({repr(regex)}) stored in {repr(single_group_regex_key)} "
+                            f"The RegEx for {repr(k)} ({repr(regex)}) "
+                            f"stored in {repr(single_group_regex_key)} "
                             f"contains {n_groups} capturing groups, 1 expected"
                         )
 

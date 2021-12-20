@@ -206,7 +206,7 @@ class RegexMatcher(object):
         """
         for span, match in self.match(doclike):
             if not as_spans:
-                span = (span.label, match.start, span.end)
+                span = (span.label, span.start, span.end)
             if return_groupdict:
                 yield span, match.groupdict()
             else:

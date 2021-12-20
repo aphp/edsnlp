@@ -1,5 +1,5 @@
 import re
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from loguru import logger
 from spacy.tokens import Doc, Span
@@ -29,8 +29,7 @@ class RegexMatcher(object):
         attr: str = "TEXT",
     ):
         self.alignment_mode = alignment_mode
-        self.regex = dict()
-        self.attr = dict()
+        self.regex = []
 
         self.default_attr = attr
 
@@ -39,6 +38,7 @@ class RegexMatcher(object):
         key: str,
         patterns: List[str],
         attr: Optional[str] = None,
+        alignment_mode: Optional[str] = None,
     ):
         """
         Add a pattern.
@@ -50,15 +50,17 @@ class RegexMatcher(object):
         patterns : List[str]
             List of patterns to add.
         attr : str, optional
-            Attribute to use for matching, by default "TEXT"
+            Attribute to use for matching. By default uses the ``default_attr`` attribute
         """
 
-        if not attr:
-            attr = self.default_attr
+        attr = attr or self.default_attr
+        alignment_mode = alignment_mode or self.alignment_mode
 
         assert attr in ["TEXT", "NORM", "CUSTOM_NORM", "LOWER"]
-        self.regex[key] = [re.compile(pattern) for pattern in patterns]
-        self.attr[key] = attr
+
+        patterns = [re.compile(pattern) for pattern in patterns]
+
+        self.regex.append((key, patterns, attr, alignment_mode))
 
     def remove(
         self,
@@ -72,7 +74,7 @@ class RegexMatcher(object):
         key : str
             key of the pattern to remove.
         """
-        del self.regex[key]
+        self.regex = [(k, p, a, am) for k, p, a, am in self.regex if k != key]
 
     def create_span(
         self,
@@ -80,6 +82,7 @@ class RegexMatcher(object):
         start: int,
         end: int,
         key: str,
+        alignment_mode: str,
     ) -> Span:
         """
         Spacy only allows strict alignment mode for char_span on Spans.
@@ -106,14 +109,14 @@ class RegexMatcher(object):
                 start,
                 end,
                 label=key,
-                alignment_mode=self.alignment_mode,
+                alignment_mode=alignment_mode,
             )
         else:
             span = doclike.doc.char_span(
                 doclike.start_char + start,
                 doclike.start_char + end,
                 label=key,
-                alignment_mode=self.alignment_mode,
+                alignment_mode=alignment_mode,
             )
 
         return span
@@ -121,7 +124,7 @@ class RegexMatcher(object):
     def match(
         self,
         doclike: Union[Doc, Span],
-    ) -> Span:
+    ) -> Tuple[Span, re.Match]:
         """
         Iterates on the matches.
 
@@ -141,28 +144,32 @@ class RegexMatcher(object):
         else:
             doc = doclike
 
-        for key, patterns in self.regex.items():
-            attr = self.attr[key]
+        for key, patterns, attr, alignment_mode in self.regex:
             if attr == "CUSTOM_NORM":
                 text = doclike._.normalized.text
             elif attr == "LOWER":
                 text = doclike.text.lower()
             else:
                 text = doclike.text
+
+            doclike_ = doclike._.normalized if attr == "CUSTOM_NORM" else doclike
+
             for pattern in patterns:
                 for match in pattern.finditer(text):
                     logger.trace(f"Matched a regex from {key}: {repr(match.group())}")
+
                     span = self.create_span(
-                        doclike._.normalized if attr == "CUSTOM_NORM" else doclike,
-                        match.start(),
-                        match.end(),
-                        key,
+                        doclike=doclike_,
+                        start=match.start(),
+                        end=match.end(),
+                        key=key,
+                        alignment_mode=alignment_mode,
                     )
 
                     if span is None:
                         continue
 
-                    if self.attr[key] == "CUSTOM_NORM":
+                    if attr == "CUSTOM_NORM":
                         # Going back to the original document
                         start, end = span.start, span.end
 
@@ -171,13 +178,14 @@ class RegexMatcher(object):
 
                         span = Span(doc, start, end, label=span.label)
 
-                    yield span
+                    yield span, match
 
     def __call__(
         self,
         doclike: Union[Doc, Span],
         as_spans=True,
-    ) -> Span:
+        return_groupdict=False,
+    ) -> Union[Span, Tuple[Span, Dict[str, Any]]]:
         """
         Performs matching. Yields matches.
 
@@ -189,11 +197,17 @@ class RegexMatcher(object):
             Returns matches as spans.
 
         Yields
-        -------
-        match:
+        ------
+        span:
             A match.
+        groupdict:
+            Additional information coming from the named patterns
+            in the regular expression.
         """
-        for match in self.match(doclike):
+        for span, match in self.match(doclike):
             if not as_spans:
-                match = (match.label, match.start, match.end)
-            yield match
+                span = (span.label, match.start, span.end)
+            if return_groupdict:
+                yield span, match.groupdict()
+            else:
+                yield span

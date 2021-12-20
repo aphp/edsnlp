@@ -14,8 +14,8 @@ class ReportedSpeech(GenericMatcher):
     """
     Implements a reported speech detection algorithm.
 
-    The components looks for terms indicating patient statements, and quotations to detect
-    patient speech.
+    The components looks for terms indicating patient statements,
+    and quotations to detect patient speech.
 
     Parameters
     ----------
@@ -35,7 +35,8 @@ class ReportedSpeech(GenericMatcher):
         Whether to filter out overlapping matches.
     attr: str
         spaCy's attribute to use:
-        a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
+        a string with the value "TEXT" or "NORM",
+        or a dict with the key 'term_attr'
         we can also add a key for each regex.
     on_ents_only: bool
         Whether to look for matches around detected entities only.

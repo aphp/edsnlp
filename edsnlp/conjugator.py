@@ -95,7 +95,10 @@ def get_conjugated_verbs(
 
     Examples
     --------
-    >>> get_conjugated_verbs("aimer", dict(mode="Indicatif", tense="Présent", person="1p"))
+    >>> get_conjugated_verbs(
+            "aimer",
+            dict(mode="Indicatif", tense="Présent", person="1p"),
+        )
     ['aimons']
     """
 

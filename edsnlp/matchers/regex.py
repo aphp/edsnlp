@@ -50,7 +50,8 @@ class RegexMatcher(object):
         patterns : List[str]
             List of patterns to add.
         attr : str, optional
-            Attribute to use for matching. By default uses the ``default_attr`` attribute
+            Attribute to use for matching.
+            By default uses the ``default_attr`` attribute
         """
 
         attr = attr or self.default_attr

@@ -91,7 +91,8 @@ class GenericMatcher(BaseComponent):
         diff = set(attr) - set(regex) - {TERM_ATTR}
         if diff:
             logger.warning(
-                f"some of 'attr' keys are not in 'regex' keys and will be ignored: {diff}"
+                "some of 'attr' keys are not in 'regex' "
+                f"keys and will be ignored: {diff}"
             )
 
         vals = {attr[k] for k in regex}

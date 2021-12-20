@@ -4,7 +4,10 @@ import spacy
 
 regex = [r"\bsofa\b"]
 
-method_regex = r"sofa.*?((?P<max>max\w*)|(?P<vqheures>24h\w*)|(?P<admission>admission\w*))(?P<after_value>(.|\n)*)"
+method_regex = (
+    r"sofa.*?((?P<max>max\w*)|(?P<vqheures>24h\w*)|"
+    r"(?P<admission>admission\w*))(?P<after_value>(.|\n)*)"
+)
 
 value_regex = r".*?.[\n\W]*?(\d+)[^h\d]"
 

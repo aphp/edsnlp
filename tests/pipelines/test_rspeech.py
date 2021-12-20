@@ -6,18 +6,45 @@ from edsnlp.pipelines.rspeech import ReportedSpeech, terms
 from edsnlp.utils.examples import parse_example
 
 examples: List[str] = [
-    """Pas de critique de sa TS de nov 2020 "je <ent reported_speech_=REPORTED>regrette</ent> d'avoir raté".""",
+    (
+        'Pas de critique de sa TS de nov 2020 "je '
+        "<ent reported_speech_=REPORTED>regrette</ent> d'avoir raté\"."
+    ),
     "Décrit un scénario d'<ent reported_speech_=REPORTED>IMV</ent>",
-    "Elles sont décrites par X.x. comme des appels à l’aide « La <ent reported_speech_=REPORTED>pendaison</ent> a permis mon hospitalisation ».",
-    "Rapporte une tristesse de l'humeur avec des idées <ent reported_speech_=REPORTED>suicidiares</ent> à type de pendaison,",
-    "Décrit un fléchissement thymique depuis environ 1 semaine avec idées suicidaires scénarisées (<ent reported_speech_=REPORTED>intoxication médicamenteuse volontaire)</ent>",
-    """Dit ne pas savoir comment elle est tombé. Minimise la chute. Dit que "ça arrive. Badaboum". Dit ne pas avoir fait <ent reported_speech_=REPORTED>IMV</ent>.""",
-    """Le patient parle "d'en finir", et dit qu'il a pensé plusieurs fois à se pendre où à se faire une <ent reported_speech_=REPORTED>phlébotomie</ent> lorsqu'il était dans la rue, diminution de ces idées noires depuis qu'il vit chez son fils""",
+    (
+        "Elles sont décrites par X.x. comme des appels à l'aide "
+        "« La <ent reported_speech_=REPORTED>pendaison</ent> "
+        "a permis mon hospitalisation »."
+    ),
+    (
+        "Rapporte une tristesse de l'humeur avec des idées "
+        "<ent reported_speech_=REPORTED>suicidiares</ent> à "
+        "type de pendaison,"
+    ),
+    (
+        "Décrit un fléchissement thymique depuis environ "
+        "1 semaine avec idées suicidaires scénarisées "
+        "(<ent reported_speech_=REPORTED>intoxication "
+        "médicamenteuse volontaire)</ent>"
+    ),
+    (
+        "Dit ne pas savoir comment elle est tombé. "
+        'Minimise la chute. Dit que "ça arrive. Badaboum". '
+        "Dit ne pas avoir fait <ent reported_speech_=REPORTED>IMV</ent>."
+    ),
+    (
+        "Le patient parle \"d'en finir\", et dit qu'il a pensé "
+        "plusieurs fois à se pendre où à se faire une "
+        "<ent reported_speech_=REPORTED>phlébotomie</ent> "
+        "lorsqu'il était dans la rue, diminution de ces "
+        "idées noires depuis qu'il vit chez son fils"
+    ),
 ]
 
 # A long test to check leakage from one entity to the next.
 examples.append(
-    "le patient est admis pour coronavirus. il dit qu'il n'est pas <ent reported_speech=True>malade</ent>.\n"
+    "le patient est admis pour coronavirus. il dit qu'il n'est "
+    "pas <ent reported_speech=True>malade</ent>.\n"
     "les tests sont positifs.\n"
     "il est <ent reported_speech=False>malade</ent>"
 )
@@ -88,7 +115,8 @@ def test_rspeech_within_ents(blank_nlp, rspeech_factory):
     rspeech = rspeech_factory(on_ents_only=True, within_ents=True)
 
     examples = [
-        "Le patient a une <ent reported_speech=True>fracture au tibias, il dit qu'il a mal</ent>."
+        "Le patient a une <ent reported_speech=True>"
+        "fracture au tibias, il dit qu'il a mal</ent>."
     ]
 
     for example in examples:

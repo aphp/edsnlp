@@ -162,12 +162,15 @@ class EndLinesModel:
 
     def predict(self, df: pd.DataFrame) -> pd.DataFrame:
         """Use the model for inference
-        The df should have the following columns: ``["A1","A2","A3","A4","B1","B2","BLANK_LINE"]``
+
+        The df should have the following columns:
+        ``["A1","A2","A3","A4","B1","B2","BLANK_LINE"]``
 
         Parameters
         ----------
         df : pd.DataFrame
-            The df should have the following columns: ``["A1","A2","A3","A4","B1","B2","BLANK_LINE"]``
+            The df should have the following columns:
+            ``["A1","A2","A3","A4","B1","B2","BLANK_LINE"]``
 
         Returns
         -------
@@ -272,8 +275,10 @@ class EndLinesModel:
         return df
 
     def _convert_raw_data_to_codes(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Function to translate data as extracted from spacy to the model codes.
-        `A1` and `A2` are not translated cause are supposed to be already in good encoding.
+        """
+        Function to translate data as extracted from spacy to the model codes.
+        `A1` and `A2` are not translated cause are supposed to be already
+        in good encoding.
 
         Parameters
         ----------
@@ -293,23 +298,23 @@ class EndLinesModel:
     def _convert_line_to_attribute(
         self, df: pd.DataFrame, expr: str, col: str
     ) -> pd.DataFrame:
-        """Function to convert a line into an attribute (column) of the previous row.
-        Particullary we use it to identify "\n" and "\n\n" that are considered tokens,
-        express this information as an attribute of the previous token.
+        """
+        Function to convert a line into an attribute (column) of the
+        previous row. Particularly we use it to identify "\\n" and "\\n\\n"
+        that are considered tokens, express this information as an attribute
+        of the previous token.
 
         Parameters
         ----------
         df : pd.DataFrame
-            [description]
         expr : str
-            pattern to search in the text. Ex.: "\n"
+            pattern to search in the text. Ex.: "\\n"
         col : str
             name of the new column
 
         Returns
         -------
         pd.DataFrame
-            [description]
         """
         idx = df.TEXT.str.contains(expr)
         df.loc[idx, col] = True
@@ -565,7 +570,9 @@ class EndLinesModel:
         return S_enc
 
     def set_spans(self, corpus: Iterable[Doc], df: pd.DataFrame):
-        """Function to set the results of the algorithm (pd.DataFrame) as spans of the Spacy document.
+        """
+        Function to set the results of the algorithm (pd.DataFrame)
+        as spans of the Spacy document.
 
         Parameters
         ----------
@@ -637,9 +644,9 @@ class EndLinesModel:
         pd.DataFrame
         """
 
-        l = df.groupby(["DOC_ID", "SENTENCE_ID"]).agg(l=("LENGTH", "sum"))
+        data = df.groupby(["DOC_ID", "SENTENCE_ID"]).agg(l=("LENGTH", "sum"))
         df_t = df.loc[df.END_LINE, ["DOC_ID", "SENTENCE_ID"]].merge(
-            l, left_on=["DOC_ID", "SENTENCE_ID"], right_index=True, how="left"
+            data, left_on=["DOC_ID", "SENTENCE_ID"], right_index=True, how="left"
         )
 
         stats_doc = df_t.groupby("DOC_ID").agg(mu=("l", "mean"), sigma=("l", "std"))

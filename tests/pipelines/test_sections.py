@@ -6,9 +6,11 @@ from edsnlp.pipelines.sections import Sections, terms
 from edsnlp.utils.examples import parse_example
 
 sections_text = (
-    "Le patient est admis pour des douleurs dans le bras droit, mais n'a pas de problème de locomotion. "
+    "Le patient est admis pour des douleurs dans le bras droit, "
+    "mais n'a pas de problème de locomotion. "
     "Historique d'AVC dans la famille. pourrait être un cas de rhume.\n"
-    "NBNbWbWbNbWbNBNbNbWbWbNBNbWbNbNbWbNBNbWbNbNBWbWbNbNbNBWbNbWbNbWBNbNbWbNbNBNbWbWbNbWBNbNbWbNBNbWbWbNb\n"
+    "NBNbWbWbNbWbNBNbNbWbWbNBNbWbNbNbWbNBNbWbNbNBWbWbNbNbNBWbNb"
+    "WbNbWBNbNbWbNbNBNbWbWbNbWBNbNbWbNBNbWbWbNb\n"
     "Pourrait être un cas de rhume.\n"
     "Motif :\n"
     "<ent section=motif>Douleurs</ent> dans le bras droit.\n"

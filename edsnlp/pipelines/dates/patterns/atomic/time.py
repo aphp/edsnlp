@@ -9,6 +9,7 @@ second_pattern_with_leading_zero = r"(?<!\d)(?P<second>0[1-9]|[1-5]\d)(?!\d)"
 
 time_pattern = (
     r"(\s.{,3}"
-    + f"{hour_pattern}[h:]({minute_pattern_with_leading_zero})?((:|m|min){second_pattern_with_leading_zero})?"
+    + f"{hour_pattern}[h:]({minute_pattern_with_leading_zero})?"
+    + f"((:|m|min){second_pattern_with_leading_zero})?"
     + ")?"
 )

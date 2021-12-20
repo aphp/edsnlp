@@ -52,12 +52,14 @@ class Sections(GenericMatcher):
     sections:
         Dictionary of terms to look for
     add_newline:
-        Whether to add a new line character before each expression, to improve precision.
+        Whether to add a new line character before each expression,
+        to improve precision.
 
     Other Parameters
     ----------------
     fuzzy:
-        Whether to use fuzzy matching. Be aware, this significantly increases compute time.
+        Whether to use fuzzy matching. Be aware, this significantly
+        increases compute time.
     """
 
     def __init__(

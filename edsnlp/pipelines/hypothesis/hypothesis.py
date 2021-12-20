@@ -18,7 +18,8 @@ class Hypothesis(GenericMatcher):
 
     - preceding hypothesis, ie cues that precede a hypothetic expression
     - following hypothesis, ie cues that follow a hypothetic expression
-    - pseudo hypothesis : contain a hypothesis cue, but are not hypothesis (eg "pas de doute"/"no doubt")
+    - pseudo hypothesis : contain a hypothesis cue, but are not hypothesis
+      (eg "pas de doute"/"no doubt")
     - hypothetic verbs : verbs indicating hypothesis (eg "douter")
     - classic verbs conjugated to the conditional, thus indicating hypothesis
 
@@ -124,9 +125,14 @@ class Hypothesis(GenericMatcher):
         self.explain = explain
         self.within_ents = within_ents
 
-    def load_verbs(self, verbs_hyp: List[str], verbs_eds: List[str]) -> List[str]:
+    def load_verbs(
+        self,
+        verbs_hyp: List[str],
+        verbs_eds: List[str],
+    ) -> List[str]:
         """
-        Conjugate "classic" verbs to conditional, and add hypothesis verbs conjugated to all tenses.
+        Conjugate "classic" verbs to conditional, and add hypothesis
+        verbs conjugated to all tenses.
 
         Parameters
         ----------
@@ -135,7 +141,8 @@ class Hypothesis(GenericMatcher):
 
         Returns
         -------
-        list of hypothesis verbs conjugated at all tenses and classic verbs conjugated to conditional.
+        list of hypothesis verbs conjugated at all tenses and classic
+        verbs conjugated to conditional.
         """
         classic_verbs = self._conjugate(verbs_eds)
         classic_verbs = classic_verbs.loc[classic_verbs["mode"] == "Conditionnel"]

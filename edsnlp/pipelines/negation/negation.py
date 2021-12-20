@@ -18,7 +18,8 @@ class Negation(GenericMatcher):
 
     - preceding negations, ie cues that precede a negated expression
     - following negations, ie cues that follow a negated expression
-    - pseudo negations : contain a negation cue, but are not negations (eg "pas de doute"/"no doubt").
+    - pseudo negations : contain a negation cue, but are not negations
+      (eg "pas de doute"/"no doubt").
     - terminations, ie words that delimit propositions.
       The negation spans from the preceding cue to the termination.
 

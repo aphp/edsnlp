@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta
 from dateparser import DateDataParser
 from pytest import fixture, raises
 
-from edsnlp.pipelines.dates import Dates, terms
+from edsnlp.pipelines.dates import Dates, patterns
 from edsnlp.pipelines.dates.dates import date_parser
 
 
@@ -72,11 +72,15 @@ text = (
 def dates(nlp):
     return Dates(
         nlp,
-        absolute=terms.absolute,
-        full_date=terms.full_date,
-        relative=terms.relative,
-        no_year=terms.no_year,
-        false_positive=terms.false_positives,
+        absolute=patterns.absolute_date_pattern,
+        full=patterns.full_date_pattern,
+        relative=patterns.relative_date_pattern,
+        no_year=patterns.no_year_pattern,
+        no_day=patterns.no_day_pattern,
+        year_only=patterns.full_year_pattern,
+        since=patterns.since_pattern,
+        current=patterns.current_pattern,
+        false_positive=patterns.false_positive_pattern,
     )
 
 
@@ -140,6 +144,8 @@ def test_absolute_dates_patterns(blank_nlp, dates):
         ("Objet : Consultation du 03-07-19", "2019-07-03"),
         ("Objet : Consultation du 03-07-1993", "1993-07-03"),
         ("Objet : Consultation du 1993-12-02", "1993-12-02"),
+        ("en 09/17", "2017-09-01"),
+        ("13/07/2021 13:21", "2021-07-13"),
     ]
 
     for example, answer in examples:
@@ -156,12 +162,24 @@ def test_patterns(blank_nlp, dates):
     examples = [
         "Le patient est venu en 2019 pour une consultation",
         "Le patient est venu le 1er septembre pour une consultation",
+        "Le patient est venu le 1er Septembre pour une consultation",
         "Le patient est venu en octobre 2020 pour une consultation",
         "Le patient est venu il y a trois mois pour une consultation",
         "Le patient est venu il y a un an pour une consultation",
         "Il lui était arrivé la même chose il y a un an.",
         "Le patient est venu le 20/09/2001 pour une consultation",
         "Objet : Consultation du 03 07 19",
+        "En 11/2017 stabilité sur l'IRM médullaire des lésions",
+        "depuis 3 mois",
+        "- Décembre 2004 :",
+        "- Juin 2005:  ",
+        "-Avril 2011 :",
+        "sept 2017 :",
+        "il y a 1 an pdt 1 mois",
+        "Prélevé le : 22/04/2016 \n78 rue du Général Leclerc",
+        "Le 07/01.",
+        "il est venu cette année",
+        "je vous écris ce jour à propos du patient",
     ]
 
     for example in examples:
@@ -183,6 +201,11 @@ def test_false_positives(blank_nlp, dates):
         "27.0-33",
         "7.0-11",
         "03-0.70",
+        "4.09-11",
+        "2/2CR Urgences PSL",
+        "Dextro : 5.7 mmol/l",
+        "page 1/1",  # Souvent sous la forme `1/1` uniquement
+        "2.5",
     ]
 
     for example in counter_examples:
@@ -190,3 +213,57 @@ def test_false_positives(blank_nlp, dates):
         doc = dates(doc)
 
         assert len(doc.spans["dates"]) == 0
+
+
+def test_date_process(blank_nlp, dates):
+
+    examples = [
+        ("2019-11-21", ["full_date", "absolute"]),
+        ("22/10/2019", ["absolute"]),
+        ("04/11/2019", ["absolute"]),
+        ("22/10", ["no_year"]),
+        ("10/19", ["no_day"]),
+        ("10/11", ["no_year", "no_day"]),
+    ]
+
+    for example, labels in examples:
+        doc = blank_nlp(example)
+        ds = list(dates.matcher(doc))
+
+        assert [date.label_ for date in ds] == labels
+
+
+def test_number_of_instances(blank_nlp):
+    blank_nlp.add_pipe("dates")
+
+    examples = [
+        (
+            (
+                "COMPTE RENDU D'HOSPITALISATION du 22/10/2019 au 05/11/2019\n"
+                "MOTIF D'HOSPITALISATION\n"
+                "Madame XX XX XX, née le 15/09/1973, "
+                "âgée de 46 ans, a été hospitalisée du 22/10/2019\n"
+                "au 04/11/2019 pour ischémie subaiguë gauche sur thrombose "
+                "d'un pontage ilio-femoral profond."
+            ),
+            5,
+        )
+    ]
+
+    for example, n in examples:
+        doc = blank_nlp(example)
+        assert len(doc.spans["dates"]) == n
+
+
+def test_dates_with_time(blank_nlp):
+    blank_nlp.add_pipe("dates")
+
+    examples = [
+        ("le trois septembre à 8h", "trois septembre à 8h"),
+        ("22/10/2019 09:12", "22/10/2019 09:12"),
+    ]
+
+    for example, text in examples:
+        doc = blank_nlp(example)
+        d = doc.spans["dates"][0]
+        assert d.text == text

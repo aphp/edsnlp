@@ -11,7 +11,8 @@ def test_regex(doc):
 
     matches = matcher(doc, as_spans=False)
 
-    assert list(matches)
+    for _, start, end in matcher(doc, as_spans=False):
+        assert len(doc[start:end])
 
     matches = matcher(doc[:10])
 

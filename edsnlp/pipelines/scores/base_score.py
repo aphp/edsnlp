@@ -44,6 +44,7 @@ class Score(AdvancedRegex):
         score_normalization: Union[str, Callable[[Union[str, None]], Any]],
         window: int,
         verbose: int,
+        ignore_excluded: bool,
     ):
 
         if not Span.has_extension("score_name"):
@@ -56,7 +57,12 @@ class Score(AdvancedRegex):
         )
 
         super().__init__(
-            nlp=nlp, regex_config=regex_config, window=window, verbose=verbose
+            nlp=nlp,
+            regex_config=regex_config,
+            window=window,
+            verbose=verbose,
+            ignore_excluded=ignore_excluded,
+            attr=attr,
         )
 
         self.score_name = score_name

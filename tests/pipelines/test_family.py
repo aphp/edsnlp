@@ -26,12 +26,11 @@ def family_factory(blank_nlp):
     default_config = dict(
         family=terms.family,
         termination=terminations.termination,
-        fuzzy=False,
         filter_matches=False,
         attr="LOWER",
         explain=True,
         regex=None,
-        fuzzy_kwargs=None,
+        ignore_excluded=False,
     )
 
     def factory(on_ents_only, **kwargs):

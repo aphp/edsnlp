@@ -4,6 +4,7 @@ from typing import Any, Callable, List, Union
 from spacy.language import Language
 from spacy.tokens import Span
 
+from edsnlp.matchers.utils import get_text
 from edsnlp.pipelines.scores import Score
 
 
@@ -47,6 +48,7 @@ class Sofa(Score):
         score_normalization: Union[str, Callable[[Union[str, None]], Any]],
         window: int,
         verbose: int,
+        ignore_excluded: bool,
     ):
 
         if not Span.has_extension("score_method"):
@@ -61,6 +63,7 @@ class Sofa(Score):
             attr=attr,
             window=window,
             verbose=verbose,
+            ignore_excluded=ignore_excluded,
         )
 
         self.method_regex = method_regex
@@ -85,7 +88,11 @@ class Sofa(Score):
         to_keep_ents = []
 
         for ent in ents:
-            after_snippet = ent._.after_snippet._.normalized.text
+            after_snippet = get_text(
+                ent._.after_snippet,
+                attr=self.attr,
+                ignore_excluded=self.ignore_excluded,
+            )
             matches = re.search(self.method_regex, after_snippet)
 
             if matches is None:

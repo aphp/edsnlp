@@ -1,12 +1,25 @@
 from spacy.language import Language
-
-from .lowercase import Lowercase
+from spacy.tokens import Doc
 
 
 # noinspection PyUnusedLocal
-@Language.factory("lowercase")
-def create_component(
-    nlp: Language,
-    name: str,
-):
-    return Lowercase()
+@Language.component("remove-lowercase")
+def create_component(doc: Doc):
+    """
+    Add case on the ``NORM`` custom attribute. Should always be applied first.
+
+    Parameters
+    ----------
+    doc : Doc
+        The Spacy ``Doc`` object.
+
+    Returns
+    -------
+    Doc
+        The document, with case put back in ``NORM``.
+    """
+
+    for token in doc:
+        token.norm_ = token.text
+
+    return doc

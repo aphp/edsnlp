@@ -1,12 +1,11 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
 from spacy.util import filter_spans
 
 from edsnlp.pipelines.matcher import GenericMatcher
-from edsnlp.utils.filter import consume_spans
-from edsnlp.utils.filter_matches import _filter_matches
+from edsnlp.utils.filter import consume_spans, get_spans
 from edsnlp.utils.inclusion import check_inclusion
 
 
@@ -22,8 +21,6 @@ class FamilyContext(GenericMatcher):
         spaCy nlp pipeline to use for matching.
     family: List[str]
         List of terms indicating family reference.
-    fuzzy: bool
-         Whether to perform fuzzy matching on the terms.
     filter_matches: bool
         Whether to filter out overlapping matches.
     attr: str
@@ -37,8 +34,8 @@ class FamilyContext(GenericMatcher):
         A dictionnary of regex patterns.
     explain: bool
         Whether to keep track of cues for each entity.
-    fuzzy_kwargs: Optional[Dict[str, Any]]
-        Default options for the fuzzy matcher, if used.
+    use_sections : bool, by default ``False``
+        Whether to use annotated sections (namely ``antécédents familiaux``).
     """
 
     def __init__(
@@ -46,13 +43,11 @@ class FamilyContext(GenericMatcher):
         nlp: Language,
         family: List[str],
         termination: List[str],
-        fuzzy: Optional[bool],
         filter_matches: Optional[bool],
         attr: str,
         explain: bool,
         on_ents_only: bool,
         regex: Optional[Dict[str, Union[List[str], str]]],
-        fuzzy_kwargs: Optional[Dict[str, Any]],
         use_sections: bool = False,
         **kwargs,
     ):
@@ -63,12 +58,10 @@ class FamilyContext(GenericMatcher):
                 termination=termination,
                 family=family,
             ),
-            fuzzy=fuzzy,
             filter_matches=filter_matches,
             attr=attr,
             on_ents_only=on_ents_only,
             regex=regex,
-            fuzzy_kwargs=fuzzy_kwargs,
             **kwargs,
         )
 
@@ -114,7 +107,7 @@ class FamilyContext(GenericMatcher):
         """
         matches = self.process(doc)
 
-        terminations = _filter_matches(matches, "termination")
+        terminations = get_spans(matches, "termination")
         boundaries = self._boundaries(doc, terminations)
 
         # Removes duplicate matches and pseudo-expressions in one statement
@@ -149,7 +142,7 @@ class FamilyContext(GenericMatcher):
             if self.on_ents_only and not ents:
                 continue
 
-            cues = _filter_matches(sub_matches, "family")
+            cues = get_spans(sub_matches, "family")
             cues += sub_sections
 
             if not cues:

@@ -9,7 +9,7 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
   - repo: https://github.com/pycqa/isort
-    rev: 5.8.0
+    rev: 5.10.0
     hooks:
       - id: isort
         name: isort (python)

@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.13.1
+      jupytext_version: 1.13.4
   kernelspec:
     display_name: 'Python 3.9.5 64-bit (''.venv'': venv)'
     language: python

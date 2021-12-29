@@ -16,6 +16,7 @@ def create_component(
     attr: str = "NORM",
     window: int = 7,
     verbose: int = 0,
+    ignore_excluded: bool = False,
 ):
     return Score(
         nlp,
@@ -26,4 +27,5 @@ def create_component(
         attr=attr,
         window=window,
         verbose=verbose,
+        ignore_excluded=ignore_excluded,
     )

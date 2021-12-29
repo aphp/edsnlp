@@ -6,6 +6,12 @@
 .. automodule:: edsnlp.pipelines.matcher.matcher
 ```
 
+## Advanced matcher
+
+```{eval-rst}
+.. automodule:: edsnlp.pipelines.advanced.advanced
+```
+
 ## Sentences
 
 ```{eval-rst}
@@ -54,16 +60,10 @@
 .. automodule:: edsnlp.pipelines.rspeech.rspeech
 ```
 
-## Normalizer
-
-```{eval-rst}
-.. automodule:: edsnlp.pipelines.normalizer.normalizer
-```
-
 ### Lowercase
 
 ```{eval-rst}
-.. automodule:: edsnlp.pipelines.normalizer.lowercase.lowercase
+.. automodule:: edsnlp.pipelines.normalizer.lowercase.factory
 ```
 
 ### Accents
@@ -84,14 +84,14 @@
 .. automodule:: edsnlp.pipelines.normalizer.pollution.pollution
 ```
 
-### End Lines
+## End Lines
 
 ```{eval-rst}
-.. automodule:: edsnlp.pipelines.normalizer.endlines.endlines
+.. automodule:: edsnlp.pipelines.endlines.endlines
 ```
 
 ```{eval-rst}
-.. automodule:: edsnlp.pipelines.normalizer.endlines.endlinesmodel
+.. automodule:: edsnlp.pipelines.endlines.endlinesmodel
 ```
 
 ## Scores
@@ -128,10 +128,14 @@ def score_normalization(extracted_score: Union[str, None]):
 ### SOFA Score
 
 The `SOFA` pipeline extracts the SOFA score. each extracted entity exposes three extentions:
+
 - `score_name`: Set to `"SOFA"`
 - `score_value`: The SOFA score numerical value
 - `score_method`: How/When the SOFA score was obtained. Possible values are:
-   - `"Maximum"`
-   - `"24H"`
-   - `"A l'admission"`
+  - `"Maximum"`
+  - `"24H"`
+  - `"A l'admission"`
+
+```
+
 ```

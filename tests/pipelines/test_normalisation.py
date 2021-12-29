@@ -1,8 +1,9 @@
 from pytest import fixture
 
+from edsnlp.matchers.utils import get_text
+from edsnlp.pipelines.normalizer.accents.terms import accents
 from edsnlp.pipelines.normalizer.pollution.terms import pollution
 from edsnlp.pipelines.normalizer.quotes.terms import quotes_and_apostrophes
-from edsnlp.pipelines.normalizer.terms import accents
 from edsnlp.pipelines.normalizer.utils import replace
 
 
@@ -22,7 +23,7 @@ def test_replace():
 
 
 def test_full_normalization(doc):
-    norm = doc._.normalized.text
+    norm = get_text(doc, attr="NORM", ignore_excluded=True)
     assert norm == 'le patient "n\'est pas malade", ecrit-il. fievre jaune.'
 
 
@@ -56,7 +57,7 @@ def test_normalization_accents(nlp_factory, text):
     nlp = nlp_factory(a=True)
     doc = nlp(text)
 
-    norm = doc._.normalized.text
+    norm = get_text(doc, attr="NORM", ignore_excluded=True)
 
     assert (
         norm == "Le patient ʺnˊest pas malade”, ecrit-il. Fievre NBNbWbWbNbWbNB jaune."
@@ -68,7 +69,7 @@ def test_normalization_quotes(nlp_factory, text):
     nlp = nlp_factory(q=True)
     doc = nlp(text)
 
-    norm = doc._.normalized.text
+    norm = get_text(doc, attr="NORM", ignore_excluded=True)
 
     assert (
         norm == 'Le patient "n\'est pas malade", écrit-il. Fièvre NBNbWbWbNbWbNB jaune.'
@@ -80,11 +81,9 @@ def test_normalization_lowercase(nlp_factory, text):
     nlp = nlp_factory(lc=True)
     doc = nlp(text)
 
-    norm = doc._.normalized.text
+    norm = get_text(doc, attr="NORM", ignore_excluded=True)
 
-    assert (
-        norm == "le patient ʺnˊest pas malade”, écrit-il. fièvre nbnbwbwbnbwbnb jaune."
-    )
+    assert norm.startswith("le patient")
 
 
 def test_normalization_pollution(nlp_factory, text):
@@ -92,6 +91,6 @@ def test_normalization_pollution(nlp_factory, text):
     nlp = nlp_factory(p=True)
     doc = nlp(text)
 
-    norm = doc._.normalized.text
+    norm = get_text(doc, attr="NORM", ignore_excluded=True)
 
     assert norm == "Le patient ʺnˊest pas malade”, écrit-il. Fièvre jaune."

@@ -30,12 +30,11 @@ def hypothesis_factory(blank_nlp):
         termination=terminations.termination,
         verbs_hyp=terms.verbs_hyp,
         verbs_eds=terms.verbs_eds,
-        fuzzy=False,
         filter_matches=True,
         attr="LOWER",
         explain=True,
         regex=None,
-        fuzzy_kwargs=None,
+        ignore_excluded=False,
         within_ents=False,
     )
 

@@ -1,12 +1,11 @@
-from typing import Any, Dict, List, Optional
+from typing import List
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
 from spacy.util import filter_spans
 
 from edsnlp.pipelines.matcher import GenericMatcher
-from edsnlp.utils.filter import consume_spans
-from edsnlp.utils.filter_matches import _filter_matches
+from edsnlp.utils.filter import consume_spans, get_spans
 from edsnlp.utils.inclusion import check_inclusion
 
 
@@ -29,8 +28,6 @@ class ReportedSpeech(GenericMatcher):
         List of terms following a reported speech.
     preceding: List[str]
         List of terms preceding a reported speech.
-    fuzzy: bool
-         Whether to perform fuzzy matching on the terms.
     filter_matches: bool
         Whether to filter out overlapping matches.
     attr: str
@@ -45,8 +42,6 @@ class ReportedSpeech(GenericMatcher):
         Whether to consider cues within entities.
     explain: bool
         Whether to keep track of cues for each entity.
-    fuzzy_kwargs: Optional[Dict[str, Any]]
-        Default options for the fuzzy matcher, if used.
     """
 
     def __init__(
@@ -56,13 +51,12 @@ class ReportedSpeech(GenericMatcher):
         verbs: List[str],
         following: List[str],
         preceding: List[str],
-        fuzzy: bool,
         filter_matches: bool,
         attr: str,
         explain: bool,
         on_ents_only: bool,
         within_ents: bool,
-        fuzzy_kwargs: Optional[Dict[str, Any]],
+        ignore_excluded: bool,
         **kwargs,
     ):
 
@@ -72,11 +66,10 @@ class ReportedSpeech(GenericMatcher):
                 verbs=self.load_verbs(verbs), following=following, preceding=preceding
             ),
             regex=dict(quotation=quotation),
-            fuzzy=fuzzy,
             filter_matches=filter_matches,
             attr=attr,
             on_ents_only=on_ents_only,
-            fuzzy_kwargs=fuzzy_kwargs,
+            ignore_excluded=ignore_excluded,
             **kwargs,
         )
 
@@ -174,10 +167,10 @@ class ReportedSpeech(GenericMatcher):
             if self.on_ents_only and not ents:
                 continue
 
-            sub_preceding = _filter_matches(sub_matches, "preceding")
-            sub_following = _filter_matches(sub_matches, "following")
-            sub_verbs = _filter_matches(sub_matches, "verbs")
-            sub_quotation = _filter_matches(sub_matches, "quotation")
+            sub_preceding = get_spans(sub_matches, "preceding")
+            sub_following = get_spans(sub_matches, "following")
+            sub_verbs = get_spans(sub_matches, "verbs")
+            sub_quotation = get_spans(sub_matches, "quotation")
 
             if not sub_preceding + sub_following + sub_verbs + sub_quotation:
                 continue

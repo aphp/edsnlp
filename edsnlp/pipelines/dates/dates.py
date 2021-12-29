@@ -130,20 +130,35 @@ def date_parser(text_date: str) -> datetime:
 
 class Dates(BaseComponent):
     """
-    Tags dates.
+    Tags and normalizes dates, using the open-source ``dateparser`` library.
+
+    The pipeline uses spaCy's ``filter_spans`` function.
+    It filters out false positives, and introduce a hierarchy between patterns.
+    For instance, in case of ambiguity, the pipeline will decide that a date is a
+    date without a year rather than a date without a day.
 
     Parameters
     ----------
     nlp: spacy.language.Language
         Language pipeline object
-    absolute: List[str]
+    absolute : Union[List[str], str]
         List of regular expressions for absolute dates.
-    full_date: List[str]
+    full : Union[List[str], str]
         List of regular expressions for full dates in YYYY-MM-DD format.
-    relative: List[str]
-        List of regular expressions for relative dates.
-    no_year: List[str]
+    relative : Union[List[str], str]
+        List of regular expressions for relative dates
+        (eg ``hier``, ``la semaine prochaine``).
+    no_year : Union[List[str], str]
         List of regular expressions for dates that do not display a year.
+    no_day : Union[List[str], str]
+        List of regular expressions for dates that do not display a day.
+    year_only : Union[List[str], str]
+        List of regular expressions for dates that only display a year.
+    current : Union[List[str], str]
+        List of regular expressions for dates that relate to
+        the current month, week, year, etc.
+    false_positive : Union[List[str], str]
+        List of regular expressions for false positive (eg phone numbers, etc).
     """
 
     # noinspection PyProtectedMember
@@ -156,10 +171,33 @@ class Dates(BaseComponent):
         no_year: Union[List[str], str],
         no_day: Union[List[str], str],
         year_only: Union[List[str], str],
-        since: Union[List[str], str],
         current: Union[List[str], str],
         false_positive: Union[List[str], str],
     ):
+        """
+        [summary]
+
+        Parameters
+        ----------
+        nlp : Language
+            [description]
+        absolute : Union[List[str], str]
+            [description]
+        full : Union[List[str], str]
+            [description]
+        relative : Union[List[str], str]
+            [description]
+        no_year : Union[List[str], str]
+            [description]
+        no_day : Union[List[str], str]
+            [description]
+        year_only : Union[List[str], str]
+            [description]
+        current : Union[List[str], str]
+            [description]
+        false_positive : Union[List[str], str]
+            [description]
+        """
 
         logger.warning("``dates`` pipeline is still in beta.")
 
@@ -177,25 +215,27 @@ class Dates(BaseComponent):
             year_only = [year_only]
         if isinstance(full, str):
             full = [full]
-        if isinstance(since, str):
-            since = [since]
         if isinstance(current, str):
             current = [current]
         if isinstance(false_positive, str):
             false_positive = [false_positive]
 
-        self.matcher = RegexMatcher(attr="LOWER", alignment_mode="strict")
-        # self.matcher.add("since", since)
-        self.matcher.add("full_date", full)
-        self.matcher.add("absolute", absolute)
-        self.matcher.add("relative", relative)
-        self.matcher.add("no_year", no_year)
-        self.matcher.add("no_day", no_day)
-        self.matcher.add("year_only", year_only)
-        self.matcher.add("current", current)
-        self.matcher.add("false_positive", false_positive)
+        self.regex_matcher = RegexMatcher(attr="LOWER", alignment_mode="strict")
+
+        self.regex_matcher.add("full_date", full)
+        self.regex_matcher.add("absolute", absolute)
+        self.regex_matcher.add("relative", relative)
+        self.regex_matcher.add("no_year", no_year)
+        self.regex_matcher.add("no_day", no_day)
+        self.regex_matcher.add("year_only", year_only)
+        self.regex_matcher.add("current", current)
+        self.regex_matcher.add("false_positive", false_positive)
 
         self.parser = date_parser
+        self.declare_extensions()
+
+    @staticmethod
+    def declare_extensions() -> None:
 
         if not Doc.has_extension("note_datetime"):
             Doc.set_extension("note_datetime", default=None)
@@ -224,7 +264,7 @@ class Dates(BaseComponent):
             list of date spans
         """
 
-        dates = self.matcher(doc)
+        dates = self.regex_matcher(doc, as_spans=True)
 
         dates = filter_spans(dates)
         dates = [date for date in dates if date.label_ != "false_positive"]

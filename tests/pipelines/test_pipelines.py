@@ -1,8 +1,3 @@
-import pytest
-
-from edsnlp.processing import parallel_pipe, pipe
-
-
 def test_pipelines(doc):
     assert len(doc.ents) == 3
     patient, _, anomalie = doc.ents

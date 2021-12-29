@@ -2,7 +2,7 @@
 
 Most pipelines provided by EDS-NLP aim to qualify pre-extracted entities. To wit, the basic usage of the library is :
 
-1. Implement a normalizer (see [`normalizer`](../user-guide/normalizer.md))
+1. Implement a normalizer (see [`normalizer`](../user-guide/normalisation.md))
 2. Add an entity recognition component (eg the simple but powerful [`matcher` pipeline](../user-guide/matcher.md))
 3. Add zero or more entity qualification components, such as [`negation`](../user-guide/negation.md), [`family`](../user-guide/family.md) or [`hypothesis`](../user-guide/hypothesis.md). These qualifiers typically help detect false-positives.
 

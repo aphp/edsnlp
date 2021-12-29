@@ -12,6 +12,8 @@ def create_component(
     regex_config: Dict[str, Any],
     window: int = 10,
     verbose: int = 0,
+    ignore_excluded: bool = False,
+    attr: str = "NORM",
 ):
 
     return AdvancedRegex(
@@ -19,4 +21,6 @@ def create_component(
         regex_config=regex_config,
         window=window,
         verbose=verbose,
+        ignore_excluded=ignore_excluded,
+        attr=attr,
     )

@@ -1,131 +1,84 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import List, Optional
 
-from loguru import logger
 from spacy.language import Language
 from spacy.tokens import Doc, Span
-from spaczz.matcher import FuzzyMatcher
 
 from edsnlp.base import BaseComponent
 from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher
+from edsnlp.matchers.utils import Patterns
 from edsnlp.utils.filter import filter_spans
-
-TERM_ATTR = "term_attr"
-DEFAULT_ATTR = "TEXT"
 
 
 class GenericMatcher(BaseComponent):
+    """
+    Provides a generic matcher component.
+
+    Parameters
+    ----------
+    nlp: Language
+        The Spacy object.
+    terms: Optional[Patterns]
+        A dictionary of terms.
+    regex: Optional[Patterns]
+        A dictionary of regular expressions.
+    attr : str
+        The default attribute to use for matching.
+        Can be overiden using the ``terms`` and ``regex`` configurations.
+    filter_matches : bool
+        Whether to filter out matches.
+    on_ents_only : bool
+        Whether to to look for matches around pre-extracted entities only.
+    ignore_excluded : bool
+        Whether to skip excluded tokens (requires an upstream
+        pipeline to mark excluded tokens).
+    """
+
     def __init__(
         self,
         nlp: Language,
-        terms: Optional[Dict[str, Union[List[str], str]]],
-        attr: Union[Dict[str, str], str],
-        regex: Optional[Dict[str, Union[List[str], str]]],
-        fuzzy: bool,
-        fuzzy_kwargs: Optional[Dict[str, Any]],
+        terms: Optional[Patterns],
+        regex: Optional[Patterns],
+        attr: str,
         filter_matches: bool,
         on_ents_only: bool,
+        ignore_excluded: bool,
     ):
-        """
-        Provides a generic matcher component.
-
-        Parameters
-        ----------
-        nlp : Language
-            The Spacy object.
-        terms : Optional[Dict[str, Union[List[str], str]]]
-            A dictionary of terms.
-        attr : Union[Dict[str, str], str]
-            The attribute to use for matching.
-        regex : Optional[Dict[str, Union[List[str], str]]]
-            A dictionary of regular expressions.
-        fuzzy : bool
-            Whether to do fuzzy matching.
-        fuzzy_kwargs : Optional[Dict[str, Any]]
-            Default options for the fuzzy matcher.
-        filter_matches : bool
-            Whether to filter out matches.
-        on_ents_only : bool
-            Whether to to look for matches around pre-extracted entities only.
-        """
 
         self.nlp = nlp
+
         self.on_ents_only = on_ents_only
-        self.terms = self._to_dict_of_lists(terms)
-        self.regex = self._to_dict_of_lists(regex)
-        self.fuzzy = fuzzy
+
         self.filter_matches = filter_matches
 
-        self.attr = self._prepare_attr(attr, self.regex, nlp.pipe_names)
+        self.attr = attr
 
-        self.matcher = self._create_matcher(fuzzy, fuzzy_kwargs, self.attr[TERM_ATTR])
-        self.regex_matcher = RegexMatcher()
+        self.phrase_matcher = EDSPhraseMatcher(
+            self.nlp.vocab,
+            attr=attr,
+            ignore_excluded=ignore_excluded,
+        )
+        self.regex_matcher = RegexMatcher(
+            attr=attr,
+            ignore_excluded=ignore_excluded,
+        )
 
-        self._build_patterns()
-        self.DEFAULT_ATTR = DEFAULT_ATTR
-
-    def _create_matcher(self, fuzzy, fuzzy_kwargs, term_attr):
-        if fuzzy:
-            logger.warning(
-                "You have requested fuzzy matching, which significantly increases "
-                "compute times (x60 increases are common)."
-            )
-            if fuzzy_kwargs is None:
-                fuzzy_kwargs = {"min_r2": 90, "ignore_case": True}
-            return FuzzyMatcher(self.nlp.vocab, attr=term_attr, **fuzzy_kwargs)
-        else:
-            return EDSPhraseMatcher(self.nlp.vocab, attr=term_attr)
-
-    def _prepare_attr(self, attr, regex, pipe_names):
-        if isinstance(attr, str):
-            # Setting the provided attribute for every term/regex
-            attr = {k: attr.upper() for k in set(regex) | {TERM_ATTR}}
-            return attr
-
-        attr = {k: v.upper() for k, v in attr.items()}
-        for k in set(regex) | {TERM_ATTR}:
-            if k not in attr:
-                attr[k] = DEFAULT_ATTR
-
-        # Checks
-        diff = set(attr) - set(regex) - {TERM_ATTR}
-        if diff:
-            logger.warning(
-                "some of 'attr' keys are not in 'regex' "
-                f"keys and will be ignored: {diff}"
-            )
-
-        vals = {attr[k] for k in regex}
-        if vals - {"NORM", "TEXT", "CUSTOM_NORM"}:
-            raise ValueError(f"Some attributes in 'attr' are not supported: {vals}")
-
-        vals.add(attr[TERM_ATTR])
-        if "NORM" in vals and ("normalizer" not in pipe_names):
-            logger.warning("You are using the NORM attribute but no normalizer is set.")
-
-        return attr
-
-    def _build_patterns(self):
-        for key, expressions in self.terms.items():
-            patterns = list(self.nlp.tokenizer.pipe(expressions))
-            self.matcher.add(key, patterns)
-
-        for key, patterns in self.regex.items():
-            self.regex_matcher.add(key, patterns, self.attr[key])
+        self.phrase_matcher.build_patterns(nlp=nlp, terms=terms)
+        self.regex_matcher.build_patterns(regex=regex)
 
     def process(self, doc: Doc) -> List[Span]:
         """
-        Find matching spans in doc and filter out duplicates and inclusions
+        Find matching spans in doc.
 
         Parameters
         ----------
         doc:
-            spaCy Doc object
+            spaCy Doc object.
 
         Returns
         -------
-        sections:
-            List of Spans referring to sections.
+        spans:
+            List of Spans returned by the matchers.
         """
 
         if self.on_ents_only:
@@ -133,23 +86,14 @@ class GenericMatcher(BaseComponent):
             regex_matches = []
 
             for sent in set([ent.sent for ent in doc.ents]):
-                matches += self.matcher(sent)
-                regex_matches += self.regex_matcher(sent, as_spans=True)
+                matches += list(self.phrase_matcher(sent, as_spans=True))
+                regex_matches += list(self.regex_matcher(sent, as_spans=True))
 
         else:
-            matches = self.matcher(doc)
+            matches = self.phrase_matcher(doc, as_spans=True)
             regex_matches = self.regex_matcher(doc, as_spans=True)
 
-        spans = []
-
-        for match in matches:
-            match_id, start, end = match[:3]
-            if not self.fuzzy:
-                match_id = self.nlp.vocab.strings[match_id]
-            span = Span(doc, start, end, label=match_id)
-            spans.append(span)
-
-        spans.extend(regex_matches)
+        spans = list(matches) + list(regex_matches)
 
         return spans
 
@@ -183,10 +127,3 @@ class GenericMatcher(BaseComponent):
         doc.spans["discarded"].extend(discarded)
 
         return doc
-
-    def _to_dict_of_lists(self, d):
-        d = d or dict()
-        for k, v in d.items():
-            if isinstance(v, str):
-                d[k] = [v]
-        return d

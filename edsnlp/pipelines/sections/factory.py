@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Dict, List
 
 from spacy.language import Language
 
@@ -16,15 +16,13 @@ def create_component(
     name: str,
     sections: Dict[str, List[str]],
     add_patterns: bool = True,
-    attr: str = "CUSTOM_NORM",
-    fuzzy: bool = False,
-    fuzzy_kwargs: Optional[Dict[str, Any]] = None,
+    attr: str = "NORM",
+    ignore_excluded: bool = True,
 ):
     return Sections(
         nlp,
         sections=sections,
         add_patterns=add_patterns,
         attr=attr,
-        fuzzy=fuzzy,
-        fuzzy_kwargs=fuzzy_kwargs,
+        ignore_excluded=ignore_excluded,
     )

@@ -5,7 +5,11 @@ from spacy.language import Language
 from edsnlp.pipelines.reason import Reason, terms
 
 reason_default_config = dict(
-    regex=terms.reasons, attr="TEXT", terms=None, use_sections=False
+    regex=terms.reasons,
+    attr="TEXT",
+    terms=None,
+    use_sections=False,
+    ignore_excluded=False,
 )
 
 
@@ -17,6 +21,7 @@ def create_component(
     attr: str,
     use_sections: bool,
     terms: Optional[Dict[str, Union[List[str], str]]],
+    ignore_excluded: bool,
 ):
     return Reason(
         nlp,
@@ -24,4 +29,5 @@ def create_component(
         attr=attr,
         regex=regex,
         use_sections=use_sections,
+        ignore_excluded=ignore_excluded,
     )

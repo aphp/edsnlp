@@ -28,9 +28,8 @@ def sections_factory(blank_nlp):
     default_config = dict(
         sections=terms.sections,
         add_patterns=True,
-        attr="CUSTOM_NORM",
-        fuzzy=False,
-        fuzzy_kwargs=None,
+        attr="NORM",
+        ignore_excluded=True,
     )
 
     def factory(**kwargs):

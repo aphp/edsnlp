@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from spacy.language import Language
 
@@ -13,10 +13,9 @@ def create_component(
     terms: Optional[Dict[str, Union[str, List[str]]]] = None,
     attr: Union[str, Dict[str, str]] = "TEXT",
     regex: Optional[Dict[str, Union[str, List[str]]]] = None,
-    fuzzy: bool = False,
-    fuzzy_kwargs: Optional[Dict[str, Any]] = None,
     filter_matches: bool = True,
     on_ents_only: bool = False,
+    ignore_excluded: bool = False,
 ):
     if terms is None:
         terms = dict()
@@ -28,8 +27,7 @@ def create_component(
         terms=terms,
         attr=attr,
         regex=regex,
-        fuzzy=fuzzy,
-        fuzzy_kwargs=fuzzy_kwargs,
         filter_matches=filter_matches,
         on_ents_only=on_ents_only,
+        ignore_excluded=ignore_excluded,
     )

@@ -3,7 +3,6 @@ from typing import List
 
 import spacy
 
-from edsnlp.pipelines.normalizer.normalizer import Normalizer
 from edsnlp.pipelines.scores import Score
 from edsnlp.pipelines.scores.charlson import terms as charlson_terms
 from edsnlp.pipelines.scores.sofa import terms as sofa_terms
@@ -49,8 +48,16 @@ def test_scores(blank_nlp):
         score_normalization=sofa_terms.score_normalization_str,
     )
 
-    charlson = create_charlson(blank_nlp, "charlson", **charlson_default_config)
-    sofa = create_sofa(blank_nlp, "SOFA", **sofa_default_config)
+    charlson = create_charlson(
+        blank_nlp,
+        "charlson",
+        **charlson_default_config,
+    )
+    sofa = create_sofa(
+        blank_nlp,
+        "SOFA",
+        **sofa_default_config,
+    )
 
     def testscore_normalization(raw_score: str):
         if raw_score is not None and int(raw_score) == 0:
@@ -60,7 +67,8 @@ def test_scores(blank_nlp):
         blank_nlp,
         score_name="TestScore",
         regex=[r"test+score"],
-        attr="CUSTOM_NORM",
+        attr="NORM",
+        ignore_excluded=True,
         after_extract=r"(\d+)",
         score_normalization=testscore_normalization,
         window=4,

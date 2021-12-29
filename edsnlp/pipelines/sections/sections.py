@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from loguru import logger
 from spacy.language import Language
@@ -54,12 +54,10 @@ class Sections(GenericMatcher):
     add_newline:
         Whether to add a new line character before each expression,
         to improve precision.
-
-    Other Parameters
-    ----------------
-    fuzzy:
-        Whether to use fuzzy matching. Be aware, this significantly
-        increases compute time.
+    attr : str
+        Default attribute to match on.
+    ignore_excluded : bool
+        Whether to skip excluded tokens.
     """
 
     def __init__(
@@ -68,8 +66,7 @@ class Sections(GenericMatcher):
         sections: Dict[str, List[str]],
         add_patterns: bool,
         attr: str,
-        fuzzy: bool,
-        fuzzy_kwargs: Dict[str, Any],
+        ignore_excluded: bool,
     ):
 
         logger.warning(
@@ -86,10 +83,9 @@ class Sections(GenericMatcher):
             terms=None,
             regex=sections,
             attr=attr,
-            fuzzy=fuzzy,
-            fuzzy_kwargs=fuzzy_kwargs,
             filter_matches=True,
             on_ents_only=False,
+            ignore_excluded=ignore_excluded,
         )
 
         if not Span.has_extension("section_title"):

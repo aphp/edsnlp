@@ -58,12 +58,11 @@ def rspeech_factory(blank_nlp):
         following=terms.following,
         verbs=terms.verbs,
         quotation=terms.quotation,
-        fuzzy=False,
         filter_matches=False,
         attr="LOWER",
         explain=True,
         within_ents=False,
-        fuzzy_kwargs=None,
+        ignore_excluded=False,
     )
 
     def factory(on_ents_only, **kwargs):
@@ -99,15 +98,11 @@ def test_rspeech(blank_nlp, rspeech_factory, on_ents_only):
 
             for modifier in entity.modifiers:
 
-                assert (
-                    getattr(ent._, modifier.key) == modifier.value
-                ), f"{modifier.key} labels don't match."
+                assert getattr(ent._, modifier.key) == modifier.value
 
                 if not on_ents_only:
                     for token in ent:
-                        assert (
-                            getattr(token._, modifier.key) == modifier.value
-                        ), f"{modifier.key} labels don't match."
+                        assert getattr(token._, modifier.key) == modifier.value
 
 
 def test_rspeech_within_ents(blank_nlp, rspeech_factory):

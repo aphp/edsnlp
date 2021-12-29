@@ -19,9 +19,10 @@ def create_component(
     regex: List[str],
     after_extract: str,
     score_normalization: Union[str, Callable[[Union[str, None]], Any]],
-    attr: str = "CUSTOM_NORM",
+    attr: str = "NORM",
     window: int = 7,
     verbose: int = 0,
+    ignore_excluded: bool = False,
 ):
     return Score(
         nlp,
@@ -32,4 +33,5 @@ def create_component(
         attr=attr,
         window=window,
         verbose=verbose,
+        ignore_excluded=ignore_excluded,
     )

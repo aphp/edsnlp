@@ -2,8 +2,8 @@ import os
 
 from pytest import fixture
 
-from edsnlp.pipelines.normalizer.endlines.endlinesmodel import EndLinesModel
-from edsnlp.pipelines.normalizer.endlines.functional import build_path
+from edsnlp.pipelines.endlines.endlinesmodel import EndLinesModel
+from edsnlp.pipelines.endlines.functional import build_path
 
 texts = [
     """Le patient est arrivé hier soir.
@@ -56,8 +56,8 @@ def test_set_spans(blank_nlp):
 
     # Test set_spans function
     endlines.set_spans(docs, df)
-    doc_exemple = docs[1]
-    assert "new_lines" in doc_exemple.spans.keys()
+    doc_example = docs[1]
+    assert "new_lines" in doc_example.spans.keys()
 
 
 def test_endlines(blank_nlp, model_path):

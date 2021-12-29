@@ -7,7 +7,7 @@ from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
 
 from edsnlp.pipelines.matcher import GenericMatcher
-from edsnlp.utils.filter_matches import _filter_matches
+from edsnlp.utils.filter import get_spans
 
 from .endlinesmodel import EndLinesModel
 from .functional import _get_label, build_path
@@ -44,14 +44,13 @@ class EndLines(GenericMatcher):
         super().__init__(
             nlp,
             terms=None,
-            fuzzy=False,
             attr="TEXT",
             on_ents_only=False,
             filter_matches=False,
             regex=dict(
                 new_line=r"\n+",
             ),
-            fuzzy_kwargs=None,
+            ignore_excluded=False,
             **kwargs,
         )
 
@@ -223,7 +222,7 @@ class EndLines(GenericMatcher):
         """
 
         matches = self.process(doc)
-        new_lines = _filter_matches(matches, "new_line")
+        new_lines = get_spans(matches, "new_line")
 
         if len(new_lines) > 0:
             df = self._get_df(doc=doc, new_lines=new_lines)
@@ -239,7 +238,7 @@ class EndLines(GenericMatcher):
                 for t in span:
                     t._.end_line = prediction
                     if not prediction:
-                        t._.keep = False
+                        t._.excluded = True
 
             doc.spans["new_lines"] = spans
         return doc

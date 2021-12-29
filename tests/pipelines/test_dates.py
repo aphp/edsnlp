@@ -81,6 +81,7 @@ def dates(nlp: Language):
         year_only=patterns.full_year_pattern,
         current=patterns.current_pattern,
         false_positive=patterns.false_positive_pattern,
+        on_ents_only=False,
     )
 
 
@@ -101,6 +102,18 @@ def test_dateparser_failure_cases(
         d = doc.spans["dates"][0]
 
         assert d._.date == "????-??-??"
+
+
+def test_dates_on_ents_only(blank_nlp: Language):
+
+    blank_nlp.add_pipe("matcher", config=dict(terms={"contact": "contact"}))
+    blank_nlp.add_pipe("dates", config=dict(on_ents_only=True))
+
+    doc = blank_nlp(text)
+
+    assert len(doc.ents) == 1
+
+    assert len(doc.spans["dates"]) == 3
 
 
 def test_dates_component(blank_nlp: Language, dates: Dates):

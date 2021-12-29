@@ -173,6 +173,7 @@ class Dates(BaseComponent):
         year_only: Union[List[str], str],
         current: Union[List[str], str],
         false_positive: Union[List[str], str],
+        on_ents_only: bool,
     ):
         """
         [summary]
@@ -197,6 +198,8 @@ class Dates(BaseComponent):
             [description]
         false_positive : Union[List[str], str]
             [description]
+        on_ents_only : bool
+            [description]
         """
 
         logger.warning("``dates`` pipeline is still in beta.")
@@ -220,6 +223,7 @@ class Dates(BaseComponent):
         if isinstance(false_positive, str):
             false_positive = [false_positive]
 
+        self.on_ents_only = on_ents_only
         self.regex_matcher = RegexMatcher(attr="LOWER", alignment_mode="strict")
 
         self.regex_matcher.add("full_date", full)
@@ -264,7 +268,13 @@ class Dates(BaseComponent):
             list of date spans
         """
 
-        dates = self.regex_matcher(doc, as_spans=True)
+        if self.on_ents_only:
+            dates = []
+            for sent in set([ent.sent for ent in doc.ents]):
+                dates += list(self.regex_matcher(sent, as_spans=True))
+
+        else:
+            dates = self.regex_matcher(doc, as_spans=True)
 
         dates = filter_spans(dates)
         dates = [date for date in dates if date.label_ != "false_positive"]

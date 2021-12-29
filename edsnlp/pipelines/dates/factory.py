@@ -13,6 +13,7 @@ default_config = dict(
     full=patterns.full_date_pattern,
     current=patterns.current_pattern,
     false_positive=patterns.false_positive_pattern,
+    on_ents_only=False,
 )
 
 
@@ -29,6 +30,7 @@ def create_component(
     relative: Union[List[str], str],
     current: Union[List[str], str],
     false_positive: Union[List[str], str],
+    on_ents_only: bool,
 ):
     return Dates(
         nlp,
@@ -40,4 +42,5 @@ def create_component(
         full=full,
         current=current,
         false_positive=false_positive,
+        on_ents_only=on_ents_only,
     )

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from spacy.language import Language
 
@@ -14,23 +14,21 @@ def create_component(
     name: str,
     family: List[str],
     termination: List[str],
-    fuzzy: bool = False,
     filter_matches: bool = False,
     attr: str = "LOWER",
     explain: bool = True,
     on_ents_only: bool = True,
     regex: Optional[Dict[str, Union[List[str], str]]] = None,
-    fuzzy_kwargs: Optional[Dict[str, Any]] = None,
+    ignore_excluded: bool = False,
 ):
     return FamilyContext(
         nlp,
         family=family,
         termination=termination,
-        fuzzy=fuzzy,
         filter_matches=filter_matches,
         attr=attr,
         explain=explain,
         on_ents_only=on_ents_only,
         regex=regex,
-        fuzzy_kwargs=fuzzy_kwargs,
+        ignore_excluded=ignore_excluded,
     )

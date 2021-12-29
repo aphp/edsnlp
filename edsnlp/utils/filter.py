@@ -1,4 +1,4 @@
-from typing import Callable, Iterable, List, Optional, Tuple
+from typing import Callable, Iterable, List, Optional, Tuple, Union
 
 from spacy.tokens import Span
 
@@ -128,3 +128,26 @@ def consume_spans(
     matches.extend(second_chance)
 
     return matches, remainder
+
+
+def get_spans(spans: List[Span], label: Union[int, str]) -> List[Span]:
+    """
+    Extracts spans with a given label.
+    Prefer using hash label for performance reasons.
+
+    Parameters
+    ----------
+    spans : List[Span]
+        List of spans to filter.
+    label : Union[int, str]
+        Label to filter on.
+
+    Returns
+    -------
+    List[Span]
+        Filtered spans.
+    """
+    if isinstance(label, int):
+        return [span for span in spans if span.label == label]
+    else:
+        return [span for span in spans if span.label_ == label]

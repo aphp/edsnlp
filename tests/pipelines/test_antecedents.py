@@ -25,12 +25,11 @@ def antecedents_factory(blank_nlp):
         antecedents=terms.antecedents,
         termination=terminations.termination,
         use_sections=False,
-        fuzzy=False,
         filter_matches=False,
         attr="LOWER",
         explain=True,
         regex=None,
-        fuzzy_kwargs=None,
+        ignore_excluded=False,
     )
 
     def factory(on_ents_only, **kwargs):

@@ -1,40 +1,145 @@
-from typing import List, Union
+import re
+from typing import Dict, Generator, List, Optional, Union
 
-from spacy.language import Vocab
-from spacy.matcher import PhraseMatcher
+from spacy.language import Language, Vocab
+from spacy.matcher import Matcher
 from spacy.tokens import Doc, Span
+
+from .utils import Patterns
+
+PatternDict = Dict[str, Union[str, Dict[str, str]]]
+
+
+def get_normalized_variant(doclike: Union[Span, Doc]) -> str:
+    tokens = [t.text + t.whitespace_ for t in doclike if not t._.excluded]
+    variant = "".join(tokens)
+    variant = variant.rstrip(" ")
+    variant = re.sub(r"\s+", " ", variant)
+    return variant
+
+
+if not Span.has_extension("normalized_variant"):
+    Span.set_extension("normalized_variant", getter=get_normalized_variant)
 
 
 class EDSPhraseMatcher(object):
     """
-    Simple RegExp matcher.
+    PhraseMatcher that matches "over" excluded tokens.
 
     Parameters
     ----------
+    vocab: Vocab
+        Spacy vocabulary to match on.
     attr: str
         Default attribute to match on, by default "TEXT".
         Can be overiden in the ``add`` method.
+
+        To match on a custom attribute, prepend the attribute name with ``_``.
     """
 
     def __init__(
         self,
         vocab: Vocab,
         attr: str = "TEXT",
+        ignore_excluded: bool = True,
+        exclude_newlines: bool = False,
     ):
-        assert attr in ["TEXT", "NORM", "CUSTOM_NORM", "LOWER"]
+        self.matcher = Matcher(vocab, validate=True)
+        self.attr = attr
+        self.ignore_excluded = ignore_excluded
 
-        self.norm = attr == "CUSTOM_NORM"
+        self.exclusion_attribute = (
+            "excluded_or_space" if exclude_newlines else "excluded"
+        )
 
-        if self.norm:
-            attr = "TEXT"
+    def create_pattern(
+        self,
+        match_pattern: Doc,
+        attr: Optional[str] = None,
+        ignore_excluded: Optional[bool] = None,
+    ) -> List[PatternDict]:
+        """
+        Create a pattern
 
-        self.matcher = PhraseMatcher(vocab, attr=attr)
+        Parameters
+        ----------
+        match_pattern : Doc
+            A Spacy doc object, to use as match model.
+        attr : str, optional
+            Overwrite attribute to match on.
+        ignore_excluded: bool, optional
+            Whether to skip excluded tokens.
+
+        Returns
+        -------
+        List[PatternDict]
+            A Spacy rule-based pattern.
+        """
+
+        ignore_excluded = ignore_excluded or self.ignore_excluded
+
+        attr = attr or self.attr
+        custom_attr = attr.startswith("_")
+
+        if custom_attr:
+            attr = attr.lstrip("_").lower()
+
+            pattern = []
+
+            for token in match_pattern:
+                pattern.append({"_": {attr: token.text}})
+                if ignore_excluded and token.whitespace_:
+                    # If the token is followed by a whitespace,
+                    # we let it match on a pollution
+                    pattern.append({"_": {self.exclusion_attribute: True}, "OP": "*"})
+
+            return pattern
+        else:
+            pattern = []
+
+            for token in match_pattern:
+                pattern.append({attr: token.text})
+                if ignore_excluded and token.whitespace_:
+                    # If the token is followed by a whitespace,
+                    # we let it match on a pollution
+                    pattern.append({"_": {self.exclusion_attribute: True}, "OP": "*"})
+
+            return pattern
+
+    def build_patterns(self, nlp: Language, terms: Patterns):
+        """
+        Build patterns and adds them for matching.
+        Helper function for pipelines using this matcher.
+
+        Parameters
+        ----------
+        nlp : Language
+            The instance of the Spacy language class.
+        terms : Patterns
+            Dictionary of label/terms, or label/dictionary of terms/attribute.
+        """
+
+        if not terms:
+            terms = dict()
+
+        for key, expressions in terms.items():
+            if isinstance(expressions, dict):
+                attr = expressions.get("attr")
+                expressions = expressions.get("patterns")
+            else:
+                attr = None
+            if isinstance(expressions, str):
+                expressions = [expressions]
+            patterns = list(nlp.tokenizer.pipe(expressions))
+            self.add(key, patterns, attr)
 
     def add(
         self,
         key: str,
-        patterns: List[str],
-    ):
+        patterns: List[Doc],
+        attr: Optional[str] = None,
+        ignore_excluded: Optional[bool] = None,
+    ) -> None:
         """
         Add a pattern.
 
@@ -45,15 +150,21 @@ class EDSPhraseMatcher(object):
         patterns : List[str]
             List of patterns to add.
         attr : str, optional
-            Attribute to use for matching, by default "TEXT"
+            Overwrite the attribute to match on for this specific pattern.
+        ignore_excluded : bool, optional
+            Overwrite the parameter for this specific pattern.
         """
 
+        patterns = [
+            self.create_pattern(pattern, attr=attr, ignore_excluded=ignore_excluded)
+            for pattern in patterns
+        ]
         self.matcher.add(key, patterns)
 
     def remove(
         self,
         key: str,
-    ):
+    ) -> None:
         """
         Remove a pattern.
 
@@ -61,46 +172,22 @@ class EDSPhraseMatcher(object):
         ----------
         key : str
             key of the pattern to remove.
+
+        Raises
+        ------
+        ValueError
+            Should the key not be contained in the registry.
         """
         self.matcher.remove(key)
 
-    def match(
-        self,
-        doclike: Union[Doc, Span],
-    ) -> Span:
-        """
-        Iterates on the matches.
-
-        Parameters
-        ----------
-        doclike:
-            Spacy Doc or Span object to match on.
-
-        Yields
-        -------
-        span:
-            A match.
-        """
-
-        if isinstance(doclike, Span):
-            doc = doclike.doc
-        else:
-            doc = doclike
-
-        if self.norm:
-            doclike = doclike._.normalized
-
-        for label, start, end in self.matcher(doclike):
-            if self.norm:
-                start = doc._.norm2original[start]
-                end = doc._.norm2original[end]
-            yield label, start, end
+    def __len__(self):
+        return len(self.matcher)
 
     def __call__(
         self,
         doclike: Union[Doc, Span],
         as_spans=False,
-    ) -> Span:
+    ) -> Generator:
         """
         Performs matching. Yields matches.
 
@@ -113,17 +200,9 @@ class EDSPhraseMatcher(object):
 
         Yields
         -------
-        match:
+        match: Span
             A match.
         """
-        if isinstance(doclike, Span):
-            doc = doclike.doc
-        else:
-            doc = doclike
-
-        for label, start, end in self.match(doclike):
-            if as_spans:
-                match = Span(doc, start, end, label)
-            else:
-                match = (label, start, end)
-            yield match
+        if len(self.matcher):
+            for match in self.matcher(doclike, as_spans=as_spans):
+                yield match

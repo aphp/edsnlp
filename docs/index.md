@@ -14,7 +14,7 @@
     :hidden:
     :caption: User Guide
 
-    user-guide/normalizer
+    user-guide/normalisation
     user-guide/sentences
     user-guide/matcher
     user-guide/negation

@@ -94,6 +94,7 @@ no_day_pattern = [
 
 relative_date_pattern = relative_pattern
 
+# TODO: add modifier patterns
 since_pattern = [
     r"(?<=depuis)" + r".{,5}" + pattern
     for pattern in absolute_date_pattern
@@ -103,6 +104,5 @@ since_pattern = [
         relative_pattern,
     ]
 ]
-# since_pattern = make_pattern(since_patterns)
 
 false_positive_pattern = r"(\d+" + delimiter_pattern + r"){3,}\d+"

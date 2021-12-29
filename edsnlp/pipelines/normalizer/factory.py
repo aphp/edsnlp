@@ -2,16 +2,6 @@ from typing import Any, Dict, Union
 
 from spacy.language import Language
 
-from .normalizer import Normalizer, NormalizerPopulate
-
-
-@Language.factory("normalizer-populate")
-def create_population_component(
-    nlp: Language,
-    name: str,
-):
-    return NormalizerPopulate()
-
 
 # noinspection PyUnusedLocal
 @Language.factory("normalizer")
@@ -25,10 +15,8 @@ def create_component(
     endlines: Union[bool, Dict[str, Any]] = False,
 ):
 
-    nlp.add_pipe("normalizer-populate")
-
-    if lowercase:
-        nlp.add_pipe("lowercase")
+    if not lowercase:
+        nlp.add_pipe("remove-lowercase")
 
     if accents:
         if isinstance(accents, dict):
@@ -54,4 +42,4 @@ def create_component(
         else:
             nlp.add_pipe("endlines")
 
-    return Normalizer()
+    return lambda doc: doc

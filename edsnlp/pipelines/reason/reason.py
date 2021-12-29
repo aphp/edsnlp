@@ -6,7 +6,7 @@ from spacy.tokens import Doc, Span
 
 from edsnlp.pipelines.matcher import GenericMatcher
 from edsnlp.pipelines.reason.terms import section_exclude, sections_reason
-from edsnlp.utils.filter_matches import _filter_matches
+from edsnlp.utils.filter import get_spans
 from edsnlp.utils.inclusion import check_inclusion
 
 
@@ -43,16 +43,16 @@ class Reason(GenericMatcher):
         attr: Union[Dict[str, str], str],
         regex: Optional[Dict[str, Union[List[str], str]]],
         use_sections: bool,
+        ignore_excluded: bool,
     ):
         super().__init__(
             nlp,
-            terms,
-            attr,
-            regex,
-            fuzzy=False,
-            fuzzy_kwargs=None,
+            terms=terms,
+            regex=regex,
+            attr=attr,
             filter_matches=False,
             on_ents_only=False,
+            ignore_excluded=ignore_excluded,
         )
 
         self.use_sections = use_sections and "sections" in self.nlp.pipe_names
@@ -109,7 +109,7 @@ class Reason(GenericMatcher):
         Doc
         """
         matches = self.process(doc)
-        reasons = _filter_matches(matches, "reasons")
+        reasons = get_spans(matches, "reasons")
 
         if self.use_sections:
             sections = doc.spans["sections"]

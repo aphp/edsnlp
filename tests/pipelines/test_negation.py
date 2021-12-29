@@ -35,13 +35,12 @@ def negation_factory(blank_nlp):
         following=terms.following,
         termination=terminations.termination,
         verbs=terms.verbs,
-        fuzzy=False,
         filter_matches=False,
         attr="LOWER",
         regex=None,
-        fuzzy_kwargs=None,
         within_ents=False,
         explain=True,
+        ignore_excluded=False,
     )
 
     def factory(on_ents_only, **kwargs) -> Negation:

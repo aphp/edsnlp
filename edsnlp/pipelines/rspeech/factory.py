@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import List
 
 from spacy.language import Language
 
@@ -9,6 +9,7 @@ rspeech_default_config = dict(
     following=terms.following,
     verbs=terms.verbs,
     quotation=terms.quotation,
+    ignore_excluded=False,
 )
 
 
@@ -20,13 +21,12 @@ def create_component(
     preceding: List[str],
     following: List[str],
     verbs: List[str],
-    fuzzy: bool = False,
     filter_matches: bool = False,
     attr: str = "LOWER",
     on_ents_only: bool = True,
     within_ents: bool = False,
     explain: bool = False,
-    fuzzy_kwargs: Optional[Dict[str, Any]] = None,
+    ignore_excluded: bool = False,
 ):
     return ReportedSpeech(
         nlp,
@@ -34,11 +34,10 @@ def create_component(
         preceding=preceding,
         following=following,
         verbs=verbs,
-        fuzzy=fuzzy,
         filter_matches=filter_matches,
         attr=attr,
         on_ents_only=on_ents_only,
         within_ents=within_ents,
         explain=explain,
-        fuzzy_kwargs=fuzzy_kwargs,
+        ignore_excluded=ignore_excluded,
     )

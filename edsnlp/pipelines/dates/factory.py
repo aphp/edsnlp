@@ -11,7 +11,6 @@ default_config = dict(
     absolute=patterns.absolute_date_pattern,
     relative=patterns.relative_date_pattern,
     full=patterns.full_date_pattern,
-    since=patterns.since_pattern,
     current=patterns.current_pattern,
     false_positive=patterns.false_positive_pattern,
 )
@@ -28,7 +27,6 @@ def create_component(
     absolute: Union[List[str], str],
     full: Union[List[str], str],
     relative: Union[List[str], str],
-    since: Union[List[str], str],
     current: Union[List[str], str],
     false_positive: Union[List[str], str],
 ):
@@ -40,7 +38,6 @@ def create_component(
         year_only=year_only,
         no_day=no_day,
         full=full,
-        since=since,
         current=current,
         false_positive=false_positive,
     )

@@ -48,6 +48,7 @@ autodoc_default_options = {
     "members": True,
     "member-order": "bysource",
     "undoc-members": "__module__, __weakref__",
+    "special-members": "__call__",
 }
 
 autodoc_typehints = "description"

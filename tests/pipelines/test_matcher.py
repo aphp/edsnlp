@@ -8,10 +8,9 @@ def matcher_factory(blank_nlp):
 
     default_config = dict(
         attr="TEXT",
-        fuzzy=False,
-        fuzzy_kwargs=None,
         filter_matches=True,
         on_ents_only=False,
+        ignore_excluded=False,
     )
 
     def factory(terms=None, regex=None, **kwargs):
@@ -31,12 +30,10 @@ def matcher_factory(blank_nlp):
     return factory
 
 
-@mark.parametrize("fuzzy", [True, False])
-def test_terms(blank_doc, matcher_factory, fuzzy):
+def test_terms(blank_doc, matcher_factory):
     matcher = matcher_factory(
         terms=dict(patient="patient", anomalie="anomalie"),
         attr="NORM",
-        fuzzy=fuzzy,
     )
     doc = matcher(blank_doc)
     assert len(doc.ents) == 3, "There should be two entities."

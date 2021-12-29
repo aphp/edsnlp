@@ -1,12 +1,11 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
 from spacy.util import filter_spans
 
 from edsnlp.pipelines.matcher import GenericMatcher
-from edsnlp.utils.filter import consume_spans
-from edsnlp.utils.filter_matches import _filter_matches
+from edsnlp.utils.filter import consume_spans, get_spans
 from edsnlp.utils.inclusion import check_inclusion
 
 
@@ -39,8 +38,6 @@ class Negation(GenericMatcher):
         List of termination terms.
     verbs: List[str]
         List of negation verbs.
-    fuzzy: bool
-         Whether to perform fuzzy matching on the terms.
     filter_matches: bool
         Whether to filter out overlapping matches.
     attr: str
@@ -56,8 +53,6 @@ class Negation(GenericMatcher):
         Whether to keep track of cues for each entity.
     regex: Optional[Dict[str, Union[List[str], str]]]
         A dictionnary of regex patterns.
-    fuzzy_kwargs: Optional[Dict[str, Any]]
-        Default options for the fuzzy matcher, if used.
     """
 
     def __init__(
@@ -68,13 +63,11 @@ class Negation(GenericMatcher):
         following: List[str],
         termination: List[str],
         verbs: List[str],
-        fuzzy: bool,
         filter_matches: bool,
         attr: str,
         on_ents_only: bool,
         within_ents: bool,
         regex: Optional[Dict[str, Union[List[str], str]]],
-        fuzzy_kwargs: Optional[Dict[str, Any]],
         explain: bool,
         **kwargs,
     ):
@@ -88,12 +81,10 @@ class Negation(GenericMatcher):
                 following=following,
                 verbs=self.load_verbs(verbs),
             ),
-            fuzzy=fuzzy,
             filter_matches=filter_matches,
             attr=attr,
             on_ents_only=on_ents_only,
             regex=regex,
-            fuzzy_kwargs=fuzzy_kwargs,
             **kwargs,
         )
 
@@ -163,7 +154,7 @@ class Negation(GenericMatcher):
 
         matches = self.process(doc)
 
-        terminations = _filter_matches(matches, "termination")
+        terminations = get_spans(matches, "termination")
         boundaries = self._boundaries(doc, terminations)
 
         entities = list(doc.ents) + list(doc.spans.get("discarded", []))
@@ -187,9 +178,9 @@ class Negation(GenericMatcher):
             if self.on_ents_only and not ents:
                 continue
 
-            sub_preceding = _filter_matches(sub_matches, "preceding")
-            sub_following = _filter_matches(sub_matches, "following")
-            sub_verbs = _filter_matches(sub_matches, "verbs")
+            sub_preceding = get_spans(sub_matches, "preceding")
+            sub_following = get_spans(sub_matches, "following")
+            sub_verbs = get_spans(sub_matches, "verbs")
 
             if not sub_preceding + sub_following + sub_verbs:
                 continue

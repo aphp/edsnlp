@@ -1,12 +1,11 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
 from spacy.util import filter_spans
 
 from edsnlp.pipelines.matcher import GenericMatcher
-from edsnlp.utils.filter import consume_spans
-from edsnlp.utils.filter_matches import _filter_matches
+from edsnlp.utils.filter import consume_spans, get_spans
 from edsnlp.utils.inclusion import check_inclusion
 
 
@@ -37,8 +36,6 @@ class Hypothesis(GenericMatcher):
         List of hypothetic verbs.
     verbs_eds: List[str]
         List of mainstream verbs.
-    fuzzy: bool
-         Whether to perform fuzzy matching on the terms.
     filter_matches: bool
         Whether to filter out overlapping matches.
     attr: str
@@ -54,8 +51,6 @@ class Hypothesis(GenericMatcher):
         Whether to keep track of cues for each entity.
     regex: Optional[Dict[str, Union[List[str], str]]]
         A dictionnary of regex patterns.
-    fuzzy_kwargs: Optional[Dict[str, Any]]
-        Default options for the fuzzy matcher, if used.
     """
 
     def __init__(
@@ -68,14 +63,12 @@ class Hypothesis(GenericMatcher):
         termination: List[str],
         verbs_hyp: List[str],
         verbs_eds: List[str],
-        fuzzy: bool,
         filter_matches: bool,
         attr: str,
         explain: bool,
         on_ents_only: bool,
         within_ents: bool,
         regex: Optional[Dict[str, Union[List[str], str]]],
-        fuzzy_kwargs: Optional[Dict[str, Any]],
         **kwargs,
     ):
 
@@ -89,12 +82,10 @@ class Hypothesis(GenericMatcher):
                 following=following,
                 verbs=self.load_verbs(verbs_hyp, verbs_eds),
             ),
-            fuzzy=fuzzy,
             filter_matches=filter_matches,
             attr=attr,
             on_ents_only=on_ents_only,
             regex=regex,
-            fuzzy_kwargs=fuzzy_kwargs,
             **kwargs,
         )
 
@@ -168,7 +159,7 @@ class Hypothesis(GenericMatcher):
 
         matches = self.process(doc)
 
-        terminations = _filter_matches(matches, "termination")
+        terminations = get_spans(matches, "termination")
         boundaries = self._boundaries(doc, terminations)
 
         # Removes duplicate matches and pseudo-expressions in one statement
@@ -192,9 +183,9 @@ class Hypothesis(GenericMatcher):
             if self.on_ents_only and not ents:
                 continue
 
-            sub_preceding = _filter_matches(sub_matches, "preceding")
-            sub_following = _filter_matches(sub_matches, "following")
-            sub_verbs = _filter_matches(sub_matches, "verbs")
+            sub_preceding = get_spans(sub_matches, "preceding")
+            sub_following = get_spans(sub_matches, "following")
+            sub_verbs = get_spans(sub_matches, "verbs")
 
             if not sub_preceding + sub_following + sub_verbs:
                 continue

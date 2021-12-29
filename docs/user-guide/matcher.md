@@ -75,11 +75,6 @@ nlp.add_pipe("matcher", config=dict(regex=regex))
 
 Using regular expressions can help define richer patterns using more compact queries.
 
-## Performing fuzzy matching
-
-The `GenericMatcher` can also perform fuzzy matching ! It is however extremely computationally intensive,
-and can easily increase compute times by 60x.
-
 ## Authors and citation
 
 The `matcher` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.

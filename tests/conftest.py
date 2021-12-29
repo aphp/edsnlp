@@ -21,7 +21,8 @@ def nlp():
         "matcher",
         config=dict(
             terms=dict(patient="patient"),
-            attr="CUSTOM_NORM",
+            attr="NORM",
+            ignore_excluded=True,
         ),
     )
     model.add_pipe(
@@ -38,7 +39,8 @@ def nlp():
             regex_config=dict(
                 fracture=dict(
                     regex=[r"fracture", r"felure"],
-                    attr="CUSTOM_NORM",
+                    attr="NORM",
+                    ignore_excluded=True,
                     before_exclude="petite|faible",
                     after_exclude="legere|de fatigue",
                 )

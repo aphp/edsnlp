@@ -52,7 +52,18 @@ def read_brat_annotation(filename: str) -> pd.DataFrame:
 
 
 class BratConnector(object):
-    def __init__(self, directory: str, n_jobs=1):
+    """
+    Two-way connector with BRAT. Supports entities only.
+
+    Parameters
+    ----------
+    directory : str
+        Directory containing the BRAT files.
+    n_jobs : int, optional
+        Number of jobs for multiprocessing, by default 1
+    """
+
+    def __init__(self, directory: str, n_jobs: int = 1):
         self.directory = directory
         self.n_jobs = n_jobs
 

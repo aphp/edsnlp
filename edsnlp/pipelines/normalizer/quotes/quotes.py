@@ -35,6 +35,6 @@ class Quotes(object):
         """
 
         for token in doc:
-            token._.normalization = replace(text=token._.normalization, rep=self.quotes)
+            token.norm_ = replace(text=token.norm_, rep=self.quotes)
 
         return doc

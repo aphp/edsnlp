@@ -2,7 +2,6 @@
 from typing import List
 
 from edsnlp.pipelines.advanced import AdvancedRegex
-from edsnlp.pipelines.normalizer.normalizer import Normalizer
 from edsnlp.utils.examples import parse_example
 
 example = """
@@ -35,6 +34,8 @@ def test_advanced(blank_nlp):
         regex_config=regex_config,
         window=5,
         verbose=True,
+        ignore_excluded=False,
+        attr="TEXT",
     )
 
     text, entities = parse_example(example=example)

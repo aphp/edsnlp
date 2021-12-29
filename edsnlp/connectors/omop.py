@@ -13,13 +13,25 @@ def omop2docs(
     nlp: Language,
     extensions: Optional[List[str]] = None,
 ) -> List[Doc]:
+    """
+    Transforms an OMOP-formatted pair of dataframes into a list of documents.
 
-    # assert set(["note_id", "note_text"]) <= set(note.columns)
-    # assert set(["note_id", "start_char", "end_char", "note_nlp_source_value"]) <= set(
-    #     note.columns
-    # )
+    Parameters
+    ----------
+    note : pd.DataFrame
+        The OMOP ``note`` table.
+    note_nlp : pd.DataFrame
+        The OMOP ``note_nlp`` table
+    nlp : Language
+        spaCy language object.
+    extensions : Optional[List[str]], optional
+        Extensions to keep, by default None
 
-    #     df = note.merge(note_nlp, on=["note_id"], how="left")
+    Returns
+    -------
+    List[``Doc``] :
+        List of spaCy documents
+    """
 
     note = note.copy()
     note_nlp = note_nlp.copy()
@@ -92,6 +104,21 @@ def docs2omop(
     docs: List[Doc],
     extensions: Optional[List[str]] = None,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Transforms a list of spaCy docs to a pair of OMOP tables.
+
+    Parameters
+    ----------
+    docs : List[Doc]
+        List of documents to transform.
+    extensions : Optional[List[str]], optional
+        Extensions to keep, by default None
+
+    Returns
+    -------
+    Tuple[pd.DataFrame, pd.DataFrame]
+        Pair of OMOP tables (``note`` and ``note_nlp``)
+    """
 
     df = pd.DataFrame(dict(doc=docs))
 
@@ -156,19 +183,53 @@ def docs2omop(
 
 
 class OmopConnector(object):
+    """
+    [summary]
+
+    Parameters
+    ----------
+    nlp : Language
+        spaCy language object.
+    start_char : str, optional
+        Name of the column containing the start character index of the entity,
+        by default "start_char"
+    end_char : str, optional
+        Name of the column containing the end character index of the entity,
+        by default "end_char"
+    """
+
     def __init__(
         self,
         nlp: Language,
         start_char: str = "start_char",
         end_char: str = "end_char",
-    ) -> None:
+    ):
 
         self.start_char = start_char
         self.end_char = end_char
 
         self.nlp = nlp
 
-    def preprocess(self, note, note_nlp):
+    def preprocess(
+        self, note: pd.DataFrame, note_nlp: pd.DataFrame
+    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Preprocess the input OMOP tables: modification of the column names.
+
+        Parameters
+        ----------
+        note : pd.DataFrame
+            OMOP ``note`` table.
+        note_nlp : pd.DataFrame
+            OMOP ``note_nlp`` table.
+
+        Returns
+        -------
+        note : pd.DataFrame
+            OMOP ``note`` table.
+        note_nlp : pd.DataFrame
+            OMOP ``note_nlp`` table.
+        """
 
         note_nlp = note_nlp.rename(
             columns={
@@ -179,7 +240,26 @@ class OmopConnector(object):
 
         return note, note_nlp
 
-    def postprocess(self, note, note_nlp):
+    def postprocess(
+        self, note: pd.DataFrame, note_nlp: pd.DataFrame
+    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Postprocess the input OMOP tables: modification of the column names.
+
+        Parameters
+        ----------
+        note : pd.DataFrame
+            OMOP ``note`` table.
+        note_nlp : pd.DataFrame
+            OMOP ``note_nlp`` table.
+
+        Returns
+        -------
+        note : pd.DataFrame
+            OMOP ``note`` table.
+        note_nlp : pd.DataFrame
+            OMOP ``note_nlp`` table.
+        """
 
         note_nlp = note_nlp.rename(
             columns={
@@ -192,10 +272,27 @@ class OmopConnector(object):
 
     def omop2docs(
         self,
-        note,
-        note_nlp,
+        note: pd.DataFrame,
+        note_nlp: pd.DataFrame,
         extensions: Optional[List[str]] = None,
     ) -> List[Doc]:
+        """
+        Transforms OMOP tables to a list of spaCy documents.
+
+        Parameters
+        ----------
+        note : pd.DataFrame
+            OMOP ``note`` table.
+        note_nlp : pd.DataFrame
+            OMOP ``note_nlp`` table.
+        extensions : Optional[List[str]], optional
+            Extensions to keep, by default None
+
+        Returns
+        -------
+        List[Doc]
+            List of spaCy documents.
+        """
         note, note_nlp = self.preprocess(note, note_nlp)
         return omop2docs(note, note_nlp, self.nlp, extensions)
 
@@ -204,6 +301,23 @@ class OmopConnector(object):
         docs: List[Doc],
         extensions: Optional[List[str]] = None,
     ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Transforms a list of spaCy documents to a pair of OMOP tables.
+
+        Parameters
+        ----------
+        List[Doc]
+            List of spaCy documents.
+        extensions : Optional[List[str]], optional
+            Extensions to keep, by default None
+
+        Returns
+        -------
+        note : pd.DataFrame
+            OMOP ``note`` table.
+        note_nlp : pd.DataFrame
+            OMOP ``note_nlp`` table.
+        """
         note, note_nlp = docs2omop(docs, extensions=extensions)
         note, note_nlp = self.postprocess(note, note_nlp)
         return note, note_nlp

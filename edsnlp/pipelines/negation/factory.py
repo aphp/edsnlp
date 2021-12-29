@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from spacy.language import Language
 
@@ -23,14 +23,13 @@ def create_component(
     following: List[str],
     termination: List[str],
     verbs: List[str],
-    fuzzy: bool = False,
     filter_matches: bool = False,
     attr: str = "LOWER",
     on_ents_only: bool = True,
     within_ents: bool = False,
     regex: Optional[Dict[str, Union[List[str], str]]] = None,
-    fuzzy_kwargs: Optional[Dict[str, Any]] = None,
     explain: bool = False,
+    ignore_excluded: bool = False,
 ):
     return Negation(
         nlp,
@@ -39,12 +38,11 @@ def create_component(
         following=following,
         termination=termination,
         verbs=verbs,
-        fuzzy=fuzzy,
         filter_matches=filter_matches,
         attr=attr,
         on_ents_only=on_ents_only,
         within_ents=within_ents,
         regex=regex,
-        fuzzy_kwargs=fuzzy_kwargs,
         explain=explain,
+        ignore_excluded=ignore_excluded,
     )

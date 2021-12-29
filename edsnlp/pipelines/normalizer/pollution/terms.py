@@ -9,7 +9,7 @@ information = (
 )
 
 # Example : NBNbWbWbNbWbNBNbNbWbWbNBNbWbNbNbWbNBNbW...
-bars = r"(?i)(?:[nbw]|_|-|=){5,}"
+bars = r"(?i)([nbw]|_|-|=){5,}"
 
 pollution = dict(
     information=information,

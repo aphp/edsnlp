@@ -5,42 +5,44 @@ from loguru import logger
 from spacy.language import Language
 from spacy.tokens import Doc, Span
 
+from edsnlp.matchers.utils import get_text
 from edsnlp.pipelines.matcher import GenericMatcher
 from edsnlp.utils.filter import filter_spans
 
-if not Doc.has_extension("my_ents"):
-    Doc.set_extension("my_ents", default=[])
-
-if not Span.has_extension("matcher_name"):
-    Span.set_extension("matcher_name", default=None)
-
-if not Span.has_extension("before_extract"):
-    Span.set_extension("before_extract", default=None)
-if not Span.has_extension("after_extract"):
-    Span.set_extension("after_extract", default=None)
-
-if not Span.has_extension("window"):
-    Span.set_extension("window", default=None)
-
-if not Span.has_extension("before_snippet"):
-    Span.set_extension("before_snippet", default=None)
-if not Span.has_extension("after_snippet"):
-    Span.set_extension("after_snippet", default=None)
-
 
 class AdvancedRegex(GenericMatcher):
+    """
+    Allows additional matching in the surrounding context of the main match group,
+    for qualification/filtering.
+
+    Parameters
+    ----------
+    nlp : Language
+        spaCy ``Language`` object.
+    regex_config : Dict[str, Any]
+        Configuration for the main expression.
+    window : int
+        Number of tokens to consider before and after the main expression.
+    attr : str
+        Attribute to match on, eg ``TEXT``, ``NORM``, etc.
+    verbose : int
+        Verbosity level, useful for debugging.
+    ignore_excluded : bool
+        Whether to skip excluded tokens.
+    """
+
     def __init__(
         self,
         nlp: Language,
         regex_config: Dict[str, Any],
         window: int,
+        attr: str,
         verbose: int,
+        ignore_excluded: bool,
     ):
-
         self.regex_config = _check_regex_config(regex_config)
         self.window = window
-        regex = {k: v["regex"] for k, v in regex_config.items()}
-        attr = {k: v["attr"] for k, v in regex_config.items() if "attr" in v}
+        regex = regex_config
 
         self.verbose = verbose
 
@@ -49,11 +51,35 @@ class AdvancedRegex(GenericMatcher):
             terms=dict(),
             regex=regex,
             attr=attr,
-            fuzzy=False,
-            fuzzy_kwargs=None,
             filter_matches=True,
             on_ents_only=False,
+            ignore_excluded=ignore_excluded,
         )
+
+        self.ignore_excluded = ignore_excluded
+
+        self.declare_extensions()
+
+    @staticmethod
+    def declare_extensions() -> None:
+        if not Doc.has_extension("my_ents"):
+            Doc.set_extension("my_ents", default=[])
+
+        if not Span.has_extension("matcher_name"):
+            Span.set_extension("matcher_name", default=None)
+
+        if not Span.has_extension("before_extract"):
+            Span.set_extension("before_extract", default=None)
+        if not Span.has_extension("after_extract"):
+            Span.set_extension("after_extract", default=None)
+
+        if not Span.has_extension("window"):
+            Span.set_extension("window", default=None)
+
+        if not Span.has_extension("before_snippet"):
+            Span.set_extension("before_snippet", default=None)
+        if not Span.has_extension("after_snippet"):
+            Span.set_extension("after_snippet", default=None)
 
     def process(self, doc: Doc) -> List[Span]:
         """
@@ -132,11 +158,13 @@ class AdvancedRegex(GenericMatcher):
         return ent
 
     def get_text(self, span: Span, label) -> str:
-        attr = self.regex_config[label].get("attr", self.DEFAULT_ATTR)
-        if attr == "CUSTOM_NORM":
-            return span._.normalized.text
-        else:
-            return span.text
+        attr = self.regex_config[label].get("attr", None)
+
+        return get_text(
+            doclike=span,
+            attr=attr,
+            ignore_excluded=self.ignore_excluded,
+        )
 
     def _exclude_filter(self, ent: Span) -> Span:
         label = ent.label_

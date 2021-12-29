@@ -20,9 +20,10 @@ def create_component(
     method_regex: str,
     value_regex: str,
     score_normalization: Union[str, Callable[[Union[str, None]], Any]],
-    attr: str = "CUSTOM_NORM",
+    attr: str = "NORM",
     window: int = 20,
     verbose: int = 0,
+    ignore_excluded: bool = False,
 ):
     return Sofa(
         nlp,
@@ -34,4 +35,5 @@ def create_component(
         attr=attr,
         window=window,
         verbose=verbose,
+        ignore_excluded=ignore_excluded,
     )

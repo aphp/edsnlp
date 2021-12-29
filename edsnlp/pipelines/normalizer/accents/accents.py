@@ -6,12 +6,21 @@ from ..utils import replace
 
 
 class Accents(object):
+    """
+    Normalises accents, using a same-length strategy.
+
+    Parameters
+    ----------
+    accents : List[Tuple[str, str]]
+        List of accentuated characters and their transcription.
+    """
+
     def __init__(self, accents: List[Tuple[str, str]]) -> None:
         self.accents = accents
 
     def __call__(self, doc: Doc) -> Doc:
         """
-        Remove accents from ``normalization`` custom attribute.
+        Remove accents from spacy ``NORM`` attribute.
 
         Parameters
         ----------
@@ -25,8 +34,6 @@ class Accents(object):
         """
 
         for token in doc:
-            token._.normalization = replace(
-                text=token._.normalization, rep=self.accents
-            )
+            token.norm_ = replace(text=token.norm_, rep=self.accents)
 
         return doc

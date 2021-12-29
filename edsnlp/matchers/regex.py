@@ -1,8 +1,71 @@
 import re
+from functools import lru_cache
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+import numpy as np
 from loguru import logger
-from spacy.tokens import Doc, Span
+from spacy.tokens import Doc, Span, Token
+
+from .utils import Patterns, get_text
+
+
+@lru_cache(maxsize=32)
+def alignment(doclike: Union[Doc, Span]) -> Tuple[np.array, np.array, np.array]:
+    original = []
+    clean = []
+
+    cursor = 0
+
+    for token in doclike:
+
+        if not token._.excluded:
+            original.append(token.idx)
+            clean.append(cursor)
+
+            cursor += len(token.text_with_ws)
+
+    clean.append(cursor)
+    if token._.excluded:
+        original.append(original[-1])
+    else:
+        original.append(token.idx + len(token.text_with_ws))
+
+    original = np.array(original)
+    clean = np.array(clean)
+
+    offset = original - clean
+
+    return original, clean, offset
+
+
+def exclusion2original(doclike: Union[Doc, Span], index: int) -> int:
+    """
+    Goes from the cleaned text to the original one.
+
+    Parameters
+    ----------
+    doc : Doc
+        Doc to clean
+    index : int
+        Index to transform
+
+    Returns
+    -------
+    int:
+        Converted index.
+    """
+    _, exclusion, offset = alignment(doclike)
+
+    arg = (exclusion >= index).argmax()
+    index += offset[arg]
+
+    return index
+
+
+def get_first_included(doclike: Union[Doc, Span]) -> Token:
+    for token in doclike:
+        if not token._.excluded:
+            return token
 
 
 class RegexMatcher(object):
@@ -21,27 +84,62 @@ class RegexMatcher(object):
     attr: str
         Default attribute to match on, by default "TEXT".
         Can be overiden in the ``add`` method.
+    ignore_excluded: bool
+        Whether to skip exclusions
     """
 
     def __init__(
         self,
         alignment_mode: str = "expand",
         attr: str = "TEXT",
+        ignore_excluded: bool = False,
     ):
         self.alignment_mode = alignment_mode
         self.regex = []
 
         self.default_attr = attr
 
+        self.ignore_excluded = ignore_excluded
+
+    def build_patterns(self, regex: Patterns):
+        """
+        Build patterns and adds them for matching.
+        Helper function for pipelines using this matcher.
+
+        Parameters
+        ----------
+        regex : Patterns
+            Dictionary of label/terms, or label/dictionary of terms/attribute.
+        """
+        if not regex:
+            regex = dict()
+
+        for key, patterns in regex.items():
+            if isinstance(patterns, dict):
+                attr = patterns.get("attr")
+                alignment_mode = patterns.get("alignment_mode")
+                patterns = patterns.get("regex")
+            else:
+                attr = None
+                alignment_mode = None
+
+            if isinstance(patterns, str):
+                patterns = [patterns]
+
+            self.add(
+                key=key, patterns=patterns, attr=attr, alignment_mode=alignment_mode
+            )
+
     def add(
         self,
         key: str,
         patterns: List[str],
         attr: Optional[str] = None,
+        ignore_excluded: Optional[bool] = None,
         alignment_mode: Optional[str] = None,
     ):
         """
-        Add a pattern.
+        Add a pattern to the registry.
 
         Parameters
         ----------
@@ -52,30 +150,41 @@ class RegexMatcher(object):
         attr : str, optional
             Attribute to use for matching.
             By default uses the ``default_attr`` attribute
+        ignore_excluded : bool, optional
+            Whether to skip excluded tokens during matching.
+        alignment_mode : str, optional
+            Overwrite alignment mode.
         """
 
         attr = attr or self.default_attr
+        ignore_excluded = ignore_excluded or self.ignore_excluded
         alignment_mode = alignment_mode or self.alignment_mode
-
-        assert attr in ["TEXT", "NORM", "CUSTOM_NORM", "LOWER"]
 
         patterns = [re.compile(pattern) for pattern in patterns]
 
-        self.regex.append((key, patterns, attr, alignment_mode))
+        self.regex.append((key, patterns, attr, ignore_excluded, alignment_mode))
 
     def remove(
         self,
         key: str,
     ):
         """
-        Remove a pattern.
+        Remove a pattern for the registry.
 
         Parameters
         ----------
         key : str
             key of the pattern to remove.
+
+        Raises
+        ------
+        ValueError
+            If the key is not present in the registered patterns.
         """
-        self.regex = [(k, p, a, am) for k, p, a, am in self.regex if k != key]
+        n = len(self.regex)
+        self.regex = [(k, p, a, i, am) for k, p, a, i, am in self.regex if k != key]
+        if len(self.regex) == n:
+            raise ValueError(f"`{key}` is not referenced in the matcher")
 
     def create_span(
         self,
@@ -84,6 +193,7 @@ class RegexMatcher(object):
         end: int,
         key: str,
         alignment_mode: str,
+        ignore_excluded: bool,
     ) -> Span:
         """
         Spacy only allows strict alignment mode for char_span on Spans.
@@ -91,36 +201,58 @@ class RegexMatcher(object):
 
         Parameters
         ----------
-        doclike:
+        doclike : Union[Doc, Span]
             Doc or Span.
-        start:
+        start : int
             Character index within the Doc-like object.
-        end:
+        end : int
             Character index of the end, within the Doc-like object.
-        key:
+        key : str
             The key used to match.
+        alignment_mode : str
+            The alignment mode.
+        ignore_excluded : bool
+            Whether to skip excluded tokens.
 
         Returns
         -------
         span:
             A span matched on the Doc-like object.
         """
-        if isinstance(doclike, Doc):
-            span = doclike.char_span(
-                start,
-                end,
-                label=key,
-                alignment_mode=alignment_mode,
-            )
+        doc = doclike if isinstance(doclike, Doc) else doclike.doc
+
+        if ignore_excluded:
+            _, exclusion, offset = alignment(doc)
+
+            first_included = get_first_included(doclike)
+
+            first, off = exclusion[first_included.i], offset[first_included.i]
+            start = exclusion2original(doc, start + first) - off
+            end = exclusion2original(doc, end + first) - off
+
         else:
-            span = doclike.doc.char_span(
-                doclike.start_char + start,
-                doclike.start_char + end,
-                label=key,
-                alignment_mode=alignment_mode,
-            )
+            start += doclike[0].idx
+            end += doclike[0].idx
+
+        span = doc.char_span(
+            start,
+            end,
+            label=key,
+            alignment_mode=alignment_mode,
+        )
 
         return span
+
+    def get_text(self, doclike: Union[Doc, Span], attr: str) -> str:
+
+        return get_text(
+            doclike=doclike,
+            attr=attr,
+            ignore_excluded=self.ignore_excluded,
+        )
+
+    def __len__(self):
+        return len(set([regex[0] for regex in self.regex]))
 
     def match(
         self,
@@ -140,51 +272,31 @@ class RegexMatcher(object):
             A match.
         """
 
-        if isinstance(doclike, Span):
-            doc = doclike.doc
-        else:
-            doc = doclike
-
-        for key, patterns, attr, alignment_mode in self.regex:
-            if attr == "CUSTOM_NORM":
-                text = doclike._.normalized.text
-            elif attr == "LOWER":
-                text = doclike.text.lower()
-            else:
-                text = doclike.text
-
-            doclike_ = doclike._.normalized if attr == "CUSTOM_NORM" else doclike
+        for key, patterns, attr, ignore_excluded, alignment_mode in self.regex:
+            text = self.get_text(doclike, attr)
 
             for pattern in patterns:
                 for match in pattern.finditer(text):
                     logger.trace(f"Matched a regex from {key}: {repr(match.group())}")
 
                     span = self.create_span(
-                        doclike=doclike_,
+                        doclike=doclike,
                         start=match.start(),
                         end=match.end(),
                         key=key,
                         alignment_mode=alignment_mode,
+                        ignore_excluded=ignore_excluded,
                     )
 
                     if span is None:
                         continue
-
-                    if attr == "CUSTOM_NORM":
-                        # Going back to the original document
-                        start, end = span.start, span.end
-
-                        start = doc._.norm2original[start]
-                        end = doc._.norm2original[end]
-
-                        span = Span(doc, start, end, label=span.label)
 
                     yield span, match
 
     def __call__(
         self,
         doclike: Union[Doc, Span],
-        as_spans=True,
+        as_spans=False,
         return_groupdict=False,
     ) -> Union[Span, Tuple[Span, Dict[str, Any]]]:
         """
@@ -207,7 +319,8 @@ class RegexMatcher(object):
         """
         for span, match in self.match(doclike):
             if not as_spans:
-                span = (span.label, span.start, span.end)
+                offset = doclike[0].i
+                span = (span.label, span.start - offset, span.end - offset)
             if return_groupdict:
                 yield span, match.groupdict()
             else:

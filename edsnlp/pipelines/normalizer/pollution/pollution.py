@@ -5,6 +5,7 @@ from spacy.tokens import Doc, Span
 
 from edsnlp.base import BaseComponent
 from edsnlp.matchers.regex import RegexMatcher
+from edsnlp.utils.filter import filter_spans
 
 
 class Pollution(BaseComponent):
@@ -42,7 +43,7 @@ class Pollution(BaseComponent):
             if isinstance(v, str):
                 self.pollution[k] = [v]
 
-        self.matcher = RegexMatcher()
+        self.regex_matcher = RegexMatcher()
         self.build_patterns()
 
     def build_patterns(self) -> None:
@@ -51,9 +52,8 @@ class Pollution(BaseComponent):
         """
 
         # efficiently build spaCy matcher patterns
-
         for k, v in self.pollution.items():
-            self.matcher.add(k, v)
+            self.regex_matcher.add(k, v)
 
     def process(self, doc: Doc) -> List[Span]:
         """
@@ -70,13 +70,11 @@ class Pollution(BaseComponent):
             list of pollution spans
         """
 
-        pollutions = self.matcher(doc)
-
-        pollutions = self._filter_matches(pollutions)
+        pollutions = self.regex_matcher(doc, as_spans=True)
+        pollutions = filter_spans(pollutions)
 
         return pollutions
 
-    # noinspection PyProtectedMember
     def __call__(self, doc: Doc) -> Doc:
         """
         Tags pollutions.
@@ -96,7 +94,7 @@ class Pollution(BaseComponent):
         for pollution in pollutions:
 
             for token in pollution:
-                token._.keep = False
+                token._.excluded = True
 
         doc.spans["pollutions"] = pollutions
 

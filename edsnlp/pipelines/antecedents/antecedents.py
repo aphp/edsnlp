@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from loguru import logger
 from spacy.language import Language
@@ -6,8 +6,7 @@ from spacy.tokens import Doc, Span, Token
 from spacy.util import filter_spans
 
 from edsnlp.pipelines.matcher import GenericMatcher
-from edsnlp.utils.filter import consume_spans
-from edsnlp.utils.filter_matches import _filter_matches
+from edsnlp.utils.filter import consume_spans, get_spans
 from edsnlp.utils.inclusion import check_inclusion
 
 
@@ -27,8 +26,6 @@ class Antecedents(GenericMatcher):
         List of syntagme termination terms.
     use_sections: bool
         Whether to use section pipeline to detect antecedent section.
-    fuzzy: bool
-         Whether to perform fuzzy matching on the terms.
     filter_matches: bool
         Whether to filter out overlapping matches.
     attr: str
@@ -42,8 +39,6 @@ class Antecedents(GenericMatcher):
         A dictionnary of regex patterns.
     explain: bool
         Whether to keep track of cues for each entity.
-    fuzzy_kwargs: Optional[Dict[str, Any]]
-        Default options for the fuzzy matcher, if used.
     """
 
     def __init__(
@@ -52,13 +47,11 @@ class Antecedents(GenericMatcher):
         antecedents: List[str],
         termination: List[str],
         use_sections: bool,
-        fuzzy: bool,
         filter_matches: bool,
         attr: str,
         explain: bool,
         on_ents_only: bool,
         regex: Optional[Dict[str, Union[List[str], str]]],
-        fuzzy_kwargs: Optional[Dict[str, Any]],
         **kwargs,
     ):
 
@@ -68,15 +61,27 @@ class Antecedents(GenericMatcher):
                 termination=termination,
                 antecedent=antecedents,
             ),
-            fuzzy=fuzzy,
             filter_matches=filter_matches,
             attr=attr,
             on_ents_only=on_ents_only,
             regex=regex,
-            fuzzy_kwargs=fuzzy_kwargs,
             **kwargs,
         )
 
+        self.sections = use_sections and "sections" in self.nlp.pipe_names
+        if use_sections and not self.sections:
+            logger.warning(
+                "You have requested that the pipeline use annotations "
+                "provided by the `section` pipeline, but it was not set. "
+                "Skipping that step."
+            )
+
+        self.explain = explain
+
+        self.declare_extensions()
+
+    @staticmethod
+    def declare_extensions() -> None:
         def antecedent_getter(token_or_span: Union[Token, Span]):
             if token_or_span._.antecedent is None:
                 return "NOTSET"
@@ -109,16 +114,6 @@ class Antecedents(GenericMatcher):
         if not Doc.has_extension("antecedents"):
             Doc.set_extension("antecedents", default=[])
 
-        self.sections = use_sections and "sections" in self.nlp.pipe_names
-        if use_sections and not self.sections:
-            logger.warning(
-                "You have requested that the pipeline use annotations "
-                "provided by the `section` pipeline, but it was not set. "
-                "Skipping that step."
-            )
-
-        self.explain = explain
-
     def __call__(self, doc: Doc) -> Doc:
         """
         Finds entities related to antecedents.
@@ -136,7 +131,7 @@ class Antecedents(GenericMatcher):
 
         matches = self.process(doc)
 
-        terminations = _filter_matches(matches, "termination")
+        terminations = get_spans(matches, "termination")
         boundaries = self._boundaries(doc, terminations)
 
         # Removes duplicate matches and pseudo-expressions in one statement
@@ -170,7 +165,7 @@ class Antecedents(GenericMatcher):
             if self.on_ents_only and not ents:
                 continue
 
-            cues = _filter_matches(sub_matches, "antecedent")
+            cues = get_spans(sub_matches, "antecedent")
             cues += sub_sections
 
             antecedent = bool(cues)

@@ -1,38 +1,32 @@
-# Normalizer
+# Normalisation
 
-The `normalizer` pipeline's role is to apply normalization on the input text, in order to simplify the extraction of a terminology. The modification only impacts a custom attribute, and therefore adheres to the non-destructive doctrine. In other words,
+The normalisation scheme used by EDS-NLP adheres to the non-destructive doctrine. In other words,
 
 ```python
 nlp(text).text == text
 ```
 
-remains true.
+is always true.
 
-The normalizer can normalize the input text in five dimensions :
+To achieve this, the input text is never modified. Instead, in EDS-NLP the normalisation is done in two axes:
 
-1. Move the text to lowercase.
-2. Remove accents. We use a deterministic approach to avoid modifying the character-length of the text.
-3. Normalize apostrophes and quotation marks, which are often coded using special characters.
-4. Remove pollutions.
-5. Transform newline characters to spaces.
+1. The textual representation is modified using the `NORM` attribute **only** ;
+2. Pipelines can mark tokens as _excluded_ by setting the extension `Token._.excluded` to `True`. It enables downstream matchers to skip excluded tokens.
+
+The normalizer can act on the input text in four dimensions :
+
+1. Move the text to [lowercase](#lowercase).
+2. Remove [accents](#accents). We use a deterministic approach to avoid modifying the character-length of the text, which helps for RegEx matching.
+3. Normalize [apostrophes and quotation marks](#apostrophes-and-quotation-marks), which are often coded using special characters.
+4. Remove [pollutions](#pollution).
 
 By default, the first four normalizations are activated. The `endlines` normalisation requires training a model, refer to [the dedicated page for more information](endlines.md).
 
-To enable both regular expressions and phrase matching, the `normalizer` pipeline generates a new Spacy `Doc` object, which populates the `Doc._.normalized` extension. This strategy lets us arbitrarily modify tokens, and even remove tokens altogether. We provide helper methods to efficiently go back and forth between the original document and its normalised version :
+## Utilities
 
-```python
-# Create a span in the normalized document
-normalized_span = Span(doc._.normalized, 4, 8, label="norm")
+To simplify the use of the normalisation output, we provide the `get_text` utility function. It computes the textual representation for a `Span` or `Doc` object.
 
-# Go back to the original document
-start = doc._.norm2original[normalized_span.start]
-end = doc._.norm2original[normalized_span.end]
-
-original_span = Span(doc, start, end, label=normalized_span.label)
-
-original_span.label_
-# Out: 'norm'
-```
+Moreover, every span exposes a `normalized_variant` extension getter, which computes the normalised representation of an entity on the fly.
 
 ## Pipelines
 
@@ -44,6 +38,7 @@ Consider the following example :
 
 ```python
 import spacy
+from edsnlp.matchers.utils import get_text
 from edsnlp import components
 
 config = dict(
@@ -61,7 +56,7 @@ text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
 
 doc = nlp(text)
 
-doc._.normalized
+get_text(doc, attr="NORM")
 # Out: pneumopathie à nbnbwbwbnbwbnbnbnbwbw `coronavirus'
 ```
 
@@ -73,6 +68,7 @@ Consider the following example :
 
 ```python
 import spacy
+from edsnlp.matchers.utils import get_text
 from edsnlp import components
 
 config = dict(
@@ -90,7 +86,7 @@ text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
 
 doc = nlp(text)
 
-doc._.normalized
+get_text(doc, attr="NORM")
 # Out: Pneumopathie a NBNbWbWbNbWbNBNbNbWbW `coronavirus'
 ```
 
@@ -102,6 +98,7 @@ Consider the following example :
 
 ```python
 import spacy
+from edsnlp.matchers.utils import get_text
 from edsnlp import components
 
 config = dict(
@@ -119,23 +116,24 @@ text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
 
 doc = nlp(text)
 
-doc._.normalized
+get_text(doc, attr="NORM")
 # Out: Pneumopathie à NBNbWbWbNbWbNBNbNbWbW 'coronavirus'
 ```
 
 ### Pollution
 
-The pollution pipeline uses a set of regular expressions to detect pollutions (irrelevant non-medical text that hinders text processing). Corresponding tokens are simply removed from the normalized version of the document, enabling the use of the phrase matcher.
+The pollution pipeline uses a set of regular expressions to detect pollutions (irrelevant non-medical text that hinders text processing). Corresponding tokens are marked as excluded (by setting `Token._.excluded` to `True`), enabling the use of the phrase matcher.
 
 Consider the following example :
 
 ```python
 import spacy
+from edsnlp.matchers.utils import get_text
 from edsnlp import components
 
 config = dict(
     lowercase=False,
-    accents=False,
+    accents=True,
     quotes=False,
     pollution=True,
     endlines=False,
@@ -148,9 +146,15 @@ text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
 
 doc = nlp(text)
 
-doc._.normalized
+get_text(doc, attr="NORM")
+# Out: Pneumopathie a NBNbWbWbNbWbNBNbNbWbW `coronavirus'
+
+get_text(doc, attr="TEXT", ignore_excluded=True)
 # Out: Pneumopathie à `coronavirus'
 ```
+
+This example above shows that the normalisation scheme works on two axes: non-destructive text modification and exclusion of tokens.
+The two are independent: a matcher can use the `NORM` attribute but keep excluded tokens, and conversely, match on `TEXT` while ignoring excluded tokens.
 
 ### New lines
 
@@ -164,21 +168,20 @@ As seen in the previous examples, the normalisation is handled by the single `no
 
 ```python
 import spacy
+from edsnlp.matchers.utils import get_text
 from edsnlp import components
 
 nlp = spacy.blank("fr")
 nlp.add_pipe("normalizer")
 
 # Notice the special character used for the apostrophe and the quotes
-text = "Le patient est admis à le 23 août 2021 pour une douleur ʺaffreuse” à l`estomac."
+text = "Le patient est admis à l'hôpital le 23 août 2021 pour une douleur ʺaffreuse” à l`estomac."
 
 doc = nlp(text)
 
-doc._.normalized
+get_text(doc, attr="NORM")
 # Out: le patient est admis a l'hopital le 23 aout 2021 pour une douleur "affreuse" a l'estomac
 ```
-
-Here, `doc._.normalized` is actually a new Spacy `Doc` object.
 
 ## Authors and citation
 

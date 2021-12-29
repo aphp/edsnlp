@@ -8,19 +8,25 @@ nlp(text).text == text
 
 is always true.
 
-To achieve this, the input text is never modified. Instead, in EDS-NLP the normalisation is done in two axes:
+To achieve this, the input text is never modified. Instead, our normalisation strategy focuses on two axes:
 
-1. The textual representation is modified using the `NORM` attribute **only** ;
-2. Pipelines can mark tokens as _excluded_ by setting the extension `Token._.excluded` to `True`. It enables downstream matchers to skip excluded tokens.
+1. Only the `NORM` attribute is modified by the `normalizer` pipeline ;
+2. Pipelines (eg the [`pollution`](#pollution) pipeline) can mark tokens as _excluded_ by setting the extension `Token._.excluded` to `True`.
+   It enables downstream matchers to skip excluded tokens.
 
-The normalizer can act on the input text in four dimensions :
+The normaliser can act on the input text in four dimensions :
 
 1. Move the text to [lowercase](#lowercase).
 2. Remove [accents](#accents). We use a deterministic approach to avoid modifying the character-length of the text, which helps for RegEx matching.
 3. Normalize [apostrophes and quotation marks](#apostrophes-and-quotation-marks), which are often coded using special characters.
 4. Remove [pollutions](#pollution).
 
-By default, the first four normalizations are activated. The `endlines` normalisation requires training a model, refer to [the dedicated page for more information](endlines.md).
+```{note}
+We recommend you also **add an end-of-line classifier to remove excess new line characters** (introduced by the PDF layout).
+
+We provide a `endlines` pipeline, which requires training an unsupervised model.
+Refer to [the dedicated page for more information](endlines.md).
+```
 
 ## Utilities
 
@@ -46,7 +52,6 @@ config = dict(
     accents=False,
     quotes=False,
     pollution=False,
-    endlines=False,
 )
 
 nlp = spacy.blank("fr")
@@ -76,7 +81,6 @@ config = dict(
     accents=True,
     quotes=False,
     pollution=False,
-    endlines=False,
 )
 
 nlp = spacy.blank("fr")
@@ -106,7 +110,6 @@ config = dict(
     accents=False,
     quotes=True,
     pollution=False,
-    endlines=False,
 )
 
 nlp = spacy.blank("fr")
@@ -136,7 +139,6 @@ config = dict(
     accents=True,
     quotes=False,
     pollution=True,
-    endlines=False,
 )
 
 nlp = spacy.blank("fr")
@@ -155,12 +157,6 @@ get_text(doc, attr="TEXT", ignore_excluded=True)
 
 This example above shows that the normalisation scheme works on two axes: non-destructive text modification and exclusion of tokens.
 The two are independent: a matcher can use the `NORM` attribute but keep excluded tokens, and conversely, match on `TEXT` while ignoring excluded tokens.
-
-### New lines
-
-The `endlines` pipeline classifies newline characters as actual end of lines or mere spaces. In the latter case, the token is removed from the normalised document.
-
-See the [dedicated documentation](endlines.md) for more detail.
 
 ## Usage
 

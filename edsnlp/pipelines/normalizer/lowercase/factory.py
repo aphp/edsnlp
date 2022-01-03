@@ -4,7 +4,7 @@ from spacy.tokens import Doc
 
 # noinspection PyUnusedLocal
 @Language.component("remove-lowercase")
-def create_component(doc: Doc):
+def remove_lowercase(doc: Doc):
     """
     Add case on the ``NORM`` custom attribute. Should always be applied first.
 

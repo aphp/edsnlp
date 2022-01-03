@@ -1,6 +1,12 @@
 from typing import Any, Dict, Union
 
+from spacy import registry
 from spacy.language import Language
+
+from .accents.factory import default_config as accents_config
+from .normalizer import Normalizer
+from .pollution.factory import default_config as pollution_config
+from .quotes.factory import default_config as quotes_config
 
 
 # noinspection PyUnusedLocal
@@ -14,25 +20,30 @@ def create_component(
     pollution: Union[bool, Dict[str, Any]] = True,
 ):
 
-    if not lowercase:
-        nlp.add_pipe("remove-lowercase")
-
     if accents:
+
+        config = dict(**accents_config)
         if isinstance(accents, dict):
-            nlp.add_pipe("accents", config=accents)
-        else:
-            nlp.add_pipe("accents")
+            config.update(accents)
+        accents = registry.get("factories", "accents")(nlp, "accents", **config)
 
     if quotes:
+        config = dict(**quotes_config)
         if isinstance(quotes, dict):
-            nlp.add_pipe("quotes", config=quotes)
-        else:
-            nlp.add_pipe("quotes")
+            config.update(quotes)
+        quotes = registry.get("factories", "quotes")(nlp, "quotes", **config)
 
     if pollution:
+        config = dict(**pollution_config)
         if isinstance(pollution, dict):
-            nlp.add_pipe("pollution", config=pollution)
-        else:
-            nlp.add_pipe("pollution")
+            config.update(pollution)
+        pollution = registry.get("factories", "pollution")(nlp, "pollution", **config)
 
-    return lambda doc: doc
+    normalizer = Normalizer(
+        lowercase=lowercase,
+        accents=accents or None,
+        quotes=quotes or None,
+        pollution=pollution or None,
+    )
+
+    return normalizer

@@ -2,10 +2,7 @@ loguru
 numpy
 scikit-learn==0.24.2
 pandas~=1.2
-rapidfuzz
-spacy>=3.1
-spaczz
-unidecode
+spacy>=3.1<4.0.0
 mlconjug3
 tqdm
 dateparser

@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List, Union
 
 from spacy.language import Language
 
@@ -14,7 +14,7 @@ default_config = dict(
 def create_component(
     nlp: Language,
     name: str,
-    pollution: Dict[str, str],
+    pollution: Dict[str, Union[str, List[str]]],
 ):
     return Pollution(
         nlp,

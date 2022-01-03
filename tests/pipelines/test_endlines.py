@@ -73,7 +73,8 @@ def test_endlines(blank_nlp, model_path):
 def test_normalizer_endlines(blank_nlp, model_path):
 
     # Use an existing trained model
-    blank_nlp.add_pipe("normalizer", config=dict(endlines=dict(model_path=model_path)))
+    blank_nlp.add_pipe("normalizer")
+    blank_nlp.add_pipe("endlines", config=dict(model_path=model_path))
     docs = list(blank_nlp.pipe(texts))
 
     assert docs[0][0]._.end_line is None

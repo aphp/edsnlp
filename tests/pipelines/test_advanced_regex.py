@@ -15,9 +15,7 @@ def test_advanced(blank_nlp):
 
     blank_nlp.add_pipe(
         "normalizer",
-        config=dict(
-            lowercase=True, accents=True, quotes=True, endlines=False, pollution=False
-        ),
+        config=dict(lowercase=True, accents=True, quotes=True, pollution=False),
     )
 
     regex_config = dict(

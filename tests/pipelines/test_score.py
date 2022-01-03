@@ -27,9 +27,7 @@ def test_scores(blank_nlp):
 
     blank_nlp.add_pipe(
         "normalizer",
-        config=dict(
-            lowercase=True, accents=True, quotes=True, endlines=False, pollution=False
-        ),
+        config=dict(lowercase=True, accents=True, quotes=True, pollution=False),
     )
 
     create_charlson = spacy.registry.get("factories", "charlson")

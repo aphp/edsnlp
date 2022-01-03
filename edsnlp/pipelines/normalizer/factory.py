@@ -12,7 +12,6 @@ def create_component(
     lowercase: Union[bool, Dict[str, Any]] = True,
     quotes: Union[bool, Dict[str, Any]] = True,
     pollution: Union[bool, Dict[str, Any]] = True,
-    endlines: Union[bool, Dict[str, Any]] = False,
 ):
 
     if not lowercase:
@@ -35,11 +34,5 @@ def create_component(
             nlp.add_pipe("pollution", config=pollution)
         else:
             nlp.add_pipe("pollution")
-
-    if endlines:
-        if isinstance(endlines, dict):
-            nlp.add_pipe("endlines", config=endlines)
-        else:
-            nlp.add_pipe("endlines")
 
     return lambda doc: doc

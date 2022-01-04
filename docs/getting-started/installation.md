@@ -16,11 +16,23 @@ pip install git+https://gitlab.eds.aphp.fr/equipedatascience/edsnlp.git@v0.3.2
 
 ## Development installation
 
-To be able to run the test suite, run the example notebooks and develop your own pipeline, clone the repo and install it locally :
+To be able to run the test suite, run the example notebooks and develop your own pipeline, clone the repo and install it locally.
 
 ```shell
+# Clone the repository and change directory
 git clone https://gitlab.eds.aphp.fr/equipedatascience/edsnlp.git
 cd edsnlp
+
+# Optional: create a virtual environment
+python -m venv venv
+source venv/bin/activate
+
+# Install setup dependencies and build resources
+pip install -r requirements.txt
+pip install -r requirements-setup.txt
+python scripts/conjugate.py
+
+# Finally, install the package
 pip install .
 ```
 

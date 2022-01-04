@@ -1,7 +1,5 @@
-from spacy.tokens import Doc
+from pathlib import Path
 
-if not Doc.has_extension("note_id"):
-    Doc.set_extension("note_id", default=None)
+from . import extensions
 
-if not Doc.has_extension("note_datetime"):
-    Doc.set_extension("note_datetime", default=None)
+BASE_DIR = Path(__file__).parent

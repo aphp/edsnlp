@@ -7,6 +7,7 @@ from spacy.util import filter_spans
 from edsnlp.pipelines.matcher import GenericMatcher
 from edsnlp.utils.filter import consume_spans, get_spans
 from edsnlp.utils.inclusion import check_inclusion
+from edsnlp.utils.resources import get_verbs
 
 
 class Hypothesis(GenericMatcher):
@@ -135,12 +136,13 @@ class Hypothesis(GenericMatcher):
         list of hypothesis verbs conjugated at all tenses and classic
         verbs conjugated to conditional.
         """
-        classic_verbs = self._conjugate(verbs_eds)
-        classic_verbs = classic_verbs.loc[classic_verbs["mode"] == "Conditionnel"]
-        list_classic_verbs = list(classic_verbs["variant"].unique())
 
-        hypo_verbs = self._conjugate(verbs_hyp)
-        list_hypo_verbs = list(hypo_verbs["variant"].unique())
+        classic_verbs = get_verbs(verbs_eds)
+        classic_verbs = classic_verbs.loc[classic_verbs["mode"] == "Conditionnel"]
+        list_classic_verbs = list(classic_verbs["term"].unique())
+
+        hypo_verbs = get_verbs(verbs_hyp)
+        list_hypo_verbs = list(hypo_verbs["term"].unique())
 
         return list_hypo_verbs + list_classic_verbs
 

@@ -1,10 +1,7 @@
 from typing import List, Optional, Tuple
 
-import pandas as pd
 from spacy.tokens import Doc, Span
 from spacy.util import filter_spans
-
-from edsnlp.conjugator import conjugate
 
 
 class BaseComponent(object):
@@ -68,30 +65,3 @@ class BaseComponent(object):
         boundaries = [(start, end) for start, end in zip(starts[:-1], starts[1:])]
 
         return boundaries
-
-    @staticmethod
-    def _conjugate(verbs: List[str]) -> pd.DataFrame:
-        """
-        Create a list of conjugated verbs at all tenses from a list of infinitive verbs.
-
-        Parameters
-        ----------
-        verbs:
-            List of infinitive verbs to conjugate
-
-        Returns
-        ----------
-        pd.DataFrame
-            Dataframe of conjugated verbs at all tenses
-        """
-
-        df = conjugate(verbs)
-        df.columns = [
-            "infinitif",
-            "mode",
-            "temps",
-            "personne",
-            "variant",
-        ]
-
-        return df

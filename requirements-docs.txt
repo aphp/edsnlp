@@ -1,6 +1,7 @@
+ipython
 myst-parser
+nbsphinx
 sphinx
 sphinx-autobuild
 sphinx-rtd-theme
 sphinxcontrib-bibtex
-nbsphinx

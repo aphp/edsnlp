@@ -8,6 +8,8 @@ test:
   before_script:
     - pip install -r requirements.txt
     - pip install -r requirements-dev.txt
+    - pip install -r requirements-setup.txt
+    - PYTHONPATH="$PWD:$PYTHONPATH" python scripts/conjugate.py
   script:
     - pre-commit install
     - pre-commit run --all-files
@@ -38,3 +40,15 @@ pages:
       - public
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+package:
+  before_script:
+    - pip install -r requirements.txt
+    - pip install -r requirements-dev.txt
+    - pip install -r requirements-setup.txt
+    - PYTHONPATH="$PWD:$PYTHONPATH" python scripts/conjugate.py
+  script:
+    - pip install twine
+    - python setup.py sdist bdist_wheel
+    - TWINE_PASSWORD=${CI_JOB_TOKEN} TWINE_USERNAME=gitlab-ci-token python -m twine upload --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi dist/*
+  when: manual

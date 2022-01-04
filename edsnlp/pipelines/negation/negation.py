@@ -7,6 +7,7 @@ from spacy.util import filter_spans
 from edsnlp.pipelines.matcher import GenericMatcher
 from edsnlp.utils.filter import consume_spans, get_spans
 from edsnlp.utils.inclusion import check_inclusion
+from edsnlp.utils.resources import get_verbs
 
 
 class Negation(GenericMatcher):
@@ -127,15 +128,16 @@ class Negation(GenericMatcher):
         -------
         list_neg_verbs: List of negating verbs conjugated to specific tenses.
         """
-        neg_verbs = self._conjugate(verbs)
+
+        neg_verbs = get_verbs(verbs)
 
         neg_verbs = neg_verbs.loc[
-            ((neg_verbs["mode"] == "Indicatif") & (neg_verbs["temps"] == "Présent"))
-            | (neg_verbs["temps"] == "Participe Présent")
-            | (neg_verbs["temps"] == "Participe Passé")
+            ((neg_verbs["mode"] == "Indicatif") & (neg_verbs["tense"] == "Présent"))
+            | (neg_verbs["tense"] == "Participe Présent")
+            | (neg_verbs["tense"] == "Participe Passé")
         ]
 
-        list_neg_verbs = list(neg_verbs["variant"].unique())
+        list_neg_verbs = list(neg_verbs["term"].unique())
 
         return list_neg_verbs
 

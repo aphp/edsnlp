@@ -23,4 +23,7 @@ setup(
     extras_require=dict(
         demo=["streamlit>=1.2"],
     ),
+    package_data={
+        "edsnlp": ["resources/*.csv"],
+    },
 )

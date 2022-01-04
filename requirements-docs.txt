@@ -4,4 +4,3 @@ sphinx-autobuild
 sphinx-rtd-theme
 sphinxcontrib-bibtex
 nbsphinx
-IPython

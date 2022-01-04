@@ -7,6 +7,7 @@ from spacy.util import filter_spans
 from edsnlp.pipelines.matcher import GenericMatcher
 from edsnlp.utils.filter import consume_spans, get_spans
 from edsnlp.utils.inclusion import check_inclusion
+from edsnlp.utils.resources import get_verbs
 
 
 class ReportedSpeech(GenericMatcher):
@@ -114,19 +115,20 @@ class ReportedSpeech(GenericMatcher):
         -------
         list_rep_verbs: List of reporting verbs conjugated to specific tenses.
         """
-        rep_verbs = self._conjugate(verbs)
+
+        rep_verbs = get_verbs(verbs)
 
         rep_verbs = rep_verbs.loc[
             (
                 (rep_verbs["mode"] == "Indicatif")
-                & (rep_verbs["temps"] == "Présent")
-                & (rep_verbs["personne"].isin(["3s", "3p"]))
+                & (rep_verbs["tense"] == "Présent")
+                & (rep_verbs["person"].isin(["3s", "3p"]))
             )
-            | (rep_verbs["temps"] == "Participe Présent")
-            | (rep_verbs["temps"] == "Participe Passé")
+            | (rep_verbs["tense"] == "Participe Présent")
+            | (rep_verbs["tense"] == "Participe Passé")
         ]
 
-        list_rep_verbs = list(rep_verbs["variant"].unique())
+        list_rep_verbs = list(rep_verbs["term"].unique())
 
         return list_rep_verbs
 

@@ -30,7 +30,7 @@ class Accents(object):
         Returns
         -------
         Doc
-            The document, with accents removed in ``Token._.normalization``.
+            The document, with accents removed in ``Token.norm_``.
         """
 
         for token in doc:

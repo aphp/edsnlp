@@ -1,5 +1,3 @@
-import os
-
 from pytest import fixture
 
 from edsnlp.pipelines.endlines.endlinesmodel import EndLinesModel

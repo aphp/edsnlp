@@ -1,11 +1,11 @@
 from datetime import datetime
 
-import context
+import context  # noqa
 import pandas as pd
 import spacy
 from pytest import fixture
 
-import edsnlp.components
+import edsnlp.components  # noqa
 
 
 @fixture(scope="session")

@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from typing import List
-
 import spacy
 
 from edsnlp.pipelines.scores import Score

@@ -1,6 +1,9 @@
+import pytest
 from mlconjug3 import Conjugator
 
 from edsnlp.conjugator import conjugate, conjugate_verb, get_conjugated_verbs
+
+pytestmark = pytest.mark.filterwarnings("ignore")
 
 
 def test_conjugate_verb():

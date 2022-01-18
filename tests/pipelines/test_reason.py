@@ -1,7 +1,4 @@
-import pytest
 import spacy
-
-import edsnlp.components
 
 text = """COMPTE RENDU D'HOSPITALISATION du 11/07/2018 au 12/07/2018
 MOTIF D'HOSPITALISATION

@@ -1,6 +1,4 @@
-from typing import List
-
-from pytest import fixture, mark
+from pytest import fixture
 
 from edsnlp.pipelines.sections import Sections, terms
 from edsnlp.utils.examples import parse_example

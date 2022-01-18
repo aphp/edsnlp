@@ -1,11 +1,5 @@
 from edsnlp.connectors.labeltool import docs2labeltool
 
-# from labeltool.labelling import Labels, Labelling
-
-# from ipywidgets import Output
-# from IPython.display import display
-
-
 texts = [
     "Le patient est malade",
     "Le patient n'est pas malade",
@@ -25,21 +19,3 @@ def test_docs2labeltool(nlp):
 
     df = docs2labeltool(docs)
     assert len(df)
-
-    # labels = Labels()
-
-    # for label in df.label_name.unique():
-
-    #     labels.add(
-    #         name=label,
-    #         selection_type="text",
-    #     )
-
-    # labeller = Labelling(
-    #     df,
-    #     modifiers=modifiers,
-    #     labels_dict=labels.dict,
-    #     out=Output(),
-    #     display=display,
-    # )
-    # labeller.run()

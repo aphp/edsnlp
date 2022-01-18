@@ -1,13 +1,9 @@
-import filecmp
 import re
-from os import listdir
-from os.path import join
 from random import choice, randint, random
 from string import ascii_letters, ascii_lowercase
 
 import pandas as pd
 import pytest
-from spacy.language import Language
 
 from edsnlp.connectors.omop import OmopConnector
 

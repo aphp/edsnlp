@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from typing import List
-
 from edsnlp.pipelines.advanced import AdvancedRegex
 from edsnlp.utils.examples import parse_example
 

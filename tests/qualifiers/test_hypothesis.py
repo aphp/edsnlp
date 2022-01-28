@@ -2,8 +2,7 @@ from typing import List
 
 from pytest import fixture, mark
 
-from edsnlp.pipelines import terminations
-from edsnlp.pipelines.hypothesis import Hypothesis, terms
+from edsnlp.qualifiers.hypothesis import Hypothesis
 from edsnlp.utils.examples import parse_example
 
 examples: List[str] = [
@@ -23,19 +22,15 @@ examples: List[str] = [
 def hypothesis_factory(blank_nlp):
 
     default_config = dict(
-        pseudo=terms.pseudo,
-        confirmation=terms.confirmation,
-        preceding=terms.preceding,
-        following=terms.following,
-        termination=terminations.termination,
-        verbs_hyp=terms.verbs_hyp,
-        verbs_eds=terms.verbs_eds,
-        filter_matches=True,
-        attr="LOWER",
-        explain=True,
-        regex=None,
-        ignore_excluded=False,
+        pseudo=None,
+        preceding=None,
+        following=None,
+        termination=None,
+        verbs_hyp=None,
+        verbs_eds=None,
+        attr="NORM",
         within_ents=False,
+        explain=True,
     )
 
     def factory(on_ents_only, **kwargs):
@@ -73,9 +68,7 @@ def test_hypothesis(blank_nlp, hypothesis_factory, on_ents_only):
 
                 assert bool(ent._.hypothesis_cues) == (modifier.value in {"HYP", True})
 
-                assert (
-                    getattr(ent._, modifier.key) == modifier.value
-                ), f"{modifier.key} labels don't match."
+                assert getattr(ent._, modifier.key) == modifier.value
 
                 if not on_ents_only:
                     for token in ent:

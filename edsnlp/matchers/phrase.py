@@ -1,6 +1,8 @@
 import re
+from functools import partial
 from typing import Dict, Generator, List, Optional, Union
 
+from spacy import registry
 from spacy.language import Language, Vocab
 from spacy.matcher import Matcher
 from spacy.tokens import Doc, Span
@@ -20,6 +22,20 @@ def get_normalized_variant(doclike: Union[Span, Doc]) -> str:
 
 if not Span.has_extension("normalized_variant"):
     Span.set_extension("normalized_variant", getter=get_normalized_variant)
+
+
+@registry.misc("edsnlp.factories.phrasematcher.v1")
+def phrase_matcher_factory(
+    attr: str,
+    ignore_excluded: bool,
+    exclude_newlines: bool,
+):
+    return partial(
+        EDSPhraseMatcher,
+        attr=attr,
+        ignore_excluded=ignore_excluded,
+        exclude_newlines=exclude_newlines,
+    )
 
 
 class EDSPhraseMatcher(object):

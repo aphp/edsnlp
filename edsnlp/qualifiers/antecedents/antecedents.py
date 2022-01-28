@@ -1,16 +1,19 @@
-from typing import Dict, List, Optional, Union
+from typing import List, Optional, Union
 
 from loguru import logger
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
 from spacy.util import filter_spans
 
-from edsnlp.pipelines.matcher import GenericMatcher
+from edsnlp.pipelines.terminations import termination
+from edsnlp.qualifiers.base import Qualifier
 from edsnlp.utils.filter import consume_spans, get_spans
 from edsnlp.utils.inclusion import check_inclusion
 
+from .patterns import antecedents
 
-class Antecedents(GenericMatcher):
+
+class Antecedents(Qualifier):
     """
     Implements an antecedents detection algorithm.
 
@@ -41,42 +44,44 @@ class Antecedents(GenericMatcher):
         Whether to keep track of cues for each entity.
     """
 
+    defaults = dict(
+        antecedents=antecedents,
+        termination=termination,
+    )
+
     def __init__(
         self,
         nlp: Language,
-        antecedents: List[str],
-        termination: List[str],
-        use_sections: bool,
-        filter_matches: bool,
         attr: str,
+        antecedents: Optional[List[str]],
+        termination: Optional[List[str]],
+        use_sections: bool,
         explain: bool,
         on_ents_only: bool,
-        regex: Optional[Dict[str, Union[List[str], str]]],
-        **kwargs,
     ):
 
-        super().__init__(
-            nlp,
-            terms=dict(
-                termination=termination,
-                antecedent=antecedents,
-            ),
-            filter_matches=filter_matches,
-            attr=attr,
-            on_ents_only=on_ents_only,
-            regex=regex,
-            **kwargs,
+        terms = self.get_defaults(
+            antecedents=antecedents,
+            termination=termination,
         )
 
-        self.sections = use_sections and "sections" in self.nlp.pipe_names
+        super().__init__(
+            nlp=nlp,
+            attr=attr,
+            on_ents_only=on_ents_only,
+            explain=explain,
+            **terms,
+        )
+
+        self.set_extensions()
+
+        self.sections = use_sections and "sections" in nlp.pipe_names
         if use_sections and not self.sections:
             logger.warning(
                 "You have requested that the pipeline use annotations "
                 "provided by the `section` pipeline, but it was not set. "
                 "Skipping that step."
             )
-
-        self.explain = explain
 
     @staticmethod
     def set_extensions() -> None:
@@ -112,7 +117,7 @@ class Antecedents(GenericMatcher):
         if not Doc.has_extension("antecedents"):
             Doc.set_extension("antecedents", default=[])
 
-    def __call__(self, doc: Doc) -> Doc:
+    def process(self, doc: Doc) -> Doc:
         """
         Finds entities related to antecedents.
 
@@ -127,7 +132,7 @@ class Antecedents(GenericMatcher):
             spaCy Doc object, annotated for antecedents
         """
 
-        matches = self.process(doc)
+        matches = self.get_matches(doc)
 
         terminations = get_spans(matches, "termination")
         boundaries = self._boundaries(doc, terminations)
@@ -163,7 +168,7 @@ class Antecedents(GenericMatcher):
             if self.on_ents_only and not ents:
                 continue
 
-            cues = get_spans(sub_matches, "antecedent")
+            cues = get_spans(sub_matches, "antecedents")
             cues += sub_sections
 
             antecedent = bool(cues)

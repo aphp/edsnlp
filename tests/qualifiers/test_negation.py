@@ -2,8 +2,7 @@ from typing import List
 
 from pytest import fixture, mark
 
-from edsnlp.pipelines import terminations
-from edsnlp.pipelines.negation import Negation, terms
+from edsnlp.qualifiers.negation import Negation
 from edsnlp.utils.examples import parse_example
 
 negation_examples: List[str] = [
@@ -30,17 +29,14 @@ negation_examples: List[str] = [
 def negation_factory(blank_nlp):
 
     default_config = dict(
-        pseudo=terms.pseudo,
-        preceding=terms.preceding,
-        following=terms.following,
-        termination=terminations.termination,
-        verbs=terms.verbs,
-        filter_matches=False,
-        attr="LOWER",
-        regex=None,
+        pseudo=None,
+        preceding=None,
+        following=None,
+        termination=None,
+        verbs=None,
+        attr="NORM",
         within_ents=False,
         explain=True,
-        ignore_excluded=False,
     )
 
     def factory(on_ents_only, **kwargs) -> Negation:

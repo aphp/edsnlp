@@ -2,34 +2,32 @@ from typing import List
 
 from pytest import fixture, mark
 
-from edsnlp.pipelines import terminations
-from edsnlp.pipelines.antecedents import Antecedents, terms
+from edsnlp.qualifiers.family import FamilyContext
 from edsnlp.utils.examples import parse_example
 
 examples: List[str] = [
-    "Antécédents d'<ent antecedent_=ATCD>AVC</ent>.",
-    "atcd <ent antecedent_=ATCD>chirurgicaux</ent> : aucun.",
-    "Le patient est <ent antecedent_=CURRENT>fumeur</ent>.",
-    # Les sections ne sont pas utilisées par défaut
     (
-        "\nv Antecedents :\n- <ent antecedent_=CURRENT>appendicite</ent>\n"
-        "v Motif :\n<ent antecedent_=CURRENT>malaise</ent>"
+        "Le père du patient a eu un <ent family_=FAMILY>cancer du colon</ent>. "
+        "La mère se porte bien."
+    ),
+    "Antécédents familiaux : <ent family_=FAMILY>diabète</ent>.",
+    "Un <ent family_=PATIENT>relevé</ent> sanguin a été effectué.",
+    (
+        "Antécédent familiaux de diabète mais pas "
+        "<ent family_=PATIENT>détecté</ent> jusqu'ici."
     ),
 ]
 
 
 @fixture
-def antecedents_factory(blank_nlp):
+def family_factory(blank_nlp):
 
     default_config = dict(
-        antecedents=terms.antecedents,
-        termination=terminations.termination,
+        family=None,
+        termination=None,
+        attr="NORM",
         use_sections=False,
-        filter_matches=False,
-        attr="LOWER",
         explain=True,
-        regex=None,
-        ignore_excluded=False,
     )
 
     def factory(on_ents_only, **kwargs):
@@ -37,7 +35,7 @@ def antecedents_factory(blank_nlp):
         config = dict(**default_config)
         config.update(kwargs)
 
-        return Antecedents(
+        return FamilyContext(
             nlp=blank_nlp,
             on_ents_only=on_ents_only,
             **config,
@@ -46,11 +44,11 @@ def antecedents_factory(blank_nlp):
     return factory
 
 
-@mark.parametrize("use_sections", [True, False])
 @mark.parametrize("on_ents_only", [True, False])
-def test_antecedents(blank_nlp, antecedents_factory, on_ents_only, use_sections):
+@mark.parametrize("use_sections", [True, False])
+def test_family(blank_nlp, family_factory, on_ents_only, use_sections):
 
-    antecedents = antecedents_factory(on_ents_only, use_sections=use_sections)
+    family = family_factory(on_ents_only=on_ents_only, use_sections=use_sections)
 
     for example in examples:
         text, entities = parse_example(example=example)
@@ -60,13 +58,13 @@ def test_antecedents(blank_nlp, antecedents_factory, on_ents_only, use_sections)
             doc.char_span(ent.start_char, ent.end_char, label="ent") for ent in entities
         ]
 
-        doc = antecedents(doc)
+        doc = family(doc)
 
         for entity, ent in zip(entities, doc.ents):
 
             for modifier in entity.modifiers:
 
-                assert bool(ent._.antecedent_cues) == (modifier.value in {"ATCD", True})
+                assert bool(ent._.family_cues) == (modifier.value in {"FAMILY", True})
 
                 assert (
                     getattr(ent._, modifier.key) == modifier.value

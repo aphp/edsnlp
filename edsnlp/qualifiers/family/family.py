@@ -1,15 +1,19 @@
-from typing import Dict, List, Optional, Union
+from typing import List, Optional
 
+from loguru import logger
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
 from spacy.util import filter_spans
 
-from edsnlp.pipelines.matcher import GenericMatcher
+from edsnlp.pipelines.terminations import termination
+from edsnlp.qualifiers.base import Qualifier
 from edsnlp.utils.filter import consume_spans, get_spans
 from edsnlp.utils.inclusion import check_inclusion
 
+from .patterns import family
 
-class FamilyContext(GenericMatcher):
+
+class FamilyContext(Qualifier):
     """
     Implements a family context detection algorithm.
 
@@ -38,39 +42,47 @@ class FamilyContext(GenericMatcher):
         Whether to use annotated sections (namely ``antécédents familiaux``).
     """
 
+    defaults = dict(
+        family=family,
+        termination=termination,
+    )
+
     def __init__(
         self,
         nlp: Language,
-        family: List[str],
-        termination: List[str],
-        filter_matches: Optional[bool],
         attr: str,
+        family: Optional[List[str]],
+        termination: Optional[List[str]],
+        use_sections: bool,
         explain: bool,
         on_ents_only: bool,
-        regex: Optional[Dict[str, Union[List[str], str]]],
-        use_sections: bool = False,
-        **kwargs,
     ):
 
-        super().__init__(
-            nlp,
-            terms=dict(
-                termination=termination,
-                family=family,
-            ),
-            filter_matches=filter_matches,
-            attr=attr,
-            on_ents_only=on_ents_only,
-            regex=regex,
-            **kwargs,
+        terms = self.get_defaults(
+            family=family,
+            termination=termination,
         )
 
-        self.sections = use_sections and "sections" in self.nlp.pipe_names
-        self.explain = explain
+        super().__init__(
+            nlp=nlp,
+            attr=attr,
+            on_ents_only=on_ents_only,
+            explain=explain,
+            **terms,
+        )
+
+        self.set_extensions()
+
+        self.sections = use_sections and "sections" in nlp.pipe_names
+        if use_sections and not self.sections:
+            logger.warning(
+                "You have requested that the pipeline use annotations "
+                "provided by the `section` pipeline, but it was not set. "
+                "Skipping that step."
+            )
 
     @staticmethod
     def set_extensions() -> None:
-
         if not Token.has_extension("family"):
             Token.set_extension("family", default=False)
 
@@ -95,7 +107,7 @@ class FamilyContext(GenericMatcher):
         if not Doc.has_extension("family"):
             Doc.set_extension("family", default=[])
 
-    def __call__(self, doc: Doc) -> Doc:
+    def process(self, doc: Doc) -> Doc:
         """
         Finds entities related to family context.
 
@@ -107,7 +119,7 @@ class FamilyContext(GenericMatcher):
         -------
         doc: spaCy Doc object, annotated for context
         """
-        matches = self.process(doc)
+        matches = self.get_matches(doc)
 
         terminations = get_spans(matches, "termination")
         boundaries = self._boundaries(doc, terminations)

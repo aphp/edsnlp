@@ -45,6 +45,7 @@
 
     api/base
     api/pipelines
+    api/qualifiers
     api/connectors
     api/utilities
 

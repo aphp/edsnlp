@@ -1,34 +1,42 @@
-from typing import Dict, List, Optional, Union
+from typing import List, Optional
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
 from spacy.util import filter_spans
 
-from edsnlp.pipelines.matcher import GenericMatcher
+from edsnlp.pipelines.terminations import termination
+from edsnlp.qualifiers.base import Qualifier
 from edsnlp.utils.filter import consume_spans, get_spans
 from edsnlp.utils.inclusion import check_inclusion
 from edsnlp.utils.resources import get_verbs
 
+from .patterns import following, preceding, pseudo, verbs
 
-class Negation(GenericMatcher):
+
+class Negation(Qualifier):
     """
     Implements the NegEx algorithm.
 
-    The component looks for four kinds of expressions in the text :
+    The component looks for five kinds of expressions in the text :
 
     - preceding negations, ie cues that precede a negated expression
+
     - following negations, ie cues that follow a negated expression
+
     - pseudo negations : contain a negation cue, but are not negations
-      (eg "pas de doute"/"no doubt").
+      (eg "pas de doute"/"no doubt")
+
+    - negation verbs, ie verbs that indicate a negation
+
     - terminations, ie words that delimit propositions.
       The negation spans from the preceding cue to the termination.
-
-    Inspiration : https://github.com/jenojp/negspacy
 
     Parameters
     ----------
     nlp: Language
         spaCy nlp pipeline to use for matching.
+    attr: str
+        spaCy's attribute to use
     pseudo: List[str]
         List of pseudo negation terms.
     preceding: List[str]
@@ -39,12 +47,6 @@ class Negation(GenericMatcher):
         List of termination terms.
     verbs: List[str]
         List of negation verbs.
-    filter_matches: bool
-        Whether to filter out overlapping matches.
-    attr: str
-        spaCy's attribute to use:
-        a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
-        we can also add a key for each regex.
     on_ents_only: bool
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.
@@ -52,48 +54,53 @@ class Negation(GenericMatcher):
         Whether to consider cues within entities.
     explain: bool
         Whether to keep track of cues for each entity.
-    regex: Optional[Dict[str, Union[List[str], str]]]
-        A dictionnary of regex patterns.
     """
+
+    defaults = dict(
+        following=following,
+        preceding=preceding,
+        pseudo=pseudo,
+        verbs=verbs,
+        termination=termination,
+    )
 
     def __init__(
         self,
         nlp: Language,
-        pseudo: List[str],
-        preceding: List[str],
-        following: List[str],
-        termination: List[str],
-        verbs: List[str],
-        filter_matches: bool,
         attr: str,
+        pseudo: Optional[List[str]],
+        preceding: Optional[List[str]],
+        following: Optional[List[str]],
+        termination: Optional[List[str]],
+        verbs: Optional[List[str]],
         on_ents_only: bool,
         within_ents: bool,
-        regex: Optional[Dict[str, Union[List[str], str]]],
         explain: bool,
-        **kwargs,
     ):
 
+        terms = self.get_defaults(
+            pseudo=pseudo,
+            preceding=preceding,
+            following=following,
+            termination=termination,
+            verbs=verbs,
+        )
+        terms["verbs"] = self.load_verbs(terms["verbs"])
+
         super().__init__(
-            nlp,
-            terms=dict(
-                pseudo=pseudo,
-                termination=termination,
-                preceding=preceding,
-                following=following,
-                verbs=self.load_verbs(verbs),
-            ),
-            filter_matches=filter_matches,
+            nlp=nlp,
             attr=attr,
             on_ents_only=on_ents_only,
-            regex=regex,
-            **kwargs,
+            explain=explain,
+            **terms,
         )
 
-        self.explain = explain
         self.within_ents = within_ents
+        self.set_extensions()
 
     @staticmethod
     def set_extensions() -> None:
+
         if not Token.has_extension("negated"):
             Token.set_extension("negated", default=False)
 
@@ -143,20 +150,56 @@ class Negation(GenericMatcher):
 
         return list_neg_verbs
 
-    def __call__(self, doc: Doc) -> Doc:
+    def annotate_entity(
+        self,
+        ent: Span,
+        sub_preceding: List[Span],
+        sub_following: List[Span],
+    ) -> None:
+        """
+        Annotate entities using preceding and following negations.
+
+        Parameters
+        ----------
+        ent : Span
+            Entity to annotate
+        sub_preceding : List[Span]
+            List of preceding negations cues
+        sub_following : List[Span]
+            List of following negations cues
+        """
+        if self.within_ents:
+            cues = [m for m in sub_preceding if m.end <= ent.end]
+            cues += [m for m in sub_following if m.start >= ent.start]
+        else:
+            cues = [m for m in sub_preceding if m.end <= ent.start]
+            cues += [m for m in sub_following if m.start >= ent.end]
+
+        negated = ent._.negated or bool(cues)
+
+        ent._.negated = negated
+
+        if self.explain and negated:
+            ent._.negation_cues += cues
+
+        if not self.on_ents_only and negated:
+            for token in ent:
+                token._.negated = True
+
+    def process(self, doc: Doc) -> Doc:
         """
         Finds entities related to negation.
 
         Parameters
         ----------
-        doc: spaCy Doc object
+        doc: spaCy ``Doc`` object
 
         Returns
         -------
-        doc: spaCy Doc object, annotated for negation
+        doc: spaCy ``Doc`` object, annotated for negation
         """
 
-        matches = self.process(doc)
+        matches = self.get_matches(doc)
 
         terminations = get_spans(matches, "termination")
         boundaries = self._boundaries(doc, terminations)
@@ -184,35 +227,26 @@ class Negation(GenericMatcher):
 
             sub_preceding = get_spans(sub_matches, "preceding")
             sub_following = get_spans(sub_matches, "following")
-            sub_verbs = get_spans(sub_matches, "verbs")
+            # Verbs precede negated content
+            sub_following += get_spans(sub_matches, "verbs")
 
-            if not sub_preceding + sub_following + sub_verbs:
+            if not sub_preceding + sub_following:
                 continue
 
             if not self.on_ents_only:
                 for token in doc[start:end]:
                     token._.negated = any(
-                        m.end <= token.i for m in sub_preceding + sub_verbs
+                        m.end <= token.i for m in sub_preceding
                     ) or any(m.start > token.i for m in sub_following)
 
             for ent in ents:
-
-                if self.within_ents:
-                    cues = [m for m in sub_preceding + sub_verbs if m.end <= ent.end]
-                    cues += [m for m in sub_following if m.start >= ent.start]
-                else:
-                    cues = [m for m in sub_preceding + sub_verbs if m.end <= ent.start]
-                    cues += [m for m in sub_following if m.start >= ent.end]
-
-                negated = ent._.negated or bool(cues)
-
-                ent._.negated = negated
-
-                if self.explain and negated:
-                    ent._.negation_cues += cues
-
-                if not self.on_ents_only and negated:
-                    for token in ent:
-                        token._.negated = True
+                self.annotate_entity(
+                    ent=ent,
+                    sub_preceding=sub_preceding,
+                    sub_following=sub_following,
+                )
 
         return doc
+
+    def __call__(self, doc: Doc) -> Doc:
+        return self.process(doc)

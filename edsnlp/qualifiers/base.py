@@ -1,11 +1,25 @@
 from itertools import chain
 from typing import Dict, List, Optional
 
+from loguru import logger
 from spacy.language import Language
 from spacy.tokens import Doc, Span
 
 from edsnlp.base import BaseComponent
 from edsnlp.matchers.phrase import EDSPhraseMatcher
+
+
+def check_normalizer(nlp: Language) -> None:
+    components = {name: component for name, component in nlp.pipeline}
+    normalizer = components.get("normalizer")
+
+    if normalizer and not normalizer.lowercase:
+        logger.warning(
+            "You have chosen the NORM attribute, but disabled lowercasing "
+            "in your normalisation pipeline. "
+            "This WILL hurt performance : you might want to use the "
+            "LOWER attribute instead."
+        )
 
 
 class Qualifier(BaseComponent):
@@ -40,6 +54,9 @@ class Qualifier(BaseComponent):
         explain: bool,
         **terms: Dict[str, Optional[List[str]]],
     ):
+
+        if attr.upper() == "NORM":
+            check_normalizer(nlp)
 
         self.phrase_matcher = EDSPhraseMatcher(vocab=nlp.vocab, attr=attr)
         self.phrase_matcher.build_patterns(nlp=nlp, terms=terms)

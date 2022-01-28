@@ -78,10 +78,8 @@ class Antecedents(GenericMatcher):
 
         self.explain = explain
 
-        self.declare_extensions()
-
     @staticmethod
-    def declare_extensions() -> None:
+    def set_extensions() -> None:
         def antecedent_getter(token_or_span: Union[Token, Span]):
             if token_or_span._.antecedent is None:
                 return "NOTSET"

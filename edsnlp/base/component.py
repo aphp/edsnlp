@@ -1,33 +1,30 @@
 from typing import List, Optional, Tuple
 
 from spacy.tokens import Doc, Span
-from spacy.util import filter_spans
 
 
 class BaseComponent(object):
     """
-    Base component that contains the logic for :
+    The ``BaseComponent`` adds a ``set_extensions`` method,
+    called at the creation of the object.
 
-    - boundaries selections
-    - match filtering
-    - verbs conjugation
+    It helps decouple the initialisation of the pipeline from
+    the creation of extensions, and is particularly usefull when
+    distributing EDSNLP on a cluster, since the serialisation mechanism
+    imposes that the extensions be reset.
     """
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.set_extensions()
+
     @staticmethod
-    def _filter_matches(matches: List[Span]) -> List[Span]:
+    def set_extensions() -> None:
         """
-        Filter matches to remove duplicates and inclusions.
-
-        Arguments
-        ---------
-        matches: List of matches (spans).
-
-        Returns
-        -------
-        filtered_matches: List of filtered matches.
+        Set ``Doc``, ``Span`` and ``Token`` extensions.
         """
-
-        return filter_spans(matches)
+        pass
 
     def _boundaries(
         self, doc: Doc, terminations: Optional[List[Span]] = None

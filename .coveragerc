@@ -1,0 +1,3 @@
+[run]
+# Since we disable tests in the CI, we also remove it from the coverage
+omit = edsnlp/connectors/spark.py

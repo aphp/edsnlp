@@ -74,6 +74,12 @@ class ReportedSpeech(GenericMatcher):
             **kwargs,
         )
 
+        self.explain = explain
+        self.within_ents = within_ents
+
+    @staticmethod
+    def set_extensions() -> None:
+
         if not Token.has_extension("reported_speech"):
             Token.set_extension("reported_speech", default=False)
 
@@ -99,9 +105,6 @@ class ReportedSpeech(GenericMatcher):
 
         if not Doc.has_extension("rspeechs"):
             Doc.set_extension("rspeechs", default=[])
-
-        self.explain = explain
-        self.within_ents = within_ents
 
     def load_verbs(self, verbs: List[str]) -> List[str]:
         """

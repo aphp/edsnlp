@@ -16,7 +16,7 @@ def create_component(
     termination: List[str],
     filter_matches: bool = False,
     attr: str = "LOWER",
-    explain: bool = True,
+    explain: bool = False,
     on_ents_only: bool = True,
     regex: Optional[Dict[str, Union[List[str], str]]] = None,
     ignore_excluded: bool = False,

@@ -89,6 +89,11 @@ class Negation(GenericMatcher):
             **kwargs,
         )
 
+        self.explain = explain
+        self.within_ents = within_ents
+
+    @staticmethod
+    def set_extensions() -> None:
         if not Token.has_extension("negated"):
             Token.set_extension("negated", default=False)
 
@@ -112,9 +117,6 @@ class Negation(GenericMatcher):
 
         if not Doc.has_extension("negations"):
             Doc.set_extension("negations", default=[])
-
-        self.explain = explain
-        self.within_ents = within_ents
 
     def load_verbs(self, verbs: List[str]) -> List[str]:
         """

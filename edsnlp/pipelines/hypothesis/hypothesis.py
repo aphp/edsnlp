@@ -90,6 +90,12 @@ class Hypothesis(GenericMatcher):
             **kwargs,
         )
 
+        self.explain = explain
+        self.within_ents = within_ents
+
+    @staticmethod
+    def set_extensions() -> None:
+
         if not Token.has_extension("hypothesis"):
             Token.set_extension("hypothesis", default=False)
 
@@ -113,9 +119,6 @@ class Hypothesis(GenericMatcher):
 
         if not Doc.has_extension("hypothesis"):
             Doc.set_extension("hypothesis", default=[])
-
-        self.explain = explain
-        self.within_ents = within_ents
 
     def load_verbs(
         self,

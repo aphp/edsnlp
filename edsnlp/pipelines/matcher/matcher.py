@@ -66,6 +66,8 @@ class GenericMatcher(BaseComponent):
         self.phrase_matcher.build_patterns(nlp=nlp, terms=terms)
         self.regex_matcher.build_patterns(regex=regex)
 
+        self.set_extensions()
+
     def process(self, doc: Doc) -> List[Span]:
         """
         Find matching spans in doc.

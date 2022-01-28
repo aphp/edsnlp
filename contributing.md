@@ -9,11 +9,11 @@ We welcome contributions ! There are many ways to help. For example, you can:
 
 We use a dedicated [collaboration board](https://gitlab.eds.aphp.fr/datasciencetools/edsnlp/-/boards/364) to track questions, suggestions, etc. Issues filed on the board can be one of three main types:
 
-| Type                                            | Comment                                 |
-| ----------------------------------------------- | --------------------------------------- |
-| ![Bug report](/_static/graphics/bug_report.png) | Report a bug !                          |
-| ![Bug report](/_static/graphics/suggestion.png) | Suggest a new feature                   |
-| ![Bug report](/_static/graphics/question.png)   | General-purpose question on the library |
+| Type       | Comment                                 |
+| ---------- | --------------------------------------- |
+| Bug report | Report a bug !                          |
+| Bug report | Suggest a new feature                   |
+| Bug report | General-purpose question on the library |
 
 ## Proposing a merge request
 

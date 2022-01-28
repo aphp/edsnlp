@@ -5,9 +5,9 @@ import context  # noqa
 import typer
 
 from edsnlp.conjugator import conjugate
-from edsnlp.pipelines.hypothesis.terms import verbs_eds, verbs_hyp
-from edsnlp.pipelines.negation.terms import verbs as neg_verbs
-from edsnlp.pipelines.rspeech.terms import verbs as rspeech_verbs
+from edsnlp.qualifiers.hypothesis.patterns import verbs_eds, verbs_hyp
+from edsnlp.qualifiers.negation.patterns import verbs as neg_verbs
+from edsnlp.qualifiers.rspeech.patterns import verbs as rspeech_verbs
 
 warnings.filterwarnings("ignore")
 

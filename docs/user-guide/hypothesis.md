@@ -9,6 +9,23 @@ The `hypothesis` pipeline declares two [Spacy extensions](https://spacy.io/usage
 1. The `hypothesis` attribute is a boolean, set to `True` if the pipeline predicts that the span/token is a speculation.
 2. The `hypothesis_` property is a human-readable string, computed from the `hypothesis` attribute. It implements a simple getter function that outputs `HYP` or `CERT`, depending on the value of `hypothesis`.
 
+## Configuration
+
+The pipeline can be configured using the following parameters :
+
+| Parameter      | Explanation                                                | Default                           |
+| -------------- | ---------------------------------------------------------- | --------------------------------- |
+| `attr`         | Spacy attribute to match on (eg `NORM`, `TEXT`, `LOWER`)   | `"NORM"`                          |
+| `pseudo`       | Pseudo-hypothesis patterns                                 | `None` (use pre-defined patterns) |
+| `preceding`    | Preceding hypothesis patterns                              | `None` (use pre-defined patterns) |
+| `following`    | Following hypothesis patterns                              | `None` (use pre-defined patterns) |
+| `termination`  | Termination patterns (for syntagma/proposition extraction) | `None` (use pre-defined patterns) |
+| `verbs_hyp`    | Patterns for verbs that imply a hypothesis                 | `None` (use pre-defined patterns) |
+| `verbs_eds`    | Common verb patterns, checked for conditional mode         | `None` (use pre-defined patterns) |
+| `on_ents_only` | Whether to qualify pre-extracted entities only             | `True`                            |
+| `within_ents`  | Whether to look for hypothesis within entities             | `False`                           |
+| `explain`      | Whether to keep track of the cues for each entity          | `False`                           |
+
 ## Usage
 
 The following snippet matches a simple terminology, and checks the family context of the extracted entities. It is complete and can be run _as is_.

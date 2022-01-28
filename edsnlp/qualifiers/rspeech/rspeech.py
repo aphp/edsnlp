@@ -1,16 +1,19 @@
-from typing import List
+from typing import List, Optional
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
 from spacy.util import filter_spans
 
-from edsnlp.pipelines.matcher import GenericMatcher
+from edsnlp.matchers.regex import RegexMatcher
+from edsnlp.qualifiers.base import Qualifier
 from edsnlp.utils.filter import consume_spans, get_spans
 from edsnlp.utils.inclusion import check_inclusion
 from edsnlp.utils.resources import get_verbs
 
+from .patterns import following, preceding, quotation, verbs
 
-class ReportedSpeech(GenericMatcher):
+
+class ReportedSpeech(Qualifier):
     """
     Implements a reported speech detection algorithm.
 
@@ -45,37 +48,52 @@ class ReportedSpeech(GenericMatcher):
         Whether to keep track of cues for each entity.
     """
 
+    defaults = dict(
+        following=following,
+        preceding=preceding,
+        verbs=verbs,
+        quotation=quotation,
+    )
+
     def __init__(
         self,
         nlp: Language,
-        quotation: str,
-        verbs: List[str],
-        following: List[str],
-        preceding: List[str],
-        filter_matches: bool,
         attr: str,
-        explain: bool,
+        pseudo: Optional[List[str]],
+        preceding: Optional[List[str]],
+        following: Optional[List[str]],
+        quotation: Optional[List[str]],
+        verbs: Optional[List[str]],
         on_ents_only: bool,
         within_ents: bool,
-        ignore_excluded: bool,
-        **kwargs,
+        explain: bool,
     ):
 
+        terms = self.get_defaults(
+            pseudo=pseudo,
+            preceding=preceding,
+            following=following,
+            quotation=quotation,
+            verbs=verbs,
+        )
+        terms["verbs"] = self.load_verbs(terms["verbs"])
+
+        quotation = terms.pop("quotation")
+
         super().__init__(
-            nlp,
-            terms=dict(
-                verbs=self.load_verbs(verbs), following=following, preceding=preceding
-            ),
-            regex=dict(quotation=quotation),
-            filter_matches=filter_matches,
+            nlp=nlp,
             attr=attr,
             on_ents_only=on_ents_only,
-            ignore_excluded=ignore_excluded,
-            **kwargs,
+            explain=explain,
+            **terms,
         )
 
-        self.explain = explain
+        self.regex_matcher = RegexMatcher(attr=attr)
+        self.regex_matcher.build_patterns(dict(quotation=quotation))
+
         self.within_ents = within_ents
+
+        self.set_extensions()
 
     @staticmethod
     def set_extensions() -> None:
@@ -135,7 +153,7 @@ class ReportedSpeech(GenericMatcher):
 
         return list_rep_verbs
 
-    def __call__(self, doc: Doc) -> Doc:
+    def process(self, doc: Doc) -> Doc:
         """
         Finds entities related to reported speech.
 
@@ -148,7 +166,9 @@ class ReportedSpeech(GenericMatcher):
         doc: spaCy Doc object, annotated for negation
         """
 
-        matches = self.process(doc)
+        matches = self.get_matches(doc)
+        matches += list(self.regex_matcher(doc, as_spans=True))
+
         boundaries = self._boundaries(doc)
 
         entities = list(doc.ents) + list(doc.spans.get("discarded", []))

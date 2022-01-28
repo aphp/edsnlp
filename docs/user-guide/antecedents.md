@@ -23,6 +23,19 @@ The `antecedents` pipeline declares two [Spacy extensions](https://spacy.io/usag
 1. The `antecedent` attribute is a boolean, set to `True` if the pipeline predicts that the span/token is an antecedent.
 2. The `antecedent_` property is a human-readable string, computed from the `antecedent` attribute. It implements a simple getter function that outputs `CURRENT` or `ATCD`, depending on the value of `antecedent`.
 
+## Configuration
+
+The pipeline can be configured using the following parameters :
+
+| Parameter      | Explanation                                                              | Default                           |
+| -------------- | ------------------------------------------------------------------------ | --------------------------------- |
+| `attr`         | Spacy attribute to match on (eg `NORM`, `TEXT`, `LOWER`)                 | `"NORM"`                          |
+| `antecedents`  | Antecedent patterns                                                      | `None` (use pre-defined patterns) |
+| `termination`  | Termination patterns (for syntagma/proposition extraction)               | `None` (use pre-defined patterns) |
+| `use_sections` | Whether to use pre-annotated sections (requires the `sections` pipeline) | `False`                           |
+| `on_ents_only` | Whether to qualify pre-extracted entities only                           | `True`                            |
+| `explain`      | Whether to keep track of the cues for each entity                        | `False`                           |
+
 ## Usage
 
 The following snippet matches a simple terminology, and checks whether the extracted entities are antecedents or not. It is complete and can be run _as is_.

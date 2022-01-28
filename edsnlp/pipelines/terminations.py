@@ -1,6 +1,5 @@
 from typing import List
 
-# -*- coding: utf-8 -*-
 termination: List[str] = [
     "et",
     "bien que",

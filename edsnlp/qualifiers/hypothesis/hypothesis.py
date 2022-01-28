@@ -1,16 +1,19 @@
-from typing import Dict, List, Optional, Union
+from typing import List, Optional
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
 from spacy.util import filter_spans
 
-from edsnlp.pipelines.matcher import GenericMatcher
+from edsnlp.pipelines.terminations import termination
+from edsnlp.qualifiers.base import Qualifier
 from edsnlp.utils.filter import consume_spans, get_spans
 from edsnlp.utils.inclusion import check_inclusion
 from edsnlp.utils.resources import get_verbs
 
+from .patterns import following, preceding, pseudo, verbs_eds, verbs_hyp
 
-class Hypothesis(GenericMatcher):
+
+class Hypothesis(Qualifier):
     """
     Hypothesis detection with Spacy.
 
@@ -54,48 +57,56 @@ class Hypothesis(GenericMatcher):
         A dictionnary of regex patterns.
     """
 
+    defaults = dict(
+        following=following,
+        preceding=preceding,
+        pseudo=pseudo,
+        termination=termination,
+        verbs_eds=verbs_eds,
+        verbs_hyp=verbs_hyp,
+    )
+
     def __init__(
         self,
         nlp: Language,
-        pseudo: List[str],
-        confirmation: List[str],
-        preceding: List[str],
-        following: List[str],
-        termination: List[str],
-        verbs_hyp: List[str],
-        verbs_eds: List[str],
-        filter_matches: bool,
         attr: str,
-        explain: bool,
+        pseudo: Optional[List[str]],
+        preceding: Optional[List[str]],
+        following: Optional[List[str]],
+        termination: Optional[List[str]],
+        verbs_eds: Optional[List[str]],
+        verbs_hyp: Optional[List[str]],
         on_ents_only: bool,
         within_ents: bool,
-        regex: Optional[Dict[str, Union[List[str], str]]],
-        **kwargs,
+        explain: bool,
     ):
 
-        super().__init__(
-            nlp,
-            terms=dict(
-                pseudo=pseudo,
-                termination=termination,
-                confirmation=confirmation,
-                preceding=preceding,
-                following=following,
-                verbs=self.load_verbs(verbs_hyp, verbs_eds),
-            ),
-            filter_matches=filter_matches,
-            attr=attr,
-            on_ents_only=on_ents_only,
-            regex=regex,
-            **kwargs,
+        terms = self.get_defaults(
+            pseudo=pseudo,
+            preceding=preceding,
+            following=following,
+            termination=termination,
+            verbs_eds=verbs_eds,
+            verbs_hyp=verbs_hyp,
+        )
+        terms["verbs"] = self.load_verbs(
+            verbs_hyp=terms.pop("verbs_hyp"),
+            verbs_eds=terms.pop("verbs_eds"),
         )
 
-        self.explain = explain
+        super().__init__(
+            nlp=nlp,
+            attr=attr,
+            on_ents_only=on_ents_only,
+            explain=explain,
+            **terms,
+        )
+
         self.within_ents = within_ents
+        self.set_extensions()
 
     @staticmethod
     def set_extensions() -> None:
-
         if not Token.has_extension("hypothesis"):
             Token.set_extension("hypothesis", default=False)
 
@@ -149,7 +160,7 @@ class Hypothesis(GenericMatcher):
 
         return list_hypo_verbs + list_classic_verbs
 
-    def __call__(self, doc: Doc) -> Doc:
+    def process(self, doc: Doc) -> Doc:
         """
         Finds entities related to hypothesis.
 
@@ -162,7 +173,7 @@ class Hypothesis(GenericMatcher):
         doc: spaCy Doc object, annotated for hypothesis
         """
 
-        matches = self.process(doc)
+        matches = self.get_matches(doc)
 
         terminations = get_spans(matches, "termination")
         boundaries = self._boundaries(doc, terminations)

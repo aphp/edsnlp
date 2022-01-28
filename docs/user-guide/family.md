@@ -9,6 +9,19 @@ The `family` pipeline declares two [Spacy extensions](https://spacy.io/usage/pro
 1. The `family` attribute is a boolean, set to `True` if the pipeline predicts that the span/token relates to a family member.
 2. The `family_` property is a human-readable string, computed from the `family` attribute. It implements a simple getter function that outputs `PATIENT` or `FAMILY`, depending on the value of `family`.
 
+## Configuration
+
+The pipeline can be configured using the following parameters :
+
+| Parameter      | Explanation                                                              | Default                           |
+| -------------- | ------------------------------------------------------------------------ | --------------------------------- |
+| `attr`         | Spacy attribute to match on (eg `NORM`, `TEXT`, `LOWER`)                 | `"NORM"`                          |
+| `family`       | Family patterns                                                          | `None` (use pre-defined patterns) |
+| `termination`  | Termination patterns (for syntagma/proposition extraction)               | `None` (use pre-defined patterns) |
+| `use_sections` | Whether to use pre-annotated sections (requires the `sections` pipeline) | `False`                           |
+| `on_ents_only` | Whether to qualify pre-extracted entities only                           | `True`                            |
+| `explain`      | Whether to keep track of the cues for each entity                        | `False`                           |
+
 ## Usage
 
 The following snippet matches a simple terminology, and checks the family context of the extracted entities. It is complete, and can be run _as is_.

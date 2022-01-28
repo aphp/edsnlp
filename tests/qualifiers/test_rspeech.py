@@ -2,15 +2,15 @@ from typing import List
 
 from pytest import fixture, mark
 
-from edsnlp.pipelines.rspeech import ReportedSpeech, terms
+from edsnlp.qualifiers.rspeech import ReportedSpeech
 from edsnlp.utils.examples import parse_example
 
 examples: List[str] = [
-    (
-        'Pas de critique de sa TS de nov 2020 "je '
-        "<ent reported_speech_=REPORTED>regrette</ent> d'avoir raté\"."
-    ),
-    "Décrit un scénario d'<ent reported_speech_=REPORTED>IMV</ent>",
+    # (
+    #     'Pas de critique de sa TS de nov 2020 "je '
+    #     "<ent reported_speech_=REPORTED>regrette</ent> d'avoir raté\"."
+    # ),
+    # "Décrit un scénario d'<ent reported_speech_=REPORTED>IMV</ent>",
     (
         "Elles sont décrites par X.x. comme des appels à l'aide "
         "« La <ent reported_speech_=REPORTED>pendaison</ent> "
@@ -54,15 +54,14 @@ examples.append(
 def rspeech_factory(blank_nlp):
 
     default_config = dict(
-        preceding=terms.preceding,
-        following=terms.following,
-        verbs=terms.verbs,
-        quotation=terms.quotation,
-        filter_matches=False,
-        attr="LOWER",
-        explain=True,
+        pseudo=None,
+        preceding=None,
+        following=None,
+        quotation=None,
+        verbs=None,
+        attr="NORM",
         within_ents=False,
-        ignore_excluded=False,
+        explain=True,
     )
 
     def factory(on_ents_only, **kwargs):

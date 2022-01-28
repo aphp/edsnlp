@@ -30,36 +30,6 @@
 .. automodule:: edsnlp.pipelines.sections.sections
 ```
 
-## Negation
-
-```{eval-rst}
-.. automodule:: edsnlp.pipelines.negation.negation
-```
-
-## Family
-
-```{eval-rst}
-.. automodule:: edsnlp.pipelines.family.family
-```
-
-## Hypothesis
-
-```{eval-rst}
-.. automodule:: edsnlp.pipelines.hypothesis.hypothesis
-```
-
-## Antecedents
-
-```{eval-rst}
-.. automodule:: edsnlp.pipelines.antecedents.antecedents
-```
-
-## Reported Speech
-
-```{eval-rst}
-.. automodule:: edsnlp.pipelines.rspeech.rspeech
-```
-
 ## Consultation Dates
 
 ```{eval-rst}
@@ -92,7 +62,7 @@
 .. automodule:: edsnlp.pipelines.normalizer.pollution.pollution
 ```
 
-### End Lines
+## End Lines
 
 ```{eval-rst}
 .. automodule:: edsnlp.pipelines.endlines.endlines
@@ -143,7 +113,3 @@ The `SOFA` pipeline extracts the SOFA score. each extracted entity exposes three
   - `"Maximum"`
   - `"24H"`
   - `"A l'admission"`
-
-```
-
-```

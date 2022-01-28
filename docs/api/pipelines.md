@@ -60,6 +60,14 @@
 .. automodule:: edsnlp.pipelines.rspeech.rspeech
 ```
 
+## Consultation Dates
+
+```{eval-rst}
+.. automodule:: edsnlp.pipelines.consultation_dates.consultation_dates
+```
+
+## Normalisation
+
 ### Lowercase
 
 ```{eval-rst}
@@ -84,7 +92,7 @@
 .. automodule:: edsnlp.pipelines.normalizer.pollution.pollution
 ```
 
-## End Lines
+### End Lines
 
 ```{eval-rst}
 .. automodule:: edsnlp.pipelines.endlines.endlines

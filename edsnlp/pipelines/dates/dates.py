@@ -159,6 +159,12 @@ class Dates(BaseComponent):
         the current month, week, year, etc.
     false_positive : Union[List[str], str]
         List of regular expressions for false positive (eg phone numbers, etc).
+    on_ents_only : Union[bool, str, List[str]]
+        Wether to look on dates in the whole document or in specific sentences:
+        - If True: Only look in the sentences of each entity in doc.ents
+        - If False: Look in the whole document
+        - If given a string ``key`` or list of string: Only look in the sentences of
+          each entity in doc.spans[key]
     """
 
     # noinspection PyProtectedMember
@@ -173,7 +179,7 @@ class Dates(BaseComponent):
         year_only: Union[List[str], str],
         current: Union[List[str], str],
         false_positive: Union[List[str], str],
-        on_ents_only: bool,
+        on_ents_only: Union[bool, str, List[str]],
     ):
         """
         [summary]
@@ -198,7 +204,7 @@ class Dates(BaseComponent):
             [description]
         false_positive : Union[List[str], str]
             [description]
-        on_ents_only : bool
+        on_ents_only : Union[bool, str, List[str]]
             [description]
         """
 
@@ -269,8 +275,18 @@ class Dates(BaseComponent):
         """
 
         if self.on_ents_only:
+
+            if type(self.on_ents_only) == bool:
+                ents_to_consider = doc.ents
+            else:
+                if type(self.on_ents_only) == str:
+                    self.on_ents_only = [self.on_ents_only]
+                ents_to_consider = []
+                for key in self.on_ents_only:
+                    ents_to_consider.extend(list(doc.spans[key]))
+
             dates = []
-            for sent in set([ent.sent for ent in doc.ents]):
+            for sent in set([ent.sent for ent in ents_to_consider]):
                 dates += list(self.regex_matcher(sent, as_spans=True))
 
         else:

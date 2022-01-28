@@ -1,12 +1,12 @@
 ---
 jupyter:
   jupytext:
-    formats: ipynb,md
+    formats: md,ipynb
     text_representation:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.13.4
+      jupytext_version: 1.13.5
   kernelspec:
     display_name: 'Python 3.9.5 64-bit (''.venv'': venv)'
     language: python
@@ -18,12 +18,20 @@ import context
 ```
 
 ```python
+from typing import Dict, Callable
+```
+
+```python
 import spacy
 from spacy import displacy
 ```
 
 ```python
 from edsnlp import components
+```
+
+```python
+from edsnlp.pipelines.dates.dates import parse_groupdict
 ```
 
 # Dates
@@ -59,7 +67,7 @@ category20 = [
 
 ```python
 nlp = spacy.blank('fr')
-nlp.add_pipe('dates')
+dates = nlp.add_pipe('dates')
 ```
 
 ```python
@@ -70,6 +78,7 @@ labels = [
     'no_day',
     'year_only',
     'relative',
+    'current',
     'false_positive',
 ]
 ```
@@ -93,6 +102,38 @@ display_dates(text)
 
 ```python
 display_dates('Le 3 janvier 2012 à 9h')
+```
+
+```python
+date = nlp('Le 12 janvier').spans['dates'][0]
+```
+
+```python
+date.label_
+```
+
+```python
+date._.parsed_date
+```
+
+```python
+date._.groupdict
+```
+
+```python
+from dateparser import DateDataParser
+```
+
+```python
+parser = DateDataParser(['fr'])
+```
+
+```python
+parser.get_date_data('le 12/01/2020 à 15h')
+```
+
+```python
+display_dates('Cette année, le 2 janvier')
 ```
 
 ```python

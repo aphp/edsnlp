@@ -1,16 +1,18 @@
 import re
 from datetime import datetime, timedelta
-from typing import List, Optional, Union
+from itertools import chain
+from typing import Dict, Generator, Iterable, List, Optional, Tuple, Union
 
 from dateparser import DateDataParser
 from dateparser_data.settings import default_parsers
-from loguru import logger
 from spacy.language import Language
 from spacy.tokens import Doc, Span
 from spacy.util import filter_spans
 
 from edsnlp.base import BaseComponent
 from edsnlp.matchers.regex import RegexMatcher
+
+from .parsing import day2int, month2int, str2int
 
 
 def td2str(td: timedelta):
@@ -128,6 +130,72 @@ def date_parser(text_date: str) -> datetime:
         return parsed_date2.date_obj
 
 
+def apply_groupdict(
+    dates: Iterable[Tuple[Span, Dict[str, str]]]
+) -> Generator[Span, None, None]:
+    for span, groupdict in dates:
+        span._.groupdict = groupdict
+        yield span
+
+
+def parse_groupdict(
+    day: str = None,
+    month: str = None,
+    year: str = None,
+    hour: str = None,
+    minute: str = None,
+    second: str = None,
+    **kwargs: Dict[str, str],
+) -> Dict[str, int]:
+    """
+    Parse date groupdict.
+
+    Parameters
+    ----------
+    day : str, optional
+        String representation of the day, by default None
+    month : str, optional
+        String representation of the month, by default None
+    year : str, optional
+        String representation of the year, by default None
+    hour : str, optional
+        String representation of the hour, by default None
+    minute : str, optional
+        String representation of the minute, by default None
+    second : str, optional
+        String representation of the minute, by default None
+
+    Returns
+    -------
+    Dict[str, int]
+        Parsed groupdict.
+    """
+
+    result = dict()
+
+    if day is not None:
+        result["day"] = day2int(day)
+
+    if month is not None:
+        result["month"] = month2int(month)
+
+    if year is not None:
+        result["year"] = str2int(year)
+
+    if hour is not None:
+        result["hour"] = str2int(hour)
+
+    if minute is not None:
+        result["minute"] = str2int(minute)
+
+    if second is not None:
+        result["second"] = str2int(second)
+
+    result.update(**kwargs)
+
+    return result
+
+
 class Dates(BaseComponent):
     """
     Tags and normalizes dates, using the open-source ``dateparser`` library.
@@ -181,34 +249,6 @@ class Dates(BaseComponent):
         false_positive: Union[List[str], str],
         on_ents_only: Union[bool, str, List[str]],
     ):
-        """
-        [summary]
-
-        Parameters
-        ----------
-        nlp : Language
-            [description]
-        absolute : Union[List[str], str]
-            [description]
-        full : Union[List[str], str]
-            [description]
-        relative : Union[List[str], str]
-            [description]
-        no_year : Union[List[str], str]
-            [description]
-        no_day : Union[List[str], str]
-            [description]
-        year_only : Union[List[str], str]
-            [description]
-        current : Union[List[str], str]
-            [description]
-        false_positive : Union[List[str], str]
-            [description]
-        on_ents_only : Union[bool, str, List[str]]
-            [description]
-        """
-
-        logger.warning("``dates`` pipeline is still in beta.")
 
         self.nlp = nlp
 
@@ -232,6 +272,7 @@ class Dates(BaseComponent):
         self.on_ents_only = on_ents_only
         self.regex_matcher = RegexMatcher(attr="LOWER", alignment_mode="strict")
 
+        self.regex_matcher.add("false_positive", false_positive)
         self.regex_matcher.add("full_date", full)
         self.regex_matcher.add("absolute", absolute)
         self.regex_matcher.add("relative", relative)
@@ -239,7 +280,6 @@ class Dates(BaseComponent):
         self.regex_matcher.add("no_day", no_day)
         self.regex_matcher.add("year_only", year_only)
         self.regex_matcher.add("current", current)
-        self.regex_matcher.add("false_positive", false_positive)
 
         self.parser = date_parser
         self.declare_extensions()
@@ -277,20 +317,33 @@ class Dates(BaseComponent):
         if self.on_ents_only:
 
             if type(self.on_ents_only) == bool:
-                ents_to_consider = doc.ents
+                ents = doc.ents
             else:
                 if type(self.on_ents_only) == str:
                     self.on_ents_only = [self.on_ents_only]
-                ents_to_consider = []
+                ents = []
                 for key in self.on_ents_only:
-                    ents_to_consider.extend(list(doc.spans[key]))
+                    ents.extend(list(doc.spans[key]))
 
             dates = []
-            for sent in set([ent.sent for ent in ents_to_consider]):
-                dates += list(self.regex_matcher(sent, as_spans=True))
+            for sent in set([ent.sent for ent in ents]):
+                dates = chain(
+                    dates,
+                    self.regex_matcher(
+                        sent,
+                        as_spans=True,
+                        # return_groupdict=True,
+                    ),
+                )
 
         else:
-            dates = self.regex_matcher(doc, as_spans=True)
+            dates = self.regex_matcher(
+                doc,
+                as_spans=True,
+                # return_groupdict=True,
+            )
+
+        # dates = apply_groupdict(dates)
 
         dates = filter_spans(dates)
         dates = [date for date in dates if date.label_ != "false_positive"]

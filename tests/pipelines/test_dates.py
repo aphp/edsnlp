@@ -3,9 +3,10 @@ from datetime import date, datetime, timedelta
 from dateparser import DateDataParser
 from pytest import fixture, raises
 from spacy.language import Language
+from spacy.tokens import Span
 
 from edsnlp.pipelines.dates import Dates, patterns
-from edsnlp.pipelines.dates.dates import date_parser
+from edsnlp.pipelines.dates.dates import apply_groupdict, date_parser, parse_groupdict
 
 
 @fixture(scope="session")
@@ -70,9 +71,9 @@ text = (
 
 
 @fixture
-def dates(nlp: Language):
+def dates(blank_nlp: Language):
     return Dates(
-        nlp,
+        blank_nlp,
         absolute=patterns.absolute_date_pattern,
         full=patterns.full_date_pattern,
         relative=patterns.relative_date_pattern,
@@ -158,9 +159,13 @@ def test_absolute_dates_patterns(blank_nlp: Language, dates: Dates):
         ("Objet : Consultation du 3 juillet 19", "2019-07-03"),
         ("Objet : Consultation du 03-07-19", "2019-07-03"),
         ("Objet : Consultation du 03-07-1993", "1993-07-03"),
+        ("Objet : Consultation du 03.07.1993", "1993-07-03"),
         ("Objet : Consultation du 1993-12-02", "1993-12-02"),
+        ("Objet : Consultation du 1993.12.02", "1993-12-02"),
         ("en 09/17", "2017-09-01"),
         ("13/07/2021 13:21", "2021-07-13"),
+        ("Objet : Compte-Rendu de Consultation du 03/10/2018", "2018-10-03"),
+        ("Objet : Compte-Rendu de Consultation du 03/10/2019 à 15h.", "2019-10-03"),
     ]
 
     for example, answer in examples:
@@ -175,6 +180,8 @@ def test_absolute_dates_patterns(blank_nlp: Language, dates: Dates):
 def test_patterns(blank_nlp: Language, dates: Dates):
 
     examples = [
+        "Le patient est venu le 4 août",
+        "Le patient est venu le 4 août à 11h13",
         "Le patient est venu en 2019 pour une consultation",
         "Le patient est venu le 1er septembre pour une consultation",
         "Le patient est venu le 1er Septembre pour une consultation",
@@ -201,13 +208,13 @@ def test_patterns(blank_nlp: Language, dates: Dates):
         doc = blank_nlp(example)
         doc = dates(doc)
 
-        if not len(doc.spans["dates"]) == 1:
-            print()
+        assert len(doc.spans["dates"]) == 1
 
 
 def test_false_positives(blank_nlp: Language, dates: Dates):
 
     counter_examples = [
+        "page 1/1",  # Often found in the form `1/1` only
         "40 00",
         "06 12 34 56 78",
         "bien mais",
@@ -220,7 +227,6 @@ def test_false_positives(blank_nlp: Language, dates: Dates):
         "4.09-11",
         "2/2CR Urgences PSL",
         "Dextro : 5.7 mmol/l",
-        "page 1/1",  # Often found in the form `1/1` only
         "2.5",
     ]
 
@@ -271,15 +277,38 @@ def test_number_of_instances(blank_nlp):
         assert len(doc.spans["dates"]) == n
 
 
-def test_dates_with_time(blank_nlp):
-    blank_nlp.add_pipe("dates")
+# def test_dates_with_time(blank_nlp):
+#     blank_nlp.add_pipe("dates")
+
+#     examples = [
+#         ("le trois septembre à 8h", "trois septembre à 8h"),
+#         ("22/10/2019 09:12", "22/10/2019 09:12"),
+#     ]
+
+#     for example, text in examples:
+#         doc = blank_nlp(example)
+#         d = doc.spans["dates"][0]
+#         assert d.text == text
+
+
+def test_groupdict_parsing(blank_nlp, dates: Dates):
+
+    if not Span.has_extension("groupdict"):
+        Span.set_extension("groupdict", default=dict())
 
     examples = [
-        ("le trois septembre à 8h", "trois septembre à 8h"),
-        ("22/10/2019 09:12", "22/10/2019 09:12"),
+        ("Le 3 janvier 2012 à 9h15m32", dict(day=3, month=1, year=2012)),
     ]
 
-    for example, text in examples:
-        doc = blank_nlp(example)
-        d = doc.spans["dates"][0]
-        assert d.text == text
+    for text, d in examples:
+        doc = blank_nlp(text)
+        spans = apply_groupdict(
+            dates.regex_matcher(
+                doc,
+                as_spans=True,
+                return_groupdict=True,
+            )
+        )
+        span = list(spans)[0]
+
+        assert parse_groupdict(**span._.groupdict) == d

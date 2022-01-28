@@ -1,4 +1,4 @@
-from typing import Callable, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Iterable, List, Optional, Tuple, Union
 
 from spacy.tokens import Span
 
@@ -21,7 +21,7 @@ def get_sort_key(span: Span) -> Tuple[int, int]:
 
 
 def filter_spans(
-    spans: Iterable["Span"],
+    spans: Iterable[Union["Span", Tuple["Span", Any]]],
     return_discarded: bool = False,
 ) -> Tuple[List["Span"], List["Span"]]:
     """

@@ -41,12 +41,11 @@ letter_days: List[str] = list(letter_days_dict.keys())
 letter_day_pattern = make_pattern(letter_days)
 
 numeric_day_pattern = r"(?<!\d)(0?[1-9]|[12]\d|3[01])(?!\d)"
-numeric_day_pattern_with_leading_zero = r"(?<!\d)(0[1-9]|[12]\d|3[01])(?!\d)"
+lz_numeric_day_pattern = r"(?<!\d)(0[1-9]|[12]\d|3[01])(?!\d)"
+nlz_numeric_day_pattern = r"(?<!\d)([1-9]|[12]\d|3[01])(?!\d)"
 
 day_pattern = f"(?P<day>{letter_day_pattern}|{numeric_day_pattern})"
 
 letter_day_pattern = f"(?P<day>{letter_day_pattern})"
 numeric_day_pattern = f"(?P<day>{numeric_day_pattern})"
-numeric_day_pattern_with_leading_zero = (
-    f"(?P<day>{numeric_day_pattern_with_leading_zero})"
-)
+lz_numeric_day_pattern = f"(?P<day>{lz_numeric_day_pattern})"

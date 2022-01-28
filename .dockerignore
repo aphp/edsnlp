@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+
+# Distribution / packaging
+init
+.Python
+env/
+venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*,cover
+.hypothesis/
+.pytest_cache/
+
+# Documentation
+_build/
+
+# Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Data
+*.csv
+*.pickle
+*.txt
+*.xls
+*.xlsx
+*.tar.gz
+*.tsv
+*.ann
+
+!requirements*.txt
+
+# Editors
+.idea
+.vscode
+
+# Files
+.DS_Store
+
+# Environment
+.venv

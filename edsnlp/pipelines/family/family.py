@@ -65,6 +65,12 @@ class FamilyContext(GenericMatcher):
             **kwargs,
         )
 
+        self.sections = use_sections and "sections" in self.nlp.pipe_names
+        self.explain = explain
+
+    @staticmethod
+    def set_extensions() -> None:
+
         if not Token.has_extension("family"):
             Token.set_extension("family", default=False)
 
@@ -88,10 +94,6 @@ class FamilyContext(GenericMatcher):
 
         if not Doc.has_extension("family"):
             Doc.set_extension("family", default=[])
-
-        self.sections = use_sections and "sections" in self.nlp.pipe_names
-
-        self.explain = explain
 
     def __call__(self, doc: Doc) -> Doc:
         """
@@ -159,7 +161,6 @@ class FamilyContext(GenericMatcher):
 
             for ent in ents:
                 ent._.family = True
-
                 if self.explain:
                     ent._.family_cues += cues
                 if not self.on_ents_only:

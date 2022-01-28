@@ -1,4 +1,4 @@
-image: harbor.eds.aphp.fr/public/python:3.7
+image: harbor.eds.aphp.fr/plateforme-datascience/pyspark-tests:3.7
 
 default:
   tags:
@@ -9,7 +9,10 @@ test:
     - pip install -r requirements.txt
     - pip install -r requirements-dev.txt
     - pip install -r requirements-setup.txt
+    - pip install pyspark
     - PYTHONPATH="$PWD:$PYTHONPATH" python scripts/conjugate.py
+    - apt-get update
+    - apt install -y git
   script:
     - pre-commit install
     - pre-commit run --all-files
@@ -30,9 +33,10 @@ test:
 pages:
   script:
     - apt-get update
-    - apt-get install -y pandoc
+    - apt-get install -y pandoc make
     - pip install -r requirements.txt
     - pip install -r requirements-docs.txt
+    - pip install pyspark
     - cd docs ; make html
     - mv _build/html/ ../public/
   artifacts:

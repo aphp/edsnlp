@@ -36,6 +36,7 @@
     connectors/omop
     connectors/brat
     connectors/labeltool
+    connectors/spark
 
 .. toctree::
     :maxdepth: 2
@@ -57,6 +58,7 @@
     tutorials/notebooks
     tutorials/word-vectors
     tutorials/endlines-example
+    tutorials/working-with-spark
     tutorials/reason-example
 
 .. toctree::

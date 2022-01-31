@@ -16,3 +16,4 @@ RUN pip install --no-cache-dir -r /tmp/requirements-docs.txt
 RUN pip install --no-cache-dir -r /tmp/requirements-dev.txt
 RUN pip install --no-cache-dir -r /tmp/requirements-setup.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
+RUN pip install --no-cache-dir pyspark

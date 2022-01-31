@@ -5,6 +5,12 @@ from spacy import displacy
 
 from edsnlp import components  # noqa
 
+# from pathlib import Path
+
+
+# BASEDIR = Path(__file__).parent.parent
+
+
 DEFAULT_TEXT = """\
 Motif :
 Le patient est admis le 29 août pour des difficultés respiratoires.
@@ -103,8 +109,7 @@ def load_model(
 
 st.set_page_config(
     page_title="EDS-NLP Demo",
-    # page_icon="📄",
-    page_icon="docs/_static/graphics/edsnlp-blue.png",
+    page_icon="📄",
 )
 
 st.title("EDS-NLP")
@@ -113,9 +118,6 @@ st.warning(
     "You should **not** put sensitive data in the example, as this application "
     "**is not secure**."
 )
-
-_, center, _ = st.sidebar.columns([1, 5, 1])
-center.image("docs/_static/graphics/edsnlp-blue-title.png", use_column_width=True)
 
 st.sidebar.header("About")
 st.sidebar.markdown(

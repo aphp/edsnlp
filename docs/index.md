@@ -87,8 +87,8 @@ cd edsnlp
 # Install the project with the demo requirements
 pip install '.[demo]'
 
-# Run de demo
-streamlit run demo.py
+# Run the demo
+streamlit run scripts/demo.py
 ```
 
 Go to the provided URL to see the library in action.

@@ -1,4 +1,4 @@
-image: harbor.eds.aphp.fr/plateforme-datascience/pyspark-tests:3.7
+image: harbor.eds.aphp.fr/plateforme-datascience/edsnlp:3.7
 
 default:
   tags:

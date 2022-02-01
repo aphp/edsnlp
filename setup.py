@@ -1,5 +1,7 @@
 from setuptools import find_packages, setup
 
+import edsnlp
+
 
 def get_lines(relative_path):
     with open(relative_path) as f:
@@ -11,7 +13,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="edsnlp",
-    version="0.3.2",
+    version=edsnlp.__version__,
     author="Data Science - DSI APHP",
     author_email="basile.dura-ext@aphp.fr",
     description="NLP tools for human consumption at AP-HP",

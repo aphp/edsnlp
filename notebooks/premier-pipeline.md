@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.13.0
+      jupytext_version: 1.13.5
   kernelspec:
     display_name: 'Python 3.9.5 64-bit (''.env'': venv)'
     name: python3
@@ -66,6 +66,8 @@ nlp.add_pipe(
     ),
 )
 
+nlp.add_pipe('dates')
+
 # Qualification des entités
 nlp.add_pipe('negation')
 nlp.add_pipe('hypothesis')
@@ -82,8 +84,6 @@ doc = nlp(text)
 ```python
 doc
 ```
-
----
 
 Les traitements effectués par EDS-NLP (et Spacy en général) sont non-destructifs :
 
@@ -104,6 +104,12 @@ for token in doc[3:15]:
 
 Le pipeline que nous avons appliqué a extrait des entités avec le `matcher`.
 
+
+Les entités détectées se retrouvent dans l'attribut `ents` :
+
+```python
+doc.ents
+```
 
 EDS-NLP étant fondée sur Spacy, on peut utiliser tous les outils proposés autour de cette bibliothèque :
 
@@ -129,6 +135,8 @@ entity = doc.ents[0]
 entity
 ```
 
+Chaque entité a été qualifiée par les pipelines de négation, hypothèse, etc. Ces pipelines utilisent des extensions SpaCy pour stocker leur résultat :
+
 ```python
 entity._.negated
 ```
@@ -136,28 +144,120 @@ entity._.negated
 Le pipeline n'a pas détecté de négation pour cette entité.
 
 
-Présentons les documents sous un format proche d'OMOP :
+## Application du pipleline sur une table de textes
+
+
+Les textes seront le plus souvent disponibles sous la forme d'un DataFrame pandas, qu'on peut simuler ici :
 
 ```python
 import pandas as pd
 ```
 
 ```python
-df = pd.DataFrame.from_records([
-    dict(
-        label=ent.label_,
-        start_char=ent.start_char,
-        end_char=ent.end_char,
-        lexical_variant=ent.text,
-        negation=ent._.negated,
-        family=ent._.family,
-        hypothesis=ent._.hypothesis,
-        rspeech=ent._.reported_speech,
-    )
-    for ent in doc.ents
-])
+note = pd.DataFrame(dict(note_text=[text] * 10))
+note['note_id'] = range(len(note))
+note = note[['note_id', 'note_text']]
 ```
 
 ```python
-df
+note
+```
+
+On peut appliquer la pipeline à l'ensemble des documents en utilisant la fonction `nlp.pipe`, qui permet d'accélérer les traitements en les appliquant en parallèle :
+
+```python
+# Ici on crée une liste qui va contenir les documents traités par SpaCy
+docs = list(nlp.pipe(note.note_text))
+```
+
+On veut récupérer les entités détectées et les information associées (empans, qualification, etc) :
+
+```python
+def get_entities(doc):
+    """Extract a list of qualified entities from a SpaCy Doc object"""
+    entities = []
+
+    for ent in doc.ents:
+        entity = dict(
+            start=ent.start_char,
+            end=ent.end_char,
+            label=ent.label_,
+            lexical_variant=ent.text,
+            negated=ent._.negated,
+            hypothesis=ent._.hypothesis,
+        )
+
+        entities.append(entity)
+
+    return entities
+```
+
+```python
+note['entities'] = [get_entities(doc) for doc in nlp.pipe(note.note_text)]
+```
+
+```python
+note
+```
+
+On peut maintenant récupérer les entités détectées au format `NOTE_NLP` (ou similaire) :
+
+```python
+# Sélection des colonnes
+note_nlp = note[['note_id', 'entities']]
+
+# "Explosion" des listes d'entités, et suppression des lignes vides (documents sans entité)
+note_nlp = note_nlp.explode('entities').dropna()
+
+# Re-création de l'index, pour des raisons internes à Pandas
+note_nlp = note_nlp.reset_index(drop=True)
+```
+
+```python
+note_nlp
+```
+
+Il faut maintenant passer d'une colonne de dictionnaires à une table `NOTE_NLP` :
+
+```python
+note_nlp = note_nlp[['note_id']].join(pd.json_normalize(note_nlp.entities))
+```
+
+```python
+note_nlp
+```
+
+On peut aggréger la qualification des entités en une unique colonne :
+
+```python
+# Création d'une colonne "discard" -> si l'entité est niée ou hypothétique, on la supprime des résultats
+note_nlp['discard'] = note_nlp[['negated', 'hypothesis']].max(axis=1)
+```
+
+```python
+note_nlp
+```
+
+```python
+
+```
+
+```python
+
+```
+
+```python
+
+```
+
+```python
+%%timeit
+for text in texts:
+    nlp(text)
+```
+
+```python
+%%timeit
+for text in nlp.pipe(texts, n_process=-1):
+    pass
 ```

@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.4.0 (pending)
+
+- Dependencies are now handled by [Poetry](https://python-poetry.org/)
+- Profound re-write of the normalisation :
+  - The custom attribute `CUSTOM_NORM` is completely abandoned in favour of a more _spacyfic_ alternative
+  - The `normalizer` pipeline modifies the `NORM` attribute in place
+  - Other pipelines can modify the `Token._.excluded` custom attribute
+- EDS regex and term matchers can ignore excluded tokens during matching, effectively adding a second dimension to normalisation (choice of the attribute and possibility to skip _pollution_ tokens regardless of the attribute)
+- Matching can be performed on custom attributes more easily
+- Qualifiers are regrouped together within the `edsnlp.qualifiers` submodule, the inheritance from the `GenericMatcher` is dropped
+- The `dates` pipeline underwent some light formatting to increase robustness and fix a few issues
+- A new `consultation_dates` pipeline was added, which looks for dates preceded by expressions specific to consultation dates
+- In rule-based processing, the `terms.py` submodule is replaced by `patterns.py` to reflect the possible presence of regular expressions
+- Refactoring of the architecture :
+  - pipelines are now regrouped by type (`core`, `ner`, `misc`, `qualifiers`)
+  - `matchers` submodule contains `RegexMatcher` and `PhraseMatcher` classes, which interact with the normalisation
+  - `multiprocessing` submodule contains `spark` and `local` multiprocessing tools
+  - `connectors` contains `Brat`, `OMOP` and `LabelTool` connectors
+  - `utils` contains various utilities
+
 ## v0.3.2
 
 - Major revamp of the normalisation.

@@ -10,10 +10,18 @@ RUN apt-get update \
     && apt-get install -y openjdk-8-jdk \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt requirements-*.txt /tmp/
+WORKDIR /app
 
-RUN pip install --no-cache-dir -r /tmp/requirements-docs.txt
-RUN pip install --no-cache-dir -r /tmp/requirements-dev.txt
-RUN pip install --no-cache-dir -r /tmp/requirements-setup.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
-RUN pip install --no-cache-dir pyspark
+# Install poetry
+RUN curl -sSL https://install.python-poetry.org | python -
+ENV PATH="${PATH}:/root/.local/bin/"
+
+# Copy lock file
+COPY pyproject.toml poetry.lock /app/
+
+# Export requirements file and install it
+RUN poetry export --dev --without-hashes --output requirements.txt \
+    && pip install --no-cache-dir -r requirements.txt
+
+# Add python path
+ENV PYTHONPATH="$PWD:$PYTHONPATH"

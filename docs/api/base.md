@@ -5,5 +5,5 @@ Most of EDS-NLP builds on the `GenericMatcher` component, a model apt to look fo
 ## Base component
 
 ```{eval-rst}
-.. automodule:: edsnlp.base.component
+.. automodule:: edsnlp.pipelines.base
 ```

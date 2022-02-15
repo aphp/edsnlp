@@ -5,17 +5,17 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.2'
+      format_version: "1.2"
       jupytext_version: 1.6.0
   kernelspec:
-    display_name: '[2.4.3] Py3'
+    display_name: "[2.4.3] Py3"
     language: python
     name: pyspark-2.4.3
 ---
 
 # Using and speeding-up EDS-NLP
 
-The way EDS-NLP is used may depend on how many documents you are working with.  Once working with tens of thousands of them,
+The way EDS-NLP is used may depend on how many documents you are working with. Once working with tens of thousands of them,
 parallelizing the processing can be really efficient (up to 8x faster), but will require a (tiny) bit more work.
 Here are shown 3 ways to analyse texts depending on your needs:
 
@@ -36,7 +36,7 @@ from tqdm import tqdm
 import edsnlp.components
 
 # Module containing processing helpers
-import edsnlp.processing as nlprocess
+import edsnlp.multiprocessing.processing as nlprocess
 ```
 
 ```python
@@ -142,12 +142,12 @@ pretty_ents_printer(ents, limit=15)
 
 ## 3. Pipeline on many documents
 
-
 To go even faster, we have to **parallelize** the task.
 
 For more details, check the documentation in `Tutorials - Getting faster`
 
 To sum up what changes when parallelizing:
+
 1. The task is broken up into multiple processes.
 2. Each process saves intermediary results on memory.
 3. At the end, those results are aggregated and returned.

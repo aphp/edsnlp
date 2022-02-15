@@ -1,2 +1,2 @@
 import edsnlp.pipelines.factories  # noqa : used to import pipelines
-import edsnlp.qualifiers.factories  # noqa
+import edsnlp.pipelines.qualifiers.factories  # noqa

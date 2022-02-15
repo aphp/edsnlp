@@ -3,13 +3,13 @@
 ## Matcher
 
 ```{eval-rst}
-.. automodule:: edsnlp.pipelines.matcher.matcher
+.. automodule:: edsnlp.pipelines.core.matcher.matcher
 ```
 
 ## Advanced matcher
 
 ```{eval-rst}
-.. automodule:: edsnlp.pipelines.advanced.advanced
+.. automodule:: edsnlp.pipelines.core.advanced.advanced
 ```
 
 ## Sentences
@@ -21,7 +21,7 @@
 ## Dates
 
 ```{eval-rst}
-.. automodule:: edsnlp.pipelines.dates.dates
+.. automodule:: edsnlp.pipelines.misc.dates.dates
 ```
 
 ## Sections
@@ -33,7 +33,7 @@
 ## Consultation Dates
 
 ```{eval-rst}
-.. automodule:: edsnlp.pipelines.consultation_dates.consultation_dates
+.. automodule:: edsnlp.pipelines.misc.consultation_dates.consultation_dates
 ```
 
 ## Normalisation
@@ -77,7 +77,7 @@
 ### Base class
 
 ```{eval-rst}
-.. automodule:: edsnlp.pipelines.scores.base_score
+.. automodule:: edsnlp.pipelines.ner.scores.base_score
 ```
 
 ### Charlson Comorbidity Index

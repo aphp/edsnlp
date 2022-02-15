@@ -23,5 +23,5 @@
 ## Spark
 
 ```{eval-rst}
-.. automodule:: edsnlp.connectors.spark
+.. automodule:: edsnlp.multiprocessing.spark
 ```

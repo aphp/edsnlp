@@ -3,29 +3,29 @@
 ## Negation
 
 ```{eval-rst}
-.. automodule:: edsnlp.qualifiers.negation.negation
+.. automodule:: edsnlp.pipelines.qualifiers.negation.negation
 ```
 
 ## Family
 
 ```{eval-rst}
-.. automodule:: edsnlp.qualifiers.family.family
+.. automodule:: edsnlp.pipelines.qualifiers.family.family
 ```
 
 ## Hypothesis
 
 ```{eval-rst}
-.. automodule:: edsnlp.qualifiers.hypothesis.hypothesis
+.. automodule:: edsnlp.pipelines.qualifiers.hypothesis.hypothesis
 ```
 
 ## Antecedents
 
 ```{eval-rst}
-.. automodule:: edsnlp.qualifiers.antecedents.antecedents
+.. automodule:: edsnlp.pipelines.qualifiers.antecedents.antecedents
 ```
 
 ## Reported Speech
 
 ```{eval-rst}
-.. automodule:: edsnlp.qualifiers.rspeech.rspeech
+.. automodule:: edsnlp.pipelines.qualifiers.rspeech.rspeech
 ```

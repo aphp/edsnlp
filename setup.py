@@ -11,6 +11,30 @@ def get_lines(relative_path):
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+factories = [
+    "matcher = edsnlp.components:matcher_leg",
+    '"eds.matcher" = edsnlp.components:matcher',
+    "advanced = edsnlp.components:advanced",
+    "endlines = edsnlp.components:endlines",
+    "sentences = edsnlp.components:sentences",
+    "normalizer = edsnlp.components:normalizer",
+    "accents = edsnlp.components:accents",
+    "lowercase = edsnlp.components:remove_lowercase",
+    "pollution = edsnlp.components:pollution",
+    "quotes = edsnlp.components:quotes",
+    "charlson = edsnlp.components:charlson",
+    "sofa = edsnlp.components:sofa",
+    "antecedents = edsnlp.components:antecedents",
+    "family = edsnlp.components:family",
+    "hypothesis = edsnlp.components:hypothesis",
+    "negation = edsnlp.components:negation",
+    "rspeech = edsnlp.components:rspeech",
+    "consultation_dates = edsnlp.components:consultation_dates",
+    "dates = edsnlp.components:dates",
+    "reason = edsnlp.components:reason",
+    "sections = edsnlp.components:sections",
+]
+
 setup(
     name="edsnlp",
     version=edsnlp.__version__,
@@ -28,5 +52,8 @@ setup(
     ),
     package_data={
         "edsnlp": ["resources/*.csv"],
+    },
+    entry_points={
+        "spacy_factories": factories,
     },
 )

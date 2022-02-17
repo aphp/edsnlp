@@ -2,7 +2,7 @@
 
 ## v0.4.0 (pending)
 
-- Dependencies are now handled by [Poetry](https://python-poetry.org/)
+- Dependencies are now handled by [Poetry](https://python-poetry.org/). Requirement files and the setup script are kept for now, and will be removed in a later version.
 - Profound re-write of the normalisation :
   - The custom attribute `CUSTOM_NORM` is completely abandoned in favour of a more _spacyfic_ alternative
   - The `normalizer` pipeline modifies the `NORM` attribute in place
@@ -19,6 +19,7 @@
   - `multiprocessing` submodule contains `spark` and `local` multiprocessing tools
   - `connectors` contains `Brat`, `OMOP` and `LabelTool` connectors
   - `utils` contains various utilities
+- Add entry points to make pipeline usable directly, removing the need to import `edsnlp.components`.
 
 ## v0.3.2
 

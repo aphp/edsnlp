@@ -11,6 +11,7 @@ ATTRIBUTES = {
     "LOWER": "lower_",
     "TEXT": "text",
     "NORM": "norm_",
+    "SHAPE": "shape_",
 }
 
 

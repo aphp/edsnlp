@@ -75,3 +75,17 @@ def test_remove():
     matcher.remove("test")
 
     assert len(matcher) == 0
+
+
+def test_norm_alignment(blank_nlp):
+
+    text = "test " + "bla… " * 4 + "test " + "bla" * 10
+
+    blank_nlp.add_pipe(
+        "matcher", config=dict(regex=dict(test=r"\btest\b"), attr="NORM")
+    )
+
+    doc = blank_nlp(text)
+
+    for ent in doc.ents:
+        assert ent.text == "test"

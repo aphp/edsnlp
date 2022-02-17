@@ -1,4 +1,4 @@
-image: harbor.eds.aphp.fr/plateforme-datascience/edsnlp:3.7-poetry
+image: harbor.eds.aphp.fr/plateforme-datascience/edsnlp:3.7
 
 default:
   tags:
@@ -6,10 +6,11 @@ default:
 
 test:
   before_script:
-    - poetry export --dev --without-hashes --output requirements.txt
     - pip install -r requirements.txt
+    - pip install -r requirements-dev.txt
+    - pip install -r requirements-setup.txt
     - pip install pyspark
-    - python scripts/conjugate.py
+    - PYTHONPATH="$PWD:$PYTHONPATH" python scripts/conjugate.py
     - apt-get update
     - apt install -y git
   script:
@@ -33,8 +34,8 @@ pages:
   script:
     - apt-get update
     - apt-get install -y pandoc make
-    - poetry export --dev --without-hashes --output requirements.txt
     - pip install -r requirements.txt
+    - pip install -r requirements-docs.txt
     - pip install pyspark
     - cd docs ; make html
     - mv _build/html/ ../public/
@@ -46,11 +47,12 @@ pages:
 
 package:
   before_script:
-    - poetry export --dev --without-hashes --output requirements.txt
     - pip install -r requirements.txt
-    - pip install pyspark
-    - python scripts/conjugate.py
+    - pip install -r requirements-dev.txt
+    - pip install -r requirements-setup.txt
+    - PYTHONPATH="$PWD:$PYTHONPATH" python scripts/conjugate.py
   script:
-    - poetry build
+    - pip install twine
+    - python setup.py sdist bdist_wheel
     - TWINE_PASSWORD=${CI_JOB_TOKEN} TWINE_USERNAME=gitlab-ci-token python -m twine upload --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi dist/*
   when: manual

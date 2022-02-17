@@ -6,11 +6,49 @@ import numpy as np
 from loguru import logger
 from spacy.tokens import Doc, Span, Token
 
-from .utils import Patterns, get_text
+from .utils import ATTRIBUTES, Patterns, get_text
 
 
 @lru_cache(maxsize=32)
-def alignment(doclike: Union[Doc, Span]) -> Tuple[np.array, np.array, np.array]:
+def alignment(
+    doclike: Union[Doc, Span],
+    attr: str = "TEXT",
+    ignore_excluded: bool = True,
+) -> Tuple[np.array, np.array, np.array]:
+    """
+    Align different representations of a ``Doc`` or ``Span`` object.
+
+    Parameters
+    ----------
+    doclike : Union[Doc, Span]
+        SpaCy ``Doc`` or ``Span`` object
+    attr : str, optional
+        Attribute to use, by default "TEXT"
+    ignore_excluded : bool, optional
+        Whether to remove excluded tokens, by default True
+
+    Returns
+    -------
+    Tuple[np.array, np.array, np.array]
+        An alignment tuple: original, clean and offset arrays.
+    """
+
+    attr = attr.upper()
+
+    attr = ATTRIBUTES.get(attr, attr)
+
+    custom = attr.startswith("_")
+
+    if custom:
+        attr = attr[1:].lower()
+
+    def length(token: Token):
+        if custom:
+            text = getattr(token._, attr)
+        else:
+            text = getattr(token, attr)
+        return len(text)
+
     original = []
     clean = []
 
@@ -18,14 +56,21 @@ def alignment(doclike: Union[Doc, Span]) -> Tuple[np.array, np.array, np.array]:
 
     for token in doclike:
 
-        if not token._.excluded:
+        if not ignore_excluded or not token._.excluded:
             original.append(token.idx)
             clean.append(cursor)
 
-            cursor += len(token.text_with_ws)
+            cursor += length(token)
+
+            if token.whitespace_:
+                original.append(token.idx + len(token.text))
+                clean.append(cursor)
+
+                cursor += 1
 
     clean.append(cursor)
-    if token._.excluded:
+
+    if ignore_excluded and token._.excluded:
         original.append(original[-1])
     else:
         original.append(token.idx + len(token.text_with_ws))
@@ -38,7 +83,12 @@ def alignment(doclike: Union[Doc, Span]) -> Tuple[np.array, np.array, np.array]:
     return original, clean, offset
 
 
-def exclusion2original(doclike: Union[Doc, Span], index: int) -> int:
+def exclusion2original(
+    doclike: Union[Doc, Span],
+    attr: str,
+    ignore_excluded: bool,
+    index: int,
+) -> int:
     """
     Goes from the cleaned text to the original one.
 
@@ -46,6 +96,10 @@ def exclusion2original(doclike: Union[Doc, Span], index: int) -> int:
     ----------
     doc : Doc
         Doc to clean
+    attr: str
+        Which attribute to align.
+    ignore_excluded: bool
+        Whether excluded tokens should be removed
     index : int
         Index to transform
 
@@ -54,7 +108,15 @@ def exclusion2original(doclike: Union[Doc, Span], index: int) -> int:
     int:
         Converted index.
     """
-    _, exclusion, offset = alignment(doclike)
+
+    attr = attr.upper()
+
+    if attr == "TEXT" and not ignore_excluded:
+        return index
+
+    _, exclusion, offset = alignment(
+        doclike, attr=attr, ignore_excluded=ignore_excluded
+    )
 
     arg = (exclusion >= index).argmax()
     index += offset[arg]
@@ -156,9 +218,14 @@ class RegexMatcher(object):
             Overwrite alignment mode.
         """
 
-        attr = attr or self.default_attr
-        ignore_excluded = ignore_excluded or self.ignore_excluded
-        alignment_mode = alignment_mode or self.alignment_mode
+        if attr is None:
+            attr = self.default_attr
+
+        if ignore_excluded is None:
+            ignore_excluded = self.ignore_excluded
+
+        if alignment_mode is None:
+            alignment_mode = self.alignment_mode
 
         patterns = [re.compile(pattern) for pattern in patterns]
 
@@ -192,6 +259,7 @@ class RegexMatcher(object):
         start: int,
         end: int,
         key: str,
+        attr: str,
         alignment_mode: str,
         ignore_excluded: bool,
     ) -> Span:
@@ -221,18 +289,31 @@ class RegexMatcher(object):
         """
         doc = doclike if isinstance(doclike, Doc) else doclike.doc
 
+        _, exclusion, offset = alignment(doc)
+
         if ignore_excluded:
-            _, exclusion, offset = alignment(doc)
-
             first_included = get_first_included(doclike)
-
             first, off = exclusion[first_included.i], offset[first_included.i]
-            start = exclusion2original(doc, start + first) - off
-            end = exclusion2original(doc, end + first) - off
-
         else:
-            start += doclike[0].idx
-            end += doclike[0].idx
+            first, off = 0, 0
+
+        start = exclusion2original(
+            doc,
+            attr=attr,
+            ignore_excluded=ignore_excluded,
+            index=start + first,
+        )
+        end = exclusion2original(
+            doc,
+            attr=attr,
+            ignore_excluded=ignore_excluded,
+            index=end + first,
+        )
+        start = start - off
+        end = end - off
+
+        start += doclike[0].idx
+        end += doclike[0].idx
 
         span = doc.char_span(
             start,
@@ -284,6 +365,7 @@ class RegexMatcher(object):
                         start=match.start(),
                         end=match.end(),
                         key=key,
+                        attr=attr,
                         alignment_mode=alignment_mode,
                         ignore_excluded=ignore_excluded,
                     )

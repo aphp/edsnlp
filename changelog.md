@@ -2,7 +2,6 @@
 
 ## v0.4.0 (pending)
 
-- Dependencies are now handled by [Poetry](https://python-poetry.org/). Requirement files and the setup script are kept for now, and will be removed in a later version.
 - Profound re-write of the normalisation :
   - The custom attribute `CUSTOM_NORM` is completely abandoned in favour of a more _spacyfic_ alternative
   - The `normalizer` pipeline modifies the `NORM` attribute in place
@@ -20,6 +19,8 @@
   - `connectors` contains `Brat`, `OMOP` and `LabelTool` connectors
   - `utils` contains various utilities
 - Add entry points to make pipeline usable directly, removing the need to import `edsnlp.components`.
+- Add 3 score pipelines related to emergency
+- Add a helper function to use a SpaCy pipeline as a Spark UDF.
 
 ## v0.3.2
 

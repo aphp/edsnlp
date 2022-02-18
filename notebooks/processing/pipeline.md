@@ -19,9 +19,11 @@ The way EDS-NLP is used may depend on how many documents you are working with. O
 parallelizing the processing can be really efficient (up to 8x faster), but will require a (tiny) bit more work.
 Here are shown 3 ways to analyse texts depending on your needs:
 
-- [Testing / Using on a single string](#1.-Pipeline-on-a-single-string)
-- [Using on a few documents](#2.-Pipeline-on-a-few-documents)
-- [Using on many documents](#3.-Pipeline-on-many-documents)
+- [Using and speeding-up EDS-NLP](#using-and-speeding-up-eds-nlp)
+  - [1. Pipeline on a single string](#1-pipeline-on-a-single-string)
+  - [2. Pipeline on a few documents](#2-pipeline-on-a-few-documents)
+  - [3. Pipeline on many documents](#3-pipeline-on-many-documents)
+  - [4. Time comparison](#4-time-comparison)
 
 ```python
 import spacy
@@ -36,7 +38,7 @@ from tqdm import tqdm
 import edsnlp.components
 
 # Module containing processing helpers
-import edsnlp.multiprocessing.processing as nlprocess
+import edsnlp.multiprocessing.local as nlprocess
 ```
 
 ```python

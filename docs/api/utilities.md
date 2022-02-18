@@ -9,5 +9,5 @@
 ## Helpers for large batch processing
 
 ```{eval-rst}
-.. automodule:: edsnlp.multiprocessing.processing
+.. automodule:: edsnlp.multiprocessing.local
 ```

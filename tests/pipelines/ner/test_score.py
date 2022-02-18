@@ -1,8 +1,8 @@
-import spacy
-
+import edsnlp.components  # noqa: F401
 from edsnlp.pipelines.ner.scores import Score
-from edsnlp.pipelines.ner.scores.charlson import patterns as charlson_terms
-from edsnlp.pipelines.ner.scores.sofa import patterns as sofa_terms
+
+# from edsnlp.pipelines.ner.scores.charlson import patterns as charlson_terms
+# from edsnlp.pipelines.ner.scores.sofa import patterns as sofa_terms
 from edsnlp.utils.examples import parse_example
 
 example = """
@@ -17,7 +17,13 @@ testScore de 1.
 Testons également un autre score.
 <ent score_name=SOFA score_value=12 score_method=Maximum>SOFA</ent> maximum : 12.
 
-"""
+
+CR-URG.
+<ent score_name=emergency.priority score_value=2>PRIORITE</ent>: 2 - Urgence relative.
+<ent score_name=emergency.gemsa score_value=2>GEMSA</ent>  : (2) Patient non convoque sortant apres consultation
+<ent score_name=emergency.ccmu score_value=2>CCMU</ent>  : Etat clinique jugé stable avec actes diag ou thérapeutiques ( 2 )
+
+"""  # noqa: E501
 
 
 def test_scores(blank_nlp):
@@ -25,33 +31,6 @@ def test_scores(blank_nlp):
     blank_nlp.add_pipe(
         "normalizer",
         config=dict(lowercase=True, accents=True, quotes=True, pollution=False),
-    )
-
-    create_charlson = spacy.registry.get("factories", "charlson")
-    create_sofa = spacy.registry.get("factories", "SOFA")
-
-    charlson_default_config = dict(
-        regex=charlson_terms.regex,
-        after_extract=charlson_terms.after_extract,
-        score_normalization=charlson_terms.score_normalization_str,
-    )
-
-    sofa_default_config = dict(
-        regex=sofa_terms.regex,
-        method_regex=sofa_terms.method_regex,
-        value_regex=sofa_terms.value_regex,
-        score_normalization=sofa_terms.score_normalization_str,
-    )
-
-    charlson = create_charlson(
-        blank_nlp,
-        "charlson",
-        **charlson_default_config,
-    )
-    sofa = create_sofa(
-        blank_nlp,
-        "SOFA",
-        **sofa_default_config,
     )
 
     def testscore_normalization(raw_score: str):
@@ -72,9 +51,13 @@ def test_scores(blank_nlp):
 
     text, entities = parse_example(example=example)
 
+    blank_nlp.add_pipe("charlson")
+    blank_nlp.add_pipe("SOFA")
+    blank_nlp.add_pipe("emergency.priority")
+    blank_nlp.add_pipe("emergency.ccmu")
+    blank_nlp.add_pipe("emergency.gemsa")
+
     doc = blank_nlp(text)
-    doc = charlson(doc)
-    doc = sofa(doc)
     doc = testscore(doc)
 
     for entity, ent in zip(entities, doc.ents):
@@ -84,18 +67,3 @@ def test_scores(blank_nlp):
             assert (
                 getattr(ent._, modifier.key) == modifier.value
             ), f"{modifier.key} labels don't match."
-
-
-def test_score_factory(blank_nlp):
-    factory = spacy.registry.get("factories", "score")
-    assert factory(
-        blank_nlp,
-        "score",
-        score_name="TestScore",
-        regex=[r"test+score"],
-        attr="NORM",
-        after_extract=r"(\d+)",
-        score_normalization=charlson_terms.score_normalization_str,
-        window=4,
-        verbose=0,
-    )

@@ -24,6 +24,7 @@
     user-guide/antecedents
     user-guide/sections
     user-guide/dates
+    user-guide/consultation-dates
     user-guide/score
     user-guide/endlines
     user-guide/reason

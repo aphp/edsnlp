@@ -14,6 +14,9 @@ from .misc.dates.factory import create_component as dates
 from .misc.reason.factory import create_component as reason
 from .misc.sections.factory import create_component as sections
 from .ner.scores.charlson.factory import create_component as charlson
+from .ner.scores.emergency.ccmu.factory import create_component as ccmu
+from .ner.scores.emergency.gemsa.factory import create_component as gemsa
+from .ner.scores.emergency.priority.factory import create_component as priority
 from .ner.scores.factory import create_component as score
 from .ner.scores.sofa.factory import create_component as sofa
 from .qualifiers.antecedents.factory import create_component as antecedents

@@ -1,7 +1,5 @@
 from setuptools import find_packages, setup
 
-import edsnlp
-
 
 def get_lines(relative_path):
     with open(relative_path) as f:
@@ -40,7 +38,7 @@ factories = [
 
 setup(
     name="edsnlp",
-    version=edsnlp.__version__,
+    version="0.4.0a1",
     author="Data Science - DSI APHP",
     author_email="basile.dura-ext@aphp.fr",
     description="NLP tools for human consumption at AP-HP",

@@ -68,9 +68,6 @@ Build documentation:
   artifacts:
     paths:
       - docs/_build/html
-  rules:
-    - changes:
-        - docs/
 
 pages:
   stage: pages

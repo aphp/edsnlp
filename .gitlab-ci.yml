@@ -14,14 +14,6 @@ Build Docker image:
     - echo "{\"auths\":{\"harbor.eds.aphp.fr\":{\"username\":\"$DOCKER_USERNAME\",\"password\":\"$DOCKER_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile.ci --destination harbor.eds.aphp.fr/plateforme-datascience/edsnlp:3.7
   when: manual
-  # rules:
-  #   - changes:
-  #       - Dockerfile.ci
-  #       - requirements.txt
-  #       - requirements-dev.txt
-  #       - requirements-docs.txt
-  #       - requirements-setup.txt
-  #     if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 Linting (Black, Flake8, isort):
   stage: test
@@ -53,12 +45,23 @@ Running Pytest:
     reports:
       junit: report.xml
       cobertura: coverage.xml
+  rules:
+    - changes:
+        - tests/
+        - edsnlp/
+        - .gitlab-ci.yml
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 Installation:
   stage: test
   image: harbor.eds.aphp.fr/public/python:3.7
   script:
     - pip install .
+  rules:
+    - changes:
+        - setup.py
+        - edsnlp/
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 Build documentation:
   stage: documentation
@@ -68,6 +71,11 @@ Build documentation:
   artifacts:
     paths:
       - docs/_build/html
+  rules:
+    - changes:
+        - docs/
+        - .gitlab-ci.yml
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 pages:
   stage: pages
@@ -97,5 +105,3 @@ Package:
   when: manual
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      changes:
-        - setup.py

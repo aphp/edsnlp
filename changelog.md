@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.4.0 (pending)
+## v0.4.0
 
 - Profound re-write of the normalisation :
   - The custom attribute `CUSTOM_NORM` is completely abandoned in favour of a more _spacyfic_ alternative

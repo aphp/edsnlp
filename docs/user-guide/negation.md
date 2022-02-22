@@ -1,17 +1,17 @@
 # Negation
 
-The `negation` pipeline uses a simple rule-based algorithm to detect negated spans. It was designed at AP-HP's EDS, following the insights of the NegEx algorithm by {footcite:t}`chapman_simple_2001`.
+The `eds.negation` pipeline uses a simple rule-based algorithm to detect negated spans. It was designed at AP-HP's EDS, following the insights of the NegEx algorithm by {footcite:t}`chapman_simple_2001`.
 
 ## Declared extensions
 
-The `negation` pipeline declares two [Spacy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :
+The `eds.negation` pipeline declares two [Spacy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :
 
-1. The `negated` attribute is a boolean, set to `True` if the pipeline predicts that the span/token is negated.
-2. The `polarity_` property is a human-readable string, computed from the `negated` attribute. It implements a simple getter function that outputs `AFF` or `NEG`, depending on the value of `negated`.
+1. The `negation` attribute is a boolean, set to `True` if the pipeline predicts that the span/token is negated.
+2. The `negation_` property is a human-readable string, computed from the `negation` attribute. It implements a simple getter function that outputs `AFF` or `NEG`, depending on the value of `negation`.
 
 ## Rationale
 
-The `negation` pipeline is a rule-based algorithm for detecting negated entities. It functions as follows :
+The `eds.negation` pipeline is a rule-based algorithm for detecting negated entities. It functions as follows :
 
 1. The pipeline extracts negation cues. We define three (overlapping) kinds :
 
@@ -24,7 +24,7 @@ The `negation` pipeline is a rule-based algorithm for detecting negated entities
 
 3. For each pre-extracted entity, the pipeline checks whether there is a cue between the start of the syntagma and the start of the entity, or a following cue between the end of the entity and the end of the proposition.
 
-Albeit simple, the `negation` pipeline achieves 88% F1-score on our dataset.
+Albeit simple, the `eds.negation` pipeline achieves 88% F1-score on our dataset.
 
 ## Configuration
 
@@ -51,13 +51,13 @@ import spacy
 from edsnlp import components
 
 nlp = spacy.blank("fr")
-nlp.add_pipe("sentences")
+nlp.add_pipe("eds.sentences")
 # Dummy matcher
 nlp.add_pipe(
-    "matcher",
+    "eds.matcher",
     config=dict(terms=dict(patient="patient", fracture="fracture")),
 )
-nlp.add_pipe("negation")
+nlp.add_pipe("eds.negation")
 
 text = (
     "Le patient est admis le 23 août 2021 pour une douleur au bras. "
@@ -69,11 +69,11 @@ doc = nlp(text)
 doc.ents
 # Out: [patient, fracture]
 
-doc.ents[0]._.polarity_
-# Out: 'AFF'
+doc.ents[0]._.negation
+# Out: True
 
-doc.ents[1]._.polarity_
-# Out: 'NEG'
+doc.ents[1]._.negation
+# Out: False
 ```
 
 ## Performance

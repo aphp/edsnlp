@@ -1,12 +1,12 @@
 # End lines
 
-The `endlines` pipeline classifies newline characters as actual end of lines or mere spaces. In the latter case, the token is removed from the normalised document.
+The `eds.endlines` pipeline classifies newline characters as actual end of lines or mere spaces. In the latter case, the token is removed from the normalised document.
 
 Behind the scenes, it uses a `endlinesmodel` instance, which is an unsupervised algorithm based on the work of {footcite:t}`zweigenbaum2016`.
 
 ## Declared extensions
 
-The `endlines` pipeline declares one [Spacy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects. The `end_line` attribute is a boolean, set to `True` if the pipeline predicts that the new line is an end line character. Otherwise, it is set to `False` if the new line is classified as a space.
+The `eds.endlines` pipeline declares one [Spacy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects. The `end_line` attribute is a boolean, set to `True` if the pipeline predicts that the new line is an end line character. Otherwise, it is set to `False` if the new line is classified as a space.
 
 The pipeline also sets the `excluded` custom attribute on newlines that are classified as spaces. It lets downstream matchers skip excluded tokens (see [normalisation](./normalisation.md)) for more detail.
 
@@ -64,7 +64,7 @@ import edsnlp.components
 
 nlp = spacy.blank("fr")
 PATH = "path_to_save"
-nlp.add_pipe("endlines", config=dict(model_path=PATH))
+nlp.add_pipe("eds.endlines", config=dict(model_path=PATH))
 
 docs = list(nlp.pipe(texts))
 
@@ -85,7 +85,7 @@ The pipeline's performance is still being evaluated.
 
 ## Authors and citation
 
-The `endlines` pipeline was developed at the Data and Innovation unit, IT department, AP-HP. Based on the work of {footcite:t}`zweigenbaum2016`.
+The `eds.endlines` pipeline was developed at the Data and Innovation unit, IT department, AP-HP. Based on the work of {footcite:t}`zweigenbaum2016`.
 
 ## References
 

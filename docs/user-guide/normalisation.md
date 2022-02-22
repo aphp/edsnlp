@@ -38,7 +38,7 @@ Moreover, every span exposes a `normalized_variant` extension getter, which comp
 
 ### Lowercase
 
-The `lowercase` pipeline transforms every token to lowercase. It is not configurable.
+The `eds.lowercase` pipeline transforms every token to lowercase. It is not configurable.
 
 Consider the following example :
 
@@ -55,7 +55,7 @@ config = dict(
 )
 
 nlp = spacy.blank("fr")
-nlp.add_pipe("normalizer", config=config)
+nlp.add_pipe("eds.normalizer", config=config)
 
 text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
 
@@ -67,7 +67,7 @@ get_text(doc, attr="NORM")
 
 ### Accents
 
-The `accents` pipeline removes accents. To avoid edge cases, the uses a specified list of accentuated characters and there unaccentuated representation, making it more predictable than using a library such as `unidecode`.
+The `eds.accents` pipeline removes accents. To avoid edge cases, the uses a specified list of accentuated characters and there unaccentuated representation, making it more predictable than using a library such as `unidecode`.
 
 Consider the following example :
 
@@ -84,7 +84,7 @@ config = dict(
 )
 
 nlp = spacy.blank("fr")
-nlp.add_pipe("normalizer", config=config)
+nlp.add_pipe("eds.normalizer", config=config)
 
 text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
 
@@ -96,7 +96,7 @@ get_text(doc, attr="NORM")
 
 ### Apostrophes and quotation marks
 
-Apostrophes and quotation marks can be encoded using unpredictable special characters. The `quotes` component transforms every such special character to `'` and `"`, respectively.
+Apostrophes and quotation marks can be encoded using unpredictable special characters. The `eds.quotes` component transforms every such special character to `'` and `"`, respectively.
 
 Consider the following example :
 
@@ -113,7 +113,7 @@ config = dict(
 )
 
 nlp = spacy.blank("fr")
-nlp.add_pipe("normalizer", config=config)
+nlp.add_pipe("eds.normalizer", config=config)
 
 text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
 
@@ -142,7 +142,7 @@ config = dict(
 )
 
 nlp = spacy.blank("fr")
-nlp.add_pipe("normalizer", config=config)
+nlp.add_pipe("eds.normalizer", config=config)
 
 text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
 
@@ -162,7 +162,7 @@ The two are independent: a matcher can use the `NORM` attribute but keep exclude
 
 ## Usage
 
-As seen in the previous examples, the normalisation is handled by the single `normalizer` pipeline. The following code snippet is complete, and should run as is.
+As seen in the previous examples, the normalisation is handled by the single `eds.normalizer` pipeline. The following code snippet is complete, and should run as is.
 
 ```python
 import spacy
@@ -170,7 +170,7 @@ from edsnlp.matchers.utils import get_text
 from edsnlp import components
 
 nlp = spacy.blank("fr")
-nlp.add_pipe("normalizer")
+nlp.add_pipe("eds.normalizer")
 
 # Notice the special character used for the apostrophe and the quotes
 text = "Le patient est admis à l'hôpital le 23 août 2021 pour une douleur ʺaffreuse” à l`estomac."
@@ -183,4 +183,4 @@ get_text(doc, attr="NORM")
 
 ## Authors and citation
 
-The `normalizer` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.
+The `eds.normalizer` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.

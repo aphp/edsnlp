@@ -1,10 +1,10 @@
 # Reported Speech
 
-The `rspeech` pipeline uses a simple rule-based algorithm to detect spans that relate to reported speech (eg when the doctor quotes the patient). It was designed at AP-HP's EDS.
+The `eds.reported_speech` pipeline uses a simple rule-based algorithm to detect spans that relate to reported speech (eg when the doctor quotes the patient). It was designed at AP-HP's EDS.
 
 ## Declared extensions
 
-The `rspeech` pipeline declares two [Spacy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :
+The `eds.reported_speech` pipeline declares two [Spacy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :
 
 1. The `reported_speech` attribute is a boolean, set to `True` if the pipeline predicts that the span/token is reported.
 2. The `reported_speech_` property is a human-readable string, computed from the `reported_speech` attribute. It implements a simple getter function that outputs `DIRECT` or `REPORTED`, depending on the value of `reported_speech`.
@@ -34,13 +34,13 @@ import spacy
 from edsnlp import components
 
 nlp = spacy.blank("fr")
-nlp.add_pipe("sentences")
+nlp.add_pipe("eds.sentences")
 # Dummy matcher
 nlp.add_pipe(
-    "matcher",
+    "eds.matcher",
     config=dict(terms=dict(patient="patient", alcool="alcoolisé")),
 )
-nlp.add_pipe("rspeech")
+nlp.add_pipe("eds.reported_speech")
 
 text = (
     "Le patient est admis aux urgences ce soir pour une douleur au bras. "
@@ -65,4 +65,4 @@ The pipeline's performance is still being evaluated.
 
 ## Authors and citation
 
-The `rspeech` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.
+The `eds.reported_speech` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.

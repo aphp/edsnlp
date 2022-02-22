@@ -1,6 +1,6 @@
 # Dates
 
-The `dates` pipeline's role is to detect and normalize dates within a medical document.
+The `eds.dates` pipeline's role is to detect and normalize dates within a medical document.
 We use simple regular expressions to extract date mentions, and apply the [`dateparser` library](https://dateparser.readthedocs.io/en/latest/index.html)
 for the normalisation.
 
@@ -12,7 +12,7 @@ for the normalisation.
 
 ## Scope
 
-The `dates` pipeline finds absolute (eg `23/08/2021`) and relative (eg `hier`, `la semaine dernière`) dates alike.
+The `eds.dates` pipeline finds absolute (eg `23/08/2021`) and relative (eg `hier`, `la semaine dernière`) dates alike.
 
 If the date of edition (via the `doc._.note_datetime` extension) is available, relative (and "year-less") dates will be normalized
 using the latter as base. On the other hand, if the base is unknown, the normalisation will follow the pattern :
@@ -22,7 +22,7 @@ Since the extension `doc._.note_datetime` cannot be set before applying the `dat
 
 ## Declared extensions
 
-The `dates` pipeline declares two [Spacy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes) on the `Span` object :
+The `eds.dates` pipeline declares two [Spacy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes) on the `Span` object :
 
 1. The `date_parsed` attribute is a Python `datetime` object, used internally by the pipeline.
 2. The `date` attribute is a property that displays a normalised human-readable string for the date.
@@ -36,7 +36,7 @@ from edsnlp import components
 from datetime import datetime
 
 nlp = spacy.blank("fr")
-nlp.add_pipe("dates")  # exposed via edsnlp.components
+nlp.add_pipe("eds.dates")  # exposed via edsnlp.components
 
 text = (
     "Le patient est admis le 23 août 2021 pour une douleur à l'estomac. "
@@ -63,4 +63,4 @@ dates[1]._.date
 
 ## Authors and citation
 
-The `dates` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.
+The `eds.dates` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.

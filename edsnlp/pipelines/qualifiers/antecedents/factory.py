@@ -4,8 +4,9 @@ from spacy.language import Language
 
 from edsnlp.pipelines.qualifiers.antecedents import Antecedents, patterns
 from edsnlp.pipelines.terminations import termination
+from edsnlp.utils.deprecation import deprecated_factory
 
-antecedents_default_config = dict(
+DEFAULT_CONFIG = dict(
     attr="NORM",
     antecedents=patterns.antecedents,
     termination=termination,
@@ -15,7 +16,8 @@ antecedents_default_config = dict(
 )
 
 
-@Language.factory("antecedents", default_config=antecedents_default_config)
+@deprecated_factory("antecedents", "eds.antecedents", default_config=DEFAULT_CONFIG)
+@Language.factory("eds.antecedents", default_config=DEFAULT_CONFIG)
 def create_component(
     nlp: Language,
     name: str,

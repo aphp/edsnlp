@@ -19,6 +19,7 @@
   - `connectors` contains `Brat`, `OMOP` and `LabelTool` connectors
   - `utils` contains various utilities
 - Add entry points to make pipeline usable directly, removing the need to import `edsnlp.components`.
+- Add a `eds` namespace for components: for instance, `negation` becomes `eds.negation`. Using the former pipeline name still works, but issues a deprecation warning.
 - Add 3 score pipelines related to emergency
 - Add a helper function to use a SpaCy pipeline as a Spark UDF.
 

@@ -3,6 +3,7 @@ from typing import List, Optional
 from spacy.language import Language
 
 from edsnlp.pipelines.qualifiers.hypothesis import Hypothesis
+from edsnlp.utils.deprecation import deprecated_factory
 
 DEFAULT_CONFIG = dict(
     pseudo=None,
@@ -18,7 +19,8 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@Language.factory("hypothesis", default_config=DEFAULT_CONFIG)
+@deprecated_factory("hypothesis", "eds.hypothesis", default_config=DEFAULT_CONFIG)
+@Language.factory("eds.hypothesis", default_config=DEFAULT_CONFIG)
 def create_component(
     nlp: Language,
     name: str,

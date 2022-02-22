@@ -2,9 +2,11 @@ from typing import List, Union
 
 from spacy.language import Language
 
+from edsnlp.utils.deprecation import deprecated_factory
+
 from . import Dates, patterns
 
-default_config = dict(
+DEFAULT_CONFIG = dict(
     no_year=patterns.no_year_pattern,
     year_only=patterns.full_year_pattern,
     no_day=patterns.no_day_pattern,
@@ -17,8 +19,8 @@ default_config = dict(
 )
 
 
-# noinspection PyUnusedLocal
-@Language.factory("dates", default_config=default_config)
+@deprecated_factory("dates", "eds.dates", default_config=DEFAULT_CONFIG)
+@Language.factory("eds.dates", default_config=DEFAULT_CONFIG)
 def create_component(
     nlp: Language,
     name: str,

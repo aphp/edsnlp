@@ -3,8 +3,9 @@ from typing import Dict, List, Optional, Union
 from spacy.language import Language
 
 from edsnlp.pipelines.misc.reason import Reason, patterns
+from edsnlp.utils.deprecation import deprecated_factory
 
-reason_default_config = dict(
+DEFAULT_CONFIG = dict(
     regex=patterns.reasons,
     attr="TEXT",
     terms=None,
@@ -13,7 +14,8 @@ reason_default_config = dict(
 )
 
 
-@Language.factory("reason", default_config=reason_default_config)
+@deprecated_factory("reason", "eds.reason", default_config=DEFAULT_CONFIG)
+@Language.factory("eds.reason", default_config=DEFAULT_CONFIG)
 def create_component(
     nlp: Language,
     name: str,

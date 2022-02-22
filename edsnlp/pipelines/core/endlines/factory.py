@@ -2,10 +2,13 @@ from typing import Optional
 
 from spacy.language import Language
 
+from edsnlp.utils.deprecation import deprecated_factory
+
 from .endlines import EndLines
 
 
-@Language.factory("endlines")
+@deprecated_factory("endlines", "eds.endlines")
+@Language.factory("eds.endlines")
 def create_component(
     nlp: Language,
     name: str,

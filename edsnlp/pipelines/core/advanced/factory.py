@@ -3,9 +3,20 @@ from typing import Any, Dict
 from spacy.language import Language
 
 from edsnlp.pipelines.core.advanced import AdvancedRegex
+from edsnlp.utils.deprecation import deprecated_factory
+
+DEFAULT_CONFIG = dict(
+    window=10,
+    verbose=0,
+    ignore_excluded=False,
+    attr="NORM",
+)
 
 
-@Language.factory("advanced-regex")
+@deprecated_factory(
+    "advanced-regex", "eds.advanced-regex", default_config=DEFAULT_CONFIG
+)
+@Language.factory("eds.advanced-regex", default_config=DEFAULT_CONFIG)
 def create_component(
     nlp: Language,
     name: str,

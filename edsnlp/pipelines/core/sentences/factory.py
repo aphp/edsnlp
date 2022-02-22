@@ -2,14 +2,16 @@ from typing import List, Optional
 
 from spacy.language import Language
 
+from edsnlp.utils.deprecation import deprecated_factory
+
 from . import SentenceSegmenter
 from .terms import punctuation
 
-default_config = dict(punct_chars=punctuation)
+DEFAULT_CONFIG = dict(punct_chars=punctuation)
 
 
-# noinspection PyUnusedLocal
-@Language.factory("sentences", default_config=default_config)
+@deprecated_factory("sentences", "eds.sentences", default_config=DEFAULT_CONFIG)
+@Language.factory("eds.sentences", default_config=DEFAULT_CONFIG)
 def create_component(
     nlp: Language,
     name: str,

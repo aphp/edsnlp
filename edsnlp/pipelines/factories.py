@@ -2,7 +2,6 @@
 from .core.advanced.factory import create_component as advanced
 from .core.endlines.factory import create_component as endlines
 from .core.matcher.factory import create_component as matcher
-from .core.matcher.factory import create_component_leg as matcher_leg
 from .core.normalizer.accents.factory import create_component as accents
 from .core.normalizer.factory import create_component as normalizer
 from .core.normalizer.lowercase.factory import remove_lowercase

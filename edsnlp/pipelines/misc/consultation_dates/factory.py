@@ -3,8 +3,9 @@ from typing import List, Union
 from spacy.language import Language
 
 from edsnlp.pipelines.misc.consultation_dates import ConsultationDates
+from edsnlp.utils.deprecation import deprecated_factory
 
-consultation_date_default_config = dict(
+DEFAULT_CONFIG = dict(
     consultation_mention=True,
     town_mention=False,
     document_date_mention=False,
@@ -12,7 +13,10 @@ consultation_date_default_config = dict(
 )
 
 
-@Language.factory("consultation_dates", default_config=consultation_date_default_config)
+@deprecated_factory(
+    "consultation_dates", "eds.consultation_dates", default_config=DEFAULT_CONFIG
+)
+@Language.factory("eds.consultation_dates", default_config=DEFAULT_CONFIG)
 def create_component(
     nlp: Language,
     name: str,

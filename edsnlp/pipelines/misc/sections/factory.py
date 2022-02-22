@@ -2,15 +2,17 @@ from typing import Dict, List
 
 from spacy.language import Language
 
+from edsnlp.utils.deprecation import deprecated_factory
+
 from . import Sections, patterns
 
-default_config = dict(
+DEFAULT_CONFIG = dict(
     sections=patterns.sections,
 )
 
 
-# noinspection PyUnusedLocal
-@Language.factory("sections", default_config=default_config)
+@deprecated_factory("sections", "eds.sections", default_config=DEFAULT_CONFIG)
+@Language.factory("eds.sections", default_config=DEFAULT_CONFIG)
 def create_component(
     nlp: Language,
     name: str,

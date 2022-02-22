@@ -3,21 +3,30 @@ from typing import Any, Dict, Union
 from spacy import registry
 from spacy.language import Language
 
-from .accents.factory import default_config as accents_config
+from edsnlp.utils.deprecation import deprecated_factory
+
+from .accents.factory import DEFAULT_CONFIG as accents_config
 from .normalizer import Normalizer
-from .pollution.factory import default_config as pollution_config
-from .quotes.factory import default_config as quotes_config
+from .pollution.factory import DEFAULT_CONFIG as pollution_config
+from .quotes.factory import DEFAULT_CONFIG as quotes_config
+
+DEFAULT_CONFIG = dict(
+    accents=True,
+    lowercase=True,
+    quotes=True,
+    pollution=True,
+)
 
 
-# noinspection PyUnusedLocal
-@Language.factory("normalizer")
+@deprecated_factory("normalizer", "eds.normalizer", default_config=DEFAULT_CONFIG)
+@Language.factory("eds.normalizer")
 def create_component(
     nlp: Language,
     name: str,
-    accents: Union[bool, Dict[str, Any]] = True,
-    lowercase: Union[bool, Dict[str, Any]] = True,
-    quotes: Union[bool, Dict[str, Any]] = True,
-    pollution: Union[bool, Dict[str, Any]] = True,
+    accents: Union[bool, Dict[str, Any]],
+    lowercase: Union[bool, Dict[str, Any]],
+    quotes: Union[bool, Dict[str, Any]],
+    pollution: Union[bool, Dict[str, Any]],
 ):
 
     if accents:

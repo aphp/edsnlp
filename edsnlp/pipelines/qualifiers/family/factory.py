@@ -3,8 +3,9 @@ from typing import List, Optional
 from spacy.language import Language
 
 from edsnlp.pipelines.qualifiers.family import FamilyContext
+from edsnlp.utils.deprecation import deprecated_factory
 
-family_default_config = dict(
+DEFAULT_CONFIG = dict(
     family=None,
     termination=None,
     attr="NORM",
@@ -14,7 +15,8 @@ family_default_config = dict(
 )
 
 
-@Language.factory("family", default_config=family_default_config)
+@deprecated_factory("family", "eds.family", default_config=DEFAULT_CONFIG)
+@Language.factory("eds.family", default_config=DEFAULT_CONFIG)
 def create_component(
     nlp: Language,
     name: str,

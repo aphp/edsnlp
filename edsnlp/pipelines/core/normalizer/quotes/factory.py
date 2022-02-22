@@ -2,16 +2,18 @@ from typing import List, Tuple
 
 from spacy.language import Language
 
+from edsnlp.utils.deprecation import deprecated_factory
+
 from .patterns import quotes_and_apostrophes
 from .quotes import Quotes
 
-default_config = dict(
+DEFAULT_CONFIG = dict(
     quotes=quotes_and_apostrophes,
 )
 
 
-# noinspection PyUnusedLocal
-@Language.factory("quotes", default_config=default_config)
+@deprecated_factory("quotes", "eds.quotes", default_config=DEFAULT_CONFIG)
+@Language.factory("eds.quotes", default_config=DEFAULT_CONFIG)
 def create_component(
     nlp: Language,
     name: str,

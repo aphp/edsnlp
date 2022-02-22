@@ -3,6 +3,7 @@ from typing import List, Optional
 from spacy.language import Language
 
 from edsnlp.pipelines.qualifiers.negation import Negation
+from edsnlp.utils.deprecation import deprecated_factory
 
 DEFAULT_CONFIG = dict(
     pseudo=None,
@@ -17,7 +18,8 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@Language.factory("negation", default_config=DEFAULT_CONFIG)
+@deprecated_factory("negation", "eds.negation", default_config=DEFAULT_CONFIG)
+@Language.factory("eds.negation", default_config=DEFAULT_CONFIG)
 def create_component(
     nlp: Language,
     name: str,
@@ -31,6 +33,7 @@ def create_component(
     within_ents: bool,
     explain: bool,
 ):
+
     return Negation(
         nlp=nlp,
         attr=attr,

@@ -8,7 +8,9 @@
   - Other pipelines can modify the `Token._.excluded` custom attribute
 - EDS regex and term matchers can ignore excluded tokens during matching, effectively adding a second dimension to normalisation (choice of the attribute and possibility to skip _pollution_ tokens regardless of the attribute)
 - Matching can be performed on custom attributes more easily
-- Qualifiers are regrouped together within the `edsnlp.qualifiers` submodule, the inheritance from the `GenericMatcher` is dropped
+- Qualifiers are regrouped together within the `edsnlp.qualifiers` submodule, the inheritance from the `GenericMatcher` is dropped.
+- `edsnlp.utils.filter.filter_spans` now accepts a `label_to_remove` parameter. If set, only corresponding spans are removed, along with overlapping spans. Primary use-case: removing pseudo cues for qualifiers.
+- Generalise the naming convention for extensions, which keep the same name as the pipeline that created them (eg `Span._.negation` for the `eds.negation` pipeline). The previous convention is kept for now, but calling it issues a warning.
 - The `dates` pipeline underwent some light formatting to increase robustness and fix a few issues
 - A new `consultation_dates` pipeline was added, which looks for dates preceded by expressions specific to consultation dates
 - In rule-based processing, the `terms.py` submodule is replaced by `patterns.py` to reflect the possible presence of regular expressions

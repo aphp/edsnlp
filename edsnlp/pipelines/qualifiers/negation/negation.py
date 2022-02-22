@@ -5,6 +5,7 @@ from spacy.tokens import Doc, Span, Token
 
 from edsnlp.pipelines.qualifiers.base import Qualifier
 from edsnlp.pipelines.terminations import termination
+from edsnlp.utils.deprecation import deprecated_getter_factory
 from edsnlp.utils.filter import consume_spans, filter_spans, get_spans
 from edsnlp.utils.inclusion import check_inclusion
 from edsnlp.utils.resources import get_verbs
@@ -100,25 +101,47 @@ class Negation(Qualifier):
     @staticmethod
     def set_extensions() -> None:
 
+        if not Token.has_extension("negation"):
+            Token.set_extension("negation", default=False)
+
         if not Token.has_extension("negated"):
-            Token.set_extension("negated", default=False)
+            Token.set_extension(
+                "negated", getter=deprecated_getter_factory("negated", "negation")
+            )
+
+        if not Token.has_extension("negation_"):
+            Token.set_extension(
+                "negation_",
+                getter=lambda token: "NEG" if token._.negation else "AFF",
+            )
 
         if not Token.has_extension("polarity_"):
             Token.set_extension(
                 "polarity_",
-                getter=lambda token: "NEG" if token._.negated else "AFF",
+                getter=deprecated_getter_factory("polarity_", "negation_"),
             )
 
+        if not Span.has_extension("negation"):
+            Span.set_extension("negation", default=False)
+
         if not Span.has_extension("negated"):
-            Span.set_extension("negated", default=False)
+            Span.set_extension(
+                "negated", getter=deprecated_getter_factory("negated", "negation")
+            )
 
         if not Span.has_extension("negation_cues"):
             Span.set_extension("negation_cues", default=[])
 
+        if not Span.has_extension("negation_"):
+            Span.set_extension(
+                "negation_",
+                getter=lambda span: "NEG" if span._.negation else "AFF",
+            )
+
         if not Span.has_extension("polarity_"):
             Span.set_extension(
                 "polarity_",
-                getter=lambda span: "NEG" if span._.negated else "AFF",
+                getter=deprecated_getter_factory("polarity_", "negation_"),
             )
 
         if not Doc.has_extension("negations"):
@@ -174,16 +197,16 @@ class Negation(Qualifier):
             cues = [m for m in sub_preceding if m.end <= ent.start]
             cues += [m for m in sub_following if m.start >= ent.end]
 
-        negated = ent._.negated or bool(cues)
+        negation = ent._.negation or bool(cues)
 
-        ent._.negated = negated
+        ent._.negation = negation
 
-        if self.explain and negated:
+        if self.explain and negation:
             ent._.negation_cues += cues
 
-        if not self.on_ents_only and negated:
+        if not self.on_ents_only and negation:
             for token in ent:
-                token._.negated = True
+                token._.negation = True
 
     def process(self, doc: Doc) -> Doc:
         """
@@ -234,7 +257,7 @@ class Negation(Qualifier):
 
             if not self.on_ents_only:
                 for token in doc[start:end]:
-                    token._.negated = any(
+                    token._.negation = any(
                         m.end <= token.i for m in sub_preceding
                     ) or any(m.start > token.i for m in sub_following)
 

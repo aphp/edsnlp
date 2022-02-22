@@ -6,13 +6,13 @@ from edsnlp.pipelines.qualifiers.antecedents import Antecedents
 from edsnlp.utils.examples import parse_example
 
 examples: List[str] = [
-    "Antécédents d'<ent antecedent_=ATCD>AVC</ent>.",
-    "atcd <ent antecedent_=ATCD>chirurgicaux</ent> : aucun.",
+    "Antécédents d'<ent antecedents_=ATCD>AVC</ent>.",
+    "atcd <ent antecedents_=ATCD>chirurgicaux</ent> : aucun.",
     "Le patient est <ent antecedent_=CURRENT>fumeur</ent>.",
     # Les sections ne sont pas utilisées par défaut
     (
-        "\nv Antecedents :\n- <ent antecedent_=CURRENT>appendicite</ent>\n"
-        "v Motif :\n<ent antecedent_=CURRENT>malaise</ent>"
+        "\nv Antecedents :\n- <ent antecedents_=CURRENT>appendicite</ent>\n"
+        "v Motif :\n<ent antecedents_=CURRENT>malaise</ent>"
     ),
 ]
 

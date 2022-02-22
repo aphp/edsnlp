@@ -22,11 +22,17 @@ def get_sort_key(span: Span) -> Tuple[int, int]:
 
 def filter_spans(
     spans: Iterable[Union["Span", Tuple["Span", Any]]],
+    label_to_remove: Optional[str] = None,
     return_discarded: bool = False,
 ) -> Tuple[List["Span"], List["Span"]]:
     """
     Re-definition of spacy's filtering function, that returns discarded spans
     as well as filtered ones.
+
+    Can also accept a ``label_to_remove`` argument, useful for filtering out
+    pseudo cues. If set, ``results`` can contain overlapping spans: only
+    spans overlapping with excluded labels are removed. The main expected
+    use case is for pseudo-cues.
 
     .. note ::
 
@@ -44,6 +50,8 @@ def filter_spans(
         Spans to filter.
     return_discarded : bool
         Whether to return discarded spans.
+    label_to_remove : str, optional
+        Label to remove. If set, results can contain overlapping spans.
 
     Returns
     -------
@@ -60,7 +68,8 @@ def filter_spans(
         # Check for end - 1 here because boundaries are inclusive
         if span.start not in seen_tokens and span.end - 1 not in seen_tokens:
             result.append(span)
-            seen_tokens.update(range(span.start, span.end))
+            if label_to_remove is None or span.label_ == label_to_remove:
+                seen_tokens.update(range(span.start, span.end))
         else:
             discarded.append(span)
     result = sorted(result, key=lambda span: span.start)

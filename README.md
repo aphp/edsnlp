@@ -24,7 +24,7 @@ To get a glimpse of what EDS-NLP can do for you, run the interactive demo !
 
 ```shell
 # Clone the repo
-git clone https://gitlab.eds.aphp.fr/equipedatascience/edsnlp.git
+git clone https://gitlab.eds.aphp.fr/datasciencetools/edsnlp.git
 
 # Move to the repo directory
 cd edsnlp
@@ -71,7 +71,7 @@ doc.ents[0]._.negation
 # Out: False
 ```
 
-This example is complete, it should run as-is. See the [documentation](https://datasciencetools-pages.eds.aphp.fr/edsnlp/) for detail.
+This example is complete, it should run as-is. See the [documentation](https://datasciencetools-pages.eds.aphp.fr/edsnlp/documentation) for detail.
 
 ### Available pipelines
 
@@ -95,4 +95,4 @@ EDS-NLP is still young and in constant evolution. Although we strive to remain b
 
 ## Contributing to EDS-NLP
 
-We welcome contributions ! Fork the project and propose a pull request. Take a look at the [dedicated page](https://datasciencetools-pages.eds.aphp.fr/edsnlp/additional/contributing.html) for detail.
+We welcome contributions ! Fork the project and propose a pull request. Take a look at the [dedicated page](https://datasciencetools-pages.eds.aphp.fr/edsnlp/documentation/additional/contributing.html) for detail.

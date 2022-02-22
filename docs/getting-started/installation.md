@@ -5,13 +5,13 @@
 Installing EDS-NLP is straightforward :
 
 ```shell
-pip install git+https://gitlab.eds.aphp.fr/equipedatascience/edsnlp.git
+pip install git+https://gitlab.eds.aphp.fr/datasciencetools/edsnlp.git
 ```
 
 EDS-NLP is still young, and subject to rapid (as well as backward-incompatible) changes. We thus recommend pinning the library version in your projects :
 
 ```shell
-pip install git+https://gitlab.eds.aphp.fr/equipedatascience/edsnlp.git@v0.4.0
+pip install git+https://gitlab.eds.aphp.fr/datasciencetools/edsnlp.git@v0.4.0
 ```
 
 ## Development installation
@@ -20,7 +20,7 @@ To be able to run the test suite, run the example notebooks and develop your own
 
 ```shell
 # Clone the repository and change directory
-git clone https://gitlab.eds.aphp.fr/equipedatascience/edsnlp.git
+git clone https://gitlab.eds.aphp.fr/datasciencetools/edsnlp.git
 cd edsnlp
 
 # Optional: create a virtual environment

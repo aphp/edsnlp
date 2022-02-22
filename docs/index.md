@@ -80,7 +80,7 @@ To get a glimpse of what EDS-NLP can do for you, run the interactive demo !
 
 ```shell
 # Clone the repo
-git clone https://gitlab.eds.aphp.fr/equipedatascience/edsnlp.git
+git clone https://gitlab.eds.aphp.fr/datasciencetools/edsnlp.git
 
 # Move to the repo directory
 cd edsnlp

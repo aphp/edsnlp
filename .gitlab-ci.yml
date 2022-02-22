@@ -1,58 +1,98 @@
 image: harbor.eds.aphp.fr/plateforme-datascience/edsnlp:3.7
 
-default:
-  tags:
-    - k8s-small-generic
+stages:
+  - docker
+  - test
+  - documentation
+  - pages
+  - package
 
-test:
-  before_script:
-    - pip install -r requirements.txt
-    - pip install -r requirements-dev.txt
-    - pip install -r requirements-setup.txt
-    - pip install pyspark
-    - PYTHONPATH="$PWD:$PYTHONPATH" python scripts/conjugate.py
-    - apt-get update
-    - apt install -y git
+Build Docker image:
+  stage: docker
+  image: harbor.eds.aphp.fr/public/kaniko-executor:debug
   script:
+    - echo "{\"auths\":{\"harbor.eds.aphp.fr\":{\"username\":\"$DOCKER_USERNAME\",\"password\":\"$DOCKER_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile.ci --destination harbor.eds.aphp.fr/plateforme-datascience/edsnlp:3.7
+  when: manual
+  # rules:
+  #   - changes:
+  #       - Dockerfile.ci
+  #       - requirements.txt
+  #       - requirements-dev.txt
+  #       - requirements-docs.txt
+  #       - requirements-setup.txt
+  #       - .pre-commit-config.yaml
+  #     if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+Linting (Black, Flake8, isort):
+  stage: test
+  before_script:
+    - scripts/install.sh
     - pre-commit install
+  script:
     - pre-commit run --all-files
+
+Running Pytest:
+  stage: test
+  before_script:
+    - scripts/install.sh
+    - pip install pyspark
+    - python scripts/conjugate.py
+  script:
     - python -m pytest --cov edsnlp --junitxml=report.xml --html=report.html --self-contained-html
   after_script:
     - coverage xml -o coverage.xml
     - coverage html -d htmlcov
+  coverage: "/TOTAL.+ ([0-9]{1,3}%)/"
   artifacts:
+    when: always
     paths:
       - htmlcov/
       - coverage.xml
       - report.html
       - report.xml
     reports:
-      cobertura: coverage.xml
       junit: report.xml
+      cobertura: coverage.xml
 
-pages:
+Installation:
+  stage: test
+  image: harbor.eds.aphp.fr/public/python:3.7
   script:
-    - apt-get update
-    - apt-get install -y pandoc make
-    - pip install -r requirements.txt
-    - pip install -r requirements-docs.txt
-    - pip install pyspark
-    - cd docs ; make html
-    - mv _build/html/ ../public/
+    - pip install .
+
+Build documentation:
+  stage: documentation
+  script:
+    - cd docs
+    - make html
+  artifacts:
+    paths:
+      - docs/_build/html
+
+Publish documentation & coverage:
+  stage: pages
+  script:
+    - mkdir -p public/report
+    - mv docs/_build/html public/documentation
+    - mv htmlcov public/coverage
+    - mv report.html public/report/index.html
   artifacts:
     paths:
       - public
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-package:
+Package:
+  stage: package
   before_script:
-    - pip install -r requirements.txt
-    - pip install -r requirements-dev.txt
-    - pip install -r requirements-setup.txt
-    - PYTHONPATH="$PWD:$PYTHONPATH" python scripts/conjugate.py
+    - scripts/install.sh
+    - python scripts/conjugate.py
+  variables:
+    TWINE_USERNAME: gitlab-ci-token
+    TWINE_PASSWORD: ${CI_JOB_TOKEN}
   script:
     - pip install twine
     - python setup.py sdist bdist_wheel
-    - TWINE_PASSWORD=${CI_JOB_TOKEN} TWINE_USERNAME=gitlab-ci-token python -m twine upload --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi dist/*
+    - python -m twine upload --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi dist/*
   when: manual

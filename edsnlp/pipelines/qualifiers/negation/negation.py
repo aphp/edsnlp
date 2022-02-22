@@ -2,11 +2,10 @@ from typing import List, Optional
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
-from spacy.util import filter_spans
 
 from edsnlp.pipelines.qualifiers.base import Qualifier
 from edsnlp.pipelines.terminations import termination
-from edsnlp.utils.filter import consume_spans, get_spans
+from edsnlp.utils.filter import consume_spans, filter_spans, get_spans
 from edsnlp.utils.inclusion import check_inclusion
 from edsnlp.utils.resources import get_verbs
 
@@ -208,7 +207,7 @@ class Negation(Qualifier):
         ents = None
 
         # Removes duplicate matches and pseudo-expressions in one statement
-        matches = filter_spans(matches)
+        matches = filter_spans(matches, label_to_remove="pseudo")
 
         for start, end in boundaries:
 

@@ -6,6 +6,7 @@ from edsnlp.pipelines.qualifiers.hypothesis import Hypothesis
 from edsnlp.utils.examples import parse_example
 
 examples: List[str] = [
+    "Possible <ent hypothesis_=HYP>covid-19</ent>",
     (
         "Plusieurs <ent hypothesis_=HYP>diagnostics</ent> sont envisagés. "
         "Le patient est informé."

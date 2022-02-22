@@ -6,6 +6,9 @@ from edsnlp.pipelines.qualifiers.family import FamilyContext
 from edsnlp.utils.examples import parse_example
 
 examples: List[str] = [
+    "Son père est atteint de la <ent family=True>COVID</ent>",
+    "Son père a une infection au <ent family=True>COVID</ent>",
+    "Son père a une possible infection au <ent family=True>COVID</ent>",
     (
         "Le père du patient a eu un <ent family_=FAMILY>cancer du colon</ent>. "
         "La mère se porte bien."

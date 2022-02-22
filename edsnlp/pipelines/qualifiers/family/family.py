@@ -3,11 +3,10 @@ from typing import List, Optional
 from loguru import logger
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
-from spacy.util import filter_spans
 
 from edsnlp.pipelines.qualifiers.base import Qualifier
 from edsnlp.pipelines.terminations import termination
-from edsnlp.utils.filter import consume_spans, get_spans
+from edsnlp.utils.filter import consume_spans, filter_spans, get_spans
 from edsnlp.utils.inclusion import check_inclusion
 
 from .patterns import family
@@ -125,7 +124,7 @@ class FamilyContext(Qualifier):
         boundaries = self._boundaries(doc, terminations)
 
         # Removes duplicate matches and pseudo-expressions in one statement
-        matches = filter_spans(matches)
+        matches = filter_spans(matches, label_to_remove="pseudo")
 
         entities = list(doc.ents) + list(doc.spans.get("discarded", []))
         ents = None

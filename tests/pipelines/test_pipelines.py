@@ -4,7 +4,7 @@ def test_pipelines(doc):
 
     assert patient._.date == "????-??-??"
 
-    assert not patient._.negated
-    assert anomalie._.negated
+    assert not patient._.negation
+    assert anomalie._.negation
 
-    assert doc[0]._.antecedent_ == "NOTSET"
+    assert doc[0]._.antecedents_ == "CURRENT"

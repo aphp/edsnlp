@@ -31,7 +31,7 @@ def random_note_nlp(text):
                 end_char=match.end(),
                 lexical_variant=match.group(),
                 note_nlp_source_value=random_word().lower(),
-                negated=random() > 0.5,
+                negation=random() > 0.5,
             )
             ents.append(ent)
 
@@ -69,7 +69,7 @@ def omop(blank_nlp) -> OmopConnector:
 
 @pytest.fixture
 def docs(omop: OmopConnector, note, note_nlp):
-    return omop.omop2docs(note, note_nlp, extensions=["negated"])
+    return omop.omop2docs(note, note_nlp, extensions=["negation"])
 
 
 def test_omop2docs(docs, note, note_nlp):
@@ -85,7 +85,7 @@ def test_omop2docs(docs, note, note_nlp):
 
 
 def test_docs2omop(omop: OmopConnector, docs):
-    note, note_nlp = omop.docs2omop(docs, extensions=["negated"])
+    note, note_nlp = omop.docs2omop(docs, extensions=["negation"])
 
     lexical_variants = note_nlp.groupby("note_id")["lexical_variant"].agg(list)
 
@@ -98,7 +98,7 @@ def test_docs2omop(omop: OmopConnector, docs):
 
 
 def test_roundtrip(omop: OmopConnector, docs, note, note_nlp):
-    note2, note_nlp2 = omop.docs2omop(docs, extensions=["negated"])
+    note2, note_nlp2 = omop.docs2omop(docs, extensions=["negation"])
 
     assert (note2 == note[note2.columns]).all().all()
     assert (note_nlp2 == note_nlp[note_nlp2.columns]).all().all()

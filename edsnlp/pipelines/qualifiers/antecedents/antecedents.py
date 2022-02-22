@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from loguru import logger
 from spacy.language import Language
@@ -6,6 +6,7 @@ from spacy.tokens import Doc, Span, Token
 
 from edsnlp.pipelines.qualifiers.base import Qualifier
 from edsnlp.pipelines.terminations import termination
+from edsnlp.utils.deprecation import deprecated_getter_factory
 from edsnlp.utils.filter import consume_spans, filter_spans, get_spans
 from edsnlp.utils.inclusion import check_inclusion
 
@@ -84,30 +85,47 @@ class Antecedents(Qualifier):
 
     @staticmethod
     def set_extensions() -> None:
-        def antecedent_getter(token_or_span: Union[Token, Span]):
-            if token_or_span._.antecedent is None:
-                return "NOTSET"
-            elif token_or_span._.antecedent:
-                return "ATCD"
-            else:
-                return "CURRENT"
+
+        if not Token.has_extension("antecedents"):
+            Token.set_extension("antecedents", default=False)
 
         if not Token.has_extension("antecedent"):
-            Token.set_extension("antecedent", default=None)
+            Token.set_extension(
+                "antecedent",
+                getter=deprecated_getter_factory("antecedent", "antecedents"),
+            )
+
+        if not Token.has_extension("antecedents_"):
+            Token.set_extension(
+                "antecedents_",
+                getter=lambda token: "ATCD" if token._.antecedents else "CURRENT",
+            )
 
         if not Token.has_extension("antecedent_"):
             Token.set_extension(
                 "antecedent_",
-                getter=antecedent_getter,
+                getter=deprecated_getter_factory("antecedent_", "antecedents_"),
             )
 
+        if not Span.has_extension("antecedents"):
+            Span.set_extension("antecedents", default=False)
+
         if not Span.has_extension("antecedent"):
-            Span.set_extension("antecedent", default=None)
+            Span.set_extension(
+                "antecedent",
+                getter=deprecated_getter_factory("antecedent", "antecedents"),
+            )
+
+        if not Span.has_extension("antecedents_"):
+            Span.set_extension(
+                "antecedents_",
+                getter=lambda span: "ATCD" if span._.antecedents else "CURRENT",
+            )
 
         if not Span.has_extension("antecedent_"):
             Span.set_extension(
                 "antecedent_",
-                getter=antecedent_getter,
+                getter=deprecated_getter_factory("antecedent_", "antecedents_"),
             )
 
         if not Span.has_extension("antecedent_cues"):
@@ -170,20 +188,20 @@ class Antecedents(Qualifier):
             cues = get_spans(sub_matches, "antecedents")
             cues += sub_sections
 
-            antecedent = bool(cues)
+            antecedents = bool(cues)
 
             if not self.on_ents_only:
                 for token in doc[start:end]:
-                    token._.antecedent = antecedent
+                    token._.antecedents = antecedents
 
             for ent in ents:
-                ent._.antecedent = ent._.antecedent or antecedent
+                ent._.antecedents = ent._.antecedents or antecedents
 
                 if self.explain:
                     ent._.antecedent_cues += cues
 
-                if not self.on_ents_only and ent._.antecedent:
+                if not self.on_ents_only and ent._.antecedents:
                     for token in ent:
-                        token._.antecedent = True
+                        token._.antecedents = True
 
         return doc

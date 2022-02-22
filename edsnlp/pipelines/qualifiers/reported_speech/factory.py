@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from spacy.language import Language
 
-from edsnlp.pipelines.qualifiers.rspeech import ReportedSpeech
+from edsnlp.pipelines.qualifiers.reported_speech import ReportedSpeech
 from edsnlp.utils.deprecation import deprecated_factory
 
 DEFAULT_CONFIG = dict(
@@ -18,8 +18,11 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@deprecated_factory("rspeech", "eds.rspeech", default_config=DEFAULT_CONFIG)
-@Language.factory("eds.rspeech", default_config=DEFAULT_CONFIG)
+@deprecated_factory("rspeech", "eds.reported_speech", default_config=DEFAULT_CONFIG)
+@deprecated_factory(
+    "reported_speech", "eds.reported_speech", default_config=DEFAULT_CONFIG
+)
+@Language.factory("eds.reported_speech", default_config=DEFAULT_CONFIG)
 def create_component(
     nlp: Language,
     name: str,

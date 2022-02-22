@@ -22,4 +22,4 @@ from .qualifiers.antecedents.factory import create_component as antecedents
 from .qualifiers.family.factory import create_component as family
 from .qualifiers.hypothesis.factory import create_component as hypothesis
 from .qualifiers.negation.factory import create_component as negation
-from .qualifiers.rspeech.factory import create_component as rspeech
+from .qualifiers.reported_speech.factory import create_component as rspeech

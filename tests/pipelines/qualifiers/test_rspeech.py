@@ -2,7 +2,7 @@ from typing import List
 
 from pytest import fixture, mark
 
-from edsnlp.pipelines.qualifiers.rspeech import ReportedSpeech
+from edsnlp.pipelines.qualifiers.reported_speech import ReportedSpeech
 from edsnlp.utils.examples import parse_example
 
 examples: List[str] = [

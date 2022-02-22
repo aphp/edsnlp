@@ -21,7 +21,6 @@ Build Docker image:
   #       - requirements-dev.txt
   #       - requirements-docs.txt
   #       - requirements-setup.txt
-  #       - .pre-commit-config.yaml
   #     if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 Linting (Black, Flake8, isort):
@@ -70,7 +69,7 @@ Build documentation:
     paths:
       - docs/_build/html
 
-Publish documentation & coverage:
+pages:
   stage: pages
   script:
     - mkdir -p public/report
@@ -96,3 +95,7 @@ Package:
     - python setup.py sdist bdist_wheel
     - python -m twine upload --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi dist/*
   when: manual
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - setup.py

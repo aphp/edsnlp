@@ -1,10 +1,10 @@
 # Hypothesis
 
-The `hypothesis` pipeline uses a simple rule-based algorithm to detect spans that are speculations rather than certain statements. It was designed at AP-HP's EDS.
+The `eds.hypothesis` pipeline uses a simple rule-based algorithm to detect spans that are speculations rather than certain statements. It was designed at AP-HP's EDS.
 
 ## Declared extensions
 
-The `hypothesis` pipeline declares two [Spacy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :
+The `eds.hypothesis` pipeline declares two [Spacy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :
 
 1. The `hypothesis` attribute is a boolean, set to `True` if the pipeline predicts that the span/token is a speculation.
 2. The `hypothesis_` property is a human-readable string, computed from the `hypothesis` attribute. It implements a simple getter function that outputs `HYP` or `CERT`, depending on the value of `hypothesis`.
@@ -35,13 +35,13 @@ import spacy
 from edsnlp import components
 
 nlp = spacy.blank("fr")
-nlp.add_pipe("sentences")
+nlp.add_pipe("eds.sentences")
 # Dummy matcher
 nlp.add_pipe(
-    "matcher",
+    "eds.matcher",
     config=dict(terms=dict(douleur="douleur", fracture="fracture")),
 )
-nlp.add_pipe("hypothesis")
+nlp.add_pipe("eds.hypothesis")
 
 text = (
     "Le patient est admis le 23 août 2021 pour une douleur au bras. "
@@ -75,7 +75,7 @@ The pipeline's performance is measured on three datasets :
 
 ## Authors and citation
 
-The `hypothesis` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.
+The `eds.hypothesis` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.
 
 ## References
 

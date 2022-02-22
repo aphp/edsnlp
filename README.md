@@ -15,7 +15,7 @@ pip install git+https://gitlab.eds.aphp.fr/datasciencetools/edsnlp.git
 We recommend pinning the version of the library :
 
 ```
-pip install git+https://gitlab.eds.aphp.fr/datasciencetools/edsnlp.git@v0.3.2
+pip install git+https://gitlab.eds.aphp.fr/datasciencetools/edsnlp.git@v0.4.0
 ```
 
 ## Running the interactive demo
@@ -67,7 +67,7 @@ doc = nlp("Le patient est atteint de covid")
 doc.ents
 # Out: (covid,)
 
-doc.ents[0]._.negated
+doc.ents[0]._.negation
 # Out: False
 ```
 
@@ -75,19 +75,19 @@ This example is complete, it should run as-is. See the [documentation](https://d
 
 ### Available pipelines
 
-| Pipeline     | Description                            |
-| ------------ | -------------------------------------- |
-| `normalizer` | Non-destructive text normalization     |
-| `sentences`  | Better sentence boundary detection     |
-| `matcher`    | A simple yet powerful entity extractor |
-| `negation`   | Rule-based negation detection          |
-| `family`     | Rule-based family context detection    |
-| `hypothesis` | Rule-based speculation detection       |
-| `antecedent` | Rule-based antecedent detection        |
-| `rspeech`    | Rule-based reported speech detection   |
-| `sections`   | Section detection                      |
-| `dates`      | Date extraction and normalization      |
-| `score`      | A simple clinical score extractor      |
+| Pipeline              | Description                            |
+| --------------------- | -------------------------------------- |
+| `eds.normalizer`      | Non-destructive text normalization     |
+| `eds.sentences`       | Better sentence boundary detection     |
+| `eds.matcher`         | A simple yet powerful entity extractor |
+| `eds.negation`        | Rule-based negation detection          |
+| `eds.family`          | Rule-based family context detection    |
+| `eds.hypothesis`      | Rule-based speculation detection       |
+| `eds.antecedent`      | Rule-based antecedent detection        |
+| `eds.reported_speech` | Rule-based reported speech detection   |
+| `eds.sections`        | Section detection                      |
+| `eds.dates`           | Date extraction and normalization      |
+| `eds.score`           | A simple clinical score extractor      |
 
 ## Disclaimer
 

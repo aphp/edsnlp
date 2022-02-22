@@ -51,7 +51,7 @@ examples.append(
 
 
 @fixture
-def rspeech_factory(blank_nlp):
+def reported_speech_factory(blank_nlp):
 
     default_config = dict(
         pseudo=None,
@@ -79,9 +79,9 @@ def rspeech_factory(blank_nlp):
 
 
 @mark.parametrize("on_ents_only", [True, False])
-def test_rspeech(blank_nlp, rspeech_factory, on_ents_only):
+def test_reported_speech(blank_nlp, reported_speech_factory, on_ents_only):
 
-    rspeech = rspeech_factory(on_ents_only=on_ents_only)
+    reported_speech = reported_speech_factory(on_ents_only=on_ents_only)
 
     for example in examples:
         text, entities = parse_example(example=example)
@@ -91,7 +91,7 @@ def test_rspeech(blank_nlp, rspeech_factory, on_ents_only):
             doc.char_span(ent.start_char, ent.end_char, label="ent") for ent in entities
         ]
 
-        doc = rspeech(doc)
+        doc = reported_speech(doc)
 
         for entity, ent in zip(entities, doc.ents):
 
@@ -104,9 +104,9 @@ def test_rspeech(blank_nlp, rspeech_factory, on_ents_only):
                         assert getattr(token._, modifier.key) == modifier.value
 
 
-def test_rspeech_within_ents(blank_nlp, rspeech_factory):
+def test_reported_speech_within_ents(blank_nlp, reported_speech_factory):
 
-    rspeech = rspeech_factory(on_ents_only=True, within_ents=True)
+    reported_speech = reported_speech_factory(on_ents_only=True, within_ents=True)
 
     examples = [
         "Le patient a une <ent reported_speech=True>"
@@ -121,7 +121,7 @@ def test_rspeech_within_ents(blank_nlp, rspeech_factory):
             doc.char_span(ent.start_char, ent.end_char, label="ent") for ent in entities
         ]
 
-        doc = rspeech(doc)
+        doc = reported_speech(doc)
 
         for entity, ent in zip(entities, doc.ents):
 

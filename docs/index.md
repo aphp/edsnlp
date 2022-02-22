@@ -127,7 +127,7 @@ doc = nlp("Le patient est atteint de covid")
 doc.ents
 # Out: (covid,)
 
-doc.ents[0]._.negated
+doc.ents[0]._.negation
 # Out: False
 ```
 
@@ -135,21 +135,21 @@ This example is complete, it should run as-is.
 
 ## Available pipelines
 
-| Pipeline     | Description                                     |
-| ------------ | ----------------------------------------------- |
-| `normalizer` | Non-destructive input text normalization        |
-| `sentences`  | Better sentence boundary detection              |
-| `matcher`    | A simple yet powerful entity extractor          |
-| `negation`   | Rule-based negation detection                   |
-| `family`     | Rule-based family context detection             |
-| `hypothesis` | Rule-based speculation detection                |
-| `antecedent` | Rule-based antecedent detection                 |
-| `rspeech`    | Rule-based reported speech detection            |
-| `sections`   | Section detection                               |
-| `dates`      | Date extraction and normalization               |
-| `score`      | A simple clinical score extractor               |
-| `endlines`   | An unsupervised model to classify each end line |
-| `reason`     | Rule-based hospitalisation reason detection     |
+| Pipeline              | Description                                     |
+| --------------------- | ----------------------------------------------- |
+| `eds.normalizer`      | Non-destructive input text normalization        |
+| `eds.sentences`       | Better sentence boundary detection              |
+| `eds.matcher`         | A simple yet powerful entity extractor          |
+| `eds.negation`        | Rule-based negation detection                   |
+| `eds.family`          | Rule-based family context detection             |
+| `eds.hypothesis`      | Rule-based speculation detection                |
+| `eds.antecedent`      | Rule-based antecedent detection                 |
+| `eds.reported_speech` | Rule-based reported speech detection            |
+| `eds.sections`        | Section detection                               |
+| `eds.dates`           | Date extraction and normalization               |
+| `eds.score`           | A simple clinical score extractor               |
+| `eds.endlines`        | An unsupervised model to classify each end line |
+| `eds.reason`          | Rule-based hospitalisation reason detection     |
 
 ## Disclaimer
 

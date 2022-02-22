@@ -2,7 +2,7 @@
 
 Matching a terminology is perhaps the most basic application of an NLP pipeline.
 
-EDS-NLP provides a `GenericMatcher` class that simplifies that task, exposing a `matcher` pipeline
+EDS-NLP provides a `GenericMatcher` class that simplifies that task, exposing a `eds.matcher` pipeline
 that can match on terms, regular expressions, and even fuzzy matching.
 
 ## A simple use case : finding COVID
@@ -21,7 +21,7 @@ text = (
 terms = dict(covid=["coronavirus", "covid19"], patient="patient")
 
 nlp = spacy.blank("fr")
-nlp.add_pipe("matcher", config=dict(terms=terms))
+nlp.add_pipe("eds.matcher", config=dict(terms=terms))
 
 doc = nlp(text)
 
@@ -32,7 +32,7 @@ doc.ents
 Let us unpack what happened:
 
 1. We defined a dictionary of terms to look for, in the form `{'label': list of terms}`.
-2. We declare a Spacy pipeline, and add the `matcher` component.
+2. We declare a Spacy pipeline, and add the `eds.matcher` component.
 3. We apply the pipeline to the texts...
 4. And explore the extracted entities.
 
@@ -47,7 +47,7 @@ Let us redefine the pipeline :
 terms = dict(covid=["coronavirus", "covid19"], patient="patient")
 
 nlp = spacy.blank("fr")
-nlp.add_pipe("matcher", config=dict(terms=terms, attr="LOWER"))
+nlp.add_pipe("eds.matcher", config=dict(terms=terms, attr="LOWER"))
 ```
 
 This time, the pipeline will become case insensitive. Hence :
@@ -70,11 +70,11 @@ Let us redefine the pipeline once again :
 regex = dict(covid="(?i)(coronavirus|covid\s?-?19)", patient="patients?")
 
 nlp = spacy.blank("fr")
-nlp.add_pipe("matcher", config=dict(regex=regex))
+nlp.add_pipe("eds.matcher", config=dict(regex=regex))
 ```
 
 Using regular expressions can help define richer patterns using more compact queries.
 
 ## Authors and citation
 
-The `matcher` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.
+The `eds.matcher` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.

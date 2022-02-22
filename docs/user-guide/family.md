@@ -1,10 +1,10 @@
 # Family
 
-The `family` pipeline uses a simple rule-based algorithm to detect spans that describe a family member (or family history) of the patient rather than the patient themself. It was designed at AP-HP's EDS.
+The `eds.family` pipeline uses a simple rule-based algorithm to detect spans that describe a family member (or family history) of the patient rather than the patient themself. It was designed at AP-HP's EDS.
 
 ## Declared extensions
 
-The `family` pipeline declares two [Spacy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :
+The `feds.amily` pipeline declares two [Spacy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :
 
 1. The `family` attribute is a boolean, set to `True` if the pipeline predicts that the span/token relates to a family member.
 2. The `family_` property is a human-readable string, computed from the `family` attribute. It implements a simple getter function that outputs `PATIENT` or `FAMILY`, depending on the value of `family`.
@@ -31,13 +31,13 @@ import spacy
 from edsnlp import components
 
 nlp = spacy.blank("fr")
-nlp.add_pipe("sentences")
+nlp.add_pipe("eds.sentences")
 # Dummy matcher
 nlp.add_pipe(
-    "matcher",
+    "eds.matcher",
     config=dict(terms=dict(douleur="douleur", ostheoporose="osthéoporose")),
 )
-nlp.add_pipe("family")
+nlp.add_pipe("eds.family")
 
 text = (
     "Le patient est admis le 23 août 2021 pour une douleur au bras. "
@@ -69,4 +69,4 @@ The low performance on family labels can be explained by the low number of testi
 
 ## Authors and citation
 
-The `family` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.
+The `eds.family` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.

@@ -1,10 +1,10 @@
 # Reason
 
-The `reason` pipeline uses a rule-based algorithm to detect spans that relate to the reason of the hospitalisation. It was designed at AP-HP's EDS.
+The `eds.reason` pipeline uses a rule-based algorithm to detect spans that relate to the reason of the hospitalisation. It was designed at AP-HP's EDS.
 
 ## Declared extensions
 
-The `reason` pipeline adds the key `reasons` to doc.spans and declares one [Spacy extension](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on the `Span` objects called `ents_reason`.
+The `eds.reason` pipeline adds the key `reasons` to doc.spans and declares one [Spacy extension](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on the `Span` objects called `ents_reason`.
 
 The `ents_reason` extension is a list of named entities that overlap the `Span`. Tipically entities founded in previous pipeline like `matcher`.
 
@@ -31,7 +31,7 @@ nlp = spacy.blank("fr")
 
 # Extraction of entities
 nlp.add_pipe(
-    "matcher",
+    "eds.matcher",
     config=dict(
         terms=dict(
             respiratoire=[
@@ -44,8 +44,8 @@ nlp.add_pipe(
 )
 
 
-nlp.add_pipe("normalizer")
-nlp.add_pipe("reason", config=dict(use_sections=True))
+nlp.add_pipe("eds.normalizer")
+nlp.add_pipe("eds.reason", config=dict(use_sections=True))
 doc = nlp(text)
 
 reason = doc.spans["reasons"][0]
@@ -73,4 +73,4 @@ The pipeline's performance is still being evaluated.
 
 ## Authors and citation
 
-The `reason` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.
+The `eds.reason` pipeline was developed at the Data and Innovation unit, IT department, AP-HP.

@@ -1,23 +1,24 @@
 # Score
 
-The `score` pipeline allows easy extraction of typical scores (Charlson, SOFA...) that can be found in clinical documents.
+The `eds.score` pipeline allows easy extraction of typical scores (Charlson, SOFA...) that can be found in clinical documents.
 The pipeline works by
+
 - Extracting the score's name via the provided regular expressions
-- Extracting the score's *raw* value via another set of RegEx
+- Extracting the score's _raw_ value via another set of RegEx
 - Normalizing the score's value via a normalizing function
 
 ## An example of implemented score: The Charlson Comorbidity Index
 
-Implementing the `score` pipeline, the `charlson` pipeline will extract the [Charlson Comorbidity Index](https://www.mdcalc.com/charlson-comorbidity-index-cci):
+Implementing the `eds.score` pipeline, the `charlson` pipeline will extract the [Charlson Comorbidity Index](https://www.mdcalc.com/charlson-comorbidity-index-cci):
 
 ```python
 import spacy
 from edsnlp import components
 
 nlp = spacy.blank("fr")
-nlp.add_pipe("sentences")
-nlp.add_pipe("normalizer")
-nlp.add_pipe("charlson")
+nlp.add_pipe("eds.sentences")
+nlp.add_pipe("eds.normalizer")
+nlp.add_pipe("eds.charlson")
 
 text = "Charlson à l'admission: 7.\n" "Charlson: \n" "OMS: \n"
 
@@ -55,9 +56,9 @@ import spacy
 from edsnlp import components
 
 nlp = spacy.blank("fr")
-nlp.add_pipe("sentences")
-nlp.add_pipe("normalizer")
-nlp.add_pipe("SOFA")
+nlp.add_pipe("eds.sentences")
+nlp.add_pipe("eds.normalizer")
+nlp.add_pipe("eds.SOFA")
 
 text = "SOFA (à 24H) : 12.\n" "OMS: \n"
 
@@ -83,12 +84,13 @@ Score method can here be "24H", "Maximum", "A l'admission" or "Non précisée"
 
 ## Implementing your own score
 
-Using the `score` pipeline, you only have to change its configuration in order to implement a *simple* score extraction algorithm. As an example, let us see the configuration used for the `charlson` pipe
+Using the `eds.score` pipeline, you only have to change its configuration in order to implement a _simple_ score extraction algorithm. As an example, let us see the configuration used for the `eds.charlson` pipe
 The configuration consists of 4 items:
+
 - `score_name`: The name of the score
 - `regex`: A list of regular expression to detect the score's mention
 - `after_extract`: A regular expression to extract the score's value after the score's mention
-- `score_normalization`: A function name used to normalize the score's *raw* value
+- `score_normalization`: A function name used to normalize the score's _raw_ value
 
 ```{eval-rst}
 .. note::
@@ -107,7 +109,7 @@ def my_normalization_score(raw_score: str):
     return normalized_score
 ```
 
-The values used for the `charlson` pipe are the following:
+The values used for the `eds.charlson` pipe are the following:
 
 ```python
 @spacy.registry.misc("score_normalization.charlson")

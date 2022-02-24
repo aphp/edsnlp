@@ -5,9 +5,9 @@ from typing import Dict, Generator, List, Optional, Union
 from spacy import registry
 from spacy.language import Language, Vocab
 from spacy.matcher import Matcher
-from spacy.tokens import Doc, Span
+from spacy.tokens import Doc, Span, Token
 
-from .utils import Patterns
+from .utils import ATTRIBUTES, Patterns
 
 PatternDict = Dict[str, Union[str, Dict[str, str]]]
 
@@ -68,6 +68,14 @@ class EDSPhraseMatcher(object):
             "excluded_or_space" if exclude_newlines else "excluded"
         )
 
+    @staticmethod
+    def get_attr(token: Token, attr: str, custom_attr: bool = False) -> str:
+        if custom_attr:
+            return getattr(token._, attr)
+        else:
+            attr = ATTRIBUTES.get(attr)
+            return getattr(token, attr)
+
     def create_pattern(
         self,
         match_pattern: Doc,
@@ -103,7 +111,7 @@ class EDSPhraseMatcher(object):
             pattern = []
 
             for token in match_pattern:
-                pattern.append({"_": {attr: token.text}})
+                pattern.append({"_": {attr: self.get_attr(token, attr, True)}})
                 if ignore_excluded and token.whitespace_:
                     # If the token is followed by a whitespace,
                     # we let it match on a pollution
@@ -114,7 +122,7 @@ class EDSPhraseMatcher(object):
             pattern = []
 
             for token in match_pattern:
-                pattern.append({attr: token.text})
+                pattern.append({attr: self.get_attr(token, attr, False)})
                 if ignore_excluded and token.whitespace_:
                     # If the token is followed by a whitespace,
                     # we let it match on a pollution
@@ -146,7 +154,7 @@ class EDSPhraseMatcher(object):
                 attr = None
             if isinstance(expressions, str):
                 expressions = [expressions]
-            patterns = list(nlp.tokenizer.pipe(expressions))
+            patterns = list(nlp.pipe(expressions))
             self.add(key, patterns, attr)
 
     def add(

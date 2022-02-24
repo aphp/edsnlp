@@ -6,6 +6,10 @@ from edsnlp.pipelines.qualifiers.family import FamilyContext
 from edsnlp.utils.examples import parse_example
 
 examples: List[str] = [
+    (
+        "Le père est <ent family=True>asthmatique</ent>, "
+        "sans traitement traitement particulier."
+    ),
     "Son père est atteint de la <ent family=True>COVID</ent>",
     "Son père a une infection au <ent family=True>COVID</ent>",
     "Son père a une possible infection au <ent family=True>COVID</ent>",
@@ -51,7 +55,10 @@ def family_factory(blank_nlp):
 @mark.parametrize("use_sections", [True, False])
 def test_family(blank_nlp, family_factory, on_ents_only, use_sections):
 
-    family = family_factory(on_ents_only=on_ents_only, use_sections=use_sections)
+    family = family_factory(
+        on_ents_only=on_ents_only,
+        use_sections=use_sections,
+    )
 
     for example in examples:
         text, entities = parse_example(example=example)

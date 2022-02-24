@@ -9,7 +9,7 @@ from edsnlp.pipelines.core.normalizer.utils import replace
 
 @fixture
 def text():
-    return "Le patient ʺnˊest pas malade”, écrit-il. Fièvre NBNbWbWbNbWbNB jaune."
+    return "L'aïeul ʺnˊest pas malade”, écrit-il. Fièvre NBNbWbWbNbWbNB jaune."
 
 
 @fixture
@@ -18,13 +18,14 @@ def doc(nlp, text):
 
 
 def test_replace():
-    text = "üîéè"
-    assert replace(text, accents) == "uiee"
+    text = "üîïéè"
+    assert replace(text, accents) == "uiiee"
 
 
 def test_full_normalization(doc):
     norm = get_text(doc, attr="NORM", ignore_excluded=True)
-    assert norm == 'le patient "n\'est pas malade", ecrit-il. fievre jaune.'
+    assert doc[1].norm_ == "aieul"
+    assert norm == "l'aieul \"n'est pas malade\", ecrit-il. fievre jaune."
 
 
 @fixture
@@ -59,9 +60,7 @@ def test_normalization_accents(nlp_factory, text):
 
     norm = get_text(doc, attr="NORM", ignore_excluded=True)
 
-    assert (
-        norm == "Le patient ʺnˊest pas malade”, ecrit-il. Fievre NBNbWbWbNbWbNB jaune."
-    )
+    assert norm == "L'aieul ʺnˊest pas malade”, ecrit-il. Fievre NBNbWbWbNbWbNB jaune."
 
 
 def test_normalization_quotes(nlp_factory, text):
@@ -72,7 +71,7 @@ def test_normalization_quotes(nlp_factory, text):
     norm = get_text(doc, attr="NORM", ignore_excluded=True)
 
     assert (
-        norm == 'Le patient "n\'est pas malade", écrit-il. Fièvre NBNbWbWbNbWbNB jaune.'
+        norm == "L'aïeul \"n'est pas malade\", écrit-il. Fièvre NBNbWbWbNbWbNB jaune."
     )
 
 
@@ -83,7 +82,7 @@ def test_normalization_lowercase(nlp_factory, text):
 
     norm = get_text(doc, attr="NORM", ignore_excluded=True)
 
-    assert norm.startswith("le patient")
+    assert norm.startswith("l'aïeul")
 
 
 def test_normalization_pollution(nlp_factory, text):
@@ -93,4 +92,4 @@ def test_normalization_pollution(nlp_factory, text):
 
     norm = get_text(doc, attr="NORM", ignore_excluded=True)
 
-    assert norm == "Le patient ʺnˊest pas malade”, écrit-il. Fièvre jaune."
+    assert norm == "L'aïeul ʺnˊest pas malade”, écrit-il. Fièvre jaune."

@@ -24,17 +24,19 @@ def get_nlp(config: MatcherConfig) -> Language:
 
     nlp = spacy.blank("fr")
 
-    nlp.add_pipe("sentences")
-    nlp.add_pipe("normalizer")
+    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe("eds.normalizer")
 
     nlp.add_pipe(
-        "matcher",
+        "eds.matcher",
         config=config.dict(),
     )
 
-    nlp.add_pipe("negation")
-    nlp.add_pipe("hypothesis")
-    nlp.add_pipe("rspeech")
+    nlp.add_pipe("eds.negation")
+    nlp.add_pipe("eds.hypothesis")
+    nlp.add_pipe("eds.antecedents")
+    nlp.add_pipe("eds.family")
+    nlp.add_pipe("eds.reported_speech")
 
     return nlp
 
@@ -57,6 +59,8 @@ class Entity(BaseModel):
 
     negated: bool
     hypothesis: bool
+    family: bool
+    antecedents: bool
     reported_speech: bool
 
 
@@ -86,8 +90,10 @@ async def process(
                         label=ent.label_,
                         lexical_variant=ent.text,
                         normalized_variant=ent._.normalized_variant,
-                        negated=ent._.negated,
+                        negated=ent._.negation,
                         hypothesis=ent._.hypothesis,
+                        family=ent._.family,
+                        antecedents=ent._.antecedents,
                         reported_speech=ent._.reported_speech,
                     )
                     for ent in doc.ents

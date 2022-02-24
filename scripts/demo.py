@@ -3,14 +3,6 @@ import spacy
 import streamlit as st
 from spacy import displacy
 
-from edsnlp import components  # noqa
-
-# from pathlib import Path
-
-
-# BASEDIR = Path(__file__).parent.parent
-
-
 DEFAULT_TEXT = """\
 Motif :
 Le patient est admis le 29 août pour des difficultés respiratoires.
@@ -28,14 +20,13 @@ Possible infection au coronavirus\
 
 CODE = r"""
 import spacy
-from edsnlp import components  # Expose EDS-NLP pipelines
 
 # Declare the pipeline
 nlp = spacy.blank("fr")
-nlp.add_pipe("sentences")
+nlp.add_pipe("eds.sentences")
 
 nlp.add_pipe(
-    "matcher",
+    "eds.matcher",
     config=dict(
         regex=dict(
             covid=r"(infection\s+au\s+)?(covid(-|\s+)?(19)?|corona(-|\s+)?virus)",
@@ -62,14 +53,19 @@ doc.ents
 
 @st.cache(allow_output_mutation=True)
 def load_model(
-    negation, family, hypothesis, rspeech, custom_label="CUSTOM", custom_regex=None
+    negation,
+    family,
+    hypothesis,
+    reported_speech,
+    custom_label="CUSTOM",
+    custom_regex=None,
 ):
 
     pipes = []
 
     nlp = spacy.blank("fr")
-    nlp.add_pipe("normalizer")
-    nlp.add_pipe("sentences")
+    nlp.add_pipe("eds.normalizer")
+    nlp.add_pipe("eds.sentences")
 
     regex = dict(
         covid=r"(infection\s+au\s+)?(covid(-|\s+)?(19)?|corona(-|\s+)?virus)",
@@ -81,7 +77,7 @@ def load_model(
         regex[custom_label] = [custom_regex]
 
     nlp.add_pipe(
-        "matcher",
+        "eds.matcher",
         config=dict(
             regex=regex,
             attr="LOWER",
@@ -89,20 +85,20 @@ def load_model(
     )
 
     if negation:
-        nlp.add_pipe("negation")
-        pipes.append('nlp.add_pipe("negation")')
+        nlp.add_pipe("eds.negation")
+        pipes.append('nlp.add_pipe("eds.negation")')
 
     if family:
-        nlp.add_pipe("family")
-        pipes.append('nlp.add_pipe("family")')
+        nlp.add_pipe("eds.family")
+        pipes.append('nlp.add_pipe("eds.family")')
 
     if hypothesis:
-        nlp.add_pipe("hypothesis")
-        pipes.append('nlp.add_pipe("hypothesis")')
+        nlp.add_pipe("eds.hypothesis")
+        pipes.append('nlp.add_pipe("eds.hypothesis")')
 
-    if rspeech:
-        nlp.add_pipe("rspeech")
-        pipes.append('nlp.add_pipe("rspeech")')
+    if reported_speech:
+        nlp.add_pipe("eds.reported_speech")
+        pipes.append('nlp.add_pipe("eds.reported_speech")')
 
     return nlp, pipes
 
@@ -146,7 +142,7 @@ st.sidebar.subheader("Qualifiers")
 negation = st.sidebar.checkbox("Negation", value=True)
 family = st.sidebar.checkbox("Family", value=True)
 hypothesis = st.sidebar.checkbox("Hypothesis", value=True)
-rspeech = st.sidebar.checkbox("Repoted Speech", value=True)
+reported_speech = st.sidebar.checkbox("Repoted Speech", value=True)
 
 model_load_state = st.info("Loading model...")
 
@@ -154,7 +150,7 @@ nlp, pipes = load_model(
     negation=negation,
     family=family,
     hypothesis=hypothesis,
-    rspeech=rspeech,
+    reported_speech=reported_speech,
     custom_label=custom_label,
     custom_regex=custom_regex,
 )
@@ -206,7 +202,7 @@ for ent in doc.ents:
     )
 
     if negation:
-        d["negation"] = ent._.polarity_
+        d["negation"] = ent._.negation_
 
     if family:
         d["family"] = ent._.family_
@@ -214,7 +210,7 @@ for ent in doc.ents:
     if hypothesis:
         d["hypothesis"] = ent._.hypothesis_
 
-    if rspeech:
+    if reported_speech:
         d["rspeech"] = ent._.reported_speech_
 
     data.append(d)

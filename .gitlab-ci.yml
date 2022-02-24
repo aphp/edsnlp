@@ -15,7 +15,7 @@ Build Docker image:
     - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile.ci --destination harbor.eds.aphp.fr/plateforme-datascience/edsnlp:3.7
   when: manual
 
-Linting (Black, Flake8, isort):
+Linting:
   stage: test
   before_script:
     - scripts/install.sh

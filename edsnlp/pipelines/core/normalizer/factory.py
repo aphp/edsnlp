@@ -19,7 +19,7 @@ DEFAULT_CONFIG = dict(
 
 
 @deprecated_factory("normalizer", "eds.normalizer", default_config=DEFAULT_CONFIG)
-@Language.factory("eds.normalizer")
+@Language.factory("eds.normalizer", default_config=DEFAULT_CONFIG)
 def create_component(
     nlp: Language,
     name: str,
@@ -30,23 +30,24 @@ def create_component(
 ):
 
     if accents:
-
         config = dict(**accents_config)
         if isinstance(accents, dict):
             config.update(accents)
-        accents = registry.get("factories", "accents")(nlp, "accents", **config)
+        accents = registry.get("factories", "eds.accents")(nlp, "eds.accents", **config)
 
     if quotes:
         config = dict(**quotes_config)
         if isinstance(quotes, dict):
             config.update(quotes)
-        quotes = registry.get("factories", "quotes")(nlp, "quotes", **config)
+        quotes = registry.get("factories", "eds.quotes")(nlp, "eds.quotes", **config)
 
     if pollution:
         config = dict(**pollution_config)
         if isinstance(pollution, dict):
             config.update(pollution)
-        pollution = registry.get("factories", "pollution")(nlp, "pollution", **config)
+        pollution = registry.get("factories", "eds.pollution")(
+            nlp, "eds.pollution", **config
+        )
 
     normalizer = Normalizer(
         lowercase=lowercase,

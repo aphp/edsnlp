@@ -7,11 +7,17 @@ RUN apt-get update \
     && apt-get install -y software-properties-common \
     && apt-add-repository 'deb http://security.debian.org/debian-security stretch/updates main' \
     && apt-get update \
-    && apt-get install -y openjdk-8-jdk \
-    && apt install -y git pandoc make \
+    && apt-get install -y openjdk-8-jdk git pandoc make \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+
+ENV HTTP_PROXY=http://proxym-inter.aphp.fr:8080
+ENV HTTPS_PROXY=http://proxym-inter.aphp.fr:8080
+ENV http_proxy=http://proxym-inter.aphp.fr:8080
+ENV https_proxy=http://proxym-inter.aphp.fr:8080
+
+RUN pip install --no-cache-dir pyspark
 
 # Copy requirements file
 COPY requirements.txt requirements-dev.txt requirements-docs.txt requirements-setup.txt .pre-commit-config.yaml /app/
@@ -20,8 +26,7 @@ COPY requirements.txt requirements-dev.txt requirements-docs.txt requirements-se
 RUN pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir -r requirements-dev.txt \
     && pip install --no-cache-dir -r requirements-docs.txt \
-    && pip install --no-cache-dir -r requirements-setup.txt \
-    && pip install --no-cache-dir pyspark
+    && pip install --no-cache-dir -r requirements-setup.txt
 
 # Add python path
 ENV PYTHONPATH="$PWD:$PYTHONPATH"

@@ -56,11 +56,10 @@
     :caption: Tutorials
 
     tutorials/first-pipeline
-    tutorials/getting-faster
+    tutorials/using-on-dataframes
     tutorials/notebooks
     tutorials/word-vectors
     tutorials/endlines-example
-    tutorials/working-with-spark
     tutorials/reason-example
 
 .. toctree::

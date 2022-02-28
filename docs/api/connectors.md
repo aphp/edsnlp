@@ -19,9 +19,3 @@
 ```{eval-rst}
 .. automodule:: edsnlp.connectors.labeltool
 ```
-
-## Spark
-
-```{eval-rst}
-.. automodule:: edsnlp.multiprocessing.spark
-```

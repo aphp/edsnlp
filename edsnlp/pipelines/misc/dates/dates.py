@@ -282,10 +282,10 @@ class Dates(BaseComponent):
         self.regex_matcher.add("current", current)
 
         self.parser = date_parser
-        self.declare_extensions()
+        self.set_extensions()
 
     @staticmethod
-    def declare_extensions() -> None:
+    def set_extensions() -> None:
 
         if not Doc.has_extension("note_datetime"):
             Doc.set_extension("note_datetime", default=None)

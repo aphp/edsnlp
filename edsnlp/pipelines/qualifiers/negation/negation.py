@@ -33,26 +33,26 @@ class Negation(Qualifier):
 
     Parameters
     ----------
-    nlp: Language
+    nlp : Language
         spaCy nlp pipeline to use for matching.
-    attr: str
+    attr : str
         spaCy's attribute to use
-    pseudo: List[str]
+    pseudo : Optional[List[str]]
         List of pseudo negation terms.
-    preceding: List[str]
+    preceding : Optional[List[str]]
         List of preceding negation terms
-    following: List[str]
+    following : Optional[List[str]]
         List of following negation terms.
-    termination: List[str]
+    termination : Optional[List[str]]
         List of termination terms.
-    verbs: List[str]
+    verbs : Optional[List[str]]
         List of negation verbs.
-    on_ents_only: bool
+    on_ents_only : bool
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.
-    within_ents: bool
+    within_ents : bool
         Whether to consider cues within entities.
-    explain: bool
+    explain : bool
         Whether to keep track of cues for each entity.
     """
 

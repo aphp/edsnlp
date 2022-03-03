@@ -1,6 +1,6 @@
 # EDS-NLP
 
-A simple library to group together the different pre-processing pipelines that are used at AP-HP, as Spacy components. We focus on **usability and non-destructiveness**.
+A simple library to group together the different pre-processing pipelines that are used at AP-HP, as SpaCy components. We focus on **usability and non-destructiveness**.
 
 ## Getting started
 
@@ -46,7 +46,7 @@ Let us begin with a very simple example that extracts mentions of COVID in a tex
 import spacy
 
 # Load declared pipelines
-from edsnlp import components
+
 
 nlp = spacy.blank("fr")
 

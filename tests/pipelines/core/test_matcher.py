@@ -8,8 +8,6 @@ def matcher_factory(blank_nlp):
 
     default_config = dict(
         attr="TEXT",
-        filter_matches=True,
-        on_ents_only=False,
         ignore_excluded=False,
     )
 

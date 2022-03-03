@@ -5,9 +5,11 @@ from spacy.language import Language
 from edsnlp.utils.deprecation import deprecated_factory
 
 from . import SentenceSegmenter
-from .terms import punctuation
 
-DEFAULT_CONFIG = dict(punct_chars=punctuation)
+DEFAULT_CONFIG = dict(
+    punct_chars=None,
+    use_endlines=True,
+)
 
 
 @deprecated_factory("sentences", "eds.sentences", default_config=DEFAULT_CONFIG)
@@ -15,7 +17,10 @@ DEFAULT_CONFIG = dict(punct_chars=punctuation)
 def create_component(
     nlp: Language,
     name: str,
-    punct_chars: Optional[List[str]] = None,
-    use_endlines: bool = True,
+    punct_chars: Optional[List[str]],
+    use_endlines: bool,
 ):
-    return SentenceSegmenter(punct_chars, use_endlines=use_endlines)
+    return SentenceSegmenter(
+        punct_chars=punct_chars,
+        use_endlines=use_endlines,
+    )

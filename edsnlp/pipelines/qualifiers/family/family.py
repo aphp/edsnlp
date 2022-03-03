@@ -20,22 +20,22 @@ class FamilyContext(Qualifier):
 
     Parameters
     ----------
-    nlp: Language
+    nlp : Language
         spaCy nlp pipeline to use for matching.
-    family: List[str]
+    family : Optional[List[str]]
         List of terms indicating family reference.
-    filter_matches: bool
-        Whether to filter out overlapping matches.
-    attr: str
+    terminations : Optional[List[str]]
+        List of termination terms, to separate syntagmas.
+    attr : str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
         we can also add a key for each regex.
-    on_ents_only: bool
+    on_ents_only : bool
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.
-    regex: Optional[Dict[str, Union[List[str], str]]]
+    regex : Optional[Dict[str, Union[List[str], str]]]
         A dictionnary of regex patterns.
-    explain: bool
+    explain : bool
         Whether to keep track of cues for each entity.
     use_sections : bool, by default ``False``
         Whether to use annotated sections (namely ``antécédents familiaux``).

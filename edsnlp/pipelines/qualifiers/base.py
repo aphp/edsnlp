@@ -28,20 +28,19 @@ class Qualifier(BaseComponent):
 
     Parameters
     ----------
-    nlp: Language
+    nlp : Language
         spaCy nlp pipeline to use for matching.
-    attr: str
+    attr : str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
         we can also add a key for each regex.
-    on_ents_only: bool
+    on_ents_only : bool
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.
-    within_ents: bool
-        Whether to consider cues within entities.
-    explain: bool
+    explain : bool
         Whether to keep track of cues for each entity.
-    **terms: Dict[str, Optional[List[str]]]
+    **terms : Dict[str, Optional[List[str]]]
+        Terms to look for.
     """
 
     defaults = dict()
@@ -91,7 +90,7 @@ class Qualifier(BaseComponent):
         Parameters
         ----------
         doc : Doc
-            Spacy ``Doc`` object.
+            SpaCy ``Doc`` object.
 
         Returns
         -------

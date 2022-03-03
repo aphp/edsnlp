@@ -11,7 +11,7 @@ def remove_lowercase(doc: Doc):
     Parameters
     ----------
     doc : Doc
-        The Spacy ``Doc`` object.
+        The SpaCy ``Doc`` object.
 
     Returns
     -------

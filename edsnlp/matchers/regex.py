@@ -136,17 +136,17 @@ class RegexMatcher(object):
 
     Parameters
     ----------
-    alignment_mode:
+    alignment_mode : str
         How spans should be aligned with tokens.
         Possible values are ``strict`` (character indices must be aligned
         with token boundaries), "contract" (span of all tokens completely
         within the character span), "expand" (span of all tokens at least
         partially covered by the character span).
         Defaults to ``expand``.
-    attr: str
+    attr : str
         Default attribute to match on, by default "TEXT".
         Can be overiden in the ``add`` method.
-    ignore_excluded: bool
+    ignore_excluded : bool
         Whether to skip exclusions
     """
 
@@ -264,7 +264,7 @@ class RegexMatcher(object):
         ignore_excluded: bool,
     ) -> Span:
         """
-        Spacy only allows strict alignment mode for char_span on Spans.
+        SpaCy only allows strict alignment mode for char_span on Spans.
         This method circumvents this.
 
         Parameters
@@ -345,7 +345,7 @@ class RegexMatcher(object):
         Parameters
         ----------
         doclike:
-            Spacy Doc or Span object to match on.
+            SpaCy Doc or Span object to match on.
 
         Yields
         -------
@@ -387,7 +387,7 @@ class RegexMatcher(object):
         Parameters
         ----------
         doclike:
-            Spacy Doc or Span object.
+            SpaCy Doc or Span object.
         as_spans:
             Returns matches as spans.
 

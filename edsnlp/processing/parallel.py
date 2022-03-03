@@ -5,7 +5,7 @@ import spacy
 from joblib import Parallel, delayed
 from spacy import Language
 
-from .simple import _flatten, _pipe_generator, extentions_schema
+from .simple import ExtensionSchema, _flatten, _pipe_generator
 
 nlp = spacy.blank("fr")
 
@@ -46,7 +46,7 @@ def pipe(
     note: pd.DataFrame,
     nlp: Language,
     additional_spans: Union[List[str], str] = "discarded",
-    extensions: extentions_schema = [],
+    extensions: ExtensionSchema = [],
     chunksize: int = 100,
     n_jobs: int = -2,
     progress_bar: bool = True,

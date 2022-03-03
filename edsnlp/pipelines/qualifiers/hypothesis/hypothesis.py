@@ -14,7 +14,7 @@ from .patterns import following, preceding, pseudo, verbs_eds, verbs_hyp
 
 class Hypothesis(Qualifier):
     """
-    Hypothesis detection with Spacy.
+    Hypothesis detection with SpaCy.
 
     The component looks for five kinds of expressions in the text :
 
@@ -27,32 +27,32 @@ class Hypothesis(Qualifier):
 
     Parameters
     ----------
-    nlp: Language
+    nlp : Language
         spaCy nlp pipeline to use for matching.
-    pseudo: List[str]
+    pseudo : Optional[List[str]]
         List of pseudo hypothesis cues.
-    preceding: List[str]
+    preceding : Optional[List[str]]
         List of preceding hypothesis cues
-    following: List[str]
+    following : Optional[List[str]]
         List of following hypothesis cues.
-    verbs_hyp: List[str]
+    verbs_hyp : Optional[List[str]]
         List of hypothetic verbs.
-    verbs_eds: List[str]
+    verbs_eds : Optional[List[str]]
         List of mainstream verbs.
-    filter_matches: bool
+    filter_matches : bool
         Whether to filter out overlapping matches.
-    attr: str
+    attr : str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
         we can also add a key for each regex.
-    on_ents_only: bool
+    on_ents_only : bool
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.
-    within_ents: bool
+    within_ents : bool
         Whether to consider cues within entities.
-    explain: bool
+    explain : bool
         Whether to keep track of cues for each entity.
-    regex: Optional[Dict[str, Union[List[str], str]]]
+    regex : Optional[Dict[str, Union[List[str], str]]]
         A dictionnary of regex patterns.
     """
 

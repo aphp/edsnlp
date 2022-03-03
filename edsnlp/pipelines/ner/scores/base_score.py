@@ -14,22 +14,22 @@ class Score(AdvancedRegex):
 
     Parameters
     ----------
-    nlp: Language
-        The Spacy object.
-    score_name: str
+    nlp : Language
+        The SpaCy object.
+    score_name : str
         The name of the extracted score
-    regex: List[str]
+    regex : List[str]
         A list of regexes to identify the score
-    attr: str
+    attr : str
         Wether to match on the text ('TEXT') or on the normalized text ('NORM')
-    after_extract: str
+    after_extract : str
         Regex with capturing group to get the score value
-    score_normalization: Callable[[Union[str,None]], Any]
+    score_normalization : Callable[[Union[str,None]], Any]
         Function that takes the "raw" value extracted from the `after_extract` regex,
         and should return
         - None if no score could be extracted
         - The desired score value else
-    window: int
+    window : int
         Number of token to include after the score's mention to find the
         score's value
     """

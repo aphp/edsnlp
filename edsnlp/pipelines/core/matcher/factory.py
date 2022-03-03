@@ -9,8 +9,6 @@ DEFAULT_CONFIG = dict(
     terms=None,
     regex=None,
     attr="TEXT",
-    filter_matches=True,
-    on_ents_only=False,
     ignore_excluded=False,
 )
 
@@ -23,10 +21,10 @@ def create_component(
     terms: Optional[Dict[str, Union[str, List[str]]]],
     attr: Union[str, Dict[str, str]],
     regex: Optional[Dict[str, Union[str, List[str]]]],
-    filter_matches: bool,
-    on_ents_only: bool,
     ignore_excluded: bool,
 ):
+    assert not (terms is None and regex is None)
+
     if terms is None:
         terms = dict()
     if regex is None:
@@ -37,7 +35,5 @@ def create_component(
         terms=terms,
         attr=attr,
         regex=regex,
-        filter_matches=filter_matches,
-        on_ents_only=on_ents_only,
         ignore_excluded=ignore_excluded,
     )

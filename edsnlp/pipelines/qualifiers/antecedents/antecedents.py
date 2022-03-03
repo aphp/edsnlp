@@ -21,26 +21,24 @@ class Antecedents(Qualifier):
 
     Parameters
     ----------
-    nlp: Language
+    nlp : Language
         spaCy nlp pipeline to use for matching.
-    antecedents: List[str]
+    antecedents : Optional[List[str]]
         List of terms indicating antecedent reference.
-    termination: List[str]
+    termination : Optional[List[str]]
         List of syntagme termination terms.
-    use_sections: bool
+    use_sections : bool
         Whether to use section pipeline to detect antecedent section.
-    filter_matches: bool
-        Whether to filter out overlapping matches.
-    attr: str
+    attr : str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
         we can also add a key for each regex.
-    on_ents_only: bool
+    on_ents_only : bool
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.
-    regex: Optional[Dict[str, Union[List[str], str]]]
+    regex : Optional[Dict[str, Union[List[str], str]]]
         A dictionnary of regex patterns.
-    explain: bool
+    explain : bool
         Whether to keep track of cues for each entity.
     """
 

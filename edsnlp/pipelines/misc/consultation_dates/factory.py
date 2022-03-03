@@ -14,7 +14,9 @@ DEFAULT_CONFIG = dict(
 
 
 @deprecated_factory(
-    "consultation_dates", "eds.consultation_dates", default_config=DEFAULT_CONFIG
+    "consultation_dates",
+    "eds.consultation_dates",
+    default_config=DEFAULT_CONFIG,
 )
 @Language.factory("eds.consultation_dates", default_config=DEFAULT_CONFIG)
 def create_component(

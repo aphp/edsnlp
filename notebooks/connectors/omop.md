@@ -6,10 +6,10 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.3'
+      format_version: "1.3"
       jupytext_version: 1.13.0
   kernelspec:
-    display_name: 'Python 3.9.5 64-bit (''.env'': venv)'
+    display_name: "Python 3.9.5 64-bit ('.env': venv)"
     name: python3
 ---
 
@@ -26,7 +26,7 @@ from edsnlp.connectors.omop import OmopConnector
 ```
 
 ```python
-from edsnlp import components
+
 ```
 
 # Date detection

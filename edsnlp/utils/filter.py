@@ -34,15 +34,15 @@ def filter_spans(
     spans overlapping with excluded labels are removed. The main expected
     use case is for pseudo-cues.
 
-    .. note ::
+    !!! note
 
-        The **Spacy documentation states**:
+        The **SpaCy documentation states**:
 
-            Filter a sequence of spans and remove duplicates or overlaps.
-            Useful for creating named entities (where one token can only
-            be part of one entity) or when merging spans with
-            ``Retokenizer.merge``. When spans overlap, the (first)
-            longest span is preferred over shorter spans.
+        > Filter a sequence of spans and remove duplicates or overlaps.
+        > Useful for creating named entities (where one token can only
+        > be part of one entity) or when merging spans with
+        > ``Retokenizer.merge``. When spans overlap, the (first)
+        > longest span is preferred over shorter spans.
 
     Parameters
     ----------
@@ -89,7 +89,7 @@ def consume_spans(
     """
     Consume a list of span, according to a filter.
 
-    .. warning ::
+    !!! warning
         This method makes the hard hypothesis that:
 
         1. Spans are sorted.

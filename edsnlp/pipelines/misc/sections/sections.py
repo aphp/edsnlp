@@ -7,6 +7,8 @@ from spacy.util import filter_spans
 
 from edsnlp.pipelines.core.matcher import GenericMatcher
 
+from . import patterns
+
 
 class Sections(GenericMatcher):
     """
@@ -47,13 +49,10 @@ class Sections(GenericMatcher):
 
     Parameters
     ----------
-    nlp:
-        Spacy pipeline object.
-    sections:
-        Dictionary of terms to look for
-    add_newline:
-        Whether to add a new line character before each expression,
-        to improve precision.
+    nlp : Language
+        SpaCy pipeline object.
+    sections : Dict[str, List[str]]
+        Dictionary of terms to look for.
     attr : str
         Default attribute to match on.
     ignore_excluded : bool
@@ -73,6 +72,9 @@ class Sections(GenericMatcher):
             "The component Sections is still in Beta. Use at your own risks."
         )
 
+        if sections is None:
+            sections = patterns.sections
+
         self.add_patterns = add_patterns
         if add_patterns:
             for k, v in sections.items():
@@ -83,19 +85,19 @@ class Sections(GenericMatcher):
             terms=None,
             regex=sections,
             attr=attr,
-            filter_matches=True,
-            on_ents_only=False,
             ignore_excluded=ignore_excluded,
         )
+
+        self.set_extensions()
+
+    @staticmethod
+    def set_extensions():
 
         if not Span.has_extension("section_title"):
             Span.set_extension("section_title", default=None)
 
         if not Span.has_extension("section"):
             Span.set_extension("section", default=None)
-
-        if not nlp.has_pipe("normalizer"):
-            logger.warning("You should add pipe `normalizer`")
 
     # noinspection PyProtectedMember
     def __call__(self, doc: Doc) -> Doc:

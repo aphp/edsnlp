@@ -15,7 +15,7 @@ from .functional import _get_label, build_path
 
 class EndLines(GenericMatcher):
     """
-    Spacy Pipeline to detect whether a newline character should
+    SpaCy Pipeline to detect whether a newline character should
     be considered a space (ie introduced by the PDF).
 
     The pipeline will add the extension ``end_line`` to spans
@@ -27,10 +27,10 @@ class EndLines(GenericMatcher):
 
     Parameters
     ----------
-    nlp: Language
+    nlp : Language
         spaCy nlp pipeline to use for matching.
 
-    end_lines_model: Optional[Union[str, EndLinesModel]], by default = None
+    end_lines_model : Optional[Union[str, EndLinesModel]], by default None
         path to trained model. If None, it will use a default model
     """
 
@@ -45,8 +45,6 @@ class EndLines(GenericMatcher):
             nlp,
             terms=None,
             attr="TEXT",
-            on_ents_only=False,
-            filter_matches=False,
             regex=dict(
                 new_line=r"\n+",
             ),

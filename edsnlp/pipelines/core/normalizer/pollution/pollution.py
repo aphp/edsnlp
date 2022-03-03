@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span
@@ -7,12 +7,14 @@ from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
 
+from . import patterns
+
 
 class Pollution(BaseComponent):
     """
     Tags pollution tokens.
 
-    Populates a number of Spacy extensions :
+    Populates a number of SpaCy extensions :
 
     - `Token._.pollution` : indicates whether the token is a pollution
     - `Doc._.clean` : lists non-pollution tokens
@@ -22,9 +24,9 @@ class Pollution(BaseComponent):
 
     Parameters
     ----------
-    nlp:
+    nlp : Language
         Language pipeline object
-    pollution:
+    pollution : Dict[str, Union[str, List[str]]]
         Dictionary containing regular expressions of pollution.
     """
 
@@ -32,10 +34,13 @@ class Pollution(BaseComponent):
     def __init__(
         self,
         nlp: Language,
-        pollution: Dict[str, Union[str, List[str]]],
+        pollution: Optional[Dict[str, Union[str, List[str]]]],
     ):
 
         self.nlp = nlp
+
+        if pollution is None:
+            pollution = patterns.pollution
 
         self.pollution = pollution
 

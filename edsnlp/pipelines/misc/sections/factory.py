@@ -1,13 +1,16 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from spacy.language import Language
 
 from edsnlp.utils.deprecation import deprecated_factory
 
-from . import Sections, patterns
+from . import Sections
 
 DEFAULT_CONFIG = dict(
-    sections=patterns.sections,
+    sections=None,
+    add_patterns=True,
+    attr="NORM",
+    ignore_excluded=True,
 )
 
 
@@ -16,10 +19,10 @@ DEFAULT_CONFIG = dict(
 def create_component(
     nlp: Language,
     name: str,
-    sections: Dict[str, List[str]],
-    add_patterns: bool = True,
-    attr: str = "NORM",
-    ignore_excluded: bool = True,
+    sections: Optional[Dict[str, List[str]]],
+    add_patterns: bool,
+    attr: str,
+    ignore_excluded: bool,
 ):
     return Sections(
         nlp,

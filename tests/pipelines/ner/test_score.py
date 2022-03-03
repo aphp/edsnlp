@@ -1,4 +1,4 @@
-import edsnlp.components  # noqa: F401
+# noqa: F401
 from edsnlp.pipelines.ner.scores import Score
 
 # from edsnlp.pipelines.ner.scores.charlson import patterns as charlson_terms

@@ -1,14 +1,13 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from spacy.language import Language
 
 from edsnlp.utils.deprecation import deprecated_factory
 
-from .patterns import quotes_and_apostrophes
 from .quotes import Quotes
 
 DEFAULT_CONFIG = dict(
-    quotes=quotes_and_apostrophes,
+    quotes=None,
 )
 
 
@@ -17,7 +16,7 @@ DEFAULT_CONFIG = dict(
 def create_component(
     nlp: Language,
     name: str,
-    quotes: List[Tuple[str, str]],
+    quotes: Optional[List[Tuple[str, str]]],
 ):
     return Quotes(
         quotes=quotes,

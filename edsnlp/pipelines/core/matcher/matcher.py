@@ -16,11 +16,11 @@ class GenericMatcher(BaseComponent):
 
     Parameters
     ----------
-    nlp: Language
-        The Spacy object.
-    terms: Optional[Patterns]
+    nlp : Language
+        The SpaCy object.
+    terms : Optional[Patterns]
         A dictionary of terms.
-    regex: Optional[Patterns]
+    regex : Optional[Patterns]
         A dictionary of regular expressions.
     attr : str
         The default attribute to use for matching.
@@ -40,16 +40,10 @@ class GenericMatcher(BaseComponent):
         terms: Optional[Patterns],
         regex: Optional[Patterns],
         attr: str,
-        filter_matches: bool,
-        on_ents_only: bool,
         ignore_excluded: bool,
     ):
 
         self.nlp = nlp
-
-        self.on_ents_only = on_ents_only
-
-        self.filter_matches = filter_matches
 
         self.attr = attr
 
@@ -83,17 +77,8 @@ class GenericMatcher(BaseComponent):
             List of Spans returned by the matchers.
         """
 
-        if self.on_ents_only:
-            matches = []
-            regex_matches = []
-
-            for sent in set([ent.sent for ent in doc.ents]):
-                matches += list(self.phrase_matcher(sent, as_spans=True))
-                regex_matches += list(self.regex_matcher(sent, as_spans=True))
-
-        else:
-            matches = self.phrase_matcher(doc, as_spans=True)
-            regex_matches = self.regex_matcher(doc, as_spans=True)
+        matches = self.phrase_matcher(doc, as_spans=True)
+        regex_matches = self.regex_matcher(doc, as_spans=True)
 
         spans = list(matches) + list(regex_matches)
 

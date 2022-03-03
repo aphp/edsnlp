@@ -27,7 +27,7 @@ from spacy import displacy
 ```
 
 ```python
-from edsnlp import components
+
 ```
 
 ```python

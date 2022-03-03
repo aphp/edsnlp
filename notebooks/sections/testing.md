@@ -5,7 +5,7 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.3'
+      format_version: "1.3"
       jupytext_version: 1.11.4
   kernelspec:
     display_name: Python 3
@@ -35,7 +35,7 @@ from edsnlp.utils.brat import BratConnector
 ```
 
 ```python
-from edsnlp import components
+
 ```
 
 ```python
@@ -43,7 +43,6 @@ import spacy
 ```
 
 # Sections dataset
-
 
 We are using [Ivan Lerner's work at EDS](https://gitlab.eds.aphp.fr/IvanL/section_dataset). Make sure you clone the repo.
 

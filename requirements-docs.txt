@@ -1,7 +1,11 @@
-ipython
-myst-parser
-nbsphinx
-sphinx
-sphinx-autobuild
-sphinx-rtd-theme
-sphinxcontrib-bibtex
+mkdocs-bibtex
+mkdocs-charts-plugin
+mkdocs-gen-files
+mkdocs-img2fig-plugin
+mkdocs-literate-nav
+mkdocs-material
+mkdocs-section-index
+mkdocstrings
+mkdocstrings-python
+# mknotebooks
+termynal

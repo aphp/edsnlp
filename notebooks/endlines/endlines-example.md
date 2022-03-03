@@ -4,10 +4,10 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.3'
+      format_version: "1.3"
       jupytext_version: 1.13.0
   kernelspec:
-    display_name: 'Python 3.7.1 64-bit (''env_debug'': conda)'
+    display_name: "Python 3.7.1 64-bit ('env_debug': conda)"
     name: python3
 ---
 
@@ -142,7 +142,7 @@ displacy.render(doc_exemple, style="ent", options={"colors":{"end_line":"green",
 # Pipe spacy (inference)
 
 ```python
-import edsnlp.components
+
 ```
 
 ```python

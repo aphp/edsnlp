@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 nlp = spacy.blank("fr")
 
-extentions_schema = Union[
+ExtensionSchema = Union[
     str,
     List[str],
     Dict[str, Any],
@@ -57,7 +57,7 @@ def _pipe_generator(
     note: pd.DataFrame,
     nlp: Language,
     additional_spans: Union[List[str], str] = "discarded",
-    extensions: extentions_schema = [],
+    extensions: ExtensionSchema = [],
     batch_size: int = 1000,
     progress_bar: bool = True,
 ):
@@ -110,7 +110,7 @@ def _full_schema(
     Function used when Parallelizing tasks via joblib.
     Takes a Doc as input, and returns a list of serializable objects
 
-    .. note ::
+    !!! note
 
         The parallelization needs for output objects to be **serializable**:
         after splitting the task into separate jobs, intermediate results
@@ -177,7 +177,7 @@ def pipe(
         For instance, if `extensions=["score_name"]`, the extracted result
         will include, for each entity, `ent._.score_name`.
     batch_size : int, by default 1000
-        Batch size used by Spacy's pipe
+        Batch size used by SpaCy's pipe
     progress_bar: bool, by default True
         Whether to display a progress bar or not
 

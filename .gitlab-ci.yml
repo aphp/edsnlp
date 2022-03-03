@@ -81,7 +81,7 @@ pages:
   stage: pages
   script:
     - mkdir -p public/report
-    - mv docs/_build/html public/documentation
+    - mv documentation public/documentation
     - mv htmlcov public/coverage
     - mv report.html public/report/index.html
   artifacts:

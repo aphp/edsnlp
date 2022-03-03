@@ -21,7 +21,7 @@ class EndLinesModel:
 
     Parameters
     ----------
-    nlp: Language
+    nlp : Language
         spaCy nlp pipeline to use for matching.
     """
 
@@ -572,12 +572,12 @@ class EndLinesModel:
     def set_spans(self, corpus: Iterable[Doc], df: pd.DataFrame):
         """
         Function to set the results of the algorithm (pd.DataFrame)
-        as spans of the Spacy document.
+        as spans of the SpaCy document.
 
         Parameters
         ----------
         corpus : Iterable[Doc]
-            Iterable of Spacy Documents
+            Iterable of SpaCy Documents
         df : pd.DataFrame
             It should have the columns:
             ["DOC_ID","original_token_index","PREDICTED_END_LINE"]
@@ -763,7 +763,7 @@ class EndLinesModel:
         _id : int
             token id
         string_store : StringStore
-            Spacy Language String Store
+            SpaCy Language String Store
 
         Returns
         -------

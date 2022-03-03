@@ -5,10 +5,10 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.3'
+      format_version: "1.3"
       jupytext_version: 1.11.2
   kernelspec:
-    display_name: '[2.4.3] Py3'
+    display_name: "[2.4.3] Py3"
     language: python
     name: pyspark-2.4.3
 ---
@@ -28,8 +28,8 @@ import spacy
 ```
 
 ```python
-# One-shot import of all declared Spacy components
-import edsnlp.components
+# One-shot import of all declared SpaCy components
+
 ```
 
 ```python

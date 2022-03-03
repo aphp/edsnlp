@@ -2,18 +2,10 @@
 
 We welcome contributions ! There are many ways to help. For example, you can:
 
-1. Develop a new pipeline ! Fork the project and propose a new functionality through a merge request ;
-2. Help us track issues through bug reports ;
-3. Suggest and help prioritise new functionalities, without necessarily taking part in active development ;
+1. Help us track bugs by filing issues
+2. Suggest and help prioritise new functionalities
+3. Develop a new pipeline ! Fork the project and propose a new functionality through a pull request
 4. Help us make the library as straightforward as possible, by simply asking questions on whatever does not seem clear to you.
-
-We use a dedicated [collaboration board](https://gitlab.eds.aphp.fr/datasciencetools/edsnlp/-/boards/364) to track questions, suggestions, etc. Issues filed on the board can be one of three main types:
-
-| Type       | Comment                                 |
-| ---------- | --------------------------------------- |
-| Bug report | Report a bug !                          |
-| Bug report | Suggest a new feature                   |
-| Bug report | General-purpose question on the library |
 
 ## Proposing a merge request
 
@@ -29,7 +21,7 @@ We use the Pytest test suite.
 
 The following command will run the test suite. Writing your own tests is encouraged !
 
-```shell script
+```shell
 python -m pytest
 ```
 
@@ -42,11 +34,9 @@ All pipelines should follow the same pattern :
 ```
 edsnlp/pipelines/<pipeline>
    |-- <pipeline>.py                # Defines the component logic
-   |-- terms.py                     # Defines matched patterns
-   |-- factory.py                   # Declares the pipeline to Spacy
+   |-- patterns.py                  # Defines matched patterns
+   |-- factory.py                   # Declares the pipeline to SpaCy
 ```
-
-Supplementary modules may also be included. To make reproducibility possible, legacy implementations should live in a `leg` sub-module. `<pipeline>` always maps to the latest implementation, and older versions can be retrieved using `.v<version-number>` suffix, eg `<pipeline>.v0`.
 
 ### Style Guide
 
@@ -54,6 +44,6 @@ We use [Black](https://github.com/psf/black) to reformat the code. While other f
 
 > Black reformats entire files in place. It is not configurable.
 
-Moreover, the CI/CD pipeline (see [`.gitlab-ci.yml`](https://gitlab.eds.aphp.fr/datasciencetools/edsnlp/-/blob/master/.gitlab-ci.yml)) enforces a number of checks on the "quality" of the code. To wit, non black-formatted code will make the test pipeline fail.
+Moreover, the CI/CD pipeline enforces a number of checks on the "quality" of the code. To wit, non black-formatted code will make the test pipeline fail. We use `pre-commit` to keep our codebase clean.
 
-Refer to the [development install tutorial](../getting-started/installation.md) for tips on how to format your files automatically. Most modern editors propose extensions that will format files on save.
+Refer to the [development install tutorial](/home/installation.md) for tips on how to format your files automatically. Most modern editors propose extensions that will format files on save.

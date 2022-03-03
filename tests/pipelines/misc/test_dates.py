@@ -5,12 +5,13 @@ from pytest import fixture, raises
 from spacy.language import Language
 from spacy.tokens import Span
 
-from edsnlp.pipelines.misc.dates import Dates, patterns
+from edsnlp.pipelines.misc.dates import Dates
 from edsnlp.pipelines.misc.dates.dates import (
     apply_groupdict,
     date_parser,
     parse_groupdict,
 )
+from edsnlp.pipelines.misc.dates.factory import DEFAULT_CONFIG
 
 
 @fixture(scope="session")
@@ -78,15 +79,7 @@ text = (
 def dates(blank_nlp: Language):
     return Dates(
         blank_nlp,
-        absolute=patterns.absolute_date_pattern,
-        full=patterns.full_date_pattern,
-        relative=patterns.relative_date_pattern,
-        no_year=patterns.no_year_pattern,
-        no_day=patterns.no_day_pattern,
-        year_only=patterns.full_year_pattern,
-        current=patterns.current_pattern,
-        false_positive=patterns.false_positive_pattern,
-        on_ents_only=False,
+        **DEFAULT_CONFIG,
     )
 
 

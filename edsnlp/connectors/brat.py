@@ -173,17 +173,17 @@ class BratConnector(object):
 
     def brat2docs(self, nlp: Language) -> List[Doc]:
         """
-        Transforms a BRAT folder to a list of Spacy documents.
+        Transforms a BRAT folder to a list of SpaCy documents.
 
         Parameters
         ----------
         nlp:
-            A Spacy pipeline.
+            A SpaCy pipeline.
 
         Returns
         -------
         docs:
-            List of Spacy documents, with annotations in the `ents` attribute.
+            List of SpaCy documents, with annotations in the `ents` attribute.
         """
         texts, annotations = self.get_brat()
 
@@ -196,7 +196,7 @@ class BratConnector(object):
             ),
             ascii=True,
             ncols=100,
-            desc="Spacy conversion",
+            desc="SpaCy conversion",
             total=len(texts),
         ) as iterator:
             for note_id, doc in iterator:
@@ -224,12 +224,12 @@ class BratConnector(object):
 
     def doc2brat(self, doc: Doc) -> None:
         """
-        Writes a Spacy document to file in the BRAT directory.
+        Writes a SpaCy document to file in the BRAT directory.
 
         Parameters
         ----------
         doc:
-            Spacy Doc object. The spans in `ents` will populate the `note_id.ann` file.
+            SpaCy Doc object. The spans in `ents` will populate the `note_id.ann` file.
         """
         filename = str(doc._.note_id)
 
@@ -274,12 +274,12 @@ class BratConnector(object):
 
     def docs2brat(self, docs: List[Doc]) -> None:
         """
-        Writes a list of Spacy documents to file.
+        Writes a list of SpaCy documents to file.
 
         Parameters
         ----------
         docs:
-            List of Spacy documents.
+            List of SpaCy documents.
         """
         for doc in docs:
             self.doc2brat(doc)

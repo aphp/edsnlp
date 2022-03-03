@@ -21,10 +21,10 @@ def create_component(
     nlp: Language,
     name: str,
     regex_config: Dict[str, Any],
-    window: int = 10,
-    verbose: int = 0,
-    ignore_excluded: bool = False,
-    attr: str = "NORM",
+    window: int,
+    verbose: int,
+    ignore_excluded: bool,
+    attr: str,
 ):
 
     return AdvancedRegex(

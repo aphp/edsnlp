@@ -5,7 +5,8 @@ from spacy.language import Language
 from spacy.tokens import Doc, Span
 
 from edsnlp.pipelines.core.matcher import GenericMatcher
-from edsnlp.pipelines.misc.dates import Dates, patterns
+from edsnlp.pipelines.misc.dates import Dates
+from edsnlp.pipelines.misc.dates.factory import DEFAULT_CONFIG
 
 from . import patterns as consult_regex
 
@@ -14,10 +15,10 @@ class ConsultationDates(GenericMatcher):
     """
     Class to extract consultation dates from "CR-CONS" documents.
 
-    The pipeline populates the ``doc.spans['consultation_dates']`` list.
+    The pipeline populates the `#!python doc.spans['consultation_dates']` list.
 
-    For each extraction ``s`` in this list, the corresponding date is available
-    as ``s._.consultation_date``.
+    For each extraction `s` in this list, the corresponding date is available
+    as `s._.consultation_date`.
 
     Parameters
     ----------
@@ -26,18 +27,19 @@ class ConsultationDates(GenericMatcher):
     consultation_mention : Union[List[str], bool]
         List of RegEx for consultation mentions.
 
-        - If ``type==list``: Overrides the default list
-        - If ``type==bool``: Uses the default list of True, disable if False
+        - If `type==list`: Overrides the default list
+        - If `type==bool`: Uses the default list of True, disable if False
+
     town_mention : Union[List[str], bool]
         List of RegEx for all AP-HP hospitals' towns mentions.
 
-        - If ``type==list``: Overrides the default list
-        - If ``type==bool``: Uses the default list of True, disable if False
+        - If `type==list`: Overrides the default list
+        - If `type==bool`: Uses the default list of True, disable if False
     document_date_mention : Union[List[str], bool]
         List of RegEx for document date.
 
-        - If ``type==list``: Overrides the default list
-        - If ``type==bool``: Uses the default list of True, disable if False
+        - If `type==list`: Overrides the default list
+        - If `type==bool`: Uses the default list of True, disable if False
     """
 
     def __init__(
@@ -63,18 +65,11 @@ class ConsultationDates(GenericMatcher):
         )
 
         if not (nlp.has_pipe("dates") and nlp.get_pipe("dates").on_ents_only is False):
-            self.date_matcher = Dates(
-                nlp,
-                absolute=patterns.absolute_date_pattern,
-                full=patterns.full_date_pattern,
-                relative=patterns.relative_date_pattern,
-                no_year=patterns.no_year_pattern,
-                no_day=patterns.no_day_pattern,
-                year_only=patterns.full_year_pattern,
-                current=patterns.current_pattern,
-                false_positive=patterns.false_positive_pattern,
-                on_ents_only="consultation_mentions",
-            )
+
+            config = dict(**DEFAULT_CONFIG)
+            config["on_ents_only"] = "consultation_mentions"
+
+            self.date_matcher = Dates(nlp, **config)
 
         else:
             self.date_matcher = None
@@ -104,9 +99,7 @@ class ConsultationDates(GenericMatcher):
             nlp,
             regex=regex,
             terms=dict(),
-            filter_matches=False,
             attr=attr,
-            on_ents_only=False,
             ignore_excluded=False,
             **kwargs,
         )

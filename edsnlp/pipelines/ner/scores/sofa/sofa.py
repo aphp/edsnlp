@@ -14,25 +14,25 @@ class Sofa(Score):
 
     Parameters
     ----------
-    nlp: Language
-        The Spacy object.
-    score_name: str
+    nlp : Language
+        The SpaCy object.
+    score_name : str
         The name of the extracted score
-    regex: List[str]
+    regex : List[str]
         A list of regexes to identify the SOFA score
-    attr: str
+    attr : str
         Wether to match on the text ('TEXT') or on the normalized text ('CUSTOM_NORM')
-    method_regex: str
+    method_regex : str
         Regex with capturing group to get the score extraction method
         (e.g. "à l'admission", "à 24H", "Maximum")
-    value_regex: str
+    value_regex : str
         Regex to extract the score value
-    score_normalization: Callable[[Union[str,None]], Any]
+    score_normalization : Callable[[Union[str,None]], Any]
         Function that takes the "raw" value extracted from the `after_extract` regex,
         and should return
         - None if no score could be extracted
         - The desired score value else
-    window: int
+    window : int
         Number of token to include after the score's mention to find the
         score's value
     """

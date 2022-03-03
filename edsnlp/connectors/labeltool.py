@@ -14,7 +14,7 @@ def docs2labeltool(
 
     Parameters
     ----------
-    docs: list of Spacy Doc
+    docs: list of SpaCy Doc
         List of annotated spacy docs.
     extensions: list of extensions
         List of extensions to use by labeltool.

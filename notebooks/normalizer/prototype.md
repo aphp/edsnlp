@@ -5,10 +5,10 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.3'
+      format_version: "1.3"
       jupytext_version: 1.13.4
   kernelspec:
-    display_name: 'Python 3.9.5 64-bit (''.venv'': venv)'
+    display_name: "Python 3.9.5 64-bit ('.venv': venv)"
     language: python
     name: python3
 ---
@@ -31,7 +31,7 @@ from edsnlp.matchers.exclusion import ExclusionMatcher
 ```
 
 ```python
-from edsnlp import components
+
 ```
 
 ```python

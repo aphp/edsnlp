@@ -5,10 +5,10 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.3'
+      format_version: "1.3"
       jupytext_version: 1.13.5
   kernelspec:
-    display_name: 'Python 3.9.5 64-bit (''.env'': venv)'
+    display_name: "Python 3.9.5 64-bit ('.env': venv)"
     name: python3
 ---
 
@@ -29,20 +29,20 @@ with open('example.txt', 'r') as f:
 print(text)
 ```
 
-## Définition d'un pipeline Spacy
+## Définition d'un pipeline SpaCy
 
 ```python slideshow={"slide_type": "slide"}
-# Importation de Spacy
+# Importation de SpaCy
 import spacy
 ```
 
 ```python
 # Chargement des composants EDS-NLP
-import edsnlp.components
+
 ```
 
 ```python
-# Création de l'instance Spacy
+# Création de l'instance SpaCy
 nlp = spacy.blank('fr')
 
 # Normalisation des accents, de la casse et autres caractères spéciaux
@@ -85,7 +85,7 @@ doc = nlp(text)
 doc
 ```
 
-Les traitements effectués par EDS-NLP (et Spacy en général) sont non-destructifs :
+Les traitements effectués par EDS-NLP (et SpaCy en général) sont non-destructifs :
 
 ```python
 # Non-destruction
@@ -104,14 +104,13 @@ for token in doc[3:15]:
 
 Le pipeline que nous avons appliqué a extrait des entités avec le `matcher`.
 
-
 Les entités détectées se retrouvent dans l'attribut `ents` :
 
 ```python
 doc.ents
 ```
 
-EDS-NLP étant fondée sur Spacy, on peut utiliser tous les outils proposés autour de cette bibliothèque :
+EDS-NLP étant fondée sur SpaCy, on peut utiliser tous les outils proposés autour de cette bibliothèque :
 
 ```python
 from spacy import displacy
@@ -143,9 +142,7 @@ entity._.negated
 
 Le pipeline n'a pas détecté de négation pour cette entité.
 
-
 ## Application du pipleline sur une table de textes
-
 
 Les textes seront le plus souvent disponibles sous la forme d'un DataFrame pandas, qu'on peut simuler ici :
 

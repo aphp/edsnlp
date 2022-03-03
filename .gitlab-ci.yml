@@ -47,8 +47,8 @@ Running Pytest:
       cobertura: coverage.xml
   rules:
     - changes:
-        - tests/
-        - edsnlp/
+        - tests/**
+        - edsnlp/**
         - .gitlab-ci.yml
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
@@ -60,20 +60,20 @@ Installation:
   rules:
     - changes:
         - setup.py
-        - edsnlp/
+        - edsnlp/**
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 Build documentation:
   stage: documentation
   script:
-    - cd docs
-    - make html
+    - pip install -r requirements-docs.txt
+    - mkdocs build --site-dir documentation
   artifacts:
     paths:
-      - docs/_build/html
+      - documentation
   rules:
     - changes:
-        - docs/
+        - docs/**
         - .gitlab-ci.yml
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 

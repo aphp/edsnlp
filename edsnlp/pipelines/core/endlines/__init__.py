@@ -1,1 +1,1 @@
-from .endlines import *
+from .endlines import EndLines, EndLinesModel

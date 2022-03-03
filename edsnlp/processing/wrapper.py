@@ -1,11 +1,11 @@
-from typing import List, Union
+from typing import Any, Dict, List, Union
 
 import pandas as pd
 import pyspark.sql as ps
 from spacy import Language
 
 from .parallel import pipe as parallel_pipe
-from .simple import extentions_schema
+from .simple import ExtensionSchema
 from .simple import pipe as simple_pipe
 from .spark import pipe as spark_pipe
 
@@ -15,8 +15,8 @@ def pipe(
     nlp: Language,
     how: str = "parallel",
     additional_spans: Union[List[str], str] = "discarded",
-    extensions: extentions_schema = [],
-    **kwargs,
+    extensions: ExtensionSchema = [],
+    **kwargs: Dict[str, Any],
 ) -> Union[pd.DataFrame, ps.DataFrame]:
     """
     Function to apply a SpaCy pipe to a pandas or pyspark DataFrame
@@ -29,7 +29,7 @@ def pipe(
     nlp : Language
         A SpaCy pipe
     how : str, by default "parallel"
-        3 methods are avaiable here:
+        3 methods are available here:
 
         - `how='simple'`: Single process on a Pandas DataFrame
         - `how='parallel'`: Parallelized processes on a Pandas DataFrame
@@ -43,7 +43,7 @@ def pipe(
         Spans extensions to add to the extracted results:
         For instance, if `extensions=["score_name"]`, the extracted result
         will include, for each entity, `ent._.score_name`.
-    kwargs:
+    kwargs : Dict[str, Any]
         Additionnal parameters depending on the `how` argument.
 
     Returns

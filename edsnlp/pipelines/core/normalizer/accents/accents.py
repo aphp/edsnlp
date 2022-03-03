@@ -1,8 +1,9 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from spacy.tokens import Doc
 
 from ..utils import replace
+from . import patterns
 
 
 class Accents(object):
@@ -15,7 +16,9 @@ class Accents(object):
         List of accentuated characters and their transcription.
     """
 
-    def __init__(self, accents: List[Tuple[str, str]]) -> None:
+    def __init__(self, accents: Optional[List[Tuple[str, str]]]) -> None:
+        if accents is None:
+            accents = patterns.accents
         self.accents = accents
 
     def __call__(self, doc: Doc) -> Doc:
@@ -25,7 +28,7 @@ class Accents(object):
         Parameters
         ----------
         doc : Doc
-            The Spacy ``Doc`` object.
+            The SpaCy ``Doc`` object.
 
         Returns
         -------

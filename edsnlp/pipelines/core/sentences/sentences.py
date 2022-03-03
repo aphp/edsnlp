@@ -2,13 +2,15 @@ from typing import List, Optional
 
 from spacy.tokens import Doc
 
+from .terms import punctuation
+
 
 class SentenceSegmenter(object):
     """
     Segments the Doc into sentences using a rule-based strategy,
     specific to AP-HP documents.
 
-    Applies the same rule-based pipeline as Spacy's sentencizer,
+    Applies the same rule-based pipeline as SpaCy's sentencizer,
     and adds a simple rule on the new lines : if a new line is followed by a
     capitalised word, then it is also an end of sentence.
 
@@ -16,8 +18,10 @@ class SentenceSegmenter(object):
 
     Arguments
     ---------
-    punct_chars:
+    punct_chars : Optional[List[str]]
         Punctuation characters.
+    use_endlines : bool
+        Whether to use endlines prediction.
     """
 
     def __init__(
@@ -25,6 +29,10 @@ class SentenceSegmenter(object):
         punct_chars: Optional[List[str]],
         use_endlines: bool,
     ):
+
+        if punct_chars is None:
+            punct_chars = punctuation
+
         self.punct_chars = set(punct_chars)
         self.use_endlines = use_endlines
 
@@ -40,7 +48,7 @@ class SentenceSegmenter(object):
         Returns
         -------
         doc:
-            A Spacy Doc object, annotated for sentences.
+            A SpaCy Doc object, annotated for sentences.
         """
 
         if not doc:

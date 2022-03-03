@@ -51,8 +51,6 @@ class AdvancedRegex(GenericMatcher):
             terms=dict(),
             regex=regex,
             attr=attr,
-            filter_matches=True,
-            on_ents_only=False,
             ignore_excluded=ignore_excluded,
         )
 
@@ -88,7 +86,7 @@ class AdvancedRegex(GenericMatcher):
         Parameters
         ----------
         doc : Doc
-            Spacy Doc object
+            SpaCy Doc object
 
         Returns
         -------

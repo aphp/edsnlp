@@ -5,7 +5,7 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.3'
+      format_version: "1.3"
       jupytext_version: 1.11.4
   kernelspec:
     display_name: Python 3
@@ -28,8 +28,8 @@ import spacy
 ```
 
 ```python
-# One-shot import of all declared Spacy components
-import edsnlp.components
+# One-shot import of all declared SpaCy components
+
 ```
 
 # Baselines

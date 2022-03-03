@@ -5,7 +5,7 @@ from spacy.language import Language
 from spacy.tokens import Doc, Span
 
 from edsnlp.pipelines.core.matcher import GenericMatcher
-from edsnlp.pipelines.misc.reason.patterns import section_exclude, sections_reason
+from edsnlp.pipelines.misc.reason import patterns
 from edsnlp.utils.filter import get_spans
 from edsnlp.utils.inclusion import check_inclusion
 
@@ -22,36 +22,37 @@ class Reason(GenericMatcher):
 
     Parameters
     ----------
-    nlp: Language
+    nlp : Language
         spaCy nlp pipeline to use for matching.
-    terms : Optional[Dict[str, Union[List[str], str]]]
-        A dictionary of terms.
-    attr: str
+    reasons : Optional[Dict[str, Union[List[str], str]]]
+        The terminology of reasons.
+    attr : str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with
         the key 'term_attr'. We can also add a key for each regex.
-    regex: Optional[Dict[str, Union[List[str], str]]]
-        A dictionnary of regex patterns.
-    use_sections: bool,
+    use_sections : bool,
         whether or not use the ``sections`` pipeline to improve results.
+    ignore_excluded : bool
+        Whether to skip excluded tokens.
     """
 
     def __init__(
         self,
         nlp: Language,
-        terms: Optional[Dict[str, Union[List[str], str]]],
+        reasons: Optional[Dict[str, Union[List[str], str]]],
         attr: Union[Dict[str, str], str],
-        regex: Optional[Dict[str, Union[List[str], str]]],
         use_sections: bool,
         ignore_excluded: bool,
     ):
+
+        if reasons is None:
+            reasons = patterns.reasons
+
         super().__init__(
             nlp,
-            terms=terms,
-            regex=regex,
+            terms=None,
+            regex=reasons,
             attr=attr,
-            filter_matches=False,
-            on_ents_only=False,
             ignore_excluded=ignore_excluded,
         )
 
@@ -62,6 +63,11 @@ class Reason(GenericMatcher):
                 "provided by the `section` pipeline, but it was not set. "
                 "Skipping that step."
             )
+
+        self.set_extensions()
+
+    @staticmethod
+    def set_extensions() -> None:
 
         if not Span.has_extension("ents_reason"):
             Span.set_extension("ents_reason", default=None)
@@ -87,10 +93,10 @@ class Reason(GenericMatcher):
         """
 
         for section in sections:
-            if section.label_ in sections_reason:
+            if section.label_ in patterns.sections_reason:
                 reasons.append(section)
 
-            if section.label_ in section_exclude:
+            if section.label_ in patterns.section_exclude:
                 for reason in reasons:
                     if check_inclusion(reason, section.start, section.end):
                         reasons.remove(reason)

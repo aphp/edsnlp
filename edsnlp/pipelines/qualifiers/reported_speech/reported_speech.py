@@ -21,29 +21,29 @@ class ReportedSpeech(Qualifier):
 
     Parameters
     ----------
-    nlp: Language
+    nlp : Language
         spaCy nlp pipeline to use for matching.
-    quotation: str
+    quotation : str
         String gathering all quotation cues.
-    verbs: List[str]
+    verbs : List[str]
         List of reported speech verbs.
-    following: List[str]
+    following : List[str]
         List of terms following a reported speech.
-    preceding: List[str]
+    preceding : List[str]
         List of terms preceding a reported speech.
-    filter_matches: bool
+    filter_matches : bool
         Whether to filter out overlapping matches.
-    attr: str
+    attr : str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM",
         or a dict with the key 'term_attr'
         we can also add a key for each regex.
-    on_ents_only: bool
+    on_ents_only : bool
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.
-    within_ents: bool
+    within_ents : bool
         Whether to consider cues within entities.
-    explain: bool
+    explain : bool
         Whether to keep track of cues for each entity.
     """
 

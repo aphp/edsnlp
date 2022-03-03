@@ -1,7 +1,7 @@
 import re
 from datetime import datetime, timedelta
 from itertools import chain
-from typing import Dict, Generator, Iterable, List, Optional, Tuple, Union
+from typing import Dict, Generator, Iterable, List, Optional, Tuple
 
 from dateparser import DateDataParser
 from dateparser_data.settings import default_parsers
@@ -12,6 +12,7 @@ from spacy.util import filter_spans
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.pipelines.base import BaseComponent
 
+from . import patterns
 from .parsing import day2int, month2int, str2int
 
 
@@ -207,7 +208,7 @@ class Dates(BaseComponent):
 
     Parameters
     ----------
-    nlp: spacy.language.Language
+    nlp : spacy.language.Language
         Language pipeline object
     absolute : Union[List[str], str]
         List of regular expressions for absolute dates.
@@ -239,18 +240,36 @@ class Dates(BaseComponent):
     def __init__(
         self,
         nlp: Language,
-        absolute: Union[List[str], str],
-        full: Union[List[str], str],
-        relative: Union[List[str], str],
-        no_year: Union[List[str], str],
-        no_day: Union[List[str], str],
-        year_only: Union[List[str], str],
-        current: Union[List[str], str],
-        false_positive: Union[List[str], str],
-        on_ents_only: Union[bool, str, List[str]],
+        absolute: Optional[List[str]],
+        full: Optional[List[str]],
+        relative: Optional[List[str]],
+        no_year: Optional[List[str]],
+        no_day: Optional[List[str]],
+        year_only: Optional[List[str]],
+        current: Optional[List[str]],
+        false_positive: Optional[List[str]],
+        on_ents_only: bool,
+        attr: str,
     ):
 
         self.nlp = nlp
+
+        if no_year is None:
+            no_year = patterns.no_year_pattern
+        if year_only is None:
+            year_only = patterns.full_year_pattern
+        if no_day is None:
+            no_day = patterns.no_day_pattern
+        if absolute is None:
+            absolute = patterns.absolute_date_pattern
+        if relative is None:
+            relative = patterns.relative_date_pattern
+        if full is None:
+            full = patterns.full_date_pattern
+        if current is None:
+            current = patterns.current_pattern
+        if false_positive is None:
+            false_positive = patterns.false_positive_pattern
 
         if isinstance(absolute, str):
             absolute = [absolute]
@@ -270,7 +289,7 @@ class Dates(BaseComponent):
             false_positive = [false_positive]
 
         self.on_ents_only = on_ents_only
-        self.regex_matcher = RegexMatcher(attr="LOWER", alignment_mode="strict")
+        self.regex_matcher = RegexMatcher(attr=attr, alignment_mode="strict")
 
         self.regex_matcher.add("false_positive", false_positive)
         self.regex_matcher.add("full_date", full)

@@ -1,8 +1,9 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from spacy.tokens import Doc
 
 from ..utils import replace
+from .patterns import quotes_and_apostrophes
 
 
 class Quotes(object):
@@ -16,7 +17,9 @@ class Quotes(object):
         List of quotation characters and their transcription.
     """
 
-    def __init__(self, quotes: List[Tuple[str, str]]) -> None:
+    def __init__(self, quotes: Optional[List[Tuple[str, str]]]) -> None:
+        if quotes is None:
+            quotes = quotes_and_apostrophes
         self.quotes = quotes
 
     def __call__(self, doc: Doc) -> Doc:

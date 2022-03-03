@@ -1,8 +1,8 @@
-loguru
-numpy
-scikit-learn>=1.0.0
-pandas>=1.1
-spacy>=3.1<4.0.0
-tqdm
 dateparser
 decorator
+loguru
+numpy
+pandas>=1.1
+scikit-learn>=1.0.0
+spacy>=3.1<4.0.0
+tqdm

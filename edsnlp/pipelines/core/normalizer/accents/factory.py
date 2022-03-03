@@ -1,14 +1,13 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from spacy.language import Language
 
 from edsnlp.utils.deprecation import deprecated_factory
 
 from .accents import Accents
-from .patterns import accents
 
 DEFAULT_CONFIG = dict(
-    accents=accents,
+    accents=None,
 )
 
 
@@ -17,7 +16,7 @@ DEFAULT_CONFIG = dict(
 def create_component(
     nlp: Language,
     name: str,
-    accents: List[Tuple[str, str]],
+    accents: Optional[List[Tuple[str, str]]],
 ):
     return Accents(
         accents=accents,

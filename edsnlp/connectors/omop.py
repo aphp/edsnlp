@@ -306,7 +306,7 @@ class OmopConnector(object):
 
         Parameters
         ----------
-        List[Doc]
+        docs : List[Doc]
             List of spaCy documents.
         extensions : Optional[List[str]], optional
             Extensions to keep, by default None

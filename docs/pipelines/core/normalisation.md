@@ -185,7 +185,7 @@ get_text(doc, attr="TEXT", ignore_excluded=True)
 This example above shows that the normalisation scheme works on two axes: non-destructive text modification and exclusion of tokens.
 The two are independent: a matcher can use the `NORM` attribute but keep excluded tokens, and conversely, match on `TEXT` while ignoring excluded tokens.
 
-![Pollution alignment](/pipelines/core/resources/alignment.svg)
+![Pollution alignment](./resources/alignment.svg)
 
 ## Authors and citation
 

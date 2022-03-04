@@ -74,6 +74,7 @@ Build documentation:
   rules:
     - changes:
         - docs/**
+        - mkdocs.yml
         - .gitlab-ci.yml
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 

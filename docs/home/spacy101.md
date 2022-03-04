@@ -114,10 +114,10 @@ doc = nlp(text)
 
 1. Like the name suggests, this pipeline is declared by EDS-NLP.
    `eds.sentences` is a rule-based sentence boundary prediction.
-   See [its documentation](/pipelines/core/sentences.md) for detail.
+   See [its documentation](../pipelines/core/sentences.md) for detail.
 2. Like the name suggests, this pipeline is declared by EDS-NLP.
    `eds.dates` is a date extraction and normalisation component.
-   See [its documentation](/pipelines/misc/dates.md) for detail.
+   See [its documentation](../pipelines/misc/dates.md) for detail.
 
 The `doc` object just became more interesting!
 

@@ -7,7 +7,7 @@ In this tutorial, we will cover :
 - Matching a terminology using SpaCy's matchers, as well as RegExps
 - Matching on a specific attribute
 
-You should consider reading the [matcher's specific documentation](/pipelines/core/matcher.md) for a description.
+You should consider reading the [matcher's specific documentation](../../pipelines/core/matcher.md) for a description.
 
 !!! note "Comparison to SpaCy's matcher"
 
@@ -15,7 +15,7 @@ You should consider reading the [matcher's specific documentation](/pipelines/co
 
     EDS-NLP's [`RegexMatcher`][edsnlp.matchers.regex.RegexMatcher] lets the user match entire expressions using regular expressions. To achieve this, the matcher has to get to the text representation, match on it, and get back to SpaCy's abstraction.
 
-    The [`EDSPhraseMatcher`][edsnlp.matchers.phrase.EDSPhraseMatcher] lets EDS-NLP reuse SpaCy's efficient algorithm, while adding the ability to skip pollution tokens (see the [normalisation documentation](/pipelines/core/normalisation.md) for detail)
+    The [`EDSPhraseMatcher`][edsnlp.matchers.phrase.EDSPhraseMatcher] lets EDS-NLP reuse SpaCy's efficient algorithm, while adding the ability to skip pollution tokens (see the [normalisation documentation](../../pipelines/core/normalisation.md) for detail)
 
 ## A simple use case : finding COVID
 

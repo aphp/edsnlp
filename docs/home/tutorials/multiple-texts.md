@@ -6,7 +6,7 @@ In this tutorial, we'll cover a few best practices and some _caveats_ to avoid. 
 
 Consider this simple pipeline:
 
-```python title="Pipeline definition"
+```python title="Pipeline definition: pipeline.py"
 import spacy
 
 nlp = spacy.blank("fr")
@@ -101,7 +101,15 @@ To make sure we can follow along, we propose two recipes for getting the DataFra
     data["note_id"] = range(len(data))
     ```
 
-=== "Using a Spark DataFrame as input"
+=== "Loading data from a CSV"
+
+    ```python
+    import pandas as pd
+
+    data = pd.read_csv('note.csv')
+    ```
+
+=== "Loading data from a Spark DataFrame"
 
     ```python
     from pyspark.sql.session import SparkSession
@@ -111,8 +119,10 @@ To make sure we can follow along, we propose two recipes for getting the DataFra
     df = spark.sql("SELECT * FROM note")
     df = df.select("note_id", "note_text")
 
-    data = df.limit(1000).toPandas()
+    data = df.limit(1000).toPandas()  # (1)
     ```
+
+    1. We limit the size of the DataFrame to make sure we do not overwhelm our machine.
 
 We'll see in what follows how we can efficiently deploy our pipeline on the `#!python data` object.
 
@@ -244,6 +254,47 @@ Depending on your machine, you should get a significant speed boost (we got 20x 
 
 Should you need to deploy SpaCy on larger-than-memory Spark DataFrames, EDS-NLP has you covered.
 
+Suppose you have a Spark DataFrame:
+
+=== "Using a dummy example"
+
+    ```python
+    from pyspark.sql.session import SparkSession
+    from pyspark.sql import types as T
+
+    spark = SparkSession.builder.getOrCreate()
+
+    schema = T.StructType(
+        [
+            T.StructField("note_id", T.IntegerType()),
+            T.StructField("note_text", T.StringType()),
+        ]
+    )
+
+    text = (
+        "Patient admis le 25 septembre 2021 pour suspicion de Covid.\n"
+        "Pas de cas de coronavirus dans ce service.\n"
+        "Le père du patient est atteint du covid."
+    )
+
+    data = [(i, text) for i in range(1000)]
+
+    df = spark.createDataFrame(data=data, schema=schema)
+    ```
+
+=== "Loading a pre-existing table"
+
+    ```python
+    from pyspark.sql.session import SparkSession
+
+    spark = SparkSession.builder.getOrCreate()
+
+    df = spark.sql("SELECT * FROM note")
+    df = df.select("note_id", "note_text")
+    ```
+
+### Declaring types
+
 There is a minor twist, though: Spark needs to know in advance the type of each extension you want to save. Thus, if you need additional extensions to be saved, you'll have to provide a dictionary to the `extensions` argument instead of a list of strings. This dictionary will have the name of the extension as keys and its PySpark type as value.
 
 Accepted types are the ones present in [`pyspark.sql.types`](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql.html#data-types){ target="\_blank"}.
@@ -258,6 +309,8 @@ dt_type = pyspark_type_finder(datetime.datetime(2020, 1, 1))
 
     **Do not blindly provide the first entity matched by your pipeline**: it might be ill-suited. For instance, the `Span._.date` makes sense for a date span,
     but will be `None` if you use an entity...
+
+### Deploying the pipeline
 
 Once again, using the helper is trivial:
 

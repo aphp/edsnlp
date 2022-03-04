@@ -10,7 +10,7 @@ Since SpaCy `Doc` objects cannot easily be serialised, the UDF we provide return
 
 ## Example
 
-See the [dedicated tutorial](/home/tutorials/multiprocessing.md) for a step-by-step presentation.
+See the [dedicated tutorial](../../home/tutorials/multiple-texts.md) for a step-by-step presentation.
 
 ## Authors and citation
 

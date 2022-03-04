@@ -26,7 +26,7 @@ The normaliser can act on the input text in four dimensions :
     We recommend you also **add an end-of-line classifier to remove excess new line characters** (introduced by the PDF layout).
 
     We provide a `endlines` pipeline, which requires training an unsupervised model.
-    Refer to [the dedicated page for more information](endlines.md).
+    Refer to [the dedicated page for more information](./endlines.md).
 
 ## Usage
 

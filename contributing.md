@@ -46,4 +46,4 @@ We use [Black](https://github.com/psf/black) to reformat the code. While other f
 
 Moreover, the CI/CD pipeline enforces a number of checks on the "quality" of the code. To wit, non black-formatted code will make the test pipeline fail. We use `pre-commit` to keep our codebase clean.
 
-Refer to the [development install tutorial](/home/installation.md) for tips on how to format your files automatically. Most modern editors propose extensions that will format files on save.
+Refer to the [development install tutorial](../home/installation.md) for tips on how to format your files automatically. Most modern editors propose extensions that will format files on save.

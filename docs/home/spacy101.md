@@ -13,8 +13,6 @@ In a nutshell, SpaCy offers three things:
 - a rich set of rule-based and trainable components
 - a configuration and training system
 
-[![SpaCy](https://raw.githubusercontent.com/explosion/spaCy/master/website/src/images/logo.svg){ align=right width="30%" }](https://spacy.io/usage/spacy-101)
-
 We will focus on the first item.
 
 Be sure to checkout [SpaCy's crash course page](https://spacy.io/usage/spacy-101) for more information on the possibilities offered by the library.
@@ -107,7 +105,7 @@ nlp = spacy.blank("fr")
 nlp.add_pipe("eds.sentences")  # (1)
 nlp.add_pipe("eds.dates")  # (2)
 
-text = "Le 2 février, Michel ne comprend pas l'inférence directe."
+text = "Le 5 mai 2005, Jimothé a été invité à une fête organisée par Michel."
 
 doc = nlp(text)
 ```
@@ -126,15 +124,15 @@ The `doc` object just became more interesting!
 
 # We can split the document into sentences
 doc.sents  # (1)
-# Out: [Le 2 février, Michel ne comprend pas l'inférence directe.]
+# Out: [Le 5 mai 2005, Jimothé a été invité à une fête organisée par Michel.]
 
 # And look for dates
 doc.spans["dates"]  # (2)
-# Out: [2 février]
+# Out: [5 mai 2005]
 
 span = doc.spans["dates"][0]  # (3)
 span._.date  # (3)
-# Out: "????-02-02"
+# Out: "2005-05-05"
 ```
 
 1. In this example, there is only one sentence...
@@ -149,4 +147,5 @@ This page is just a glimpse of a few possibilities offered by SpaCy. To get a se
 we **strongly recommend** you visit their [documentation](https://spacy.io/)
 and take the time to follow the [SpaCy course](https://course.spacy.io/en/).
 
-Be sure to check out [SpaCy's own crash course](https://spacy.io/usage/spacy-101){target="\_blank"}, which is an excellent read. It goes into more detail on what's possible with the library.
+Moreover, be sure to check out [SpaCy's own crash course](https://spacy.io/usage/spacy-101){target="\_blank"}, which is an excellent read.
+It goes into more detail on what's possible with the library.

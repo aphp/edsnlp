@@ -28,7 +28,7 @@ Running Pytest:
   before_script:
     - scripts/install.sh
     - pip install pyspark
-    - python scripts/conjugate.py
+    - python scripts/conjugate_verbs.py
   script:
     - python -m pytest --cov edsnlp --junitxml=report.xml --html=report.html --self-contained-html
   after_script:
@@ -95,7 +95,7 @@ Package:
   stage: package
   before_script:
     - scripts/install.sh
-    - python scripts/conjugate.py
+    - python scripts/conjugate_verbs.py
   variables:
     TWINE_USERNAME: gitlab-ci-token
     TWINE_PASSWORD: ${CI_JOB_TOKEN}

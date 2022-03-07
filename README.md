@@ -40,7 +40,7 @@ Go to the provided URL to see the library in action.
 
 ### Quick start
 
-Let us begin with a very simple example that extracts mentions of COVID in a text, and detects whether they are negated.
+Let us begin with a very simple example that extracts mentions of COVID19 in a text, and detects whether they are negated.
 
 ```python
 import spacy

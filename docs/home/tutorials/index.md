@@ -33,7 +33,7 @@ There is an obvious problem: none of these examples should lead us to include th
 
 To curb this issue, EDS-NLP proposes rule-based pipelines that qualify entities to help the user make an informed decision about which patient should be included in a real-world data cohort.
 
-To sum up, the typical medical NLP project consists in:
+To sum up, a typical medical NLP project consists in:
 
 1. Editing a terminology
 2. "Matching" this terminology on a corpus, ie extract phrases that belong to that terminology

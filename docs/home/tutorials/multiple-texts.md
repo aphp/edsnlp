@@ -82,7 +82,14 @@ A [wrapper](#wrapper) is available to simply switch between those use cases.
 
 Processing text within a pandas DataFrame is a very common use case. In many applications, you'll select a corpus of documents over a distributed cluster, load it in memory and process all texts.
 
-To make sure we can follow along, we propose two recipes for getting the DataFrame: through Spark or using a dummy dataset like before.
+!!! note "The OMOP CDM"
+
+    In every tutorial that mention distribution EDS-NLP over a corpus of documents,
+    we will expect the data to be organised using a flavour of the [OMOP Common Data Model](https://www.ohdsi.org/data-standardization/the-common-data-model/).
+
+    For instance, we expect the input table to provide at least two columns, `note_id` and `note_text`.
+
+To make sure we can follow along, we propose three recipes for getting the DataFrame: using a dummy dataset like before, loading a CSV or by loading a Spark DataFrame into memory.
 
 === "Dummy example"
 
@@ -106,7 +113,7 @@ To make sure we can follow along, we propose two recipes for getting the DataFra
     ```python
     import pandas as pd
 
-    data = pd.read_csv('note.csv')
+    data = pd.read_csv("note.csv")
     ```
 
 === "Loading data from a Spark DataFrame"
@@ -183,6 +190,10 @@ data = data.reset_index(drop=True)
 data = data[["note_id"]].join(pd.json_normalize(data.entities))
 ```
 
+1. We use SpaCy's efficient `nlp.pipe` method
+2. This part is far from optimal, since it uses apply... But the computationally heavy part is in the previous line,
+   since `get_entities` merely _reads_ pre-computed values from the document.
+
 The result on the first note:
 
 | note_id | start | end | label      | lexical_variant   | negation | hypothesis | family | key   |
@@ -248,7 +259,7 @@ note_nlp = parallel_pipe(
     In SpaCy, even a rule-based pipeline is a memory intensive object.
     Be wary of using too many workers, lest you get a memory error.
 
-Depending on your machine, you should get a significant speed boost (we got 20x acceleration).
+Depending on your machine, you should get a significant speed boost (we got 20x acceleration on a shared cluster using 62 cores).
 
 ## Deploying EDS-NLP on Spark
 

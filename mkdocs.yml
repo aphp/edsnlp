@@ -28,27 +28,28 @@ theme:
     - navigation.tracking
     - navigation.instant
     - navigation.indexes
-    - navigation.tabs
+    # - navigation.tabs
     - navigation.top
     - content.code.annotate
 
 nav:
-  - Home:
-      - index.md
-      - home/installation.md
-      - home/demo.md
-      - home/spacy101.md
-      # - SpaCy 101<img src="https://spacy.io/icons/icon-48x48.png" width="22"/>: https://spacy.io/usage/spacy-101" target="_blank
-      - Tutorials:
-          - home/tutorials/index.md
-          - home/tutorials/matching-a-terminology.md
-          - home/tutorials/qualifying-entities.md
-          - home/tutorials/detecting-dates.md
-          - home/tutorials/multiple-texts.md
-      - Advanced tutorials:
-          - home/advanced-tutorials/index.md
-          - home/advanced-tutorials/word-vectors.md
-          - Creating a pipeline<img src="https://spacy.io/icons/icon-48x48.png" width="22"/>: https://spacy.io/usage/processing-pipelines#custom-components" target="_blank
+  # - Overview:
+  - index.md
+  - home/demo.md
+  - home/spacy101.md
+  - Tutorials:
+      - home/tutorials/index.md
+      - home/tutorials/matching-a-terminology.md
+      - home/tutorials/qualifying-entities.md
+      - home/tutorials/detecting-dates.md
+      - home/tutorials/multiple-texts.md
+  - Advanced tutorials:
+      - home/advanced-tutorials/index.md
+      - home/advanced-tutorials/word-vectors.md
+      - home/advanced-tutorials/fastapi.md
+      - Creating a pipeline: https://spacy.io/usage/processing-pipelines#custom-components" target="_blank
+  # - Development:
+  #     - development/index.md
   - Pipelines:
       - pipelines/index.md
       - pipelines/architecture.md
@@ -75,25 +76,23 @@ nav:
       - Named Entity Recognition:
           - pipelines/ner/index.md
           - pipelines/ner/score.md
-  - Utilities:
-      - utilities/index.md
+  # - Utilities:
+  #     - utilities/index.md
       # - Processing:
       #     - utilities/processing/index.md
       #     - utilities/processing/single.md
       #     - utilities/processing/multi.md
       #     - utilities/processing/spark.md
-      - Connectors:
-          - utilities/connectors/index.md
-          - utilities/connectors/brat.md
-          - utilities/connectors/omop.md
-          - utilities/connectors/labeltool.md
+  - Connectors:
+      - utilities/connectors/index.md
+      - utilities/connectors/brat.md
+      - utilities/connectors/omop.md
+      # - utilities/connectors/labeltool.md
       # - utilities/regex.md
       # - utilities/evaluation.md
   - Code Reference: reference/
-  - Development:
-      - development/index.md
-      - development/changelog.md
-      - development/contributing.md
+  - development/contributing.md
+  - development/changelog.md
 
 extra_css:
   - assets/stylesheets/extra.css

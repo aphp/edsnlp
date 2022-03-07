@@ -79,7 +79,7 @@ We can review each date and get its normalisation:
 ## What next?
 
 The `eds.dates` pipeline component's role is merely to detect and normalise dates.
-It is the user's responsibility to use this valuable information to build.
+It is the user's responsibility to use this information in a downstream application.
 
 For instance, you could use this pipeline to date medical entities. Let's do that.
 

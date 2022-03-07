@@ -83,7 +83,7 @@ This example is complete, it should run as-is. See the [documentation](https://d
 | `eds.negation`        | Rule-based negation detection          |
 | `eds.family`          | Rule-based family context detection    |
 | `eds.hypothesis`      | Rule-based speculation detection       |
-| `eds.antecedent`      | Rule-based antecedent detection        |
+| `eds.history`         | Rule-based medical history detection   |
 | `eds.reported_speech` | Rule-based reported speech detection   |
 | `eds.sections`        | Section detection                      |
 | `eds.dates`           | Date extraction and normalization      |

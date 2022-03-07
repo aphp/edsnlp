@@ -49,7 +49,8 @@ The pipeline extracts section title. A "section" is then defined as the span of 
 
 !!! warning "Use at your own risks"
 
-    Should you rely on `sections` for critical downstream tasks, make sure to validate the pipeline to make sure that the component works. For instance, the `antecedents` pipeline can use sections to make its predictions, but that possibility is deactivated by default.
+    Should you rely on `eds.sections` for critical downstream tasks, make sure to validate the pipeline to make sure that the component works.
+    For instance, the `eds.history` pipeline can use sections to make its predictions, but that possibility is deactivated by default.
 
 ## Usage
 

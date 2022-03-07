@@ -11,7 +11,7 @@ from edsnlp.utils.inclusion import check_inclusion
 
 
 class Reason(GenericMatcher):
-    """Pipeline to denftify the reason of the hospitalisation.
+    """Pipeline to identify the reason of the hospitalisation.
 
     It declares a Span extension called ``ents_reason`` and adds
     the key ``reasons`` to doc.spans.
@@ -77,7 +77,7 @@ class Reason(GenericMatcher):
 
     def _enhance_with_sections(self, sections: Iterable, reasons: Iterable) -> List:
         """Enhance the list of reasons with the section information.
-        If the reason overlaps with antecedents, so it will be removed from the list
+        If the reason overlaps with history, so it will be removed from the list
 
         Parameters
         ----------

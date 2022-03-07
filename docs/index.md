@@ -83,7 +83,7 @@ This example is complete, it should run as-is. Check out the [SpaCy 101 page](ho
     | `eds.family`           | Rule-based family context detection             |
     | `eds.hypothesis`       | Rule-based speculation detection                |
     | `eds.reported_speech`  | Rule-based reported speech detection            |
-    | `eds.antecedent`       | Rule-based antecedent detection                 |
+    | `eds.history`          | Rule-based medical history detection            |
 
 === "Miscellaneous"
 

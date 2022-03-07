@@ -10,25 +10,25 @@ from edsnlp.utils.deprecation import deprecated_getter_factory
 from edsnlp.utils.filter import consume_spans, filter_spans, get_spans
 from edsnlp.utils.inclusion import check_inclusion
 
-from .patterns import antecedents
+from .patterns import history
 
 
-class Antecedents(Qualifier):
+class History(Qualifier):
     """
-    Implements an antecedents detection algorithm.
+    Implements an history detection algorithm.
 
-    The components looks for terms indicating antecedents in the text.
+    The components looks for terms indicating history in the text.
 
     Parameters
     ----------
     nlp : Language
         spaCy nlp pipeline to use for matching.
-    antecedents : Optional[List[str]]
-        List of terms indicating antecedent reference.
+    history : Optional[List[str]]
+        List of terms indicating medical history reference.
     termination : Optional[List[str]]
         List of syntagme termination terms.
     use_sections : bool
-        Whether to use section pipeline to detect antecedent section.
+        Whether to use section pipeline to detect medical history section.
     attr : str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
@@ -43,7 +43,7 @@ class Antecedents(Qualifier):
     """
 
     defaults = dict(
-        antecedents=antecedents,
+        history=history,
         termination=termination,
     )
 
@@ -51,7 +51,7 @@ class Antecedents(Qualifier):
         self,
         nlp: Language,
         attr: str,
-        antecedents: Optional[List[str]],
+        history: Optional[List[str]],
         termination: Optional[List[str]],
         use_sections: bool,
         explain: bool,
@@ -59,7 +59,7 @@ class Antecedents(Qualifier):
     ):
 
         terms = self.get_defaults(
-            antecedents=antecedents,
+            history=history,
             termination=termination,
         )
 
@@ -84,57 +84,90 @@ class Antecedents(Qualifier):
     @staticmethod
     def set_extensions() -> None:
 
+        if not Token.has_extension("history"):
+            Token.set_extension("history", default=False)
+
         if not Token.has_extension("antecedents"):
-            Token.set_extension("antecedents", default=False)
+            Token.set_extension(
+                "antecedents",
+                getter=deprecated_getter_factory("antecedents", "history"),
+            )
 
         if not Token.has_extension("antecedent"):
             Token.set_extension(
                 "antecedent",
-                getter=deprecated_getter_factory("antecedent", "antecedents"),
+                getter=deprecated_getter_factory("antecedent", "history"),
+            )
+
+        if not Token.has_extension("history_"):
+            Token.set_extension(
+                "history_",
+                getter=lambda token: "ATCD" if token._.history else "CURRENT",
             )
 
         if not Token.has_extension("antecedents_"):
             Token.set_extension(
                 "antecedents_",
-                getter=lambda token: "ATCD" if token._.antecedents else "CURRENT",
+                getter=deprecated_getter_factory("antecedents_", "history_"),
             )
 
         if not Token.has_extension("antecedent_"):
             Token.set_extension(
                 "antecedent_",
-                getter=deprecated_getter_factory("antecedent_", "antecedents_"),
+                getter=deprecated_getter_factory("antecedent_", "history_"),
             )
 
+        if not Span.has_extension("history"):
+            Span.set_extension("history", default=False)
+
         if not Span.has_extension("antecedents"):
-            Span.set_extension("antecedents", default=False)
+            Span.set_extension(
+                "antecedents",
+                getter=deprecated_getter_factory("antecedents", "history"),
+            )
 
         if not Span.has_extension("antecedent"):
             Span.set_extension(
                 "antecedent",
-                getter=deprecated_getter_factory("antecedent", "antecedents"),
+                getter=deprecated_getter_factory("antecedent", "history"),
+            )
+
+        if not Span.has_extension("history_"):
+            Span.set_extension(
+                "history_",
+                getter=lambda span: "ATCD" if span._.history else "CURRENT",
             )
 
         if not Span.has_extension("antecedents_"):
             Span.set_extension(
                 "antecedents_",
-                getter=lambda span: "ATCD" if span._.antecedents else "CURRENT",
+                getter=deprecated_getter_factory("antecedents_", "history_"),
             )
 
         if not Span.has_extension("antecedent_"):
             Span.set_extension(
                 "antecedent_",
-                getter=deprecated_getter_factory("antecedent_", "antecedents_"),
+                getter=deprecated_getter_factory("antecedent_", "history_"),
+            )
+
+        if not Span.has_extension("history_cues"):
+            Span.set_extension("history_cues", default=[])
+
+        if not Span.has_extension("antecedents_cues"):
+            Span.set_extension(
+                "antecedents_cues",
+                getter=deprecated_getter_factory("antecedents_cues", "history_cues"),
             )
 
         if not Span.has_extension("antecedent_cues"):
-            Span.set_extension("antecedent_cues", default=[])
-
-        if not Doc.has_extension("antecedents"):
-            Doc.set_extension("antecedents", default=[])
+            Span.set_extension(
+                "antecedent_cues",
+                getter=deprecated_getter_factory("antecedent_cues", "history_cues"),
+            )
 
     def process(self, doc: Doc) -> Doc:
         """
-        Finds entities related to antecedents.
+        Finds entities related to history.
 
         Parameters
         ----------
@@ -144,7 +177,7 @@ class Antecedents(Qualifier):
         Returns
         -------
         doc:
-            spaCy Doc object, annotated for antecedents
+            spaCy Doc object, annotated for history
         """
 
         matches = self.get_matches(doc)
@@ -183,23 +216,23 @@ class Antecedents(Qualifier):
             if self.on_ents_only and not ents:
                 continue
 
-            cues = get_spans(sub_matches, "antecedents")
+            cues = get_spans(sub_matches, "history")
             cues += sub_sections
 
-            antecedents = bool(cues)
+            history = bool(cues)
 
             if not self.on_ents_only:
                 for token in doc[start:end]:
-                    token._.antecedents = antecedents
+                    token._.history = history
 
             for ent in ents:
-                ent._.antecedents = ent._.antecedents or antecedents
+                ent._.history = ent._.history or history
 
                 if self.explain:
-                    ent._.antecedent_cues += cues
+                    ent._.history_cues += cues
 
-                if not self.on_ents_only and ent._.antecedents:
+                if not self.on_ents_only and ent._.history:
                     for token in ent:
-                        token._.antecedents = True
+                        token._.history = True
 
         return doc

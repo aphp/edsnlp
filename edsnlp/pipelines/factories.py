@@ -18,8 +18,8 @@ from .ner.scores.emergency.gemsa.factory import create_component as gemsa
 from .ner.scores.emergency.priority.factory import create_component as priority
 from .ner.scores.factory import create_component as score
 from .ner.scores.sofa.factory import create_component as sofa
-from .qualifiers.antecedents.factory import create_component as antecedents
 from .qualifiers.family.factory import create_component as family
+from .qualifiers.history.factory import create_component as history
 from .qualifiers.hypothesis.factory import create_component as hypothesis
 from .qualifiers.negation.factory import create_component as negation
 from .qualifiers.reported_speech.factory import create_component as rspeech

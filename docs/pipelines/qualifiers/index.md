@@ -10,7 +10,7 @@ In EDS-NLP, we call _qualifiers_ the suite of pipelines designed to _qualify_ a 
 | `eds.family`          | Detect entities that pertain to a patient's kin rather than themself |
 | `eds.hypothesis`      | Detect entities subject to speculation                               |
 | `eds.reported_speech` | Detect entities that are quoted from the patient                     |
-| `eds.antecedents`     | Detect entities that pertain to the patient's history                |
+| `eds.history`         | Detect entities that pertain to the patient's history                |
 
 ## Rationale
 

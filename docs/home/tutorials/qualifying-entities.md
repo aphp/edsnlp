@@ -145,4 +145,4 @@ Recall the qualifier pipeline proposed by EDS-NLP:
 | [`eds.family`](../../pipelines/qualifiers/family.md)                   | Rule-based family context detection  |
 | [`eds.hypothesis`](../../pipelines/qualifiers/hypothesis.md)           | Rule-based speculation detection     |
 | [`eds.reported_speech`](../../pipelines/qualifiers/reported-speech.md) | Rule-based reported speech detection |
-| [`eds.antecedents`](../../pipelines/qualifiers/antecedents.md)         | Rule-based antecedents detection     |
+| [`eds.history`](../../pipelines/qualifiers/history.md)                 | Rule-based history detection         |

@@ -7,4 +7,4 @@ def test_pipelines(doc):
     assert not patient._.negation
     assert anomalie._.negation
 
-    assert doc[0]._.antecedents_ == "CURRENT"
+    assert doc[0]._.history_ == "CURRENT"

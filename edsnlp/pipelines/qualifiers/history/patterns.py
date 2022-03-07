@@ -1,4 +1,4 @@
-antecedents = [
+history = [
     "antécédents",
     "atcd",
     "atcds",

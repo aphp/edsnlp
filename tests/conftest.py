@@ -51,7 +51,7 @@ def nlp():
     model.add_pipe("eds.hypothesis")
     model.add_pipe("eds.negation")
     model.add_pipe("eds.family")
-    model.add_pipe("eds.antecedents")
+    model.add_pipe("eds.history")
     model.add_pipe("eds.reported_speech")
 
     model.add_pipe("eds.dates")

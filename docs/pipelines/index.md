@@ -20,7 +20,7 @@ EDS-NLP provides easy-to-use SpaCy components.
     | `eds.family`           | Rule-based family context detection             |
     | `eds.hypothesis`       | Rule-based speculation detection                |
     | `eds.reported_speech`  | Rule-based reported speech detection            |
-    | `eds.antecedent`       | Rule-based antecedent detection                 |
+    | `eds.history`          | Rule-based medical history detection            |
 
 === "Miscellaneous"
 

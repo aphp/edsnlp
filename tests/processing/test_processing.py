@@ -50,13 +50,13 @@ def model():
     nlp = spacy.blank("fr")
 
     # Normalisation of accents, case and other special characters
-    nlp.add_pipe("normalizer")
+    nlp.add_pipe("eds.normalizer")
     # Detecting end of lines
-    nlp.add_pipe("sentences")
+    nlp.add_pipe("eds.sentences")
 
     # Extraction of named entities
     nlp.add_pipe(
-        "matcher",
+        "eds.matcher",
         config=dict(
             terms=dict(
                 respiratoire=[
@@ -75,12 +75,12 @@ def model():
     )
 
     # Qualification of matched entities
-    nlp.add_pipe("negation")
-    nlp.add_pipe("hypothesis")
-    nlp.add_pipe("family")
-    nlp.add_pipe("rspeech")
-    nlp.add_pipe("SOFA")
-    nlp.add_pipe("dates")
+    nlp.add_pipe("eds.negation")
+    nlp.add_pipe("eds.hypothesis")
+    nlp.add_pipe("eds.family")
+    nlp.add_pipe("eds.reported_speech")
+    nlp.add_pipe("eds.SOFA")
+    nlp.add_pipe("eds.dates")
 
     return nlp
 

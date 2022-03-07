@@ -1,133 +1,104 @@
 import re
-from functools import lru_cache
+from bisect import bisect_left
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import numpy as np
 from loguru import logger
 from spacy.tokens import Doc, Span, Token
 
-from .utils import ATTRIBUTES, Patterns, get_text
-
-
-@lru_cache(maxsize=32)
-def alignment(
-    doclike: Union[Doc, Span],
-    attr: str = "TEXT",
-    ignore_excluded: bool = True,
-) -> Tuple[np.array, np.array, np.array]:
-    """
-    Align different representations of a ``Doc`` or ``Span`` object.
-
-    Parameters
-    ----------
-    doclike : Union[Doc, Span]
-        SpaCy ``Doc`` or ``Span`` object
-    attr : str, optional
-        Attribute to use, by default "TEXT"
-    ignore_excluded : bool, optional
-        Whether to remove excluded tokens, by default True
-
-    Returns
-    -------
-    Tuple[np.array, np.array, np.array]
-        An alignment tuple: original, clean and offset arrays.
-    """
-
-    attr = attr.upper()
-
-    attr = ATTRIBUTES.get(attr, attr)
-
-    custom = attr.startswith("_")
-
-    if custom:
-        attr = attr[1:].lower()
-
-    def length(token: Token):
-        if custom:
-            text = getattr(token._, attr)
-        else:
-            text = getattr(token, attr)
-        return len(text)
-
-    original = []
-    clean = []
-
-    cursor = 0
-
-    for token in doclike:
-
-        if not ignore_excluded or not token._.excluded:
-            original.append(token.idx)
-            clean.append(cursor)
-
-            cursor += length(token)
-
-            if token.whitespace_:
-                original.append(token.idx + len(token.text))
-                clean.append(cursor)
-
-                cursor += 1
-
-    clean.append(cursor)
-
-    if ignore_excluded and token._.excluded:
-        original.append(original[-1])
-    else:
-        original.append(token.idx + len(token.text_with_ws))
-
-    original = np.array(original)
-    clean = np.array(clean)
-
-    offset = original - clean
-
-    return original, clean, offset
-
-
-def exclusion2original(
-    doclike: Union[Doc, Span],
-    attr: str,
-    ignore_excluded: bool,
-    index: int,
-) -> int:
-    """
-    Goes from the cleaned text to the original one.
-
-    Parameters
-    ----------
-    doc : Doc
-        Doc to clean
-    attr: str
-        Which attribute to align.
-    ignore_excluded: bool
-        Whether excluded tokens should be removed
-    index : int
-        Index to transform
-
-    Returns
-    -------
-    int:
-        Converted index.
-    """
-
-    attr = attr.upper()
-
-    if attr == "TEXT" and not ignore_excluded:
-        return index
-
-    _, exclusion, offset = alignment(
-        doclike, attr=attr, ignore_excluded=ignore_excluded
-    )
-
-    arg = (exclusion >= index).argmax()
-    index += offset[arg]
-
-    return index
+from .utils import Patterns, alignment, get_text, offset
 
 
 def get_first_included(doclike: Union[Doc, Span]) -> Token:
     for token in doclike:
         if not token._.excluded:
             return token
+    raise IndexError("The provided Span does not include any token")
+
+
+def create_span(
+    doclike: Union[Doc, Span],
+    start_char: int,
+    end_char: int,
+    key: str,
+    attr: str,
+    alignment_mode: str,
+    ignore_excluded: bool,
+) -> Span:
+    """
+    SpaCy only allows strict alignment mode for char_span on Spans.
+    This method circumvents this.
+
+    Parameters
+    ----------
+    doclike : Union[Doc, Span]
+        `Doc` or `Span`.
+    start_char : int
+        Character index within the Doc-like object.
+    end_char : int
+        Character index of the end, within the Doc-like object.
+    key : str
+        The key used to match.
+    alignment_mode : str
+        The alignment mode.
+    ignore_excluded : bool
+        Whether to skip excluded tokens.
+
+    Returns
+    -------
+    span:
+        A span matched on the Doc-like object.
+    """
+
+    doc = doclike if isinstance(doclike, Doc) else doclike.doc
+
+    # Handle the simple case immediately
+    if attr in {"TEXT", "LOWER"} and not ignore_excluded:
+        off = doclike[0].idx
+        return doc.char_span(
+            start_char + off,
+            end_char + off,
+            label=key,
+            alignment_mode=alignment_mode,
+        )
+
+    # If doclike is a Span, we need to get the clean
+    # index of the first included token
+    if ignore_excluded:
+        original, clean = alignment(
+            doc=doc,
+            attr=attr,
+            ignore_excluded=ignore_excluded,
+        )
+
+        first_included = get_first_included(doclike)
+        i = bisect_left(original, first_included.idx)
+        first = clean[i]
+
+    else:
+        first = doclike[0].idx
+
+    start_char += offset(
+        doc,
+        attr=attr,
+        ignore_excluded=ignore_excluded,
+        index=first + start_char,
+    )
+
+    end_char += offset(
+        doc,
+        attr=attr,
+        ignore_excluded=ignore_excluded,
+        index=first + end_char,
+    )
+
+    span = doc.char_span(
+        start_char,
+        end_char,
+        label=key,
+        alignment_mode=alignment_mode,
+    )
+
+    return span
 
 
 class RegexMatcher(object):
@@ -253,85 +224,6 @@ class RegexMatcher(object):
         if len(self.regex) == n:
             raise ValueError(f"`{key}` is not referenced in the matcher")
 
-    def create_span(
-        self,
-        doclike: Union[Doc, Span],
-        start: int,
-        end: int,
-        key: str,
-        attr: str,
-        alignment_mode: str,
-        ignore_excluded: bool,
-    ) -> Span:
-        """
-        SpaCy only allows strict alignment mode for char_span on Spans.
-        This method circumvents this.
-
-        Parameters
-        ----------
-        doclike : Union[Doc, Span]
-            Doc or Span.
-        start : int
-            Character index within the Doc-like object.
-        end : int
-            Character index of the end, within the Doc-like object.
-        key : str
-            The key used to match.
-        alignment_mode : str
-            The alignment mode.
-        ignore_excluded : bool
-            Whether to skip excluded tokens.
-
-        Returns
-        -------
-        span:
-            A span matched on the Doc-like object.
-        """
-        doc = doclike if isinstance(doclike, Doc) else doclike.doc
-
-        _, exclusion, offset = alignment(doc)
-
-        if ignore_excluded:
-            first_included = get_first_included(doclike)
-            first, off = exclusion[first_included.i], offset[first_included.i]
-        else:
-            first, off = 0, 0
-
-        start = exclusion2original(
-            doc,
-            attr=attr,
-            ignore_excluded=ignore_excluded,
-            index=start + first,
-        )
-        end = exclusion2original(
-            doc,
-            attr=attr,
-            ignore_excluded=ignore_excluded,
-            index=end + first,
-        )
-        start = start - off
-        end = end - off
-
-        start += doclike[0].idx
-        end += doclike[0].idx
-
-        span = doc.char_span(
-            start,
-            end,
-            label=key,
-            alignment_mode=alignment_mode,
-        )
-
-        return span
-
-    def get_text(self, doclike: Union[Doc, Span], attr: str) -> str:
-
-        return get_text(
-            doclike=doclike,
-            attr=attr,
-            ignore_excluded=self.ignore_excluded,
-        )
-
     def __len__(self):
         return len(set([regex[0] for regex in self.regex]))
 
@@ -354,16 +246,16 @@ class RegexMatcher(object):
         """
 
         for key, patterns, attr, ignore_excluded, alignment_mode in self.regex:
-            text = self.get_text(doclike, attr)
+            text = get_text(doclike, attr, ignore_excluded)
 
             for pattern in patterns:
                 for match in pattern.finditer(text):
                     logger.trace(f"Matched a regex from {key}: {repr(match.group())}")
 
-                    span = self.create_span(
+                    span = create_span(
                         doclike=doclike,
-                        start=match.start(),
-                        end=match.end(),
+                        start_char=match.start(),
+                        end_char=match.end(),
                         key=key,
                         attr=attr,
                         alignment_mode=alignment_mode,

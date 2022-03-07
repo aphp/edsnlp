@@ -1,4 +1,4 @@
-from edsnlp.matchers.utils import make_pattern
+from edsnlp.utils.regex import make_pattern
 
 ago_pattern = r"il\s+y\s+a\s+.{,10}?\s+(heures?|jours?|semaines?|mois|ann[ée]es?|ans?)"
 in_pattern = r"dans\s+.{,10}?\s+(heures?|jours?|semaines?|mois|ann[ée]es?|ans?)"

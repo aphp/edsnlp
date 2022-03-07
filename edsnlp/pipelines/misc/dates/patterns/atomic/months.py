@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-from edsnlp.matchers.utils import make_pattern
+from edsnlp.utils.regex import make_pattern
 
 letter_months_dict: Dict[str, int] = {
     r"(janvier|janv\.?)": 1,

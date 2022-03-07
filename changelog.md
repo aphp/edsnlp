@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.4.1
+
+- Fix alignment issues in RegexMatcher
+- Change the alignment procedure, dropping clumsy `numpy` dependency in favour of `bisect`
+
 ## v0.4.0
 
 - Profound re-write of the normalisation :

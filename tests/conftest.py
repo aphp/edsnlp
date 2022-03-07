@@ -12,13 +12,13 @@ import edsnlp.components  # noqa
 def nlp():
     model = spacy.blank("fr")
 
-    model.add_pipe("normalizer")
+    model.add_pipe("eds.normalizer")
 
-    model.add_pipe("sentences")
-    model.add_pipe("sections")
+    model.add_pipe("eds.sentences")
+    model.add_pipe("eds.sections")
 
     model.add_pipe(
-        "matcher",
+        "eds.matcher",
         config=dict(
             terms=dict(patient="patient"),
             attr="NORM",
@@ -26,7 +26,7 @@ def nlp():
         ),
     )
     model.add_pipe(
-        "matcher",
+        "eds.matcher",
         name="matcher2",
         config=dict(
             regex=dict(anomalie=r"anomalie"),
@@ -34,7 +34,7 @@ def nlp():
     )
 
     model.add_pipe(
-        "advanced-regex",
+        "eds.advanced-regex",
         config=dict(
             regex_config=dict(
                 fracture=dict(
@@ -48,13 +48,13 @@ def nlp():
         ),
     )
 
-    model.add_pipe("hypothesis")
-    model.add_pipe("negation")
-    model.add_pipe("family")
-    model.add_pipe("antecedents")
-    model.add_pipe("rspeech")
+    model.add_pipe("eds.hypothesis")
+    model.add_pipe("eds.negation")
+    model.add_pipe("eds.family")
+    model.add_pipe("eds.antecedents")
+    model.add_pipe("eds.reported_speech")
 
-    model.add_pipe("dates")
+    model.add_pipe("eds.dates")
 
     return model
 
@@ -62,7 +62,7 @@ def nlp():
 @fixture
 def blank_nlp():
     model = spacy.blank("fr")
-    model.add_pipe("sentences")
+    model.add_pipe("eds.sentences")
     return model
 
 

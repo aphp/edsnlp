@@ -1,6 +1,6 @@
 from typing import List
 
-from edsnlp.matchers.utils import make_pattern
+from edsnlp.utils.regex import make_pattern
 
 current_patterns: List[str] = [
     r"cette\sann[ée]e(?![-\s]l[àa])",

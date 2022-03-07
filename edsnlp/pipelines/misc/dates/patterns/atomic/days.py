@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-from edsnlp.matchers.utils import make_pattern
+from edsnlp.utils.regex import make_pattern
 
 letter_days_dict: Dict[str, int] = {
     r"(premier|1\s*er)": 1,

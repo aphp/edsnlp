@@ -1,6 +1,8 @@
 import pytest
+from pytest import mark
 
 from edsnlp.matchers.regex import RegexMatcher
+from edsnlp.matchers.utils import get_text
 
 
 def test_regex(doc):
@@ -89,3 +91,70 @@ def test_norm_alignment(blank_nlp):
 
     for ent in doc.ents:
         assert ent.text == "test"
+
+
+@mark.parametrize(
+    "leading_text",
+    [
+        "",
+        "\n",
+        "Test de non-pollution",
+    ],
+)
+@mark.parametrize("leading_pollution", [True, False])
+@mark.parametrize("pollution_within", [True, False])
+@mark.parametrize("trailing_pollution", [True, False])
+@mark.parametrize(
+    "pollution",
+    ["==================", "======= ======= =======", "Nnnnnnnnnnnnn nnnnnn nnnnnnnn"],
+)
+def test_wrong_extraction(
+    blank_nlp,
+    leading_text: str,
+    leading_pollution: bool,
+    pollution_within: bool,
+    trailing_pollution: bool,
+    pollution: str,
+):
+
+    if pollution_within:
+        example = f"transplantation {pollution} cardiaque en 2000."
+    else:
+        example = "transplantation cardiaque en 2000."
+
+    chunks = []
+
+    if leading_text:
+        chunks.append(leading_text)
+    if leading_pollution:
+        chunks.append(pollution)
+
+    chunks.append(example)
+
+    if trailing_pollution:
+        chunks.append(pollution)
+
+    text = " ".join(chunks)
+
+    blank_nlp.add_pipe("eds.normalizer", config=dict(pollution=True))
+    blank_nlp.add_pipe(
+        "eds.matcher",
+        config=dict(
+            regex=dict(test="transplantation cardiaque"),
+            attr="NORM",
+            ignore_excluded=True,
+        ),
+    )
+    doc = blank_nlp(text)
+
+    clean = get_text(doc, attr="NORM", ignore_excluded=True).strip()
+    if leading_text.strip():
+        assert clean == f"{leading_text.lower()} transplantation cardiaque en 2000."
+    else:
+        assert clean == "transplantation cardiaque en 2000."
+
+    assert doc.ents
+    assert doc.ents[0][0].text == "transplantation"
+
+    clean = get_text(doc.ents[0], attr="NORM", ignore_excluded=True).strip()
+    assert clean == "transplantation cardiaque"

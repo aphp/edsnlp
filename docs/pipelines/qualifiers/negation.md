@@ -65,15 +65,14 @@ The `eds.negation` pipeline declares two [SpaCy extensions](https://spacy.io/usa
 The pipeline's performance is measured on three datasets :
 
 - The ESSAI[@dalloux2017ESSAI] and CAS[@grabar2018CAS] datasets were developed at the CNRS. The two are concatenated.
-- The NegParHyp corpus was specifically developed at EDS to test the pipeline on actual medical notes, using pseudonymised notes from the EDS.
+- The NegParHyp corpus was specifically developed at EDS to test the pipeline on actual clinical notes, using pseudonymised notes from the EDS.
 
-| Version | Dataset   | Negation F1 |
-| ------- | --------- | ----------- |
-| v0.0.1  | CAS/ESSAI | 79%         |
-| v0.0.2  | CAS/ESSAI | 71%         |
-| v0.0.2  | NegParHyp | 88%         |
+| Dataset   | Negation F1 |
+| --------- | ----------- |
+| CAS/ESSAI | 71%         |
+| NegParHyp | 88%         |
 
-Note that we favour the NegParHyp corpus, since it is comprised of actual medical notes from the data warehouse. The table shows that the pipeline does not perform as well on other datasets.
+Note that we favour the NegParHyp corpus, since it is comprised of actual clinical notes from the data warehouse.
 
 ## Authors and citation
 

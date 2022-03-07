@@ -1,103 +1,85 @@
-from typing import Dict, List, Optional
+from typing import List
 
 import spacy
-from fastapi import Body, FastAPI
+from fastapi import FastAPI
 from pydantic import BaseModel
-from spacy.language import Language
 
 import edsnlp
-from edsnlp import components  # noqa
 
 app = FastAPI(title="EDS-NLP", version=edsnlp.__version__)
 
+nlp = spacy.blank("fr")
 
-class MatcherConfig(BaseModel):
-    terms: Optional[Dict[str, List[str]]] = dict(
-        covid=["infection au coronavirus", "covid-19"],
-    )
-    regex: Optional[Dict[str, List[str]]] = None
-    attr: str = "NORM"
-    ignore_excluded: bool = True
+nlp.add_pipe("eds.sentences")
 
+config = dict(
+    regex=dict(
+        covid=[
+            "covid",
+            r"covid[-\s]?19",
+            r"sars[-\s]?cov[-\s]?2",
+            r"corona[-\s]?virus",
+        ],
+    ),
+    attr="LOWER",
+)
+nlp.add_pipe("eds.matcher", config=config)
 
-def get_nlp(config: MatcherConfig) -> Language:
-
-    nlp = spacy.blank("fr")
-
-    nlp.add_pipe("eds.sentences")
-    nlp.add_pipe("eds.normalizer")
-
-    nlp.add_pipe(
-        "eds.matcher",
-        config=config.dict(),
-    )
-
-    nlp.add_pipe("eds.negation")
-    nlp.add_pipe("eds.hypothesis")
-    nlp.add_pipe("eds.antecedents")
-    nlp.add_pipe("eds.family")
-    nlp.add_pipe("eds.reported_speech")
-
-    return nlp
+nlp.add_pipe("eds.negation")
+nlp.add_pipe("eds.family")
+nlp.add_pipe("eds.hypothesis")
+nlp.add_pipe("eds.reported_speech")
 
 
-@app.get("/")
-async def hello():
-    return {"message": "Hello World"}
+class Entity(BaseModel):  # (2)
 
-
-class Notes(BaseModel):
-    texts: List[str]
-
-
-class Entity(BaseModel):
+    # OMOP-style attributes
     start: int
     end: int
     label: str
     lexical_variant: str
     normalized_variant: str
 
+    # Qualifiers
     negated: bool
     hypothesis: bool
     family: bool
-    antecedents: bool
     reported_speech: bool
 
 
-class Document(BaseModel):
+class Document(BaseModel):  # (1)
     text: str
     ents: List[Entity]
 
 
-@app.post("/process", response_model=List[Document])
+@app.post("/process", response_model=List[Document])  # (1)
 async def process(
-    notes: List[str] = Body(...),
-    config: MatcherConfig = MatcherConfig(),
+    notes: List[str],  # (2)
 ):
 
     documents = []
 
-    nlp = get_nlp(config)
-
     for doc in nlp.pipe(notes):
+        entities = []
+
+        for ent in doc.ents:
+            entity = Entity(
+                start=ent.start_char,
+                end=ent.end_char,
+                label=ent.label_,
+                lexical_variant=ent.text,
+                normalized_variant=ent._.normalized_variant,
+                negated=ent._.negation,
+                hypothesis=ent._.hypothesis,
+                family=ent._.family,
+                reported_speech=ent._.reported_speech,
+            )
+            entities.append(entity)
+
         documents.append(
             Document(
                 text=doc.text,
-                ents=[
-                    Entity(
-                        start=ent.start_char,
-                        end=ent.end_char,
-                        label=ent.label_,
-                        lexical_variant=ent.text,
-                        normalized_variant=ent._.normalized_variant,
-                        negated=ent._.negation,
-                        hypothesis=ent._.hypothesis,
-                        family=ent._.family,
-                        antecedents=ent._.antecedents,
-                        reported_speech=ent._.reported_speech,
-                    )
-                    for ent in doc.ents
-                ],
+                ents=entities,
             )
         )
 

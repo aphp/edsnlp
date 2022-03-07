@@ -6,4 +6,4 @@ We provide the following connectors:
 
 - [BRAT](./brat.md)
 - [OMOP](./omop.md)
-- [LabelTool](./labeltool.md)
+<!-- - [LabelTool](./labeltool.md) -->

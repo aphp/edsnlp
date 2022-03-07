@@ -1,6 +1,6 @@
 # Qualifying entities
 
-In the previous tutorial, we saw how to match a terminology on a text. Using the `#!python doc.ents` attribute, we can check whether a document mentions a concept of interest, and build a cohort using this piece of information.
+In the previous tutorial, we saw how to match a terminology on a text. Using the `#!python doc.ents` attribute, we can check whether a document mentions a concept of interest to build a cohort or describe patients.
 
 ## The issue
 

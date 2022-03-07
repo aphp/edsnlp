@@ -1,6 +1,6 @@
 # Pipelines overview
 
-EDS-NLP's main goal is to provide easy-to-use SpaCy pipelines.
+EDS-NLP provides easy-to-use SpaCy components.
 
 === "Core"
 
@@ -39,3 +39,10 @@ EDS-NLP's main goal is to provide easy-to-use SpaCy pipelines.
     | `eds.emergency.priority` | A priority score extractor |
     | `eds.emergency.ccmu`     | A CCMU score extractor     |
     | `eds.emergency.gemsa`    | A GEMSA score extractor    |
+
+You can add them to your SpaCy pipeline by simply calling `add_pipe`, for instance:
+
+```python
+# ↑ Omitted code that defines the nlp object ↑
+nlp.add_pipe("eds.normalizer")
+```

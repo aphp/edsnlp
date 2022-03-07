@@ -2,7 +2,7 @@
 
 The `eds.sentences` pipeline provides an alternative to SpaCy's default `sentencizer`, aiming to overcome some of its limitations.
 
-Indeed, the `sentencizer` merely looks at period characters to detect the end of a sentence, a strategy that often fails in a medical note settings. Our `sentences` component also classifies end-of-lines as sentence boundaries if the subsequent token begins with an uppercase character, leading to slightly better performances.
+Indeed, the `sentencizer` merely looks at period characters to detect the end of a sentence, a strategy that often fails in a clinical note settings. Our `sentences` component also classifies end-of-lines as sentence boundaries if the subsequent token begins with an uppercase character, leading to slightly better performances.
 
 Moreover, the `eds.sentences` pipeline can use the output of the `eds.normalizer` pipeline, and more specifically the end-of-line classification. This is activated by default.
 

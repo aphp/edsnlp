@@ -50,14 +50,14 @@ The pipeline can be configured using the following parameters :
 
 ## Declared extensions
 
-The `feds.amily` pipeline declares two [SpaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :
+The `eds.amily` pipeline declares two [SpaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :
 
 1. The `family` attribute is a boolean, set to `True` if the pipeline predicts that the span/token relates to a family member.
 2. The `family_` property is a human-readable string, computed from the `family` attribute. It implements a simple getter function that outputs `PATIENT` or `FAMILY`, depending on the value of `family`.
 
 ## Performance
 
-The pipeline's performance is measured on the NegParHyp corpus. This dataset was specifically developed at EDS to test the pipeline on actual medical notes, using pseudonymised notes from the EDS.
+The pipeline's performance is measured on the NegParHyp corpus. This dataset was specifically developed at EDS to test the pipeline on actual clinical notes, using pseudonymised notes from the EDS.
 
 | Split | Family F1 | support |
 | ----- | --------- | ------- |

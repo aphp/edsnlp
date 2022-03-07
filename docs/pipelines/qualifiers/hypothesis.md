@@ -64,7 +64,7 @@ The `eds.hypothesis` pipeline declares two [SpaCy extensions](https://spacy.io/u
 The pipeline's performance is measured on three datasets :
 
 - The ESSAI[@dalloux2017ESSAI] and CAS[@grabar2018CAS] datasets were developed at the CNRS. The two are concatenated.
-- The NegParHyp corpus was specifically developed at EDS to test the pipeline on actual medical notes, using pseudonymised notes from the EDS.
+- The NegParHyp corpus was specifically developed at EDS to test the pipeline on actual clinical notes, using pseudonymised notes from the EDS.
 
 | Version | Dataset   | Hypothesis F1 |
 | ------- | --------- | ------------- |

@@ -1,12 +1,32 @@
-# Overview
+# Getting started
 
-EDS-NLP provides a set of SpaCy components that are developed and used at AP-HP[^1].
+EDS-NLP provides a set of SpaCy components that are developed and used to extract information from clinical notes written in French.
 
-If it's your first time with SpaCy, we recommend you familiarise yourself with some of their key concepts by looking at their "SpaCy 101" page.
+If it's your first time with SpaCy, we recommend you familiarise yourself with some of their key concepts by looking at the "SpaCy 101" page.
 
 ## Quick start
 
-Once you've [installed the library](home/installation.md), let's begin with a very simple example that extracts mentions of COVID in a text, and detects whether they are negated.
+### Installation
+
+You can install EDS-NLP via `pip`:
+
+<!-- termynal -->
+
+```
+$ pip install edsnlp
+---> 100%
+Installed
+```
+
+We recommend pinning the library version in your projects, or use a strict package manager like [Poetry](https://python-poetry.org/).
+
+```
+pip install edsnlp==0.4.0
+```
+
+### A first pipeline
+
+Once you've installed the library, let's begin with a very simple example that extracts mentions of COVID19 in a text, and detects whether they are negated.
 
 ```python
 import spacy
@@ -35,15 +55,15 @@ doc.ents[0]._.negation  # (6)
 ```
 
 1. We only need SpaCy's French tokenizer.
-1. This example terminology provides a very simple, and by no means exhaustive, list of synonyms for COVID.
+1. This example terminology provides a very simple, and by no means exhaustive, list of synonyms for COVID19.
 1. In SpaCy, pipelines are added via the [`nlp.add_pipe` method](https://spacy.io/api/language#add_pipe). EDS-NLP pipelines are automatically discovered by SpaCy.
 1. See the [matching tutorial](home/tutorials/matching-a-terminology.md) for mode details.
-1. Spacy keeps extracted entities in the [`Doc.ents` attribute](https://spacy.io/api/doc#ents).
+1. Spacy stores extracted entities in the [`Doc.ents` attribute](https://spacy.io/api/doc#ents).
 1. The [`eds.negation` pipeline](pipelines/qualifiers/negation.md) has added a `negation` custom attribute.
 
 This example is complete, it should run as-is. Check out the [SpaCy 101 page](home/spacy101.md) if you're not familiar with SpaCy.
 
-## Available pipelines
+## Available pipeline components
 
 === "Core"
 
@@ -85,14 +105,8 @@ This example is complete, it should run as-is. Check out the [SpaCy 101 page](ho
 
 ## Disclaimer
 
-You should properly validate your pipelines before deploying them. Some (but not all) components from EDS-NLP underwent some form of validation, but the performance varies and you should always verify the results on your own data.
-
-We recommend using [EDS-LabelTool](https://gitlab.eds.aphp.fr/datasciencetools/labeltool) to validate your pipelines. EDS-LabelTool enables quick and easy annotation from the notebook.
+The performances of an extraction pipeline may depend on the population and documents that are considered.
 
 ## Contributing to EDS-NLP
 
 We welcome contributions ! Fork the project and propose a pull request. Take a look at the [dedicated page](development/contributing.md) for detail.
-
-[^1]:
-    **Assistance Publique - Hôpitaux de Paris**, or Greater Paris University Hospital,
-    is a group of 39 public hospitals in the Greater Paris area.

@@ -21,7 +21,7 @@ Depending on their purpose (entity extraction, qualification, etc), EDS-NLP pipe
 
 ### Extraction pipelines
 
-Extraction pipelines (matchers, the date detector or NER pipelines, for instance) write there results to the `Doc.ents` attribute directly.
+Extraction pipelines (matchers, the date detector or NER pipelines, for instance) keep their results to the `Doc.ents` attribute directly.
 
 Note that SpaCy prohibits overlapping entities within the `Doc.ents` attribute. To circumvent this limitation, we [filter spans][edsnlp.utils.filter.filter_spans], and keep all discarded entities within the `discarded` key of the `Doc.spans` attribute.
 

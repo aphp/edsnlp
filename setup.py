@@ -6,6 +6,14 @@ def get_lines(relative_path):
         return f.readlines()
 
 
+def get_version(path):
+    with open(path, "r") as f:
+        for line in f:
+            if line.startswith("__version__"):
+                return line.split('"')[1]
+    raise RuntimeError("Unable to find version string.")
+
+
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
@@ -37,7 +45,7 @@ factories = [
 
 setup(
     name="edsnlp",
-    version="0.4.0",
+    version=get_version("edsnlp/__init__.py"),
     author="Data Science - DSI APHP",
     author_email="basile.dura-ext@aphp.fr",
     description="NLP tools for human consumption at AP-HP",

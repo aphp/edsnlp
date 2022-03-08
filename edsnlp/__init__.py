@@ -2,11 +2,6 @@ from pathlib import Path
 
 from . import extensions
 
-try:
-    import importlib.metadata
-
-    __version__ = importlib.metadata.version("edsnlp")
-except ImportError:
-    __version__ = "dev"
+__version__ = "0.4.0"
 
 BASE_DIR = Path(__file__).parent

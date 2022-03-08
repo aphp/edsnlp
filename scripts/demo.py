@@ -2,43 +2,46 @@ import pandas as pd
 import spacy
 import streamlit as st
 from spacy import displacy
+from spacy.tokens import Span
+
 
 DEFAULT_TEXT = """\
 Motif :
 Le patient est admis le 29 août pour des difficultés respiratoires.
 
 Antécédents familiaux :
-Le père est asthmatique, sans traitement particulier.
+Le père du patient n'est pas asthmatique.
 
 HISTOIRE DE LA MALADIE
 Le patient dit avoir de la toux depuis trois jours. \
 Elle a empiré jusqu'à nécessiter un passage aux urgences.
 
+Priorité: 2 (établie par l'IAO à l'entrée)
+
 Conclusion
 Possible infection au coronavirus\
 """
 
-CODE = r"""
+CODE = """
 import spacy
 
 # Declare the pipeline
 nlp = spacy.blank("fr")
+nlp.add_pipe("eds.normalizer")
 nlp.add_pipe("eds.sentences")
-
+{pipes}
 nlp.add_pipe(
     "eds.matcher",
     config=dict(
-        regex=dict(
-            covid=r"(infection\s+au\s+)?(covid(-|\s+)?(19)?|corona(-|\s+)?virus)",
-            traitement=r"traitements?|medicaments?",
-            respiratoire=r"(difficult[eé]s?\s+respiratoires|asthmatique|toux)",
-            {custom_label}=r"{custom_regex}"
-        ),
-        attr="LOWER",
+        regex=dict(custom=r"{custom_regex}"),
+        attr="NORM",
     ),
 )
 
-{pipes}
+nlp.add_pipe("eds.negation")
+nlp.add_pipe("eds.family")
+nlp.add_pipe("eds.hypothesis")
+nlp.add_pipe("eds.reported_speech")
 
 # Define the note text
 text = {text}
@@ -53,52 +56,53 @@ doc.ents
 
 @st.cache(allow_output_mutation=True)
 def load_model(
-    negation,
-    family,
-    hypothesis,
-    reported_speech,
-    custom_label="CUSTOM",
-    custom_regex=None,
+    covid: bool,
+    dates: bool,
+    charlson: bool,
+    sofa: bool,
+    priority: bool,
+    custom_regex: str,
 ):
 
     pipes = []
 
+    # Declare the pipeline
     nlp = spacy.blank("fr")
     nlp.add_pipe("eds.normalizer")
     nlp.add_pipe("eds.sentences")
 
-    regex = dict(
-        covid=r"(infection\s+au\s+)?(covid(-|\s+)?(19)?|corona(-|\s+)?virus)",
-        traitement=r"traitements?|medicaments?",
-        respiratoire=r"(difficult[eé]s?\s+respiratoires|asthmatique|toux)",
-    )
+    if covid:
+        nlp.add_pipe("eds.covid")
+        pipes.append('nlp.add_pipe("eds.covid")')
 
-    if custom_regex:
-        regex[custom_label] = [custom_regex]
+    if dates:
+        nlp.add_pipe("eds.dates")
+        pipes.append('nlp.add_pipe("eds.dates")')
+
+    if charlson:
+        nlp.add_pipe("eds.charlson")
+        pipes.append('nlp.add_pipe("eds.charlson")')
+
+    if sofa:
+        nlp.add_pipe("eds.SOFA")
+        pipes.append('nlp.add_pipe("eds.SOFA")')
+
+    if priority:
+        nlp.add_pipe("eds.emergency.priority")
+        pipes.append('nlp.add_pipe("eds.emergency.priority")')
 
     nlp.add_pipe(
         "eds.matcher",
         config=dict(
-            regex=regex,
-            attr="LOWER",
+            regex=dict(custom=custom_regex),
+            attr="NORM",
         ),
     )
 
-    if negation:
-        nlp.add_pipe("eds.negation")
-        pipes.append('nlp.add_pipe("eds.negation")')
-
-    if family:
-        nlp.add_pipe("eds.family")
-        pipes.append('nlp.add_pipe("eds.family")')
-
-    if hypothesis:
-        nlp.add_pipe("eds.hypothesis")
-        pipes.append('nlp.add_pipe("eds.hypothesis")')
-
-    if reported_speech:
-        nlp.add_pipe("eds.reported_speech")
-        pipes.append('nlp.add_pipe("eds.reported_speech")')
+    nlp.add_pipe("eds.negation")
+    nlp.add_pipe("eds.family")
+    nlp.add_pipe("eds.hypothesis")
+    nlp.add_pipe("eds.reported_speech")
 
     return nlp, pipes
 
@@ -119,39 +123,39 @@ st.sidebar.header("About")
 st.sidebar.markdown(
     "EDS-NLP is a contributive effort maintained by AP-HP's Data Science team. "
     "Have a look at the "
-    "[documentation](https://datasciencetools-pages.eds.aphp.fr/edsnlp/) for "
+    "[documentation](https://aphp.github.io/edsnlp/) for "
     "more information on the available pipelines."
 )
 
 st.sidebar.header("Pipeline")
 st.sidebar.markdown(
     "This example runs a simplistic pipeline detecting a few synonyms for "
-    "COVID-related entities.\n\nYou can add or remove qualifiers, and see how "
+    "COVID-related entities.\n\n"
+    "You can add or remove pre-defined pipeline components, and see how "
     "the pipeline reacts. You can also search for your own custom RegEx."
 )
 
-# st.sidebar.header("Custom RegEx")
-# custom_label = st.sidebar.text_input("Label:", r"custom")
-custom_label = "CUSTOM"
+st.sidebar.header("Custom RegEx")
 custom_regex = st.sidebar.text_input(
     "Regular Expression:",
-    r"passage\s\w+\surgences",
+    r"asthmatique|difficult[ée]s?\srespiratoires?",
 )
 
-st.sidebar.subheader("Qualifiers")
-negation = st.sidebar.checkbox("Negation", value=True)
-family = st.sidebar.checkbox("Family", value=True)
-hypothesis = st.sidebar.checkbox("Hypothesis", value=True)
-reported_speech = st.sidebar.checkbox("Repoted Speech", value=True)
+st.sidebar.subheader("Pipeline Components")
+covid = st.sidebar.checkbox("COVID", value=True)
+dates = st.sidebar.checkbox("Dates", value=True)
+priority = st.sidebar.checkbox("Emergency Priority Score", value=True)
+charlson = st.sidebar.checkbox("Charlson Score", value=True)
+sofa = st.sidebar.checkbox("SOFA Score", value=True)
 
 model_load_state = st.info("Loading model...")
 
 nlp, pipes = load_model(
-    negation=negation,
-    family=family,
-    hypothesis=hypothesis,
-    reported_speech=reported_speech,
-    custom_label=custom_label,
+    covid=covid,
+    dates=dates,
+    charlson=charlson,
+    sofa=sofa,
+    priority=priority,
     custom_regex=custom_regex,
 )
 
@@ -161,7 +165,7 @@ st.header("Enter a text to analyse:")
 text = st.text_area(
     "Modify the following text and see the pipeline react :",
     DEFAULT_TEXT,
-    height=330,
+    height=375,
 )
 
 doc = nlp(text)
@@ -177,11 +181,20 @@ colors = {
     "covid": "orange",
     "traitement": "#ff6363",
     "respiratoire": "#37b9fa",
-    custom_label: "linear-gradient(90deg, #aa9cfc, #fc9ce7)",
+    "custom": "linear-gradient(90deg, #aa9cfc, #fc9ce7)",
 }
 options = {
     "colors": colors,
 }
+
+dates = []
+
+for date in doc.spans.get("dates", []):
+    span = Span(doc, date.start, date.end, label="date")
+    span._.score_value = date._.date
+    dates.append(span)
+
+doc.ents = list(doc.ents) + dates
 
 html = displacy.render(doc, style="ent", options=options)
 html = html.replace("line-height: 2.5;", "line-height: 2.25;")
@@ -194,37 +207,47 @@ st.write(html, unsafe_allow_html=True)
 data = []
 for ent in doc.ents:
 
-    d = dict(
-        start=ent.start_char,
-        end=ent.end_char,
-        lexical_variant=ent.text,
-        label=ent.label_,
-    )
+    if ent.label_ == "date":
+        d = dict(
+            start=ent.start_char,
+            end=ent.end_char,
+            lexical_variant=ent.text,
+            label=ent.label_,
+            negation="",
+            experiencer="",
+            hypothesis="",
+            reported_speech="",
+        )
 
-    if negation:
-        d["negation"] = ent._.negation_
+    else:
+        d = dict(
+            start=ent.start_char,
+            end=ent.end_char,
+            lexical_variant=ent.text,
+            label=ent.label_,
+            negation=ent._.negation_,
+            experiencer=ent._.family_,
+            hypothesis=ent._.hypothesis_,
+            reported_speech=ent._.reported_speech_,
+        )
 
-    if family:
-        d["family"] = ent._.family_
-
-    if hypothesis:
-        d["hypothesis"] = ent._.hypothesis_
-
-    if reported_speech:
-        d["rspeech"] = ent._.reported_speech_
+    try:
+        d["normalized_value"] = str(ent._.score_value)
+    except TypeError:
+        d["normalized_value"] = ""
 
     data.append(d)
 
 df = pd.DataFrame.from_records(data)
+df.normalized_value = df.normalized_value.replace({"None": ""})
 
 st.header("Entity qualification")
 
 st.dataframe(df)
 
 code = CODE.format(
-    custom_label=custom_label,
+    pipes="" if not covid else "\n" + "\n".join(pipes) + "\n",
     custom_regex=custom_regex,
-    pipes="\n".join(pipes),
     text=f'"""\n{text}\n"""',
 )
 
@@ -235,12 +258,3 @@ st.markdown(
 )
 with st.expander("Show the runnable code"):
     st.markdown(f"```python\n{code}\n```\n\nThis code runs as is.")
-
-
-# st.header("JSON Doc")
-# if st.button("Show JSON Doc"):
-#     st.json(doc.to_json())
-
-# st.header("JSON model meta")
-# if st.button("Show JSON model meta"):
-#     st.json(nlp.meta)

@@ -32,6 +32,7 @@ factories = [
     "priority = edsnlp.components:priority",
     "ccmu = edsnlp.components:ccmu",
     'gemsa" = edsnlp.components:gemsa',
+    'covid" = edsnlp.components:covid',
     "history = edsnlp.components:history",
     "family = edsnlp.components:family",
     "hypothesis = edsnlp.components:hypothesis",

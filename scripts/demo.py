@@ -4,7 +4,6 @@ import streamlit as st
 from spacy import displacy
 from spacy.tokens import Span
 
-
 DEFAULT_TEXT = """\
 Motif :
 Le patient est admis le 29 août pour des difficultés respiratoires.

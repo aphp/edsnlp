@@ -69,7 +69,7 @@ This example is complete, it should run as-is. Check out the [spaCy 101 page](ho
 
     | Pipeline               | Description                                     |
     | ---------------------- | ----------------------------------------------- |
-    | `eds.normalizer`       | Non-destructive input text normalization        |
+    | `eds.normalizer`       | Non-destructive input text normalisation        |
     | `eds.sentences`        | Better sentence boundary detection              |
     | `eds.matcher`          | A simple yet powerful entity extractor          |
     | `eds.advanced-matcher` | A conditional entity extractor                  |
@@ -89,7 +89,7 @@ This example is complete, it should run as-is. Check out the [spaCy 101 page](ho
 
     | Pipeline               | Description                                     |
     | ---------------------- | ----------------------------------------------- |
-    | `eds.dates`            | Date extraction and normalization               |
+    | `eds.dates`            | Date extraction and normalisation               |
     | `eds.sections`         | Section detection                               |
     | `eds.reason`           | Rule-based hospitalisation reason detection     |
 

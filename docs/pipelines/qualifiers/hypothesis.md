@@ -4,7 +4,7 @@ The `eds.hypothesis` pipeline uses a simple rule-based algorithm to detect spans
 
 ## Usage
 
-The following snippet matches a simple terminology, and checks the family context of the extracted entities. It is complete and can be run _as is_.
+The following snippet matches a simple terminology, and checks whether the extracted entities are part of a speculation. It is complete and can be run _as is_.
 
 ```python
 import spacy
@@ -26,7 +26,7 @@ text = (
 doc = nlp(text)
 
 doc.ents
-# Out: [patient, fracture]
+# Out: [douleur, fracture]
 
 doc.ents[0]._.hypothesis
 # Out: False
@@ -66,11 +66,16 @@ The pipeline's performance is measured on three datasets :
 - The ESSAI[@dalloux2017ESSAI] and CAS[@grabar2018CAS] datasets were developed at the CNRS. The two are concatenated.
 - The NegParHyp corpus was specifically developed at EDS to test the pipeline on actual clinical notes, using pseudonymised notes from the EDS.
 
-| Version | Dataset   | Hypothesis F1 |
-| ------- | --------- | ------------- |
-| v0.0.1  | CAS/ESSAI | 48%           |
-| v0.0.2  | CAS/ESSAI | 49%           |
-| v0.0.2  | NegParHyp | 52%           |
+| Dataset   | Hypothesis F1 |
+| --------- | ------------- |
+| CAS/ESSAI | 49%           |
+| NegParHyp | 52%           |
+
+!!! note "NegParHyp corpus"
+
+    The NegParHyp corpus was built by matching a subset of the MeSH terminology with around 300 documents
+    from AP-HP's clinical data warehouse.
+    Matched entities were then labelled for negation, speculation and family context.
 
 ## Authors and citation
 

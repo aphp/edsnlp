@@ -1,10 +1,11 @@
 # Reported Speech
 
-The `eds.reported_speech` pipeline uses a simple rule-based algorithm to detect spans that relate to reported speech (eg when the doctor quotes the patient). It was designed at AP-HP's EDS.
+The `eds.reported_speech` pipeline uses a simple rule-based algorithm to detect spans that relate to reported speech (eg when the doctor quotes the patient).
+It was designed at AP-HP's EDS.
 
 ## Usage
 
-The following snippet matches a simple terminology, and checks the polarity of the extracted entities. It is complete and can be run _as is_.
+The following snippet matches a simple terminology, and checks whether the extracted entities are part of a reported speech. It is complete and can be run _as is_.
 
 ```python
 import spacy
@@ -39,17 +40,17 @@ doc.ents[1]._.reported_speech
 
 The pipeline can be configured using the following parameters :
 
-| Parameter      | Explanation                                                | Default                           |
-| -------------- | ---------------------------------------------------------- | --------------------------------- |
-| `attr`         | spaCy attribute to match on (eg `NORM`, `TEXT`, `LOWER`)   | `"NORM"`                          |
-| `pseudo`       | Pseudo-reported speed patterns                             | `None` (use pre-defined patterns) |
-| `preceding`    | Preceding reported speed patterns                          | `None` (use pre-defined patterns) |
-| `following`    | Following reported speed patterns                          | `None` (use pre-defined patterns) |
-| `termination`  | Termination patterns (for syntagma/proposition extraction) | `None` (use pre-defined patterns) |
-| `verbs`        | Patterns for verbs that imply a reported speed             | `None` (use pre-defined patterns) |
-| `on_ents_only` | Whether to qualify pre-extracted entities only             | `True`                            |
-| `within_ents`  | Whether to look for reported speed within entities         | `False`                           |
-| `explain`      | Whether to keep track of the cues for each entity          | `False`                           |
+| Parameter      | Explanation                                                 | Default                           |
+| -------------- | ----------------------------------------------------------- | --------------------------------- |
+| `attr`         | spaCy attribute to match on (eg `NORM`, `TEXT`, `LOWER`)    | `"NORM"`                          |
+| `pseudo`       | Pseudo-reported speech patterns                             | `None` (use pre-defined patterns) |
+| `preceding`    | Preceding reported speech patterns                          | `None` (use pre-defined patterns) |
+| `following`    | Following reported speech patterns                          | `None` (use pre-defined patterns) |
+| `termination`  | Termination patterns (for syntagma/proposition extraction)  | `None` (use pre-defined patterns) |
+| `verbs`        | Patterns for verbs that imply a reported speech             | `None` (use pre-defined patterns) |
+| `on_ents_only` | Whether to qualify pre-extracted entities only              | `True`                            |
+| `within_ents`  | Whether to look for reported speech within entities         | `False`                           |
+| `explain`      | Whether to keep track of the cues for each entity           | `False`                           |
 
 ## Declared extensions
 

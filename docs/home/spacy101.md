@@ -9,13 +9,13 @@ EDS-NLP is a spaCy library. To use it, you will need to familiarise yourself wit
 
 In a nutshell, spaCy offers three things:
 
-- a convenient abstraction with a language-dependant, rule-based, deterministic and non-destructive tokenizer
+- a convenient abstraction with a language-dependent, rule-based, deterministic and non-destructive tokenizer
 - a rich set of rule-based and trainable components
 - a configuration and training system
 
 We will focus on the first item.
 
-Be sure to checkout [spaCy's crash course page](https://spacy.io/usage/spacy-101) for more information on the possibilities offered by the library.
+Be sure to check out [spaCy's crash course page](https://spacy.io/usage/spacy-101) for more information on the possibilities offered by the library.
 
 ## Resources
 
@@ -52,7 +52,6 @@ We just created a spaCy pipeline and applied it to a sample text. It's that simp
 Note that we use spaCy's "blank" NLP pipeline here.
 It actually carries a lot of information,
 and defines spaCy's language-dependent, rule-based tokenizer.
-However,
 
 !!! note "Non-destructive processing"
 
@@ -60,8 +59,6 @@ However,
     Your detected entities will **always** be linked to the **original text**.
 
     In other words, `#!python nlp(text).text == text` is always true.
-
-The first two lines import spaCy and load a "blank" French-language NLP object.
 
 ### The `Doc` abstraction
 
@@ -131,7 +128,7 @@ doc.spans["dates"]  # (2)
 # Out: [5 mai 2005]
 
 span = doc.spans["dates"][0]  # (3)
-span._.date  # (3)
+span._.date  # (4)
 # Out: "2005-05-05"
 ```
 

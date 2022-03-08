@@ -31,8 +31,8 @@ def pipe(
     how : str, by default "parallel"
         3 methods are available here:
 
-        - `how='simple'`: Single process on a Pandas DataFrame
-        - `how='parallel'`: Parallelized processes on a Pandas DataFrame
+        - `how='simple'`: Single process on a pandas DataFrame
+        - `how='parallel'`: Parallelised processes on a pandas DataFrame
         - `how='spark'`: Distributed processes on a pyspark DataFrame
     additional_spans : Union[List[str], str], by default "discarded"
 
@@ -44,7 +44,7 @@ def pipe(
         For instance, if `extensions=["score_name"]`, the extracted result
         will include, for each entity, `ent._.score_name`.
     kwargs : Dict[str, Any]
-        Additionnal parameters depending on the `how` argument.
+        Additional parameters depending on the `how` argument.
 
     Returns
     -------

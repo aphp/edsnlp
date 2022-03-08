@@ -73,7 +73,9 @@ class History(Qualifier):
 
         self.set_extensions()
 
-        self.sections = use_sections and "sections" in nlp.pipe_names
+        self.sections = use_sections and (
+            "eds.sections" in nlp.pipe_names or "sections" in nlp.pipe_names
+        )
         if use_sections and not self.sections:
             logger.warning(
                 "You have requested that the pipeline use annotations "

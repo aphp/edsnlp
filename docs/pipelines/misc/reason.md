@@ -71,9 +71,9 @@ The pipeline can be configured using the following parameters :
 
 ## Declared extensions
 
-The `eds.reason` pipeline adds the key `reasons` to doc.spans and declares one [spaCy extension](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on the `Span` objects called `ents_reason`.
+The `eds.reason` pipeline adds the key `reasons` to `doc.spans` and declares one [spaCy extension](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on the `Span` objects called `ents_reason`.
 
-The `ents_reason` extension is a list of named entities that overlap the `Span`. Tipically entities founded in previous pipeline like `matcher`.
+The `ents_reason` extension is a list of named entities that overlap the `Span`, typically entities found in previous pipelines like `matcher`.
 
 It also declares the boolean extension `is_reason`. This extension is set to True for the Reason Spans but also for the entities that overlap the reason span.
 

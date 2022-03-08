@@ -1,8 +1,11 @@
 # Processing multiple texts
 
-In the previous tutorials, we've seen how to apply a spaCy NLP pipeline to a single text. Once the pipeline is tested and ready to be applied on an entire corpus, we'll want to deploy it efficiently.
+In the previous tutorials, we've seen how to apply a spaCy NLP pipeline to a single text.
+Once the pipeline is tested and ready to be applied on an entire corpus, we'll want to deploy it efficiently.
 
-In this tutorial, we'll cover a few best practices and some _caveats_ to avoid. Then, we'll explore methods that EDS-NLP provides to use a spaCy pipeline directly on a Pandas or Spark DataFrame. These can drastically increase throughput (up to 20x speed increase on our 64-core machines).
+In this tutorial, we'll cover a few best practices and some _caveats_ to avoid.
+Then, we'll explore methods that EDS-NLP provides to use a spaCy pipeline directly on a pandas or Spark DataFrame.
+These can drastically increase throughput (up to 20x speed increase on our 64-core machines).
 
 Consider this simple pipeline:
 
@@ -73,10 +76,10 @@ The `nlp.pipe` method takes an iterable as input, and outputs a generator of `Do
 
 The way EDS-NLP is used may depend on how many documents you are working with.
 Once working with tens of thousands of them,
-parallelizing the processing can be really efficient (up to 20x faster), but will require a (tiny) bit more work.
+parallelising the processing can be really efficient (up to 20x faster), but will require a (tiny) bit more work.
 Here are shown 4 ways to analyse texts depending on your needs
 
-A [wrapper](#wrapper) is available to simply switch between those use cases.
+A [wrapper](#one-function-to-rule-them-all) is available to simply switch between those use cases.
 
 ## Processing a pandas DataFrame
 
@@ -84,8 +87,9 @@ Processing text within a pandas DataFrame is a very common use case. In many app
 
 !!! note "The OMOP CDM"
 
-    In every tutorial that mention distribution EDS-NLP over a corpus of documents,
-    we will expect the data to be organised using a flavour of the [OMOP Common Data Model](https://www.ohdsi.org/data-standardization/the-common-data-model/).
+    In every tutorial that mentions distributing EDS-NLP over a corpus of documents,
+    we will expect the data to be organised using a flavour of the
+    [OMOP Common Data Model](https://www.ohdsi.org/data-standardization/the-common-data-model/).
 
     For instance, we expect the input table to provide at least two columns, `note_id` and `note_text`.
 
@@ -215,17 +219,17 @@ They share the same arguments:
 | `additional_spans` | Keys in `doc.spans` to include besides `doc.ents`               | `[]`     |
 | `extensions`       | Custom extensions to use                                        | `[]`     |
 
-Depending on your pipeline, you may want ot extract other extensions. To do so, simply provide those extension names (without the leading underscore) to the `extensions` argument.
+Depending on your pipeline, you may want to extract other extensions. To do so, simply provide those extension names (without the leading underscore) to the `extensions` argument.
 
 ### Single process
 
-EDS-NLP provides a [`simple_pipe` helper][edsnlp.processing.simple.pipe] function that avoids the hassle we just went through in the previous section. Using it is trivial:
+EDS-NLP provides a [`single_pipe`][edsnlp.processing.simple.pipe] helper function that avoids the hassle we just went through in the previous section. Using it is trivial:
 
 ```python
 # ↑ Omitted code above ↑
 from edsnlp.processing import single_pipe
 
-note_nlp = simple_pipe(
+note_nlp = single_pipe(
     data,
     nlp,
     additional_spans=["dates"],
@@ -237,7 +241,7 @@ In just two Python statements, we get the exact same result as before!
 
 ### Multiple processes
 
-Depending on the size of your corpus, and if you have CPU cores to spare, you may want to distribute the computation. Again, EDS-NLP makes it extremely easy for you, through the [`parallel_pipe` helper][edsnlp.processing.parallel.pipe]:
+Depending on the size of your corpus, and if you have CPU cores to spare, you may want to distribute the computation. Again, EDS-NLP makes it extremely easy for you, through the [`parallel_pipe`][edsnlp.processing.parallel.pipe] helper:
 
 ```python
 # ↑ Omitted code above ↑

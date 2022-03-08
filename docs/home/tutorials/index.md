@@ -6,6 +6,8 @@ We provide step-by-step guides to get you started. We cover the following use-ca
 - [Qualifying entities](./qualifying-entities.md): you want to make sure that the concept you've extracted are not invalidated by linguistic modulation.
 - [Detecting dates](./detecting-dates.md), which could serve as the basis for an event ordering algorithm.
 - [Processing multiple texts](./multiple-texts.md): to improve the inference speed of your pipeline !
+- [Detecting Hospitalisation Reason](./reason.md): you want to look spans that mention the reason of hospitalisation or tag entities as the reason.
+- [Detecting false endlines](./endlines.md): classify each endline and add the attribute `excluded` to the these tokens.
 
 ## Rationale
 
@@ -30,6 +32,11 @@ Now, consider the following example:
     ```
 
 There is an obvious problem: none of these examples should lead us to include this particular patient into the cohort.
+
+!!! warning
+
+    We show an English example just to explain the issue.
+    EDS-NLP remains a **French-language** medical NLP library.
 
 To curb this issue, EDS-NLP proposes rule-based pipelines that qualify entities to help the user make an informed decision about which patient should be included in a real-world data cohort.
 

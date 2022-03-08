@@ -206,7 +206,7 @@ note_nlp = note[['note_id', 'entities']]
 # "Explosion" des listes d'entités, et suppression des lignes vides (documents sans entité)
 note_nlp = note_nlp.explode('entities').dropna()
 
-# Re-création de l'index, pour des raisons internes à Pandas
+# Re-création de l'index, pour des raisons internes à pandas
 note_nlp = note_nlp.reset_index(drop=True)
 ```
 

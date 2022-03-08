@@ -26,13 +26,13 @@ text = (
 doc = nlp(text)
 
 doc.ents
-# Out: [patient, osthéoporose]
+# Out: [douleur, osthéoporose]
 
-doc.ents[0]._.family_
-# Out: 'PATIENT'
+doc.ents[0]._.family
+# Out: False
 
-doc.ents[1]._.family_
-# Out: 'FAMILY'
+doc.ents[1]._.family
+# Out: True
 ```
 
 ## Configuration
@@ -50,21 +50,10 @@ The pipeline can be configured using the following parameters :
 
 ## Declared extensions
 
-The `eds.amily` pipeline declares two [spaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :
+The `eds.family` pipeline declares two [spaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :
 
 1. The `family` attribute is a boolean, set to `True` if the pipeline predicts that the span/token relates to a family member.
 2. The `family_` property is a human-readable string, computed from the `family` attribute. It implements a simple getter function that outputs `PATIENT` or `FAMILY`, depending on the value of `family`.
-
-## Performance
-
-The pipeline's performance is measured on the NegParHyp corpus. This dataset was specifically developed at EDS to test the pipeline on actual clinical notes, using pseudonymised notes from the EDS.
-
-| Split | Family F1 | support |
-| ----- | --------- | ------- |
-| train | 71%       | 83      |
-| test  | 25%       | 4       |
-
-The low performance on family labels can be explained by the low number of testing examples (4 occurrences). The F1-scores goes up to 71% on the training dataset (for 83 occurrences). More extensive validation is needed to get a reliable estimation of the pipeline's generalisation capabilities.
 
 ## Authors and citation
 

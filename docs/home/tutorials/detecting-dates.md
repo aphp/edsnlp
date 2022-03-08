@@ -33,6 +33,12 @@ Clinical notes contain many different types of dates. To name a few examples:
 | Partial  | Date missing the day, month or year | `le 3 janvier/on January 3rd`, `en 2021/in 2021` |
 | Relative | Relative dates                      | `hier/yesterday`, `le mois dernier/last month`   |
 
+
+!!! warning
+
+    We show an English example just to explain the issue.
+    EDS-NLP remains a **French-language** medical NLP library.
+
 ## Extracting dates
 
 The followings snippet adds the `eds.date` component to the pipeline:

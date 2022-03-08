@@ -35,12 +35,14 @@ theme:
 nav:
   - index.md
   - Tutorials:
-    - home/tutorials/index.md
-    - home/spacy101.md
-    - home/tutorials/matching-a-terminology.md
-    - home/tutorials/qualifying-entities.md
-    - home/tutorials/detecting-dates.md
-    - home/tutorials/multiple-texts.md
+      - home/tutorials/index.md
+      - home/spacy101.md
+      - home/tutorials/matching-a-terminology.md
+      - home/tutorials/qualifying-entities.md
+      - home/tutorials/detecting-dates.md
+      - home/tutorials/multiple-texts.md
+      - home/tutorials/endlines.md
+      - home/tutorials/reason.md
   - Advanced tutorials:
     - home/advanced-tutorials/index.md
     - home/advanced-tutorials/word-vectors.md

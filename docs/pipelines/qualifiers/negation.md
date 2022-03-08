@@ -29,10 +29,10 @@ doc.ents
 # Out: [patient, fracture]
 
 doc.ents[0]._.negation  # (1)
-# Out: True
+# Out: False
 
 doc.ents[1]._.negation
-# Out: False
+# Out: True
 ```
 
 1. The result of the pipeline is kept in the `negation` custom extension.
@@ -65,14 +65,18 @@ The `eds.negation` pipeline declares two [spaCy extensions](https://spacy.io/usa
 The pipeline's performance is measured on three datasets :
 
 - The ESSAI[@dalloux2017ESSAI] and CAS[@grabar2018CAS] datasets were developed at the CNRS. The two are concatenated.
-- The NegParHyp corpus was specifically developed at EDS to test the pipeline on actual clinical notes, using pseudonymised notes from the EDS.
+- The NegParHyp corpus was specifically developed at AP-HP to test the pipeline on actual clinical notes, using pseudonymised notes from the AP-HP.
 
 | Dataset   | Negation F1 |
 | --------- | ----------- |
 | CAS/ESSAI | 71%         |
 | NegParHyp | 88%         |
 
-Note that we favour the NegParHyp corpus, since it is comprised of actual clinical notes from the data warehouse.
+!!! note "NegParHyp corpus"
+
+    The NegParHyp corpus was built by matching a subset of the MeSH terminology with around 300 documents
+    from AP-HP's clinical data warehouse.
+    Matched entities were then labelled for negation, speculation and family context.
 
 ## Authors and citation
 

@@ -1,3 +1,4 @@
+mike
 mkdocs-autorefs==0.3.1
 mkdocs-bibtex
 mkdocs-charts-plugin

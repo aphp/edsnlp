@@ -33,7 +33,6 @@ theme:
     - content.code.annotate
 
 nav:
-  # - Overview:
   - index.md
   - Tutorials:
     - home/tutorials/index.md
@@ -47,15 +46,12 @@ nav:
     - home/advanced-tutorials/word-vectors.md
     - home/advanced-tutorials/fastapi.md
     - Creating a pipeline: https://spacy.io/usage/processing-pipelines#custom-components" target="_blank
-  # - Development:
-  #     - development/index.md
   - Pipelines:
     - pipelines/index.md
     - pipelines/architecture.md
     - Core Pipelines:
       - pipelines/core/index.md
       - pipelines/core/matcher.md
-      # - pipelines/core/advanced-matcher.md
       - pipelines/core/normalisation.md
       - pipelines/core/endlines.md
       - pipelines/core/sentences.md
@@ -75,23 +71,18 @@ nav:
     - Named Entity Recognition:
       - pipelines/ner/index.md
       - pipelines/ner/score.md
-  # - Utilities:
-  #     - utilities/index.md
-      # - Processing:
-      #     - utilities/processing/index.md
-      #     - utilities/processing/single.md
-      #     - utilities/processing/multi.md
-      #     - utilities/processing/spark.md
   - Connectors:
     - utilities/connectors/index.md
     - utilities/connectors/brat.md
     - utilities/connectors/omop.md
-    # - utilities/connectors/labeltool.md
-    # - utilities/regex.md
-    # - utilities/evaluation.md
   - Code Reference: reference/
   - development/contributing.md
   - development/changelog.md
+
+extra:
+  version:
+    provider: mike
+    default: latest
 
 extra_css:
   - assets/stylesheets/extra.css
@@ -103,7 +94,6 @@ extra_javascript:
 
 plugins:
   - termynal
-  # - charts
   - search
   - bibtex:
       bib_file: "docs/references.bib"
@@ -124,20 +114,11 @@ plugins:
         - "edsnlp"
   - literate-nav:
       nav_file: SUMMARY.md
-  # - img2fig
-  # - mknotebooks:
-  #     execute: false
-  #     timeout: 100
-  #     allow_errors: false
+  - mike
 
 markdown_extensions:
   - admonition
   - pymdownx.superfences
-  # - pymdownx.superfences:
-  #     custom_fences:
-  #       - name: vegalite
-  #         class: vegalite
-  #         format: !!python/name:mkdocs_charts_plugin.fences.fence_vegalite
   - pymdownx.highlight
   - pymdownx.inlinehilite
   - pymdownx.snippets

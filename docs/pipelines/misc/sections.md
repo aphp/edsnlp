@@ -79,7 +79,7 @@ The pipeline can be configured using the following parameters :
 | ----------------- | ------------------------------------------------ | --------------------------------- |
 | `sections`        | Sections patterns                                | `None` (use pre-defined patterns) |
 | `add_patterns`    | Whether add endlines patterns                    | `False`                           |
-| `attr`            | SpaCy attribute to match on, eg `NORM` or `TEXT` | `"NORM"`                          |
+| `attr`            | spaCy attribute to match on, eg `NORM` or `TEXT` | `"NORM"`                          |
 | `ignore_excluded` | Whether to ignore excluded tokens                | `True`                            |
 
 ## Declared extensions

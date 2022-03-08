@@ -4,18 +4,18 @@ Matching a terminology is perhaps the most basic application of a medical NLP pi
 
 In this tutorial, we will cover :
 
-- Matching a terminology using SpaCy's matchers, as well as RegExps
+- Matching a terminology using spaCy's matchers, as well as RegExps
 - Matching on a specific attribute
 
 You should consider reading the [matcher's specific documentation](../../pipelines/core/matcher.md) for a description.
 
-!!! note "Comparison to SpaCy's matcher"
+!!! note "Comparison to spaCy's matcher"
 
-    SpaCy's `Matcher` and `PhraseMatcher` use a very efficient algorithm that compare a hashed representation token by token. **They are not components** by themselves, but can underpin rule-based pipelines.
+    spaCy's `Matcher` and `PhraseMatcher` use a very efficient algorithm that compare a hashed representation token by token. **They are not components** by themselves, but can underpin rule-based pipelines.
 
-    EDS-NLP's [`RegexMatcher`][edsnlp.matchers.regex.RegexMatcher] lets the user match entire expressions using regular expressions. To achieve this, the matcher has to get to the text representation, match on it, and get back to SpaCy's abstraction.
+    EDS-NLP's [`RegexMatcher`][edsnlp.matchers.regex.RegexMatcher] lets the user match entire expressions using regular expressions. To achieve this, the matcher has to get to the text representation, match on it, and get back to spaCy's abstraction.
 
-    The [`EDSPhraseMatcher`][edsnlp.matchers.phrase.EDSPhraseMatcher] lets EDS-NLP reuse SpaCy's efficient algorithm, while adding the ability to skip pollution tokens (see the [normalisation documentation](../../pipelines/core/normalisation.md) for detail)
+    The [`EDSPhraseMatcher`][edsnlp.matchers.phrase.EDSPhraseMatcher] lets EDS-NLP reuse spaCy's efficient algorithm, while adding the ability to skip pollution tokens (see the [normalisation documentation](../../pipelines/core/normalisation.md) for detail)
 
 ## A simple use case : finding COVID19
 
@@ -47,7 +47,7 @@ doc.ents
 Let's unpack what happened:
 
 1. We defined a dictionary of terms to look for, in the form `{'label': list of terms}`.
-2. We declared a SpaCy pipeline, and add the `eds.matcher` component.
+2. We declared a spaCy pipeline, and add the `eds.matcher` component.
 3. We applied the pipeline to the texts...
 4. ... and explored the extracted entities.
 
@@ -68,7 +68,7 @@ But what if we come across `Coronavirus`? Surely we can do better!
 
 ## Matching on normalized text
 
-We can modify the matcher's configuration to match on other attributes instead of the verbatim input. You can refer to SpaCy's [list of available token attributes](https://spacy.io/usage/rule-based-matching#adding-patterns-attributes){ target=\_blank}.
+We can modify the matcher's configuration to match on other attributes instead of the verbatim input. You can refer to spaCy's [list of available token attributes](https://spacy.io/usage/rule-based-matching#adding-patterns-attributes){ target=\_blank}.
 
 Let's focus on two:
 
@@ -119,7 +119,7 @@ It handles:
 
 - removal of accentuated characters;
 - normalisation of quotes and apostrophes;
-- lowercasing, which enabled by default in SpaCy – EDS-NLP lets you disable it;
+- lowercasing, which enabled by default in spaCy – EDS-NLP lets you disable it;
 - removal of pollution.
 
 !!! note "Pollution in clinical texts"
@@ -136,7 +136,7 @@ It handles:
 
 You can activate it like any other component.
 
-```python hl_lines="4 10 17 23"
+```python hl_lines="4 10 17 23 24"
 import spacy
 
 text = (
@@ -159,7 +159,8 @@ nlp.add_pipe(
     "eds.matcher",
     config=dict(
         terms=terms,
-        attr="NORM",
+        attr="NORM",  # (4)
+        ignore_excluded=True,  # (5)
     ),
 )
 
@@ -174,6 +175,9 @@ doc.ents
    Note that in the synonym we provide, we kept the accentuated `à`, whereas the example
    displays an unaccentuated `a`.
 3. The component can be configured. See the [specific documentation](../../pipelines/core/normalisation.md) for detail.
+4. The normalisation lives in the `NORM` attribute
+5. We can tell the matcher to ignore excluded tokens (tokens tagged as pollution by the normalisation component).
+   This is not an obligation:
 
 Using the normalisation component, you can match on a normalized version of the text,
 as well as **skip pollution tokens during the matching process**.
@@ -187,7 +191,7 @@ as well as **skip pollution tokens during the matching process**.
     The term matcher matches the input text to the provided terminology, using the selected attribute in both cases.
     The `NORM` attribute that corresponds to `à` and `a` is the same: `a`.
 
-### Conclusion
+### Preliminary conclusion
 
 We have matched all mentions! However, we had to spell out the singular and plural form of `respiratoire`...
 And what if we wanted to detect `covid 19`, or `covid-19` ?
@@ -229,8 +233,8 @@ doc.ents
 ```
 
 1. We can now match using regular expressions.
-2. We can mix and match patterns! Here we keep looking for patients using SpaCy's term matching.
-3. RegExp matching is not limited to the verbatim text! You can choose to use one of SpaCy's native attribute, ignore excluded tokens, etc.
+2. We can mix and match patterns! Here we keep looking for patients using spaCy's term matching.
+3. RegExp matching is not limited to the verbatim text! You can choose to use one of spaCy's native attribute, ignore excluded tokens, etc.
 
 This code is complete, and should run as is.
 
@@ -238,8 +242,8 @@ Using regular expressions can help define richer patterns using more compact que
 
 ## Visualising matched entities
 
-EDS-NLP is part of the SpaCy ecosystem, which means we can benefit from SpaCy helper functions.
-For instance, SpaCy's visualiser displacy can let us visualise the matched entities:
+EDS-NLP is part of the spaCy ecosystem, which means we can benefit from spaCy helper functions.
+For instance, spaCy's visualiser displacy can let us visualise the matched entities:
 
 ```python
 # ↑ Omitted code above ↑

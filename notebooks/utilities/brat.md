@@ -32,7 +32,7 @@ import pandas as pd
 ```
 
 ```python
-# One-shot import of all declared SpaCy components
+# One-shot import of all declared spaCy components
 from edsnlp.utils.brat import BratConnector
 ```
 

@@ -38,7 +38,7 @@ The pipeline can be configured using the following parameters :
 | ----------------- | ------------------------------------------------ | ----------------------- |
 | `terms`           | Terms patterns                                   | `None` (use regex only) |
 | `regex`           | RegExp patterns.                                 | `None` (use terms only) |
-| `attr`            | SpaCy attribute to match on (eg `NORM`, `LOWER`) | `"TEXT"`                |
+| `attr`            | spaCy attribute to match on (eg `NORM`, `LOWER`) | `"TEXT"`                |
 | `ignore_excluded` | Whether to skip excluded tokens during matching  | `False`                 |
 
 Patterns, be they `terms` or `regex`, are defined as dictionaries where keys become the label of the extracted entities. Dictionary values are a either a single expression or a list of expressions that match the concept (see [example](#usage)).

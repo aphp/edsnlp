@@ -10,7 +10,7 @@ class SentenceSegmenter(object):
     Segments the Doc into sentences using a rule-based strategy,
     specific to AP-HP documents.
 
-    Applies the same rule-based pipeline as SpaCy's sentencizer,
+    Applies the same rule-based pipeline as spaCy's sentencizer,
     and adds a simple rule on the new lines : if a new line is followed by a
     capitalised word, then it is also an end of sentence.
 
@@ -48,7 +48,7 @@ class SentenceSegmenter(object):
         Returns
         -------
         doc:
-            A SpaCy Doc object, annotated for sentences.
+            A spaCy Doc object, annotated for sentences.
         """
 
         if not doc:

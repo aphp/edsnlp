@@ -69,11 +69,11 @@ The pipeline can be configured using the following parameters :
 | `consultation_mention`  | Whether to use consultation patterns, or list of patterns  | `True` (use pre-defined patterns) |
 | `town_mention`          | Whether to use town patterns, or list of patterns          | `False`                           |
 | `document_date_mention` | Whether to use document date patterns, or list of patterns | `False`                           |
-| `attr`                  | SpaCy attribute to match on, eg `NORM` or `TEXT`           | `"NORM"`                          |
+| `attr`                  | spaCy attribute to match on, eg `NORM` or `TEXT`           | `"NORM"`                          |
 
 ## Declared extensions
 
-The `eds.consultation_dates` pipeline declares one [SpaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes) on the `Span` object :
+The `eds.consultation_dates` pipeline declares one [spaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes) on the `Span` object :
 
 The `eds.consultation_date` attribute, which is a Python `datetime` object.
 

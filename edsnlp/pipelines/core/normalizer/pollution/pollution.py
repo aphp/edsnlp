@@ -14,7 +14,7 @@ class Pollution(BaseComponent):
     """
     Tags pollution tokens.
 
-    Populates a number of SpaCy extensions :
+    Populates a number of spaCy extensions :
 
     - `Token._.pollution` : indicates whether the token is a pollution
     - `Doc._.clean` : lists non-pollution tokens

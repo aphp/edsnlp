@@ -23,17 +23,17 @@ class Accents(object):
 
     def __call__(self, doc: Doc) -> Doc:
         """
-        Remove accents from spacy ``NORM`` attribute.
+        Remove accents from spacy `NORM` attribute.
 
         Parameters
         ----------
         doc : Doc
-            The SpaCy ``Doc`` object.
+            The spaCy `Doc` object.
 
         Returns
         -------
         Doc
-            The document, with accents removed in ``Token.norm_``.
+            The document, with accents removed in `Token.norm_`.
         """
 
         for token in doc:

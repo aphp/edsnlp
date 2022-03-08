@@ -5,7 +5,7 @@ from spacy.tokens import Doc, Span
 
 class BaseComponent(object):
     """
-    The ``BaseComponent`` adds a ``set_extensions`` method,
+    The `BaseComponent` adds a `set_extensions` method,
     called at the creation of the object.
 
     It helps decouple the initialisation of the pipeline from
@@ -22,7 +22,7 @@ class BaseComponent(object):
     @staticmethod
     def set_extensions() -> None:
         """
-        Set ``Doc``, ``Span`` and ``Token`` extensions.
+        Set `Doc`, `Span` and `Token` extensions.
         """
         pass
 

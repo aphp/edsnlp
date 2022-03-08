@@ -72,6 +72,6 @@ Albeit simple, this algorithm can achieve very good performance depending on the
 
 ## Persisting the results
 
-Our qualifier pipelines write their results to a custom [SpaCy extension](https://spacy.io/usage/processing-pipelines#custom-components-attributes){target=_blank}, defined on both `Span` and `Token` objects. We follow the convention of naming said attribute after the pipeline itself, eg `Span._.negation`for the`eds.negation` pipeline. In most cases, that extension is a boolean.
+Our qualifier pipelines write their results to a custom [spaCy extension](https://spacy.io/usage/processing-pipelines#custom-components-attributes){target=_blank}, defined on both `Span` and `Token` objects. We follow the convention of naming said attribute after the pipeline itself, eg `Span._.negation`for the`eds.negation` pipeline. In most cases, that extension is a boolean.
 
-We also provide a string representation of the result, computed on the fly by declaring a getter that reads the boolean result of the pipeline. Following SpaCy convention, we give this attribute the same name, followed by a `_`.
+We also provide a string representation of the result, computed on the fly by declaring a getter that reads the boolean result of the pipeline. Following spaCy convention, we give this attribute the same name, followed by a `_`.

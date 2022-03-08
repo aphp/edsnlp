@@ -43,7 +43,7 @@ The pipeline can be configured using the following parameters :
 
 | Parameter      | Explanation                                                | Default                           |
 | -------------- | ---------------------------------------------------------- | --------------------------------- |
-| `attr`         | SpaCy attribute to match on (eg `NORM`, `TEXT`, `LOWER`)   | `"NORM"`                          |
+| `attr`         | spaCy attribute to match on (eg `NORM`, `TEXT`, `LOWER`)   | `"NORM"`                          |
 | `pseudo`       | Pseudo-negation patterns                                   | `None` (use pre-defined patterns) |
 | `preceding`    | Preceding negation patterns                                | `None` (use pre-defined patterns) |
 | `following`    | Following negation patterns                                | `None` (use pre-defined patterns) |
@@ -55,7 +55,7 @@ The pipeline can be configured using the following parameters :
 
 ## Declared extensions
 
-The `eds.negation` pipeline declares two [SpaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :
+The `eds.negation` pipeline declares two [spaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :
 
 1. The `negation` attribute is a boolean, set to `True` if the pipeline predicts that the span/token is negated.
 2. The `negation_` property is a human-readable string, computed from the `negation` attribute. It implements a simple getter function that outputs `AFF` or `NEG`, depending on the value of `negation`.

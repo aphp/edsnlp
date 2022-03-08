@@ -84,7 +84,7 @@ All pipelines should follow the same pattern :
 edsnlp/pipelines/<pipeline>
    |-- <pipeline>.py                # Defines the component logic
    |-- patterns.py                  # Defines matched patterns
-   |-- factory.py                   # Declares the pipeline to SpaCy
+   |-- factory.py                   # Declares the pipeline to spaCy
 ```
 
 ### Style Guide

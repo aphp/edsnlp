@@ -6,17 +6,17 @@ from spacy.tokens import Doc
 @Language.component("eds.remove-lowercase")
 def remove_lowercase(doc: Doc):
     """
-    Add case on the ``NORM`` custom attribute. Should always be applied first.
+    Add case on the `NORM` custom attribute. Should always be applied first.
 
     Parameters
     ----------
     doc : Doc
-        The SpaCy ``Doc`` object.
+        The spaCy `Doc` object.
 
     Returns
     -------
     Doc
-        The document, with case put back in ``NORM``.
+        The document, with case put back in `NORM`.
     """
 
     for token in doc:

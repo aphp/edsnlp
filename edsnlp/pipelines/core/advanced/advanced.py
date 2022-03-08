@@ -18,13 +18,13 @@ class AdvancedRegex(GenericMatcher):
     Parameters
     ----------
     nlp : Language
-        spaCy ``Language`` object.
+        spaCy `Language` object.
     regex_config : Dict[str, Any]
         Configuration for the main expression.
     window : int
         Number of tokens to consider before and after the main expression.
     attr : str
-        Attribute to match on, eg ``TEXT``, ``NORM``, etc.
+        Attribute to match on, eg `TEXT`, `NORM`, etc.
     verbose : int
         Verbosity level, useful for debugging.
     ignore_excluded : bool
@@ -86,7 +86,7 @@ class AdvancedRegex(GenericMatcher):
         Parameters
         ----------
         doc : Doc
-            SpaCy Doc object
+            spaCy Doc object
 
         Returns
         -------

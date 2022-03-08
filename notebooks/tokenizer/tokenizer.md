@@ -28,7 +28,7 @@ import spacy
 ```
 
 ```python
-# One-shot import of all declared SpaCy components
+# One-shot import of all declared spaCy components
 
 ```
 

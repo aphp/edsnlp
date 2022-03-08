@@ -13,7 +13,7 @@ def replace(
     text : str
         Text to modify.
     rep : List[Tuple[str, str]]
-        List of ``(old, new)`` tuples. ``old`` can list multiple characters.
+        List of `(old, new)` tuples. `old` can list multiple characters.
 
     Returns
     -------

@@ -92,7 +92,7 @@ The configuration consists of 4 items:
 
 !!! note
 
-    SpaCy doesn't allow to pass functions in the configuration of a pipeline.
+    spaCy doesn't allow to pass functions in the configuration of a pipeline.
     To circumvent this issue, functions need to be registered, which simply consists in
     decorating those functions
 

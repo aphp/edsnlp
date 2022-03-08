@@ -41,7 +41,7 @@ The pipeline can be configured using the following parameters :
 
 | Parameter      | Explanation                                                | Default                           |
 | -------------- | ---------------------------------------------------------- | --------------------------------- |
-| `attr`         | SpaCy attribute to match on (eg `NORM`, `TEXT`, `LOWER`)   | `"NORM"`                          |
+| `attr`         | spaCy attribute to match on (eg `NORM`, `TEXT`, `LOWER`)   | `"NORM"`                          |
 | `pseudo`       | Pseudo-reported speed patterns                             | `None` (use pre-defined patterns) |
 | `preceding`    | Preceding reported speed patterns                          | `None` (use pre-defined patterns) |
 | `following`    | Following reported speed patterns                          | `None` (use pre-defined patterns) |
@@ -53,7 +53,7 @@ The pipeline can be configured using the following parameters :
 
 ## Declared extensions
 
-The `eds.reported_speech` pipeline declares two [SpaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :
+The `eds.reported_speech` pipeline declares two [spaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :
 
 1. The `reported_speech` attribute is a boolean, set to `True` if the pipeline predicts that the span/token is reported.
 2. The `reported_speech_` property is a human-readable string, computed from the `reported_speech` attribute. It implements a simple getter function that outputs `DIRECT` or `REPORTED`, depending on the value of `reported_speech`.

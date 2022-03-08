@@ -27,7 +27,7 @@ def alignment(
     Parameters
     ----------
     doc : Doc
-        SpaCy `Doc` or `Span` object
+        spaCy `Doc` or `Span` object
     attr : str, optional
         Attribute to use, by default `"TEXT"`
     ignore_excluded : bool, optional
@@ -89,7 +89,7 @@ def offset(
     Parameters
     ----------
     doc : Doc
-        The SpaCy `Doc` object
+        The spaCy `Doc` object
     attr : str
         The attribute used by the [`RegexMatcher`][edsnlp.matchers.regex.RegexMatcher]
         (eg `NORM`)

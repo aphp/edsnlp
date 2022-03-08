@@ -41,7 +41,7 @@ The pipeline can be configured using the following parameters :
 
 | Parameter      | Explanation                                                | Default                           |
 | -------------- | ---------------------------------------------------------- | --------------------------------- |
-| `attr`         | SpaCy attribute to match on (eg `NORM`, `TEXT`, `LOWER`)   | `"NORM"`                          |
+| `attr`         | spaCy attribute to match on (eg `NORM`, `TEXT`, `LOWER`)   | `"NORM"`                          |
 | `pseudo`       | Pseudo-hypothesis patterns                                 | `None` (use pre-defined patterns) |
 | `preceding`    | Preceding hypothesis patterns                              | `None` (use pre-defined patterns) |
 | `following`    | Following hypothesis patterns                              | `None` (use pre-defined patterns) |
@@ -54,7 +54,7 @@ The pipeline can be configured using the following parameters :
 
 ## Declared extensions
 
-The `eds.hypothesis` pipeline declares two [SpaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :
+The `eds.hypothesis` pipeline declares two [spaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :
 
 1. The `hypothesis` attribute is a boolean, set to `True` if the pipeline predicts that the span/token is a speculation.
 2. The `hypothesis_` property is a human-readable string, computed from the `hypothesis` attribute. It implements a simple getter function that outputs `HYP` or `CERT`, depending on the value of `hypothesis`.

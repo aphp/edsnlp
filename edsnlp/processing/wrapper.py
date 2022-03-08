@@ -19,7 +19,7 @@ def pipe(
     **kwargs: Dict[str, Any],
 ) -> Union[pd.DataFrame, ps.DataFrame]:
     """
-    Function to apply a SpaCy pipe to a pandas or pyspark DataFrame
+    Function to apply a spaCy pipe to a pandas or pyspark DataFrame
 
 
     Parameters
@@ -27,7 +27,7 @@ def pipe(
     note : DataFrame
         A pandas DataFrame with a `note_id` and `note_text` column
     nlp : Language
-        A SpaCy pipe
+        A spaCy pipe
     how : str, by default "parallel"
         3 methods are available here:
 

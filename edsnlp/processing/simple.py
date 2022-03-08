@@ -31,7 +31,7 @@ def _df_to_spacy(
     Returns
     -------
     generator:
-        A generator which items are of the form (text, context), with ``text``
+        A generator which items are of the form (text, context), with `text`
         being a string and `context` a dictionnary
     """
 
@@ -115,7 +115,7 @@ def _full_schema(
         The parallelization needs for output objects to be **serializable**:
         after splitting the task into separate jobs, intermediate results
         are saved on memory before being aggregated, thus the need to be
-        serializable. For instance, SpaCy's spans aren't serializable since
+        serializable. For instance, spaCy's spans aren't serializable since
         they are merely a *view* of the parent document.
 
         Check the source code of this function for an example.
@@ -159,7 +159,7 @@ def pipe(
     progress_bar: bool = True,
 ):
     """
-    Function to apply a SpaCy pipe to a pandas DataFrame note
+    Function to apply a spaCy pipe to a pandas DataFrame note
     For a large DataFrame, prefer the parallel version.
 
     Parameters
@@ -167,7 +167,7 @@ def pipe(
     note : DataFrame
         A pandas DataFrame with a `note_id` and `note_text` column
     nlp : Language
-        A SpaCy pipe
+        A spaCy pipe
     additional_spans : Union[List[str], str], by default "discarded"
         A name (or list of names) of SpanGroup on which to apply the pipe too:
         SpanGroup are available as `doc.spans[spangroup_name]` and can be generated
@@ -177,7 +177,7 @@ def pipe(
         For instance, if `extensions=["score_name"]`, the extracted result
         will include, for each entity, `ent._.score_name`.
     batch_size : int, by default 1000
-        Batch size used by SpaCy's pipe
+        Batch size used by spaCy's pipe
     progress_bar: bool, by default True
         Whether to display a progress bar or not
 

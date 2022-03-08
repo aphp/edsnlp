@@ -23,7 +23,7 @@ Depending on their purpose (entity extraction, qualification, etc), EDS-NLP pipe
 
 Extraction pipelines (matchers, the date detector or NER pipelines, for instance) keep their results to the `Doc.ents` attribute directly.
 
-Note that SpaCy prohibits overlapping entities within the `Doc.ents` attribute. To circumvent this limitation, we [filter spans][edsnlp.utils.filter.filter_spans], and keep all discarded entities within the `discarded` key of the `Doc.spans` attribute.
+Note that spaCy prohibits overlapping entities within the `Doc.ents` attribute. To circumvent this limitation, we [filter spans][edsnlp.utils.filter.filter_spans], and keep all discarded entities within the `discarded` key of the `Doc.spans` attribute.
 
 Some pipelines write their output to the `Doc.spans` dictionary. We enforce the following doctrine:
 
@@ -32,7 +32,7 @@ Some pipelines write their output to the `Doc.spans` dictionary. We enforce the 
 
 ### Entity tagging
 
-Moreover, most pipelines declare [SpaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on the `Doc`, `Span` and/or `Token` objects.
+Moreover, most pipelines declare [spaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on the `Doc`, `Span` and/or `Token` objects.
 
 These extensions are especially useful for qualifier pipelines, but can also be used by other pipelines to persist relevant information. For instance, the `eds.dates` pipeline:
 

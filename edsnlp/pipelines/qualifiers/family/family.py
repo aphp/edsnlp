@@ -37,8 +37,8 @@ class FamilyContext(Qualifier):
         A dictionnary of regex patterns.
     explain : bool
         Whether to keep track of cues for each entity.
-    use_sections : bool, by default ``False``
-        Whether to use annotated sections (namely ``antécédents familiaux``).
+    use_sections : bool, by default `False`
+        Whether to use annotated sections (namely `antécédents familiaux`).
     """
 
     defaults = dict(

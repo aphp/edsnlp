@@ -35,47 +35,46 @@ theme:
 nav:
   # - Overview:
   - index.md
-  - home/demo.md
-  - home/spacy101.md
   - Tutorials:
-      - home/tutorials/index.md
-      - home/tutorials/matching-a-terminology.md
-      - home/tutorials/qualifying-entities.md
-      - home/tutorials/detecting-dates.md
-      - home/tutorials/multiple-texts.md
+    - home/tutorials/index.md
+    - home/spacy101.md
+    - home/tutorials/matching-a-terminology.md
+    - home/tutorials/qualifying-entities.md
+    - home/tutorials/detecting-dates.md
+    - home/tutorials/multiple-texts.md
   - Advanced tutorials:
-      - home/advanced-tutorials/index.md
-      - home/advanced-tutorials/word-vectors.md
-      - home/advanced-tutorials/fastapi.md
-      - Creating a pipeline: https://spacy.io/usage/processing-pipelines#custom-components" target="_blank
+    - home/advanced-tutorials/index.md
+    - home/advanced-tutorials/word-vectors.md
+    - home/advanced-tutorials/fastapi.md
+    - Creating a pipeline: https://spacy.io/usage/processing-pipelines#custom-components" target="_blank
   # - Development:
   #     - development/index.md
   - Pipelines:
-      - pipelines/index.md
-      - pipelines/architecture.md
-      - Core Pipelines:
-          - pipelines/core/index.md
-          - pipelines/core/matcher.md
-          # - pipelines/core/advanced-matcher.md
-          - pipelines/core/normalisation.md
-          - pipelines/core/endlines.md
-          - pipelines/core/sentences.md
-      - Qualifiers:
-          - pipelines/qualifiers/index.md
-          - pipelines/qualifiers/negation.md
-          - pipelines/qualifiers/family.md
-          - pipelines/qualifiers/hypothesis.md
-          - pipelines/qualifiers/reported-speech.md
-          - pipelines/qualifiers/history.md
-      - Miscellaneous:
-          - pipelines/misc/index.md
-          - pipelines/misc/dates.md
-          - pipelines/misc/consultation-dates.md
-          - pipelines/misc/sections.md
-          - pipelines/misc/reason.md
-      - Named Entity Recognition:
-          - pipelines/ner/index.md
-          - pipelines/ner/score.md
+    - pipelines/index.md
+    - pipelines/architecture.md
+    - Core Pipelines:
+      - pipelines/core/index.md
+      - pipelines/core/matcher.md
+      # - pipelines/core/advanced-matcher.md
+      - pipelines/core/normalisation.md
+      - pipelines/core/endlines.md
+      - pipelines/core/sentences.md
+    - Qualifiers:
+      - pipelines/qualifiers/index.md
+      - pipelines/qualifiers/negation.md
+      - pipelines/qualifiers/family.md
+      - pipelines/qualifiers/hypothesis.md
+      - pipelines/qualifiers/reported-speech.md
+      - pipelines/qualifiers/history.md
+    - Miscellaneous:
+      - pipelines/misc/index.md
+      - pipelines/misc/dates.md
+      - pipelines/misc/consultation-dates.md
+      - pipelines/misc/sections.md
+      - pipelines/misc/reason.md
+    - Named Entity Recognition:
+      - pipelines/ner/index.md
+      - pipelines/ner/score.md
   # - Utilities:
   #     - utilities/index.md
       # - Processing:
@@ -84,12 +83,12 @@ nav:
       #     - utilities/processing/multi.md
       #     - utilities/processing/spark.md
   - Connectors:
-      - utilities/connectors/index.md
-      - utilities/connectors/brat.md
-      - utilities/connectors/omop.md
-      # - utilities/connectors/labeltool.md
-      # - utilities/regex.md
-      # - utilities/evaluation.md
+    - utilities/connectors/index.md
+    - utilities/connectors/brat.md
+    - utilities/connectors/omop.md
+    # - utilities/connectors/labeltool.md
+    # - utilities/regex.md
+    # - utilities/evaluation.md
   - Code Reference: reference/
   - development/contributing.md
   - development/changelog.md

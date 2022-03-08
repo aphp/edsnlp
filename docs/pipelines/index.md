@@ -1,6 +1,6 @@
 # Pipelines overview
 
-EDS-NLP provides easy-to-use SpaCy components.
+EDS-NLP provides easy-to-use spaCy components.
 
 === "Core"
 
@@ -40,7 +40,7 @@ EDS-NLP provides easy-to-use SpaCy components.
     | `eds.emergency.ccmu`     | A CCMU score extractor     |
     | `eds.emergency.gemsa`    | A GEMSA score extractor    |
 
-You can add them to your SpaCy pipeline by simply calling `add_pipe`, for instance:
+You can add them to your spaCy pipeline by simply calling `add_pipe`, for instance:
 
 ```python
 # ↑ Omitted code that defines the nlp object ↑

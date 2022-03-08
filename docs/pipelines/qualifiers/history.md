@@ -55,7 +55,7 @@ The pipeline can be configured using the following parameters :
 
 | Parameter      | Explanation                                                              | Default                           |
 | -------------- | ------------------------------------------------------------------------ | --------------------------------- |
-| `attr`         | SpaCy attribute to match on (eg `NORM`, `TEXT`, `LOWER`)                 | `"NORM"`                          |
+| `attr`         | spaCy attribute to match on (eg `NORM`, `TEXT`, `LOWER`)                 | `"NORM"`                          |
 | `history`      | History patterns                                                         | `None` (use pre-defined patterns) |
 | `termination`  | Termination patterns (for syntagma/proposition extraction)               | `None` (use pre-defined patterns) |
 | `use_sections` | Whether to use pre-annotated sections (requires the `sections` pipeline) | `False`                           |
@@ -64,7 +64,7 @@ The pipeline can be configured using the following parameters :
 
 ## Declared extensions
 
-The `eds.history` pipeline declares two [SpaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :
+The `eds.history` pipeline declares two [spaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects :
 
 1. The `history` attribute is a boolean, set to `True` if the pipeline predicts that the span/token is a medical history.
 2. The `history_` property is a human-readable string, computed from the `history` attribute. It implements a simple getter function that outputs `CURRENT` or `ATCD`, depending on the value of `history`.

@@ -56,7 +56,7 @@ dates[1]._.date
 
 ## Declared extensions
 
-The `eds.dates` pipeline declares two [SpaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes) on the `Span` object :
+The `eds.dates` pipeline declares two [spaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes) on the `Span` object :
 
 1. The `date_parsed` attribute is a Python `datetime` object, used internally by the pipeline.
 2. The `date` attribute is a property that displays a normalised human-readable string for the date.
@@ -76,7 +76,7 @@ The pipeline can be configured using the following parameters :
 | `current`        | "Current" date patterns, eg `ce jour`            | `None` (use pre-defined patterns) |
 | `false_positive` | Some false positive patterns to exclude          | `None` (use pre-defined patterns) |
 | `on_ents_only`   | Whether to look for dates around entities only   | `False`                           |
-| `attr`           | SpaCy attribute to match on, eg `NORM` or `TEXT` | `"NORM"`                          |
+| `attr`           | spaCy attribute to match on, eg `NORM` or `TEXT` | `"NORM"`                          |
 
 ## Authors and citation
 

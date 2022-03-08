@@ -1,4 +1,4 @@
-from spacy.tokens import Doc
+from spacy.tokens import Doc, Span
 
 from edsnlp.utils.filter import filter_spans
 
@@ -16,3 +16,26 @@ def test_filter_spans(doc: Doc):
 
     assert len(filtered) == 1
     assert len(filtered[0]) == 4
+
+
+def test_label_to_remove(doc: Doc):
+
+    spans = [
+        Span(doc, 0, 5, label="test"),
+        Span(doc, 6, 10, label="test"),
+        Span(doc, 6, 10, label="remove"),
+    ]
+
+    filtered = filter_spans(spans, label_to_remove="remove")
+
+    assert len(filtered) == 2
+
+    spans = [
+        Span(doc, 6, 10, label="remove"),
+        Span(doc, 0, 5, label="test"),
+        Span(doc, 6, 10, label="test"),
+    ]
+
+    filtered = filter_spans(spans, label_to_remove="remove")
+
+    assert len(filtered) == 1

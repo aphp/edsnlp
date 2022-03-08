@@ -2,7 +2,7 @@
 
 [LabelTool](https://gitlab.eds.aphp.fr/datasciencetools/labeltool) is an in-house module enabling rapid annotation of pre-extracted entities.
 
-We provide a ready-to-use function that converts a list of annotated SpaCy documents into a `pandas` DataFrame that is readable to LabelTool.
+We provide a ready-to-use function that converts a list of annotated spaCy documents into a `pandas` DataFrame that is readable to LabelTool.
 
 ```python
 import spacy

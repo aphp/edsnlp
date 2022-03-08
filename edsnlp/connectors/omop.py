@@ -19,9 +19,9 @@ def omop2docs(
     Parameters
     ----------
     note : pd.DataFrame
-        The OMOP ``note`` table.
+        The OMOP `note` table.
     note_nlp : pd.DataFrame
-        The OMOP ``note_nlp`` table
+        The OMOP `note_nlp` table
     nlp : Language
         spaCy language object.
     extensions : Optional[List[str]], optional
@@ -29,7 +29,7 @@ def omop2docs(
 
     Returns
     -------
-    List[``Doc``] :
+    List[Doc] :
         List of spaCy documents
     """
 
@@ -117,7 +117,7 @@ def docs2omop(
     Returns
     -------
     Tuple[pd.DataFrame, pd.DataFrame]
-        Pair of OMOP tables (``note`` and ``note_nlp``)
+        Pair of OMOP tables (`note` and `note_nlp`)
     """
 
     df = pd.DataFrame(dict(doc=docs))
@@ -219,16 +219,16 @@ class OmopConnector(object):
         Parameters
         ----------
         note : pd.DataFrame
-            OMOP ``note`` table.
+            OMOP `note` table.
         note_nlp : pd.DataFrame
-            OMOP ``note_nlp`` table.
+            OMOP `note_nlp` table.
 
         Returns
         -------
         note : pd.DataFrame
-            OMOP ``note`` table.
+            OMOP `note` table.
         note_nlp : pd.DataFrame
-            OMOP ``note_nlp`` table.
+            OMOP `note_nlp` table.
         """
 
         note_nlp = note_nlp.rename(
@@ -249,16 +249,16 @@ class OmopConnector(object):
         Parameters
         ----------
         note : pd.DataFrame
-            OMOP ``note`` table.
+            OMOP `note` table.
         note_nlp : pd.DataFrame
-            OMOP ``note_nlp`` table.
+            OMOP `note_nlp` table.
 
         Returns
         -------
         note : pd.DataFrame
-            OMOP ``note`` table.
+            OMOP `note` table.
         note_nlp : pd.DataFrame
-            OMOP ``note_nlp`` table.
+            OMOP `note_nlp` table.
         """
 
         note_nlp = note_nlp.rename(
@@ -282,9 +282,9 @@ class OmopConnector(object):
         Parameters
         ----------
         note : pd.DataFrame
-            OMOP ``note`` table.
+            OMOP `note` table.
         note_nlp : pd.DataFrame
-            OMOP ``note_nlp`` table.
+            OMOP `note_nlp` table.
         extensions : Optional[List[str]], optional
             Extensions to keep, by default None
 
@@ -314,9 +314,9 @@ class OmopConnector(object):
         Returns
         -------
         note : pd.DataFrame
-            OMOP ``note`` table.
+            OMOP `note` table.
         note_nlp : pd.DataFrame
-            OMOP ``note_nlp`` table.
+            OMOP `note_nlp` table.
         """
         note, note_nlp = docs2omop(docs, extensions=extensions)
         note, note_nlp = self.postprocess(note, note_nlp)

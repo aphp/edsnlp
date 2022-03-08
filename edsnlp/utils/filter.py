@@ -24,25 +24,34 @@ def filter_spans(
     spans: Iterable[Union["Span", Tuple["Span", Any]]],
     label_to_remove: Optional[str] = None,
     return_discarded: bool = False,
-) -> Tuple[List["Span"], List["Span"]]:
+) -> Union[List["Span"], Tuple[List["Span"], List["Span"]]]:
     """
     Re-definition of spacy's filtering function, that returns discarded spans
     as well as filtered ones.
 
-    Can also accept a ``label_to_remove`` argument, useful for filtering out
-    pseudo cues. If set, ``results`` can contain overlapping spans: only
+    Can also accept a `label_to_remove` argument, useful for filtering out
+    pseudo cues. If set, `results` can contain overlapping spans: only
     spans overlapping with excluded labels are removed. The main expected
     use case is for pseudo-cues.
 
-    !!! note
+    !!! note ""
 
-        The **SpaCy documentation states**:
+        The **spaCy documentation states**:
 
         > Filter a sequence of spans and remove duplicates or overlaps.
         > Useful for creating named entities (where one token can only
         > be part of one entity) or when merging spans with
-        > ``Retokenizer.merge``. When spans overlap, the (first)
+        > `Retokenizer.merge`. When spans overlap, the (first)
         > longest span is preferred over shorter spans.
+
+    !!! danger "Filtering out spans"
+
+        If the `label_to_remove` argument is supplied, it might be tempting to
+        filter overlapping spans that are not part of a label to remove.
+
+        The reason we keep all other possibly overlapping labels is that in qualifier
+        pipelines, the same cue can precede **and** follow a marked entity.
+        Hence we need to keep every example.
 
     Parameters
     ----------
@@ -57,7 +66,7 @@ def filter_spans(
     -------
     results : List[Span]
         Filtered spans
-    discarded : List[Span]
+    discarded : List[Span], optional
         Discarded spans
     """
     sorted_spans = sorted(spans, key=get_sort_key, reverse=True)
@@ -67,11 +76,13 @@ def filter_spans(
     for span in sorted_spans:
         # Check for end - 1 here because boundaries are inclusive
         if span.start not in seen_tokens and span.end - 1 not in seen_tokens:
-            result.append(span)
+            if label_to_remove is None or span.label_ != label_to_remove:
+                result.append(span)
             if label_to_remove is None or span.label_ == label_to_remove:
                 seen_tokens.update(range(span.start, span.end))
-        else:
+        elif label_to_remove is None or span.label_ != label_to_remove:
             discarded.append(span)
+
     result = sorted(result, key=lambda span: span.start)
     discarded = sorted(discarded, key=lambda span: span.start)
 
@@ -96,7 +107,7 @@ def consume_spans(
         2. Spans are consumed in sequence and only once.
 
         The second item is problematic for the way we treat long entities,
-        hence the ``second_chance`` parameter, which lets entities be seen
+        hence the `second_chance` parameter, which lets entities be seen
         more than once.
 
     Parameters
@@ -114,7 +125,7 @@ def consume_spans(
     matches : List of spans
         List of spans consumed by the filter.
     remainder : List of spans
-        List of remaining spans in the original ``spans`` parameter.
+        List of remaining spans in the original `spans` parameter.
     """
 
     if not second_chance:

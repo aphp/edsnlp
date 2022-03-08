@@ -6,7 +6,7 @@ def make_pattern(
     with_breaks: bool = False,
     name: Optional[str] = None,
 ) -> str:
-    """
+    r"""
     Create OR pattern from a list of patterns.
 
     Parameters
@@ -14,9 +14,9 @@ def make_pattern(
     patterns : List[str]
         List of patterns to merge.
     with_breaks : bool, optional
-        Whether to add breaks (``\b``) on each side, by default False
+        Whether to add breaks (`\b`) on each side, by default False
     name: str, optional
-        Name of the group, using regex ``?P<>`` directive.
+        Name of the group, using regex `?P<>` directive.
 
     Returns
     -------

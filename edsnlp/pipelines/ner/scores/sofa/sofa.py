@@ -15,7 +15,7 @@ class Sofa(Score):
     Parameters
     ----------
     nlp : Language
-        The SpaCy object.
+        The spaCy object.
     score_name : str
         The name of the extracted score
     regex : List[str]
@@ -82,12 +82,12 @@ class Sofa(Score):
         Parameters
         ----------
         ents: List[Span]
-            List of SpaCy's spans extracted by the score matcher
+            List of spaCy's spans extracted by the score matcher
 
         Returns
         -------
         ents: List[Span]
-            List of SpaCy's spans, with, if found, an added `score_value` extension
+            List of spaCy's spans, with, if found, an added `score_value` extension
         """
 
         to_keep_ents = []

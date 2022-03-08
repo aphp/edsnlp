@@ -29,10 +29,10 @@ with open('example.txt', 'r') as f:
 print(text)
 ```
 
-## Définition d'un pipeline SpaCy
+## Définition d'un pipeline spaCy
 
 ```python slideshow={"slide_type": "slide"}
-# Importation de SpaCy
+# Importation de spaCy
 import spacy
 ```
 
@@ -42,7 +42,7 @@ import spacy
 ```
 
 ```python
-# Création de l'instance SpaCy
+# Création de l'instance spaCy
 nlp = spacy.blank('fr')
 
 # Normalisation des accents, de la casse et autres caractères spéciaux
@@ -85,7 +85,7 @@ doc = nlp(text)
 doc
 ```
 
-Les traitements effectués par EDS-NLP (et SpaCy en général) sont non-destructifs :
+Les traitements effectués par EDS-NLP (et spaCy en général) sont non-destructifs :
 
 ```python
 # Non-destruction
@@ -110,7 +110,7 @@ Les entités détectées se retrouvent dans l'attribut `ents` :
 doc.ents
 ```
 
-EDS-NLP étant fondée sur SpaCy, on peut utiliser tous les outils proposés autour de cette bibliothèque :
+EDS-NLP étant fondée sur spaCy, on peut utiliser tous les outils proposés autour de cette bibliothèque :
 
 ```python
 from spacy import displacy
@@ -134,7 +134,7 @@ entity = doc.ents[0]
 entity
 ```
 
-Chaque entité a été qualifiée par les pipelines de négation, hypothèse, etc. Ces pipelines utilisent des extensions SpaCy pour stocker leur résultat :
+Chaque entité a été qualifiée par les pipelines de négation, hypothèse, etc. Ces pipelines utilisent des extensions spaCy pour stocker leur résultat :
 
 ```python
 entity._.negated
@@ -163,7 +163,7 @@ note
 On peut appliquer la pipeline à l'ensemble des documents en utilisant la fonction `nlp.pipe`, qui permet d'accélérer les traitements en les appliquant en parallèle :
 
 ```python
-# Ici on crée une liste qui va contenir les documents traités par SpaCy
+# Ici on crée une liste qui va contenir les documents traités par spaCy
 docs = list(nlp.pipe(note.note_text))
 ```
 
@@ -171,7 +171,7 @@ On veut récupérer les entités détectées et les information associées (empa
 
 ```python
 def get_entities(doc):
-    """Extract a list of qualified entities from a SpaCy Doc object"""
+    """Extract a list of qualified entities from a spaCy Doc object"""
     entities = []
 
     for ent in doc.ents:

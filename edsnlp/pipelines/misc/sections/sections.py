@@ -50,7 +50,7 @@ class Sections(GenericMatcher):
     Parameters
     ----------
     nlp : Language
-        SpaCy pipeline object.
+        spaCy pipeline object.
     sections : Dict[str, List[str]]
         Dictionary of terms to look for.
     attr : str

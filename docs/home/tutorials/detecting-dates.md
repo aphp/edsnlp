@@ -67,7 +67,7 @@ dates  # (1)
 # Out: [21 janvier, il y a trois ans]
 ```
 
-1. `dates` is a list of SpaCy `Span` objects.
+1. `dates` is a list of spaCy `Span` objects.
 
 We can review each date and get its normalisation:
 

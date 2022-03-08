@@ -7,10 +7,10 @@ from dateparser import DateDataParser
 from dateparser_data.settings import default_parsers
 from spacy.language import Language
 from spacy.tokens import Doc, Span
-from spacy.util import filter_spans
 
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.pipelines.base import BaseComponent
+from edsnlp.utils.filter import filter_spans
 
 from . import patterns
 from .parsing import day2int, month2int, str2int
@@ -37,7 +37,7 @@ def td2str(td: timedelta):
 
 def date_getter(date: Span) -> str:
     """
-    Getter for dates. Uses the information from ``note_datetime``.
+    Getter for dates. Uses the information from `note_datetime`.
 
     Parameters
     ----------
@@ -199,9 +199,9 @@ def parse_groupdict(
 
 class Dates(BaseComponent):
     """
-    Tags and normalizes dates, using the open-source ``dateparser`` library.
+    Tags and normalizes dates, using the open-source `dateparser` library.
 
-    The pipeline uses spaCy's ``filter_spans`` function.
+    The pipeline uses spaCy's `filter_spans` function.
     It filters out false positives, and introduce a hierarchy between patterns.
     For instance, in case of ambiguity, the pipeline will decide that a date is a
     date without a year rather than a date without a day.
@@ -216,7 +216,7 @@ class Dates(BaseComponent):
         List of regular expressions for full dates in YYYY-MM-DD format.
     relative : Union[List[str], str]
         List of regular expressions for relative dates
-        (eg ``hier``, ``la semaine prochaine``).
+        (eg `hier`, `la semaine prochaine`).
     no_year : Union[List[str], str]
         List of regular expressions for dates that do not display a year.
     no_day : Union[List[str], str]
@@ -230,10 +230,11 @@ class Dates(BaseComponent):
         List of regular expressions for false positive (eg phone numbers, etc).
     on_ents_only : Union[bool, str, List[str]]
         Wether to look on dates in the whole document or in specific sentences:
-        - If True: Only look in the sentences of each entity in doc.ents
+
+        - If `True`: Only look in the sentences of each entity in doc.ents
         - If False: Look in the whole document
-        - If given a string ``key`` or list of string: Only look in the sentences of
-          each entity in doc.spans[key]
+        - If given a string `key` or list of string: Only look in the sentences of
+          each entity in `#!python doc.spans[key]`
     """
 
     # noinspection PyProtectedMember
@@ -371,7 +372,7 @@ class Dates(BaseComponent):
 
     def get_date(self, date: Span) -> Optional[datetime]:
         """
-        Get normalised date using ``dateparser``.
+        Get normalised date using `dateparser`.
 
         Parameters
         ----------
@@ -381,8 +382,8 @@ class Dates(BaseComponent):
         Returns
         -------
         Optional[datetime]
-            If a date is recognised, returns a Python ``datetime`` object.
-            Returns ``None`` otherwise.
+            If a date is recognised, returns a Python `datetime` object.
+            Returns `None` otherwise.
         """
 
         text_date = date.text
@@ -405,7 +406,6 @@ class Dates(BaseComponent):
 
         return self.parser(text_date)
 
-    # noinspection PyProtectedMember
     def __call__(self, doc: Doc) -> Doc:
         """
         Tags dates.

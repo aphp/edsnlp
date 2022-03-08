@@ -77,13 +77,13 @@ displacy.render(doc_exemple, style="ent", options={"colors": {"space": "red"}})
 
 The pipeline can be configured using the following parameters :
 
-| Parameter    | Explanation                      | Default |
-| ------------ | -------------------------------- | ------- |
-| `model_path` | Path to the pre-trained pipeline | `None`  |
+| Parameter    | Explanation                      | Default  |
+| ------------ | -------------------------------- | -------- |
+| `model_path` | Path to the pre-trained pipeline | Required |
 
 ## Declared extensions
 
-The `eds.endlines` pipeline declares one [SpaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects. The `end_line` attribute is a boolean, set to `True` if the pipeline predicts that the new line is an end line character. Otherwise, it is set to `False` if the new line is classified as a space.
+The `eds.endlines` pipeline declares one [spaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects. The `end_line` attribute is a boolean, set to `True` if the pipeline predicts that the new line is an end line character. Otherwise, it is set to `False` if the new line is classified as a space.
 
 The pipeline also sets the `excluded` custom attribute on newlines that are classified as spaces. It lets downstream matchers skip excluded tokens (see [normalisation](./normalisation.md)) for more detail.
 

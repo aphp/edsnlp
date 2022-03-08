@@ -214,11 +214,11 @@ class Negation(Qualifier):
 
         Parameters
         ----------
-        doc: spaCy ``Doc`` object
+        doc: spaCy `Doc` object
 
         Returns
         -------
-        doc: spaCy ``Doc`` object, annotated for negation
+        doc: spaCy `Doc` object, annotated for negation
         """
 
         matches = self.get_matches(doc)
@@ -250,7 +250,7 @@ class Negation(Qualifier):
             sub_preceding = get_spans(sub_matches, "preceding")
             sub_following = get_spans(sub_matches, "following")
             # Verbs precede negated content
-            sub_following += get_spans(sub_matches, "verbs")
+            sub_preceding += get_spans(sub_matches, "verbs")
 
             if not sub_preceding + sub_following:
                 continue

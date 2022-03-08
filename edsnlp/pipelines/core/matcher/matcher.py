@@ -17,14 +17,14 @@ class GenericMatcher(BaseComponent):
     Parameters
     ----------
     nlp : Language
-        The SpaCy object.
+        The spaCy object.
     terms : Optional[Patterns]
         A dictionary of terms.
     regex : Optional[Patterns]
         A dictionary of regular expressions.
     attr : str
         The default attribute to use for matching.
-        Can be overiden using the ``terms`` and ``regex`` configurations.
+        Can be overiden using the `terms` and `regex` configurations.
     filter_matches : bool
         Whether to filter out matches.
     on_ents_only : bool

@@ -15,7 +15,7 @@ T2	Disease 31 58	pneumopathie au coronavirus
 T3	Drug 79 90	paracétamol
 ```
 
-The point of the BRAT connector is to go from the standoff annotation format to an annotated SpaCy document :
+The point of the BRAT connector is to go from the standoff annotation format to an annotated spaCy document :
 
 ```python
 import spacy

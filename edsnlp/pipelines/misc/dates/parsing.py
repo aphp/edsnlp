@@ -6,7 +6,7 @@ from .patterns.atomic import days, months
 
 def str2int(time: str) -> int:
     """
-    Converts a string to an integer. Returns ``None`` if the string cannot be converted.
+    Converts a string to an integer. Returns `None` if the string cannot be converted.
 
     Parameters
     ----------
@@ -26,7 +26,7 @@ def str2int(time: str) -> int:
 
 def time2int_factory(patterns: Dict[str, int]) -> Callable[[str], int]:
     """
-    Factory for a ``time2int`` conversion function.
+    Factory for a `time2int` conversion function.
 
     Parameters
     ----------

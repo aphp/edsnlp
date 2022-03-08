@@ -45,12 +45,12 @@ class EDSPhraseMatcher(object):
     Parameters
     ----------
     vocab : Vocab
-        SpaCy vocabulary to match on.
+        spaCy vocabulary to match on.
     attr : str
         Default attribute to match on, by default "TEXT".
-        Can be overiden in the ``add`` method.
+        Can be overiden in the `add` method.
 
-        To match on a custom attribute, prepend the attribute name with ``_``.
+        To match on a custom attribute, prepend the attribute name with `_`.
     ignore_excluded : bool, optional
         Whether to ignore excluded tokens, by default True
     exclude_newlines : bool, optional
@@ -92,7 +92,7 @@ class EDSPhraseMatcher(object):
         Parameters
         ----------
         match_pattern : Doc
-            A SpaCy doc object, to use as match model.
+            A spaCy doc object, to use as match model.
         attr : str, optional
             Overwrite attribute to match on.
         ignore_excluded: bool, optional
@@ -101,7 +101,7 @@ class EDSPhraseMatcher(object):
         Returns
         -------
         List[PatternDict]
-            A SpaCy rule-based pattern.
+            A spaCy rule-based pattern.
         """
 
         ignore_excluded = ignore_excluded or self.ignore_excluded
@@ -142,7 +142,7 @@ class EDSPhraseMatcher(object):
         Parameters
         ----------
         nlp : Language
-            The instance of the SpaCy language class.
+            The instance of the spaCy language class.
         terms : Patterns
             Dictionary of label/terms, or label/dictionary of terms/attribute.
         """
@@ -222,7 +222,7 @@ class EDSPhraseMatcher(object):
         Parameters
         ----------
         doclike:
-            SpaCy Doc or Span object.
+            spaCy Doc or Span object.
         as_spans:
             Whether to return matches as spans.
 

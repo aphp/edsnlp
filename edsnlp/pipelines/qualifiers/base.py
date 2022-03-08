@@ -90,7 +90,7 @@ class Qualifier(BaseComponent):
         Parameters
         ----------
         doc : Doc
-            SpaCy ``Doc`` object.
+            spaCy `Doc` object.
 
         Returns
         -------

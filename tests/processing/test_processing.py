@@ -46,7 +46,7 @@ def note(how: str):
 
 @pytest.fixture
 def model():
-    # Creates the SpaCy instance
+    # Creates the spaCy instance
     nlp = spacy.blank("fr")
 
     # Normalisation of accents, case and other special characters

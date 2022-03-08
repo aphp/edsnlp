@@ -1,6 +1,6 @@
 # Testing the algorithm
 
-Various tests for the components of the SpaCy pipeline.
+Various tests for the components of the spaCy pipeline.
 
 We decided to design tests entity-wise, meaning that we only check the validity
 of the computed modality on a set of entities. This design choice is motivated by

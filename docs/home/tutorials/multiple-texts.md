@@ -1,8 +1,8 @@
 # Processing multiple texts
 
-In the previous tutorials, we've seen how to apply a SpaCy NLP pipeline to a single text. Once the pipeline is tested and ready to be applied on an entire corpus, we'll want to deploy it efficiently.
+In the previous tutorials, we've seen how to apply a spaCy NLP pipeline to a single text. Once the pipeline is tested and ready to be applied on an entire corpus, we'll want to deploy it efficiently.
 
-In this tutorial, we'll cover a few best practices and some _caveats_ to avoid. Then, we'll explore methods that EDS-NLP provides to use a SpaCy pipeline directly on a Pandas or Spark DataFrame. These can drastically increase throughput (up to 20x speed increase on our 64-core machines).
+In this tutorial, we'll cover a few best practices and some _caveats_ to avoid. Then, we'll explore methods that EDS-NLP provides to use a spaCy pipeline directly on a Pandas or Spark DataFrame. These can drastically increase throughput (up to 20x speed increase on our 64-core machines).
 
 Consider this simple pipeline:
 
@@ -55,8 +55,8 @@ You _could_ just apply the pipeline document by document.
 docs = [nlp(text) for text in corpus]
 ```
 
-It turns out SpaCy has a powerful parallelisation engine for an efficient processing of multiple texts.
-So the first step for writing more efficient SpaCy code is to use `nlp.pipe` when processing multiple texts:
+It turns out spaCy has a powerful parallelisation engine for an efficient processing of multiple texts.
+So the first step for writing more efficient spaCy code is to use `nlp.pipe` when processing multiple texts:
 
 ```diff
 - docs = [nlp(text) for text in corpus]
@@ -190,7 +190,7 @@ data = data.reset_index(drop=True)
 data = data[["note_id"]].join(pd.json_normalize(data.entities))
 ```
 
-1. We use SpaCy's efficient `nlp.pipe` method
+1. We use spaCy's efficient `nlp.pipe` method
 2. This part is far from optimal, since it uses apply... But the computationally heavy part is in the previous line,
    since `get_entities` merely _reads_ pre-computed values from the document.
 
@@ -256,14 +256,14 @@ note_nlp = parallel_pipe(
 
 !!! danger "Using a large number of workers and memory use"
 
-    In SpaCy, even a rule-based pipeline is a memory intensive object.
+    In spaCy, even a rule-based pipeline is a memory intensive object.
     Be wary of using too many workers, lest you get a memory error.
 
 Depending on your machine, you should get a significant speed boost (we got 20x acceleration on a shared cluster using 62 cores).
 
 ## Deploying EDS-NLP on Spark
 
-Should you need to deploy SpaCy on larger-than-memory Spark DataFrames, EDS-NLP has you covered.
+Should you need to deploy spaCy on larger-than-memory Spark DataFrames, EDS-NLP has you covered.
 
 Suppose you have a Spark DataFrame:
 

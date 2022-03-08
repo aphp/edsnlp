@@ -53,14 +53,14 @@ def pipe(
     **pipe_kwargs,
 ):
     """
-    Function to apply a SpaCy pipe to a pandas DataFrame note by using multiprocessing
+    Function to apply a spaCy pipe to a pandas DataFrame note by using multiprocessing
 
     Parameters
     ----------
     note : DataFrame
         A pandas DataFrame with a `note_id` and `note_text` column
     nlp : Language
-        A SpaCy pipe
+        A spaCy pipe
     additional_spans : Union[List[str], str], by default "discarded"
         A name (or list of names) of SpanGroup on which to apply the pipe too:
         SpanGroup are available as `doc.spans[spangroup_name]` and can be generated
@@ -77,7 +77,7 @@ def pipe(
     progress_bar: bool, by default True
         Whether to display a progress bar or not
     **pipe_kwargs:
-        Arguments exposed in ``processing.pipe_generator`` are also available here
+        Arguments exposed in `processing.pipe_generator` are also available here
 
     Returns
     -------

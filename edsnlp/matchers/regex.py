@@ -25,7 +25,7 @@ def create_span(
     ignore_excluded: bool,
 ) -> Span:
     """
-    SpaCy only allows strict alignment mode for char_span on Spans.
+    spaCy only allows strict alignment mode for char_span on Spans.
     This method circumvents this.
 
     Parameters
@@ -109,14 +109,14 @@ class RegexMatcher(object):
     ----------
     alignment_mode : str
         How spans should be aligned with tokens.
-        Possible values are ``strict`` (character indices must be aligned
+        Possible values are `strict` (character indices must be aligned
         with token boundaries), "contract" (span of all tokens completely
         within the character span), "expand" (span of all tokens at least
         partially covered by the character span).
-        Defaults to ``expand``.
+        Defaults to `expand`.
     attr : str
         Default attribute to match on, by default "TEXT".
-        Can be overiden in the ``add`` method.
+        Can be overiden in the `add` method.
     ignore_excluded : bool
         Whether to skip exclusions
     """
@@ -182,7 +182,7 @@ class RegexMatcher(object):
             List of patterns to add.
         attr : str, optional
             Attribute to use for matching.
-            By default uses the ``default_attr`` attribute
+            By default uses the `default_attr` attribute
         ignore_excluded : bool, optional
             Whether to skip excluded tokens during matching.
         alignment_mode : str, optional
@@ -237,7 +237,7 @@ class RegexMatcher(object):
         Parameters
         ----------
         doclike:
-            SpaCy Doc or Span object to match on.
+            spaCy Doc or Span object to match on.
 
         Yields
         -------
@@ -279,7 +279,7 @@ class RegexMatcher(object):
         Parameters
         ----------
         doclike:
-            SpaCy Doc or Span object.
+            spaCy Doc or Span object.
         as_spans:
             Returns matches as spans.
 

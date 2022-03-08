@@ -1,6 +1,6 @@
 # Overview of connectors
 
-EDS-NLP provides a series of connectors apt to convert back and forth from different formats into SpaCy representation.
+EDS-NLP provides a series of connectors apt to convert back and forth from different formats into spaCy representation.
 
 We provide the following connectors:
 

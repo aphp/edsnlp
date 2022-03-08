@@ -14,7 +14,7 @@ from .patterns import following, preceding, pseudo, verbs_eds, verbs_hyp
 
 class Hypothesis(Qualifier):
     """
-    Hypothesis detection with SpaCy.
+    Hypothesis detection with spaCy.
 
     The component looks for five kinds of expressions in the text :
 

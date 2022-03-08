@@ -10,24 +10,24 @@ from .quotes import Quotes
 
 class Normalizer(object):
     """
-    Normalisation pipeline. Modifies the ``NORM`` attribute,
+    Normalisation pipeline. Modifies the `NORM` attribute,
     acting on four dimensions :
 
-    - ``lowercase``: using the default ``NORM``
-    - ``accents``: deterministic and fixed-length normalisation of accents.
-    - ``quotes``: deterministic and fixed-length normalisation of quotation marks.
-    - ``pollution``: removal of pollutions.
+    - `lowercase`: using the default `NORM`
+    - `accents`: deterministic and fixed-length normalisation of accents.
+    - `quotes`: deterministic and fixed-length normalisation of quotation marks.
+    - `pollution`: removal of pollutions.
 
     Parameters
     ----------
     lowercase : bool
         Whether to remove case.
     accents : Optional[Accents]
-        Optional ``Accents`` object.
+        Optional `Accents` object.
     quotes : Optional[Quotes]
-        Optional ``Quotes`` object.
+        Optional `Quotes` object.
     pollution : Optional[Pollution]
-        Optional ``Pollution`` object.
+        Optional `Pollution` object.
     """
 
     def __init__(
@@ -49,12 +49,12 @@ class Normalizer(object):
         Parameters
         ----------
         doc : Doc
-            spaCy ``Doc`` object
+            spaCy `Doc` object
 
         Returns
         -------
         Doc
-            Doc object with ``NORM`` attribute modified
+            Doc object with `NORM` attribute modified
         """
         if not self.lowercase:
             remove_lowercase(doc)

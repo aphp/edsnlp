@@ -55,7 +55,7 @@ class ConsultationDates(GenericMatcher):
         logger.warning("This pipeline is still in beta")
         logger.warning(
             "This pipeline should ONLY be used on notes "
-            "where ``note_class_source_value == 'CR-CONS'``"
+            "where `note_class_source_value == 'CR-CONS'`"
         )
         logger.warning(
             """This pipeline requires to use the normalizer pipeline with:

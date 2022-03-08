@@ -10,7 +10,7 @@ def conjugate_verb(
 ) -> pd.DataFrame:
     """
     Conjugates the verb using an instance of mlconjug3,
-    and formats the results in a pandas ``DataFrame``.
+    and formats the results in a pandas `DataFrame`.
 
     Parameters
     ----------

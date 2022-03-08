@@ -1,6 +1,6 @@
 # OMOP Connector
 
-We provide a connector between OMOP-formatted dataframes and SpaCy documents.
+We provide a connector between OMOP-formatted dataframes and spaCy documents.
 
 ## OMOP-style dataframes
 

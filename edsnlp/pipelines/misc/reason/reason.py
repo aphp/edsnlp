@@ -13,10 +13,10 @@ from edsnlp.utils.inclusion import check_inclusion
 class Reason(GenericMatcher):
     """Pipeline to identify the reason of the hospitalisation.
 
-    It declares a Span extension called ``ents_reason`` and adds
-    the key ``reasons`` to doc.spans.
+    It declares a Span extension called `ents_reason` and adds
+    the key `reasons` to doc.spans.
 
-    It also declares the boolean extension ``is_reason``.
+    It also declares the boolean extension `is_reason`.
     This extension is set to True for the Reason Spans but also
     for the entities that overlap the reason span.
 
@@ -31,7 +31,7 @@ class Reason(GenericMatcher):
         a string with the value "TEXT" or "NORM", or a dict with
         the key 'term_attr'. We can also add a key for each regex.
     use_sections : bool,
-        whether or not use the ``sections`` pipeline to improve results.
+        whether or not use the `sections` pipeline to improve results.
     ignore_excluded : bool
         Whether to skip excluded tokens.
     """
@@ -82,7 +82,7 @@ class Reason(GenericMatcher):
         Parameters
         ----------
         sections : Iterable
-            Spans of sections identified with the ``sections`` pipeline
+            Spans of sections identified with the `sections` pipeline
         reasons : Iterable
             Reasons list identified by the regex
 

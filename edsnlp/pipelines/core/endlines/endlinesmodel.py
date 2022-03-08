@@ -164,18 +164,18 @@ class EndLinesModel:
         """Use the model for inference
 
         The df should have the following columns:
-        ``["A1","A2","A3","A4","B1","B2","BLANK_LINE"]``
+        `["A1","A2","A3","A4","B1","B2","BLANK_LINE"]`
 
         Parameters
         ----------
         df : pd.DataFrame
             The df should have the following columns:
-            ``["A1","A2","A3","A4","B1","B2","BLANK_LINE"]``
+            `["A1","A2","A3","A4","B1","B2","BLANK_LINE"]`
 
         Returns
         -------
         pd.DataFrame
-            The result is added to the column ``PREDICTED_END_LINE``
+            The result is added to the column `PREDICTED_END_LINE`
         """
 
         df = self._convert_raw_data_to_codes(df)
@@ -216,7 +216,7 @@ class EndLinesModel:
         Parameters
         ----------
         path : str, optional
-            path to file .pkl, by default ``base_model.pkl``
+            path to file .pkl, by default `base_model.pkl`
         """
         with open(path, "wb") as outp:
             del self.nlp
@@ -283,7 +283,7 @@ class EndLinesModel:
         Parameters
         ----------
         df : pd.DataFrame
-            It should have columns ``['A3','A4','B1','B2']``
+            It should have columns `['A3','A4','B1','B2']`
 
         Returns
         -------
@@ -572,12 +572,12 @@ class EndLinesModel:
     def set_spans(self, corpus: Iterable[Doc], df: pd.DataFrame):
         """
         Function to set the results of the algorithm (pd.DataFrame)
-        as spans of the SpaCy document.
+        as spans of the spaCy document.
 
         Parameters
         ----------
         corpus : Iterable[Doc]
-            Iterable of SpaCy Documents
+            Iterable of spaCy Documents
         df : pd.DataFrame
             It should have the columns:
             ["DOC_ID","original_token_index","PREDICTED_END_LINE"]
@@ -723,7 +723,7 @@ class EndLinesModel:
         -------
         pd.DataFrame
             Returns a dataframe with one line per token. It has the following columns :
-            ``[
+            `[
             "ORTH",
             "LOWER",
             "SHAPE",
@@ -732,7 +732,7 @@ class EndLinesModel:
             "IS_UPPER",
             "IS_PUNCT",
             "LENGTH",
-            ]``
+            ]`
         """
         attributes = [
             "ORTH",
@@ -763,7 +763,7 @@ class EndLinesModel:
         _id : int
             token id
         string_store : StringStore
-            SpaCy Language String Store
+            spaCy Language String Store
 
         Returns
         -------

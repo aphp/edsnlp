@@ -65,13 +65,13 @@ The pipeline can be configured using the following parameters :
 | Parameter         | Explanation                                      | Default                           |
 | ----------------- | ------------------------------------------------ | --------------------------------- |
 | `reasons`         | Reasons patterns                                 | `None` (use pre-defined patterns) |
-| `attr`            | SpaCy attribute to match on, eg `NORM` or `TEXT` | `"NORM"`                          |
+| `attr`            | spaCy attribute to match on, eg `NORM` or `TEXT` | `"NORM"`                          |
 | `use_sections`    | Whether to use sections                          | `False`                           |
 | `ignore_excluded` | Whether to ignore excluded tokens                | `False`                           |
 
 ## Declared extensions
 
-The `eds.reason` pipeline adds the key `reasons` to doc.spans and declares one [SpaCy extension](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on the `Span` objects called `ents_reason`.
+The `eds.reason` pipeline adds the key `reasons` to doc.spans and declares one [spaCy extension](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on the `Span` objects called `ents_reason`.
 
 The `ents_reason` extension is a list of named entities that overlap the `Span`. Tipically entities founded in previous pipeline like `matcher`.
 

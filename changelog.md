@@ -1,14 +1,5 @@
 # Changelog
 
-## v0.4.1
-
-- Fix alignment issues in RegexMatcher
-- Change the alignment procedure, dropping clumsy `numpy` dependency in favour of `bisect`
-- Change the name of `eds.antecedents` to `eds.history`.
-  Calling `eds.antecedents` still works, but issues a deprecation warning and support will be removed in a future version.
-- Add a `eds.covid` component, that identifies mentions of COVID
-- Change the demo, to include NER components
-
 ## v0.4.0
 
 - Profound re-write of the normalisation :
@@ -33,6 +24,12 @@
 - Add a `eds` namespace for components: for instance, `negation` becomes `eds.negation`. Using the former pipeline name still works, but issues a deprecation warning.
 - Add 3 score pipelines related to emergency
 - Add a helper function to use a spaCy pipeline as a Spark UDF.
+- Fix alignment issues in RegexMatcher
+- Change the alignment procedure, dropping clumsy `numpy` dependency in favour of `bisect`
+- Change the name of `eds.antecedents` to `eds.history`.
+  Calling `eds.antecedents` still works, but issues a deprecation warning and support will be removed in a future version.
+- Add a `eds.covid` component, that identifies mentions of COVID
+- Change the demo, to include NER components
 
 ## v0.3.2
 

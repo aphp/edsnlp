@@ -45,7 +45,7 @@ docs = connector.omop2docs(note, note_nlp)
 doc = docs[0]
 
 doc.ents
-# Out: [pneumopathie au coronavirus, paracétamol]
+# Out: [coronavirus, paracétamol]
 
 doc.ents[0].label_
 # Out: disease

@@ -19,13 +19,13 @@ def _df_to_spacy(
     note: pd.DataFrame,
 ):
     """
-    Takes a Pandas DataFrame and return a generator that can be used in
+    Takes a pandas DataFrame and return a generator that can be used in
     `nlp.pipe()`.
 
     Parameters
     ----------
     note: pd.DataFrame
-        A Pandas DataFrame with at least `note_text` and `note_id` columns.
+        A pandas DataFrame with at least `note_text` and `note_id` columns.
         A `Doc` object will be created for each line.
 
     Returns
@@ -107,12 +107,12 @@ def _full_schema(
     extensions: List[str] = [],
 ):
     """
-    Function used when Parallelizing tasks via joblib.
+    Function used when Parallelising tasks via joblib.
     Takes a Doc as input, and returns a list of serializable objects
 
     !!! note
 
-        The parallelization needs for output objects to be **serializable**:
+        The parallelisation needs for output objects to be **serializable**:
         after splitting the task into separate jobs, intermediate results
         are saved on memory before being aggregated, thus the need to be
         serializable. For instance, spaCy's spans aren't serializable since

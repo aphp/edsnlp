@@ -45,16 +45,16 @@ Three main families of terms are available by default to extract those events.
 
 ### The `consultation_mention` terms
 
-This list contains terms directly refering to consultations, such as "_Consultation du..._" or "_Compte rendu du..._".
+This list contains terms directly referring to consultations, such as "_Consultation du..._" or "_Compte rendu du..._".
 This list is the only one activated by default since it is fairly precise an not error-prone.
 
 ### The `town_mention` terms
 
-This list contains the towns of each AP-HP's hospital. Its goal is to fetch dates mentionned as "_Paris, le 13 décembre 2015_". It has a high recall but poor precision, since those dates can often be dates of letter redaction instea of consultation dates.
+This list contains the towns of each AP-HP's hospital. Its goal is to fetch dates mentioned as "_Paris, le 13 décembre 2015_". It has a high recall but poor precision, since those dates can often be dates of letter redaction instead of consultation dates.
 
 ### The `document_date_mention` terms
 
-This list contains expressions mentionning the date of creation/edition of a document, such as "_Date du rapport: 13/12/2015_" or "_Signé le 13/12/2015_". As for `town_mention`, it has a high recall but is prone to errors since document date and consultation date aren't necessary similar.
+This list contains expressions mentioning the date of creation/edition of a document, such as "_Date du rapport: 13/12/2015_" or "_Signé le 13/12/2015_". As for `town_mention`, it has a high recall but is prone to errors since document date and consultation date aren't necessary similar.
 
 !!! note
 
@@ -73,9 +73,7 @@ The pipeline can be configured using the following parameters :
 
 ## Declared extensions
 
-The `eds.consultation_dates` pipeline declares one [spaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes) on the `Span` object :
-
-The `eds.consultation_date` attribute, which is a Python `datetime` object.
+The `eds.consultation_dates` pipeline declares one [spaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes) on the `Span` object: the `consultation_date` attribute, which is a Python `datetime` object.
 
 ## Authors and citation
 

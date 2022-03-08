@@ -97,7 +97,9 @@ get_text(doc, attr="NORM")
 
 ### Accents
 
-The `eds.accents` pipeline removes accents. To avoid edge cases, the uses a specified list of accentuated characters and their unaccented representation, making it more predictable than using a library such as `unidecode`.
+The `eds.accents` pipeline removes accents. To avoid edge cases,
+the component uses a specified list of accentuated characters and their unaccented representation,
+making it more predictable than using a library such as `unidecode`.
 
 Consider the following example :
 

@@ -1,3 +1,7 @@
+"""
+EDS-NLP
+"""
+
 from pathlib import Path
 
 from . import extensions

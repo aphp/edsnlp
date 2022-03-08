@@ -56,11 +56,13 @@ class Reason(GenericMatcher):
             ignore_excluded=ignore_excluded,
         )
 
-        self.use_sections = use_sections and "sections" in self.nlp.pipe_names
+        self.use_sections = use_sections and (
+            "eds.sections" in self.nlp.pipe_names or "sections" in self.nlp.pipe_names
+        )
         if use_sections and not self.use_sections:
             logger.warning(
                 "You have requested that the pipeline use annotations "
-                "provided by the `section` pipeline, but it was not set. "
+                "provided by the `eds.section` pipeline, but it was not set. "
                 "Skipping that step."
             )
 

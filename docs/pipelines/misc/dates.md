@@ -1,6 +1,6 @@
 # Dates
 
-The `eds.dates` pipeline's role is to detect and normalize dates within a medical document.
+The `eds.dates` pipeline's role is to detect and normalise dates within a medical document.
 We use simple regular expressions to extract date mentions, and apply the [`dateparser` library](https://dateparser.readthedocs.io/en/latest/index.html)
 for the normalisation.
 
@@ -13,7 +13,7 @@ for the normalisation.
 
 The `eds.dates` pipeline finds absolute (eg `23/08/2021`) and relative (eg `hier`, `la semaine dernière`) dates alike.
 
-If the date of edition (via the `doc._.note_datetime` extension) is available, relative (and "year-less") dates will be normalized
+If the date of edition (via the `doc._.note_datetime` extension) is available, relative (and "year-less") dates will be normalised
 using the latter as base. On the other hand, if the base is unknown, the normalisation will follow the pattern :
 `TD±<number-of-days>`, positive values meaning that the relative date mentions the future (`dans trois jours`).
 
@@ -51,7 +51,7 @@ dates[1]._.date
 doc._.note_datetime = datetime(2021, 8, 27)
 
 dates[1]._.date
-# Out: "2010-08-27"
+# Out: "2020-08-27"
 ```
 
 ## Declared extensions

@@ -36,6 +36,11 @@ Now, consider the following example:
 
 There is an obvious problem: none of these examples should lead us to include this particular patient into the cohort.
 
+!!! warning
+
+    We show an English example just to explain the issue.
+    EDS-NLP remains a **French-language** medical NLP library.
+
 To curb this issue, EDS-NLP proposes rule-based pipelines that qualify entities to help the user make an informed decision about which patient should be included in a real-world data cohort.
 
 ## Under the hood

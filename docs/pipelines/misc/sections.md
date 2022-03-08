@@ -87,7 +87,7 @@ The pipeline can be configured using the following parameters :
 The `eds.sections` pipeline adds two fields to the `doc.spans` attribute :
 
 1. The `section_titles` key contains the list of all section titles extracted using the list declared in the `terms.py` module.
-2. The `sections` key contains a list of sections, ie spans of text between two section title (or the last title and the end of the document).
+2. The `sections` key contains a list of sections, ie spans of text between two section titles (or the last title and the end of the document).
 
 ## Authors and citation
 

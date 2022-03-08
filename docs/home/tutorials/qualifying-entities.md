@@ -24,6 +24,11 @@ However, consider the classical example where we look for the `diabetes` concept
 
 None of these expressions should be used to build a cohort: the detected entity is either negated, speculative, or does not concern the patient themself. That's why we need to **qualify the matched entities**.
 
+!!! warning
+
+    We show an English example just to explain the issue.
+    EDS-NLP remains a **French-language** medical NLP library.
+
 ## The solution
 
 We can use EDS-NLP's qualifier pipelines to achieve that. Let's add specific components to our pipeline to detect these three modalities.

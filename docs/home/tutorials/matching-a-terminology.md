@@ -51,7 +51,7 @@ Let's unpack what happened:
 3. We applied the pipeline to the texts...
 4. ... and explored the extracted entities.
 
-This example showcases a limitation of our term dictionary : the phrases `COVID19` and `difficultés respiratoires` where not detected by the pipeline.
+This example showcases a limitation of our term dictionary : the phrases `COVID19` and `difficultés respiratoires` were not detected by the pipeline.
 
 To increase recall, we _could_ just add every possible variation :
 
@@ -66,7 +66,7 @@ terms = dict(
 
 But what if we come across `Coronavirus`? Surely we can do better!
 
-## Matching on normalized text
+## Matching on normalised text
 
 We can modify the matcher's configuration to match on other attributes instead of the verbatim input. You can refer to spaCy's [list of available token attributes](https://spacy.io/usage/rule-based-matching#adding-patterns-attributes){ target=\_blank}.
 
@@ -177,9 +177,9 @@ doc.ents
 3. The component can be configured. See the [specific documentation](../../pipelines/core/normalisation.md) for detail.
 4. The normalisation lives in the `NORM` attribute
 5. We can tell the matcher to ignore excluded tokens (tokens tagged as pollution by the normalisation component).
-   This is not an obligation:
+   This is not an obligation.
 
-Using the normalisation component, you can match on a normalized version of the text,
+Using the normalisation component, you can match on a normalised version of the text,
 as well as **skip pollution tokens during the matching process**.
 
 !!! tip "Using term matching with the normalisation"

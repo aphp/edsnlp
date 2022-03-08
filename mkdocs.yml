@@ -35,18 +35,18 @@ theme:
 nav:
   - index.md
   - Tutorials:
-      - home/tutorials/index.md
-      - home/spacy101.md
-      - home/tutorials/matching-a-terminology.md
-      - home/tutorials/qualifying-entities.md
-      - home/tutorials/detecting-dates.md
-      - home/tutorials/multiple-texts.md
-      - home/tutorials/endlines.md
-      - home/tutorials/reason.md
+    - tutorials/index.md
+    - tutorials/spacy101.md
+    - tutorials/matching-a-terminology.md
+    - tutorials/qualifying-entities.md
+    - tutorials/detecting-dates.md
+    - tutorials/multiple-texts.md
+    - tutorials/endlines.md
+    - tutorials/reason.md
   - Advanced tutorials:
-    - home/advanced-tutorials/index.md
-    - home/advanced-tutorials/word-vectors.md
-    - home/advanced-tutorials/fastapi.md
+    - advanced-tutorials/index.md
+    - advanced-tutorials/word-vectors.md
+    - advanced-tutorials/fastapi.md
     - Creating a pipeline: https://spacy.io/usage/processing-pipelines#custom-components" target="_blank
   - Pipelines:
     - pipelines/index.md
@@ -78,8 +78,8 @@ nav:
     - utilities/connectors/brat.md
     - utilities/connectors/omop.md
   - Code Reference: reference/
-  - development/contributing.md
-  - development/changelog.md
+  - contributing.md
+  - changelog.md
 
 extra:
   version:
@@ -102,6 +102,7 @@ plugins:
   - gen-files:
       scripts:
         - docs/generate_reference.py
+        - docs/generate_development.py
   - mkdocstrings:
       handlers:
         python:

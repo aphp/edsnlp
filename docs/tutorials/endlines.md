@@ -94,15 +94,16 @@ doc
 doc.spans["new_lines"][0].label_  # (2)
 # Out: 'space'
 ```
+
 1. you should specify the path to the trained model here.
 2. All new lines are stored in the `#!python doc.spans["new_lines"]` key.
-   Whether or not a specific new line character is detected as a *false endline*
+   Whether or not a specific new line character is detected as a _false endline_
    is stored in the label attribute.
 
 ## Declared extensions
 
 The `eds.endlines` pipeline declares one [spaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes), on both `Span` and `Token` objects. The `end_line` attribute is a boolean, set to `True` if the pipeline predicts that the new line is an end line character. Otherwise, it is set to `False` if the new line is classified as a space.
 
-The pipeline also sets the `excluded` custom attribute on newlines that are classified as spaces. It lets downstream matchers skip excluded tokens (see [normalisation](../../pipelines/core/normalisation.md)) for more detail.
+The pipeline also sets the `excluded` custom attribute on newlines that are classified as spaces. It lets downstream matchers skip excluded tokens (see [normalisation](../pipelines/core/normalisation.md)) for more detail.
 
 \bibliography

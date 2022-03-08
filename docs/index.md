@@ -2,7 +2,7 @@
 
 EDS-NLP provides a set of spaCy components that are developed and used to extract information from clinical notes written in French.
 
-If it's your first time with spaCy, we recommend you familiarise yourself with some of their key concepts by looking at the "spaCy 101" page.
+If it's your first time with spaCy, we recommend you familiarise yourself with some of their key concepts by looking at the ["spaCy 101" page](tutorials/spacy101.md).
 
 ## Quick start
 
@@ -57,11 +57,11 @@ doc.ents[0]._.negation  # (6)
 1. We only need spaCy's French tokenizer.
 1. This example terminology provides a very simple, and by no means exhaustive, list of synonyms for COVID19.
 1. In spaCy, pipelines are added via the [`nlp.add_pipe` method](https://spacy.io/api/language#add_pipe). EDS-NLP pipelines are automatically discovered by spaCy.
-1. See the [matching tutorial](home/tutorials/matching-a-terminology.md) for mode details.
+1. See the [matching tutorial](tutorials/matching-a-terminology.md) for mode details.
 1. spaCy stores extracted entities in the [`Doc.ents` attribute](https://spacy.io/api/doc#ents).
 1. The [`eds.negation` pipeline](pipelines/qualifiers/negation.md) has added a `negation` custom attribute.
 
-This example is complete, it should run as-is. Check out the [spaCy 101 page](home/spacy101.md) if you're not familiar with spaCy.
+This example is complete, it should run as-is. Check out the [spaCy 101 page](tutorials/spacy101.md) if you're not familiar with spaCy.
 
 ## Available pipeline components
 
@@ -109,4 +109,4 @@ The performances of an extraction pipeline may depend on the population and docu
 
 ## Contributing to EDS-NLP
 
-We welcome contributions ! Fork the project and propose a pull request. Take a look at the [dedicated page](development/contributing.md) for detail.
+We welcome contributions ! Fork the project and propose a pull request. Take a look at the [dedicated page](contributing.md) for detail.

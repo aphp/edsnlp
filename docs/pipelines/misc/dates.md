@@ -19,7 +19,7 @@ using the latter as base. On the other hand, if the base is unknown, the normali
 
 Since the extension `doc._.note_datetime` cannot be set before applying the `dates` pipeline, we defer the normalisation step until the `span._.dates` attribute is accessed.
 
-See the [tutorial](../../home/tutorials/detecting-dates.md) for a presentation of a full pipeline featuring the `eds.dates` component.
+See the [tutorial](../../tutorials/detecting-dates.md) for a presentation of a full pipeline featuring the `eds.dates` component.
 
 ## Usage
 

@@ -69,7 +69,7 @@ nlp.add_pipe("eds.hypothesis")  # Speculation pipeline
 nlp.add_pipe("eds.family")  # Family context detection
 ```
 
-1. Qualifiers pipelines need sentence boundaries to be set (see the [specific documentation](../../pipelines/qualifiers/index.md) for detail).
+1. Qualifiers pipelines need sentence boundaries to be set (see the [specific documentation](../pipelines/qualifiers/index.md) for detail).
 
 This code is complete, and should run as is.
 
@@ -139,15 +139,15 @@ We get the following result:
 ## Conclusion
 
 The qualifier pipelines limits the number of false positives by detecting linguistic modulations such as negations or speculations.
-Go to the [full documentation](../../pipelines/qualifiers/index.md) for a complete presentation of the different pipelines,
+Go to the [full documentation](../pipelines/qualifiers/index.md) for a complete presentation of the different pipelines,
 their configuration options and validation performance.
 
 Recall the qualifier pipeline proposed by EDS-NLP:
 
 | Pipeline                                                               | Description                          |
 | ---------------------------------------------------------------------- | ------------------------------------ |
-| [`eds.negation`](../../pipelines/qualifiers/negation.md)               | Rule-based negation detection        |
-| [`eds.family`](../../pipelines/qualifiers/family.md)                   | Rule-based family context detection  |
-| [`eds.hypothesis`](../../pipelines/qualifiers/hypothesis.md)           | Rule-based speculation detection     |
-| [`eds.reported_speech`](../../pipelines/qualifiers/reported-speech.md) | Rule-based reported speech detection |
-| [`eds.history`](../../pipelines/qualifiers/history.md)                 | Rule-based history detection         |
+| [`eds.negation`](../pipelines/qualifiers/negation.md)               | Rule-based negation detection        |
+| [`eds.family`](../pipelines/qualifiers/family.md)                   | Rule-based family context detection  |
+| [`eds.hypothesis`](../pipelines/qualifiers/hypothesis.md)           | Rule-based speculation detection     |
+| [`eds.reported_speech`](../pipelines/qualifiers/reported-speech.md) | Rule-based reported speech detection |
+| [`eds.history`](../pipelines/qualifiers/history.md)                 | Rule-based history detection         |

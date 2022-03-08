@@ -112,7 +112,7 @@ We use `MkDocs` for EDS-NLP's documentation. You can checkout the changes you ma
 $ pip install -r requirements-docs.txt
 ---> 100%
 Installation successful
-
+A
 # Run the documentation
 $ mkdocs serve
 ```

@@ -49,7 +49,16 @@ setup(
     version=get_version("edsnlp/__init__.py"),
     author="Data Science - DSI APHP",
     author_email="basile.dura-ext@aphp.fr",
-    description="NLP tools for human consumption at AP-HP",
+    description=(
+        "A set of spaCy components to extract information "
+        "from clinical notes written in French."
+    ),
+    url="https://github.com/aphp/edsnlp",
+    project_urls={
+        "Documentation": "https://aphp.github.io/edsnlp",
+        "Demo": "https://aphp.github.io/edsnlp/demo",
+        "Bug Tracker": "https://github.com/aphp/edsnlp/issues",
+    },
     long_description=long_description,
     long_description_content_type="text/markdown",
     python_requires=">=3.6",

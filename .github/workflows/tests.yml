@@ -28,3 +28,12 @@ jobs:
     - name: Test with Pytest
       run: |
         python -m pytest --cov edsnlp --junitxml=report.xml --html=report.html --self-contained-html
+
+  Installation:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+    - name: Install library
+      run: |
+        pip install .

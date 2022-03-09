@@ -14,3 +14,17 @@ jobs:
     - uses: pre-commit/action@v2.0.3
       with:
         extra_args: --all-files
+
+  Pytest:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        scripts/install.sh
+        pip install pyspark
+    - name: Test with Pytest
+      run: |
+        python -m pytest --cov edsnlp --junitxml=report.xml --html=report.html --self-contained-html

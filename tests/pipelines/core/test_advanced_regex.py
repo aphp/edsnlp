@@ -78,5 +78,5 @@ def test_attr_default(blank_nlp):
     doc = blank_nlp(text)
 
     doc = advanced_regex(doc)
-    
+
     assert len(doc.ents) == 0, doc.ents[0].text

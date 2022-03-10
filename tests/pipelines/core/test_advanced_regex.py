@@ -46,3 +46,37 @@ def test_advanced(blank_nlp):
             assert (
                 getattr(ent, modifier.key) == modifier.value
             ), f"{modifier.key} labels don't match."
+
+
+def test_attr_default(blank_nlp):
+    text = "Le patient présente plusieurs <ent label_=fracture>fêlures</ent>."
+
+    blank_nlp.add_pipe(
+        "normalizer",
+        config=dict(lowercase=True, accents=True, quotes=True, pollution=False),
+    )
+
+    regex_config = dict(
+        fracture=dict(
+            regex=[r"fracture", r"felure"],
+            before_exclude="petite|faible",
+            after_exclude="legere|de fatigue",
+        )
+    )
+
+    advanced_regex = AdvancedRegex(
+        nlp=blank_nlp,
+        regex_config=regex_config,
+        window=5,
+        verbose=True,
+        ignore_excluded=False,
+        attr="TEXT",
+    )
+
+    text, entities = parse_example(example=text)
+
+    doc = blank_nlp(text)
+
+    doc = advanced_regex(doc)
+    
+    assert len(doc.ents) == 0, doc.ents[0].text

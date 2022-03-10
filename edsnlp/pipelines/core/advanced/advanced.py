@@ -156,7 +156,7 @@ class AdvancedRegex(GenericMatcher):
         return ent
 
     def get_text(self, span: Span, label) -> str:
-        attr = self.regex_config[label].get("attr", None)
+        attr = self.regex_config[label].get("attr", self.attr)
 
         return get_text(
             doclike=span,

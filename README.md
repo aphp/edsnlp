@@ -9,15 +9,15 @@ If it's your first time with spaCy, we recommend you familiarise yourself with s
 ### Installation
 
 You can install EDS-NLP via `pip`:
-
+ 
 ```shell
-python -m pip install edsnlp
+python<version> -m pip install edsnlp
 ```
 
 We recommend pinning the library version in your projects, or use a strict package manager like [Poetry](https://python-poetry.org/).
 
 ```shell
-python -m pip install edsnlp==0.4.0
+python<version> -m pip install edsnlp==0.4.0
 ```
 
 ### A first pipeline

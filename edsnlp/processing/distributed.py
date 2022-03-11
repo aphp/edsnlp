@@ -16,16 +16,16 @@ def pyspark_type_finder(obj):
     Returns (when possible) the PySpark type of any python object
     """
     try:
-        infered_type = T._infer_type(obj)
-        print(f"Infered type is {repr(infered_type)}")
-        return infered_type
+        inferred_type = T._infer_type(obj)
+        print(f"Inferred type is {repr(inferred_type)}")
+        return inferred_type
     except TypeError:
         raise TypeError("Cannot infer type for this object.")
 
 
 @decorator
 def module_checker(
-    function: Callable,
+    func: Callable,
     *args,
     **kwargs,
 ) -> Any:
@@ -35,12 +35,12 @@ def module_checker(
     module = get_module(note)
 
     if module == DataFrameModules.PYSPARK:
-        return function(note, *args, **kwargs)
+        return func(note, *args, **kwargs)
     elif module == DataFrameModules.KOALAS:
         import databricks.koalas  # noqa F401
 
         note_spark = note.to_spark()
-        note_nlp_spark = function(note_spark, *args, **kwargs)
+        note_nlp_spark = func(note_spark, *args, **kwargs)
         return note_nlp_spark.to_koalas()
 
 

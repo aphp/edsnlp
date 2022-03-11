@@ -11,11 +11,18 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
-    - name: Run pre-commit
+    - name: Set PY variable
+      run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
+    - uses: actions/cache@v2
+      with:
+        path: ~/.cache/pre-commit
+        key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
+    - name: Install pre-commit
       run: |
         pip install pre-commit
         pre-commit install
-        SKIP=no-commit-to-branch pre-commit run --all-files
+    - name: Run pre-commit
+      run: SKIP=no-commit-to-branch pre-commit run --all-files
 
   Pytest:
     runs-on: ubuntu-latest

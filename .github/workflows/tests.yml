@@ -36,7 +36,8 @@ jobs:
         pip install pyspark
     - name: Test with Pytest
       run: |
-        python -m pytest --cov edsnlp --junitxml=report.xml --html=report.html --self-contained-html
+        python -m pytest --cov edsnlp --junitxml=coverage.xml --html=report.html --self-contained-html
+    - uses: codecov/codecov-action@v2
 
   Installation:
     runs-on: ubuntu-latest

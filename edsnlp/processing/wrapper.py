@@ -7,17 +7,17 @@ from spacy import Language
 from .parallel import pipe as parallel_pipe
 from .simple import ExtensionSchema
 from .simple import pipe as simple_pipe
-from .spark import pipe as spark_pipe
+from .typing import DataFrames, DataFrameModules, get_module
 
 
 def pipe(
-    note: Union[pd.DataFrame, ps.DataFrame],
+    note: DataFrames,
     nlp: Language,
-    how: str = "parallel",
+    n_jobs: int = -2,
     additional_spans: Union[List[str], str] = "discarded",
     extensions: ExtensionSchema = [],
     **kwargs: Dict[str, Any],
-) -> Union[pd.DataFrame, ps.DataFrame]:
+) -> DataFrames:
     """
     Function to apply a spaCy pipe to a pandas or pyspark DataFrame
 
@@ -25,17 +25,18 @@ def pipe(
     Parameters
     ----------
     note : DataFrame
-        A pandas DataFrame with a `note_id` and `note_text` column
+        A pandas/pyspark/koalas DataFrame with a `note_id` and `note_text` column
     nlp : Language
         A spaCy pipe
-    how : str, by default "parallel"
-        3 methods are available here:
+    n_jobs : int, by default -2
+        Only used when providing a Pandas DataFrame
 
-        - `how='simple'`: Single process on a pandas DataFrame
-        - `how='parallel'`: Parallelised processes on a pandas DataFrame
-        - `how='spark'`: Distributed processes on a pyspark DataFrame
+        - `n_jobs=1` corresponds to the `simple_pipe`
+        - `n_jobs>1` corresponds to the `parallel_pipe` with `n_jobs` parallel workers
+        - `n_jobs=-1` corresponds to the `parallel_pipe` with maximun number of workers
+        - `n_jobs=-2` (default) corresponds to the `parallel_pipe` with maximun number of workers -1
+
     additional_spans : Union[List[str], str], by default "discarded"
-
         A name (or list of names) of SpanGroup on which to apply the pipe too:
         SpanGroup are available as `doc.spans[spangroup_name]` and can be generated
         by some pipes. For instance, the `date` pipe populates doc.spans['dates']
@@ -48,51 +49,46 @@ def pipe(
 
     Returns
     -------
-    Union[pd.DataFrame, ps.DataFrame]
+    DataFrame
         A DataFrame with one line per extraction
     """
 
-    if (type(note) == ps.DataFrame) and (how != "spark"):
+    module = get_module(note)
+
+    if module == DataFrameModules.PANDAS:
+        if n_jobs == 1:
+
+            return simple_pipe(
+                note=note,
+                nlp=nlp,
+                additional_spans=additional_spans,
+                extensions=extensions,
+                **kwargs,
+            )
+
+        else:
+
+            return parallel_pipe(
+                note=note,
+                nlp=nlp,
+                additional_spans=additional_spans,
+                extensions=extensions,
+                n_jobs=n_jobs,
+                **kwargs,
+            )
+
+    if extensions and type(extensions) != dict:
         raise ValueError(
-            "You are providing a pyspark DataFrame, please use `how='spark'`"
-        )
-    if how == "simple":
-
-        return simple_pipe(
-            note=note,
-            nlp=nlp,
-            additional_spans=additional_spans,
-            extensions=extensions,
-            **kwargs,
+            """
+            When using Spark or Koalas, you should provide extension names
+            along with the extension type (as a dictionnary):
+            `d[extension_name] = extension_type`
+            """  # noqa W291
         )
 
-    if how == "parallel":
+    from .spark import pipe as spark_pipe
 
-        return parallel_pipe(
-            note=note,
-            nlp=nlp,
-            additional_spans=additional_spans,
-            extensions=extensions,
-            **kwargs,
-        )
-
-    if how == "spark":
-        if type(note) == pd.DataFrame:
-            raise ValueError(
-                """
-                You are providing a pandas DataFrame with `how='spark'`,
-                which is incompatible.
-                """
-            )
-
-        if extensions and type(extensions) != dict:
-            raise ValueError(
-                """
-                When using Spark, you should provide extension names
-                along with the extension type (as a dictionnary):
-                `d[extension_name] = extension_type`
-                """  # noqa W291
-            )
+    if module == DataFrameModules.PYSPARK:
 
         return spark_pipe(
             note=note,
@@ -101,3 +97,14 @@ def pipe(
             extensions=extensions,
             **kwargs,
         )
+
+    if module == DataFrameModules.KOALAS:
+        note_spark = note.to_spark()
+        note_nlp = spark_pipe(
+            note=note_spark,
+            nlp=nlp,
+            additional_spans=additional_spans,
+            extensions=extensions,
+            **kwargs,
+        )
+        return note_nlp.to_koalas()

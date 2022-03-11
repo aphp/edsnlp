@@ -256,7 +256,7 @@ note_nlp = parallel_pipe(
 )
 ```
 
-1. The `n_jobs` parameter controls the number of workers that you deploy in parallel. Negative inputs means "all cores minus `#!python abs(n_jobs+1)`"
+1. The `n_jobs` parameter controls the number of workers that you deploy in parallel. Negative inputs means "all cores minus `#!python abs(n_jobs + 1)`"
 
 !!! danger "Using a large number of workers and memory use"
 

@@ -1,5 +1,6 @@
 from functools import partial
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, Callable, Optional, Any
+from decorator import decorator
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
@@ -7,6 +8,7 @@ from pyspark.sql import types as T
 from spacy import Language
 
 from edsnlp.pipelines.base import BaseComponent
+from edsnlp.processing.typing import get_module, DataFrameModules, DataFrames
 
 
 def pyspark_type_finder(obj):
@@ -21,19 +23,41 @@ def pyspark_type_finder(obj):
         raise TypeError("Cannot infer type for this object.")
 
 
+@decorator
+def module_checker(
+    function: Callable,
+    *args,
+    **kwargs,
+) -> Any:
+
+    args = list(args)
+    note = args.pop(0)
+    module = get_module(note)
+
+    if module == DataFrameModules.PYSPARK:
+        return function(note, *args, **kwargs)
+    elif module == DataFrameModules.KOALAS:
+        import databricks.koalas
+
+        note_spark = note.to_spark()
+        note_nlp_spark = function(note_spark, *args, **kwargs)
+        return note_nlp_spark.to_koalas()
+
+
+@module_checker
 def pipe(
-    note: DataFrame,
+    note: DataFrames,
     nlp: Language,
     additional_spans: Union[List[str], str] = "discarded",
     extensions: List[Tuple[str, T.DataType]] = [],
 ) -> DataFrame:
     """
-    Function to apply a spaCy pipe to a pyspark DataFrame note
+    Function to apply a spaCy pipe to a pyspark or koalas DataFrame note
 
     Parameters
     ----------
     note : DataFrame
-        A pyspark DataFrame with a `note_id` and `note_text` column
+        A Pyspark or Koalas DataFrame with a `note_id` and `note_text` column
     nlp : Language
         A spaCy pipe
     additional_spans : Union[List[str], str], by default "discarded"

@@ -1,7 +1,6 @@
-from typing import Union
-
 import importlib
 from enum import Enum
+from typing import Union
 
 
 class DataFrameModules(Enum):

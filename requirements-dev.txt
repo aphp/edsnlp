@@ -1,9 +1,9 @@
 black
 flake8
 jupytext
+koalas
 pre-commit
+pyspark==2.4.3
 pytest
 pytest-cov
 pytest-html
-pyspark==2.4.3
-koalas

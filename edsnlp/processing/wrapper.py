@@ -1,13 +1,11 @@
 from typing import Any, Dict, List, Union
 
-import pandas as pd
-import pyspark.sql as ps
 from spacy import Language
 
 from .parallel import pipe as parallel_pipe
 from .simple import ExtensionSchema
 from .simple import pipe as simple_pipe
-from .typing import DataFrames, DataFrameModules, get_module
+from .typing import DataFrameModules, DataFrames, get_module
 
 
 def pipe(
@@ -31,10 +29,10 @@ def pipe(
     n_jobs : int, by default -2
         Only used when providing a Pandas DataFrame
 
-        - `n_jobs=1` corresponds to the `simple_pipe`
-        - `n_jobs>1` corresponds to the `parallel_pipe` with `n_jobs` parallel workers
-        - `n_jobs=-1` corresponds to the `parallel_pipe` with maximun number of workers
-        - `n_jobs=-2` (default) corresponds to the `parallel_pipe` with maximun number of workers -1
+        - `n_jobs=1` corresponds to `simple_pipe`
+        - `n_jobs>1` corresponds to `parallel_pipe` with `n_jobs` parallel workers
+        - `n_jobs=-1` corresponds to `parallel_pipe` with maximun number of workers
+        - `n_jobs=-2` corresponds to `parallel_pipe` with maximun number of workers -1
 
     additional_spans : Union[List[str], str], by default "discarded"
         A name (or list of names) of SpanGroup on which to apply the pipe too:

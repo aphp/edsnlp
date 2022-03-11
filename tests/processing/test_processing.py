@@ -1,9 +1,9 @@
+import databricks.koalas  # noqa F401
 import pandas as pd
 import pytest
 import spacy
 from pyspark.sql import types as T
 from pyspark.sql.session import SparkSession
-import databricks.koalas
 
 from edsnlp.processing import pipe
 from edsnlp.processing.typing import DataFrameModules

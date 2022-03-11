@@ -200,11 +200,11 @@ data = data[["note_id"]].join(pd.json_normalize(data.entities))
 
 The result on the first note:
 
-| note_id | start | end | label      | lexical_variant   | negation | hypothesis | family | key   |
-| ------: | ----: | --: | :--------- | :---------------- | -------: | ---------: | -----: | :---- |
-|       0 |     0 |   7 | patient    | Patient           |        0 |          0 |      0 | ents  |
-|       0 |   114 | 121 | patient    | patient           |        0 |          0 |      1 | ents  |
-|       0 |    17 |  34 | 2021-09-25 | 25 septembre 2021 |      nan |        nan |    nan | dates |
+| note_id | start |  end | label      | lexical_variant   | negation | hypothesis | family | key   |
+| ------: | ----: | ---: | :--------- | :---------------- | -------: | ---------: | -----: | :---- |
+|       0 |     0 |    7 | patient    | Patient           |        0 |          0 |      0 | ents  |
+|       0 |   114 |  121 | patient    | patient           |        0 |          0 |      1 | ents  |
+|       0 |    17 |   34 | 2021-09-25 | 25 septembre 2021 |      nan |        nan |    nan | dates |
 
 ## Using EDS-NLP's helper functions
 
@@ -227,7 +227,7 @@ EDS-NLP provides a [`single_pipe`][edsnlp.processing.simple.pipe] helper functio
 
 ```python
 # ↑ Omitted code above ↑
-from edsnlp.processing import single_pipe
+from edsnlp.processing.simple import pipe as single_pipe
 
 note_nlp = single_pipe(
     data,
@@ -245,7 +245,7 @@ Depending on the size of your corpus, and if you have CPU cores to spare, you ma
 
 ```python
 # ↑ Omitted code above ↑
-from edsnlp.processing import parallel_pipe
+from edsnlp.processing.parallel import pipe as parallel_pipe
 
 note_nlp = parallel_pipe(
     data,
@@ -256,7 +256,7 @@ note_nlp = parallel_pipe(
 )
 ```
 
-1. The `n_jobs` parameter controls the number of workers that you deploy in parallel. Negative inputs means "all cores minus `#!python abs(n_jobs)`"
+1. The `n_jobs` parameter controls the number of workers that you deploy in parallel. Negative inputs means "all cores minus `#!python abs(n_jobs+1)`"
 
 !!! danger "Using a large number of workers and memory use"
 
@@ -265,9 +265,10 @@ note_nlp = parallel_pipe(
 
 Depending on your machine, you should get a significant speed boost (we got 20x acceleration on a shared cluster using 62 cores).
 
-## Deploying EDS-NLP on Spark
+## Deploying EDS-NLP on Spark/Koalas
 
-Should you need to deploy spaCy on larger-than-memory Spark DataFrames, EDS-NLP has you covered.
+Should you need to deploy spaCy on a distributed DataFrame such as a [Spark](https://spark.apache.org/) or a [Koalas](https://koalas.readthedocs.io/en/latest/index.html) DataFrame, EDS-NLP has you covered.  
+The procedure for those two types of DataFrame is virtually the same. Under the hood, EDS-NLP automatically deals with the necessary conversions.
 
 Suppose you have a Spark DataFrame:
 
@@ -308,13 +309,24 @@ Suppose you have a Spark DataFrame:
     df = df.select("note_id", "note_text")
     ```
 
+=== "Using a Koalas DataFrame"
+
+    ```python
+    from pyspark.sql.session import SparkSession
+    import databricks.koalas
+
+    spark = SparkSession.builder.getOrCreate()
+
+    df = spark.sql("SELECT note_id, note_text FROM note").to_koalas()
+    ```
+
 ### Declaring types
 
-There is a minor twist, though: Spark needs to know in advance the type of each extension you want to save. Thus, if you need additional extensions to be saved, you'll have to provide a dictionary to the `extensions` argument instead of a list of strings. This dictionary will have the name of the extension as keys and its PySpark type as value.
+There is a minor twist, though: Spark (or Koalas) needs to know in advance the type of each extension you want to save. Thus, if you need additional extensions to be saved, you'll have to provide a dictionary to the `extensions` argument instead of a list of strings. This dictionary will have the name of the extension as keys and its PySpark type as value.
 
 Accepted types are the ones present in [`pyspark.sql.types`](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql.html#data-types){ target="\_blank"}.
 
-EDS-NLP provides a helper function, [`pyspark_type_finder`][edsnlp.processing.spark.pyspark_type_finder], is available to get the correct type for most Python objects. You just need to provide an example of the type you wish to collect:
+EDS-NLP provides a helper function, [`pyspark_type_finder`][edsnlp.processing.distributed.pyspark_type_finder], is available to get the correct type for most Python objects. You just need to provide an example of the type you wish to collect:
 
 ```python
 dt_type = pyspark_type_finder(datetime.datetime(2020, 1, 1))
@@ -329,24 +341,39 @@ dt_type = pyspark_type_finder(datetime.datetime(2020, 1, 1))
 
 Once again, using the helper is trivial:
 
-```python
-# ↑ Omitted code above ↑
-from edsnlp.processing import spark_pipe
+=== "Spark"
+    ```python
+    # ↑ Omitted code above ↑
+    from edsnlp.processing.distributed import pipe as distributed_pipe
 
-note_nlp = spark_pipe(
-    df,  # (1)
-    nlp,
-    additional_spans=["dates"],
-    extensions={"parsed_date": dt_type},
-)
+    note_nlp = distributed_pipe(
+        df,
+        nlp,
+        additional_spans=["dates"],
+        extensions={"parsed_date": dt_type},
+    )
 
-# Check that the pipeline was correctly distributed:
-note_nlp.show(5)
-```
+    # Check that the pipeline was correctly distributed:
+    note_nlp.show(5)
+    ```
 
-1. We called the Spark DataFrame `df` in the earlier example.
+=== "Koalas"
+    ```python
+    # ↑ Omitted code above ↑
+    from edsnlp.processing.distributed import pipe as distributed_pipe
 
-Using Spark, you can deploy EDS-NLP pipelines on tens of millions of documents with ease!
+    note_nlp = distributed_pipe(
+        df,
+        nlp,
+        additional_spans=["dates"],
+        extensions={"parsed_date": dt_type},
+    )
+
+    # Check that the pipeline was correctly distributed:
+    note_nlp.head()
+    ```
+
+Using Spark or Koalas, you can deploy EDS-NLP pipelines on tens of millions of documents with ease!
 
 ## One function to rule them all
 
@@ -360,7 +387,7 @@ from edsnlp.processing import pipe
 note_nlp = pipe(
     note=df.limit(1000).toPandas(),
     nlp=nlp,
-    how="simple",
+    n_jobs=1,
     additional_spans=["dates"],
     extensions=["parsed_date"],
 )
@@ -369,12 +396,12 @@ note_nlp = pipe(
 note_nlp = pipe(
     note=df.limit(10000).toPandas(),
     nlp=nlp,
-    how="parallel",
+    n_jobs=-2,
     additional_spans=["dates"],
     extensions=["parsed_date"],
 )
 
-### Huge Spark DataFrame
+### Huge Spark or Koalas DataFrame
 note_nlp = pipe(
     note=df,
     nlp=nlp,

@@ -34,6 +34,7 @@ theme:
 
 nav:
   - index.md
+  - Demo: https://aphp.github.io/edsnlp/demo
   - Tutorials:
     - tutorials/index.md
     - tutorials/spacy101.md

@@ -267,7 +267,7 @@ Depending on your machine, you should get a significant speed boost (we got 20x 
 
 ## Deploying EDS-NLP on Spark/Koalas
 
-Should you need to deploy spaCy on a distributed DataFrame such as a [Spark](https://spark.apache.org/) or a [Koalas](https://koalas.readthedocs.io/en/latest/index.html) DataFrame, EDS-NLP has you covered.  
+Should you need to deploy spaCy on a distributed DataFrame such as a [Spark](https://spark.apache.org/) or a [Koalas](https://koalas.readthedocs.io/en/latest/index.html) DataFrame, EDS-NLP has you covered.
 The procedure for those two types of DataFrame is virtually the same. Under the hood, EDS-NLP automatically deals with the necessary conversions.
 
 Suppose you have a Spark DataFrame:

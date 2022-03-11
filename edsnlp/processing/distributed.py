@@ -1,14 +1,14 @@
 from functools import partial
-from typing import Dict, List, Tuple, Union, Callable, Optional, Any
-from decorator import decorator
+from typing import Any, Callable, Dict, List, Tuple, Union
 
+from decorator import decorator
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
 from spacy import Language
 
 from edsnlp.pipelines.base import BaseComponent
-from edsnlp.processing.typing import get_module, DataFrameModules, DataFrames
+from edsnlp.processing.typing import DataFrameModules, DataFrames, get_module
 
 
 def pyspark_type_finder(obj):
@@ -37,7 +37,7 @@ def module_checker(
     if module == DataFrameModules.PYSPARK:
         return function(note, *args, **kwargs)
     elif module == DataFrameModules.KOALAS:
-        import databricks.koalas
+        import databricks.koalas  # noqa F401
 
         note_spark = note.to_spark()
         note_nlp_spark = function(note_spark, *args, **kwargs)

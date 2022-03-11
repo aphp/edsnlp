@@ -11,9 +11,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
-    - uses: pre-commit/action@v2.0.3
-      with:
-        extra_args: --all-files
+    - name: Run pre-commit
+      run: |
+        pip install pre-commit
+        pre-commit install
+        SKIP=no-commit-to-branch pre-commit run --all-files
 
   Pytest:
     runs-on: ubuntu-latest

@@ -139,6 +139,9 @@ custom_regex = st.sidebar.text_input(
     "Regular Expression:",
     r"asthmatique|difficult[ée]s?\srespiratoires?",
 )
+st.sidebar.markdown(
+    "The RegEx you defined above is detected under the `custom` label."
+)
 
 st.sidebar.subheader("Pipeline Components")
 covid = st.sidebar.checkbox("COVID", value=True)
@@ -146,6 +149,10 @@ dates = st.sidebar.checkbox("Dates", value=True)
 priority = st.sidebar.checkbox("Emergency Priority Score", value=True)
 charlson = st.sidebar.checkbox("Charlson Score", value=True)
 sofa = st.sidebar.checkbox("SOFA Score", value=True)
+st.sidebar.markdown(
+    "These are just a few of the pipelines provided out-of-the-box by EDS-NLP. "
+    "See the [documentation](https://aphp.github.io/edsnlp/latest/pipelines/) for detail."
+)
 
 model_load_state = st.info("Loading model...")
 

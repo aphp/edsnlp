@@ -27,7 +27,6 @@ Running Pytest:
   stage: test
   before_script:
     - scripts/install.sh
-    - pip install pyspark
     - python scripts/conjugate_verbs.py
   script:
     - python -m pytest --cov edsnlp --junitxml=report.xml --html=report.html --self-contained-html

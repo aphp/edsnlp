@@ -1,3 +1,4 @@
+import databricks.koalas  # noqa F401
 import pandas as pd
 import pytest
 import spacy
@@ -5,6 +6,7 @@ from pyspark.sql import types as T
 from pyspark.sql.session import SparkSession
 
 from edsnlp.processing import pipe
+from edsnlp.processing.typing import DataFrameModules
 
 text = """
 Motif :
@@ -25,23 +27,27 @@ Possible infection au coronavirus
 spark = SparkSession.builder.getOrCreate()
 
 
-def note(how: str):
+def note(module: DataFrameModules):
 
     data = [(i, i // 5, text) for i in range(20)]
 
-    if how == "spark":
-        note_schema = T.StructType(
-            [
-                T.StructField("note_id", T.IntegerType()),
-                T.StructField("person_id", T.IntegerType()),
-                T.StructField("note_text", T.StringType()),
-            ]
-        )
-
-        return spark.createDataFrame(data=data, schema=note_schema)
-
-    else:
+    if module == DataFrameModules.PANDAS:
         return pd.DataFrame(data=data, columns=["note_id", "person_id", "note_text"])
+
+    note_schema = T.StructType(
+        [
+            T.StructField("note_id", T.IntegerType()),
+            T.StructField("person_id", T.IntegerType()),
+            T.StructField("note_text", T.StringType()),
+        ]
+    )
+
+    notes = spark.createDataFrame(data=data, schema=note_schema)
+    if module == DataFrameModules.PYSPARK:
+        return notes
+
+    if module == DataFrameModules.KOALAS:
+        return notes.to_koalas()
 
 
 @pytest.fixture
@@ -85,13 +91,23 @@ def model():
     return nlp
 
 
-@pytest.mark.parametrize("how", ["simple", "parallel", "spark"])
-def test_pipelines(how, model):
+params = [
+    dict(module=DataFrameModules.PANDAS, n_jobs=1),
+    dict(module=DataFrameModules.PANDAS, n_jobs=-2),
+    dict(module=DataFrameModules.PYSPARK, n_jobs=None),
+    dict(module=DataFrameModules.KOALAS, n_jobs=None),
+]
+
+
+@pytest.mark.parametrize("param", params)
+def test_pipelines(param, model):
+
+    module = param["module"]
 
     note_nlp = pipe(
-        note(how=how),
+        note(module=module),
         nlp=model,
-        how=how,
+        n_jobs=param["n_jobs"],
         extensions={
             "score_method": T.StringType(),
             "negation": T.BooleanType(),
@@ -103,8 +119,10 @@ def test_pipelines(how, model):
         additional_spans=["dates"],
     )
 
-    if type(note_nlp) != pd.DataFrame:
+    if module == DataFrameModules.PYSPARK:
         note_nlp = note_nlp.toPandas()
+    elif module == DataFrameModules.KOALAS:
+        note_nlp = note_nlp.to_pandas()
 
     assert len(note_nlp) == 140
     assert set(note_nlp.columns) == set(
@@ -129,9 +147,8 @@ def test_spark_missing_types(model):
 
     with pytest.raises(ValueError):
         pipe(
-            note(how="spark"),
+            note(module=DataFrameModules.PYSPARK),
             nlp=model,
-            how="spark",
             extensions={"negation", "hypothesis", "family"},
             additional_spans=["dates"],
         )

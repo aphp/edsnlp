@@ -66,7 +66,7 @@ setup(
     install_requires=get_lines("requirements.txt"),
     extras_require=dict(
         demo=["streamlit>=1.2"],
-        spark=["pyspark"],
+        distributed=["pyspark"],
     ),
     package_data={
         "edsnlp": ["resources/*.csv"],

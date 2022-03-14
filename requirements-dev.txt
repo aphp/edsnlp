@@ -1,7 +1,9 @@
 black
 flake8
 jupytext
+koalas
 pre-commit
+pyspark
 pytest
 pytest-cov
 pytest-html

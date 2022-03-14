@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.1
+
+- Adding support to Koalas DataFrames in the `edsnlp.processing` pipe.
+
 ## v0.4.0
 
 - Profound re-write of the normalisation :

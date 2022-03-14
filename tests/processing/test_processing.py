@@ -106,7 +106,8 @@ def test_pipelines(param, model):
     module = param["module"]
 
     if (module == DataFrameModules.KOALAS) and (sys.version_info > (3, 7)):
-        pytest.skip(msg="Koalas not compatible with Python > 3.7")
+        pass
+        # pytest.skip(msg="Koalas not compatible with Python > 3.7")
     note_nlp = pipe(
         note(module=module),
         nlp=model,

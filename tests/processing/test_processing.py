@@ -1,5 +1,4 @@
-import sys
-
+import databricks.koalas  # noqa F401
 import pandas as pd
 import pytest
 import spacy
@@ -105,9 +104,6 @@ def test_pipelines(param, model):
 
     module = param["module"]
 
-    if (module == DataFrameModules.KOALAS) and (sys.version_info > (3, 7)):
-        pass
-        # pytest.skip(msg="Koalas not compatible with Python > 3.7")
     note_nlp = pipe(
         note(module=module),
         nlp=model,
@@ -126,8 +122,6 @@ def test_pipelines(param, model):
     if module == DataFrameModules.PYSPARK:
         note_nlp = note_nlp.toPandas()
     elif module == DataFrameModules.KOALAS:
-        import databricks.koalas  # noqa F401
-
         note_nlp = note_nlp.to_pandas()
 
     assert len(note_nlp) == 140

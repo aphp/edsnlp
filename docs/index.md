@@ -97,6 +97,7 @@ This example is complete, it should run as-is. Check out the [spaCy 101 page](tu
 
     | Pipeline                 | Description                |
     | ------------------------ | -------------------------- |
+    | `eds.covid`              | A COVID mentions detector  |
     | `eds.charlson`           | A Charlson score extractor |
     | `eds.sofa`               | A SOFA score extractor     |
     | `eds.emergency.priority` | A priority score extractor |

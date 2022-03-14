@@ -34,6 +34,7 @@ EDS-NLP provides easy-to-use spaCy components.
 
     | Pipeline                 | Description                |
     | ------------------------ | -------------------------- |
+    | `eds.covid`              | A COVID mentions detector  |
     | `eds.charlson`           | A Charlson score extractor |
     | `eds.sofa`               | A SOFA score extractor     |
     | `eds.emergency.priority` | A priority score extractor |

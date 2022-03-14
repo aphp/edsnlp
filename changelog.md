@@ -2,7 +2,8 @@
 
 ## v0.4.1
 
-- Adding support to Koalas DataFrames in the `edsnlp.processing` pipe.
+- Added support to Koalas DataFrames in the `edsnlp.processing` pipe.
+- Added `eds.covid` NER pipeline for detecting COVID19 mentions.
 
 ## v0.4.0
 

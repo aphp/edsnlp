@@ -1,6 +1,5 @@
 import sys
 
-import databricks.koalas  # noqa F401
 import pandas as pd
 import pytest
 import spacy
@@ -126,6 +125,8 @@ def test_pipelines(param, model):
     if module == DataFrameModules.PYSPARK:
         note_nlp = note_nlp.toPandas()
     elif module == DataFrameModules.KOALAS:
+        import databricks.koalas  # noqa F401
+
         note_nlp = note_nlp.to_pandas()
 
     assert len(note_nlp) == 140

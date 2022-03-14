@@ -36,8 +36,8 @@ The pipeline can be configured using the following parameters :
 
 | Parameter         | Explanation                                      | Default                 |
 | ----------------- | ------------------------------------------------ | ----------------------- |
-| `terms`           | Terms patterns                                   | `None` (use regex only) |
-| `regex`           | RegExp patterns.                                 | `None` (use terms only) |
+| `terms`           | Terms patterns. Expects a dictionary.            | `None` (use regex only) |
+| `regex`           | RegExp patterns. Expects a dictionary.           | `None` (use terms only) |
 | `attr`            | spaCy attribute to match on (eg `NORM`, `LOWER`) | `"TEXT"`                |
 | `ignore_excluded` | Whether to skip excluded tokens during matching  | `False`                 |
 

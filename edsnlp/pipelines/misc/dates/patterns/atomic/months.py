@@ -28,3 +28,37 @@ month_pattern = f"(?P<month>{letter_month_pattern}|{numeric_month_pattern})"
 letter_month_pattern = f"(?P<month>{letter_month_pattern})"
 numeric_month_pattern = f"(?P<month>{numeric_month_pattern})"
 lz_numeric_month_pattern = f"(?P<month>{lz_numeric_month_pattern})"
+
+
+list_month_long = [
+    "janvier",
+    "fevrier",
+    "mars",
+    "avril",
+    "mai",
+    "juin",
+    "juillet",
+    "aout",
+    "septembre",
+    "octobre",
+    "novembre",
+    "decembre",
+]
+list_month_short = [
+    "janv",
+    "fev",
+    "mar",
+    "avr",
+    None,
+    None,
+    "juill",
+    None,
+    "sept",
+    "oct",
+    "nov",
+    "dec",
+]
+letter_months_dict_simple = dict(
+    {s: i for i, s in enumerate(list_month_short, 1) if s is not None},
+    **{s: i for i, s in enumerate(list_month_long, 1) if s is not None},
+)

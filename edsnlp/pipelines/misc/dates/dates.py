@@ -13,7 +13,7 @@ from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
 
 from . import patterns
-from .parsing import day2int, month2int, str2int
+from .parsing import day2int, day2int_fast, month2int, month2int_fast, str2int
 
 
 def td2str(td: timedelta):
@@ -135,7 +135,7 @@ def apply_groupdict(
     dates: Iterable[Tuple[Span, Dict[str, str]]]
 ) -> Generator[Span, None, None]:
     for span, groupdict in dates:
-        span._.groupdict = groupdict
+        span._.groupdict = parse_groupdict(**groupdict)
         yield span
 
 
@@ -175,10 +175,12 @@ def parse_groupdict(
     result = dict()
 
     if day is not None:
-        result["day"] = day2int(day)
+        fast = day2int_fast(day)
+        result["day"] = fast if fast is not None else day2int(day)
 
     if month is not None:
-        result["month"] = month2int(month)
+        fast = month2int_fast(month)
+        result["month"] = fast if fast is not None else month2int(month)
 
     if year is not None:
         result["year"] = str2int(year)
@@ -319,6 +321,9 @@ class Dates(BaseComponent):
         if not Span.has_extension("date"):
             Span.set_extension("date", getter=date_getter)
 
+        if not Span.has_extension("groupdict"):
+            Span.set_extension("groupdict", default=None)
+
     def process(self, doc: Doc) -> List[Span]:
         """
         Find dates in doc.
@@ -352,7 +357,7 @@ class Dates(BaseComponent):
                     self.regex_matcher(
                         sent,
                         as_spans=True,
-                        # return_groupdict=True,
+                        return_groupdict=True,
                     ),
                 )
 
@@ -360,10 +365,10 @@ class Dates(BaseComponent):
             dates = self.regex_matcher(
                 doc,
                 as_spans=True,
-                # return_groupdict=True,
+                return_groupdict=True,
             )
 
-        # dates = apply_groupdict(dates)
+        dates = apply_groupdict(dates)
 
         dates = filter_spans(dates)
         dates = [date for date in dates if date.label_ != "false_positive"]

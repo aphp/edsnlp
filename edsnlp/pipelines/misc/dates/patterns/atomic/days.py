@@ -36,6 +36,7 @@ letter_days_dict: Dict[str, int] = {
     r"trente\-?\s*et\-?\s*un": 31,
 }
 
+
 letter_days: List[str] = list(letter_days_dict.keys())
 
 letter_day_pattern = make_pattern(letter_days)
@@ -49,3 +50,41 @@ day_pattern = f"(?P<day>{letter_day_pattern}|{numeric_day_pattern})"
 letter_day_pattern = f"(?P<day>{letter_day_pattern})"
 numeric_day_pattern = f"(?P<day>{numeric_day_pattern})"
 lz_numeric_day_pattern = f"(?P<day>{lz_numeric_day_pattern})"
+
+
+list_day = [
+    "premier",
+    "deux",
+    "trois",
+    "quatre",
+    "cinq",
+    "six",
+    "sept",
+    "huit",
+    "neuf",
+    "dix",
+    "onze",
+    "douze",
+    "treize",
+    "quatorze",
+    "quinze",
+    "seize",
+    "dixsept",
+    "dixhuit",
+    "dixneuf",
+    "vingt",
+    "vingtetun",
+    "vingtdeux",
+    "vingttrois",
+    "vingtquatre",
+    "vingtcinq",
+    "vingtsix",
+    "vingtsept",
+    "vingthuit",
+    "vingtneuf",
+    "trente",
+    "trenteetun",
+]
+letter_days_dict_simple = dict(
+    {s: i for i, s in enumerate(list_day, 1)}, **{"1": 1, "1er": 1}
+)

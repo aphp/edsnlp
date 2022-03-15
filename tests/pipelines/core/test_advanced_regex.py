@@ -58,7 +58,7 @@ def test_attr_default(blank_nlp):
 
     regex_config = dict(
         fracture=dict(
-            regex=[r"fracture", r"felure"],
+            regex=[r"fracture", r"felures?"],
             before_exclude="petite|faible",
             after_exclude="legere|de fatigue",
         )
@@ -70,7 +70,7 @@ def test_attr_default(blank_nlp):
         window=5,
         verbose=True,
         ignore_excluded=False,
-        attr="TEXT",
+        attr="NORM",
     )
 
     text, entities = parse_example(example=text)
@@ -79,4 +79,5 @@ def test_attr_default(blank_nlp):
 
     doc = advanced_regex(doc)
 
-    assert len(doc.ents) == 0, doc.ents[0].text
+    assert len(doc.ents) == 1
+    assert doc.ents[0].text == "fêlures"

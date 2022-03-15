@@ -258,13 +258,16 @@ for ent in doc.ents:
 
     data.append(d)
 
+st.header("Entity qualification")
+
 if data:
     df = pd.DataFrame.from_records(data)
     df.normalized_value = df.normalized_value.replace({"None": ""})
 
-    st.header("Entity qualification")
-
     st.dataframe(df)
+
+else:
+    st.markdown("You pipeline did not match any entity...")
 
 pipes_text = ""
 

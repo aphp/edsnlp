@@ -21,14 +21,8 @@ Conclusion
 Possible infection au coronavirus\
 """
 
-CODE = """
-import spacy
-
-# Declare the pipeline
-nlp = spacy.blank("fr")
-nlp.add_pipe("eds.normalizer")
-nlp.add_pipe("eds.sentences")
-{pipes}
+REGEX = """
+# RegEx and terms matcher
 nlp.add_pipe(
     "eds.matcher",
     config=dict(
@@ -36,7 +30,19 @@ nlp.add_pipe(
         attr="NORM",
     ),
 )
+"""
 
+CODE = """
+import spacy
+
+# Declare the pipeline
+nlp = spacy.blank("fr")
+
+# General-purpose components
+nlp.add_pipe("eds.normalizer")
+nlp.add_pipe("eds.sentences")
+{pipes}
+# Qualifier pipelines
 nlp.add_pipe("eds.negation")
 nlp.add_pipe("eds.family")
 nlp.add_pipe("eds.hypothesis")
@@ -90,20 +96,29 @@ def load_model(
         nlp.add_pipe("eds.emergency.priority")
         pipes.append('nlp.add_pipe("eds.emergency.priority")')
 
-    nlp.add_pipe(
-        "eds.matcher",
-        config=dict(
-            regex=dict(custom=custom_regex),
-            attr="NORM",
-        ),
-    )
+    if pipes:
+        pipes.insert(0, "# Entity extraction pipelines")
+
+    if custom_regex:
+        nlp.add_pipe(
+            "eds.matcher",
+            config=dict(
+                regex=dict(custom=custom_regex),
+                attr="NORM",
+            ),
+        )
+
+        regex = REGEX.format(custom_regex=custom_regex)
+
+    else:
+        regex = ""
 
     nlp.add_pipe("eds.negation")
     nlp.add_pipe("eds.family")
     nlp.add_pipe("eds.hypothesis")
     nlp.add_pipe("eds.reported_speech")
 
-    return nlp, pipes
+    return nlp, pipes, regex
 
 
 st.set_page_config(
@@ -139,6 +154,7 @@ custom_regex = st.sidebar.text_input(
     "Regular Expression:",
     r"asthmatique|difficult[ée]s?\srespiratoires?",
 )
+st.sidebar.markdown("The RegEx you defined above is detected under the `custom` label.")
 
 st.sidebar.subheader("Pipeline Components")
 covid = st.sidebar.checkbox("COVID", value=True)
@@ -146,10 +162,15 @@ dates = st.sidebar.checkbox("Dates", value=True)
 priority = st.sidebar.checkbox("Emergency Priority Score", value=True)
 charlson = st.sidebar.checkbox("Charlson Score", value=True)
 sofa = st.sidebar.checkbox("SOFA Score", value=True)
+st.sidebar.markdown(
+    "These are just a few of the pipelines provided out-of-the-box by EDS-NLP. "
+    "See the [documentation](https://aphp.github.io/edsnlp/latest/pipelines/) "
+    "for detail."
+)
 
 model_load_state = st.info("Loading model...")
 
-nlp, pipes = load_model(
+nlp, pipes, regex = load_model(
     covid=covid,
     dates=dates,
     charlson=charlson,
@@ -237,16 +258,26 @@ for ent in doc.ents:
 
     data.append(d)
 
-df = pd.DataFrame.from_records(data)
-df.normalized_value = df.normalized_value.replace({"None": ""})
-
 st.header("Entity qualification")
 
-st.dataframe(df)
+if data:
+    df = pd.DataFrame.from_records(data)
+    df.normalized_value = df.normalized_value.replace({"None": ""})
+
+    st.dataframe(df)
+
+else:
+    st.markdown("You pipeline did not match any entity...")
+
+pipes_text = ""
+
+if pipes:
+    pipes_text += "\n" + "\n".join(pipes) + "\n"
+if regex:
+    pipes_text += regex
 
 code = CODE.format(
-    pipes="" if not covid else "\n" + "\n".join(pipes) + "\n",
-    custom_regex=custom_regex,
+    pipes=pipes_text,
     text=f'"""\n{text}\n"""',
 )
 

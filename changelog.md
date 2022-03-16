@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.4.2
+
+- Fix issue with `dateparser` library (see scrapinghub/dateparser#1045)
+- Fix `attr` issue in the `advanced-regex` pipelin
+- Add documentation for `eds.covid`
+- Update the demo with an explanation for the regex
+
 ## v0.4.1
 
 - Added support to Koalas DataFrames in the `edsnlp.processing` pipe.

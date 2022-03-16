@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.2 (pending)
+
+- Fix issue with `dateparser` library (see scrapinghub/dateparser#1045)
+
 ## v0.4.1
 
 - Added support to Koalas DataFrames in the `edsnlp.processing` pipe.

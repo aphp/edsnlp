@@ -57,16 +57,14 @@ def time2int_factory(patterns: Dict[str, int]) -> Callable[[str], int]:
         int
             Integer conversion
         """
-        m = str2int(time)
-
-        if m is not None:
-            return m
+        m = None
 
         for pattern, key in patterns.items():
             if re.match(f"^{pattern}$", time):
                 m = key
                 break
 
+        assert m is not None
         return m
 
     return time2int
@@ -83,7 +81,7 @@ def time2int_fast_factory(patterns: Dict[str, int]) -> Callable[[str], Optional[
     Parameters
     ----------
     patterns : Dict[str, int]
-        Dictionary of conversion/pattern.
+        Dictionary of conversion.
 
     Returns
     -------
@@ -93,8 +91,10 @@ def time2int_fast_factory(patterns: Dict[str, int]) -> Callable[[str], Optional[
 
     def time2int(time: str) -> int:
         """
-        Try to convert a string representation to the proper integer,
-        using a simple dictionary access.
+        Try to convert a string representation to the proper
+        integer using 2 fast methods:
+        - casting the string to an int
+        - using a simple dictionary access.
 
         Parameters
         ----------
@@ -106,6 +106,11 @@ def time2int_fast_factory(patterns: Dict[str, int]) -> Callable[[str], Optional[
         int
             Integer conversion or None if the fast conversion failed
         """
+        m = str2int(time)
+
+        if m is not None:
+            return m
+
         s = time.lower()
         s = replace(text=s, rep=accents)
         s = re.sub("[^a-z]", "", s)

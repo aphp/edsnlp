@@ -85,6 +85,4 @@ list_day = [
     "trente",
     "trenteetun",
 ]
-letter_days_dict_simple = dict(
-    {s: i for i, s in enumerate(list_day, 1)}, **{"1": 1, "1er": 1}
-)
+letter_days_dict_simple = {s: i for i, s in enumerate(list_day, 1)}

@@ -103,7 +103,7 @@ parser2 = DateDataParser(
 
 def date_parser(text_date: str) -> datetime:
     """
-    Function to parse dates. It try first all available parsers
+    Function to parse dates. It first tries all available parsers
     ('timestamp', 'custom-formats', 'absolute-time') but 'relative-time'.
     If no date is found, retries with 'relative-time'.
 

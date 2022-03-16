@@ -6,17 +6,54 @@ from spacy.language import Language
 from spacy.tokens import Span
 
 from edsnlp.pipelines.misc.dates import Dates
-from edsnlp.pipelines.misc.dates.dates import (
-    apply_groupdict,
-    date_parser,
-    parse_groupdict,
-)
+from edsnlp.pipelines.misc.dates.dates import apply_groupdict, date_parser
 from edsnlp.pipelines.misc.dates.factory import DEFAULT_CONFIG
+from edsnlp.pipelines.misc.dates.parsing import day2int_fast, month2int_fast
 
 
 @fixture(scope="session")
 def parser():
     return date_parser
+
+
+def test_parse_day_fast():
+    tests = [
+        ("5", 5),
+        ("trois", 3),
+        ("1", 1),
+        ("premier", 1),
+        ("dixsept", 17),
+        ("dix-sept", 17),
+        ("vingt-neuf", 29),
+        ("trente et un", 31),
+        ("trente-et-un", 31),
+        ("troi", None),
+        ("janvier", None),
+    ]
+
+    for test, answer in tests:
+        parsed = day2int_fast(test)
+        if answer is None:
+            assert parsed is None
+        else:
+            assert parsed == answer, test
+
+
+def test_parse_month_fast():
+    tests = [
+        ("janv", 1),
+        ("février", 2),
+        ("fevrier", 2),
+        ("jan", None),
+        ("neuf", None),
+    ]
+
+    for test, answer in tests:
+        parsed = month2int_fast(test)
+        if answer is None:
+            assert parsed is None
+        else:
+            assert parsed == answer
 
 
 def test_parser_absolute(parser: DateDataParser):
@@ -294,7 +331,11 @@ def test_groupdict_parsing(blank_nlp, dates: Dates):
         Span.set_extension("groupdict", default=dict())
 
     examples = [
+        ("Le 03/01/2012 à 9h15m32", dict(day=3, month=1, year=2012)),
+        # ("Le 03/01 2012 à 9h15m32", dict(day=3, month=1, year=2012)),
         ("Le 3 janvier 2012 à 9h15m32", dict(day=3, month=1, year=2012)),
+        ("Le trois janvier 2012 à 9h15m32", dict(day=3, month=1, year=2012)),
+        ("Le trente et un décembre 2012 à 9h15m32", dict(day=31, month=12, year=2012)),
     ]
 
     for text, d in examples:
@@ -308,4 +349,4 @@ def test_groupdict_parsing(blank_nlp, dates: Dates):
         )
         span = list(spans)[0]
 
-        assert parse_groupdict(**span._.groupdict) == d
+        assert span._.groupdict == d, text

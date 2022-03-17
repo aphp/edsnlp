@@ -1,7 +1,7 @@
 import re
 from datetime import datetime, timedelta
 from itertools import chain
-from typing import Dict, Generator, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 from dateparser import DateDataParser
 from dateparser_data.settings import default_parsers
@@ -13,7 +13,14 @@ from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
 
 from . import patterns
-from .parsing import day2int, day2int_fast, month2int, month2int_fast, str2int
+from .parsing import (
+    day2int,
+    day2int_fast,
+    month2int,
+    month2int_fast,
+    parse_relative,
+    str2int,
+)
 
 
 def td2str(td: timedelta):
@@ -131,12 +138,15 @@ def date_parser(text_date: str) -> datetime:
         return parsed_date2.date_obj
 
 
-def apply_groupdict(
-    dates: Iterable[Tuple[Span, Dict[str, str]]]
-) -> Generator[Span, None, None]:
+def apply_groupdict(dates: Iterable[Tuple[Span, Dict[str, str]]]) -> List[Span]:
+    res = []
     for span, groupdict in dates:
-        span._.groupdict = parse_groupdict(**groupdict)
-        yield span
+        if span.label_[:9] == "relative_":
+            span._.groupdict = parse_relative(span.label_[9:], **groupdict)
+        else:
+            span._.groupdict = parse_groupdict(**groupdict)
+        res.append(span)
+    return res
 
 
 def parse_groupdict(
@@ -265,14 +275,14 @@ class Dates(BaseComponent):
             no_day = patterns.no_day_pattern
         if absolute is None:
             absolute = patterns.absolute_date_pattern
-        if relative is None:
-            relative = patterns.relative_date_pattern
         if full is None:
             full = patterns.full_date_pattern
         if current is None:
             current = patterns.current_pattern
         if false_positive is None:
             false_positive = patterns.false_positive_pattern
+        if relative is None:
+            relative = patterns.relative_date_patterns
 
         if isinstance(absolute, str):
             absolute = [absolute]
@@ -297,11 +307,13 @@ class Dates(BaseComponent):
         self.regex_matcher.add("false_positive", false_positive)
         self.regex_matcher.add("full_date", full)
         self.regex_matcher.add("absolute", absolute)
-        self.regex_matcher.add("relative", relative)
         self.regex_matcher.add("no_year", no_year)
         self.regex_matcher.add("no_day", no_day)
         self.regex_matcher.add("year_only", year_only)
         self.regex_matcher.add("current", current)
+
+        for name, pattern_dict in relative.items():
+            self.regex_matcher.add("relative_" + name, [pattern_dict["pattern"]])
 
         self.parser = date_parser
         self.set_extensions()
@@ -369,7 +381,6 @@ class Dates(BaseComponent):
             )
 
         dates = apply_groupdict(dates)
-
         dates = filter_spans(dates)
         dates = [date for date in dates if date.label_ != "false_positive"]
 

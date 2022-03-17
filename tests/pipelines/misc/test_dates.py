@@ -16,46 +16,6 @@ def parser():
     return date_parser
 
 
-def test_parse_day_fast():
-    tests = [
-        ("5", 5),
-        ("trois", 3),
-        ("1", 1),
-        ("premier", 1),
-        ("dixsept", 17),
-        ("dix-sept", 17),
-        ("vingt-neuf", 29),
-        ("trente et un", 31),
-        ("trente-et-un", 31),
-        ("troi", None),
-        ("janvier", None),
-    ]
-
-    for test, answer in tests:
-        parsed = day2int_fast(test)
-        if answer is None:
-            assert parsed is None
-        else:
-            assert parsed == answer, test
-
-
-def test_parse_month_fast():
-    tests = [
-        ("janv", 1),
-        ("février", 2),
-        ("fevrier", 2),
-        ("jan", None),
-        ("neuf", None),
-    ]
-
-    for test, answer in tests:
-        parsed = month2int_fast(test)
-        if answer is None:
-            assert parsed is None
-        else:
-            assert parsed == answer
-
-
 def test_parser_absolute(parser: DateDataParser):
     tests = [
         ("le 3 juillet 2020", date(2020, 7, 3)),
@@ -323,6 +283,46 @@ def test_number_of_instances(blank_nlp):
 #         doc = blank_nlp(example)
 #         d = doc.spans["dates"][0]
 #         assert d.text == text
+
+
+def test_parse_day_fast():
+    tests = [
+        ("5", 5),
+        ("trois", 3),
+        ("1", 1),
+        ("premier", 1),
+        ("dixsept", 17),
+        ("dix-sept", 17),
+        ("vingt-neuf", 29),
+        ("trente et un", 31),
+        ("trente-et-un", 31),
+        ("troi", None),
+        ("janvier", None),
+    ]
+
+    for test, answer in tests:
+        parsed = day2int_fast(test)
+        if answer is None:
+            assert parsed is None
+        else:
+            assert parsed == answer, test
+
+
+def test_parse_month_fast():
+    tests = [
+        ("janv", 1),
+        ("février", 2),
+        ("fevrier", 2),
+        ("jan", None),
+        ("neuf", None),
+    ]
+
+    for test, answer in tests:
+        parsed = month2int_fast(test)
+        if answer is None:
+            assert parsed is None
+        else:
+            assert parsed == answer
 
 
 def test_groupdict_parsing(blank_nlp, dates: Dates):

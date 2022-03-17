@@ -19,7 +19,7 @@ from .atomic.time import time_pattern
 from .atomic.years import full_year_pattern as fy_pattern
 from .atomic.years import year_pattern
 from .current import current_pattern
-from .relative import relative_pattern
+from .relative import relative_patterns
 
 raw_delimiters = [r"\/", r"\-"]
 delimiters = raw_delimiters + [r"\.", r"[^\S\r\n]+"]
@@ -87,18 +87,8 @@ no_day_pattern = [
     + post_num_pattern,
 ]
 
-relative_date_pattern = relative_pattern
+relative_date_patterns = relative_patterns
 
-# TODO: add modifier patterns
-since_pattern = [
-    r"(?<=depuis)" + r".{,5}" + pattern
-    for pattern in absolute_date_pattern
-    + no_year_pattern
-    + full_date_pattern
-    + [
-        relative_pattern,
-    ]
-]
 
 false_positive_pattern = make_pattern(
     [

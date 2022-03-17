@@ -5,6 +5,7 @@ from edsnlp.pipelines.core.normalizer.accents.patterns import accents
 from edsnlp.pipelines.core.normalizer.utils import replace
 
 from .patterns.atomic import days, months
+from .patterns.relative import relative_patterns
 
 
 def str2int(time: str) -> int:
@@ -122,3 +123,48 @@ def time2int_fast_factory(patterns: Dict[str, int]) -> Callable[[str], Optional[
 
 month2int_fast = time2int_fast_factory(months.letter_months_dict_simple)
 day2int_fast = time2int_fast_factory(days.letter_days_dict_simple)
+
+
+def parse_relative(label, **kwargs: Dict[str, str]):
+    res = dict()
+    print(label, kwargs)
+
+    res["relative_direction"] = relative_patterns[label]["direction"]
+
+    if "unit" in relative_patterns[label]:
+        res["unit"] = relative_patterns[label]["unit"]
+    else:
+        u = kwargs["unit"]
+        res["unit"] = process_unit(u)
+
+    if "value" in relative_patterns[label]:
+        res["value"] = relative_patterns[label]["value"]
+    else:
+        raw_v = kwargs["value"]
+        v = str2int(raw_v)
+        if v is None:
+            res["unprocessed_value"] = raw_v
+        else:
+            res["value"] = v
+
+    return res
+
+
+dict_unit = {
+    "an": "year",
+    "annee": "year",
+    "moi": "month",
+    "semaine": "week",
+    "jour": "day",
+    "heure": "hour",
+}
+
+
+def process_unit(s: str):
+    raw_s = s
+
+    s = s.lower()
+    s = replace(text=s, rep=accents)
+    if s[-1] == "s":
+        s = s[:-1]
+    return dict_unit.get(s, raw_s)

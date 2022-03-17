@@ -21,7 +21,9 @@ relative_patterns = {
         direction="after",
     ),
     "since": dict(
-        pattern=r"depuis(?!\s+l'[aâ]ge)\s*(?P<value>.{,10})\s+" + h_to_y + r"(?!\s+derni[èe]re?)",
+        pattern=r"depuis(?!\s+l'[aâ]ge)\s*(?P<value>.{,10})\s+"
+        + h_to_y
+        + r"(?!\s+derni[èe]re?)",
         direction="before",
     ),
     "during": dict(
@@ -52,12 +54,12 @@ relative_patterns = {
         value=1,
         direction="after",
     ),
-#     spans can only be matched once,
-#     the patterns are used in the same order as the dict.
-#     we can add wide debug patterns at the end to see what isn't matched
-#     "debug":dict(
-#         pattern=h_to_y,
-#         unit="a",
-#         value=0,
-#         direction="a",)
+    #     spans can only be matched once,
+    #     the patterns are used in the same order as the dict.
+    #     we can add wide debug patterns at the end to see what isn't matched
+    #     "debug":dict(
+    #         pattern=h_to_y,
+    #         unit="a",
+    #         value=0,
+    #         direction="a",)
 }

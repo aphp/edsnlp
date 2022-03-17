@@ -124,9 +124,12 @@ def time2int_fast_factory(patterns: Dict[str, int]) -> Callable[[str], Optional[
 month2int_fast = time2int_fast_factory(months.letter_months_dict_simple)
 day2int_fast = time2int_fast_factory(days.letter_days_dict_simple)
 
-# warning: we reuse the function for the parsing of days, we cannot parse numbers greater than 31.
-letter_number_dict_simple = dict({k:v for k,v in days.letter_days_dict_simple.items() if k!="premier"},
-                                 **{"un":1, "une":1})
+# warning: we reuse the function for the parsing of days,
+# so we cannot parse numbers greater than 31.
+letter_number_dict_simple = dict(
+    {k: v for k, v in days.letter_days_dict_simple.items() if k != "premier"},
+    **{"un": 1, "une": 1},
+)
 number2int_fast = time2int_fast_factory(letter_number_dict_simple)
 
 
@@ -145,11 +148,11 @@ def parse_relative(label, **kwargs: Dict[str, str]):
         res["value"] = relative_patterns[label]["value"]
     else:
         raw_v = kwargs["value"]
-        
+
         # try to cast or parse the entire string as an int.
         # this doesn't work if there are several words (e.g. this fails: "environ 1")
         v = number2int_fast(raw_v)
-        
+
         if v is None:
             res["unprocessed_value"] = raw_v
         else:
@@ -173,6 +176,9 @@ def process_unit(s: str):
 
     s = s.lower()
     s = replace(text=s, rep=accents)
-    if s[-1] == "s" and s!=["mois"]: # we remove the plural mark
+
+    # remove the plural mark
+    if s[-1] == "s" and s != ["mois"]:
         s = s[:-1]
+
     return dict_unit.get(s, raw_s)

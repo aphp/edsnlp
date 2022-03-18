@@ -10,6 +10,9 @@ def download_cities(
         "edsnlp/resources/cities.csv.gz",
         help="Path to the output CSV table.",
     ),
+    url : Path = typer.Argument(
+        "https://www.data.gouv.fr/fr/datasets/r/34d4364c-22eb-4ac0-b179-7a1845ac033a",
+        help="URL to the cities JSON file",
 ) -> None:
     """
     Convenience script to automatically download a list of French cities.
@@ -17,9 +20,7 @@ def download_cities(
 
     typer.echo("Downloading data...")
 
-    r = requests.get(
-        "https://www.data.gouv.fr/fr/datasets/r/34d4364c-22eb-4ac0-b179-7a1845ac033a"
-    )
+    r = requests.get(url)
 
     df = pd.DataFrame.from_records(r.json())
     df = df[["codePostal", "nomCommune"]]

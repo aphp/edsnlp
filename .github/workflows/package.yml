@@ -30,7 +30,7 @@ jobs:
         pip install -r requirements-setup.txt
     - name: Add cities and verbs
       run: |
-        python scripts/conjugate_verbes.py
+        python scripts/conjugate_verbs.py
         python scripts/download_cities.py
     - name: Build package
       run: python -m build

@@ -234,7 +234,7 @@ for ent in doc.ents:
             lexical_variant=ent.text,
             label=ent.label_,
             negation="",
-            experiencer="",
+            family="",
             hypothesis="",
             reported_speech="",
         )
@@ -245,10 +245,10 @@ for ent in doc.ents:
             end=ent.end_char,
             lexical_variant=ent.text,
             label=ent.label_,
-            negation=ent._.negation_,
-            experiencer=ent._.family_,
-            hypothesis=ent._.hypothesis_,
-            reported_speech=ent._.reported_speech_,
+            negation="YES" if ent._.negation else "NO",
+            family="YES" if ent._.family else "NO",
+            hypothesis="YES" if ent._.hypothesis else "NO",
+            reported_speech="YES" if ent._.reported_speech else "NO",
         )
 
     try:

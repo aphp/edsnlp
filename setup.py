@@ -69,7 +69,7 @@ setup(
         distributed=["pyspark"],
     ),
     package_data={
-        "edsnlp": ["resources/*.csv"],
+        "edsnlp": ["resources/*"],
     },
     entry_points={
         "spacy_factories": factories,

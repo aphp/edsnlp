@@ -1,6 +1,5 @@
 from edsnlp.utils.regex import make_pattern
 
-
 # Phones
 delimiters = ["", r"\.", r"\-", " "]
 phone_pattern = make_pattern(

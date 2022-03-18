@@ -1,15 +1,14 @@
 from itertools import chain
 
 from spacy.language import Language
+from spacy.matcher import PhraseMatcher
 from spacy.tokens import Doc
-from edsnlp.utils.filter import filter_spans
 
 from edsnlp.matchers.regex import RegexMatcher
-from spacy.matcher import PhraseMatcher
+from edsnlp.utils.filter import filter_spans
+from edsnlp.utils.resources import get_cities
 
 from .patterns import patterns
-
-from edsnlp.utils.resources import get_cities
 
 
 class Pseudonymisation:

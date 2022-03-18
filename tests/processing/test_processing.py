@@ -4,7 +4,6 @@ import pytest
 import spacy
 from pyspark.sql import types as T
 from pyspark.sql.session import SparkSession
-
 from pytest import fixture
 
 from edsnlp.processing import pipe

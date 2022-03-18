@@ -1,9 +1,8 @@
 from pathlib import Path
 
-import typer
-
-import requests
 import pandas as pd
+import requests
+import typer
 
 
 def download_cities(

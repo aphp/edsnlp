@@ -1,9 +1,9 @@
 from typing import Dict, List, Tuple
 
+from pytest import mark
+
 from edsnlp.pipelines.misc.context import ContextPseudonymisation
 from edsnlp.utils.examples import parse_example
-
-from pytest import mark
 
 examples: List[Tuple[str, Dict[str, List[str]]]] = [
     (

@@ -1,12 +1,11 @@
 from typing import Dict, List
 
 from spacy.language import Language
-from spacy.tokens import Doc
-from edsnlp.utils.filter import filter_spans
-
 from spacy.matcher import PhraseMatcher
-from edsnlp.matchers.regex import RegexMatcher
+from spacy.tokens import Doc
 
+from edsnlp.matchers.regex import RegexMatcher
+from edsnlp.utils.filter import filter_spans
 from edsnlp.utils.regex import make_pattern
 
 

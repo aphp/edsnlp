@@ -13,6 +13,7 @@ def download_cities(
     url : Path = typer.Argument(
         "https://www.data.gouv.fr/fr/datasets/r/34d4364c-22eb-4ac0-b179-7a1845ac033a",
         help="URL to the cities JSON file",
+    ),
 ) -> None:
     """
     Convenience script to automatically download a list of French cities.

@@ -4,7 +4,6 @@ import pytest
 import spacy
 from pyspark.sql import types as T
 from pyspark.sql.session import SparkSession
-from pytest import fixture
 
 from edsnlp.processing import pipe
 from edsnlp.processing.typing import DataFrameModules
@@ -26,12 +25,9 @@ Possible infection au coronavirus
 """
 
 
-@fixture(scope="module")
-def spark():
-    return SparkSession.builder.getOrCreate()
-
-
 def note(module: DataFrameModules):
+
+    spark = SparkSession.builder.getOrCreate()
 
     data = [(i, i // 5, text) for i in range(20)]
 

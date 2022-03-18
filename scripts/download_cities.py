@@ -10,7 +10,7 @@ def download_cities(
         "edsnlp/resources/cities.csv.gz",
         help="Path to the output CSV table.",
     ),
-    url : Path = typer.Argument(
+    url: Path = typer.Argument(
         "https://www.data.gouv.fr/fr/datasets/r/34d4364c-22eb-4ac0-b179-7a1845ac033a",
         help="URL to the cities JSON file",
     ),

@@ -5,6 +5,8 @@ import spacy
 from pyspark.sql import types as T
 from pyspark.sql.session import SparkSession
 
+from pytest import fixture
+
 from edsnlp.processing import pipe
 from edsnlp.processing.typing import DataFrameModules
 
@@ -24,7 +26,10 @@ Conclusion
 Possible infection au coronavirus
 """
 
-spark = SparkSession.builder.getOrCreate()
+
+@fixture(scope="module")
+def spark():
+    return SparkSession.builder.getOrCreate()
 
 
 def note(module: DataFrameModules):

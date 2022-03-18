@@ -27,6 +27,11 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install build
+        pip install -r requirements-setup.txt
+    - name: Add cities and verbs
+      run: |
+        python scripts/conjugate_verbes.py
+        python scripts/download_cities.py
     - name: Build package
       run: python -m build
     - name: Publish package

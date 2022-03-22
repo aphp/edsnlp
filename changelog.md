@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.3 (pending)
+
+- Improve the speed of char replacement pipelines (accents and quotes)
+
 ## v0.4.2
 
 - Fix issue with `dateparser` library (see scrapinghub/dateparser#1045)

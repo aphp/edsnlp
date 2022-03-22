@@ -2,7 +2,6 @@ from typing import List, Optional, Tuple
 
 from spacy.tokens import Doc
 
-from ..utils import replace
 from .patterns import quotes_and_apostrophes
 
 
@@ -20,7 +19,11 @@ class Quotes(object):
     def __init__(self, quotes: Optional[List[Tuple[str, str]]]) -> None:
         if quotes is None:
             quotes = quotes_and_apostrophes
-        self.quotes = quotes
+
+        self.translation_table = str.maketrans(
+            "".join(quote_group for quote_group, _ in quotes),
+            "".join(rep * len(quote_group) for quote_group, rep in quotes),
+        )
 
     def __call__(self, doc: Doc) -> Doc:
         """
@@ -38,6 +41,6 @@ class Quotes(object):
         """
 
         for token in doc:
-            token.norm_ = replace(text=token.norm_, rep=self.quotes)
+            token.norm_ = token.norm_.translate(self.translation_table)
 
         return doc

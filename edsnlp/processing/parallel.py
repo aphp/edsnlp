@@ -45,6 +45,7 @@ def _process_chunk(note: pd.DataFrame, **pipe_kwargs):
 def pipe(
     note: pd.DataFrame,
     nlp: Language,
+    context: List[str] = [],
     additional_spans: Union[List[str], str] = "discarded",
     extensions: ExtensionSchema = [],
     chunksize: int = 100,
@@ -61,6 +62,11 @@ def pipe(
         A pandas DataFrame with a `note_id` and `note_text` column
     nlp : Language
         A spaCy pipe
+    context : List[str]
+        A list of column to add to the generated SpaCy document as an extension.
+        For instance, if `context=["note_datetime"], the corresponding value found
+        in the `note_datetime` column will be stored in `doc._.note_datetime`,
+        which can be useful e.g. for the `dates` pipeline.
     additional_spans : Union[List[str], str], by default "discarded"
         A name (or list of names) of SpanGroup on which to apply the pipe too:
         SpanGroup are available as `doc.spans[spangroup_name]` and can be generated
@@ -97,6 +103,7 @@ def pipe(
 
     pipe_kwargs["additional_spans"] = additional_spans
     pipe_kwargs["extensions"] = extensions
+    pipe_kwargs["context"] = context
 
     if verbose:
         executor.warn(f"{int(len(note)/chunksize)} tasks to complete")

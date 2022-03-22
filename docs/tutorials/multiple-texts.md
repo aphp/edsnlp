@@ -216,8 +216,24 @@ They share the same arguments:
 | ------------------ | --------------------------------------------------------------- | -------- |
 | `note`             | A DataFrame, with two required columns, `note_id` and `note_id` | Required |
 | `nlp`              | The pipeline object                                             | Required |
+| `context`          | A list of column names to add context to the generate `Doc`     | `[]`     |
 | `additional_spans` | Keys in `doc.spans` to include besides `doc.ents`               | `[]`     |
 | `extensions`       | Custom extensions to use                                        | `[]`     |
+
+!!! tip "Adding 'context'"
+     You may want to store some values contained in your `note` DataFrame as an extension in the generated `Doc` object.
+     For instance, the [dates](../pipelines/misc/dates.md) pipeline will use, if provided, the `note_datetime` to add a *year* to an incomplete year such as in: *"The 21st of August, the patient came to the hospital"*.
+     In this case, you can use the `context` parameter and provide a list of column names you want to add:
+
+     ```python
+     note_nlp = single_pipe(
+         data,
+         nlp,
+         context=["note_datetime"],
+         additional_spans=["dates"],
+         extensions=["parsed_date"],
+     )
+     ```
 
 Depending on your pipeline, you may want to extract other extensions. To do so, simply provide those extension names (without the leading underscore) to the `extensions` argument.
 

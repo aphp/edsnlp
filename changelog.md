@@ -3,6 +3,7 @@
 ## v0.4.3 (pending)
 
 - Adding the possibility to add context in the processing module
+- Improve the speed of char replacement pipelines (accents and quotes)
 
 ## v0.4.3
 

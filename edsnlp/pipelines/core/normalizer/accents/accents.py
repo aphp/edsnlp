@@ -2,7 +2,6 @@ from typing import List, Optional, Tuple
 
 from spacy.tokens import Doc
 
-from ..utils import replace
 from . import patterns
 
 
@@ -19,7 +18,11 @@ class Accents(object):
     def __init__(self, accents: Optional[List[Tuple[str, str]]]) -> None:
         if accents is None:
             accents = patterns.accents
-        self.accents = accents
+
+        self.translation_table = str.maketrans(
+            "".join(accent_group for accent_group, _ in accents),
+            "".join(rep * len(accent_group) for accent_group, rep in accents),
+        )
 
     def __call__(self, doc: Doc) -> Doc:
         """
@@ -37,6 +40,6 @@ class Accents(object):
         """
 
         for token in doc:
-            token.norm_ = replace(text=token.norm_, rep=self.accents)
+            token.norm_ = token.norm_.translate(self.translation_table)
 
         return doc

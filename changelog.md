@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.4.3 (pending)
+
+- Adding the possibility to add context in the processing module
 
 ## v0.4.3
 

@@ -6,6 +6,8 @@ from spacy import Language
 from spacy.tokens import Doc, Span
 from tqdm import tqdm
 
+from .helpers import check_spacy_version_for_context
+
 nlp = spacy.blank("fr")
 
 ExtensionSchema = Union[
@@ -36,6 +38,9 @@ def _df_to_spacy(
         A generator which items are of the form (text, context), with `text`
         being a string and `context` a dictionnary
     """
+
+    if context:
+        check_spacy_version_for_context()
 
     kept_cols = ["note_text"] + context
 

@@ -8,7 +8,13 @@ from pyspark.sql import types as T
 from spacy import Language
 
 from edsnlp.pipelines.base import BaseComponent
-from edsnlp.processing.typing import DataFrameModules, DataFrames, get_module
+
+from .helpers import (
+    DataFrameModules,
+    DataFrames,
+    check_spacy_version_for_context,
+    get_module,
+)
 
 
 def pyspark_type_finder(obj):
@@ -80,6 +86,10 @@ def pipe(
     DataFrame
         A pyspark DataFrame with one line per extraction
     """
+
+    if context:
+        check_spacy_version_for_context()
+
     spark = SparkSession.builder.enableHiveSupport().getOrCreate()
     sc = spark.sparkContext
 

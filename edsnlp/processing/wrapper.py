@@ -2,10 +2,10 @@ from typing import Any, Dict, List, Union
 
 from spacy import Language
 
+from .helpers import DataFrameModules, DataFrames, get_module
 from .parallel import pipe as parallel_pipe
 from .simple import ExtensionSchema
 from .simple import pipe as simple_pipe
-from .typing import DataFrameModules, DataFrames, get_module
 
 
 def pipe(

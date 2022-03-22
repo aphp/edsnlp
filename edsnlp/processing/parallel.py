@@ -5,6 +5,7 @@ import spacy
 from joblib import Parallel, delayed
 from spacy import Language
 
+from .helpers import check_spacy_version_for_context
 from .simple import ExtensionSchema, _flatten, _pipe_generator
 
 nlp = spacy.blank("fr")
@@ -90,6 +91,9 @@ def pipe(
     DataFrame
         A pandas DataFrame with one line per extraction
     """
+
+    if context:
+        check_spacy_version_for_context()
 
     # Setting the nlp variable
     _define_nlp(nlp)

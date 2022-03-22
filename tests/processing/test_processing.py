@@ -8,7 +8,7 @@ from pyspark.sql import types as T
 from pyspark.sql.session import SparkSession
 
 from edsnlp.processing import pipe
-from edsnlp.processing.typing import DataFrameModules
+from edsnlp.processing.helpers import DataFrameModules
 
 text = """
 Motif :

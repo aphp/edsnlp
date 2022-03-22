@@ -4,7 +4,6 @@ from edsnlp.matchers.utils import get_text
 from edsnlp.pipelines.core.normalizer.accents.patterns import accents
 from edsnlp.pipelines.core.normalizer.pollution.patterns import pollution
 from edsnlp.pipelines.core.normalizer.quotes.patterns import quotes_and_apostrophes
-from edsnlp.pipelines.core.normalizer.utils import replace
 
 
 @fixture
@@ -15,11 +14,6 @@ def text():
 @fixture
 def doc(nlp, text):
     return nlp(text)
-
-
-def test_replace():
-    text = "üîïéè"
-    assert replace(text, accents) == "uiiee"
 
 
 def test_full_normalization(doc):

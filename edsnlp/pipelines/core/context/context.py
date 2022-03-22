@@ -2,6 +2,7 @@ from typing import List
 
 from spacy.language import Language
 from spacy.tokens import Doc
+
 from edsnlp.pipelines.base import BaseComponent
 
 

@@ -1,5 +1,6 @@
 # flake8: noqa: F811
 from .core.advanced.factory import create_component as advanced
+from .core.context.factory import create_component as context
 from .core.endlines.factory import create_component as endlines
 from .core.matcher.factory import create_component as matcher
 from .core.normalizer.accents.factory import create_component as accents
@@ -8,7 +9,6 @@ from .core.normalizer.lowercase.factory import remove_lowercase
 from .core.normalizer.pollution.factory import create_component as pollution
 from .core.normalizer.quotes.factory import create_component as quotes
 from .core.sentences.factory import create_component as sentences
-from .core.context.factory import create_component as context
 from .misc.consultation_dates.factory import create_component as consultation_dates
 from .misc.dates.factory import create_component as dates
 from .misc.reason.factory import create_component as reason

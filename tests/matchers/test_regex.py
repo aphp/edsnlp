@@ -38,6 +38,28 @@ def test_regex_with_norm(blank_nlp):
     assert match._.normalized_variant == "pneumopathie à coronavirus"
 
 
+def test_regex_with_norm_on_span(blank_nlp):
+    blank_nlp.add_pipe("pollution")
+
+    text = (
+        "le patient a une pneumopathie à NBNbWbWbNbWbNBNbNbWbWbNBNbWbNbNbWbNBNbWbNbNB"
+        " coronavirus"
+    )
+
+    for offset in (0, 2):
+        doc = blank_nlp(text)[offset:]
+
+        matcher = RegexMatcher(ignore_excluded=True)
+        matcher.add("test", ["pneumopathie à coronavirus"])
+
+        match = list(matcher(doc, as_spans=True))[0]
+        assert (
+            match.text
+            == "pneumopathie à NBNbWbWbNbWbNBNbNbWbWbNBNbWbNbNbWbNBNbWbNbNB coronavirus"
+        )
+        assert match._.normalized_variant == "pneumopathie à coronavirus"
+
+
 def test_offset(blank_nlp):
 
     text = "Ceci est un test de matching"

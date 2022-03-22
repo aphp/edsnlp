@@ -1,9 +1,10 @@
 # Changelog
 
-## Pending
+## v0.4.3
 
+- Fix regex matching on spans.
 - Add fast_parse in date pipeline.
-- relative_date parsing
+- Add relative_date information parsing
 
 ## v0.4.2
 

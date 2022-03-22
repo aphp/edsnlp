@@ -77,18 +77,26 @@ def create_span(
     else:
         first = doclike[0].idx
 
-    start_char += offset(
-        doc,
-        attr=attr,
-        ignore_excluded=ignore_excluded,
-        index=first + start_char,
+    start_char = (
+        first
+        + start_char
+        + offset(
+            doc,
+            attr=attr,
+            ignore_excluded=ignore_excluded,
+            index=first + start_char,
+        )
     )
 
-    end_char += offset(
-        doc,
-        attr=attr,
-        ignore_excluded=ignore_excluded,
-        index=first + end_char,
+    end_char = (
+        first
+        + end_char
+        + offset(
+            doc,
+            attr=attr,
+            ignore_excluded=ignore_excluded,
+            index=first + end_char,
+        )
     )
 
     span = doc.char_span(

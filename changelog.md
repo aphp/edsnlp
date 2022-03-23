@@ -1,8 +1,9 @@
 # Changelog
 
-## v0.4.3 (pending)
+## v0.4.4 (pending)
 
 - Improve the speed of char replacement pipelines (accents and quotes)
+- Improve the speed of the regex matcher
 
 ## v0.4.3
 

@@ -1,5 +1,6 @@
 import re
 from bisect import bisect_left
+from functools import lru_cache
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from loguru import logger
@@ -8,6 +9,7 @@ from spacy.tokens import Doc, Span, Token
 from .utils import Patterns, alignment, get_text, offset
 
 
+@lru_cache(32)
 def get_first_included(doclike: Union[Doc, Span]) -> Token:
     for token in doclike:
         if not token._.excluded:

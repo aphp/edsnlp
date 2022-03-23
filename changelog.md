@@ -1,10 +1,11 @@
 # Changelog
 
-## v0.4.3 (pending)
+## v0.4.4 (pending)
 
 - Cap Jinja2 version to fix mkdocs
 - Adding the possibility to add context in the processing module
 - Improve the speed of char replacement pipelines (accents and quotes)
+- Improve the speed of the regex matcher
 
 ## v0.4.3
 

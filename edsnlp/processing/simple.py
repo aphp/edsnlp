@@ -6,6 +6,8 @@ from spacy import Language
 from spacy.tokens import Doc, Span
 from tqdm import tqdm
 
+from .helpers import check_spacy_version_for_context
+
 nlp = spacy.blank("fr")
 
 ExtensionSchema = Union[
@@ -17,6 +19,8 @@ ExtensionSchema = Union[
 
 def _df_to_spacy(
     note: pd.DataFrame,
+    nlp: Language,
+    context: List[str],
 ):
     """
     Takes a pandas DataFrame and return a generator that can be used in
@@ -35,15 +39,26 @@ def _df_to_spacy(
         being a string and `context` a dictionnary
     """
 
-    for col in ["note_text", "note_id"]:
+    if context:
+        check_spacy_version_for_context()
+
+    kept_cols = ["note_text"] + context
+
+    for col in kept_cols:
         if col not in note.columns:
             raise ValueError(f"No column named {repr(col)} found in df")
 
-    kept_note = note[["note_text", "note_id"]]
-    if not Doc.has_extension("note_id"):
-        Doc.set_extension("note_id", default=None)
+    def add_context(context_values):
+        note_text = context_values.note_text
+        doc = nlp.make_doc(note_text)
+        for col in context:
+            doc._.set(col, getattr(context_values, col))
+        return doc
 
-    yield from zip(kept_note.note_text, kept_note.note_id)
+    yield from map(
+        add_context,
+        note[kept_cols].itertuples(),
+    )
 
 
 def _flatten(list_of_lists: List[List[Any]]):
@@ -56,26 +71,32 @@ def _flatten(list_of_lists: List[List[Any]]):
 def _pipe_generator(
     note: pd.DataFrame,
     nlp: Language,
+    context: List[str] = [],
     additional_spans: Union[List[str], str] = "discarded",
     extensions: ExtensionSchema = [],
-    batch_size: int = 1000,
+    batch_size: int = 50,
     progress_bar: bool = True,
 ):
 
     if type(extensions) == str:
         extensions = [extensions]
     elif type(extensions) == dict:
-        extensions = extensions.keys()
+        extensions = list(extensions.keys())
 
     if type(additional_spans) == str:
         additional_spans = [additional_spans]
 
-    gen = _df_to_spacy(note)
-    n_docs = len(note)
-    pipeline = nlp.pipe(gen, as_tuples=True, batch_size=batch_size)
+    if "note_id" not in context:
+        context.append("note_id")
 
-    for doc, note_id in tqdm(pipeline, total=n_docs, disable=not progress_bar):
-        doc._.set("note_id", note_id)
+    if not nlp.has_pipe("eds.context"):
+        nlp.add_pipe("eds.context", first=True, config=dict(context=context))
+
+    gen = _df_to_spacy(note, nlp, context)
+    n_docs = len(note)
+    pipeline = nlp.pipe(gen, batch_size=batch_size)
+
+    for doc in tqdm(pipeline, total=n_docs, disable=not progress_bar):
 
         yield _full_schema(
             doc,
@@ -153,6 +174,7 @@ def _full_schema(
 def pipe(
     note: pd.DataFrame,
     nlp: Language,
+    context: List[str] = [],
     additional_spans: Union[List[str], str] = "discarded",
     extensions: Union[List[str], str] = [],
     batch_size: int = 1000,
@@ -168,6 +190,11 @@ def pipe(
         A pandas DataFrame with a `note_id` and `note_text` column
     nlp : Language
         A spaCy pipe
+    context : List[str]
+        A list of column to add to the generated SpaCy document as an extension.
+        For instance, if `context=["note_datetime"], the corresponding value found
+        in the `note_datetime` column will be stored in `doc._.note_datetime`,
+        which can be useful e.g. for the `dates` pipeline.
     additional_spans : Union[List[str], str], by default "discarded"
         A name (or list of names) of SpanGroup on which to apply the pipe too:
         SpanGroup are available as `doc.spans[spangroup_name]` and can be generated
@@ -191,6 +218,7 @@ def pipe(
             _pipe_generator(
                 note=note,
                 nlp=nlp,
+                context=context,
                 additional_spans=additional_spans,
                 extensions=extensions,
                 batch_size=batch_size,

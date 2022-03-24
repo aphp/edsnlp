@@ -1,5 +1,6 @@
 # flake8: noqa: F811
 from .core.advanced.factory import create_component as advanced
+from .core.context.factory import create_component as context
 from .core.endlines.factory import create_component as endlines
 from .core.matcher.factory import create_component as matcher
 from .core.normalizer.accents.factory import create_component as accents

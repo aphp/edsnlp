@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import databricks.koalas  # noqa F401
 import pandas as pd
 import pytest
@@ -6,7 +8,7 @@ from pyspark.sql import types as T
 from pyspark.sql.session import SparkSession
 
 from edsnlp.processing import pipe
-from edsnlp.processing.typing import DataFrameModules
+from edsnlp.processing.helpers import DataFrameModules
 
 text = """
 Motif :
@@ -26,19 +28,27 @@ Possible infection au coronavirus
 
 spark = SparkSession.builder.getOrCreate()
 
+NOTE_YEAR = 1980
+
 
 def note(module: DataFrameModules):
 
-    data = [(i, i // 5, text) for i in range(20)]
+    data = [(i, i // 5, text, datetime(NOTE_YEAR, 1, 1)) for i in range(20)]
 
     if module == DataFrameModules.PANDAS:
-        return pd.DataFrame(data=data, columns=["note_id", "person_id", "note_text"])
+        return pd.DataFrame(
+            data=data, columns=["note_id", "person_id", "note_text", "note_datetime"]
+        )
 
     note_schema = T.StructType(
         [
             T.StructField("note_id", T.IntegerType()),
             T.StructField("person_id", T.IntegerType()),
             T.StructField("note_text", T.StringType()),
+            T.StructField(
+                "note_datetime",
+                T.TimestampType(),
+            ),
         ]
     )
 
@@ -108,6 +118,7 @@ def test_pipelines(param, model):
         note(module=module),
         nlp=model,
         n_jobs=param["n_jobs"],
+        context=["note_datetime"],
         extensions={
             "score_method": T.StringType(),
             "negation": T.BooleanType(),
@@ -115,6 +126,7 @@ def test_pipelines(param, model):
             "family": T.BooleanType(),
             "reported_speech": T.BooleanType(),
             "parsed_date": T.TimestampType(),
+            "date": T.StringType(),
         },
         additional_spans=["dates"],
     )
@@ -139,8 +151,12 @@ def test_pipelines(param, model):
             "family",
             "score_method",
             "parsed_date",
+            "date",
         )
     )
+
+    # Check that context is correctly added
+    assert f"{NOTE_YEAR}-08-29" in note_nlp["date"].unique()
 
 
 def test_spark_missing_types(model):

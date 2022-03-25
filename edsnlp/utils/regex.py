@@ -5,6 +5,7 @@ def make_pattern(
     patterns: List[str],
     with_breaks: bool = False,
     name: Optional[str] = None,
+    capture: bool = True,
 ) -> str:
     r"""
     Create OR pattern from a list of patterns.
@@ -17,7 +18,8 @@ def make_pattern(
         Whether to add breaks (`\b`) on each side, by default False
     name: str, optional
         Name of the group, using regex `?P<>` directive.
-
+    capture: str
+        When name is False, whether to capture the pattern or not.
     Returns
     -------
     str
@@ -27,7 +29,7 @@ def make_pattern(
     if name:
         prefix = f"(?P<{name}>"
     else:
-        prefix = "("
+        prefix = "(" if capture else "(?:"
 
     # Sorting by length might be more efficient
     patterns.sort(key=len, reverse=True)

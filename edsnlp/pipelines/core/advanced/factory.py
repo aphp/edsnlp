@@ -29,6 +29,7 @@ def create_component(
 
     return AdvancedRegex(
         nlp,
+        name,
         regex_config=regex_config,
         window=window,
         verbose=verbose,

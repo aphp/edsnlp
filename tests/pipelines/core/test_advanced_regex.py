@@ -26,6 +26,7 @@ def test_advanced(blank_nlp):
 
     advanced_regex = AdvancedRegex(
         nlp=blank_nlp,
+        name="test_pipe",
         regex_config=regex_config,
         window=5,
         verbose=True,
@@ -66,6 +67,7 @@ def test_attr_default(blank_nlp):
 
     advanced_regex = AdvancedRegex(
         nlp=blank_nlp,
+        name="test_pipe",
         regex_config=regex_config,
         window=5,
         verbose=True,

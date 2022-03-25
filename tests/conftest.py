@@ -40,11 +40,11 @@ def nlp():
                 fracture=dict(
                     regex=[r"fracture", r"felure"],
                     attr="NORM",
-                    ignore_excluded=True,
                     before_exclude="petite|faible",
                     after_exclude="legere|de fatigue",
                 )
-            )
+            ),
+            ignore_excluded=True,
         ),
     )
 

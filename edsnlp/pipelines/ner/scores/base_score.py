@@ -53,6 +53,7 @@ class Score(AdvancedRegex):
 
         super().__init__(
             nlp=nlp,
+            name=score_name,
             regex_config=regex_config,
             window=window,
             verbose=verbose,

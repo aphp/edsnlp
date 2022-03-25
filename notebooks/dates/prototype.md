@@ -5,19 +5,13 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.3'
-      jupytext_version: 1.11.1
+      format_version: "1.3"
+      jupytext_version: 1.13.5
   kernelspec:
-    display_name: my_nlp_env
+    display_name: "Python 3.9.5 64-bit ('.venv': venv)"
     language: python
-    name: my_nlp_env
+    name: python3
 ---
-
-```python
-%load_ext lab_black
-%reload_ext autoreload
-%autoreload 2
-```
 
 ```python
 import context
@@ -33,71 +27,17 @@ from spacy import displacy
 ```
 
 ```python
+
+```
+
+```python
 from edsnlp.pipelines.misc.dates.dates import parse_groupdict
 ```
 
 # Dates
 
 ```python
-text = "Le patient est atteint venu le vingtneuf janvier 2012"
-```
-
-```python
-nlp = spacy.blank("fr")
-# dates = nlp.add_pipe('dates')
-```
-
-```python
-from edsnlp.pipelines.misc.dates import Dates
-```
-
-```python
-doc = nlp(text)
-```
-
-```python
-d = Dates(
-    nlp,
-    absolute=None,
-    full=None,
-    relative=None,
-    no_year=None,
-    no_day=None,
-    year_only=None,
-    current=None,
-    false_positive=None,
-    on_ents_only=False,
-    attr="text",
-)
-```
-
-```python
-d.process(doc)[0]._.groupdict
-```
-
-```python
-
-```
-
-```python
-
-```
-
-```python
-
-```
-
-```python
-labels = [
-    'absolute',
-    'full_date',
-    'no_year',
-    'no_day',
-    'year_only',
-    'relative',
-    'current',
-    'false_positive',
-]
+text = "Le patient est atteint venu le 29 janvier 2012"
 ```
 
 ```python
@@ -126,15 +66,21 @@ category20 = [
 ```
 
 ```python
-
+nlp = spacy.blank('fr')
+dates = nlp.add_pipe('dates')
 ```
 
 ```python
-
-```
-
-```python
-
+labels = [
+    'absolute',
+    'full_date',
+    'no_year',
+    'no_day',
+    'year_only',
+    'relative',
+    'current',
+    'false_positive',
+]
 ```
 
 ```python

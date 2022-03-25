@@ -1,8 +1,7 @@
 import re
 from typing import Callable, Dict, Optional
 
-from edsnlp.pipelines.core.normalizer.accents.patterns import accents
-from edsnlp.pipelines.core.normalizer.utils import replace
+from edsnlp.pipelines.core.normalizer.accents import Accents
 
 from .patterns.atomic import days, months
 from .patterns.relative import relative_patterns
@@ -113,7 +112,7 @@ def time2int_fast_factory(patterns: Dict[str, int]) -> Callable[[str], Optional[
             return m
 
         s = time.lower()
-        s = replace(text=s, rep=accents)
+        s = s.translate(Accents(None).translation_table)
         s = re.sub("[^a-z]", "", s)
 
         return patterns.get(s)
@@ -175,7 +174,7 @@ def process_unit(s: str):
     raw_s = s
 
     s = s.lower()
-    s = replace(text=s, rep=accents)
+    s = s.translate(Accents(None).translation_table)
 
     # remove the plural mark
     if s[-1] == "s" and s != ["mois"]:

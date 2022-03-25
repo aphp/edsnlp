@@ -8,7 +8,13 @@ from pyspark.sql import types as T
 from spacy import Language
 
 from edsnlp.pipelines.base import BaseComponent
-from edsnlp.processing.typing import DataFrameModules, DataFrames, get_module
+
+from .helpers import (
+    DataFrameModules,
+    DataFrames,
+    check_spacy_version_for_context,
+    get_module,
+)
 
 
 def pyspark_type_finder(obj):
@@ -48,6 +54,7 @@ def module_checker(
 def pipe(
     note: DataFrames,
     nlp: Language,
+    context: List[str] = [],
     additional_spans: Union[List[str], str] = "discarded",
     extensions: List[Tuple[str, T.DataType]] = [],
 ) -> DataFrame:
@@ -60,6 +67,11 @@ def pipe(
         A Pyspark or Koalas DataFrame with a `note_id` and `note_text` column
     nlp : Language
         A spaCy pipe
+    context : List[str]
+        A list of column to add to the generated SpaCy document as an extension.
+        For instance, if `context=["note_datetime"], the corresponding value found
+        in the `note_datetime` column will be stored in `doc._.note_datetime`,
+        which can be useful e.g. for the `dates` pipeline.
     additional_spans : Union[List[str], str], by default "discarded"
         A name (or list of names) of SpanGroup on which to apply the pipe too:
         SpanGroup are available as `doc.spans[spangroup_name]` and can be generated
@@ -74,8 +86,15 @@ def pipe(
     DataFrame
         A pyspark DataFrame with one line per extraction
     """
+
+    if context:
+        check_spacy_version_for_context()
+
     spark = SparkSession.builder.enableHiveSupport().getOrCreate()
     sc = spark.sparkContext
+
+    if not nlp.has_pipe("eds.context"):
+        nlp.add_pipe("eds.context", first=True, config=dict(context=context))
 
     nlp_bc = sc.broadcast(nlp)
 
@@ -102,6 +121,7 @@ def pipe(
 
         def f(
             text,
+            *context_values,
             additional_spans=additional_spans,
             extensions=extensions,
         ):
@@ -115,7 +135,10 @@ def pipe(
                 if isinstance(pipe, BaseComponent):
                     pipe.set_extensions()
 
-            doc = nlp(text)
+            doc = nlp.make_doc(text)
+            for context_name, context_value in zip(context, context_values):
+                doc._.set(context_name, context_value)
+            doc = nlp(doc)
 
             ents = []
 
@@ -178,7 +201,9 @@ def pipe(
         extensions=extensions,
     )
 
-    note_nlp = note.withColumn("matches", matcher(note.note_text))
+    note_nlp = note.withColumn(
+        "matches", matcher(F.col("note_text"), *[F.col(c) for c in context])
+    )
     note_nlp = note_nlp.withColumn("matches", F.explode(note_nlp.matches))
 
     note_nlp = note_nlp.select("note_id", "matches.*")

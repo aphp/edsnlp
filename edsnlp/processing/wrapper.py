@@ -2,16 +2,17 @@ from typing import Any, Dict, List, Union
 
 from spacy import Language
 
+from .helpers import DataFrameModules, DataFrames, get_module
 from .parallel import pipe as parallel_pipe
 from .simple import ExtensionSchema
 from .simple import pipe as simple_pipe
-from .typing import DataFrameModules, DataFrames, get_module
 
 
 def pipe(
     note: DataFrames,
     nlp: Language,
     n_jobs: int = -2,
+    context: List[str] = [],
     additional_spans: Union[List[str], str] = "discarded",
     extensions: ExtensionSchema = [],
     **kwargs: Dict[str, Any],
@@ -26,6 +27,11 @@ def pipe(
         A pandas/pyspark/koalas DataFrame with a `note_id` and `note_text` column
     nlp : Language
         A spaCy pipe
+    context : List[str]
+        A list of column to add to the generated SpaCy document as an extension.
+        For instance, if `context=["note_datetime"], the corresponding value found
+        in the `note_datetime` column will be stored in `doc._.note_datetime`,
+        which can be useful e.g. for the `dates` pipeline.
     n_jobs : int, by default -2
         Only used when providing a Pandas DataFrame
 
@@ -58,6 +64,7 @@ def pipe(
             return simple_pipe(
                 note=note,
                 nlp=nlp,
+                context=context,
                 additional_spans=additional_spans,
                 extensions=extensions,
                 **kwargs,
@@ -68,6 +75,7 @@ def pipe(
             return parallel_pipe(
                 note=note,
                 nlp=nlp,
+                context=context,
                 additional_spans=additional_spans,
                 extensions=extensions,
                 n_jobs=n_jobs,
@@ -88,6 +96,7 @@ def pipe(
     return distributed_pipe(
         note=note,
         nlp=nlp,
+        context=context,
         additional_spans=additional_spans,
         extensions=extensions,
         **kwargs,

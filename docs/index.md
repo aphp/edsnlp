@@ -10,13 +10,15 @@ If it's your first time with spaCy, we recommend you familiarise yourself with s
 
 You can install EDS-NLP via `pip`:
 
-<!-- termynal -->
+<div class="termy">
 
-```
+```console
 $ pip install edsnlp
 ---> 100%
 Installed
 ```
+
+</div>
 
 We recommend pinning the library version in your projects, or use a strict package manager like [Poetry](https://python-poetry.org/).
 

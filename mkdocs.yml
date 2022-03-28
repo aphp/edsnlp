@@ -90,14 +90,15 @@ extra:
 
 extra_css:
   - assets/stylesheets/extra.css
+  - assets/termynal/termynal.css
 
 extra_javascript:
   - https://cdn.jsdelivr.net/npm/vega@5
   - https://cdn.jsdelivr.net/npm/vega-lite@5
   - https://cdn.jsdelivr.net/npm/vega-embed@6
+  - assets/termynal/termynal.js
 
 plugins:
-  - termynal
   - search
   - bibtex:
       bib_file: "docs/references.bib"

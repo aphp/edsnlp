@@ -379,7 +379,7 @@ function createTermynals() {
                 } else if (line.startsWith(colorOutputLiteralStart)) {
                     let color = line.substring(0, line.indexOf(' '));
                     let line_value = line.substring(line.indexOf(' ') + 1);
-                    var color_line = "<p style='" + color + "';>" + line_value + "</p>"
+                    var color_line = "<span style='" + color + ";'>" + line_value + "</span>"
                     buffer.push(color_line);
                 } else {
                     buffer.push(line);

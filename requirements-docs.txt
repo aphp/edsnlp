@@ -11,4 +11,3 @@ mkdocs-section-index
 mkdocstrings
 mkdocstrings-python
 # mknotebooks
-termynal

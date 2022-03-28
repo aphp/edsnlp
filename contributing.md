@@ -57,7 +57,7 @@ The hooks only run on staged changes. To force-run it on all files, run:
 ```console
 $ pre-commit run --all-files
 ---> 100%
-All good !
+color:green All good !
 ```
 
 </div>
@@ -117,8 +117,8 @@ We use `MkDocs` for EDS-NLP's documentation. You can checkout the changes you ma
 # Install the requirements
 $ pip install -r requirements-docs.txt
 ---> 100%
-Installation successful
-A
+color:green Installation successful
+
 # Run the documentation
 $ mkdocs serve
 ```

@@ -139,9 +139,9 @@ Our simple API is ready to launch! We'll just need to install FastAPI along with
 <div class="termy">
 
 ```console
-$ pip install fastapi[uvicorn]
+$ pip install 'fastapi[uvicorn]'
 ---> 100%
-Successfully installed fastapi
+color:green Successfully installed fastapi
 ```
 
 </div>

@@ -25,7 +25,7 @@ Using it is straightforward :
 ```console
 $ spacy init vectors fr /path/to/vectors /path/to/pipeline
 ---> 100%
-Conversion successful!
+color:green Conversion successful!
 ```
 
 </div>

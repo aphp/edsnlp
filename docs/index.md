@@ -15,7 +15,7 @@ You can install EDS-NLP via `pip`:
 ```console
 $ pip install edsnlp
 ---> 100%
-Installed
+color:green Successfully installed!
 ```
 
 </div>

@@ -14,7 +14,7 @@ class ContextAdder(BaseComponent):
     ----------
     nlp : Language
         The spaCy object.
-    context: List[str]
+    context : List[str]
         The list of extensions to add to the `Doc`
     """
 

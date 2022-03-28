@@ -20,12 +20,14 @@ spaCy provides a `init vectors` CLI utility that takes a Gensim-trained binary a
 
 Using it is straightforward :
 
-<!-- termynal -->
+<div class="termy">
 
-```
+```console
 $ spacy init vectors fr /path/to/vectors /path/to/pipeline
 ---> 100%
 Conversion successful!
 ```
+
+</div>
 
 See the [documentation](https://spacy.io/api/cli#init-vectors) for implementation details.

@@ -3,7 +3,7 @@ from typing import Any, Callable, Iterable, List, Optional, Tuple, Union
 from spacy.tokens import Span
 
 
-def get_sort_key(span: Span) -> Tuple[int, int]:
+def default_sort_key(span: Span) -> Tuple[int, int]:
     """
     Returns the sort key for filtering spans.
 
@@ -24,6 +24,7 @@ def filter_spans(
     spans: Iterable[Union["Span", Tuple["Span", Any]]],
     label_to_remove: Optional[str] = None,
     return_discarded: bool = False,
+    sort_key=default_sort_key,
 ) -> Union[List["Span"], Tuple[List["Span"], List["Span"]]]:
     """
     Re-definition of spacy's filtering function, that returns discarded spans
@@ -61,6 +62,10 @@ def filter_spans(
         Whether to return discarded spans.
     label_to_remove : str, optional
         Label to remove. If set, results can contain overlapping spans.
+    sort_key: Callable[Span, Any], optional
+        Key to sorting spans before applying overlap conflict resolution.
+        A span with a higher key will have precedence over another span.
+        By default, the largest, leftmost spans are selected first.
 
     Returns
     -------
@@ -69,7 +74,7 @@ def filter_spans(
     discarded : List[Span], optional
         Discarded spans
     """
-    sorted_spans = sorted(spans, key=get_sort_key, reverse=True)
+    sorted_spans = sorted(spans, key=sort_key, reverse=True)
     result = []
     discarded = []
     seen_tokens = set()

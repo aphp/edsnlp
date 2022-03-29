@@ -11,6 +11,7 @@ from .core.normalizer.quotes.factory import create_component as quotes
 from .core.sentences.factory import create_component as sentences
 from .misc.consultation_dates.factory import create_component as consultation_dates
 from .misc.dates.factory import create_component as dates
+from .misc.measures.factory import create_component as measures
 from .misc.reason.factory import create_component as reason
 from .misc.sections.factory import create_component as sections
 from .ner.covid.factory import create_component as covid

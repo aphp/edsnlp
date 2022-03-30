@@ -117,6 +117,7 @@ plugins:
             heading_level: 3
             members_order: source
             show_root_toc_entry: false
+            show_if_no_docstring: yes
       watch:
         - "edsnlp"
   - literate-nav:

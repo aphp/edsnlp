@@ -35,11 +35,8 @@ def make_patterns(measure: "Measure") -> Dict[str, Union[List[str], str]]:
 
     Returns
     -------
-    {
-        "trigger": List[str],
-        "extraction": str,
-    }
-
+    trigger : List[str]
+    extraction : str
     """
     unit_prefix_reg = disj_capture(
         {key: [entry["prefix"]] for key, entry in measure.UNITS.items()},
@@ -136,12 +133,9 @@ class Measure(abc.ABC):
         """
         Iter over items of the measure (only one for SimpleMeasure)
 
-        Parameters
-        ----------
-
         Returns
         -------
-        Iterable["SimpleMeasure"]
+        iterable : Iterable["SimpleMeasure"]
         """
 
     @abc.abstractmethod
@@ -151,11 +145,11 @@ class Measure(abc.ABC):
 
         Parameters
         ----------
-        item: int
+        item : int
 
         Returns
         -------
-        SimpleMeasure
+        measure : SimpleMeasure
         """
 
 
@@ -167,8 +161,8 @@ class SimpleMeasure(Measure):
 
         Parameters
         ----------
-        value: float
-        unit: str
+        value : float
+        unit : str
         """
         super().__init__()
         self.value = value
@@ -176,27 +170,27 @@ class SimpleMeasure(Measure):
 
     @classmethod
     @abc.abstractmethod
-    def parse(self, int_part, dec_part, unit, infix) -> "SimpleMeasure":
+    def parse(self, int_part: str, dec_part: str, unit: str, infix: bool) -> "SimpleMeasure":
         """
         Class method to create an instance from the match groups
 
-        int_part: str
+        int_part : str
             The integer part of the match (eg 12 in 12 metres 50 or 12.50metres)
-        dec_part: str
+        dec_part : str
             The decimal part of the match (eg 50 in 12 metres 50 or 12.50metres)
-        unit: str
+        unit : str
             The normalized variant of the unit (eg "m" for 12 metre 50)
-        infix: bool
+        infix : bool
             Whether the unit was in the before (True) or after (False) the decimal part
         """
 
-    def _get_scale_to(self, unit):
+    def _get_scale_to(self, unit: str):
         return self.UNITS[self.unit]["value"] / self.UNITS[unit]["value"]
 
     def __iter__(self):
         return iter((self,))
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: int):
         assert isinstance(item, int)
         return [self][item]
 
@@ -223,17 +217,17 @@ class CompositeMeasure(Measure):
 
     Parameters
     ----------
-    measures: List[SimpleMeasure]
+    measures : List[SimpleMeasure]
     """
 
-    def __init__(self, measures):
+    def __init__(self, measures: Iterable["SimpleMeasure"]):
         super().__init__()
         self.measures = list(measures)
 
     def __iter__(self):
         return iter(self.measures)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: int):
         assert isinstance(item, int)
         res = self.measures[item]
         return res
@@ -268,7 +262,7 @@ class Measures(BaseComponent):
         The registry names of the measures to extract
     attr : str
         Whether to match on the text ('TEXT') or on the normalized text ('NORM')
-    ignore_excluded: bool
+    ignore_excluded : bool
         Whether to exclude pollution patterns when matching in the text
     """
 

@@ -340,10 +340,10 @@ class Measures(BaseComponent):
                 sub_groupdict = dict(sub_match.groupdict())
 
                 # Integer part of the match
-                int_part = sub_groupdict.pop("int_part")
+                int_part = sub_groupdict.pop("int_part", 0)
 
                 # Decimal part of the match, if any
-                dec_part = sub_groupdict.pop("dec_part") or 0
+                dec_part = sub_groupdict.pop("dec_part", 0) or 0
 
                 # If the unit was not postfix (in cases like 1cm, or 1 et 2cm)
                 # the unit must be infix: we extract it now using non empty groupdict

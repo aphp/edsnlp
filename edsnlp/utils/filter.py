@@ -58,6 +58,10 @@ def filter_spans(
     spans overlapping with excluded labels are removed. The main expected
     use case is for pseudo-cues.
 
+    It can handle an iterable of tuples instead of an iterable of `Span`s.
+    The primary use-case is the use with the `RegexMatcher`'s capacity to
+    return the span's `groupdict`.
+
     !!! note ""
 
         The **spaCy documentation states**:
@@ -79,14 +83,12 @@ def filter_spans(
 
     Parameters
     ----------
-    spans : List[Span]
+    spans : Iterable[Union["Span", Tuple["Span", Any]]]
         Spans to filter.
     return_discarded : bool
         Whether to return discarded spans.
     label_to_remove : str, optional
         Label to remove. If set, results can contain overlapping spans.
-    as_tuples : bool
-        Whether to treat the dates as tuples.
 
     Returns
     -------

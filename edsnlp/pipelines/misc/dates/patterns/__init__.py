@@ -33,11 +33,15 @@ post_num_pattern = f"(?!{raw_delimiter_pattern})"
 
 full_year_pattern = ante_num_pattern + fy_pattern + post_num_pattern
 
-# Full dates
 absolute_date_pattern: List[str] = [
-    ante_num_pattern + day_pattern + d + month_pattern + d + year_pattern
-    # + post_num_pattern
-    + time_pattern + post_num_pattern
+    ante_num_pattern
+    + day_pattern
+    + d
+    + month_pattern
+    + d
+    + year_pattern
+    + time_pattern
+    + post_num_pattern
     for d in delimiters
 ] + [
     ante_num_pattern
@@ -46,8 +50,8 @@ absolute_date_pattern: List[str] = [
     + numeric_month_pattern
     + d
     + numeric_day_pattern
-    # + post_num_pattern
-    + time_pattern + post_num_pattern
+    + time_pattern
+    + post_num_pattern
     for d in delimiters
 ]
 
@@ -61,12 +65,14 @@ full_date_pattern = [
     + post_num_pattern
     for d in [r"-", r"\."]
 ]
+absolute_date_pattern.extend(full_date_pattern)
 
 no_year_pattern = [
     day + raw_delimiter_with_spaces_pattern + month + time_pattern + post_num_pattern
     for day in [ante_num_pattern + numeric_day_pattern, letter_day_pattern]
     for month in [numeric_month_pattern + post_num_pattern, letter_month_pattern]
 ]
+absolute_date_pattern.extend(no_year_pattern)
 
 no_day_pattern = [
     letter_month_pattern
@@ -79,6 +85,8 @@ no_day_pattern = [
     + year_pattern
     + post_num_pattern,
 ]
+absolute_date_pattern.extend(no_day_pattern)
+
 
 relative_date_patterns = relative_patterns
 

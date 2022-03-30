@@ -27,20 +27,9 @@ class Dates(BaseComponent):
         Language pipeline object
     absolute : Union[List[str], str]
         List of regular expressions for absolute dates.
-    full : Union[List[str], str]
-        List of regular expressions for full dates in YYYY-MM-DD format.
     relative : Union[List[str], str]
         List of regular expressions for relative dates
         (eg `hier`, `la semaine prochaine`).
-    no_year : Union[List[str], str]
-        List of regular expressions for dates that do not display a year.
-    no_day : Union[List[str], str]
-        List of regular expressions for dates that do not display a day.
-    year_only : Union[List[str], str]
-        List of regular expressions for dates that only display a year.
-    current : Union[List[str], str]
-        List of regular expressions for dates that relate to
-        the current month, week, year, etc.
     false_positive : Union[List[str], str]
         List of regular expressions for false positive (eg phone numbers, etc).
     on_ents_only : Union[bool, str, List[str]]
@@ -57,12 +46,7 @@ class Dates(BaseComponent):
         self,
         nlp: Language,
         absolute: Optional[List[str]],
-        full: Optional[List[str]],
         relative: Optional[List[str]],
-        no_year: Optional[List[str]],
-        no_day: Optional[List[str]],
-        year_only: Optional[List[str]],
-        current: Optional[List[str]],
         false_positive: Optional[List[str]],
         on_ents_only: bool,
         attr: str,
@@ -70,18 +54,8 @@ class Dates(BaseComponent):
 
         self.nlp = nlp
 
-        if no_year is None:
-            no_year = patterns.no_year_pattern
-        if year_only is None:
-            year_only = patterns.full_year_pattern
-        if no_day is None:
-            no_day = patterns.no_day_pattern
         if absolute is None:
             absolute = patterns.absolute_date_pattern
-        if full is None:
-            full = patterns.full_date_pattern
-        if current is None:
-            current = patterns.current_pattern
         if false_positive is None:
             false_positive = patterns.false_positive_pattern
         if relative is None:
@@ -91,16 +65,6 @@ class Dates(BaseComponent):
             absolute = [absolute]
         if isinstance(relative, str):
             relative = [relative]
-        if isinstance(no_year, str):
-            no_year = [no_year]
-        if isinstance(no_day, str):
-            no_day = [no_day]
-        if isinstance(year_only, str):
-            year_only = [year_only]
-        if isinstance(full, str):
-            full = [full]
-        if isinstance(current, str):
-            current = [current]
         if isinstance(false_positive, str):
             false_positive = [false_positive]
 
@@ -108,12 +72,7 @@ class Dates(BaseComponent):
         self.regex_matcher = RegexMatcher(attr=attr, alignment_mode="strict")
 
         self.regex_matcher.add("false_positive", false_positive)
-        self.regex_matcher.add("full_date", full)
         self.regex_matcher.add("absolute", absolute)
-        self.regex_matcher.add("no_year", no_year)
-        self.regex_matcher.add("no_day", no_day)
-        self.regex_matcher.add("year_only", year_only)
-        self.regex_matcher.add("current", current)
         self.regex_matcher.add("relative", relative)
 
         self.set_extensions()

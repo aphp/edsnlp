@@ -24,7 +24,7 @@ def filter_spans(
     spans: Iterable[Union["Span", Tuple["Span", Any]]],
     label_to_remove: Optional[str] = None,
     return_discarded: bool = False,
-    sort_key=default_sort_key,
+    sort_key: Callable[Span, Any] = default_sort_key,
 ) -> Union[List["Span"], Tuple[List["Span"], List["Span"]]]:
     """
     Re-definition of spacy's filtering function, that returns discarded spans
@@ -62,7 +62,7 @@ def filter_spans(
         Whether to return discarded spans.
     label_to_remove : str, optional
         Label to remove. If set, results can contain overlapping spans.
-    sort_key: Callable[Span, Any], optional
+    sort_key : Callable[Span, Any], optional
         Key to sorting spans before applying overlap conflict resolution.
         A span with a higher key will have precedence over another span.
         By default, the largest, leftmost spans are selected first.

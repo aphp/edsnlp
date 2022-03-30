@@ -138,14 +138,14 @@ class CustomSize(SimpleMeasure):
         """
         Class method to create an instance from the match groups
 
-        int_part: str
-            The integer part of the match (eg 12 in 12 metres 50 or 12.50metres)
-        dec_part: str
-            The decimal part of the match (eg 50 in 12 metres 50 or 12.50metres)
-        unit: str
-            The normalized variant of the unit (eg "m" for 12 metre 50)
-        infix: bool
-            Whether the unit was in the before (True) or after (False) the decimal part
+        int_part : str
+            The integer part of the match (eg `12` in `12 metres 50` or `12.50metres`)
+        dec_part : str
+            The decimal part of the match (eg `50` in `12 metres 50` or `12.50metres`)
+        unit : str
+            The normalized variant of the unit (eg `m` for `12 metre 50`)
+        infix : bool
+            Whether the unit was in the before (`True`) or after (`False`) the decimal part
         """
         result = float("{}.{}".format(int_part, dec_part))
         return cls(result, unit)

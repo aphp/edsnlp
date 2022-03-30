@@ -12,7 +12,6 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@deprecated_factory("measures", "eds.measures", default_config=DEFAULT_CONFIG)
 @Language.factory("eds.measures", default_config=DEFAULT_CONFIG)
 def create_component(
     nlp: Language,

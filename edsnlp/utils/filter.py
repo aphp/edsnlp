@@ -24,7 +24,7 @@ def filter_spans(
     spans: Iterable[Union["Span", Tuple["Span", Any]]],
     label_to_remove: Optional[str] = None,
     return_discarded: bool = False,
-    sort_key: Callable[Span, Any] = default_sort_key,
+    sort_key: Callable[[Span], Any] = default_sort_key,
 ) -> Union[List["Span"], Tuple[List["Span"], List["Span"]]]:
     """
     Re-definition of spacy's filtering function, that returns discarded spans

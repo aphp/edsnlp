@@ -3,7 +3,7 @@ from typing import Any, Callable, Iterable, List, Optional, Tuple, Union
 from spacy.tokens import Span
 
 
-def get_sort_key(span: Span) -> Tuple[int, int]:
+def full_sort_key(span: Union[Span, Tuple[Span, Any]]) -> Tuple[int, int]:
     """
     Returns the sort key for filtering spans.
 
@@ -17,14 +17,38 @@ def get_sort_key(span: Span) -> Tuple[int, int]:
     key : Tuple(int, int)
         Sort key.
     """
+    if isinstance(span, tuple):
+        span = span[0]
     return span.end - span.start, -span.start
+
+
+def start_sort_key(span: Union[Span, Tuple[Span, Any]]) -> Tuple[int, int]:
+    """
+    Returns the sort key for filtering spans by start order.
+
+    Parameters
+    ----------
+    span : Span
+        Span to sort.
+
+    Returns
+    -------
+    key : Tuple(int, int)
+        Sort key.
+    """
+    if isinstance(span, tuple):
+        span = span[0]
+    return span.start
 
 
 def filter_spans(
     spans: Iterable[Union["Span", Tuple["Span", Any]]],
     label_to_remove: Optional[str] = None,
     return_discarded: bool = False,
-) -> Union[List["Span"], Tuple[List["Span"], List["Span"]]]:
+) -> Union[
+    List[Union[Span, Tuple[Span, Any]]],
+    Tuple[List[Union[Span, Tuple[Span, Any]]], List[Union[Span, Tuple[Span, Any]]]],
+]:
     """
     Re-definition of spacy's filtering function, that returns discarded spans
     as well as filtered ones.
@@ -61,30 +85,33 @@ def filter_spans(
         Whether to return discarded spans.
     label_to_remove : str, optional
         Label to remove. If set, results can contain overlapping spans.
+    as_tuples : bool
+        Whether to treat the dates as tuples.
 
     Returns
     -------
-    results : List[Span]
+    results : List[Union[Span, Tuple[Span, Any]]]
         Filtered spans
-    discarded : List[Span], optional
+    discarded : List[Union[Span, Tuple[Span, Any]]], optional
         Discarded spans
     """
-    sorted_spans = sorted(spans, key=get_sort_key, reverse=True)
+    sorted_spans = sorted(spans, key=full_sort_key, reverse=True)
     result = []
     discarded = []
     seen_tokens = set()
     for span in sorted_spans:
+        s = span if isinstance(span, Span) else span[0]
         # Check for end - 1 here because boundaries are inclusive
-        if span.start not in seen_tokens and span.end - 1 not in seen_tokens:
-            if label_to_remove is None or span.label_ != label_to_remove:
+        if s.start not in seen_tokens and s.end - 1 not in seen_tokens:
+            if label_to_remove is None or s.label_ != label_to_remove:
                 result.append(span)
-            if label_to_remove is None or span.label_ == label_to_remove:
-                seen_tokens.update(range(span.start, span.end))
-        elif label_to_remove is None or span.label_ != label_to_remove:
+            if label_to_remove is None or s.label_ == label_to_remove:
+                seen_tokens.update(range(s.start, s.end))
+        elif label_to_remove is None or s.label_ != label_to_remove:
             discarded.append(span)
 
-    result = sorted(result, key=lambda span: span.start)
-    discarded = sorted(discarded, key=lambda span: span.start)
+    result = sorted(result, key=start_sort_key)
+    discarded = sorted(discarded, key=start_sort_key)
 
     if return_discarded:
         return result, discarded

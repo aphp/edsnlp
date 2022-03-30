@@ -166,7 +166,7 @@ The pipeline can be configured using the following parameters :
 
 | Parameter         | Explanation                                      | Default                           |
 | ----------------- | ------------------------------------------------ | --------------------------------- |
-| `measures`        | The names of the measures to extract, registered in `spacy.misc.registry`          | `["eds.measures.size", "eds.measures.weight", "eds.measures.angle"]` |
+| `measures`        | The names of the measures to extract, registered in `spacy.registry.misc`          | `["eds.measures.size", "eds.measures.weight", "eds.measures.angle"]` |
 | `ignore_excluded` | Whether to ignore excluded tokens for matching           | `False`   |
 | `attr`            | spaCy attribute to match on, eg `NORM` or `TEXT` | `"NORM"`                          |
 

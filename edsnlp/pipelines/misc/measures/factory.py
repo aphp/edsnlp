@@ -3,7 +3,6 @@ from typing import Dict, List, Union
 from spacy.language import Language
 
 from edsnlp.pipelines.misc.measures import Measures
-from edsnlp.utils.deprecation import deprecated_factory
 
 DEFAULT_CONFIG = dict(
     attr="NORM",

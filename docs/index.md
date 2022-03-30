@@ -92,6 +92,7 @@ This example is complete, it should run as-is. Check out the [spaCy 101 page](tu
     | Pipeline               | Description                                     |
     | ---------------------- | ----------------------------------------------- |
     | `eds.dates`            | Date extraction and normalisation               |
+    | `eds.measures`         | Measure extraction and normalisation            |
     | `eds.sections`         | Section detection                               |
     | `eds.reason`           | Rule-based hospitalisation reason detection     |
 

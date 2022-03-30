@@ -3,9 +3,6 @@ from typing import Callable, Dict, Optional
 
 from edsnlp.pipelines.core.normalizer.accents import Accents
 
-from .patterns.atomic import days, months
-from .patterns.relative import relative_patterns
-
 
 def str2int(time: str) -> int:
     """
@@ -27,7 +24,10 @@ def str2int(time: str) -> int:
         return None
 
 
-def time2int_factory(patterns: Dict[str, int]) -> Callable[[str], int]:
+def time2int_factory(
+    patterns: Dict[str, int],
+    use_as_default: bool = False,
+) -> Callable[[str], int]:
     """
     Factory for a `time2int` conversion function.
 
@@ -35,6 +35,9 @@ def time2int_factory(patterns: Dict[str, int]) -> Callable[[str], int]:
     ----------
     patterns : Dict[str, int]
         Dictionary of conversion/pattern.
+
+    use_as_default : bool, by default `False`
+        Whether to use the value as default.
 
     Returns
     -------
@@ -64,14 +67,12 @@ def time2int_factory(patterns: Dict[str, int]) -> Callable[[str], int]:
                 m = key
                 break
 
+        if use_as_default:
+            m = m or time
         assert m is not None
         return m
 
     return time2int
-
-
-month2int = time2int_factory(months.letter_months_dict)
-day2int = time2int_factory(days.letter_days_dict)
 
 
 def time2int_fast_factory(patterns: Dict[str, int]) -> Callable[[str], Optional[int]]:
@@ -88,6 +89,9 @@ def time2int_fast_factory(patterns: Dict[str, int]) -> Callable[[str], Optional[
     Callable[[str], int]
         String to integer function.
     """
+
+    TRANSLATION_TABLE = Accents(None).translation_table
+    PATTERNS = {k.translate(TRANSLATION_TABLE): v for k, v in patterns.items()}
 
     def time2int(time: str) -> int:
         """
@@ -106,78 +110,11 @@ def time2int_fast_factory(patterns: Dict[str, int]) -> Callable[[str], Optional[
         int
             Integer conversion or None if the fast conversion failed
         """
-        m = str2int(time)
-
-        if m is not None:
-            return m
 
         s = time.lower()
-        s = s.translate(Accents(None).translation_table)
+        s = s.translate(TRANSLATION_TABLE)
         s = re.sub("[^a-z]", "", s)
 
-        return patterns.get(s)
+        return PATTERNS.get(s)
 
     return time2int
-
-
-month2int_fast = time2int_fast_factory(months.letter_months_dict_simple)
-day2int_fast = time2int_fast_factory(days.letter_days_dict_simple)
-
-# warning: we reuse the function for the parsing of days,
-# so we cannot parse numbers greater than 31.
-letter_number_dict_simple = dict(
-    {k: v for k, v in days.letter_days_dict_simple.items() if k != "premier"},
-    **{"un": 1, "une": 1},
-)
-number2int_fast = time2int_fast_factory(letter_number_dict_simple)
-
-
-def parse_relative(label, **kwargs: Dict[str, str]):
-    res = dict()
-
-    res["relative_direction"] = relative_patterns[label]["direction"]
-
-    if "unit" in relative_patterns[label]:
-        res["unit"] = relative_patterns[label]["unit"]
-    else:
-        u = kwargs["unit"]
-        res["unit"] = process_unit(u)
-
-    if "value" in relative_patterns[label]:
-        res["value"] = relative_patterns[label]["value"]
-    else:
-        raw_v = kwargs["value"]
-
-        # try to cast or parse the entire string as an int.
-        # this doesn't work if there are several words (e.g. this fails: "environ 1")
-        v = number2int_fast(raw_v)
-
-        if v is None:
-            res["unprocessed_value"] = raw_v
-        else:
-            res["value"] = v
-
-    return res
-
-
-dict_unit = {
-    "an": "year",
-    "annee": "year",
-    "mois": "month",
-    "semaine": "week",
-    "jour": "day",
-    "heure": "hour",
-}
-
-
-def process_unit(s: str):
-    raw_s = s
-
-    s = s.lower()
-    s = s.translate(Accents(None).translation_table)
-
-    # remove the plural mark
-    if s[-1] == "s" and s != ["mois"]:
-        s = s[:-1]
-
-    return dict_unit.get(s, raw_s)

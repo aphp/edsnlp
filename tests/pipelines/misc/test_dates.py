@@ -1,70 +1,13 @@
-from datetime import date, datetime, timedelta
+from datetime import datetime
 
-from dateparser import DateDataParser
 from pytest import fixture, raises
 from spacy.language import Language
 from spacy.tokens import Span
 
 from edsnlp.pipelines.misc.dates import Dates
-from edsnlp.pipelines.misc.dates.dates import apply_groupdict, date_parser
+from edsnlp.pipelines.misc.dates.dates import apply_groupdict
 from edsnlp.pipelines.misc.dates.factory import DEFAULT_CONFIG
 from edsnlp.pipelines.misc.dates.parsing import day2int_fast, month2int_fast
-
-
-@fixture(scope="session")
-def parser():
-    return date_parser
-
-
-def test_parser_absolute(parser: DateDataParser):
-    tests = [
-        ("le 3 juillet 2020", date(2020, 7, 3)),
-        ("le 3/7/2020", date(2020, 7, 3)),
-        ("le 03 07 20", date(2020, 7, 3)),
-        ("03/07/2020", date(2020, 7, 3)),
-        ("03.07.20", date(2020, 7, 3)),
-        ("1er juillet 2021", date(2021, 7, 1)),
-        # ("le premier juillet 2021", date(2021, 7, 1)),
-    ]
-
-    for test, answer in tests:
-        assert parser(test).date() == answer
-
-
-def test_incomplete_dates(parser: DateDataParser):
-    tests = [
-        ("en mars 2010", date(2010, 3, 1)),
-        ("en 2019", date(2019, 1, 1)),
-    ]
-
-    for test, answer in tests:
-        assert parser(test).date() == answer
-
-    no_year_date = parser("le 3 juillet").date()
-    assert no_year_date.month == 7
-    assert no_year_date.day == 3
-
-
-def test_parser_relative(parser: DateDataParser):
-    tests = [
-        ("hier", [timedelta(days=-1)]),
-        (
-            "le mois dernier",
-            [
-                timedelta(days=-31),
-                timedelta(days=-30),
-                timedelta(days=-29),
-                timedelta(days=-28),
-            ],
-        ),
-        ("il y a trois jours", [timedelta(days=-3)]),
-        ("l'année dernière", [timedelta(days=-365), timedelta(days=-366)]),
-        # ("l'an dernier", timedelta(days=-365)),
-    ]
-
-    for test, answers in tests:
-        assert any([parser(test).date() == (date.today() + a) for a in answers])
-
 
 text = (
     "Le patient est venu hier (le 04/09/2021) pour un test PCR.\n"
@@ -78,25 +21,6 @@ def dates(blank_nlp: Language):
         blank_nlp,
         **DEFAULT_CONFIG,
     )
-
-
-def test_dateparser_failure_cases(
-    blank_nlp: Language, dates: Dates, parser: DateDataParser
-):
-    examples = [
-        "le premier juillet 2021",
-        "l'an dernier",
-    ]
-
-    for example in examples:
-        assert parser(example) is None
-
-        doc = blank_nlp(example)
-        doc = dates(doc)
-
-        d = doc.spans["dates"][0]
-
-        assert d._.date == "????-??-??"
 
 
 def test_dates_on_ents_only(blank_nlp: Language):

@@ -1,10 +1,6 @@
-import re
-from datetime import datetime, timedelta
 from itertools import chain
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
-from dateparser import DateDataParser
-from dateparser_data.settings import default_parsers
 from spacy.language import Language
 from spacy.tokens import Doc, Span
 
@@ -13,200 +9,7 @@ from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
 
 from . import patterns
-from .parsing import (
-    day2int,
-    day2int_fast,
-    month2int,
-    month2int_fast,
-    parse_relative,
-    str2int,
-)
-
-
-def td2str(td: timedelta):
-    """
-    Transforms a timedelta object to a string representation.
-
-    Parameters
-    ----------
-    td : timedelta
-        The timedelta object to represent.
-
-    Returns
-    -------
-    str
-        Usable representation for the timedelta object.
-    """
-    seconds = td.total_seconds()
-    days = int(seconds / 3600 / 24)
-    return f"TD{days:+d}"
-
-
-def date_getter(date: Span) -> str:
-    """
-    Getter for dates. Uses the information from `note_datetime`.
-
-    Parameters
-    ----------
-    date : Span
-        Date detected by the pipeline.
-
-    Returns
-    -------
-    str
-        Normalized date.
-    """
-
-    d = date._.parsed_date
-
-    if d is None:
-        # dateparser could not interpret the date.
-        return "????-??-??"
-
-    delta = date._.parsed_delta
-    note_datetime = date.doc._.note_datetime
-
-    if date.label_ in {"absolute", "full_date", "no_day"}:
-        normalized = d.strftime("%Y-%m-%d")
-    elif date.label_ == "no_year":
-        if note_datetime:
-            year = note_datetime.strftime("%Y")
-        else:
-            year = "????"
-        normalized = d.strftime(f"{year}-%m-%d")
-    else:
-        if note_datetime:
-            # We need to adjust the timedelta, since most dates are set at 00h00.
-            # The slightest difference leads to a day difference.
-            d = note_datetime + delta
-            normalized = d.strftime("%Y-%m-%d")
-        else:
-            normalized = td2str(d - datetime.now())
-
-    return normalized
-
-
-parsers = [parser for parser in default_parsers if parser != "relative-time"]
-parser1 = DateDataParser(
-    languages=["fr"],
-    settings={
-        "PREFER_DAY_OF_MONTH": "first",
-        "PREFER_DATES_FROM": "past",
-        "PARSERS": parsers,
-        "RETURN_AS_TIMEZONE_AWARE": False,
-    },
-)
-
-parser2 = DateDataParser(
-    languages=["fr"],
-    settings={
-        "PREFER_DAY_OF_MONTH": "first",
-        "PREFER_DATES_FROM": "past",
-        "PARSERS": ["relative-time"],
-        "RETURN_AS_TIMEZONE_AWARE": False,
-    },
-)
-
-
-def date_parser(text_date: str) -> datetime:
-    """
-    Function to parse dates. It first tries all available parsers
-    ('timestamp', 'custom-formats', 'absolute-time') but 'relative-time'.
-    If no date is found, retries with 'relative-time'.
-
-    When just the year is identified, it returns a datetime object with
-    month and day equal to 1.
-
-
-    Parameters
-    ----------
-    text_date : str
-
-    Returns
-    -------
-    datetime
-    """
-
-    parsed_date = parser1.get_date_data(text_date)
-    if parsed_date.date_obj:
-        if parsed_date.period == "year":
-            return datetime(year=parsed_date.date_obj.year, month=1, day=1)
-        else:
-            return parsed_date.date_obj
-    else:
-        parsed_date2 = parser2.get_date_data(text_date)
-        return parsed_date2.date_obj
-
-
-def apply_groupdict(dates: Iterable[Tuple[Span, Dict[str, str]]]) -> List[Span]:
-    res = []
-    for span, groupdict in dates:
-        if span.label_[:9] == "relative_":
-            span._.groupdict = parse_relative(span.label_[9:], **groupdict)
-        else:
-            span._.groupdict = parse_groupdict(**groupdict)
-        res.append(span)
-    return res
-
-
-def parse_groupdict(
-    day: str = None,
-    month: str = None,
-    year: str = None,
-    hour: str = None,
-    minute: str = None,
-    second: str = None,
-    **kwargs: Dict[str, str],
-) -> Dict[str, int]:
-    """
-    Parse date groupdict.
-
-    Parameters
-    ----------
-    day : str, optional
-        String representation of the day, by default None
-    month : str, optional
-        String representation of the month, by default None
-    year : str, optional
-        String representation of the year, by default None
-    hour : str, optional
-        String representation of the hour, by default None
-    minute : str, optional
-        String representation of the minute, by default None
-    second : str, optional
-        String representation of the minute, by default None
-
-    Returns
-    -------
-    Dict[str, int]
-        Parsed groupdict.
-    """
-
-    result = dict()
-
-    if day is not None:
-        fast = day2int_fast(day)
-        result["day"] = fast if fast is not None else day2int(day)
-
-    if month is not None:
-        fast = month2int_fast(month)
-        result["month"] = fast if fast is not None else month2int(month)
-
-    if year is not None:
-        result["year"] = str2int(year)
-
-    if hour is not None:
-        result["hour"] = str2int(hour)
-
-    if minute is not None:
-        result["minute"] = str2int(minute)
-
-    if second is not None:
-        result["second"] = str2int(second)
-
-    result.update(**kwargs)
-
-    return result
+from .parser.models import AbsoluteDate, RelativeDate
 
 
 class Dates(BaseComponent):
@@ -311,11 +114,8 @@ class Dates(BaseComponent):
         self.regex_matcher.add("no_day", no_day)
         self.regex_matcher.add("year_only", year_only)
         self.regex_matcher.add("current", current)
+        self.regex_matcher.add("relative", relative)
 
-        for name, pattern_dict in relative.items():
-            self.regex_matcher.add("relative_" + name, [pattern_dict["pattern"]])
-
-        self.parser = date_parser
         self.set_extensions()
 
     @staticmethod
@@ -331,10 +131,7 @@ class Dates(BaseComponent):
             Span.set_extension("parsed_delta", default=None)
 
         if not Span.has_extension("date"):
-            Span.set_extension("date", getter=date_getter)
-
-        if not Span.has_extension("groupdict"):
-            Span.set_extension("groupdict", default=None)
+            Span.set_extension("date", default=None)
 
     def process(self, doc: Doc) -> List[Span]:
         """
@@ -380,47 +177,36 @@ class Dates(BaseComponent):
                 return_groupdict=True,
             )
 
-        dates = apply_groupdict(dates)
         dates = filter_spans(dates)
-        dates = [date for date in dates if date.label_ != "false_positive"]
+        dates = [date for date in dates if date[0].label_ != "false_positive"]
 
         return dates
 
-    def get_date(self, date: Span) -> Optional[datetime]:
+    def parse(self, dates: List[Tuple[Span, Dict[str, str]]]) -> List[Span]:
         """
-        Get normalised date using `dateparser`.
+        Parse dates using the groupdict returned by the matcher.
 
         Parameters
         ----------
-        date : Span
-            Date span.
+        dates : List[Tuple[Span, Dict[str, str]]]
+            List of tuples containing the spans and groupdict
+            returned by the matcher.
 
         Returns
         -------
-        Optional[datetime]
-            If a date is recognised, returns a Python `datetime` object.
-            Returns `None` otherwise.
+        List[Span]
+            List of processed spans, with the date parsed.
         """
 
-        text_date = date.text
+        for span, groupdict in dates:
+            if span.label_.startswith("relative"):
+                groupdict = RelativeDate.parse_obj(groupdict)
+            else:
+                groupdict = AbsoluteDate.parse_obj(groupdict)
 
-        if date.label_ == "no_day":
-            text_date = "01/" + re.sub(r"[\.\/\s]", "/", text_date)
+            span._.date = groupdict
 
-        elif date.label_ == "full_date":
-            text_date = re.sub(r"[\.\/\s]", "-", text_date)
-
-            try:
-                return datetime.strptime(text_date, "%Y-%m-%d")
-            except ValueError:
-                try:
-                    return datetime.strptime(text_date, "%Y-%d-%m")
-                except ValueError:
-                    return None
-
-        # text_date = re.sub(r"\.", "-", text_date)
-
-        return self.parser(text_date)
+        return [span for span, _ in dates]
 
     def __call__(self, doc: Doc) -> Doc:
         """
@@ -428,24 +214,16 @@ class Dates(BaseComponent):
 
         Parameters
         ----------
-        doc:
+        doc : Doc
             spaCy Doc object
 
         Returns
         -------
-        doc:
+        doc : Doc
             spaCy Doc object, annotated for dates
         """
         dates = self.process(doc)
-
-        for date in dates:
-            d = self.get_date(date)
-
-            if d is None:
-                date._.parsed_date = None
-            else:
-                date._.parsed_date = d
-                date._.parsed_delta = d - datetime.now() + timedelta(seconds=10)
+        dates = self.parse(dates)
 
         doc.spans["dates"] = dates
 

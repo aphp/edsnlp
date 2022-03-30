@@ -1,11 +1,11 @@
-import re
 from bisect import bisect_left
 from functools import lru_cache
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import regex
 from loguru import logger
 from spacy.tokens import Doc, Span, Token
+
+from edsnlp.utils.regex import compile_regex, re
 
 from .utils import Patterns, alignment, get_text, offset
 
@@ -16,28 +16,6 @@ def get_first_included(doclike: Union[Doc, Span]) -> Token:
         if not token._.excluded:
             return token
     raise IndexError("The provided Span does not include any token")
-
-
-def compile_regex(reg):
-    """
-    This function tries to compile `reg`  using the `re` module, and
-    fallbacks to the `regex` module that is more permissive.
-
-    Parameters
-    ----------
-    reg: str
-
-    Returns
-    -------
-    Union[re.Pattern, regex.Pattern]
-    """
-    try:
-        return re.compile(reg)
-    except re.error:
-        try:
-            return regex.compile(reg)
-        except regex.error:
-            raise Exception("Could not compile: {}".format(repr(reg)))
 
 
 def create_span(

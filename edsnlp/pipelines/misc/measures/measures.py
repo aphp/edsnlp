@@ -170,7 +170,9 @@ class SimpleMeasure(Measure):
 
     @classmethod
     @abc.abstractmethod
-    def parse(self, int_part: str, dec_part: str, unit: str, infix: bool) -> "SimpleMeasure":
+    def parse(
+        self, int_part: str, dec_part: str, unit: str, infix: bool
+    ) -> "SimpleMeasure":
         """
         Class method to create an instance from the match groups
 

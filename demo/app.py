@@ -14,6 +14,7 @@ Le père du patient n'est pas asthmatique.
 HISTOIRE DE LA MALADIE
 Le patient dit avoir de la toux depuis trois jours. \
 Elle a empiré jusqu'à nécessiter un passage aux urgences.
+A noter deux petits kystes bénins de 1 et 2cm biopsiés en 2005.
 
 Priorité: 2 (établie par l'IAO à l'entrée)
 
@@ -63,6 +64,7 @@ doc.ents
 def load_model(
     covid: bool,
     dates: bool,
+    measures: bool,
     charlson: bool,
     sofa: bool,
     priority: bool,
@@ -83,6 +85,10 @@ def load_model(
     if dates:
         nlp.add_pipe("eds.dates")
         pipes.append('nlp.add_pipe("eds.dates")')
+
+    if measures:
+        nlp.add_pipe("eds.measures")
+        pipes.append('nlp.add_pipe("eds.measures")')
 
     if charlson:
         nlp.add_pipe("eds.charlson")
@@ -159,6 +165,7 @@ st.sidebar.markdown("The RegEx you defined above is detected under the `custom` 
 st.sidebar.subheader("Pipeline Components")
 covid = st.sidebar.checkbox("COVID", value=True)
 dates = st.sidebar.checkbox("Dates", value=True)
+measures = st.sidebar.checkbox("Measures", value=True)
 priority = st.sidebar.checkbox("Emergency Priority Score", value=True)
 charlson = st.sidebar.checkbox("Charlson Score", value=True)
 sofa = st.sidebar.checkbox("SOFA Score", value=True)
@@ -173,6 +180,7 @@ model_load_state = st.info("Loading model...")
 nlp, pipes, regex = load_model(
     covid=covid,
     dates=dates,
+    measures=measures,
     charlson=charlson,
     sofa=sofa,
     priority=priority,
@@ -207,14 +215,26 @@ options = {
     "colors": colors,
 }
 
-dates = []
+ents = list(doc.ents)
 
 for date in doc.spans.get("dates", []):
     span = Span(doc, date.start, date.end, label="date")
-    span._.score_value = date._.date
-    dates.append(span)
+    ents.append(span)
 
-doc.ents = list(doc.ents) + dates
+for measure in doc.spans.get("measures", []):
+    span = Span(doc, measure.start, measure.end, label=measure.label_)
+    ents.append(span)
+
+for ent in ents:
+    ent._.value = ent._.value or ent._.date or ent._.score_value
+
+res = ""
+for ent in ents:
+    res += "\n - " + str(ent) + " | " + str(ent._.value)
+st.markdown(res)
+
+
+doc.ents = ents
 
 html = displacy.render(doc, style="ent", options=options)
 html = html.replace("line-height: 2.5;", "line-height: 2.25;")
@@ -227,7 +247,7 @@ st.write(html, unsafe_allow_html=True)
 data = []
 for ent in doc.ents:
 
-    if ent.label_ == "date":
+    if ent.label_ == "date" or "measure" in ent.label_:
         d = dict(
             start=ent.start_char,
             end=ent.end_char,
@@ -252,7 +272,7 @@ for ent in doc.ents:
         )
 
     try:
-        d["normalized_value"] = str(ent._.score_value)
+        d["normalized_value"] = str(ent._.value)
     except TypeError:
         d["normalized_value"] = ""
 

@@ -43,6 +43,7 @@ factories = [
     "reason = edsnlp.components:reason",
     "sections = edsnlp.components:sections",
     "context = edsnlp.components:context",
+    "measures = edsnlp.components:measures",
 ]
 
 setup(

@@ -136,21 +136,25 @@ async def process(
 
 Our simple API is ready to launch! We'll just need to install FastAPI along with a ASGI server to run it. This can be done in one go:
 
-<!-- termynal -->
+<div class="termy">
 
-```
-$ pip install fastapi[uvicorn]
+```console
+$ pip install 'fastapi[uvicorn]'
 ---> 100%
-Successfully installed fastapi
+color:green Successfully installed fastapi
 ```
+
+</div>
 
 Launching the API is trivial:
 
-<!-- termynal -->
+<div class="termy">
 
-```
+```console
 $ uvicorn app:app --reload
 ```
+
+</div>
 
 Go to [`localhost:8000/docs`](http://localhost:8000/docs) to admire the automatically generated documentation!
 

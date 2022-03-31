@@ -10,13 +10,15 @@ If it's your first time with spaCy, we recommend you familiarise yourself with s
 
 You can install EDS-NLP via `pip`:
 
-<!-- termynal -->
+<div class="termy">
 
-```
+```console
 $ pip install edsnlp
 ---> 100%
-Installed
+color:green Successfully installed!
 ```
+
+</div>
 
 We recommend pinning the library version in your projects, or use a strict package manager like [Poetry](https://python-poetry.org/).
 
@@ -90,6 +92,7 @@ This example is complete, it should run as-is. Check out the [spaCy 101 page](tu
     | Pipeline               | Description                                     |
     | ---------------------- | ----------------------------------------------- |
     | `eds.dates`            | Date extraction and normalisation               |
+    | `eds.measures`         | Measure extraction and normalisation            |
     | `eds.sections`         | Section detection                               |
     | `eds.reason`           | Rule-based hospitalisation reason detection     |
 

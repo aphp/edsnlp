@@ -1,10 +1,11 @@
-import re
 from bisect import bisect_left
 from functools import lru_cache
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from loguru import logger
 from spacy.tokens import Doc, Span, Token
+
+from edsnlp.utils.regex import compile_regex, re
 
 from .utils import Patterns, alignment, get_text, offset
 
@@ -208,7 +209,7 @@ class RegexMatcher(object):
         if alignment_mode is None:
             alignment_mode = self.alignment_mode
 
-        patterns = [re.compile(pattern) for pattern in patterns]
+        patterns = [compile_regex(pattern) for pattern in patterns]
 
         self.regex.append((key, patterns, attr, ignore_excluded, alignment_mode))
 

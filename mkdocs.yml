@@ -68,6 +68,7 @@ nav:
     - Miscellaneous:
       - pipelines/misc/index.md
       - pipelines/misc/dates.md
+      - pipelines/misc/measures.md
       - pipelines/misc/consultation-dates.md
       - pipelines/misc/sections.md
       - pipelines/misc/reason.md
@@ -90,14 +91,15 @@ extra:
 
 extra_css:
   - assets/stylesheets/extra.css
+  - assets/termynal/termynal.css
 
 extra_javascript:
   - https://cdn.jsdelivr.net/npm/vega@5
   - https://cdn.jsdelivr.net/npm/vega-lite@5
   - https://cdn.jsdelivr.net/npm/vega-embed@6
+  - assets/termynal/termynal.js
 
 plugins:
-  - termynal
   - search
   - bibtex:
       bib_file: "docs/references.bib"
@@ -115,6 +117,7 @@ plugins:
             heading_level: 3
             members_order: source
             show_root_toc_entry: false
+            show_if_no_docstring: yes
       watch:
         - "edsnlp"
   - literate-nav:

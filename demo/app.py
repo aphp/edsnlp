@@ -217,21 +217,19 @@ options = {
 
 ents = list(doc.ents)
 
+for ent in ents:
+    if ent._.score_value:
+        ent._.value = ent._.score_value
+
 for date in doc.spans.get("dates", []):
     span = Span(doc, date.start, date.end, label="date")
+    span._.value = span._.date
     ents.append(span)
 
 for measure in doc.spans.get("measures", []):
     span = Span(doc, measure.start, measure.end, label=measure.label_)
+    span._.value = span._.value
     ents.append(span)
-
-for ent in ents:
-    ent._.value = ent._.value or ent._.date or ent._.score_value
-
-res = ""
-for ent in ents:
-    res += "\n - " + str(ent) + " | " + str(ent._.value)
-st.markdown(res)
 
 
 doc.ents = ents

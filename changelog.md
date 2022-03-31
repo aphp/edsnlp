@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.4.4 (pending)
+## v0.4.4
 
 - Add `measures` pipeline
 - Cap Jinja2 version to fix mkdocs

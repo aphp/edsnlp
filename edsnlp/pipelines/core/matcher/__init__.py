@@ -1,1 +1,1 @@
-from .matcher import GenericMatcher
+from .matcher import GenericMatcher, FlashTextComponent

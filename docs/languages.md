@@ -1,8 +1,8 @@
 # Languages
 
 
-In addition to the standard spacy FrenchLanguage (`fr`), EDS-NLP offers a new language better fit
-for French clinical documents: EDSLanguage (`eds`). Additionally, the EDSLanguage document creation should be around 5-6 times faster than
+In addition to the standard spaCy `FrenchLanguage` (`fr`), EDS-NLP offers a new language better fit
+for French clinical documents: `EDSLanguage` (`eds`). Additionally, the `EDSLanguage` document creation should be around 5-6 times faster than
 the `fr` tokenizer. The main differences lie in the tokenization process.
 
 A comparison of the two tokenization methods is demonstrated below:

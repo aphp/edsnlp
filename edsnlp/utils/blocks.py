@@ -1,11 +1,13 @@
 import inspect
 import re
-import textwrap
 from pathlib import Path
 from typing import List
 
 BLOCK_PATTERN = re.compile(
-    r"((?P<skip><!-- no-check -->)\s+)?```(?P<title>.*?)\n(?P<code>.+?)```",
+    (
+        r"((?P<skip><!-- no-check -->)\s+)?(?P<indent> *)"
+        r"```(?P<title>.*?)\n(?P<code>.+?)```"
+    ),
     flags=re.DOTALL,
 )
 
@@ -59,24 +61,17 @@ def check_outputs(block):
     return "\n".join(code)
 
 
-def check_codeblock(block, lang="python"):
-    """
-    Cleans the found codeblock and checks if the proglang is correct.
+def dedent(code: str, indent: int):
 
-    Returns an empty string if the codeblock is deemed invalid.
+    if not indent:
+        return code
 
-    Arguments:
-        block: the code block to analyse
-        lang: if not None, the language that is assigned to the codeblock
-    """
-    first_line = block.split("\n")[0]
+    lines = []
 
-    if lang:
-        if not first_line[3:].startswith(lang):
-            return ""
-    code = "\n".join(block.split("\n")[1:])
-    code = check_outputs(code)
-    return code
+    for line in code.split("\n"):
+        lines.append(line[indent:])
+
+    return "\n".join(lines)
 
 
 def grab_code_blocks(docstring, lang="python"):
@@ -87,7 +82,6 @@ def grab_code_blocks(docstring, lang="python"):
         docstring: the docstring to analyse
         lang: if not None, the language that is assigned to the codeblock
     """
-    docstring = textwrap.dedent(docstring)
     codeblocks = []
 
     for match in BLOCK_PATTERN.finditer(docstring):
@@ -97,7 +91,8 @@ def grab_code_blocks(docstring, lang="python"):
             continue
 
         if lang in d["title"]:
-            code = check_outputs(d["code"])
+            code = dedent(d["code"], len(d["indent"]))
+            code = check_outputs(code)
             codeblocks.append(code)
 
     return codeblocks
@@ -106,7 +101,7 @@ def grab_code_blocks(docstring, lang="python"):
 def printer(block: str):
     lines = []
     for i, line in enumerate(block.split("\n")):
-        lines.append(f"{i + 1:02}  {line}")
+        lines.append(f"{i + 1:03}  {line}")
 
     print("\n".join(lines))
 

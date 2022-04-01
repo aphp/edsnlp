@@ -12,7 +12,7 @@ The following example shows a simple usage.
 
 ```python
 import spacy
-from edsnlp.pipelines.endlines.endlinesmodel import EndLinesModel
+from edsnlp.pipelines.core.endlines.endlinesmodel import EndLinesModel
 import pandas as pd
 from spacy import displacy
 

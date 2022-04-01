@@ -74,6 +74,7 @@ class Sections(GenericMatcher):
 
         if sections is None:
             sections = patterns.sections
+        sections = dict(sections)
 
         self.add_patterns = add_patterns
         if add_patterns:

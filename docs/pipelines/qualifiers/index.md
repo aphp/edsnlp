@@ -71,6 +71,8 @@ Albeit simple, this algorithm can achieve very good performance depending on the
 
     You may use EDS-NLP's:
 
+    <!-- no-check -->
+
     ```python
     nlp.add_pipe("eds.sentences")
     ```

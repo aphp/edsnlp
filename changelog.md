@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.5 (pending)
+
+- Add a new `eds` language to better fit French clinical documents and improve speed.
+
 ## v0.4.4
 
 - Add `measures` pipeline

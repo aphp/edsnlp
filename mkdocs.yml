@@ -76,6 +76,7 @@ nav:
       - pipelines/ner/index.md
       - pipelines/ner/score.md
       - pipelines/ner/covid.md
+  - languages.md
   - Connectors:
     - utilities/connectors/index.md
     - utilities/connectors/brat.md

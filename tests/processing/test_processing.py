@@ -60,9 +60,9 @@ def note(module: DataFrameModules):
 
 
 @pytest.fixture
-def model():
+def model(lang):
     # Creates the spaCy instance
-    nlp = spacy.blank("fr")
+    nlp = spacy.blank(lang)
 
     # Normalisation of accents, case and other special characters
     nlp.add_pipe("eds.normalizer")

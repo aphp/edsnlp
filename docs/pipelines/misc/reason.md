@@ -41,7 +41,7 @@ doc = nlp(text)
 
 reason = doc.spans["reasons"][0]
 reason
-# Out: 'hospitalisé du 11/08/2019 au 17/08/2019 pour attaque d'asthme.'
+# Out: hospitalisé du 11/08/2019 au 17/08/2019 pour attaque d'asthme.
 
 reason._.is_reason
 # Out: True

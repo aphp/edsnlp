@@ -7,13 +7,13 @@ the `fr` tokenizer. The main differences lie in the tokenization process.
 
 A comparison of the two tokenization methods is demonstrated below:
 
-| Example               | FrenchLanguage             | EDSLanguage                       |
-| --------------------- | -------------------------- | --------------------------------- |
-| `ACR 5`               | [`ACR5`]                   | [`ACR`, `5`]                      |
-| `26.5`                | [`26.5`]                   | [`26`, `.`, `5`]                  |
-| `26.5/`               | [`26.5/`]                  | [`26`, `.`, `5`, `/`]             |
-| `\n    \n CONCLUSION` | [`\n    \n`, `CONCLUSION]` | [`\n`, `   `, `\n`, `CONCLUSION`] |
-| `l'artère`            | [`l'`, `artère`]           | [`l'`, `artère`] (same)           |
+| Example               | FrenchLanguage             | EDSLanguage                |
+| --------------------- | -------------------------- | -------------------------- |
+| `ACR 5`               | [`ACR5`]                   | [`ACR`, `5`]               |
+| `26.5`                | [`26.5`]                   | [`26`, `.`, `5`]           |
+| `26.5/`               | [`26.5/`]                  | [`26`, `.`, `5`, `/`]      |
+| `\n \n CONCLUSION`    | [`\n \n`, `CONCLUSION]`    | [`\n`, `\n`, `CONCLUSION`] |
+| `l'artère`            | [`l'`, `artère`]           | [`l'`, `artère`] (same)    |
 
 To instantiate one of the two languages, you can call the `spacy.blank` method.
 

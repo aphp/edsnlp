@@ -66,15 +66,17 @@ endlines = EndLinesModel(nlp=nlp)  # (1)
 df = endlines.fit_and_predict(corpus)  # (2)
 
 # Save model
-PATH = "/path_to_model"
+PATH = "/tmp/path_to_model"
 endlines.save(PATH)
 ```
 
-1. Initialize the [`EndLinesModel`][edsnlp.pipelines.core.endlines.endlinesmodel.EndLinesModel]
+1. Initialize the [`EndLinesModel`][edsnlp.pipelines.core.endlines.endlinesmodel.endlinesmodel]
    object and then fit (and predict) in the training corpus.
 2. The corpus should be an iterable of spacy documents.
 
 ## Use a trained model for inference
+
+<!-- no-check -->
 
 ```python
 import spacy

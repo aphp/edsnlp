@@ -47,7 +47,7 @@ endlines = EndLinesModel(nlp=nlp)
 df = endlines.fit_and_predict(docs)
 df.head()
 
-PATH = "path_to_save"
+PATH = "/tmp/path_to_save"
 endlines.save(PATH)
 ```
 
@@ -57,7 +57,8 @@ endlines.save(PATH)
 import spacy
 
 nlp = spacy.blank("fr")
-PATH = "path_to_save"
+
+PATH = "/tmp/path_to_save"
 nlp.add_pipe("eds.endlines", config=dict(model_path=PATH))
 
 docs = list(nlp.pipe(texts))

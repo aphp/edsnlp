@@ -1,4 +1,9 @@
-import inspect
+"""
+Utility that extracts code blocs and runs them.
+
+Largely inspired by https://github.com/koaning/mktestdocs
+"""
+
 import re
 from pathlib import Path
 from typing import List
@@ -10,41 +15,44 @@ BLOCK_PATTERN = re.compile(
     ),
     flags=re.DOTALL,
 )
+OUTPUT_PATTERN = "# Out: "
 
 
-def get_codeblock_members(*classes):
+def check_outputs(code: str) -> str:
     """
-    Grabs the docstrings of any methods of any classes that are passed in.
+    Looks for output patterns, and modifies the bloc:
+
+    1. The preceding line becomes `#!python v = expr`
+    2. The output line becomes an `#!python assert` statement
+
+    Parameters
+    ----------
+    code : str
+        Code block
+
+    Returns
+    -------
+    str
+        Modified code bloc with assert statements
     """
-    results = []
-    for cl in classes:
-        if cl.__doc__:
-            results.append(cl)
-        for name, member in inspect.getmembers(cl):
-            if member.__doc__:
-                results.append(member)
-    return [m for m in results if len(grab_code_blocks(m.__doc__)) > 0]
 
-
-def check_outputs(block):
-
-    lines: List[str] = block.split("\n")
+    lines: List[str] = code.split("\n")
     code = []
 
     skip = False
 
     if len(lines) < 2:
-        return block
+        return code
 
     for expression, output in zip(lines[:-1], lines[1:]):
         if skip:
             skip = not skip
             continue
 
-        if output.startswith("# Out: "):
+        if output.startswith(OUTPUT_PATTERN):
             expression = f"v = {expression}"
 
-            output = output[len("# Out: ") :].replace('"', r"\"")
+            output = output[len(OUTPUT_PATTERN) :].replace('"', r"\"")
             output = f'assert repr(v) == "{output}" or str(v) == "{output}"'
 
             code.append(expression)
@@ -61,7 +69,22 @@ def check_outputs(block):
     return "\n".join(code)
 
 
-def dedent(code: str, indent: int):
+def remove_indentation(code: str, indent: int) -> str:
+    """
+    Remove indentation from a code bloc.
+
+    Parameters
+    ----------
+    code : str
+        Code bloc
+    indent : int
+        Level of indentation
+
+    Returns
+    -------
+    str
+        Modified code bloc
+    """
 
     if not indent:
         return code
@@ -74,13 +97,21 @@ def dedent(code: str, indent: int):
     return "\n".join(lines)
 
 
-def grab_code_blocks(docstring, lang="python"):
+def grab_code_blocks(docstring: str, lang="python") -> List[str]:
     """
     Given a docstring, grab all the markdown codeblocks found in docstring.
 
-    Arguments:
-        docstring: the docstring to analyse
-        lang: if not None, the language that is assigned to the codeblock
+    Parameters
+    ----------
+    docstring : str
+        Full text.
+    lang : str, optional
+        Language to execute, by default "python"
+
+    Returns
+    -------
+    List[str]
+        Extracted code blocks
     """
     codeblocks = []
 
@@ -91,16 +122,24 @@ def grab_code_blocks(docstring, lang="python"):
             continue
 
         if lang in d["title"]:
-            code = dedent(d["code"], len(d["indent"]))
+            code = remove_indentation(d["code"], len(d["indent"]))
             code = check_outputs(code)
             codeblocks.append(code)
 
     return codeblocks
 
 
-def printer(block: str):
+def printer(code: str) -> None:
+    """
+    Prints a code bloc with lines for easier debugging.
+
+    Parameters
+    ----------
+    code : str
+        Code bloc.
+    """
     lines = []
-    for i, line in enumerate(block.split("\n")):
+    for i, line in enumerate(code.split("\n")):
         lines.append(f"{i + 1:03}  {line}")
 
     print("\n".join(lines))
@@ -140,14 +179,17 @@ def check_raw_file_full(raw, lang="python"):
         raise
 
 
-def check_md_file(path, memory=False):
+def check_md_file(path: Path, memory: bool = False) -> None:
     """
-    Given a markdown file, parse the contents for python code blocks
-    and check that each independant block does not cause an error.
+    Given a markdown file, parse the contents for Python code blocs
+    and check that each independant bloc does not cause an error.
 
-    Arguments:
-        path: path to markdown file
-        memory: wheather or not previous code-blocks should be remembered
+    Parameters
+    ----------
+    path : Path
+        Path to the markdown file to execute.
+    memory : bool, optional
+        Whether to keep results from one bloc to the next, by default `#!python False`
     """
     text = Path(path).read_text()
     if memory:

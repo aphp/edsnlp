@@ -54,7 +54,7 @@ def test_normalization_accents(nlp_factory, text):
 
     norm = get_text(doc, attr="NORM", ignore_excluded=True)
 
-    assert norm == "L`aieul ʺnˊest pas malade”, ecrit-il. Fievre NBNbWbWbNbWbNB jaune."
+    assert norm == "L'aieul ʺnˊest pas malade”, ecrit-il. Fievre NBNbWbWbNbWbNB jaune."
 
 
 def test_normalization_quotes(nlp_factory, text):
@@ -76,7 +76,7 @@ def test_normalization_lowercase(nlp_factory, text):
 
     norm = get_text(doc, attr="NORM", ignore_excluded=True)
 
-    assert norm.startswith("l`aïeul")
+    assert norm.startswith("l'aïeul")
 
 
 def test_normalization_pollution(nlp_factory, text):
@@ -86,4 +86,4 @@ def test_normalization_pollution(nlp_factory, text):
 
     norm = get_text(doc, attr="NORM", ignore_excluded=True)
 
-    assert norm == "L`aïeul ʺnˊest pas malade”, écrit-il. Fièvre jaune."
+    assert norm == "L'aïeul ʺnˊest pas malade”, écrit-il. Fièvre jaune."

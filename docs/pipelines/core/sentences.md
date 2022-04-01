@@ -10,6 +10,8 @@ Moreover, the `eds.sentences` pipeline can use the output of the `eds.normalizer
 
 === "EDS-NLP"
 
+    <!-- no-check -->
+
     ```python
     import spacy
 
@@ -31,6 +33,8 @@ Moreover, the `eds.sentences` pipeline can use the output of the `eds.normalizer
     ```
 
 === "spaCy sentencizer"
+
+    <!-- no-check -->
 
     ```python
     import spacy

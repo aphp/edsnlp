@@ -10,8 +10,8 @@ Antécédents médicaux :
 Premier épisode d'asthme en mai 2018."""
 
 
-def test_reason():
-    nlp = spacy.blank("fr")
+def test_reason(lang):
+    nlp = spacy.blank(lang)
     # Extraction d'entités nommées
     nlp.add_pipe(
         "matcher",

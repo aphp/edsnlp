@@ -39,7 +39,7 @@ CODE = """
 import spacy
 
 # Declare the pipeline
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 
 # General-purpose components
 nlp.add_pipe("eds.normalizer")
@@ -76,7 +76,7 @@ def load_model(
     pipes = []
 
     # Declare the pipeline
-    nlp = spacy.blank("fr")
+    nlp = spacy.blank("eds")
     nlp.add_pipe("eds.normalizer")
     nlp.add_pipe("eds.sentences")
 

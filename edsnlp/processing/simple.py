@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 from .helpers import check_spacy_version_for_context
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 
 ExtensionSchema = Union[
     str,

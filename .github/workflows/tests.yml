@@ -9,60 +9,61 @@ jobs:
   Linting:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
-    - name: Set PY variable
-      run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
-    - uses: actions/cache@v2
-      with:
-        path: ~/.cache/pre-commit
-        key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
-    - name: Install pre-commit
-      run: |
-        pip install pre-commit
-        pre-commit install
-    - name: Run pre-commit
-      run: SKIP=no-commit-to-branch pre-commit run --all-files
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - name: Set PY variable
+        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Install pre-commit
+        run: |
+          pip install pre-commit
+          pre-commit install
+      - name: Run pre-commit
+        run: SKIP=no-commit-to-branch pre-commit run --all-files
 
   Pytest:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.7', '3.8', '3.9']
+        python-version: ["3.7", "3.8", "3.9"]
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Java
-      uses: actions/setup-java@v2
-      with:
-        distribution: 'temurin' # See 'Supported distributions' for available options
-        java-version: '8'
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-        architecture: x64
-    - name: Install dependencies
-      run: |
-        pip install --upgrade pip
-        scripts/install.sh
-    - name: Test with Pytest on Python ${{ matrix.python-version }}
-      run: python -m pytest --cov edsnlp --cov-report xml --ignore tests/test_docs.py
-      if: matrix.python-version != '3.9'
+      - uses: actions/checkout@v2
+      - name: Set up Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: "temurin" # See 'Supported distributions' for available options
+          java-version: "8"
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          scripts/install.sh
 
-    - name: Test with Pytest on Python ${{ matrix.python-version }}
-      run: python -m pytest --cov edsnlp --cov-report xml
-      if: matrix.python-version == '3.9'
+      - name: Test with Pytest on Python ${{ matrix.python-version }}
+        run: python -m pytest --cov edsnlp --cov-report xml --ignore tests/test_docs.py
+        if: matrix.python-version != '3.9'
 
-    - name: Upload coverage
-      uses: codecov/codecov-action@v2
-      if: matrix.python-version == '3.9'
+      - name: Test with Pytest on Python ${{ matrix.python-version }}
+        run: python -m pytest --cov edsnlp --cov-report xml
+        if: matrix.python-version == '3.9'
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v2
+        if: matrix.python-version == '3.9'
 
   Installation:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
-    - name: Install library
-      run: |
-        pip install .
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - name: Install library
+        run: |
+          pip install .

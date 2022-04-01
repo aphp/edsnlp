@@ -33,7 +33,6 @@ Clinical notes contain many different types of dates. To name a few examples:
 | Partial  | Date missing the day, month or year | `le 3 janvier/on January 3rd`, `en 2021/in 2021` |
 | Relative | Relative dates                      | `hier/yesterday`, `le mois dernier/last month`   |
 
-
 !!! warning
 
     We show an English example just to explain the issue.
@@ -122,7 +121,7 @@ At this point, the document is ready to be post-processed: its `ents` and `#!pyt
 ```python
 # ↑ Omitted code above ↑
 
-docs.ents
+doc.ents
 # Out: (admis, pris en charge)
 
 doc.spans["dates"]
@@ -162,6 +161,8 @@ def get_event_date(ent: Span) -> Optional[Span]:
 2. Sort the dates, and keep the first item.
 
 We can apply this simple function:
+
+<!-- no-check -->
 
 ```python
 import spacy

@@ -1,4 +1,3 @@
-import spacy
 from pytest import fixture, raises
 from spacy.language import Language
 
@@ -10,13 +9,6 @@ text = (
     "Une autre tumeur plus petite fait 2 par 1mm.\n"
     "Les trois éléments font 8, 13 et 15dm."
 )
-
-
-@fixture
-def blank_nlp():
-    model = spacy.blank("fr")
-    model.add_pipe("eds.sentences")
-    return model
 
 
 @fixture

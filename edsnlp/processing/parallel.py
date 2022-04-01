@@ -8,7 +8,7 @@ from spacy import Language
 from .helpers import check_spacy_version_for_context
 from .simple import ExtensionSchema, _flatten, _pipe_generator
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 
 
 def _define_nlp(new_nlp: Language):

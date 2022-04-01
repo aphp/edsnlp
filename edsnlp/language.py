@@ -47,8 +47,8 @@ class EDSTokenizer(DummyTokenizer):
         """
         Tokenizer class for French clinical documents.
         It better handles tokenization around:
-        - numbers (ACR5 -> [ACR, 5] instead of [ACR5]
-        - newlines (\n \n  \n) -> [\n, \n, \n] instead of [\n \n  \n]
+        - numbers: "ACR5" -> ["ACR", "5"] instead of ["ACR5"]
+        - newlines: "\n \n \n" -> ["\n", "\n", "\n"] instead of ["\n \n \n"]
         and should be around 5-6 times faster than its standard French counterpart.
 
         Parameters
@@ -58,7 +58,7 @@ class EDSTokenizer(DummyTokenizer):
         """
         self.vocab = vocab
         punct = "[:punct:]" + "\"'ˊ＂〃ײ᳓″״‶˶ʺ“”˝"
-        num_like = r"[\d]+"  # (?:[:.,]\d+)*"
+        num_like = r"[\d]+"
         default = rf"[^\d{punct}'\n ]+(?:['ˊ](?=[[:alpha:]]))?"
         self.word_regex = regex.compile(
             rf"({num_like}|[{punct}]|\n|[ ]+|{default})([ ])?"

@@ -1,5 +1,6 @@
 import regex
 import spacy
+from loguru import logger
 from spacy import Vocab
 from spacy.lang.fr import French, FrenchDefaults
 from spacy.lang.fr.lex_attrs import LEX_ATTRS
@@ -82,13 +83,10 @@ class EDSTokenizer(DummyTokenizer):
         for match in self.word_regex.finditer(text):
             begin, end = match.start(), match.end()
             if last != begin:
-                print(
-                    "Error",
-                    "last",
-                    last,
-                    "begin",
-                    begin,
-                    text[last - 10 : last]
+                logger.warning(
+                    "Missed some characters during"
+                    + f" tokenization between {last} and {begin}: "
+                    + text[last - 10 : last]
                     + "|"
                     + text[last:begin]
                     + "|"

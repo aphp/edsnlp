@@ -17,6 +17,8 @@ T3	Drug 79 90	paracétamol
 
 The point of the BRAT connector is to go from the standoff annotation format to an annotated spaCy document :
 
+<!-- no-check -->
+
 ```python
 import spacy
 from edsnlp.connectors.brat import BratConnector

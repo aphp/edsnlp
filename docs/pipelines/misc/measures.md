@@ -17,12 +17,11 @@ The normalized value can then be accessed via the `span._.value` attribute and c
 
 The current pipeline supports the following measures:
 
-| Measure name         | Example           | Units                       | Allows composite measures |
-| -------------------- | ----------------- | --------------------------- | ------------------------- |
+| Measure name          | Example           | Units                       | Allows composite measures |
+| --------------------- | ----------------- | --------------------------- | ------------------------- |
 | `eds.measures.size`   | `12m50`, `12.50m` | `mm`, `cm`, `dm`, `m`       | YES                       |
 | `eds.measures.weight` | `12kg`, `1g300`   | `mg`, `cg`, `dg`, `g`, `kg` | NO                        |
 | `eds.measures.angle`  | `8h`, `8h30`      | `h`                         | NO                        |
-
 
 ## Usage
 
@@ -43,22 +42,24 @@ text = (
 doc = nlp(text)
 
 measures = doc.spans["measures"]
+
+measures
 # Out: [1m78, 76kg, 1,2, 2.4mm, 1 x 2cm]
 
 measures[0]
-# Out: "1m78"
+# Out: 1m78
 
 str(measures[0]._.value)
-# Out: "1.78m"
+# Out: '1.78m'
 
 measures[0]._.value.cm
 # Out: 178.0
 
 measures[-3]
-# Out: "1,2"
+# Out: 1,2
 
 str(measures[-3]._.value)
-# Out: "1.2mm"
+# Out: '1.2mm'
 
 str(measures[-3]._.value.mm)
 # Out: 1.2
@@ -67,17 +68,17 @@ str(measures[-1])
 # Out: 1 x 2cm
 
 str(measures[-1]._.value)
-# Out: 1.0cm x 2.0cm
+# Out: '1.0cm x 2.0cm'
 
 str(measures[-1]._.value.mm)
 # Out: (10.0, 20.0)
 
 # All measures, simple or composite, support iterable operations
 str(max(measures[-1]._.value))
-# Out: 2.0cm
+# Out: '2.0cm'
 
 str(max(measures[0]._.value))
-# Out: 1.78m
+# Out: '1.78m'
 ```
 
 ## Custom measure
@@ -164,11 +165,11 @@ the `value` attribute that is a `Measure` instance.
 
 The pipeline can be configured using the following parameters :
 
-| Parameter         | Explanation                                      | Default                           |
-| ----------------- | ------------------------------------------------ | --------------------------------- |
-| `measures`        | The names of the measures to extract, registered in `spacy.registry.misc`          | `["eds.measures.size", "eds.measures.weight", "eds.measures.angle"]` |
-| `ignore_excluded` | Whether to ignore excluded tokens for matching           | `False`   |
-| `attr`            | spaCy attribute to match on, eg `NORM` or `TEXT` | `"NORM"`                          |
+| Parameter         | Explanation                                                               | Default                                                              |
+| ----------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `measures`        | The names of the measures to extract, registered in `spacy.registry.misc` | `["eds.measures.size", "eds.measures.weight", "eds.measures.angle"]` |
+| `ignore_excluded` | Whether to ignore excluded tokens for matching                            | `False`                                                              |
+| `attr`            | spaCy attribute to match on, eg `NORM` or `TEXT`                          | `"NORM"`                                                             |
 
 ## Authors and citation
 

@@ -59,6 +59,20 @@ jobs:
         uses: codecov/codecov-action@v2
         if: matrix.python-version == '3.9'
 
+
+  Documentation:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-docs.txt
+    - name: Build documentation
+      run: |
+        mkdocs build --clean
+
   Installation:
     runs-on: ubuntu-latest
     steps:

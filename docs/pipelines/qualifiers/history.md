@@ -40,7 +40,7 @@ text = (
 doc = nlp(text)
 
 doc.ents
-# Out: [douleur, malaises]
+# Out: (douleur, malaises)
 
 doc.ents[0]._.history
 # Out: False

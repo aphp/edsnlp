@@ -82,7 +82,7 @@ span = doc[:3]  # (3)
 
 # Entities are tracked in the ents attribute
 doc.ents  # (4)
-# Out: (,)
+# Out: ()
 ```
 
 1.  This feature is a core principle in spaCy. It will always be true in EDS-NLP.
@@ -120,7 +120,7 @@ The `doc` object just became more interesting!
 # ↑ Omitted code above ↑
 
 # We can split the document into sentences
-doc.sents  # (1)
+list(doc.sents)  # (1)
 # Out: [Le 5 mai 2005, Jimothé a été invité à une fête organisée par Michel.]
 
 # And look for dates
@@ -129,7 +129,7 @@ doc.spans["dates"]  # (2)
 
 span = doc.spans["dates"][0]  # (3)
 span._.date  # (4)
-# Out: "2005-05-05"
+# Out: '2005-05-05'
 ```
 
 1. In this example, there is only one sentence...

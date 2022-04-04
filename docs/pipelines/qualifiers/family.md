@@ -26,7 +26,7 @@ text = (
 doc = nlp(text)
 
 doc.ents
-# Out: [douleur, osthéoporose]
+# Out: (douleur, osthéoporose)
 
 doc.ents[0]._.family
 # Out: False

@@ -1,8 +1,11 @@
 # Changelog
 
-## v0.4.5 (pending)
+## Unreleased
 
-- Add a new `eds` language to better fit French clinical documents and improve speed.
+### Added
+
+- New `eds` language to better fit French clinical documents and improve speed.
+- Testing for markdown codeblocks.
 
 ## v0.4.4
 
@@ -81,9 +84,13 @@
 ## v0.3.0
 
 - Renamed `generic` to `matcher`. This is a non-breaking change for the average user, adding the pipeline is still :
+
+  <!-- no-check -->
+
   ```python
   nlp.add_pipe("matcher", config=dict(terms=dict(maladie="maladie")))
   ```
+
 - Removed `quickumls` pipeline. It was untested, unmaintained. Will be added back in a future release.
 - Add `score` pipeline, and `charlson`.
 - Add `advanced-regex` pipeline

@@ -81,6 +81,10 @@ nav:
     - utilities/connectors/index.md
     - utilities/connectors/brat.md
     - utilities/connectors/omop.md
+  - Utilities:
+    - utilities/tests/index.md
+    - utilities/tests/blocs.md
+    - utilities/tests/examples.md
   - Code Reference: reference/
   - contributing.md
   - changelog.md

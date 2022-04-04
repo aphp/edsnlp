@@ -26,8 +26,6 @@ Conclusion
 Possible infection au coronavirus
 """
 
-spark = SparkSession.builder.getOrCreate()
-
 NOTE_YEAR = 1980
 
 
@@ -52,6 +50,7 @@ def note(module: DataFrameModules):
         ]
     )
 
+    spark = SparkSession.builder.getOrCreate()
     notes = spark.createDataFrame(data=data, schema=note_schema)
     if module == DataFrameModules.PYSPARK:
         return notes

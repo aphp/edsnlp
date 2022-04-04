@@ -1,3 +1,4 @@
+griffe==0.14.0
 Jinja2>=2.10.2<=3.0.3
 mike
 mkdocs-autorefs==0.3.1

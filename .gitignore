@@ -22,6 +22,7 @@ var/
 *.egg
 *.cpp
 *.so
+*.c
 
 # Unit test / coverage reports
 htmlcov/

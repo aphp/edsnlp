@@ -1,4 +1,5 @@
 from distutils.sysconfig import get_python_inc
+from pathlib import Path
 
 import numpy
 from Cython.Build import cythonize
@@ -19,9 +20,7 @@ def get_version(path):
 
 
 COMPILER_DIRECTIVES = {
-    "language_level": -3,
-    "embedsignature": True,
-    "annotation_typing": False,
+    "language_level": "3",
 }
 
 include_dirs = [
@@ -29,18 +28,26 @@ include_dirs = [
     numpy.get_include(),
 ]
 
+
+cython_modules = [str(path) for path in Path("edsnlp/").rglob("*.pyx")]
+
 ext_modules = []
-for name in ["edsnlp.matchers.phrase"]:
-    mod_path = name.replace(".", "/") + ".pyx"
+for path in cython_modules:
+    name = path[:-4].replace("/", ".")
     ext = Extension(
         name,
-        [mod_path],
+        [path],
         language="c++",
         include_dirs=include_dirs,
-        extra_compile_args=["-std=c++11"],
+        # extra_compile_args=["-std=c++11"],
     )
     ext_modules.append(ext)
-ext_modules = cythonize(ext_modules, compiler_directives=COMPILER_DIRECTIVES)
+
+ext_modules = cythonize(
+    ext_modules,
+    include_path=include_dirs,
+    compiler_directives=COMPILER_DIRECTIVES,
+)
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()

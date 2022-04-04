@@ -1,8 +1,11 @@
 # Changelog
 
-## v0.4.5 (pending)
+## Unreleased
 
-- Add a new `eds` language to better fit French clinical documents and improve speed.
+### Added
+
+- New `eds` language to better fit French clinical documents and improve speed.
+- Testing for markdown codeblocks.
 
 ## v0.4.4
 

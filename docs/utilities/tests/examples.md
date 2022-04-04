@@ -14,10 +14,7 @@ text, entities = parse_example(example)
 text
 # Out: "Absence d'image osseuse d'allure évolutive."
 
-len(entities)
-# Out: 1
-
-entities[0]
+entities
 # Out: [Entity(start_char=10, end_char=42, modifiers=[Modifier(key='negated', value=True)])]
 ```
 

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from edsnlp.utils.blocks import check_md_file
+from edsnlp.utils.blocs import check_md_file
 
 files = chain(
     Path("./").glob("*.md"),

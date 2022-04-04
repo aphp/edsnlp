@@ -32,4 +32,4 @@ test = undeclared_function(42)
 ```
 ````
 
-See the [dedicated reference][edsnlp.utils.blocks.check_md_file] for more information
+See the [dedicated reference][edsnlp.utils.blocs.check_md_file] for more information

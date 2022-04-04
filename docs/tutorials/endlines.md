@@ -70,7 +70,7 @@ PATH = "/tmp/path_to_model"
 endlines.save(PATH)
 ```
 
-1. Initialize the [`EndLinesModel`][edsnlp.pipelines.core.endlines.endlinesmodel.endlinesmodel]
+1. Initialize the [`EndLinesModel`][edsnlp.pipelines.core.endlines.endlinesmodel.EndLinesModel]
    object and then fit (and predict) in the training corpus.
 2. The corpus should be an iterable of spacy documents.
 

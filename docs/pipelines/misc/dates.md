@@ -43,15 +43,15 @@ dates
 # Out: [23 août 2021, il y a un an]
 
 dates[0]._.date
-# Out: "2021-08-23"
+# Out: '2021-08-23'
 
 dates[1]._.date
-# Out: "TD-365"
+# Out: 'TD-365'
 
 doc._.note_datetime = datetime(2021, 8, 27)
 
 dates[1]._.date
-# Out: "2020-08-27"
+# Out: '2020-08-27'
 ```
 
 ## Declared extensions

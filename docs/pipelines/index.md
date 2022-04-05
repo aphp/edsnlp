@@ -44,6 +44,8 @@ EDS-NLP provides easy-to-use spaCy components.
 
 You can add them to your spaCy pipeline by simply calling `add_pipe`, for instance:
 
+<!-- no-check -->
+
 ```python
 # ↑ Omitted code that defines the nlp object ↑
 nlp.add_pipe("eds.normalizer")

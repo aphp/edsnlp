@@ -30,6 +30,8 @@ And its OMOP-style representation, separated in two tables `note` and `note_nlp`
 
 The following snippet expects the tables `note` and `note_nlp` to be already defined (eg through PySpark's `toPandas()` method).
 
+<!-- no-check -->
+
 ```python
 import spacy
 from edsnlp.connectors.omop import OmopConnector
@@ -48,7 +50,7 @@ doc.ents
 # Out: [coronavirus, paracétamol]
 
 doc.ents[0].label_
-# Out: disease
+# Out: 'disease'
 
 doc.text == note.loc[0].note_text
 # Out: True

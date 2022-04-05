@@ -81,6 +81,8 @@ class Document(BaseModel):  # (2)
 
 Having defined the output models and the pipeline, we can move on to creating the application itself:
 
+<!-- no-check -->
+
 ```python title="app.py"
 from typing import List
 
@@ -162,8 +164,10 @@ Go to [`localhost:8000/docs`](http://localhost:8000/docs) to admire the automati
 
 You can try the API directly from the documentation. Otherwise, you may use the `requests` package:
 
+<!-- no-check -->
+
 ```python
-import request
+import requests
 
 notes = [
     "Le père du patient n'est pas atteint de la covid.",

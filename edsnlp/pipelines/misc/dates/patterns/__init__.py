@@ -28,7 +28,7 @@ raw_delimiter_pattern = make_pattern(raw_delimiters)
 raw_delimiter_with_spaces_pattern = make_pattern(raw_delimiters + [r"[^\S\r\n]+"])
 delimiter_pattern = make_pattern(delimiters)
 
-ante_num_pattern = f"(?<!{raw_delimiter_pattern})"
+ante_num_pattern = f"(?<!.(?:{raw_delimiter_pattern})|[0-9][.,])"
 post_num_pattern = f"(?!{raw_delimiter_pattern})"
 
 full_year_pattern = ante_num_pattern + fy_pattern + post_num_pattern
@@ -93,7 +93,7 @@ relative_date_patterns = relative_patterns
 
 false_positive_pattern = make_pattern(
     [
-        r"(\d+" + delimiter_pattern + r"){3,}\d+",
+        r"(\d+" + delimiter_pattern + r"){3,}\d+(?!:\d\d)\b",
         r"\d\/\d",
     ]
 )

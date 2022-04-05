@@ -26,7 +26,7 @@ text = (
 doc = nlp(text)
 
 doc.ents
-# Out: [patient, fracture]
+# Out: (patient, fracture)
 
 doc.ents[0]._.negation  # (1)
 # Out: False

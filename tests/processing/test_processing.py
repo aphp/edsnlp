@@ -26,8 +26,6 @@ Conclusion
 Possible infection au coronavirus
 """
 
-spark = SparkSession.builder.getOrCreate()
-
 NOTE_YEAR = 1980
 
 
@@ -52,6 +50,7 @@ def note(module: DataFrameModules):
         ]
     )
 
+    spark = SparkSession.builder.getOrCreate()
     notes = spark.createDataFrame(data=data, schema=note_schema)
     if module == DataFrameModules.PYSPARK:
         return notes
@@ -61,9 +60,9 @@ def note(module: DataFrameModules):
 
 
 @pytest.fixture
-def model():
+def model(lang):
     # Creates the spaCy instance
-    nlp = spacy.blank("fr")
+    nlp = spacy.blank(lang)
 
     # Normalisation of accents, case and other special characters
     nlp.add_pipe("eds.normalizer")

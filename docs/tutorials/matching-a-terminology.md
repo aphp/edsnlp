@@ -41,7 +41,7 @@ nlp.add_pipe("eds.matcher", config=dict(terms=terms))
 doc = nlp(text)
 
 doc.ents
-# Out: (asthmatique)
+# Out: (asthmatique,)
 ```
 
 Let's unpack what happened:
@@ -78,6 +78,8 @@ Let's focus on two:
 ### The `LOWER` attribute
 
 Matching on the lowercased version is extremely easy:
+
+<!--no-check-->
 
 ```python
 import spacy
@@ -247,6 +249,8 @@ For instance, spaCy's visualiser displacy can let us visualise the matched entit
 
 ```python
 # ↑ Omitted code above ↑
+
+from spacy import displacy
 
 colors = {
     "covid": "orange",

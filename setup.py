@@ -75,5 +75,6 @@ setup(
     },
     entry_points={
         "spacy_factories": factories,
+        "spacy_languages": ["eds = edsnlp.language:EDSLanguage"],
     },
 )

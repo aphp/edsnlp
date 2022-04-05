@@ -9,13 +9,10 @@ In this tutorial we will use the pipeline `eds.reason` to :
 ```python
 import spacy
 
-import edsnlp.components
-
 text = """COMPTE RENDU D'HOSPITALISATION du 11/07/2018 au 12/07/2018
 MOTIF D'HOSPITALISATION
-Monsieur Dupont Jean Michel, de sexe masculin, âgée de 39 ans,
-née le 23/11/1978, a été hospitalisé du 11/08/2019 au 17/08/2019
-pour attaque d'asthme.
+Monsieur Dupont Jean Michel, de sexe masculin, âgée de 39 ans, née le 23/11/1978,
+a été hospitalisé du 11/08/2019 au 17/08/2019 pour attaque d'asthme.
 
 ANTÉCÉDENTS
 Antécédents médicaux :
@@ -64,6 +61,7 @@ reason._.is_reason
 # Out: True
 ```
 
+<!-- no-check -->
 
 ```python
 # ↑ Omitted code above ↑
@@ -78,7 +76,6 @@ for e in entities:
         "-- is_reason:",
         e._.is_reason,
     )
-
 # Out: Entity: asthme -- Label: respiratoire -- is_reason: True
 ```
 
@@ -86,10 +83,11 @@ for e in entities:
 
 We can verify that named entities that do not overlap with the spans of reason, have their attribute `#!python reason._.is_reason == False`:
 
+<!-- no-check -->
+
 ```python
 for e in doc.ents:
     print(e.start, e, e._.is_reason)
-
 # Out: 42 asthme True
 # Out: 54 asthme False
 ```

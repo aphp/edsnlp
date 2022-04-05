@@ -74,12 +74,28 @@ dates  # (1)
 
 1. `dates` is a list of spaCy `Span` objects.
 
+## Normalisation
+
 We can review each date and get its normalisation:
 
-| `date.text`        | `date._.date` |
-| ------------------ | ------------- |
-| `21 janvier`       | `????-01-21`  |
-| `il y a trois ans` | `TD-1095`     |
+| `date.text`        | `date._.date`                               |
+| ------------------ | ------------------------------------------- |
+| `21 janvier`       | `#!python {"day": 21, "month": 1}`          |
+| `il y a trois ans` | `#!python {"direction": "past", "year": 3}` |
+
+Dates detected by the pipeline component are parsed into a dictionary-like object.
+It includes every information that is actually contained in the text.
+
+To get a more usable representation, you may call the `parse()` method.
+If there's enough information, the date will be represented
+in a `datetime.datetime` or `datetime.timedelta` object. If some information is missing,
+It will return `None`.
+
+!!! note "Date normalisation"
+
+    Since dates can be missing some information (eg `en aôut`), we refrain from
+    outputting a `datetime` object in that case. Doing so would amount to guessing,
+    and we made the choice of letting you decide how you want to handle missing dates.
 
 ## What next?
 
@@ -187,12 +203,15 @@ text = (
 doc = nlp(text)
 
 for ent in doc.ents:
-    print(ent, get_event_date(ent))
+    date = get_event_date(ent)
+    print(f"{ent.text:<20}{date.text:<20}{date._.date.parse()}")
+# Out: admis               12 avril 2020       2020-04-12T00:00:00+02:00
+# Out: pris en charge      l'année dernière    -1 year
 ```
 
 Which will output:
 
-| `ent`          | `get_event_date(ent)` | `get_event_date(ent)._.date` |
-| -------------- | --------------------- | ---------------------------- |
-| admis          | 12 avril              | `????-04-12`                 |
-| pris en charge | l'année dernière      | `TD-365`                     |
+| `ent`          | `get_event_date(ent)` | `get_event_date(ent)._.date.parse(` |
+| -------------- | --------------------- | ----------------------------------- |
+| admis          | 12 avril              | `2020-04-12T00:00:00+02:00`         |
+| pris en charge | l'année dernière      | `-1 year`                           |

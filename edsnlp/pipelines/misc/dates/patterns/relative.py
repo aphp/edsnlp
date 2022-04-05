@@ -9,11 +9,11 @@ def make_specific_pattern(mode: str = "forward"):
         p = directions.preceding_direction_pattern
         p += r"\s+"
         p += numbers.number_pattern
-        p += r"\s+"
+        p += r"\s*"
         p += units.unit_pattern
     elif mode == "backward":
         p = numbers.number_pattern
-        p += r"\s+"
+        p += r"\s*"
         p += units.unit_pattern
         p += r"\s+"
         p += directions.following_direction_pattern
@@ -21,7 +21,7 @@ def make_specific_pattern(mode: str = "forward"):
         p = directions.preceding_direction_pattern
         p += r"\s+"
         p += numbers.number_pattern
-        p += r"\s+"
+        p += r"\s*"
         p += units.unit_pattern
         p += r"\s+"
         p += directions.following_direction_pattern
@@ -30,10 +30,10 @@ def make_specific_pattern(mode: str = "forward"):
 
 
 specific = {
-    "minus1": (r"hier", dict(direction="ago", day=1)),
-    "minus2": (r"avant[-\s]hier", dict(direction="ago", day=2)),
-    "plus1": (r"demain", dict(direction="in", day=1)),
-    "plus2": (r"après[-\s]demain", dict(direction="in", day=2)),
+    "minus1": (r"hier", dict(direction="past", day=1)),
+    "minus2": (r"avant[-\s]hier", dict(direction="past", day=2)),
+    "plus1": (r"demain", dict(direction="future", day=1)),
+    "plus2": (r"après[-\s]demain", dict(direction="future", day=2)),
 }
 
 specific_pattern = make_pattern(

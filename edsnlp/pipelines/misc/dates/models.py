@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 import pendulum
 from pydantic import BaseModel, root_validator, validator
@@ -47,16 +47,26 @@ class AbsoluteDate(BaseDate):
     minute: Optional[int] = None
     second: Optional[int] = None
 
-    def parse(self) -> pendulum.datetime:
+    def parse(
+        self, tz: Union[str, pendulum.tz.timezone] = "Europe/Paris"
+    ) -> pendulum.datetime:
 
         if self.year and self.month and self.day:
 
             d = self.dict(exclude_none=True)
             d.pop("direction", None)
 
-            return pendulum.datetime(**d, tz="Europe/Paris")
+            return pendulum.datetime(**d, tz=tz)
 
         return None
+
+    @validator("year")
+    def validate_year(cls, v):
+        if v > 100:
+            return v
+
+        if v < 25:
+            return 2000 + v
 
 
 class RelativeDate(BaseDate):

@@ -1,23 +1,29 @@
+from datetime import datetime
+
+import pytz
 import spacy
 from pytest import fixture
 from spacy.language import Language
 
+from edsnlp.pipelines.misc.dates.models import AbsoluteDate, Direction
 from edsnlp.utils.examples import parse_example
+
+TZ = pytz.timezone("Europe/Paris")
 
 examples = [
     "Le patient est venu en <ent year=2019>2019</ent> pour une consultation",
-    "Le patient est venu <ent direction=ago day=1>hier</ent>",
+    "Le patient est venu <ent direction=past day=1>hier</ent>",
     "le <ent day=4 month=9 year=2021>04/09/2021</ent>",
-    "Il est cas contact <ent direction=ago week=1>depuis la semaine dernière</ent>",
+    "Il est cas contact <ent direction=past week=1>depuis la semaine dernière</ent>",
     "le <ent day=9 month=8>09/08</ent>",
     "Le patient est venu le <ent day=4 month=8>4 août</ent>",
     "Le patient est venu le <ent day=4 month=8 hour=11 minute=13>4 août à 11h13</ent>",
     "Il est venu le <ent day=1 month=9>1er Septembre</ent> pour",
     "Il est venu en <ent month=10 year=2020>octobre 2020</ent> pour...",
-    "Il est venu <ent direction=ago month=3>il y a trois mois</ent> pour...",
-    "Il lui était arrivé la même chose <ent direction=ago year=1>il y a un an</ent>.",
+    "Il est venu <ent direction=past month=3>il y a trois mois</ent> pour...",
+    "Il lui était arrivé la même chose <ent direction=past year=1>il y a un an</ent>.",
     "Il est venu le <ent day=20 month=9 year=2001>20/09/2001</ent> pour...",
-    "Consultation du <ent direction=since day=3 month=7 year=19>03 07 19</ent>",
+    "Consultation du <ent direction=after day=3 month=7 year=2019>03 07 19</ent>",
     "En <ent month=11 year=2017>11/2017</ent> stabilité sur...",
     "<ent direction=since month=3>depuis 3 mois</ent>",
     "- <ent month=12 year=2004>Décembre 2004</ent> :",
@@ -25,8 +31,8 @@ examples = [
     # "-<ent month=6 year=2005>Juin 2005</ent>:  ",  # issues with "fr" language
     "<ent month=9 year=2017>sept 2017</ent> :",
     (
-        "<ent direction=ago year=1>il y a 1 an</ent> "
-        "<ent direction=for month=1>pdt 1 mois</ent>"
+        "<ent direction=past year=1>il y a 1 an</ent> "
+        "<ent direction=during month=1>pdt 1 mois</ent>"
     ),
     (
         "Prélevé le : <ent day=22 month=4 year=2016>22/04/2016</ent> "
@@ -55,9 +61,24 @@ def test_dates_component(blank_nlp: Language):
         for span, entity in zip(doc.spans["dates"], entities):
             assert span.text == text[entity.start_char : entity.end_char]
 
-            date = {modifier.key: modifier.value for modifier in entity.modifiers}
+            date = span._.date
+            d = {modifier.key: modifier.value for modifier in entity.modifiers}
+            if "direction" in d:
+                d["direction"] = Direction[d["direction"]]
 
-            assert span._.date.dict(exclude_none=True) == date
+            assert date.dict(exclude_none=True) == d
+
+            if isinstance(date, AbsoluteDate) and {"year", "month", "day"}.issubset(
+                set(d)
+            ):
+                d.pop("direction", None)
+                assert date.parse() == TZ.localize(datetime(**d))
+
+            elif isinstance(date, AbsoluteDate):
+                assert date.parse() is None
+
+            else:
+                assert date.parse()
 
 
 def test_periods(blank_nlp: Language):

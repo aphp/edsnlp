@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import Enum
 from typing import Dict, Optional, Union
 
@@ -48,7 +49,9 @@ class AbsoluteDate(BaseDate):
     second: Optional[int] = None
 
     def parse(
-        self, tz: Union[str, pendulum.tz.timezone] = "Europe/Paris"
+        self,
+        tz: Union[str, pendulum.tz.timezone] = "Europe/Paris",
+        **kwargs,
     ) -> pendulum.datetime:
 
         if self.year and self.month and self.day:
@@ -79,13 +82,17 @@ class RelativeDate(BaseDate):
     minute: Optional[int] = None
     second: Optional[int] = None
 
-    def parse(self) -> pendulum.duration:
+    def parse(self, note_datetime: Optional[datetime] = None) -> pendulum.duration:
         d = self.dict(exclude_none=True)
         d.pop("direction", None)
 
         d = {f"{k}s": v for k, v in d.items()}
 
-        return self.direction.value * pendulum.duration(**d)
+        td = self.direction.value * pendulum.duration(**d)
+
+        if note_datetime:
+            return note_datetime + td
+        return td
 
     @root_validator(pre=True)
     def parse_unit(cls, d: Dict[str, str]) -> Dict[str, str]:

@@ -26,7 +26,7 @@ See the [tutorial](../../tutorials/detecting-dates.md) for a presentation of a f
 ```python
 import spacy
 
-from datetime import datetime
+import pendulum
 
 nlp = spacy.blank("fr")
 nlp.add_pipe("eds.dates")
@@ -42,16 +42,16 @@ dates = doc.spans["dates"]
 dates
 # Out: [23 août 2021, il y a un an]
 
-dates[0]._.date
-# Out: '2021-08-23'
+dates[0]._.date.parse()
+# Out: DateTime(2021, 8, 23, 0, 0, 0, tzinfo=Timezone('Europe/Paris'))
 
-dates[1]._.date
-# Out: 'TD-365'
+dates[1]._.date.parse()
+# Out: Duration(years=-1)
 
-doc._.note_datetime = datetime(2021, 8, 27)
+note_datetime = pendulum.datetime(2021, 8, 27, tz="Europe/Paris")
 
-dates[1]._.date
-# Out: '2020-08-27'
+dates[1]._.date.parse(note_datetime=note_datetime)
+# Out: DateTime(2020, 8, 27, 0, 0, 0, tzinfo=Timezone('Europe/Paris'))
 ```
 
 ## Declared extensions

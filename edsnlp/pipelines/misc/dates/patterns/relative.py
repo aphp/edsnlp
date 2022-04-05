@@ -3,18 +3,18 @@ from edsnlp.utils.regex import make_pattern
 from . import directions, numbers, units
 
 
-def make_specific_pattern(name, pattern, forward: bool = True):
+def make_specific_pattern(forward: bool = True):
 
     if forward:
         p = directions.preceding_direction_pattern
         p += r"\s+"
-        p += make_pattern(numbers.numbers, name=name)
+        p += numbers.number_pattern
         p += r"\s+"
-        p += pattern
+        p += units.unit_pattern
     else:
-        p = make_pattern(numbers.numbers, name=name)
+        p = numbers.number_pattern
         p += r"\s+"
-        p += pattern
+        p += units.unit_pattern
         p += r"\s+"
         p += directions.following_direction_pattern
 
@@ -22,16 +22,21 @@ def make_specific_pattern(name, pattern, forward: bool = True):
 
 
 relative_patterns = [
-    make_specific_pattern(name=name, pattern=pattern, forward=forward)
-    for forward in [True, False]
-    for name, pattern in units.patterns.items()
+    make_specific_pattern(forward=True),
+    make_specific_pattern(forward=False),
 ]
 
 specific = {
-    r"hier": dict(direction="ago", day=1),
-    r"avant[-\s]hier": dict(direction="ago", day=2),
-    r"demain": dict(direction="in", day=1),
-    r"après[-\s]demain": dict(direction="in", day=2),
+    "minus1": (r"hier", dict(direction="ago", day=1)),
+    "minus2": (r"avant[-\s]hier", dict(direction="ago", day=2)),
+    "plus1": (r"demain", dict(direction="in", day=1)),
+    "plus2": (r"après[-\s]demain", dict(direction="in", day=2)),
 }
 
-relative_patterns.append(make_pattern(list(specific.keys()), name="specific"))
+specific_pattern = make_pattern(
+    [f"(?P<specific_{k}>{p})" for k, (p, _) in specific.items()],
+)
+
+specific_dict = {k: v for k, (_, v) in specific.items()}
+
+relative_patterns.append(specific_pattern)

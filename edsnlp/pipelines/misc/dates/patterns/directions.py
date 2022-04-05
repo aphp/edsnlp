@@ -1,28 +1,17 @@
 from edsnlp.utils.regex import make_pattern
 
-preceding_directions = {
-    r"depuis": "since",
-    r"il\s+y\s+a": "ago",
-    r"(pendant|durant)": "for",
-    r"dans": "in",
-}
+preceding_directions = [
+    r"(?P<direction_since>depuis)",
+    r"(?P<direction_ago>il\s+y\s+a)",
+    r"(?P<direction_for>pendant|durant)",
+    r"(?P<direction_in>dans)",
+    r"(?P<direction_from>[àa]\s+partir\s+de)",
+]
 
-following_directions = {
-    r"prochaine?s?": "in",
-    r"suivante?s?": "in",
-    r"derni[eè]re?s?": "ago",
-}
+following_directions = [
+    r"(?P<direction_in>prochaine?s?|suivante?s?)",
+    r"(?P<direction_ago>derni[eè]re?s?)",
+]
 
-preceding_direction_pattern = make_pattern(
-    list(preceding_directions.keys()),
-    name="direction",
-)
-following_direction_pattern = make_pattern(
-    list(following_directions.keys()),
-    name="direction",
-)
-
-directions = dict(
-    **preceding_directions,
-    **following_directions,
-)
+preceding_direction_pattern = make_pattern(preceding_directions)
+following_direction_pattern = make_pattern(following_directions)

@@ -1,12 +1,37 @@
-from typing import Optional
+import re
+from typing import Dict, Optional
 
-from pydantic import BaseModel, root_validator, validator
+from pydantic import BaseModel, root_validator
 
-from .absolute import parse_day, parse_month
-from .relative import parse_direction, parse_number, parse_specific
+from edsnlp.pipelines.misc.dates.patterns.relative import specific_dict
+from edsnlp.utils.regex import make_pattern
+
+patterns = [
+    r"month_(?P<month>\d\d)",
+    r"day_(?P<day>\d\d)",
+    r"number_(?P<number>\d\d)",
+    r"direction_(?P<direction>\w+)",
+    r"unit_(?P<unit>\w+)",
+    r"specific_(?P<specific>.+)",
+]
+
+LETTER_PATTERN = re.compile(make_pattern(patterns))
 
 
-class AbsoluteDate(BaseModel):
+class BaseDate(BaseModel):
+    @root_validator(pre=True)
+    def validate_strings(cls, d: Dict):
+        result = d.copy()
+
+        for k, v in d.items():
+            if v is not None:
+                match = LETTER_PATTERN.match(k)
+                if match:
+                    result.update({k: v for k, v in match.groupdict().items() if v})
+        return result
+
+
+class AbsoluteDate(BaseDate):
 
     year: Optional[int] = None
     month: Optional[int] = None
@@ -15,16 +40,8 @@ class AbsoluteDate(BaseModel):
     minute: Optional[int] = None
     second: Optional[int] = None
 
-    @validator("month", pre=True)
-    def validate_month(cls, v):
-        return parse_month(v)
 
-    @validator("day", pre=True)
-    def validate_day(cls, v):
-        return parse_day(v)
-
-
-class RelativeDate(BaseModel):
+class RelativeDate(BaseDate):
 
     direction: Optional[str] = None
 
@@ -36,25 +53,22 @@ class RelativeDate(BaseModel):
     minute: Optional[int] = None
     second: Optional[int] = None
 
-    @validator(
-        "year",
-        "month",
-        "week",
-        "day",
-        "hour",
-        "minute",
-        "second",
-        pre=True,
-    )
-    def validate_number(cls, v):
-        return parse_number(v)
+    @root_validator(pre=True)
+    def parse_unit(cls, d: Dict[str, str]):
+        unit = d.get("unit")
 
-    @validator("direction", pre=True)
-    def validate_direction(cls, v):
-        return parse_direction(v)
+        if unit:
+            d[unit] = d.get("number")
+
+        return d
 
     @root_validator(pre=True)
-    def handle_specifics(cls, values):
-        if "specific" in values:
-            values.update(parse_specific(values["specific"]))
-        return values
+    def handle_specifics(cls, d: Dict[str, str]):
+
+        specific = d.get("specific")
+        specific = specific_dict.get(specific)
+
+        if specific:
+            d.update(specific)
+
+        return d

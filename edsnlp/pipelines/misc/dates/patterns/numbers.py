@@ -1,44 +1,41 @@
 from edsnlp.utils.regex import make_pattern
 
-letter_numbers = {
-    r"(l'|le|la|une?)": 1,
-    r"deux": 2,
-    r"trois": 3,
-    r"quatre": 4,
-    r"cinq": 5,
-    r"six": 6,
-    r"sept": 7,
-    r"huit": 8,
-    r"neuf": 9,
-    r"dix": 10,
-    r"onze": 11,
-    r"douze": 12,
-    r"treize": 13,
-    r"quatorze": 14,
-    r"quinze": 15,
-    r"seize": 16,
-    r"dix[-\s]sept": 17,
-    r"dix[-\s]huit": 18,
-    r"dix[-\s]neuf": 19,
-    r"vingt": 20,
-    r"vingt[-\s]et[-\s]un": 21,
-    r"vingt[-\s]deux": 22,
-    r"vingt[-\s]trois": 23,
-    r"vingt[-\s]quatre": 24,
-    r"vingt[-\s]cinq": 25,
-    r"vingt[-\s]six": 26,
-    r"vingt[-\s]sept": 27,
-    r"vingt[-\s]huit": 28,
-    r"vingt[-\s]neuf": 29,
-    r"trente": 30,
-}
+letter_numbers = [
+    r"(?P<number_01>l'|le|la|une?|ce|cette|cet)",
+    r"(?P<number_02>deux)",
+    r"(?P<number_03>trois)",
+    r"(?P<number_04>quatre)",
+    r"(?P<number_05>cinq)",
+    r"(?P<number_06>six)",
+    r"(?P<number_07>sept)",
+    r"(?P<number_08>huit)",
+    r"(?P<number_09>neuf)",
+    r"(?P<number_10>dix)",
+    r"(?P<number_11>onze)",
+    r"(?P<number_12>douze)",
+    r"(?P<number_12>treize)",
+    r"(?P<number_13>quatorze)",
+    r"(?P<number_14>quinze)",
+    r"(?P<number_15>seize)",
+    r"(?P<number_16>dix[-\s]sept)",
+    r"(?P<number_17>dix[-\s]huit)",
+    r"(?P<number_18>dix[-\s]neuf)",
+    r"(?P<number_20>vingt)",
+    r"(?P<number_21>vingt[-\s]et[-\s]un)",
+    r"(?P<number_22>vingt[-\s]deux)",
+    r"(?P<number_23>vingt[-\s]trois)",
+    r"(?P<number_24>vingt[-\s]quatre)",
+    r"(?P<number_25>vingt[-\s]cinq)",
+    r"(?P<number_26>vingt[-\s]six)",
+    r"(?P<number_27>vingt[-\s]sept)",
+    r"(?P<number_28>vingt[-\s]huit)",
+    r"(?P<number_29>vingt[-\s]neuf)",
+    r"(?P<number_30>trente)",
+]
 
 numeric_numbers = [str(i) for i in range(1, 100)]
 
-numbers = list(letter_numbers.keys()) + numeric_numbers
+letter_number_pattern = make_pattern(letter_numbers)
+numeric_number_pattern = make_pattern(numeric_numbers, name="number")
 
-year_pattern = make_pattern(numbers, name="year")
-month_pattern = make_pattern(numbers, name="month")
-week_pattern = make_pattern(numbers, name="week")
-day_pattern = make_pattern(numbers, name="day")
-hour_pattern = make_pattern(numbers, name="day")
+number_pattern = f"({letter_number_pattern}|{numeric_number_pattern})"

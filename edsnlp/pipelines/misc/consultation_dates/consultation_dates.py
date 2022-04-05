@@ -121,7 +121,9 @@ class ConsultationDates(GenericMatcher):
 
         Returns
         -------
-        doc: spaCy Doc object with additionnal doc.spans['consultation_dates] SpanGroup
+        doc: Doc
+            spaCy Doc object with additional
+            `doc.spans['consultation_dates]` `SpanGroup`
         """
 
         ents = self.process(doc)

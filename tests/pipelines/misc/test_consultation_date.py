@@ -56,6 +56,8 @@ def test_cons_dates(date_pipeline, example, blank_nlp):
 
     doc = blank_nlp(TEXT)
 
+    assert len(doc.spans["dates"]) == 4 or not date_pipeline
+
     assert len(doc.spans["consultation_dates"]) == len(example["result"])
 
     for span, result in zip(doc.spans["consultation_dates"], example["result"]):

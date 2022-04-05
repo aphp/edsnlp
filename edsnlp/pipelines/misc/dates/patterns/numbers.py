@@ -35,7 +35,7 @@ letter_numbers = [
 
 numeric_numbers = [str(i) for i in range(1, 100)]
 
-letter_number_pattern = make_pattern(letter_numbers)
+letter_number_pattern = make_pattern(letter_numbers, with_breaks=True)
 numeric_number_pattern = make_pattern(numeric_numbers, name="number")
 
 number_pattern = f"({letter_number_pattern}|{numeric_number_pattern})"

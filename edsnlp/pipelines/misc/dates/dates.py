@@ -80,17 +80,14 @@ class Dates(BaseComponent):
     @staticmethod
     def set_extensions() -> None:
 
-        if not Doc.has_extension("note_datetime"):
-            Doc.set_extension("note_datetime", default=None)
-
-        if not Span.has_extension("parsed_date"):
-            Span.set_extension("parsed_date", default=None)
-
-        if not Span.has_extension("parsed_delta"):
-            Span.set_extension("parsed_delta", default=None)
+        if not Span.has_extension("datetime"):
+            Span.set_extension("datetime", default=None)
 
         if not Span.has_extension("date"):
             Span.set_extension("date", default=None)
+
+        if not Span.has_extension("period"):
+            Span.set_extension("period", default=None)
 
     def process(self, doc: Doc) -> List[Span]:
         """
@@ -167,6 +164,36 @@ class Dates(BaseComponent):
 
         return [span for span, _ in dates]
 
+    def detect_periods(self, dates: List[Span]) -> List[Span]:
+
+        if len(dates) < 2:
+            return []
+
+        periods = []
+        seen = set()
+
+        dates = list(sorted(dates, key=lambda d: d.start))
+
+        for d1, d2 in zip(dates[:-1], dates[1:]):
+
+            if d1 in seen:
+                continue
+
+            if d1.end - d2.start < 3:
+                period = Span(d1.doc, d1.start, d2.end, label="period")
+
+                period._.period = {
+                    d1._.date.direction: d1,
+                    d2._.date.direction: d2,
+                }
+
+                seen.add(d1)
+                seen.add(d2)
+
+                periods.append(period)
+
+        return periods
+
     def __call__(self, doc: Doc) -> Doc:
         """
         Tags dates.
@@ -185,5 +212,6 @@ class Dates(BaseComponent):
         dates = self.parse(dates)
 
         doc.spans["dates"] = dates
+        doc.spans["periods"] = self.detect_periods(dates)
 
         return doc

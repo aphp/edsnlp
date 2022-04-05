@@ -18,7 +18,7 @@ from .atomic.months import (
 from .atomic.time import time_pattern
 from .atomic.years import full_year_pattern as fy_pattern
 from .atomic.years import year_pattern
-from .current import current_pattern
+from .directions import preceding_direction_pattern
 from .relative import relative_patterns
 
 raw_delimiters = [r"\/", r"\-"]
@@ -86,6 +86,11 @@ no_day_pattern = [
     + post_num_pattern,
 ]
 absolute_date_pattern.extend(no_day_pattern)
+
+absolute_date_pattern = [
+    r"(?<=" + preceding_direction_pattern + r".{,3})?" + p
+    for p in absolute_date_pattern
+]
 
 
 relative_date_patterns = relative_patterns

@@ -9,7 +9,7 @@ units = [
     r"(?P<unit_day>jours?|journ[ée]es?)",
     r"(?P<unit_hour>h|heures?)",
     r"(?P<unit_minute>min|minutes?)",
-    r"(?P<unit_second>sec|s|secondes?)",
+    r"(?P<unit_second>sec|secondes?|s)",
 ]
 
-unit_pattern = make_pattern(units)
+unit_pattern = make_pattern(units, with_breaks=True)

@@ -1,5 +1,4 @@
 from distutils.sysconfig import get_python_inc
-from pathlib import Path
 
 import numpy
 from Cython.Build import cythonize
@@ -22,32 +21,25 @@ def get_version(path):
 COMPILER_DIRECTIVES = {
     "language_level": "3",
 }
+MOD_NAMES = ["edsnlp.matchers.phrase"]
 
 include_dirs = [
-    get_python_inc(plat_specific=True),
     numpy.get_include(),
+    get_python_inc(plat_specific=True),
 ]
-
-
-cython_modules = [str(path) for path in Path("edsnlp/").rglob("*.pyx")]
-
 ext_modules = []
-for path in cython_modules:
-    name = path[:-4].replace("/", ".")
+for name in MOD_NAMES:
+    mod_path = name.replace(".", "/") + ".pyx"
     ext = Extension(
         name,
-        [path],
+        [mod_path],
         language="c++",
         include_dirs=include_dirs,
-        # extra_compile_args=["-std=c++11"],
+        extra_compile_args=["-std=c++11"],
     )
     ext_modules.append(ext)
-
-ext_modules = cythonize(
-    ext_modules,
-    include_path=include_dirs,
-    compiler_directives=COMPILER_DIRECTIVES,
-)
+print("Cythonizing sources")
+ext_modules = cythonize(ext_modules, compiler_directives=COMPILER_DIRECTIVES)
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -108,6 +100,7 @@ setup(
     ),
     package_data={
         "edsnlp": ["resources/*.csv"],
+        "": ["*.pyx", "*.pxd", "*.pxi"],
     },
     entry_points={
         "spacy_factories": factories,

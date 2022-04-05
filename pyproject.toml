@@ -28,7 +28,3 @@ color = true
 omit-covered-files = false
 # generate-badge = "."
 # badge-format = "svg"
-
-
-[tool.cibuildwheel]
-skip = "pp*"

@@ -9,7 +9,7 @@ from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
 
 from . import patterns
-from .parser.models import AbsoluteDate, RelativeDate
+from .models import AbsoluteDate, RelativeDate
 
 
 class Dates(BaseComponent):
@@ -55,11 +55,11 @@ class Dates(BaseComponent):
         self.nlp = nlp
 
         if absolute is None:
-            absolute = patterns.absolute_date_pattern
+            absolute = patterns.absolute_pattern
         if false_positive is None:
             false_positive = patterns.false_positive_pattern
         if relative is None:
-            relative = patterns.relative_date_patterns
+            relative = patterns.relative_pattern
 
         if isinstance(absolute, str):
             absolute = [absolute]

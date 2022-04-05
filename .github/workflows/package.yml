@@ -40,14 +40,6 @@ jobs:
           cd test-wheel
           pytest ../tests/pipelines/test_pipelines.py
 
-      - name: Test wheel
-        if: matrix.os == 'windows-2019'
-        run: |
-          pip install dist\*.whl
-          mkdir test-wheel
-          cd test-wheel
-          pytest ..\tests\pipelines\test_pipelines.py
-
       - uses: actions/upload-artifact@v2
         with:
           path: ./dist/*.whl
@@ -66,10 +58,9 @@ jobs:
           path: dist/*.tar.gz
 
   upload_pypi:
+    name: Check distributions
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
-    # alternatively, to publish when a GitHub Release is created, use the following rule:
-    # if: github.event_name == 'release' && github.event.action == 'published'
     steps:
       - uses: actions/download-artifact@v2
         with:

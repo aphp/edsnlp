@@ -33,11 +33,20 @@ jobs:
           python -m build
 
       - name: Test wheel
+        if: matrix.os != 'windows-2019'
         run: |
           pip install ./dist/*.whl
           mkdir test-wheel
           cd test-wheel
           pytest ../tests/pipelines/test_pipelines.py
+
+      - name: Test wheel
+        if: matrix.os == 'windows-2019'
+        run: |
+          pip install dist\*.whl
+          mkdir test-wheel
+          cd test-wheel
+          pytest ..\tests\pipelines\test_pipelines.py
 
       - uses: actions/upload-artifact@v2
         with:

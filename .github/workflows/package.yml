@@ -12,17 +12,35 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        python-version: ["3.7", "3.8", "3.9"]
         os: [ubuntu-20.04, windows-2019, macos-10.15]
 
     steps:
       - uses: actions/checkout@v2
 
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install -U pip build wheel pytest
+
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.4.0
+        run: |
+          python -m build
+
+      - name: Test wheel
+        run: |
+          pip install ./dist/*.whl
+          mkdir test-wheel
+          cd test-wheel
+          pytest ../tests/pipelines/test_pipelines.py
 
       - uses: actions/upload-artifact@v2
         with:
-          path: ./wheelhouse/*.whl
+          path: ./dist/*.whl
 
   build_sdist:
     name: Build source distribution

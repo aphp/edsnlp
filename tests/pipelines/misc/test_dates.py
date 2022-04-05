@@ -5,14 +5,13 @@ from spacy.language import Language
 from edsnlp.utils.examples import parse_example
 
 examples = [
+    "Le patient est venu en <ent year=2019>2019</ent> pour une consultation",
     "Le patient est venu <ent direction=ago day=1>hier</ent>",
     "le <ent day=4 month=9 year=2021>04/09/2021</ent>",
-    "Il est cas contact depuis <ent direction=ago week=1>la semaine dernière</ent>",
-    # "le <ent day=9 month=8>9/8</ent>",
+    "Il est cas contact <ent direction=ago week=1>depuis la semaine dernière</ent>",
     "le <ent day=9 month=8>09/08</ent>",
     "Le patient est venu le <ent day=4 month=8>4 août</ent>",
     "Le patient est venu le <ent day=4 month=8 hour=11 minute=13>4 août à 11h13</ent>",
-    # "Le patient est venu en <ent year=2019>2019</ent> pour une consultation",
     "Il est venu le <ent day=1 month=9>1er Septembre</ent> pour",
     "Il est venu en <ent month=10 year=2020>octobre 2020</ent> pour...",
     "Il est venu <ent direction=ago month=3>il y a trois mois</ent> pour...",
@@ -108,7 +107,8 @@ def test_dates_on_ents_only():
 
     text = (
         "Le patient est venu hier (le 04/09/2021) pour un test PCR.\n"
-        "Il est cas contact depuis la semaine dernière, le 09/08 (2021-08-09)."
+        "Il est cas contact <ent>depuis la semaine dernière</ent>, "
+        "le <ent>09/08</ent> (<ent>2021-08-09</ent>)."
     )
 
     nlp = spacy.blank("eds")
@@ -117,8 +117,13 @@ def test_dates_on_ents_only():
     nlp.add_pipe("eds.matcher", config=dict(terms={"contact": "contact"}))
     nlp.add_pipe("eds.dates", config=dict(on_ents_only=True))
 
+    text, entities = parse_example(text)
+
     doc = nlp(text)
 
     assert len(doc.ents) == 1
 
-    assert len(doc.spans["dates"]) == 3
+    assert len(doc.spans["dates"]) == len(entities)
+
+    for span, entity in zip(doc.spans["dates"], entities):
+        assert span.text == text[entity.start_char : entity.end_char]

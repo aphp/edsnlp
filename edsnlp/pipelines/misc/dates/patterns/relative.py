@@ -3,16 +3,24 @@ from edsnlp.utils.regex import make_pattern
 from . import directions, numbers, units
 
 
-def make_specific_pattern(forward: bool = True):
+def make_specific_pattern(mode: str = "forward"):
 
-    if forward:
+    if mode == "forward":
         p = directions.preceding_direction_pattern
         p += r"\s+"
         p += numbers.number_pattern
         p += r"\s+"
         p += units.unit_pattern
-    else:
+    elif mode == "backward":
         p = numbers.number_pattern
+        p += r"\s+"
+        p += units.unit_pattern
+        p += r"\s+"
+        p += directions.following_direction_pattern
+    else:
+        p = directions.preceding_direction_pattern
+        p += r"\s+"
+        p += numbers.number_pattern
         p += r"\s+"
         p += units.unit_pattern
         p += r"\s+"
@@ -22,8 +30,9 @@ def make_specific_pattern(forward: bool = True):
 
 
 relative_patterns = [
-    make_specific_pattern(forward=True),
-    make_specific_pattern(forward=False),
+    make_specific_pattern(mode="forward"),
+    make_specific_pattern(mode="backward"),
+    make_specific_pattern(mode="all"),
 ]
 
 specific = {

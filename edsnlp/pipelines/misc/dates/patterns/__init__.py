@@ -87,6 +87,8 @@ no_day_pattern = [
 ]
 absolute_date_pattern.extend(no_day_pattern)
 
+absolute_date_pattern.append(full_year_pattern)
+
 absolute_date_pattern = [
     r"(?<=" + preceding_direction_pattern + r".{,3})?" + p
     for p in absolute_date_pattern

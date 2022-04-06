@@ -12,7 +12,7 @@ from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
 
 from . import patterns
-from .models import AbsoluteDate, Duration, RelativeDate
+from .models import AbsoluteDate, Duration, Mode, RelativeDate
 
 PERIOD_PROXIMITY_THRESHOLD = 3
 
@@ -218,7 +218,9 @@ class Dates(BaseComponent):
 
         for d1, d2 in zip(dates[:-1], dates[1:]):
 
-            if d1 in seen or d1._.date.mode is None or d2._.date.mode is None:
+            if d1._.date.mode == Mode.DURATION or d2._.date.mode == Mode.DURATION:
+                pass
+            elif d1 in seen or d1._.date.mode is None or d2._.date.mode is None:
                 continue
 
             if (
@@ -228,9 +230,14 @@ class Dates(BaseComponent):
 
                 period = Span(d1.doc, d1.start, d2.end, label="period")
 
+                # If one date is a duration,
+                # the other may not have a registered mode.
+                m1 = d1._.date.mode or Mode.FROM
+                m2 = d2._.date.mode or Mode.FROM
+
                 period._.period = {
-                    d1._.date.mode: d1,
-                    d2._.date.mode: d2,
+                    m1: d1,
+                    m2: d2,
                 }
 
                 seen.add(d1)

@@ -125,9 +125,9 @@ class RelativeDate(Relative):
     direction: Direction = Direction.CURRENT
 
     def parse(self, note_datetime: Optional[datetime] = None) -> pendulum.duration:
-        td = super().parse()
+        td = super(RelativeDate, self).parse()
 
-        if note_datetime:
+        if note_datetime is not None:
             return note_datetime + td
 
         return td

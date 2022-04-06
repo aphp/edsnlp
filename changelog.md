@@ -7,6 +7,10 @@
 - New `eds` language to better fit French clinical documents and improve speed.
 - Testing for markdown codeblocks.
 
+### Changed
+
+- Complete revamp of the date detection pipeline
+
 ## v0.4.4
 
 - Add `measures` pipeline

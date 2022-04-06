@@ -32,6 +32,7 @@ Clinical notes contain many different types of dates. To name a few examples:
 | Absolute | Explicit date                       | `2022-03-03`                                     |
 | Partial  | Date missing the day, month or year | `le 3 janvier/on January 3rd`, `en 2021/in 2021` |
 | Relative | Relative dates                      | `hier/yesterday`, `le mois dernier/last month`   |
+| Duration | Durations                           | `pendant trois mois/for three months`            |
 
 !!! warning
 
@@ -93,7 +94,7 @@ It will return `None`.
 
 !!! note "Date normalisation"
 
-    Since dates can be missing some information (eg `en aôut`), we refrain from
+    Since dates can be missing some information (eg `en août`), we refrain from
     outputting a `datetime` object in that case. Doing so would amount to guessing,
     and we made the choice of letting you decide how you want to handle missing dates.
 

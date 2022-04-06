@@ -1,6 +1,8 @@
 from edsnlp.utils.regex import make_pattern
 
 from .atomic import directions, numbers, units
+from .atomic.modes import mode_pattern
+from .current import current_pattern
 
 
 def make_specific_pattern(mode: str = "forward"):
@@ -30,10 +32,10 @@ def make_specific_pattern(mode: str = "forward"):
 
 
 specific = {
-    "minus1": (r"hier", dict(direction="past", day=1)),
-    "minus2": (r"avant[-\s]hier", dict(direction="past", day=2)),
-    "plus1": (r"demain", dict(direction="future", day=1)),
-    "plus2": (r"après[-\s]demain", dict(direction="future", day=2)),
+    "minus1": (r"hier", dict(direction="PAST", day=1)),
+    "minus2": (r"avant[-\s]hier", dict(direction="PAST", day=2)),
+    "plus1": (r"demain", dict(direction="FUTURE", day=1)),
+    "plus2": (r"après[-\s]demain", dict(direction="FUTURE", day=2)),
 }
 
 specific_pattern = make_pattern(
@@ -47,4 +49,7 @@ relative_pattern = [
     make_specific_pattern(mode="backward"),
     make_specific_pattern(mode="all"),
     specific_pattern,
+    current_pattern,
 ]
+
+relative_pattern = [r"(?<=" + mode_pattern + r".{,3})?" + p for p in relative_pattern]

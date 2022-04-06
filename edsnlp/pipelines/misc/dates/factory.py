@@ -9,6 +9,7 @@ from . import Dates
 DEFAULT_CONFIG = dict(
     absolute=None,
     relative=None,
+    duration=None,
     false_positive=None,
     on_ents_only=False,
     attr="LOWER",
@@ -22,6 +23,7 @@ def create_component(
     name: str,
     absolute: Optional[List[str]],
     relative: Optional[List[str]],
+    duration: Optional[List[str]],
     false_positive: Optional[List[str]],
     on_ents_only: bool,
     attr: str,
@@ -30,6 +32,7 @@ def create_component(
         nlp,
         absolute=absolute,
         relative=relative,
+        duration=duration,
         false_positive=false_positive,
         on_ents_only=on_ents_only,
         attr=attr,

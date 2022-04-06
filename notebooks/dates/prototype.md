@@ -5,20 +5,17 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: "1.3"
-      jupytext_version: 1.13.5
+      format_version: '1.3'
+      jupytext_version: 1.13.0
   kernelspec:
-    display_name: "Python 3.9.5 64-bit ('.venv': venv)"
+    display_name: Python 3 (ipykernel)
     language: python
     name: python3
 ---
 
 ```python
-import context
-```
-
-```python
-from typing import Dict, Callable
+%reload_ext autoreload
+%autoreload 2
 ```
 
 ```python
@@ -27,66 +24,88 @@ from spacy import displacy
 ```
 
 ```python
-
-```
-
-```python
-from edsnlp.pipelines.misc.dates.dates import parse_groupdict
+from edsnlp.pipelines.misc.dates.dates import Dates
+from edsnlp.pipelines.misc.dates.models import AbsoluteDate, RelativeDate
+from edsnlp.pipelines.misc.dates.factory import DEFAULT_CONFIG
 ```
 
 # Dates
 
 ```python
-text = "Le patient est atteint venu le 29 janvier 2012"
-```
-
-```python
-category20 = [
-    "#1f77b4",
-    "#aec7e8",
-    "#ff7f0e",
-    "#ffbb78",
-    "#2ca02c",
-    "#98df8a",
-    "#d62728",
-    "#ff9896",
-    "#9467bd",
-    "#c5b0d5",
-    "#8c564b",
-    "#c49c94",
-    "#e377c2",
-    "#f7b6d2",
-    "#7f7f7f",
-    "#c7c7c7",
-    "#bcbd22",
-    "#dbdb8d",
-    "#17becf",
-    "#9edae5",
-]
-```
-
-```python
 nlp = spacy.blank('fr')
-dates = nlp.add_pipe('dates')
+dates = nlp.add_pipe('eds.dates')
 ```
 
 ```python
-labels = [
-    'absolute',
-    'full_date',
-    'no_year',
-    'no_day',
-    'year_only',
-    'relative',
-    'current',
-    'false_positive',
-]
+text = "consultation demain le 03/09/2020 à 10h32"
 ```
 
 ```python
-colors = {
-    label: category20[i] for i, label in enumerate(labels)
-}
+doc = nlp(text)
+```
+
+```python
+ds = doc.spans['dates']
+```
+
+```python
+for date in ds:
+    print(date, date._.date.dict(exclude_none=True))
+```
+
+```python
+for date in ds:
+    print(date, date._.date.parse())
+```
+
+```python
+doc = nlp("du 5 juin au 6 juillet")
+```
+
+```python
+doc.spans['dates']
+```
+
+```python
+for p in doc.spans['periods']:
+    print(p._.period)
+```
+
+```python
+
+```
+
+```python
+gd = dates(doc)
+```
+
+```python
+AbsoluteDate.parse_obj(gd)
+```
+
+```python
+import pendulum
+```
+
+```python
+date
+```
+
+```python
+pendulum.Duration(date.day)
+```
+
+```python
+doc = nlp(text)
+```
+
+```python
+doc.spans['dates']
+```
+
+```python
+for date in doc.spans['dates']:
+    print(date, repr(date._.date))
 ```
 
 ```python
@@ -94,6 +113,13 @@ def display_dates(text):
     doc = nlp(text)
     doc.ents = doc.spans['dates']
     return displacy.render(doc, style='ent', options=dict(colors=colors))
+```
+
+```python
+from spacy.tokens import Span
+
+if not Span.has_extension("groupdict"):
+    Span.set_extension("groupdict", default=dict())
 ```
 
 ```python
@@ -109,7 +135,27 @@ date = nlp('Le 12 janvier').spans['dates'][0]
 ```
 
 ```python
-date.label_
+nlp('Le 12 janvier').spans['dates']
+```
+
+```python
+import re
+```
+
+```python
+re.search(r"(?P<covid>covid[-\s]?19)", "covid19").groupdict()
+```
+
+```python
+date._.groupdict
+```
+
+```python
+from edsnlp.pipelines.misc.dates.dates import parse_groupdict
+```
+
+```python
+parse_groupdict(**date._.groupdict)
 ```
 
 ```python

@@ -9,7 +9,7 @@ from .atomic.delimiters import (
     post_num_pattern,
     raw_delimiter_with_spaces_pattern,
 )
-from .atomic.directions import preceding_direction_pattern
+from .atomic.modes import mode_pattern
 from .atomic.months import (
     letter_month_pattern,
     lz_numeric_month_pattern,
@@ -66,6 +66,4 @@ full_year_pattern = ante_num_pattern + fy_pattern + post_num_pattern
 
 absolute_pattern.append(full_year_pattern)
 
-absolute_pattern = [
-    r"(?<=" + preceding_direction_pattern + r".{,3})?" + p for p in absolute_pattern
-]
+absolute_pattern = [r"(?<=" + mode_pattern + r".{,3})?" + p for p in absolute_pattern]

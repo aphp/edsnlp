@@ -9,7 +9,7 @@ from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
 
 from . import patterns
-from .models import AbsoluteDate, RelativeDate
+from .models import AbsoluteDate, Duration, RelativeDate
 
 
 class Dates(BaseComponent):
@@ -30,6 +30,9 @@ class Dates(BaseComponent):
     relative : Union[List[str], str]
         List of regular expressions for relative dates
         (eg `hier`, `la semaine prochaine`).
+    duration : Union[List[str], str]
+        List of regular expressions for durations
+        (eg `pendant trois mois`).
     false_positive : Union[List[str], str]
         List of regular expressions for false positive (eg phone numbers, etc).
     on_ents_only : Union[bool, str, List[str]]
@@ -47,6 +50,7 @@ class Dates(BaseComponent):
         nlp: Language,
         absolute: Optional[List[str]],
         relative: Optional[List[str]],
+        duration: Optional[List[str]],
         false_positive: Optional[List[str]],
         on_ents_only: bool,
         attr: str,
@@ -56,15 +60,19 @@ class Dates(BaseComponent):
 
         if absolute is None:
             absolute = patterns.absolute_pattern
-        if false_positive is None:
-            false_positive = patterns.false_positive_pattern
         if relative is None:
             relative = patterns.relative_pattern
+        if duration is None:
+            duration = patterns.duration_pattern
+        if false_positive is None:
+            false_positive = patterns.false_positive_pattern
 
         if isinstance(absolute, str):
             absolute = [absolute]
         if isinstance(relative, str):
             relative = [relative]
+        if isinstance(duration, str):
+            relative = [duration]
         if isinstance(false_positive, str):
             false_positive = [false_positive]
 
@@ -74,6 +82,7 @@ class Dates(BaseComponent):
         self.regex_matcher.add("false_positive", false_positive)
         self.regex_matcher.add("absolute", absolute)
         self.regex_matcher.add("relative", relative)
+        self.regex_matcher.add("duration", duration)
 
         self.set_extensions()
 
@@ -155,12 +164,14 @@ class Dates(BaseComponent):
         """
 
         for span, groupdict in dates:
-            if span.label_.startswith("relative"):
-                groupdict = RelativeDate.parse_obj(groupdict)
+            if span.label_ == "relative":
+                parsed = RelativeDate.parse_obj(groupdict)
+            elif span.label_ == "absolute":
+                parsed = AbsoluteDate.parse_obj(groupdict)
             else:
-                groupdict = AbsoluteDate.parse_obj(groupdict)
+                parsed = Duration.parse_obj(groupdict)
 
-            span._.date = groupdict
+            span._.date = parsed
 
         return [span for span, _ in dates]
 
@@ -176,15 +187,16 @@ class Dates(BaseComponent):
 
         for d1, d2 in zip(dates[:-1], dates[1:]):
 
-            if d1 in seen:
+            if d1 in seen or d1._.date.mode is None or d2._.date is None:
                 continue
 
-            if d1.end - d2.start < 3:
+            if d1.end - d2.start < 3 and d1._.date.mode != d2._.date.mode:
+
                 period = Span(d1.doc, d1.start, d2.end, label="period")
 
                 period._.period = {
-                    d1._.date.direction: d1,
-                    d2._.date.direction: d2,
+                    d1._.date.mode: d1,
+                    d2._.date.mode: d2,
                 }
 
                 seen.add(d1)

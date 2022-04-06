@@ -2,13 +2,14 @@
 jupyter:
   jupytext:
     formats: md,ipynb
+    main_language: python
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: "1.3"
-      jupytext_version: 1.13.0
+      format_version: '1.3'
+      jupytext_version: 1.13.8
   kernelspec:
-    display_name: "Python 3.9.5 64-bit ('.env': venv)"
+    display_name: 'Python 3.9.5 64-bit (''.env'': venv)'
     name: python3
 ---
 

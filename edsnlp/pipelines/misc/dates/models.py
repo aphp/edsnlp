@@ -10,18 +10,18 @@ from edsnlp.pipelines.misc.dates.patterns.relative import specific_dict
 
 class Direction(Enum):
 
-    future = 1
-    past = -1
-    since = -1
-    after = 1
-    during = 1
-    until = 1
+    FUTURE = "FUTURE"
+    PAST = "PAST"
+    CURRENT = "CURRENT"
 
 
-class BaseDate(BaseModel):
+class Mode(Enum):
 
-    direction: Optional[Direction] = None
+    FROM = "FROM"
+    UNTIL = "UNTIL"
 
+
+class Base(BaseModel):
     @root_validator(pre=True)
     def validate_strings(cls, d: Dict[str, str]) -> Dict[str, str]:
         result = d.copy()
@@ -30,13 +30,13 @@ class BaseDate(BaseModel):
             if v is not None and "_" in k:
                 key, value = k.split("_")
                 result.update({key: value})
+
         return result
 
-    @validator("direction", pre=True)
-    def validate_direction(cls, v):
-        if v is None:
-            return v
-        return Direction[v]
+
+class BaseDate(Base):
+
+    mode: Optional[Mode] = None
 
 
 class AbsoluteDate(BaseDate):
@@ -57,7 +57,8 @@ class AbsoluteDate(BaseDate):
         if self.year and self.month and self.day:
 
             d = self.dict(exclude_none=True)
-            d.pop("direction", None)
+
+            d.pop("mode", None)
 
             return pendulum.datetime(**d, tz=tz)
 
@@ -72,7 +73,7 @@ class AbsoluteDate(BaseDate):
             return 2000 + v
 
 
-class RelativeDate(BaseDate):
+class Relative(BaseModel):
 
     year: Optional[int] = None
     month: Optional[int] = None
@@ -81,18 +82,6 @@ class RelativeDate(BaseDate):
     hour: Optional[int] = None
     minute: Optional[int] = None
     second: Optional[int] = None
-
-    def parse(self, note_datetime: Optional[datetime] = None) -> pendulum.duration:
-        d = self.dict(exclude_none=True)
-        d.pop("direction", None)
-
-        d = {f"{k}s": v for k, v in d.items()}
-
-        td = self.direction.value * pendulum.duration(**d)
-
-        if note_datetime:
-            return note_datetime + td
-        return td
 
     @root_validator(pre=True)
     def parse_unit(cls, d: Dict[str, str]) -> Dict[str, str]:
@@ -119,6 +108,32 @@ class RelativeDate(BaseDate):
 
         return d
 
+    def parse(self, **kwargs) -> pendulum.duration:
+        d = self.dict(exclude_none=True)
+
+        direction = d.pop("direction", None)
+        dir = -1 if direction == Direction.PAST else 1
+
+        d.pop("mode", None)
+
+        d = {f"{k}s": v for k, v in d.items()}
+
+        td = dir * pendulum.duration(**d)
+        return td
+
+
+class RelativeDate(Relative, BaseDate):
+
+    direction: Direction = Direction.CURRENT
+
+    def parse(self, note_datetime: Optional[datetime] = None) -> pendulum.duration:
+        td = super().parse()
+
+        if note_datetime:
+            return note_datetime + td
+
+        return td
+
     @root_validator(pre=True)
     def handle_specifics(cls, d: Dict[str, str]) -> Dict[str, str]:
         """
@@ -143,3 +158,7 @@ class RelativeDate(BaseDate):
             d.update(specific)
 
         return d
+
+
+class Duration(Relative, Base):
+    pass

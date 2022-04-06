@@ -187,7 +187,7 @@ class Dates(BaseComponent):
 
         for d1, d2 in zip(dates[:-1], dates[1:]):
 
-            if d1 in seen or d1._.date.mode is None or d2._.date is None:
+            if d1 in seen or d1._.date.mode is None or d2._.date.mode is None:
                 continue
 
             if d1.end - d2.start < 3 and d1._.date.mode != d2._.date.mode:

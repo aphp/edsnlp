@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from spacy.language import Language
 
@@ -11,6 +11,7 @@ DEFAULT_CONFIG = dict(
     relative=None,
     duration=None,
     false_positive=None,
+    detect_periods=False,
     on_ents_only=False,
     attr="LOWER",
 )
@@ -25,7 +26,8 @@ def create_component(
     relative: Optional[List[str]],
     duration: Optional[List[str]],
     false_positive: Optional[List[str]],
-    on_ents_only: bool,
+    on_ents_only: Union[bool, List[str]],
+    detect_periods: bool,
     attr: str,
 ):
     return Dates(
@@ -35,5 +37,6 @@ def create_component(
         duration=duration,
         false_positive=false_positive,
         on_ents_only=on_ents_only,
+        detect_periods=detect_periods,
         attr=attr,
     )

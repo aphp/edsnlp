@@ -1,6 +1,9 @@
-from itertools import chain
-from typing import Dict, List, Optional, Tuple
+"""`eds.dates` pipeline."""
 
+from itertools import chain
+from typing import Dict, List, Optional, Tuple, Union
+
+from loguru import logger
 from spacy.language import Language
 from spacy.tokens import Doc, Span
 
@@ -10,6 +13,8 @@ from edsnlp.utils.filter import filter_spans
 
 from . import patterns
 from .models import AbsoluteDate, Duration, RelativeDate
+
+PERIOD_PROXIMITY_THRESHOLD = 3
 
 
 class Dates(BaseComponent):
@@ -42,6 +47,10 @@ class Dates(BaseComponent):
         - If False: Look in the whole document
         - If given a string `key` or list of string: Only look in the sentences of
           each entity in `#!python doc.spans[key]`
+    detect_periods : bool
+        Wether to detect periods (experimental)
+    attr : str
+        spaCy attribute to use
     """
 
     # noinspection PyProtectedMember
@@ -52,7 +61,8 @@ class Dates(BaseComponent):
         relative: Optional[List[str]],
         duration: Optional[List[str]],
         false_positive: Optional[List[str]],
-        on_ents_only: bool,
+        on_ents_only: Union[bool, List[str]],
+        detect_periods: bool,
         attr: str,
     ):
 
@@ -84,10 +94,18 @@ class Dates(BaseComponent):
         self.regex_matcher.add("relative", relative)
         self.regex_matcher.add("duration", duration)
 
+        self.detect_periods = detect_periods
+
+        if detect_periods:
+            logger.warning("The period extractor is experimental.")
+
         self.set_extensions()
 
     @staticmethod
     def set_extensions() -> None:
+        """
+        Set extensions for the dates pipeline.
+        """
 
         if not Span.has_extension("datetime"):
             Span.set_extension("datetime", default=None)
@@ -175,7 +193,20 @@ class Dates(BaseComponent):
 
         return [span for span, _ in dates]
 
-    def detect_periods(self, dates: List[Span]) -> List[Span]:
+    def process_periods(self, dates: List[Span]) -> List[Span]:
+        """
+        Experimental period detection.
+
+        Parameters
+        ----------
+        dates : List[Span]
+            List of detected dates.
+
+        Returns
+        -------
+        List[Span]
+            List of detected periods.
+        """
 
         if len(dates) < 2:
             return []
@@ -190,7 +221,10 @@ class Dates(BaseComponent):
             if d1 in seen or d1._.date.mode is None or d2._.date.mode is None:
                 continue
 
-            if d1.end - d2.start < 3 and d1._.date.mode != d2._.date.mode:
+            if (
+                d1.end - d2.start < PERIOD_PROXIMITY_THRESHOLD
+                and d1._.date.mode != d2._.date.mode
+            ):
 
                 period = Span(d1.doc, d1.start, d2.end, label="period")
 
@@ -224,6 +258,8 @@ class Dates(BaseComponent):
         dates = self.parse(dates)
 
         doc.spans["dates"] = dates
-        doc.spans["periods"] = self.detect_periods(dates)
+
+        if self.detect_periods:
+            doc.spans["periods"] = self.process_periods(dates)
 
         return doc

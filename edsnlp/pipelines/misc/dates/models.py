@@ -19,9 +19,13 @@ class Mode(Enum):
 
     FROM = "FROM"
     UNTIL = "UNTIL"
+    DURATION = "DURATION"
 
 
-class Base(BaseModel):
+class BaseDate(BaseModel):
+
+    mode: Optional[Mode] = None
+
     @root_validator(pre=True)
     def validate_strings(cls, d: Dict[str, str]) -> Dict[str, str]:
         result = d.copy()
@@ -32,11 +36,6 @@ class Base(BaseModel):
                 result.update({key: value})
 
         return result
-
-
-class BaseDate(Base):
-
-    mode: Optional[Mode] = None
 
 
 class AbsoluteDate(BaseDate):
@@ -73,7 +72,7 @@ class AbsoluteDate(BaseDate):
             return 2000 + v
 
 
-class Relative(BaseModel):
+class Relative(BaseDate):
 
     year: Optional[int] = None
     month: Optional[int] = None
@@ -122,8 +121,7 @@ class Relative(BaseModel):
         return td
 
 
-class RelativeDate(Relative, BaseDate):
-
+class RelativeDate(Relative):
     direction: Direction = Direction.CURRENT
 
     def parse(self, note_datetime: Optional[datetime] = None) -> pendulum.duration:
@@ -160,5 +158,5 @@ class RelativeDate(Relative, BaseDate):
         return d
 
 
-class Duration(Relative, Base):
-    pass
+class Duration(Relative):
+    mode: Mode = Mode.DURATION

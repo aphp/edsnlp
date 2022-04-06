@@ -6,8 +6,8 @@ preceding_directions = [
 ]
 
 following_directions = [
-    r"(?P<direction_FUTURE>prochaine?s?|suivante?s?)",
-    r"(?P<direction_PAST>derni[eè]re?s?|passée?s?)",
+    r"(?P<direction_FUTURE>prochaine?s?|suivante?s?|plus\s+tard)",
+    r"(?P<direction_PAST>derni[eè]re?s?|passée?s?|pr[ée]c[ée]dente?s?|plus\s+t[ôo]t)",
 ]
 
 preceding_direction_pattern = make_pattern(preceding_directions, with_breaks=True)

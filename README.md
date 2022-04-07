@@ -3,6 +3,7 @@
 [![PyPI](https://img.shields.io/pypi/v/edsnlp?color=blue&style=flat-square)](https://pypi.org/project/edsnlp/)
 [![Demo](https://img.shields.io/badge/demo%20%F0%9F%9A%80-streamit-grean?style=flat-square)](https://aphp.github.io/edsnlp/demo/)
 [![Codecov](https://img.shields.io/codecov/c/github/aphp/edsnlp?logo=codecov&style=flat-square)](https://codecov.io/gh/aphp/edsnlp)
+[![DOI](https://zenodo.org/badge/467585436.svg)](https://zenodo.org/badge/latestdoi/467585436)
 
 # EDS-NLP
 
@@ -70,3 +71,16 @@ The performances of an extraction pipeline may depend on the population and docu
 
 We welcome contributions ! Fork the project and propose a pull request.
 Take a look at the [dedicated page](https://aphp.github.io/edsnlp/latest/contributing/) for detail.
+
+## Citation
+
+Should you use EDS-NLP for scientific work, please cite us:
+
+```bibtex
+@misc{edsnlp,
+  author = {Dura, Basile and Petit-Jean, Thomas and Bey, Romain and Jean, Charline},
+  doi    = {},
+  title  = {{EDS-NLP: efficient information extraction from French clinical notes}},
+  year   = {2022}
+}
+```

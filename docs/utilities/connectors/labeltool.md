@@ -1,6 +1,6 @@
 # LabelTool Connector
 
-[LabelTool](https://gitlab.eds.aphp.fr/datasciencetools/labeltool) is an in-house module enabling rapid annotation of pre-extracted entities.
+LabelTool is an in-house module enabling rapid annotation of pre-extracted entities.
 
 We provide a ready-to-use function that converts a list of annotated spaCy documents into a `pandas` DataFrame that is readable to LabelTool.
 

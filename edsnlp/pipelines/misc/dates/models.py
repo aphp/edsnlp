@@ -4,6 +4,7 @@ from typing import Dict, Optional, Union
 
 import pendulum
 from pydantic import BaseModel, root_validator, validator
+from spacy.tokens import Span
 
 from edsnlp.pipelines.misc.dates.patterns.relative import specific_dict
 
@@ -20,6 +21,15 @@ class Mode(Enum):
     FROM = "FROM"
     UNTIL = "UNTIL"
     DURATION = "DURATION"
+
+
+class Period(BaseModel):
+    FROM: Optional[Span] = None
+    UNTIL: Optional[Span] = None
+    DURATION: Optional[Span] = None
+
+    class Config:
+        arbitrary_types_allowed = True
 
 
 class BaseDate(BaseModel):

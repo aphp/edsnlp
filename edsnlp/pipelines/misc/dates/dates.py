@@ -12,7 +12,7 @@ from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
 
 from . import patterns
-from .models import AbsoluteDate, Duration, Mode, RelativeDate
+from .models import AbsoluteDate, Duration, Mode, Period, RelativeDate
 
 PERIOD_PROXIMITY_THRESHOLD = 3
 
@@ -235,10 +235,12 @@ class Dates(BaseComponent):
                 m1 = d1._.date.mode or Mode.FROM
                 m2 = d2._.date.mode or Mode.FROM
 
-                period._.period = {
-                    m1: d1,
-                    m2: d2,
-                }
+                period._.period = Period.parse_obj(
+                    {
+                        m1.value: d1,
+                        m2.value: d2,
+                    }
+                )
 
                 seen.add(d1)
                 seen.add(d2)

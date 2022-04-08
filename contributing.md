@@ -32,8 +32,8 @@ $ python scripts/conjugate_verbs.py
 $ pip install -r requirements-dev.txt
 $ pip install -r requirements-docs.txt
 
-# Finally, install the package
-$ pip install .
+# Finally, install the package in editable mode
+$ pip install -e .
 ```
 
 </div>
@@ -80,11 +80,16 @@ The following command will run the test suite. Writing your own tests is encoura
 python -m pytest
 ```
 
+!!! warning "Testing Cython code"
+
+    Make sure the package is [installed in editable mode](#development-installation).
+    Otherwise `Pytest` won't be able to find the Cython modules.
+
 Should your contribution propose a bug fix, we require the bug be thoroughly tested.
 
 ### Architecture of a pipeline
 
-All pipelines should follow the same pattern :
+Pipelines should follow the same pattern :
 
 ```
 edsnlp/pipelines/<pipeline>

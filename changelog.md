@@ -6,6 +6,7 @@
 
 - New `eds` language to better fit French clinical documents and improve speed.
 - Testing for markdown codeblocks.
+- Reimplementation of the EDSPhraseMatcher in Cython
 
 ### Changed
 

@@ -75,13 +75,13 @@ def test_dates_component(blank_nlp: Language):
             ):
                 d.pop("direction", None)
                 d.pop("mode", None)
-                assert date.parse() == TZ.localize(datetime(**d))
+                assert date.to_datetime() == TZ.localize(datetime(**d))
 
             elif isinstance(date, AbsoluteDate):
-                assert date.parse() is None
+                assert date.to_datetime() is None
 
             else:
-                assert date.parse()
+                assert date.to_datetime()
 
 
 def test_periods(blank_nlp: Language):

@@ -47,11 +47,11 @@ class AbsoluteDate(BaseDate):
     minute: Optional[int] = None
     second: Optional[int] = None
 
-    def parse(
+    def to_datetime(
         self,
         tz: Union[str, pendulum.tz.timezone] = "Europe/Paris",
         **kwargs,
-    ) -> pendulum.datetime:
+    ) -> Optional[pendulum.datetime]:
 
         if self.year and self.month and self.day:
 
@@ -126,7 +126,7 @@ class Relative(BaseDate):
 
         return d
 
-    def parse(self, **kwargs) -> pendulum.Duration:
+    def to_datetime(self, **kwargs) -> pendulum.Duration:
         d = self.dict(exclude_none=True)
 
         direction = d.pop("direction", None)
@@ -143,8 +143,10 @@ class Relative(BaseDate):
 class RelativeDate(Relative):
     direction: Direction = Direction.CURRENT
 
-    def parse(self, note_datetime: Optional[datetime] = None) -> pendulum.Duration:
-        td = super(RelativeDate, self).parse()
+    def to_datetime(
+        self, note_datetime: Optional[datetime] = None
+    ) -> pendulum.Duration:
+        td = super(RelativeDate, self).to_datetime()
 
         if note_datetime is not None:
             return note_datetime + td
@@ -161,7 +163,7 @@ class RelativeDate(Relative):
 
             norm = f"~0 {key}"
         else:
-            td = self.parse()
+            td = self.to_datetime()
             norm = str(td)
             if td.in_seconds() > 0:
                 norm = f"+{norm}"
@@ -199,5 +201,5 @@ class Duration(Relative):
 
     def norm(self) -> str:
 
-        td = self.parse()
+        td = self.to_datetime()
         return f"during {td}"

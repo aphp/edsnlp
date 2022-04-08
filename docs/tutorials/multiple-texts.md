@@ -241,7 +241,7 @@ They share the same arguments:
         nlp,
         context=["note_datetime"],
         additional_spans=["dates"],
-        extensions=["parsed_date"],
+        extensions=["date"],
     )
     ```
 
@@ -259,7 +259,7 @@ note_nlp = single_pipe(
     data,
     nlp,
     additional_spans=["dates"],
-    extensions=["parsed_date"],
+    extensions=["date"],
 )
 ```
 
@@ -277,7 +277,7 @@ note_nlp = parallel_pipe(
     data,
     nlp,
     additional_spans=["dates"],
-    extensions=["parsed_date"],
+    extensions=["date"],
     n_jobs=-2,  # (1)
 )
 ```
@@ -385,7 +385,7 @@ Once again, using the helper is trivial:
         df,
         nlp,
         additional_spans=["dates"],
-        extensions={"parsed_date": dt_type},
+        extensions={"date": dt_type},
     )
 
     # Check that the pipeline was correctly distributed:
@@ -404,7 +404,7 @@ Once again, using the helper is trivial:
         df,
         nlp,
         additional_spans=["dates"],
-        extensions={"parsed_date": dt_type},
+        extensions={"date": dt_type},
     )
 
     # Check that the pipeline was correctly distributed:
@@ -429,7 +429,7 @@ note_nlp = pipe(
     nlp=nlp,
     n_jobs=1,
     additional_spans=["dates"],
-    extensions=["parsed_date"],
+    extensions=["date"],
 )
 
 ### Larger pandas DataFrame
@@ -438,7 +438,7 @@ note_nlp = pipe(
     nlp=nlp,
     n_jobs=-2,
     additional_spans=["dates"],
-    extensions=["parsed_date"],
+    extensions=["date"],
 )
 
 ### Huge Spark or Koalas DataFrame
@@ -447,6 +447,6 @@ note_nlp = pipe(
     nlp=nlp,
     how="spark",
     additional_spans=["dates"],
-    extensions={"parsed_date": dt_type},
+    extensions={"date": dt_type},
 )
 ```

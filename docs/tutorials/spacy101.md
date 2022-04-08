@@ -128,8 +128,8 @@ doc.spans["dates"]  # (2)
 # Out: [5 mai 2005]
 
 span = doc.spans["dates"][0]  # (3)
-span._.date  # (4)
-# Out: '2005-05-05'
+span._.date.to_datetime()  # (4)
+# Out: DateTime(2005, 5, 5, 0, 0, 0, tzinfo=Timezone('Europe/Paris'))
 ```
 
 1. In this example, there is only one sentence...
@@ -137,6 +137,7 @@ span._.date  # (4)
 3. `span` is a spaCy `Span` object.
 4. In spaCy, you can declare custom extensions that live in the `_` attribute.
    Here, the `eds.dates` pipeline uses a `Span._.date` extension to persist the normalised date.
+   We use the `to_datetime()` method to get an object that is usable by Python.
 
 ## Conclusion
 

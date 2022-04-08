@@ -1,23 +1,17 @@
 # Dates
 
 The `eds.dates` pipeline's role is to detect and normalise dates within a medical document.
-We use simple regular expressions to extract date mentions, and apply the [`dateparser` library](https://dateparser.readthedocs.io/en/latest/index.html)
-for the normalisation.
-
-!!! warning
-
-    The ``dates`` pipeline is still in active development and has not been rigorously validated.
-    If you come across a date expression that goes undetected, please file an issue !
+We use simple regular expressions to extract date mentions.
 
 ## Scope
 
-The `eds.dates` pipeline finds absolute (eg `23/08/2021`) and relative (eg `hier`, `la semaine dernière`) dates alike.
+The `eds.dates` pipeline finds absolute (eg `23/08/2021`) and relative (eg `hier`, `la semaine dernière`) dates alike. It also handles mentions of duration.
 
-If the date of edition (via the `doc._.note_datetime` extension) is available, relative (and "year-less") dates will be normalised
-using the latter as base. On the other hand, if the base is unknown, the normalisation will follow the pattern :
-`TD±<number-of-days>`, positive values meaning that the relative date mentions the future (`dans trois jours`).
-
-Since the extension `doc._.note_datetime` cannot be set before applying the `dates` pipeline, we defer the normalisation step until the `span._.dates` attribute is accessed.
+| Type       | Example                       |
+| ---------- | ----------------------------- |
+| `absolute` | `3 mai`, `03/05/2020`         |
+| `relative` | `hier`, `la semaine dernière` |
+| `duration` | `pendant quatre jours`        |
 
 See the [tutorial](../../tutorials/detecting-dates.md) for a presentation of a full pipeline featuring the `eds.dates` component.
 
@@ -26,40 +20,37 @@ See the [tutorial](../../tutorials/detecting-dates.md) for a presentation of a f
 ```python
 import spacy
 
-from datetime import datetime
+import pendulum
 
 nlp = spacy.blank("fr")
 nlp.add_pipe("eds.dates")
 
 text = (
     "Le patient est admis le 23 août 2021 pour une douleur à l'estomac. "
-    "Il lui était arrivé la même chose il y a un an."
+    "Il lui était arrivé la même chose il y a un an pendant une semaine."
 )
 
 doc = nlp(text)
 
 dates = doc.spans["dates"]
 dates
-# Out: [23 août 2021, il y a un an]
+# Out: [23 août 2021, il y a un an, pendant une semaine]
 
-dates[0]._.date
-# Out: '2021-08-23'
+dates[0]._.date.to_datetime()
+# Out: 2021-08-23T00:00:00+02:00
 
-dates[1]._.date
-# Out: 'TD-365'
+dates[1]._.date.to_datetime()
+# Out: -1 year
 
-doc._.note_datetime = datetime(2021, 8, 27)
+note_datetime = pendulum.datetime(2021, 8, 27, tz="Europe/Paris")
 
-dates[1]._.date
-# Out: '2020-08-27'
+dates[1]._.date.to_datetime(note_datetime=note_datetime)
+# Out: 2020-08-27T00:00:00+02:00
 ```
 
 ## Declared extensions
 
-The `eds.dates` pipeline declares two [spaCy extensions](https://spacy.io/usage/processing-pipelines#custom-components-attributes) on the `Span` object :
-
-1. The `date_parsed` attribute is a Python `datetime` object, used internally by the pipeline.
-2. The `date` attribute is a property that displays a normalised human-readable string for the date.
+The `eds.dates` pipeline declares one [spaCy extension](https://spacy.io/usage/processing-pipelines#custom-components-attributes) on the `Span` object: the `date` attribute contains a parsed version of the date.
 
 ## Configuration
 
@@ -67,14 +58,11 @@ The pipeline can be configured using the following parameters :
 
 | Parameter        | Explanation                                      | Default                           |
 | ---------------- | ------------------------------------------------ | --------------------------------- |
-| `no_year`        | Date patterns without year, eg `le 5 août`       | `None` (use pre-defined patterns) |
-| `year_only`      | Date patterns with only the year, eg `en 2018`   | `None` (use pre-defined patterns) |
-| `no_day`         | Date patterns without day, eg `en mars 2018`     | `None` (use pre-defined patterns) |
 | `absolute`       | Absolute date patterns, eg `le 5 août 2020`      | `None` (use pre-defined patterns) |
 | `relative`       | Relative date patterns, eg `hier`)               | `None` (use pre-defined patterns) |
-| `full`           | Full date patterns, eg `2020-10-23`              | `None` (use pre-defined patterns) |
-| `current`        | "Current" date patterns, eg `ce jour`            | `None` (use pre-defined patterns) |
+| `durations`      | Duration patterns, eg `pendant trois mois`)      | `None` (use pre-defined patterns) |
 | `false_positive` | Some false positive patterns to exclude          | `None` (use pre-defined patterns) |
+| `detect_periods` | Whether to look for dates around entities only   | `False`                           |
 | `on_ents_only`   | Whether to look for dates around entities only   | `False`                           |
 | `attr`           | spaCy attribute to match on, eg `NORM` or `TEXT` | `"NORM"`                          |
 

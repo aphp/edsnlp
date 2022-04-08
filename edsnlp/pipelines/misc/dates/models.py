@@ -157,7 +157,7 @@ class RelativeDate(Relative):
             d = self.dict(exclude_none=True)
             d.pop("direction")
 
-            key = list(d.keys())[0]
+            (key,) = d.keys()
 
             norm = f"~0 {key}"
         else:

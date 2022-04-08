@@ -1,11 +1,16 @@
 # Changelog
 
-## Unreleased
+## v0.5.0 (2022-04-08)
 
 ### Added
 
-- New `eds` language to better fit French clinical documents and improve speed.
-- Testing for markdown codeblocks.
+- New `eds` language to better fit French clinical documents and improve speed
+- Testing for markdown codeblocks to make sure the documentation is actually executable
+
+### Changed
+
+- Complete revamp of the date detection pipeline, with better parsing and more exhaustive matching
+- Reimplementation of the EDSPhraseMatcher in Cython, leading to a x15 speed increase
 
 ## v0.4.4
 
@@ -18,6 +23,8 @@
 ## v0.4.3
 
 - Fix regex matching on spans.
+- Add fast_parse in date pipeline.
+- Add relative_date information parsing
 
 ## v0.4.2
 

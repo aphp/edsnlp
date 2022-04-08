@@ -1,4 +1,8 @@
-from setuptools import find_packages, setup
+from distutils.sysconfig import get_python_inc
+
+import numpy
+from Cython.Build import cythonize
+from setuptools import Extension, find_packages, setup
 
 
 def get_lines(relative_path):
@@ -13,6 +17,29 @@ def get_version(path):
                 return line.split('"')[1]
     raise RuntimeError("Unable to find version string.")
 
+
+COMPILER_DIRECTIVES = {
+    "language_level": "3",
+}
+MOD_NAMES = ["edsnlp.matchers.phrase"]
+
+include_dirs = [
+    numpy.get_include(),
+    get_python_inc(plat_specific=True),
+]
+ext_modules = []
+for name in MOD_NAMES:
+    mod_path = name.replace(".", "/") + ".pyx"
+    ext = Extension(
+        name,
+        [mod_path],
+        language="c++",
+        include_dirs=include_dirs,
+        extra_compile_args=["-std=c++11"],
+    )
+    ext_modules.append(ext)
+print("Cythonizing sources")
+ext_modules = cythonize(ext_modules, compiler_directives=COMPILER_DIRECTIVES)
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -66,12 +93,14 @@ setup(
     python_requires=">=3.6",
     packages=find_packages(),
     install_requires=get_lines("requirements.txt"),
+    ext_modules=ext_modules,
     extras_require=dict(
         demo=["streamlit>=1.2"],
         distributed=["pyspark"],
     ),
     package_data={
         "edsnlp": ["resources/*.csv"],
+        "": ["*.pyx", "*.pxd", "*.pxi"],
     },
     entry_points={
         "spacy_factories": factories,

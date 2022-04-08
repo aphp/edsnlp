@@ -215,7 +215,7 @@ for ent in ents:
 
 for date in doc.spans.get("dates", []):
     span = Span(doc, date.start, date.end, label="date")
-    span._.value = span._.date
+    span._.value = span._.date.norm()
     ents.append(span)
 
 for measure in doc.spans.get("measures", []):

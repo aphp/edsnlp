@@ -124,8 +124,8 @@ def test_pipelines(param, model):
             "hypothesis": T.BooleanType(),
             "family": T.BooleanType(),
             "reported_speech": T.BooleanType(),
-            "parsed_date": T.TimestampType(),
-            "date": T.StringType(),
+            # "parsed_date": T.TimestampType(),
+            # "date": T.StringType(),
         },
         additional_spans=["dates"],
     )
@@ -149,13 +149,11 @@ def test_pipelines(param, model):
             "reported_speech",
             "family",
             "score_method",
-            "parsed_date",
-            "date",
         )
     )
 
-    # Check that context is correctly added
-    assert f"{NOTE_YEAR}-08-29" in note_nlp["date"].unique()
+    # # Check that context is correctly added
+    # assert f"{NOTE_YEAR}-08-29" in note_nlp["date"].unique()
 
 
 def test_spark_missing_types(model):
@@ -165,5 +163,5 @@ def test_spark_missing_types(model):
             note(module=DataFrameModules.PYSPARK),
             nlp=model,
             extensions={"negation", "hypothesis", "family"},
-            additional_spans=["dates"],
+            # additional_spans=["dates"],
         )

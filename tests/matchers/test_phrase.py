@@ -38,7 +38,7 @@ def test_offset(blank_nlp):
         span.text == pattern.text
 
     for _, start, end in matcher(doc[2:]):
-        assert doc[2:][start:end].text == pattern.text
+        assert doc[start:end].text == pattern.text
 
     for span in matcher(doc[2:], as_spans=True):
         span.text == pattern.text
@@ -56,7 +56,7 @@ def test_remove(blank_nlp):
 
     assert len(matcher) == 1
 
-    with pytest.raises(ValueError):
+    with pytest.raises(KeyError):
         matcher.remove("wrong_key")
 
     matcher.remove("test")

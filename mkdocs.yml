@@ -85,6 +85,7 @@ nav:
     - utilities/tests/index.md
     - utilities/tests/blocs.md
     - utilities/tests/examples.md
+    - utilities/matchers.md
   - Code Reference: reference/
   - contributing.md
   - changelog.md

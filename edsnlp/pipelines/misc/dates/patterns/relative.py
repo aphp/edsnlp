@@ -1,31 +1,55 @@
 from edsnlp.utils.regex import make_pattern
 
-ago_pattern = r"il\s+y\s+a\s+.{,10}?\s+(heures?|jours?|semaines?|mois|ann[ée]es?|ans?)"
-in_pattern = r"dans\s+.{,10}?\s+(heures?|jours?|semaines?|mois|ann[ée]es?|ans?)"
-last_pattern = r"l['ae]\s*(semaine|année|an|mois)\s+derni[èe]re?"
-next_pattern = r"l['ae]\s*(semaine|année|an|mois)\s+prochaine?"
+from .atomic import directions, numbers, units
+from .atomic.modes import mode_pattern
+from .current import current_pattern
 
-# "depuis" is not recognized
-since_pattern = (
-    r"(?<=depuis\s)\s*.{,10}\s+(heures?|jours?|semaines?"
-    r"|mois|ann[ée]es?|ans?)(\s+derni[èe]re?)?"
+
+def make_specific_pattern(mode: str = "forward"):
+
+    if mode == "forward":
+        p = directions.preceding_direction_pattern
+        p += r"\s+"
+        p += numbers.number_pattern
+        p += r"\s*"
+        p += units.unit_pattern
+    elif mode == "backward":
+        p = numbers.number_pattern
+        p += r"\s*"
+        p += units.unit_pattern
+        p += r"\s+"
+        p += directions.following_direction_pattern
+    else:
+        p = directions.preceding_direction_pattern
+        p += r"\s+"
+        p += numbers.number_pattern
+        p += r"\s*"
+        p += units.unit_pattern
+        p += r"\s+"
+        p += directions.following_direction_pattern
+
+    return p
+
+
+specific = {
+    "minus1": (r"hier", dict(direction="PAST", day=1)),
+    "minus2": (r"avant[-\s]hier", dict(direction="PAST", day=2)),
+    "plus1": (r"demain", dict(direction="FUTURE", day=1)),
+    "plus2": (r"après[-\s]demain", dict(direction="FUTURE", day=2)),
+}
+
+specific_pattern = make_pattern(
+    [f"(?P<specific_{k}>{p})" for k, (p, _) in specific.items()],
 )
-during_pattern = r"(pendant|pdt|pour)\s+.{,10}?\s+(heures?|jours?|mois|ann[ée]es?|ans?)"
 
-week_patterns = [
-    r"(avant\-?\s*)?hier",
-    r"(apr[èe]s\-?\s*)?demain",
+specific_dict = {k: v for k, (_, v) in specific.items()}
+
+relative_pattern = [
+    make_specific_pattern(mode="forward"),
+    make_specific_pattern(mode="backward"),
+    make_specific_pattern(mode="all"),
+    specific_pattern,
+    current_pattern,
 ]
-week_pattern = make_pattern(week_patterns, with_breaks=True)
 
-relative_pattern = make_pattern(
-    patterns=[
-        ago_pattern,
-        in_pattern,
-        last_pattern,
-        next_pattern,
-        since_pattern,
-        week_pattern,
-    ],
-    with_breaks=True,
-)
+relative_pattern = [r"(?<=" + mode_pattern + r".{,3})?" + p for p in relative_pattern]

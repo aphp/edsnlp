@@ -1,10 +1,9 @@
-import re
-from datetime import datetime, timedelta
-from itertools import chain
-from typing import Dict, Generator, Iterable, List, Optional, Tuple
+"""`eds.dates` pipeline."""
 
-from dateparser import DateDataParser
-from dateparser_data.settings import default_parsers
+from itertools import chain
+from typing import Dict, List, Optional, Tuple, Union
+
+from loguru import logger
 from spacy.language import Language
 from spacy.tokens import Doc, Span
 
@@ -13,188 +12,9 @@ from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
 
 from . import patterns
-from .parsing import day2int, month2int, str2int
+from .models import AbsoluteDate, Duration, Mode, Period, RelativeDate
 
-
-def td2str(td: timedelta):
-    """
-    Transforms a timedelta object to a string representation.
-
-    Parameters
-    ----------
-    td : timedelta
-        The timedelta object to represent.
-
-    Returns
-    -------
-    str
-        Usable representation for the timedelta object.
-    """
-    seconds = td.total_seconds()
-    days = int(seconds / 3600 / 24)
-    return f"TD{days:+d}"
-
-
-def date_getter(date: Span) -> str:
-    """
-    Getter for dates. Uses the information from `note_datetime`.
-
-    Parameters
-    ----------
-    date : Span
-        Date detected by the pipeline.
-
-    Returns
-    -------
-    str
-        Normalized date.
-    """
-
-    d = date._.parsed_date
-
-    if d is None:
-        # dateparser could not interpret the date.
-        return "????-??-??"
-
-    delta = date._.parsed_delta
-    note_datetime = date.doc._.note_datetime
-
-    if date.label_ in {"absolute", "full_date", "no_day"}:
-        normalized = d.strftime("%Y-%m-%d")
-    elif date.label_ == "no_year":
-        if note_datetime:
-            year = note_datetime.strftime("%Y")
-        else:
-            year = "????"
-        normalized = d.strftime(f"{year}-%m-%d")
-    else:
-        if note_datetime:
-            # We need to adjust the timedelta, since most dates are set at 00h00.
-            # The slightest difference leads to a day difference.
-            d = note_datetime + delta
-            normalized = d.strftime("%Y-%m-%d")
-        else:
-            normalized = td2str(d - datetime.now())
-
-    return normalized
-
-
-parsers = [parser for parser in default_parsers if parser != "relative-time"]
-parser1 = DateDataParser(
-    languages=["fr"],
-    settings={
-        "PREFER_DAY_OF_MONTH": "first",
-        "PREFER_DATES_FROM": "past",
-        "PARSERS": parsers,
-        "RETURN_AS_TIMEZONE_AWARE": False,
-    },
-)
-
-parser2 = DateDataParser(
-    languages=["fr"],
-    settings={
-        "PREFER_DAY_OF_MONTH": "first",
-        "PREFER_DATES_FROM": "past",
-        "PARSERS": ["relative-time"],
-        "RETURN_AS_TIMEZONE_AWARE": False,
-    },
-)
-
-
-def date_parser(text_date: str) -> datetime:
-    """
-    Function to parse dates. It try first all available parsers
-    ('timestamp', 'custom-formats', 'absolute-time') but 'relative-time'.
-    If no date is found, retries with 'relative-time'.
-
-    When just the year is identified, it returns a datetime object with
-    month and day equal to 1.
-
-
-    Parameters
-    ----------
-    text_date : str
-
-    Returns
-    -------
-    datetime
-    """
-
-    parsed_date = parser1.get_date_data(text_date)
-    if parsed_date.date_obj:
-        if parsed_date.period == "year":
-            return datetime(year=parsed_date.date_obj.year, month=1, day=1)
-        else:
-            return parsed_date.date_obj
-    else:
-        parsed_date2 = parser2.get_date_data(text_date)
-        return parsed_date2.date_obj
-
-
-def apply_groupdict(
-    dates: Iterable[Tuple[Span, Dict[str, str]]]
-) -> Generator[Span, None, None]:
-    for span, groupdict in dates:
-        span._.groupdict = groupdict
-        yield span
-
-
-def parse_groupdict(
-    day: str = None,
-    month: str = None,
-    year: str = None,
-    hour: str = None,
-    minute: str = None,
-    second: str = None,
-    **kwargs: Dict[str, str],
-) -> Dict[str, int]:
-    """
-    Parse date groupdict.
-
-    Parameters
-    ----------
-    day : str, optional
-        String representation of the day, by default None
-    month : str, optional
-        String representation of the month, by default None
-    year : str, optional
-        String representation of the year, by default None
-    hour : str, optional
-        String representation of the hour, by default None
-    minute : str, optional
-        String representation of the minute, by default None
-    second : str, optional
-        String representation of the minute, by default None
-
-    Returns
-    -------
-    Dict[str, int]
-        Parsed groupdict.
-    """
-
-    result = dict()
-
-    if day is not None:
-        result["day"] = day2int(day)
-
-    if month is not None:
-        result["month"] = month2int(month)
-
-    if year is not None:
-        result["year"] = str2int(year)
-
-    if hour is not None:
-        result["hour"] = str2int(hour)
-
-    if minute is not None:
-        result["minute"] = str2int(minute)
-
-    if second is not None:
-        result["second"] = str2int(second)
-
-    result.update(**kwargs)
-
-    return result
+PERIOD_PROXIMITY_THRESHOLD = 3
 
 
 class Dates(BaseComponent):
@@ -212,20 +32,12 @@ class Dates(BaseComponent):
         Language pipeline object
     absolute : Union[List[str], str]
         List of regular expressions for absolute dates.
-    full : Union[List[str], str]
-        List of regular expressions for full dates in YYYY-MM-DD format.
     relative : Union[List[str], str]
         List of regular expressions for relative dates
         (eg `hier`, `la semaine prochaine`).
-    no_year : Union[List[str], str]
-        List of regular expressions for dates that do not display a year.
-    no_day : Union[List[str], str]
-        List of regular expressions for dates that do not display a day.
-    year_only : Union[List[str], str]
-        List of regular expressions for dates that only display a year.
-    current : Union[List[str], str]
-        List of regular expressions for dates that relate to
-        the current month, week, year, etc.
+    duration : Union[List[str], str]
+        List of regular expressions for durations
+        (eg `pendant trois mois`).
     false_positive : Union[List[str], str]
         List of regular expressions for false positive (eg phone numbers, etc).
     on_ents_only : Union[bool, str, List[str]]
@@ -235,6 +47,10 @@ class Dates(BaseComponent):
         - If False: Look in the whole document
         - If given a string `key` or list of string: Only look in the sentences of
           each entity in `#!python doc.spans[key]`
+    detect_periods : bool
+        Wether to detect periods (experimental)
+    attr : str
+        spaCy attribute to use
     """
 
     # noinspection PyProtectedMember
@@ -242,33 +58,22 @@ class Dates(BaseComponent):
         self,
         nlp: Language,
         absolute: Optional[List[str]],
-        full: Optional[List[str]],
         relative: Optional[List[str]],
-        no_year: Optional[List[str]],
-        no_day: Optional[List[str]],
-        year_only: Optional[List[str]],
-        current: Optional[List[str]],
+        duration: Optional[List[str]],
         false_positive: Optional[List[str]],
-        on_ents_only: bool,
+        on_ents_only: Union[bool, List[str]],
+        detect_periods: bool,
         attr: str,
     ):
 
         self.nlp = nlp
 
-        if no_year is None:
-            no_year = patterns.no_year_pattern
-        if year_only is None:
-            year_only = patterns.full_year_pattern
-        if no_day is None:
-            no_day = patterns.no_day_pattern
         if absolute is None:
-            absolute = patterns.absolute_date_pattern
+            absolute = patterns.absolute_pattern
         if relative is None:
-            relative = patterns.relative_date_pattern
-        if full is None:
-            full = patterns.full_date_pattern
-        if current is None:
-            current = patterns.current_pattern
+            relative = patterns.relative_pattern
+        if duration is None:
+            duration = patterns.duration_pattern
         if false_positive is None:
             false_positive = patterns.false_positive_pattern
 
@@ -276,16 +81,8 @@ class Dates(BaseComponent):
             absolute = [absolute]
         if isinstance(relative, str):
             relative = [relative]
-        if isinstance(no_year, str):
-            no_year = [no_year]
-        if isinstance(no_day, str):
-            no_day = [no_day]
-        if isinstance(year_only, str):
-            year_only = [year_only]
-        if isinstance(full, str):
-            full = [full]
-        if isinstance(current, str):
-            current = [current]
+        if isinstance(duration, str):
+            relative = [duration]
         if isinstance(false_positive, str):
             false_positive = [false_positive]
 
@@ -293,31 +90,31 @@ class Dates(BaseComponent):
         self.regex_matcher = RegexMatcher(attr=attr, alignment_mode="strict")
 
         self.regex_matcher.add("false_positive", false_positive)
-        self.regex_matcher.add("full_date", full)
         self.regex_matcher.add("absolute", absolute)
         self.regex_matcher.add("relative", relative)
-        self.regex_matcher.add("no_year", no_year)
-        self.regex_matcher.add("no_day", no_day)
-        self.regex_matcher.add("year_only", year_only)
-        self.regex_matcher.add("current", current)
+        self.regex_matcher.add("duration", duration)
 
-        self.parser = date_parser
+        self.detect_periods = detect_periods
+
+        if detect_periods:
+            logger.warning("The period extractor is experimental.")
+
         self.set_extensions()
 
     @staticmethod
     def set_extensions() -> None:
+        """
+        Set extensions for the dates pipeline.
+        """
 
-        if not Doc.has_extension("note_datetime"):
-            Doc.set_extension("note_datetime", default=None)
-
-        if not Span.has_extension("parsed_date"):
-            Span.set_extension("parsed_date", default=None)
-
-        if not Span.has_extension("parsed_delta"):
-            Span.set_extension("parsed_delta", default=None)
+        if not Span.has_extension("datetime"):
+            Span.set_extension("datetime", default=None)
 
         if not Span.has_extension("date"):
-            Span.set_extension("date", getter=date_getter)
+            Span.set_extension("date", default=None)
+
+        if not Span.has_extension("period"):
+            Span.set_extension("period", default=None)
 
     def process(self, doc: Doc) -> List[Span]:
         """
@@ -352,7 +149,7 @@ class Dates(BaseComponent):
                     self.regex_matcher(
                         sent,
                         as_spans=True,
-                        # return_groupdict=True,
+                        return_groupdict=True,
                     ),
                 )
 
@@ -360,51 +157,97 @@ class Dates(BaseComponent):
             dates = self.regex_matcher(
                 doc,
                 as_spans=True,
-                # return_groupdict=True,
+                return_groupdict=True,
             )
 
-        # dates = apply_groupdict(dates)
-
         dates = filter_spans(dates)
-        dates = [date for date in dates if date.label_ != "false_positive"]
+        dates = [date for date in dates if date[0].label_ != "false_positive"]
 
         return dates
 
-    def get_date(self, date: Span) -> Optional[datetime]:
+    def parse(self, dates: List[Tuple[Span, Dict[str, str]]]) -> List[Span]:
         """
-        Get normalised date using `dateparser`.
+        Parse dates using the groupdict returned by the matcher.
 
         Parameters
         ----------
-        date : Span
-            Date span.
+        dates : List[Tuple[Span, Dict[str, str]]]
+            List of tuples containing the spans and groupdict
+            returned by the matcher.
 
         Returns
         -------
-        Optional[datetime]
-            If a date is recognised, returns a Python `datetime` object.
-            Returns `None` otherwise.
+        List[Span]
+            List of processed spans, with the date parsed.
         """
 
-        text_date = date.text
+        for span, groupdict in dates:
+            if span.label_ == "relative":
+                parsed = RelativeDate.parse_obj(groupdict)
+            elif span.label_ == "absolute":
+                parsed = AbsoluteDate.parse_obj(groupdict)
+            else:
+                parsed = Duration.parse_obj(groupdict)
 
-        if date.label_ == "no_day":
-            text_date = "01/" + re.sub(r"[\.\/\s]", "/", text_date)
+            span._.date = parsed
 
-        elif date.label_ == "full_date":
-            text_date = re.sub(r"[\.\/\s]", "-", text_date)
+        return [span for span, _ in dates]
 
-            try:
-                return datetime.strptime(text_date, "%Y-%m-%d")
-            except ValueError:
-                try:
-                    return datetime.strptime(text_date, "%Y-%d-%m")
-                except ValueError:
-                    return None
+    def process_periods(self, dates: List[Span]) -> List[Span]:
+        """
+        Experimental period detection.
 
-        # text_date = re.sub(r"\.", "-", text_date)
+        Parameters
+        ----------
+        dates : List[Span]
+            List of detected dates.
 
-        return self.parser(text_date)
+        Returns
+        -------
+        List[Span]
+            List of detected periods.
+        """
+
+        if len(dates) < 2:
+            return []
+
+        periods = []
+        seen = set()
+
+        dates = list(sorted(dates, key=lambda d: d.start))
+
+        for d1, d2 in zip(dates[:-1], dates[1:]):
+
+            if d1._.date.mode == Mode.DURATION or d2._.date.mode == Mode.DURATION:
+                pass
+            elif d1 in seen or d1._.date.mode is None or d2._.date.mode is None:
+                continue
+
+            if (
+                d1.end - d2.start < PERIOD_PROXIMITY_THRESHOLD
+                and d1._.date.mode != d2._.date.mode
+            ):
+
+                period = Span(d1.doc, d1.start, d2.end, label="period")
+
+                # If one date is a duration,
+                # the other may not have a registered mode.
+                m1 = d1._.date.mode or Mode.FROM
+                m2 = d2._.date.mode or Mode.FROM
+
+                period._.period = Period.parse_obj(
+                    {
+                        m1.value: d1,
+                        m2.value: d2,
+                    }
+                )
+
+                seen.add(d1)
+                seen.add(d2)
+
+                periods.append(period)
+
+        return periods
 
     def __call__(self, doc: Doc) -> Doc:
         """
@@ -412,25 +255,20 @@ class Dates(BaseComponent):
 
         Parameters
         ----------
-        doc:
+        doc : Doc
             spaCy Doc object
 
         Returns
         -------
-        doc:
+        doc : Doc
             spaCy Doc object, annotated for dates
         """
         dates = self.process(doc)
-
-        for date in dates:
-            d = self.get_date(date)
-
-            if d is None:
-                date._.parsed_date = None
-            else:
-                date._.parsed_date = d
-                date._.parsed_delta = d - datetime.now() + timedelta(seconds=10)
+        dates = self.parse(dates)
 
         doc.spans["dates"] = dates
+
+        if self.detect_periods:
+            doc.spans["periods"] = self.process_periods(dates)
 
         return doc

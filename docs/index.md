@@ -114,3 +114,18 @@ The performances of an extraction pipeline may depend on the population and docu
 ## Contributing to EDS-NLP
 
 We welcome contributions ! Fork the project and propose a pull request. Take a look at the [dedicated page](contributing.md) for detail.
+
+## Citation
+
+If you use EDS-NLP, please cite us as below.
+
+```bibtex
+@misc{edsnlp,
+  author = {Dura, Basile and Wajsburt, Perceval and Petit-Jean, Thomas and Jean, Charline and Romain, Bey},
+  doi    = {10.5281/zenodo.6424993},
+  title  = {EDS-NLP: efficient information extraction from French clinical notes},
+  url    = {http://aphp.github.io/edsnlp}
+}
+```
+
+\bibliography

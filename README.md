@@ -74,13 +74,13 @@ Take a look at the [dedicated page](https://aphp.github.io/edsnlp/latest/contrib
 
 ## Citation
 
-Should you use EDS-NLP for scientific work, please cite us:
+If you use EDS-NLP, please cite us as below.
 
 ```bibtex
 @misc{edsnlp,
-  author = {Dura, Basile and Petit-Jean, Thomas and Bey, Romain and Jean, Charline},
-  doi    = {},
-  title  = {{EDS-NLP: efficient information extraction from French clinical notes}},
-  year   = {2022}
+  author = {Dura, Basile and Wajsburt, Perceval and Petit-Jean, Thomas and Jean, Charline and Romain, Bey},
+  doi    = {10.5281/zenodo.6424993},
+  title  = {EDS-NLP: efficient information extraction from French clinical notes},
+  url    = {http://aphp.github.io/edsnlp}
 }
 ```

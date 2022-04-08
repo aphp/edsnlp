@@ -36,15 +36,15 @@ dates = doc.spans["dates"]
 dates
 # Out: [23 août 2021, il y a un an, pendant une semaine]
 
-dates[0]._.date.parse()
+dates[0]._.date.to_datetime()
 # Out: 2021-08-23T00:00:00+02:00
 
-dates[1]._.date.parse()
+dates[1]._.date.to_datetime()
 # Out: -1 year
 
 note_datetime = pendulum.datetime(2021, 8, 27, tz="Europe/Paris")
 
-dates[1]._.date.parse(note_datetime=note_datetime)
+dates[1]._.date.to_datetime(note_datetime=note_datetime)
 # Out: 2020-08-27T00:00:00+02:00
 ```
 

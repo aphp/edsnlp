@@ -35,7 +35,7 @@ doc = nlp(text)
 doc.spans["consultation_dates"]
 # Out: [Consultation du 03/10/2018]
 
-doc.spans["consultation_dates"][0]._.consultation_date.parse()
+doc.spans["consultation_dates"][0]._.consultation_date.to_datetime()
 # Out: DateTime(2018, 10, 3, 0, 0, 0, tzinfo=Timezone('Europe/Paris'))
 ```
 

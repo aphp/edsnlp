@@ -87,7 +87,7 @@ We can review each date and get its normalisation:
 Dates detected by the pipeline component are parsed into a dictionary-like object.
 It includes every information that is actually contained in the text.
 
-To get a more usable representation, you may call the `parse()` method.
+To get a more usable representation, you may call the `to_datetime()` method.
 If there's enough information, the date will be represented
 in a `datetime.datetime` or `datetime.timedelta` object. If some information is missing,
 It will return `None`.
@@ -205,14 +205,14 @@ doc = nlp(text)
 
 for ent in doc.ents:
     date = get_event_date(ent)
-    print(f"{ent.text:<20}{date.text:<20}{date._.date.parse()}")
+    print(f"{ent.text:<20}{date.text:<20}{date._.date.to_datetime()}")
 # Out: admis               12 avril 2020       2020-04-12T00:00:00+02:00
 # Out: pris en charge      l'année dernière    -1 year
 ```
 
 Which will output:
 
-| `ent`          | `get_event_date(ent)` | `get_event_date(ent)._.date.parse(` |
-| -------------- | --------------------- | ----------------------------------- |
-| admis          | 12 avril              | `2020-04-12T00:00:00+02:00`         |
-| pris en charge | l'année dernière      | `-1 year`                           |
+| `ent`          | `get_event_date(ent)` | `get_event_date(ent)._.date.to_datetime(` |
+| -------------- | --------------------- | ----------------------------------------- |
+| admis          | 12 avril              | `2020-04-12T00:00:00+02:00`               |
+| pris en charge | l'année dernière      | `-1 year`                                 |

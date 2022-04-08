@@ -63,6 +63,25 @@ class AbsoluteDate(BaseDate):
 
         return None
 
+    def norm(self) -> str:
+
+        year = str(self.year) if self.year else "????"
+        month = f"{self.month:02}" if self.month else "??"
+        day = f"{self.day:02}" if self.day else "??"
+
+        norm = "-".join([year, month, day])
+
+        if self.hour:
+            norm += f" {self.hour:02}h"
+
+        if self.minute:
+            norm += f"{self.minute:02}m"
+
+        if self.second:
+            norm += f"{self.second:02}s"
+
+        return norm
+
     @validator("year")
     def validate_year(cls, v):
         if v > 100:
@@ -107,7 +126,7 @@ class Relative(BaseDate):
 
         return d
 
-    def parse(self, **kwargs) -> pendulum.duration:
+    def parse(self, **kwargs) -> pendulum.Duration:
         d = self.dict(exclude_none=True)
 
         direction = d.pop("direction", None)
@@ -124,13 +143,30 @@ class Relative(BaseDate):
 class RelativeDate(Relative):
     direction: Direction = Direction.CURRENT
 
-    def parse(self, note_datetime: Optional[datetime] = None) -> pendulum.duration:
+    def parse(self, note_datetime: Optional[datetime] = None) -> pendulum.Duration:
         td = super(RelativeDate, self).parse()
 
         if note_datetime is not None:
             return note_datetime + td
 
         return td
+
+    def norm(self) -> str:
+
+        if self.direction == Direction.CURRENT:
+            d = self.dict(exclude_none=True)
+            d.pop("direction")
+
+            key = list(d.keys())[0]
+
+            norm = f"~0 {key}"
+        else:
+            td = self.parse()
+            norm = str(td)
+            if td.in_seconds() > 0:
+                norm = f"+{norm}"
+
+        return norm
 
     @root_validator(pre=True)
     def handle_specifics(cls, d: Dict[str, str]) -> Dict[str, str]:
@@ -160,3 +196,8 @@ class RelativeDate(Relative):
 
 class Duration(Relative):
     mode: Mode = Mode.DURATION
+
+    def norm(self) -> str:
+
+        td = self.parse()
+        return f"during {td}"

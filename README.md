@@ -78,7 +78,7 @@ If you use EDS-NLP, please cite us as below.
 
 ```bibtex
 @misc{edsnlp,
-  author = {Dura, Basile and Wajsburt, Perceval and Petit-Jean, Thomas and Jean, Charline and Romain, Bey},
+  author = {Dura, Basile and Wajsburt, Perceval and Petit-Jean, Thomas and Cohen, Ariel and Jean, Charline and Bey, Romain},
   doi    = {10.5281/zenodo.6424993},
   title  = {EDS-NLP: efficient information extraction from French clinical notes},
   url    = {http://aphp.github.io/edsnlp}

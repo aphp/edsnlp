@@ -18,6 +18,9 @@ authors:
   - given-names: Thomas
     family-names: Petit-Jean
     affiliation: Assistance Publique – Hôpitaux de Paris
+  - given-names: Ariel
+    family-names: Cohen
+    affiliation: Assistance Publique – Hôpitaux de Paris
   - given-names: Charline
     family-names: Jean
     affiliation: Assistance Publique – Hôpitaux de Paris
@@ -34,5 +37,5 @@ keywords:
   - NLP
   - clinical
 license: BSD-3-Clause
-year: 2022
-doi: https://doi.org/10.5281/zenodo.6424993
+# year: 2022
+# doi: 10.5281/zenodo.6424993

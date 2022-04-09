@@ -42,4 +42,5 @@ skip = [
     "*-manylinux_s390x",    # Skip slow Linux
 ]
 
+before-test = "pip install pytest"
 test-command = "pytest {project}/tests/pipelines/test_pipelines.py"

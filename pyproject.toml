@@ -3,7 +3,7 @@ requires = [
     "setuptools",
     "cython>=0.25,<3.0",
     "spacy>=3.2<4.0",
-    "numpy>=1.21",
+    "numpy>=1.22",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -42,5 +42,4 @@ skip = [
     "*-manylinux_s390x",    # Skip slow Linux
 ]
 
-before-test = "pip install pytest numpy==1.21"
 test-command = "pytest {project}/tests/pipelines/test_pipelines.py"

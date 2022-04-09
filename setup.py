@@ -90,7 +90,7 @@ setup(
     },
     long_description=long_description,
     long_description_content_type="text/markdown",
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     packages=find_packages(),
     install_requires=get_lines("requirements.txt"),
     ext_modules=ext_modules,

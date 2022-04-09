@@ -26,7 +26,7 @@ pip install edsnlp
 We recommend pinning the library version in your projects, or use a strict package manager like [Poetry](https://python-poetry.org/).
 
 ```shell
-pip install edsnlp==0.5.0
+pip install edsnlp==0.5.1
 ```
 
 ### A first pipeline

@@ -1,10 +1,10 @@
 # Changelog
 
-## v0.5.1 (2022-04-09)
+## v0.5.1 (2022-04-11)
 
 ### Fixed
 
-- Numpy requirements compatible with the `EDSPhraseMatcher`
+- Updated Numpy requirements to be compatible with the `EDSPhraseMatcher`
 
 ## v0.5.0 (2022-04-08)
 

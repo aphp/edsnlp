@@ -6,7 +6,7 @@ name: Test Build
 
 on:
   push:
-    branches:    
+    branches:
       - v*.*.*
 
 jobs:

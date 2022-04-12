@@ -8,7 +8,7 @@ from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
 
-from . import patterns, models
+from . import models, patterns
 
 PERIOD_PROXIMITY_THRESHOLD = 3
 

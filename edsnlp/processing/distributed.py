@@ -14,6 +14,8 @@ from .helpers import (
     DataFrames,
     check_spacy_version_for_context,
     get_module,
+    rgetattr,
+    slugify,
 )
 
 
@@ -112,7 +114,7 @@ def pipe(
                     T.StructField("start", T.IntegerType(), False),
                     T.StructField("end", T.IntegerType(), False),
                     *[
-                        T.StructField(extension_name, extension_type, True)
+                        T.StructField(slugify(extension_name), extension_type, True)
                         for extension_name, extension_type in extensions.items()
                     ],
                 ]
@@ -144,7 +146,7 @@ def pipe(
 
             for ent in doc.ents:
                 parsed_extensions = [
-                    getattr(ent._, extension) for extension in extensions.keys()
+                    rgetattr(ent._, extension) for extension in extensions.keys()
                 ]
 
                 ents.append(
@@ -169,7 +171,7 @@ def pipe(
                 for ent in doc.spans.get(spans_name, []):
 
                     parsed_extensions = [
-                        getattr(ent._, extension) for extension in extensions.keys()
+                        rgetattr(ent._, extension) for extension in extensions.keys()
                     ]
 
                     ents.append(

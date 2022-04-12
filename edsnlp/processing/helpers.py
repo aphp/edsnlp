@@ -1,7 +1,8 @@
+import functools
 import importlib
 from distutils.version import LooseVersion
 from enum import Enum
-from typing import Union
+from typing import Any, List, Union
 
 from pkg_resources import VersionConflict
 
@@ -39,3 +40,38 @@ def check_spacy_version_for_context():  # pragma: no cover
             f"However, we found SpaCy version {spacy_version}.\n",
             "Please upgrade SpaCy ;)",
         )
+
+
+def rgetattr(obj: Any, attr: str, *args: List[Any]) -> Any:
+    """
+    Recursively getting attribute
+
+    Parameters
+    ----------
+    obj : Any
+        An object
+    attr : str
+        The name of the attriute to get. Can contain dots.
+    """
+
+    def _getattr(obj, attr):
+        return None if obj is None else getattr(obj, attr, *args)
+
+    return functools.reduce(_getattr, [obj] + attr.split("."))
+
+
+def slugify(chained_attr: str) -> str:
+    """
+    Slugify a chained attribute name
+
+    Parameters
+    ----------
+    chained_attr : str
+        The string to slugify (replace dots by -)
+
+    Returns
+    -------
+    str
+        The slugified string
+    """
+    return chained_attr.replace(".", "-")

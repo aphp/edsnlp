@@ -147,8 +147,8 @@ def test_pipelines(param, model):
             "reported_speech",
             "family",
             "score_method",
-            "date-year",
-            "date-month",
+            "date_year",
+            "date_month",
         )
     )
 

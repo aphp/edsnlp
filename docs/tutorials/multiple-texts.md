@@ -206,11 +206,11 @@ data = data[["note_id"]].join(pd.json_normalize(data.entities))
 
 The result on the first note:
 
-| note_id | start | end | label      | lexical_variant   | negation | hypothesis | family | key   |
-| ------: | ----: | --: | :--------- | :---------------- | -------: | ---------: | -----: | :---- |
-|       0 |     0 |   7 | patient    | Patient           |        0 |          0 |      0 | ents  |
-|       0 |   114 | 121 | patient    | patient           |        0 |          0 |      1 | ents  |
-|       0 |    17 |  34 | 2021-09-25 | 25 septembre 2021 |      nan |        nan |    nan | dates |
+| note_id | start |  end | label      | lexical_variant   | negation | hypothesis | family | key   |
+| ------: | ----: | ---: | :--------- | :---------------- | -------: | ---------: | -----: | :---- |
+|       0 |     0 |    7 | patient    | Patient           |        0 |          0 |      0 | ents  |
+|       0 |   114 |  121 | patient    | patient           |        0 |          0 |      1 | ents  |
+|       0 |    17 |   34 | 2021-09-25 | 25 septembre 2021 |      nan |        nan |    nan | dates |
 
 ## Using EDS-NLP's helper functions
 
@@ -241,7 +241,7 @@ They share the same arguments:
         nlp,
         context=["note_datetime"],
         additional_spans=["dates"],
-        extensions=["date"],
+        extensions=["date.day", "date.month", "date.year"],
     )
     ```
 
@@ -259,7 +259,7 @@ note_nlp = single_pipe(
     data,
     nlp,
     additional_spans=["dates"],
-    extensions=["date"],
+    extensions=["date.day", "date.month", "date.year"],
 )
 ```
 
@@ -277,7 +277,7 @@ note_nlp = parallel_pipe(
     data,
     nlp,
     additional_spans=["dates"],
-    extensions=["date"],
+    extensions=["date.day", "date.month", "date.year"],
     n_jobs=-2,  # (1)
 )
 ```
@@ -361,7 +361,9 @@ EDS-NLP provides a helper function, [`pyspark_type_finder`][edsnlp.processing.di
 <!-- no-check -->
 
 ```python
-dt_type = pyspark_type_finder(datetime.datetime(2020, 1, 1))
+int_type = pyspark_type_finder(1)
+
+# Out: IntegerType()
 ```
 
 !!! danger "Be careful when providing the example"
@@ -385,7 +387,7 @@ Once again, using the helper is trivial:
         df,
         nlp,
         additional_spans=["dates"],
-        extensions={"date": dt_type},
+        extensions={"date.year": int_type, "date.month": int_type, "date.day": int_type},
     )
 
     # Check that the pipeline was correctly distributed:
@@ -404,7 +406,7 @@ Once again, using the helper is trivial:
         df,
         nlp,
         additional_spans=["dates"],
-        extensions={"date": dt_type},
+        extensions={"date.year": int_type, "date.month": int_type, "date.day": int_type},
     )
 
     # Check that the pipeline was correctly distributed:
@@ -429,7 +431,7 @@ note_nlp = pipe(
     nlp=nlp,
     n_jobs=1,
     additional_spans=["dates"],
-    extensions=["date"],
+    extensions=["date.day", "date.month", "date.year"],
 )
 
 ### Larger pandas DataFrame
@@ -438,7 +440,7 @@ note_nlp = pipe(
     nlp=nlp,
     n_jobs=-2,
     additional_spans=["dates"],
-    extensions=["date"],
+    extensions=["date.day", "date.month", "date.year"],
 )
 
 ### Huge Spark or Koalas DataFrame
@@ -447,6 +449,6 @@ note_nlp = pipe(
     nlp=nlp,
     how="spark",
     additional_spans=["dates"],
-    extensions={"date": dt_type},
+    extensions={"date.year": int_type, "date.month": int_type, "date.day": int_type},
 )
 ```

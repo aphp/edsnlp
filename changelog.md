@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Adding support for chained attributes in the `processing` pipelines
+
 ## v0.5.1 (2022-04-11)
 
 ### Fixed

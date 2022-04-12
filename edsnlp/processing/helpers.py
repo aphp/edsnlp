@@ -67,11 +67,11 @@ def slugify(chained_attr: str) -> str:
     Parameters
     ----------
     chained_attr : str
-        The string to slugify (replace dots by -)
+        The string to slugify (replace dots by _)
 
     Returns
     -------
     str
         The slugified string
     """
-    return chained_attr.replace(".", "-")
+    return chained_attr.replace(".", "_")

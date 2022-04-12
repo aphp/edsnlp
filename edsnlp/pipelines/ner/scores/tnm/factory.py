@@ -10,7 +10,7 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@Language.factory("eds.tnm", default_config=DEFAULT_CONFIG)
+@Language.factory("eds.TNM", default_config=DEFAULT_CONFIG)
 def create_component(
     nlp: Language,
     name: str,

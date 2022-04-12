@@ -362,6 +362,7 @@ EDS-NLP provides a helper function, [`pyspark_type_finder`][edsnlp.processing.di
 
 ```python
 int_type = pyspark_type_finder(1)
+
 # Out: IntegerType()
 ```
 

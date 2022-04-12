@@ -377,7 +377,7 @@ Once again, using the helper is trivial:
 
     <!-- no-check -->
 
-    ````python
+    ```python
     # ↑ Omitted code above ↑
     from edsnlp.processing.distributed import pipe as distributed_pipe
 

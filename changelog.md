@@ -2,7 +2,10 @@
 
 ## Unreleased
 
-- Adding support for chained attributes in the `processing` pipelines
+### Added
+
+- Support for chained attributes in the `processing` pipelines
+- Colour utility with the category20 colour palette
 
 ## v0.5.1 (2022-04-11)
 

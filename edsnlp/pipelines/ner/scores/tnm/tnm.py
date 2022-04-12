@@ -8,7 +8,7 @@ from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
 
-from . import patterns
+from . import patterns, models
 
 PERIOD_PROXIMITY_THRESHOLD = 3
 
@@ -100,7 +100,7 @@ class TNM(BaseComponent):
 
         for span, groupdict in spans:
 
-            span._.value = groupdict
+            span._.value = models.TNM.parse_obj(groupdict)
 
         return [span for span, _ in spans]
 

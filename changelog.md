@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Colour utility with the category20 colour palette
+
 ## v0.5.1 (2022-04-11)
 
 ### Fixed

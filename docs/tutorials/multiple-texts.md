@@ -387,11 +387,7 @@ Once again, using the helper is trivial:
         df,
         nlp,
         additional_spans=["dates"],
-        extensions={
-            "date.year": int_type,
-            "date.month": int_type,
-            "date.day": int_type
-        },
+        extensions={"date.year": int_type, "date.month": int_type, "date.day": int_type},
     )
 
     # Check that the pipeline was correctly distributed:

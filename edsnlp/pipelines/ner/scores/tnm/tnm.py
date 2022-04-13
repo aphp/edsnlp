@@ -123,4 +123,12 @@ class TNM(BaseComponent):
 
         doc.spans["tnm"] = spans
 
+        ents, discarded = filter_spans(list(doc.ents) + spans, return_discarded=True)
+
+        doc.ents = ents
+
+        if "discarded" not in doc.spans:
+            doc.spans["discarded"] = []
+        doc.spans["discarded"].extend(discarded)
+
         return doc

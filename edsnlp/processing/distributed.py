@@ -1,11 +1,15 @@
 from functools import partial
 from typing import Any, Callable, Dict, List, Tuple, Union
 
+from loguru import logger
+
 from decorator import decorator
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
 from spacy import Language
+
+from spacy.tokens import Doc
 
 from edsnlp.pipelines.base import BaseComponent
 
@@ -25,7 +29,7 @@ def pyspark_type_finder(obj):
     """
     try:
         inferred_type = T._infer_type(obj)
-        print(f"Inferred type is {repr(inferred_type)}")
+        logger.info(f"Inferred type is {repr(inferred_type)}")
         return inferred_type
     except TypeError:
         raise TypeError("Cannot infer type for this object.")
@@ -77,10 +81,10 @@ def pipe(
     additional_spans : Union[List[str], str], by default "discarded"
         A name (or list of names) of SpanGroup on which to apply the pipe too:
         SpanGroup are available as `doc.spans[spangroup_name]` and can be generated
-        by some pipes. For instance, the `date` pipe populates doc.spans['dates']
+        by some pipes. For instance, the `eds.dates` pipeline component populates `doc.spans['dates']`
     extensions : List[Tuple[str, T.DataType]], by default []
         Spans extensions to add to the extracted results:
-        FOr instance, if `extensions=["score_name"]`, the extracted result
+        For instance, if `extensions=["score_name"]`, the extracted result
         will include, for each entity, `ent._.score_name`.
 
     Returns
@@ -208,6 +212,97 @@ def pipe(
     )
     note_nlp = note_nlp.withColumn("matches", F.explode(note_nlp.matches))
 
+    note_nlp = note_nlp.select("note_id", "matches.*")
+
+    return note_nlp
+
+
+@module_checker
+def custom_pipe(
+    note: DataFrames,
+    nlp: Language,
+    callback: Callable[[Doc], List[Dict[str, Any]]],
+    dtypes: Dict[str, T.DataType],
+    context: List[str] = [],
+) -> DataFrame:
+    """
+    Function to apply a spaCy pipe to a pyspark or koalas DataFrame note,
+    a generic callback function.
+
+    Parameters
+    ----------
+    note : DataFrame
+        A Pyspark or Koalas DataFrame with a `note_id` and `note_text` column
+    nlp : Language
+        A spaCy pipe
+    callback : Callable[[Doc], List[Dict[str, Any]]]
+        Arbitrary function that takes extract serialisable results from the computed
+        spaCy `Doc` object. The output of the function must be a list of dictionaries
+        containing the extracted spans or entities.
+
+        There is no requirement for all entities to provide every dictionary key.
+    dtypes : Dict[str, T.DataType]
+        Dictionary containing all expected keys from the callback, along with their types.
+    context : List[str]
+        A list of column to add to the generated SpaCy document as an extension.
+        For instance, if `context=["note_datetime"], the corresponding value found
+        in the `note_datetime` column will be stored in `doc._.note_datetime`,
+        which can be useful e.g. for the `dates` pipeline.
+
+    Returns
+    -------
+    DataFrame
+        A pyspark DataFrame with one line per extraction
+    """
+
+    if context:
+        check_spacy_version_for_context()
+
+    spark = SparkSession.builder.enableHiveSupport().getOrCreate()
+    sc = spark.sparkContext
+
+    if not nlp.has_pipe("eds.context"):
+        nlp.add_pipe("eds.context", first=True, config=dict(context=context))
+
+    nlp_bc = sc.broadcast(nlp)
+
+    schema = T.ArrayType(
+        T.StructType([T.StructField(key, dtype) for key, dtype in dtypes.items()])
+    )
+
+    @F.udf(schema)
+    def udf(
+        text,
+        *context_values,
+    ):
+
+        if text is None:
+            return []
+
+        nlp = nlp_bc.value
+
+        for _, pipe in nlp.pipeline:
+            if isinstance(pipe, BaseComponent):
+                pipe.set_extensions()
+
+        doc = nlp.make_doc(text)
+        for context_name, context_value in zip(context, context_values):
+            doc._.set(context_name, context_value)
+
+        doc = nlp(doc)
+
+        results = []
+
+        for res in callback(doc):
+            results.append([res.get(key) for key in dtypes])
+
+        return results
+
+    note_nlp = note.withColumn(
+        "matches", udf(F.col("note_text"), *[F.col(c) for c in context])
+    )
+
+    note_nlp = note_nlp.withColumn("matches", F.explode(note_nlp.matches))
     note_nlp = note_nlp.select("note_id", "matches.*")
 
     return note_nlp

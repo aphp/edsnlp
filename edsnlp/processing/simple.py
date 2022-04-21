@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Optional, Callable
 
 import pandas as pd
 import spacy
@@ -72,7 +72,8 @@ def _pipe_generator(
     note: pd.DataFrame,
     nlp: Language,
     context: List[str] = [],
-    additional_spans: Union[List[str], str] = "discarded",
+    callback: Optional[Callable[[Doc], List[Dict[str, Any]]]] = None,
+    additional_spans: Union[List[str], str] = [],
     extensions: ExtensionSchema = [],
     batch_size: int = 50,
     progress_bar: bool = True,
@@ -80,6 +81,7 @@ def _pipe_generator(
 
     if type(extensions) == str:
         extensions = [extensions]
+
     elif type(extensions) == dict:
         extensions = list(extensions.keys())
 
@@ -98,11 +100,15 @@ def _pipe_generator(
 
     for doc in tqdm(pipeline, total=n_docs, disable=not progress_bar):
 
-        yield _full_schema(
-            doc,
-            additional_spans=additional_spans,
-            extensions=extensions,
-        )
+        if callback:
+            yield from callback(doc)
+
+        else:
+            yield _full_schema(
+                doc,
+                additional_spans=additional_spans,
+                extensions=extensions,
+            )
 
 
 def _single_schema(
@@ -175,7 +181,8 @@ def pipe(
     note: pd.DataFrame,
     nlp: Language,
     context: List[str] = [],
-    additional_spans: Union[List[str], str] = "discarded",
+    callback: Optional[Callable[[Doc], List[Dict[str, Any]]]] = None,
+    additional_spans: Union[List[str], str] = [],
     extensions: Union[List[str], str] = [],
     batch_size: int = 1000,
     progress_bar: bool = True,
@@ -219,6 +226,7 @@ def pipe(
                 note=note,
                 nlp=nlp,
                 context=context,
+                callback=callback,
                 additional_spans=additional_spans,
                 extensions=extensions,
                 batch_size=batch_size,

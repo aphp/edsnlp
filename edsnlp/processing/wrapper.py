@@ -1,6 +1,8 @@
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Optional, Callable
 
 from spacy import Language
+
+from spacy.tokens import Doc
 
 from .helpers import DataFrameModules, DataFrames, get_module
 from .parallel import pipe as parallel_pipe
@@ -13,7 +15,8 @@ def pipe(
     nlp: Language,
     n_jobs: int = -2,
     context: List[str] = [],
-    additional_spans: Union[List[str], str] = "discarded",
+    callback: Optional[Callable[[Doc], List[Dict[str, Any]]]] = None,
+    additional_spans: Union[List[str], str] = [],
     extensions: ExtensionSchema = [],
     **kwargs: Dict[str, Any],
 ) -> DataFrames:
@@ -37,8 +40,8 @@ def pipe(
 
         - `n_jobs=1` corresponds to `simple_pipe`
         - `n_jobs>1` corresponds to `parallel_pipe` with `n_jobs` parallel workers
-        - `n_jobs=-1` corresponds to `parallel_pipe` with maximun number of workers
-        - `n_jobs=-2` corresponds to `parallel_pipe` with maximun number of workers -1
+        - `n_jobs=-1` corresponds to `parallel_pipe` with maximum number of workers
+        - `n_jobs=-2` corresponds to `parallel_pipe` with maximum number of workers -1
     additional_spans : Union[List[str], str], by default "discarded"
         A name (or list of names) of SpanGroup on which to apply the pipe too:
         SpanGroup are available as `doc.spans[spangroup_name]` and can be generated
@@ -65,6 +68,7 @@ def pipe(
                 note=note,
                 nlp=nlp,
                 context=context,
+                callback=callback,
                 additional_spans=additional_spans,
                 extensions=extensions,
                 **kwargs,
@@ -76,6 +80,7 @@ def pipe(
                 note=note,
                 nlp=nlp,
                 context=context,
+                callback=callback,
                 additional_spans=additional_spans,
                 extensions=extensions,
                 n_jobs=n_jobs,
@@ -91,13 +96,27 @@ def pipe(
             """  # noqa W291
         )
 
-    from .distributed import pipe as distributed_pipe
+    from .distributed import pipe as distributed_pipe, custom_pipe
 
-    return distributed_pipe(
-        note=note,
-        nlp=nlp,
-        context=context,
-        additional_spans=additional_spans,
-        extensions=extensions,
-        **kwargs,
-    )
+    if callback is None:
+
+        return distributed_pipe(
+            note=note,
+            nlp=nlp,
+            context=context,
+            additional_spans=additional_spans,
+            extensions=extensions,
+            **kwargs,
+        )
+    else:
+
+        dtypes = kwargs.pop("dtypes")
+
+        return custom_pipe(
+            note=note,
+            nlp=nlp,
+            context=context,
+            callback=callback,
+            dtypes=dtypes,
+            **kwargs,
+        )

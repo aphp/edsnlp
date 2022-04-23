@@ -106,6 +106,7 @@ This example is complete, it should run as-is. Check out the [spaCy 101 page](tu
     | `eds.emergency.priority` | A priority score extractor |
     | `eds.emergency.ccmu`     | A CCMU score extractor     |
     | `eds.emergency.gemsa`    | A GEMSA score extractor    |
+    | `eds.drugs`              | A Drug mentions extractor  |
 
 ## Disclaimer
 

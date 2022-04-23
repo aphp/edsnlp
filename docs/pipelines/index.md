@@ -41,6 +41,7 @@ EDS-NLP provides easy-to-use spaCy components.
     | `eds.emergency.priority` | A priority score extractor |
     | `eds.emergency.ccmu`     | A CCMU score extractor     |
     | `eds.emergency.gemsa`    | A GEMSA score extractor    |
+    | `eds.drugs`              | A Drug mentions extractor  |
 
 You can add them to your spaCy pipeline by simply calling `add_pipe`, for instance:
 

@@ -71,6 +71,7 @@ factories = [
     "sections = edsnlp.components:sections",
     "context = edsnlp.components:context",
     "measures = edsnlp.components:measures",
+    "drugs = edsnlp.components:drugs",
 ]
 
 setup(

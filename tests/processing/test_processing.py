@@ -4,6 +4,10 @@ import databricks.koalas  # noqa F401
 import pandas as pd
 import pytest
 import spacy
+
+from spacy.tokens import Doc
+from typing import Any, Dict, List
+
 from pyspark.sql import types as T
 from pyspark.sql.session import SparkSession
 
@@ -161,3 +165,33 @@ def test_spark_missing_types(model):
             nlp=model,
             extensions={"negation", "hypothesis", "family"},
         )
+
+
+def callback(doc: Doc) -> List[Dict[str, Any]]:
+    return [dict(snippet=ent.text, length=len(ent.text)) for ent in doc.ents]
+
+
+@pytest.mark.parametrize("param", params[:2])
+def test_arbitrary_callback(param, model):
+
+    module = param["module"]
+
+    note_nlp = pipe(
+        note(module=module),
+        nlp=model,
+        n_jobs=param["n_jobs"],
+        context=["note_datetime"],
+        callback=callback,
+        dtypes={
+            "snippet": T.StringType(),
+            "length": T.IntegerType(),
+        },
+    )
+
+    if module == DataFrameModules.PYSPARK:
+        note_nlp = note_nlp.toPandas()
+    elif module == DataFrameModules.KOALAS:
+        note_nlp = note_nlp.to_pandas()
+
+    assert set(note_nlp.columns) == {"snippet", "length"}
+    assert (note_nlp.snippet.str.len() == note_nlp.length).all()

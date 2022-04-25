@@ -81,7 +81,7 @@ def pipe(
         by some pipes. For instance, the `date` pipe populates doc.spans['dates']
     extensions : List[Tuple[str, T.DataType]], by default []
         Spans extensions to add to the extracted results:
-        FOr instance, if `extensions=["score_name"]`, the extracted result
+        For instance, if `extensions=["score_name"]`, the extracted result
         will include, for each entity, `ent._.score_name`.
     chunksize: int, by default 100
         Batch size used to split tasks

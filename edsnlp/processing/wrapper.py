@@ -62,6 +62,9 @@ def pipe(
     module = get_module(note)
 
     if module == DataFrameModules.PANDAS:
+
+        kwargs.pop("dtypes", None)
+
         if n_jobs == 1:
 
             return simple_pipe(

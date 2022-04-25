@@ -14,7 +14,7 @@ def pipe(
     nlp: Language,
     n_jobs: int = -2,
     context: List[str] = [],
-    extractor: Optional[Callable[[Doc], List[Dict[str, Any]]]] = None,
+    results_extractor: Optional[Callable[[Doc], List[Dict[str, Any]]]] = None,
     additional_spans: Union[List[str], str] = [],
     extensions: ExtensionSchema = [],
     **kwargs: Dict[str, Any],
@@ -70,7 +70,7 @@ def pipe(
                 note=note,
                 nlp=nlp,
                 context=context,
-                extractor=extractor,
+                results_extractor=results_extractor,
                 additional_spans=additional_spans,
                 extensions=extensions,
                 **kwargs,
@@ -82,7 +82,7 @@ def pipe(
                 note=note,
                 nlp=nlp,
                 context=context,
-                extractor=extractor,
+                results_extractor=results_extractor,
                 additional_spans=additional_spans,
                 extensions=extensions,
                 n_jobs=n_jobs,
@@ -101,7 +101,7 @@ def pipe(
     from .distributed import custom_pipe
     from .distributed import pipe as distributed_pipe
 
-    if extractor is None:
+    if results_extractor is None:
 
         return distributed_pipe(
             note=note,
@@ -119,7 +119,7 @@ def pipe(
             note=note,
             nlp=nlp,
             context=context,
-            extractor=extractor,
+            results_extractor=results_extractor,
             dtypes=dtypes,
             **kwargs,
         )

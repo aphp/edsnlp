@@ -7,9 +7,6 @@
 - Support for chained attributes in the `processing` pipelines
 - Colour utility with the category20 colour palette
 
-## v0.5.2 (2022-04-25)
-
-- Update documentation of pipeline `endlines`
 ## v0.5.1 (2022-04-11)
 
 ### Fixed

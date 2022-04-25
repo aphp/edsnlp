@@ -1,10 +1,9 @@
-from typing import Callable, Iterable, List, Optional, Union, Dict, Any
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 import spacy
 from joblib import Parallel, delayed
 from spacy import Language
-
 from spacy.tokens import Doc
 
 from .helpers import check_spacy_version_for_context

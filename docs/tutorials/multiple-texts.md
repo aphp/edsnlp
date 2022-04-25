@@ -89,9 +89,13 @@ Processing text within a pandas DataFrame is a very common use case. In many app
 
     In every tutorial that mentions distributing EDS-NLP over a corpus of documents,
     we will expect the data to be organised using a flavour of the
-    [OMOP Common Data Model](https://www.ohdsi.org/data-standardization/the-common-data-model/).
+    [OMOP Common Data Model](https://ohdsi.github.io/CommonDataModel/).
 
-    For instance, we expect the input table to provide at least two columns, `note_id` and `note_text`.
+    The OMOP CDM defines two tables of interest to us:
+
+    - the [`note` table](https://ohdsi.github.io/CommonDataModel/cdm54.html#NOTE) contains the clinical notes
+    - the [`note_nlp` table](https://ohdsi.github.io/CommonDataModel/cdm54.html#NOTE_NLP) holds the results of
+      a NLP pipeline applied to the `note` table.
 
 To make sure we can follow along, we propose three recipes for getting the DataFrame: using a dummy dataset like before, loading a CSV or by loading a Spark DataFrame into memory.
 
@@ -218,14 +222,14 @@ Let's see how we can efficiently deploy our pipeline using EDS-NLP's utility met
 
 They share the same arguments:
 
-| Argument           | Description                                                                   | Default                 |
-| ------------------ | ----------------------------------------------------------------------------- | ----------------------- |
-| `note`             | A DataFrame, with two required columns, `note_id` and `note_id`               | Required                |
-| `nlp`              | The pipeline object                                                           | Required                |
-| `context`          | A list of column names to add context to the generate `Doc`                   | `[]`                    |
-| `additional_spans` | Keys in `doc.spans` to include besides `doc.ents`                             | `[]`                    |
-| `extensions`       | Custom extensions to use                                                      | `[]`                    |
-| `extractor`        | An arbitrary callback function that turns a `Doc` into a list of dictionaries | `None` (use extensions) |
+| Argument            | Description                                                                   | Default                 |
+| ------------------- | ----------------------------------------------------------------------------- | ----------------------- |
+| `note`              | A DataFrame, with two required columns, `note_id` and `note_id`               | Required                |
+| `nlp`               | The pipeline object                                                           | Required                |
+| `context`           | A list of column names to add context to the generate `Doc`                   | `[]`                    |
+| `additional_spans`  | Keys in `doc.spans` to include besides `doc.ents`                             | `[]`                    |
+| `extensions`        | Custom extensions to use                                                      | `[]`                    |
+| `results_extractor` | An arbitrary callback function that turns a `Doc` into a list of dictionaries | `None` (use extensions) |
 
 !!! tip "Adding context"
 
@@ -249,12 +253,14 @@ They share the same arguments:
     )
     ```
 
+    In this example, the `note_datetime` field becomes available as `doc._.note_datetime`.
+
 Depending on your pipeline, you may want to extract other extensions.
 To do so, simply provide those extension names (without the leading underscore) to the `extensions` argument.
 **This should cover most use-cases**.
 
 In case you need more fine-grained control over how you want to process the results of your pipeline,
-you can provide an arbitrary function to the pipeline. Said function is expected to take a spaCy `Doc`
+you can provide an arbitrary `results_extractor` function. Said function is expected to take a spaCy `Doc`
 object as input, and return a list of dictionaries that will be used to construct the `note_nlp` table.
 For instance, the `get_entities` function defined earlier could be distributed directly:
 
@@ -268,7 +274,7 @@ from processing import get_entities
 note_nlp = single_pipe(
     data,
     nlp,
-    extractor=get_entities,
+    results_extractor=get_entities,
 )
 ```
 
@@ -278,11 +284,10 @@ note_nlp = single_pipe(
     as a pickle object in order to be distributed. That implies a few limitations on the way your
     function can be defined.
 
-    Namely, your function needs to be discoverable: it should be defined in a module that can be accessed by the worker processes.
-    See the [pickle documentation on the subject](https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled) for detail.
+    Namely, your **function needs to be discoverable** (see the [pickle documentation on the subject](https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled)). When deploying it should be defined such a way that can be accessed by the worker processes.
 
     For that reason, **arbitrary functions can only be distributed via Spark/Koalas if their source code is advertised to the Spark workers**.
-    To that end, pip installing your function should do the trick.
+    To that end, you should define your custom function in a pip-installed Python package.
 
 ### Single process
 

@@ -101,7 +101,7 @@ def _pipe_generator(
     for doc in tqdm(pipeline, total=n_docs, disable=not progress_bar):
 
         if callback:
-            yield from callback(doc)
+            yield callback(doc)
 
         else:
             yield _full_schema(

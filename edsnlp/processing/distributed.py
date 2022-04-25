@@ -221,13 +221,14 @@ def pipe(
 def custom_pipe(
     note: DataFrames,
     nlp: Language,
-    callback: Callable[[Doc], List[Dict[str, Any]]],
+    extractor: Callable[[Doc], List[Dict[str, Any]]],
     dtypes: Dict[str, T.DataType],
     context: List[str] = [],
 ) -> DataFrame:
     """
     Function to apply a spaCy pipe to a pyspark or koalas DataFrame note,
-    a generic callback function.
+    a generic callback function that converts a spaCy `Doc` object into a 
+    list of dictionaries.
 
     Parameters
     ----------
@@ -235,14 +236,15 @@ def custom_pipe(
         A Pyspark or Koalas DataFrame with a `note_id` and `note_text` column
     nlp : Language
         A spaCy pipe
-    callback : Callable[[Doc], List[Dict[str, Any]]]
+    extractor : Callable[[Doc], List[Dict[str, Any]]]
         Arbitrary function that takes extract serialisable results from the computed
         spaCy `Doc` object. The output of the function must be a list of dictionaries
         containing the extracted spans or entities.
 
         There is no requirement for all entities to provide every dictionary key.
     dtypes : Dict[str, T.DataType]
-        Dictionary containing all expected keys from the callback, along with their types.
+        Dictionary containing all expected keys from the extractor function,
+        along with their types.
     context : List[str]
         A list of column to add to the generated SpaCy document as an extension.
         For instance, if `context=["note_datetime"], the corresponding value found
@@ -293,7 +295,7 @@ def custom_pipe(
 
         results = []
 
-        for res in callback(doc):
+        for res in extractor(doc):
             results.append([res.get(key) for key in dtypes])
 
         return results

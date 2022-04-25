@@ -51,7 +51,7 @@ def pipe(
     context: List[str] = [],
     additional_spans: Union[List[str], str] = [],
     extensions: ExtensionSchema = [],
-    callback: Optional[Callable[[Doc], List[Dict[str, Any]]]] = None,
+    extractor: Optional[Callable[[Doc], List[Dict[str, Any]]]] = None,
     chunksize: int = 100,
     n_jobs: int = -2,
     progress_bar: bool = True,
@@ -71,7 +71,7 @@ def pipe(
         For instance, if `context=["note_datetime"], the corresponding value found
         in the `note_datetime` column will be stored in `doc._.note_datetime`,
         which can be useful e.g. for the `dates` pipeline.
-    callback : Optional[Callable[[Doc], List[Dict[str, Any]]]]
+    extractor : Optional[Callable[[Doc], List[Dict[str, Any]]]]
         Arbitrary function that takes extract serialisable results from the computed
         spaCy `Doc` object. The output of the function must be a list of dictionaries
         containing the extracted spans or entities.
@@ -114,7 +114,7 @@ def pipe(
 
     pipe_kwargs["additional_spans"] = additional_spans
     pipe_kwargs["extensions"] = extensions
-    pipe_kwargs["callback"] = callback
+    pipe_kwargs["extractor"] = extractor
     pipe_kwargs["context"] = context
 
     if verbose:

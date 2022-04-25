@@ -72,7 +72,7 @@ def _pipe_generator(
     note: pd.DataFrame,
     nlp: Language,
     context: List[str] = [],
-    callback: Optional[Callable[[Doc], List[Dict[str, Any]]]] = None,
+    extractor: Optional[Callable[[Doc], List[Dict[str, Any]]]] = None,
     additional_spans: Union[List[str], str] = [],
     extensions: ExtensionSchema = [],
     batch_size: int = 50,
@@ -100,8 +100,8 @@ def _pipe_generator(
 
     for doc in tqdm(pipeline, total=n_docs, disable=not progress_bar):
 
-        if callback:
-            yield callback(doc)
+        if extractor:
+            yield extractor(doc)
 
         else:
             yield _full_schema(
@@ -181,7 +181,7 @@ def pipe(
     note: pd.DataFrame,
     nlp: Language,
     context: List[str] = [],
-    callback: Optional[Callable[[Doc], List[Dict[str, Any]]]] = None,
+    extractor: Optional[Callable[[Doc], List[Dict[str, Any]]]] = None,
     additional_spans: Union[List[str], str] = [],
     extensions: Union[List[str], str] = [],
     batch_size: int = 1000,
@@ -226,7 +226,7 @@ def pipe(
                 note=note,
                 nlp=nlp,
                 context=context,
-                callback=callback,
+                extractor=extractor,
                 additional_spans=additional_spans,
                 extensions=extensions,
                 batch_size=batch_size,

@@ -1,15 +1,13 @@
 from datetime import datetime
+from typing import Any, Dict, List
 
 import databricks.koalas  # noqa F401
 import pandas as pd
 import pytest
 import spacy
-
-from spacy.tokens import Doc
-from typing import Any, Dict, List
-
 from pyspark.sql import types as T
 from pyspark.sql.session import SparkSession
+from spacy.tokens import Doc
 
 from edsnlp.processing import pipe
 from edsnlp.processing.helpers import DataFrameModules

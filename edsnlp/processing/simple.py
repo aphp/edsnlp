@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Union, Optional, Callable
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import pandas as pd
 import spacy

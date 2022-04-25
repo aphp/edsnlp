@@ -1,7 +1,6 @@
-from typing import Any, Dict, List, Union, Optional, Callable
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from spacy import Language
-
 from spacy.tokens import Doc
 
 from .helpers import DataFrameModules, DataFrames, get_module
@@ -99,7 +98,8 @@ def pipe(
             """  # noqa W291
         )
 
-    from .distributed import pipe as distributed_pipe, custom_pipe
+    from .distributed import custom_pipe
+    from .distributed import pipe as distributed_pipe
 
     if extractor is None:
 

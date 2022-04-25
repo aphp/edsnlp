@@ -1,14 +1,12 @@
 from functools import partial
 from typing import Any, Callable, Dict, List, Tuple, Union
 
-from loguru import logger
-
 from decorator import decorator
+from loguru import logger
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
 from spacy import Language
-
 from spacy.tokens import Doc
 
 from edsnlp.pipelines.base import BaseComponent
@@ -81,7 +79,8 @@ def pipe(
     additional_spans : Union[List[str], str], by default "discarded"
         A name (or list of names) of SpanGroup on which to apply the pipe too:
         SpanGroup are available as `doc.spans[spangroup_name]` and can be generated
-        by some pipes. For instance, the `eds.dates` pipeline component populates `doc.spans['dates']`
+        by some pipes. For instance, the `eds.dates` pipeline
+        component populates `doc.spans['dates']`
     extensions : List[Tuple[str, T.DataType]], by default []
         Spans extensions to add to the extracted results:
         For instance, if `extensions=["score_name"]`, the extracted result
@@ -227,7 +226,7 @@ def custom_pipe(
 ) -> DataFrame:
     """
     Function to apply a spaCy pipe to a pyspark or koalas DataFrame note,
-    a generic callback function that converts a spaCy `Doc` object into a 
+    a generic callback function that converts a spaCy `Doc` object into a
     list of dictionaries.
 
     Parameters

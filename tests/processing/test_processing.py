@@ -166,7 +166,10 @@ def test_spark_missing_types(model):
 
 
 def results_extractor(doc: Doc) -> List[Dict[str, Any]]:
-    return [dict(snippet=ent.text, length=len(ent.text)) for ent in doc.ents]
+    return [
+        dict(snippet=ent.text, length=len(ent.text), note_datetime=doc._.note_datetime)
+        for ent in doc.ents
+    ]
 
 
 @pytest.mark.parametrize("param", params[:2])
@@ -191,5 +194,5 @@ def test_arbitrary_callback(param, model):
     elif module == DataFrameModules.KOALAS:
         note_nlp = note_nlp.to_pandas()
 
-    assert set(note_nlp.columns) == {"snippet", "length"}
+    assert set(note_nlp.columns) == {"snippet", "length", "note_datetime"}
     assert (note_nlp.snippet.str.len() == note_nlp.length).all()

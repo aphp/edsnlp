@@ -4912,6 +4912,8 @@
         
           
         
+          
+        
       
       
         
@@ -4942,6 +4944,20 @@
     <li class="md-nav__item">
       <a href="blocs/" class="md-nav__link">
         blocs
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="colors/" class="md-nav__link">
+        colors
       </a>
     </li>
   
@@ -5468,6 +5484,33 @@
           <li class="md-nav__item">
   <a href="#edsnlp.utils.resources.get_verbs" class="md-nav__link">
     get_verbs()
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#edsnlp.utils.colors" class="md-nav__link">
+    colors
+  </a>
+  
+    <nav class="md-nav" aria-label="colors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#edsnlp.utils.colors.CATEGORY20" class="md-nav__link">
+    CATEGORY20
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#edsnlp.utils.colors.create_colors" class="md-nav__link">
+    create_colors()
   </a>
   
 </li>
@@ -8893,6 +8936,171 @@ By default True</p>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">verbs</span><span class="p">)</span> <span class="o">==</span> <span class="n">selected_verbs</span><span class="o">.</span><span class="n">verb</span><span class="o">.</span><span class="n">nunique</span><span class="p">(),</span> <span class="s2">&quot;Some verbs are missing !&quot;</span>
 
     <span class="k">return</span> <span class="n">selected_verbs</span>
+</code></pre></div>
+</td></tr></table>
+        </details>
+    </div>
+
+  </div>
+
+
+
+
+
+  </div>
+
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-module">
+
+
+
+<h3 id="edsnlp.utils.colors" class="doc doc-heading">
+        <code>colors</code>
+
+
+
+</h3>
+
+    <div class="doc doc-contents ">
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+  <div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="edsnlp.utils.colors.CATEGORY20" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">CATEGORY20</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;#1f77b4&#39;</span><span class="p">,</span> <span class="s1">&#39;#aec7e8&#39;</span><span class="p">,</span> <span class="s1">&#39;#ff7f0e&#39;</span><span class="p">,</span> <span class="s1">&#39;#ffbb78&#39;</span><span class="p">,</span> <span class="s1">&#39;#2ca02c&#39;</span><span class="p">,</span> <span class="s1">&#39;#98df8a&#39;</span><span class="p">,</span> <span class="s1">&#39;#d62728&#39;</span><span class="p">,</span> <span class="s1">&#39;#ff9896&#39;</span><span class="p">,</span> <span class="s1">&#39;#9467bd&#39;</span><span class="p">,</span> <span class="s1">&#39;#c5b0d5&#39;</span><span class="p">,</span> <span class="s1">&#39;#8c564b&#39;</span><span class="p">,</span> <span class="s1">&#39;#c49c94&#39;</span><span class="p">,</span> <span class="s1">&#39;#e377c2&#39;</span><span class="p">,</span> <span class="s1">&#39;#f7b6d2&#39;</span><span class="p">,</span> <span class="s1">&#39;#7f7f7f&#39;</span><span class="p">,</span> <span class="s1">&#39;#c7c7c7&#39;</span><span class="p">,</span> <span class="s1">&#39;#bcbd22&#39;</span><span class="p">,</span> <span class="s1">&#39;#dbdb8d&#39;</span><span class="p">,</span> <span class="s1">&#39;#17becf&#39;</span><span class="p">,</span> <span class="s1">&#39;#9edae5&#39;</span><span class="p">]</span></code>
+
+  <span class="doc doc-properties">
+      <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
+  </span>
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+  </div>
+
+
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h4 id="edsnlp.utils.colors.create_colors" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">create_colors</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span></code>
+
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Assign a colour for each label, using category20 palette.
+The method loops over the colour palette in case there are too many labels.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th><b>PARAMETER</b></th>
+        <th><b>DESCRIPTION</b></th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td><code>labels</code></td>
+          <td class="doc-param-details">
+            <p>List of labels to colorise in displacy.</p>
+            <p>
+                <span class="doc-param-annotation">
+                  <b>TYPE:</b>
+                    <code>List[str]</code>
+                </span>
+            </p>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+  <table>
+    <thead>
+      <tr>
+        <th><b>RETURNS</b></th>
+        <th><b>DESCRIPTION</b></th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td>
+              <span class="doc-returns-annotation">
+                  <code>Dict[str, str]</code>
+              </span>
+          </td>
+          <td class="doc-returns-details">
+            <p>A displacy-compatible colour assignment.</p>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+        <details class="quote">
+          <summary>Source code in <code>edsnlp/utils/colors.py</code></summary>
+          <table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">create_colors</span><span class="p">(</span><span class="n">labels</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Assign a colour for each label, using category20 palette.</span>
+<span class="sd">    The method loops over the colour palette in case there are too many labels.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    labels : List[str]</span>
+<span class="sd">        List of labels to colorise in displacy.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Dict[str, str]</span>
+<span class="sd">        A displacy-compatible colour assignment.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">colors</span> <span class="o">=</span> <span class="p">{</span><span class="n">label</span><span class="p">:</span> <span class="n">cat</span> <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">cat</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">cycle</span><span class="p">(</span><span class="n">CATEGORY20</span><span class="p">))}</span>
+
+    <span class="k">return</span> <span class="n">colors</span>
 </code></pre></div>
 </td></tr></table>
         </details>

@@ -4912,6 +4912,8 @@
         
           
         
+          
+        
       
       
         
@@ -4942,6 +4944,20 @@
     <li class="md-nav__item">
       <a href="../utils/blocs/" class="md-nav__link">
         blocs
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../utils/colors/" class="md-nav__link">
+        colors
       </a>
     </li>
   
@@ -5297,6 +5313,20 @@
           <li class="md-nav__item">
   <a href="#edsnlp.processing.helpers.check_spacy_version_for_context" class="md-nav__link">
     check_spacy_version_for_context()
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#edsnlp.processing.helpers.rgetattr" class="md-nav__link">
+    rgetattr()
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#edsnlp.processing.helpers.slugify" class="md-nav__link">
+    slugify()
   </a>
   
 </li>
@@ -5826,16 +5856,16 @@ will include, for each entity, <code>ent._.score_name</code>.</p>
 
         <details class="quote">
           <summary>Source code in <code>edsnlp/processing/distributed.py</code></summary>
-          <table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">20</span>
-<span class="normal">21</span>
-<span class="normal">22</span>
+          <table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">22</span>
 <span class="normal">23</span>
 <span class="normal">24</span>
 <span class="normal">25</span>
 <span class="normal">26</span>
 <span class="normal">27</span>
 <span class="normal">28</span>
-<span class="normal">29</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">pyspark_type_finder</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">pyspark_type_finder</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns (when possible) the PySpark type of any python object</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -5870,9 +5900,7 @@ will include, for each entity, <code>ent._.score_name</code>.</p>
 
         <details class="quote">
           <summary>Source code in <code>edsnlp/processing/distributed.py</code></summary>
-          <table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">32</span>
-<span class="normal">33</span>
-<span class="normal">34</span>
+          <table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">34</span>
 <span class="normal">35</span>
 <span class="normal">36</span>
 <span class="normal">37</span>
@@ -5888,7 +5916,9 @@ will include, for each entity, <code>ent._.score_name</code>.</p>
 <span class="normal">47</span>
 <span class="normal">48</span>
 <span class="normal">49</span>
-<span class="normal">50</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><code><span class="nd">@decorator</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><code><span class="nd">@decorator</span>
 <span class="k">def</span> <span class="nf">module_checker</span><span class="p">(</span>
     <span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
     <span class="o">*</span><span class="n">args</span><span class="p">,</span>
@@ -6044,9 +6074,7 @@ will include, for each entity, <code>ent._.score_name</code>.</p>
 
         <details class="quote">
           <summary>Source code in <code>edsnlp/processing/distributed.py</code></summary>
-          <table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 53</span>
-<span class="normal"> 54</span>
-<span class="normal"> 55</span>
+          <table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 55</span>
 <span class="normal"> 56</span>
 <span class="normal"> 57</span>
 <span class="normal"> 58</span>
@@ -6202,7 +6230,9 @@ will include, for each entity, <code>ent._.score_name</code>.</p>
 <span class="normal">208</span>
 <span class="normal">209</span>
 <span class="normal">210</span>
-<span class="normal">211</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><code><span class="nd">@module_checker</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><code><span class="nd">@module_checker</span>
 <span class="k">def</span> <span class="nf">pipe</span><span class="p">(</span>
     <span class="n">note</span><span class="p">:</span> <span class="n">DataFrames</span><span class="p">,</span>
     <span class="n">nlp</span><span class="p">:</span> <span class="n">Language</span><span class="p">,</span>
@@ -6264,7 +6294,7 @@ will include, for each entity, <code>ent._.score_name</code>.</p>
                     <span class="n">T</span><span class="o">.</span><span class="n">StructField</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="n">T</span><span class="o">.</span><span class="n">IntegerType</span><span class="p">(),</span> <span class="kc">False</span><span class="p">),</span>
                     <span class="n">T</span><span class="o">.</span><span class="n">StructField</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">,</span> <span class="n">T</span><span class="o">.</span><span class="n">IntegerType</span><span class="p">(),</span> <span class="kc">False</span><span class="p">),</span>
                     <span class="o">*</span><span class="p">[</span>
-                        <span class="n">T</span><span class="o">.</span><span class="n">StructField</span><span class="p">(</span><span class="n">extension_name</span><span class="p">,</span> <span class="n">extension_type</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+                        <span class="n">T</span><span class="o">.</span><span class="n">StructField</span><span class="p">(</span><span class="n">slugify</span><span class="p">(</span><span class="n">extension_name</span><span class="p">),</span> <span class="n">extension_type</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
                         <span class="k">for</span> <span class="n">extension_name</span><span class="p">,</span> <span class="n">extension_type</span> <span class="ow">in</span> <span class="n">extensions</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
                     <span class="p">],</span>
                 <span class="p">]</span>
@@ -6296,7 +6326,7 @@ will include, for each entity, <code>ent._.score_name</code>.</p>
 
             <span class="k">for</span> <span class="n">ent</span> <span class="ow">in</span> <span class="n">doc</span><span class="o">.</span><span class="n">ents</span><span class="p">:</span>
                 <span class="n">parsed_extensions</span> <span class="o">=</span> <span class="p">[</span>
-                    <span class="nb">getattr</span><span class="p">(</span><span class="n">ent</span><span class="o">.</span><span class="n">_</span><span class="p">,</span> <span class="n">extension</span><span class="p">)</span> <span class="k">for</span> <span class="n">extension</span> <span class="ow">in</span> <span class="n">extensions</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                    <span class="n">rgetattr</span><span class="p">(</span><span class="n">ent</span><span class="o">.</span><span class="n">_</span><span class="p">,</span> <span class="n">extension</span><span class="p">)</span> <span class="k">for</span> <span class="n">extension</span> <span class="ow">in</span> <span class="n">extensions</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
                 <span class="p">]</span>
 
                 <span class="n">ents</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
@@ -6321,7 +6351,7 @@ will include, for each entity, <code>ent._.score_name</code>.</p>
                 <span class="k">for</span> <span class="n">ent</span> <span class="ow">in</span> <span class="n">doc</span><span class="o">.</span><span class="n">spans</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">spans_name</span><span class="p">,</span> <span class="p">[]):</span>
 
                     <span class="n">parsed_extensions</span> <span class="o">=</span> <span class="p">[</span>
-                        <span class="nb">getattr</span><span class="p">(</span><span class="n">ent</span><span class="o">.</span><span class="n">_</span><span class="p">,</span> <span class="n">extension</span><span class="p">)</span> <span class="k">for</span> <span class="n">extension</span> <span class="ow">in</span> <span class="n">extensions</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                        <span class="n">rgetattr</span><span class="p">(</span><span class="n">ent</span><span class="o">.</span><span class="n">_</span><span class="p">,</span> <span class="n">extension</span><span class="p">)</span> <span class="k">for</span> <span class="n">extension</span> <span class="ow">in</span> <span class="n">extensions</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
                     <span class="p">]</span>
 
                     <span class="n">ents</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
@@ -6589,7 +6619,7 @@ being a string and <code>context</code> a dictionnary</p>
         <span class="n">note_text</span> <span class="o">=</span> <span class="n">context_values</span><span class="o">.</span><span class="n">note_text</span>
         <span class="n">doc</span> <span class="o">=</span> <span class="n">nlp</span><span class="o">.</span><span class="n">make_doc</span><span class="p">(</span><span class="n">note_text</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
-            <span class="n">doc</span><span class="o">.</span><span class="n">_</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">context_values</span><span class="p">,</span> <span class="n">col</span><span class="p">))</span>
+            <span class="n">doc</span><span class="o">.</span><span class="n">_</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">slugify</span><span class="p">(</span><span class="n">col</span><span class="p">),</span> <span class="n">rgetattr</span><span class="p">(</span><span class="n">context_values</span><span class="p">,</span> <span class="n">col</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">doc</span>
 
     <span class="k">yield from</span> <span class="nb">map</span><span class="p">(</span>
@@ -6777,7 +6807,7 @@ being a string and <code>context</code> a dictionnary</p>
         <span class="s2">&quot;span_type&quot;</span><span class="p">:</span> <span class="n">span_type</span><span class="p">,</span>
         <span class="s2">&quot;start&quot;</span><span class="p">:</span> <span class="n">ent</span><span class="o">.</span><span class="n">start_char</span><span class="p">,</span>
         <span class="s2">&quot;end&quot;</span><span class="p">:</span> <span class="n">ent</span><span class="o">.</span><span class="n">end_char</span><span class="p">,</span>
-        <span class="o">**</span><span class="p">{</span><span class="n">extension</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">ent</span><span class="o">.</span><span class="n">_</span><span class="p">,</span> <span class="n">extension</span><span class="p">)</span> <span class="k">for</span> <span class="n">extension</span> <span class="ow">in</span> <span class="n">extensions</span><span class="p">},</span>
+        <span class="o">**</span><span class="p">{</span><span class="n">slugify</span><span class="p">(</span><span class="n">extension</span><span class="p">):</span> <span class="n">rgetattr</span><span class="p">(</span><span class="n">ent</span><span class="o">.</span><span class="n">_</span><span class="p">,</span> <span class="n">extension</span><span class="p">)</span> <span class="k">for</span> <span class="n">extension</span> <span class="ow">in</span> <span class="n">extensions</span><span class="p">},</span>
     <span class="p">}</span>
 </code></pre></div>
 </td></tr></table>
@@ -7295,10 +7325,10 @@ will include, for each entity, <code>ent._.score_name</code>.</p>
 
           <details class="quote">
             <summary>Source code in <code>edsnlp/processing/helpers.py</code></summary>
-            <table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 9</span>
-<span class="normal">10</span>
+            <table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">10</span>
 <span class="normal">11</span>
-<span class="normal">12</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">DataFrameModules</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="normal">12</span>
+<span class="normal">13</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">DataFrameModules</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
     <span class="n">PANDAS</span> <span class="o">=</span> <span class="s2">&quot;pandas&quot;</span>
     <span class="n">PYSPARK</span> <span class="o">=</span> <span class="s2">&quot;pyspark.sql&quot;</span>
     <span class="n">KOALAS</span> <span class="o">=</span> <span class="s2">&quot;databricks.koalas&quot;</span>
@@ -7410,10 +7440,10 @@ will include, for each entity, <code>ent._.score_name</code>.</p>
 
         <details class="quote">
           <summary>Source code in <code>edsnlp/processing/helpers.py</code></summary>
-          <table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">26</span>
-<span class="normal">27</span>
+          <table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">27</span>
 <span class="normal">28</span>
-<span class="normal">29</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">get_module</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">DataFrames</span><span class="p">):</span>
+<span class="normal">29</span>
+<span class="normal">30</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">get_module</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">DataFrames</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">DataFrameModules</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">df</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="n">value</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">module</span>
@@ -7442,8 +7472,7 @@ will include, for each entity, <code>ent._.score_name</code>.</p>
 
         <details class="quote">
           <summary>Source code in <code>edsnlp/processing/helpers.py</code></summary>
-          <table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">32</span>
-<span class="normal">33</span>
+          <table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">33</span>
 <span class="normal">34</span>
 <span class="normal">35</span>
 <span class="normal">36</span>
@@ -7451,7 +7480,8 @@ will include, for each entity, <code>ent._.score_name</code>.</p>
 <span class="normal">38</span>
 <span class="normal">39</span>
 <span class="normal">40</span>
-<span class="normal">41</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">check_spacy_version_for_context</span><span class="p">():</span>  <span class="c1"># pragma: no cover</span>
+<span class="normal">41</span>
+<span class="normal">42</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">check_spacy_version_for_context</span><span class="p">():</span>  <span class="c1"># pragma: no cover</span>
     <span class="kn">import</span> <span class="nn">spacy</span>
 
     <span class="n">spacy_version</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">spacy</span><span class="p">,</span> <span class="s2">&quot;__version__&quot;</span><span class="p">)</span>
@@ -7461,6 +7491,197 @@ will include, for each entity, <code>ent._.score_name</code>.</p>
             <span class="sa">f</span><span class="s2">&quot;However, we found SpaCy version </span><span class="si">{</span><span class="n">spacy_version</span><span class="si">}</span><span class="s2">.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
             <span class="s2">&quot;Please upgrade SpaCy ;)&quot;</span><span class="p">,</span>
         <span class="p">)</span>
+</code></pre></div>
+</td></tr></table>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h4 id="edsnlp.processing.helpers.rgetattr" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">rgetattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span></code>
+
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Recursively getting attribute</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th><b>PARAMETER</b></th>
+        <th><b>DESCRIPTION</b></th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td><code>obj</code></td>
+          <td class="doc-param-details">
+            <p>An object</p>
+            <p>
+                <span class="doc-param-annotation">
+                  <b>TYPE:</b>
+                    <code>Any</code>
+                </span>
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td><code>attr</code></td>
+          <td class="doc-param-details">
+            <p>The name of the attriute to get. Can contain dots.</p>
+            <p>
+                <span class="doc-param-annotation">
+                  <b>TYPE:</b>
+                    <code>str</code>
+                </span>
+            </p>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+        <details class="quote">
+          <summary>Source code in <code>edsnlp/processing/helpers.py</code></summary>
+          <table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">rgetattr</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">attr</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Recursively getting attribute</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    obj : Any</span>
+<span class="sd">        An object</span>
+<span class="sd">    attr : str</span>
+<span class="sd">        The name of the attriute to get. Can contain dots.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">functools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">_getattr</span><span class="p">,</span> <span class="p">[</span><span class="n">obj</span><span class="p">]</span> <span class="o">+</span> <span class="n">attr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">))</span>
+</code></pre></div>
+</td></tr></table>
+        </details>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-function">
+
+
+
+<h4 id="edsnlp.processing.helpers.slugify" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">slugify</span><span class="p">(</span><span class="n">chained_attr</span><span class="p">)</span></code>
+
+
+</h4>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Slugify a chained attribute name</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th><b>PARAMETER</b></th>
+        <th><b>DESCRIPTION</b></th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td><code>chained_attr</code></td>
+          <td class="doc-param-details">
+            <p>The string to slugify (replace dots by _)</p>
+            <p>
+                <span class="doc-param-annotation">
+                  <b>TYPE:</b>
+                    <code>str</code>
+                </span>
+            </p>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+  <table>
+    <thead>
+      <tr>
+        <th><b>RETURNS</b></th>
+        <th><b>DESCRIPTION</b></th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td>
+              <span class="doc-returns-annotation">
+                  <code>str</code>
+              </span>
+          </td>
+          <td class="doc-returns-details">
+            <p>The slugified string</p>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+        <details class="quote">
+          <summary>Source code in <code>edsnlp/processing/helpers.py</code></summary>
+          <table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span>
+<span class="normal">73</span>
+<span class="normal">74</span>
+<span class="normal">75</span>
+<span class="normal">76</span>
+<span class="normal">77</span></pre></div></td><td class="code"><div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">slugify</span><span class="p">(</span><span class="n">chained_attr</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Slugify a chained attribute name</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    chained_attr : str</span>
+<span class="sd">        The string to slugify (replace dots by _)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        The slugified string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">chained_attr</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
 </code></pre></div>
 </td></tr></table>
         </details>

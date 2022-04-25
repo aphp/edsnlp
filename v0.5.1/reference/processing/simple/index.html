@@ -5002,6 +5002,8 @@
         
           
         
+          
+        
       
       
         
@@ -5032,6 +5034,20 @@
     <li class="md-nav__item">
       <a href="../../utils/blocs/" class="md-nav__link">
         blocs
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../utils/colors/" class="md-nav__link">
+        colors
       </a>
     </li>
   
@@ -5476,7 +5492,7 @@ being a string and <code>context</code> a dictionnary</p>
         <span class="n">note_text</span> <span class="o">=</span> <span class="n">context_values</span><span class="o">.</span><span class="n">note_text</span>
         <span class="n">doc</span> <span class="o">=</span> <span class="n">nlp</span><span class="o">.</span><span class="n">make_doc</span><span class="p">(</span><span class="n">note_text</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
-            <span class="n">doc</span><span class="o">.</span><span class="n">_</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">context_values</span><span class="p">,</span> <span class="n">col</span><span class="p">))</span>
+            <span class="n">doc</span><span class="o">.</span><span class="n">_</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">slugify</span><span class="p">(</span><span class="n">col</span><span class="p">),</span> <span class="n">rgetattr</span><span class="p">(</span><span class="n">context_values</span><span class="p">,</span> <span class="n">col</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">doc</span>
 
     <span class="k">yield from</span> <span class="nb">map</span><span class="p">(</span>
@@ -5664,7 +5680,7 @@ being a string and <code>context</code> a dictionnary</p>
         <span class="s2">&quot;span_type&quot;</span><span class="p">:</span> <span class="n">span_type</span><span class="p">,</span>
         <span class="s2">&quot;start&quot;</span><span class="p">:</span> <span class="n">ent</span><span class="o">.</span><span class="n">start_char</span><span class="p">,</span>
         <span class="s2">&quot;end&quot;</span><span class="p">:</span> <span class="n">ent</span><span class="o">.</span><span class="n">end_char</span><span class="p">,</span>
-        <span class="o">**</span><span class="p">{</span><span class="n">extension</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">ent</span><span class="o">.</span><span class="n">_</span><span class="p">,</span> <span class="n">extension</span><span class="p">)</span> <span class="k">for</span> <span class="n">extension</span> <span class="ow">in</span> <span class="n">extensions</span><span class="p">},</span>
+        <span class="o">**</span><span class="p">{</span><span class="n">slugify</span><span class="p">(</span><span class="n">extension</span><span class="p">):</span> <span class="n">rgetattr</span><span class="p">(</span><span class="n">ent</span><span class="o">.</span><span class="n">_</span><span class="p">,</span> <span class="n">extension</span><span class="p">)</span> <span class="k">for</span> <span class="n">extension</span> <span class="ow">in</span> <span class="n">extensions</span><span class="p">},</span>
     <span class="p">}</span>
 </code></pre></div>
 </td></tr></table>

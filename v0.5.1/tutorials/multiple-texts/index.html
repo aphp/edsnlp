@@ -5024,6 +5024,8 @@
         
           
         
+          
+        
       
       
         
@@ -5054,6 +5056,20 @@
     <li class="md-nav__item">
       <a href="../../reference/utils/blocs/" class="md-nav__link">
         blocs
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/utils/colors/" class="md-nav__link">
+        colors
       </a>
     </li>
   
@@ -5594,7 +5610,7 @@ In this case, you can use the <code>context</code> parameter and provide a list 
     <span class="n">nlp</span><span class="p">,</span>
     <span class="n">context</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;note_datetime&quot;</span><span class="p">],</span>
     <span class="n">additional_spans</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;dates&quot;</span><span class="p">],</span>
-    <span class="n">extensions</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">],</span>
+    <span class="n">extensions</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;date.day&quot;</span><span class="p">,</span> <span class="s2">&quot;date.month&quot;</span><span class="p">,</span> <span class="s2">&quot;date.year&quot;</span><span class="p">],</span>
 <span class="p">)</span>
 </code></pre></div>
 </div>
@@ -5608,7 +5624,7 @@ In this case, you can use the <code>context</code> parameter and provide a list 
     <span class="n">data</span><span class="p">,</span>
     <span class="n">nlp</span><span class="p">,</span>
     <span class="n">additional_spans</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;dates&quot;</span><span class="p">],</span>
-    <span class="n">extensions</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">],</span>
+    <span class="n">extensions</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;date.day&quot;</span><span class="p">,</span> <span class="s2">&quot;date.month&quot;</span><span class="p">,</span> <span class="s2">&quot;date.year&quot;</span><span class="p">],</span>
 <span class="p">)</span>
 </code></pre></div>
 <p>In just two Python statements, we get the exact same result as before!</p>
@@ -5621,7 +5637,7 @@ In this case, you can use the <code>context</code> parameter and provide a list 
     <span class="n">data</span><span class="p">,</span>
     <span class="n">nlp</span><span class="p">,</span>
     <span class="n">additional_spans</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;dates&quot;</span><span class="p">],</span>
-    <span class="n">extensions</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">],</span>
+    <span class="n">extensions</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;date.day&quot;</span><span class="p">,</span> <span class="s2">&quot;date.month&quot;</span><span class="p">,</span> <span class="s2">&quot;date.year&quot;</span><span class="p">],</span>
     <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">2</span><span class="p">,</span>  <span class="c1"># (1)</span>
 <span class="p">)</span>
 </code></pre></div>
@@ -5692,7 +5708,9 @@ The procedure for those two types of DataFrame is virtually the same. Under the 
 <p>EDS-NLP provides a helper function, <a href="../../reference/processing/distributed/#edsnlp.processing.distributed.pyspark_type_finder"><code>pyspark_type_finder</code></a>, is available to get the correct type for most Python objects. You just need to provide an example of the type you wish to collect:</p>
 <!-- no-check -->
 
-<div class="highlight"><pre><span></span><code><span class="n">dt_type</span> <span class="o">=</span> <span class="n">pyspark_type_finder</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2020</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<div class="highlight"><pre><span></span><code><span class="n">int_type</span> <span class="o">=</span> <span class="n">pyspark_type_finder</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># Out: IntegerType()</span>
 </code></pre></div>
 <div class="admonition danger">
 <p class="admonition-title">Be careful when providing the example</p>
@@ -5712,7 +5730,7 @@ but will be <code>None</code> if you use an entity...</p>
     <span class="n">df</span><span class="p">,</span>
     <span class="n">nlp</span><span class="p">,</span>
     <span class="n">additional_spans</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;dates&quot;</span><span class="p">],</span>
-    <span class="n">extensions</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;date&quot;</span><span class="p">:</span> <span class="n">dt_type</span><span class="p">},</span>
+    <span class="n">extensions</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;date.year&quot;</span><span class="p">:</span> <span class="n">int_type</span><span class="p">,</span> <span class="s2">&quot;date.month&quot;</span><span class="p">:</span> <span class="n">int_type</span><span class="p">,</span> <span class="s2">&quot;date.day&quot;</span><span class="p">:</span> <span class="n">int_type</span><span class="p">},</span>
 <span class="p">)</span>
 
 <span class="c1"># Check that the pipeline was correctly distributed:</span>
@@ -5728,7 +5746,7 @@ but will be <code>None</code> if you use an entity...</p>
     <span class="n">df</span><span class="p">,</span>
     <span class="n">nlp</span><span class="p">,</span>
     <span class="n">additional_spans</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;dates&quot;</span><span class="p">],</span>
-    <span class="n">extensions</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;date&quot;</span><span class="p">:</span> <span class="n">dt_type</span><span class="p">},</span>
+    <span class="n">extensions</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;date.year&quot;</span><span class="p">:</span> <span class="n">int_type</span><span class="p">,</span> <span class="s2">&quot;date.month&quot;</span><span class="p">:</span> <span class="n">int_type</span><span class="p">,</span> <span class="s2">&quot;date.day&quot;</span><span class="p">:</span> <span class="n">int_type</span><span class="p">},</span>
 <span class="p">)</span>
 
 <span class="c1"># Check that the pipeline was correctly distributed:</span>
@@ -5751,7 +5769,7 @@ but will be <code>None</code> if you use an entity...</p>
     <span class="n">nlp</span><span class="o">=</span><span class="n">nlp</span><span class="p">,</span>
     <span class="n">n_jobs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
     <span class="n">additional_spans</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;dates&quot;</span><span class="p">],</span>
-    <span class="n">extensions</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">],</span>
+    <span class="n">extensions</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;date.day&quot;</span><span class="p">,</span> <span class="s2">&quot;date.month&quot;</span><span class="p">,</span> <span class="s2">&quot;date.year&quot;</span><span class="p">],</span>
 <span class="p">)</span>
 
 <span class="c1">### Larger pandas DataFrame</span>
@@ -5760,7 +5778,7 @@ but will be <code>None</code> if you use an entity...</p>
     <span class="n">nlp</span><span class="o">=</span><span class="n">nlp</span><span class="p">,</span>
     <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">2</span><span class="p">,</span>
     <span class="n">additional_spans</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;dates&quot;</span><span class="p">],</span>
-    <span class="n">extensions</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">],</span>
+    <span class="n">extensions</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;date.day&quot;</span><span class="p">,</span> <span class="s2">&quot;date.month&quot;</span><span class="p">,</span> <span class="s2">&quot;date.year&quot;</span><span class="p">],</span>
 <span class="p">)</span>
 
 <span class="c1">### Huge Spark or Koalas DataFrame</span>
@@ -5769,7 +5787,7 @@ but will be <code>None</code> if you use an entity...</p>
     <span class="n">nlp</span><span class="o">=</span><span class="n">nlp</span><span class="p">,</span>
     <span class="n">how</span><span class="o">=</span><span class="s2">&quot;spark&quot;</span><span class="p">,</span>
     <span class="n">additional_spans</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;dates&quot;</span><span class="p">],</span>
-    <span class="n">extensions</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;date&quot;</span><span class="p">:</span> <span class="n">dt_type</span><span class="p">},</span>
+    <span class="n">extensions</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;date.year&quot;</span><span class="p">:</span> <span class="n">int_type</span><span class="p">,</span> <span class="s2">&quot;date.month&quot;</span><span class="p">:</span> <span class="n">int_type</span><span class="p">,</span> <span class="s2">&quot;date.day&quot;</span><span class="p">:</span> <span class="n">int_type</span><span class="p">},</span>
 <span class="p">)</span>
 </code></pre></div>
 

@@ -4997,6 +4997,8 @@
         
           
         
+          
+        
       
       
         
@@ -5027,6 +5029,20 @@
     <li class="md-nav__item">
       <a href="../../reference/utils/blocs/" class="md-nav__link">
         blocs
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/utils/colors/" class="md-nav__link">
+        colors
       </a>
     </li>
   
@@ -5278,7 +5294,7 @@
 <p class="admonition-title">Comparison to spaCy's matcher</p>
 <p>spaCy's <code>Matcher</code> and <code>PhraseMatcher</code> use a very efficient algorithm that compare a hashed representation token by token. <strong>They are not components</strong> by themselves, but can underpin rule-based pipelines.</p>
 <p>EDS-NLP's <a href="../../reference/matchers/regex/#edsnlp.matchers.regex.RegexMatcher"><code>RegexMatcher</code></a> lets the user match entire expressions using regular expressions. To achieve this, the matcher has to get to the text representation, match on it, and get back to spaCy's abstraction.</p>
-<p>The [<code>EDSPhraseMatcher</code>][edsnlp.matchers.phrase.EDSPhraseMatcher] lets EDS-NLP reuse spaCy's efficient algorithm, while adding the ability to skip pollution tokens (see the <a href="../../pipelines/core/normalisation/">normalisation documentation</a> for detail)</p>
+<p>The <a href="../../reference/matchers/#edsnlp.matchers.phrase.EDSPhraseMatcher"><code>EDSPhraseMatcher</code></a> lets EDS-NLP reuse spaCy's efficient algorithm, while adding the ability to skip pollution tokens (see the <a href="../../pipelines/core/normalisation/">normalisation documentation</a> for detail)</p>
 </div>
 <h2 id="a-simple-use-case-finding-covid19">A simple use case : finding COVID19</h2>
 <p>Let's try to find mentions of COVID19 and references to patients within a clinical note.</p>

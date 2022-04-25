@@ -4992,6 +4992,8 @@
         
           
         
+          
+        
       
       
         
@@ -5022,6 +5024,20 @@
     <li class="md-nav__item">
       <a href="../../../reference/utils/blocs/" class="md-nav__link">
         blocs
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/utils/colors/" class="md-nav__link">
+        colors
       </a>
     </li>
   
@@ -5341,12 +5357,12 @@
 <p>The <code>eds.endlines</code> pipeline declares one <a href="https://spacy.io/usage/processing-pipelines#custom-components-attributes">spaCy extensions</a>, on both <code>Span</code> and <code>Token</code> objects. The <code>end_line</code> attribute is a boolean, set to <code>True</code> if the pipeline predicts that the new line is an end line character. Otherwise, it is set to <code>False</code> if the new line is classified as a space.</p>
 <p>The pipeline also sets the <code>excluded</code> custom attribute on newlines that are classified as spaces. It lets downstream matchers skip excluded tokens (see <a href="../normalisation/">normalisation</a>) for more detail.</p>
 <h2 id="authors-and-citation">Authors and citation</h2>
-<p>The <code>eds.endlines</code> pipeline was developed by AP-HP's Data Science team.</p>
+<p>The <code>eds.endlines</code> pipeline was developed by AP-HP's Data Science team based on the work of Zweigenbaum et al<sup id="fnref2:1"><a class="footnote-ref" href="#fn:1">1</a></sup>.</p>
 <div class="footnote">
 <hr />
 <ol>
 <li id="fn:1">
-<p>Pierre Zweigenbaum, Cyril Grouin, and Thomas Lavergne. Une catégorisation de fins de lignes non-supervisée (end-of-line classification with no supervision). In <em>Actes de la conférence conjointe JEP-TALN-RECITAL 2016. volume 2 : TALN (Posters)</em>, 364–371. Paris, France, 7 2016. AFCP - ATALA. URL: <a href="https://aclanthology.org/2016.jeptalnrecital-poster.7">https://aclanthology.org/2016.jeptalnrecital-poster.7</a>.&#160;<a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">&#8617;</a></p>
+<p>Pierre Zweigenbaum, Cyril Grouin, and Thomas Lavergne. Une catégorisation de fins de lignes non-supervisée (end-of-line classification with no supervision). In <em>Actes de la conférence conjointe JEP-TALN-RECITAL 2016. volume 2 : TALN (Posters)</em>, 364–371. Paris, France, 7 2016. AFCP - ATALA. URL: <a href="https://aclanthology.org/2016.jeptalnrecital-poster.7">https://aclanthology.org/2016.jeptalnrecital-poster.7</a>.&#160;<a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">&#8617;</a><a class="footnote-backref" href="#fnref2:1" title="Jump back to footnote 1 in the text">&#8617;</a></p>
 </li>
 </ol>
 </div>

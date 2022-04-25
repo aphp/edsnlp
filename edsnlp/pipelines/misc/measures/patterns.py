@@ -51,6 +51,15 @@ class Size(SimpleMeasure):
     dm = property(make_simple_getter("dm"))
     m = property(make_simple_getter("m"))
 
+class CompositeWeight(CompositeMeasure):
+    """
+    Composite weight measure. Supports the following units:
+    - mg
+    - cg
+    """
+
+    mg = property(make_multi_getter("mg"))
+    cg = property(make_multi_getter("cg"))
 
 @spacy.registry.misc("eds.measures.weight")
 class Weight(SimpleMeasure):

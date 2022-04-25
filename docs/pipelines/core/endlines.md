@@ -90,6 +90,6 @@ The pipeline also sets the `excluded` custom attribute on newlines that are clas
 
 ## Authors and citation
 
-The `eds.endlines` pipeline was developed by AP-HP's Data Science team based on the work of Zweigenbaum et al[@zweigenbaum2016].
+The `eds.endlines` pipeline was developed by AP-HP's Data Science team.
 
 \bibliography

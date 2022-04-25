@@ -165,7 +165,7 @@ def test_spark_missing_types(model):
         )
 
 
-def extractor(doc: Doc) -> List[Dict[str, Any]]:
+def results_extractor(doc: Doc) -> List[Dict[str, Any]]:
     return [dict(snippet=ent.text, length=len(ent.text)) for ent in doc.ents]
 
 
@@ -179,7 +179,7 @@ def test_arbitrary_callback(param, model):
         nlp=model,
         n_jobs=param["n_jobs"],
         context=["note_datetime"],
-        extractor=extractor,
+        results_extractor=results_extractor,
         dtypes={
             "snippet": T.StringType(),
             "length": T.IntegerType(),

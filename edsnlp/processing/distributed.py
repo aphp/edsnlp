@@ -211,7 +211,7 @@ def pipe(
     )
     note_nlp = note_nlp.withColumn("matches", F.explode(note_nlp.matches))
 
-    note_nlp = note_nlp.select("note_id", "matches.*", *context)
+    note_nlp = note_nlp.select("note_id", "matches.*")
 
     return note_nlp
 
@@ -304,6 +304,6 @@ def custom_pipe(
     )
 
     note_nlp = note_nlp.withColumn("matches", F.explode(note_nlp.matches))
-    note_nlp = note_nlp.select("note_id", "matches.*", *context)
+    note_nlp = note_nlp.select("note_id", "matches.*")
 
     return note_nlp

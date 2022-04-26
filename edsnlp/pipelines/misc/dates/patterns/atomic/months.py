@@ -2,22 +2,22 @@ from typing import Dict, List
 
 from edsnlp.utils.regex import make_pattern
 
-letter_months_dict: Dict[str, int] = {
-    r"(janvier|janv\.?)": 1,
-    r"(f[ée]vrier|f[ée]v\.?)": 2,
-    r"(mars|mar\.?)": 3,
-    r"(avril|avr\.?)": 4,
-    r"mai": 5,
-    r"juin": 6,
-    r"(juillet|juill?\.?)": 7,
-    r"ao[uû]t": 8,
-    r"(septembre|sept?\.?)": 9,
-    r"(octobre|oct\.?)": 10,
-    r"(novembre|nov\.)": 11,
-    r"(d[ée]cembre|d[ée]c\.?)": 12,
-}
 
-letter_months: List[str] = list(letter_months_dict.keys())
+letter_months = [
+    r"(?P<month_01>janvier|janv\.?)",
+    r"(?P<month_02>f[ée]vrier|f[ée]v\.?)",
+    r"(?P<month_03>mars|mar\.?)",
+    r"(?P<month_04>avril|avr\.?)",
+    r"(?P<month_05>mai)",
+    r"(?P<month_06>juin)",
+    r"(?P<month_07>juillet|juill?\.?)",
+    r"(?P<month_08>ao[uû]t)",
+    r"(?P<month_09>septembre|sept?\.?)",
+    r"(?P<month_10>octobre|oct\.?)",
+    r"(?P<month_11>novembre|nov\.?)",
+    r"(?P<month_12>d[ée]cembre|d[ée]c\.?)",
+]
+
 
 letter_month_pattern = make_pattern(letter_months, with_breaks=True)
 

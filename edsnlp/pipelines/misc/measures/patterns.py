@@ -72,7 +72,7 @@ class Weight(SimpleMeasure):
     - kg
     """
 
-    COMPOSITE = None
+    COMPOSITE = CompositeWeight
     UNITS = {
         "mg": {"prefix": "mill?ig", "abbr": "mg", "value": 1},
         "cg": {"prefix": "centig", "abbr": "cg", "value": 10},
@@ -98,11 +98,13 @@ class Angle(SimpleMeasure):
     """
     Angle measure. Supports the following units:
     - h
+    - deg
     """
 
     COMPOSITE = None
     UNITS = {
         "h": {"prefix": "heur", "abbr": "h", "value": 1},
+        "deg": {"prefix": "deg", "abbr": "°", "value": 1}, 
     }
 
     @classmethod

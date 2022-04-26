@@ -51,6 +51,7 @@ class Size(SimpleMeasure):
     dm = property(make_simple_getter("dm"))
     m = property(make_simple_getter("m"))
 
+
 class CompositeWeight(CompositeMeasure):
     """
     Composite weight measure. Supports the following units:
@@ -60,6 +61,7 @@ class CompositeWeight(CompositeMeasure):
 
     mg = property(make_multi_getter("mg"))
     cg = property(make_multi_getter("cg"))
+
 
 @spacy.registry.misc("eds.measures.weight")
 class Weight(SimpleMeasure):
@@ -116,3 +118,57 @@ class Angle(SimpleMeasure):
         return cls(result, unit)
 
     h = property(make_simple_getter("h"))
+
+
+class CompositeVolume(CompositeMeasure):
+    """
+    Composite size measure. Supports the following units:
+    - mL
+    - cL
+    - dL
+    - L
+    - cc
+    - goutte
+    """
+
+    mL = property(make_multi_getter("mL"))
+    cL = property(make_multi_getter("cL"))
+    dL = property(make_multi_getter("dL"))
+    L = property(make_multi_getter("L"))
+    cc = property(make_multi_getter("cc"))
+    goutte = property(make_multi_getter("goutte"))
+
+
+@spacy.registry.misc("eds.measures.volume")
+class Volume(SimpleMeasure):
+    """
+    Volume measure. Supports the following units:
+    - mL
+    - cL
+    - dL
+    - L
+    - cc
+    - goutte
+    """
+
+    COMPOSITE = CompositeSize
+    UNITS = {
+        "mL": {"prefix": "mill?ilitre", "abbr": "ml", "value": 1},
+        "cL": {"prefix": "centilitre", "abbr": "cl", "value": 10},
+        "dL": {"prefix": "decilitre", "abbr": "dl", "value": 100},
+        "L": {"prefix": "litre", "abbr": "l", "value": 1000},
+        "goutte": {"prefix": "goutte?", "abbr": "gt", "value": 1},
+        "cc": {"prefix": "cc", "abbr": "cc", "value": 10},
+    }
+
+    @classmethod
+    def parse(cls, int_part, dec_part, unit, infix=False):
+        result = float("{}.{}".format(int_part, dec_part))
+        return cls(result, unit)
+
+    mL = property(make_simple_getter("mL"))
+    cL = property(make_simple_getter("cL"))
+    dL = property(make_simple_getter("dL"))
+    L = property(make_simple_getter("L"))
+    cc = property(make_simple_getter("cc"))
+    goutte = property(make_simple_getter("goutte"))

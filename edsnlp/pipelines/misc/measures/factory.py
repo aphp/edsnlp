@@ -7,7 +7,7 @@ from edsnlp.pipelines.misc.measures import Measures
 DEFAULT_CONFIG = dict(
     attr="NORM",
     ignore_excluded=False,
-    measures=["eds.measures.size", "eds.measures.weight", "eds.measures.angle"],
+    measures=["eds.measures.size", "eds.measures.weight", "eds.measures.angle", "eds.measures.volume"],
 )
 
 

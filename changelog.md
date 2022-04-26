@@ -1,5 +1,44 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Support for chained attributes in the `processing` pipelines
+- Colour utility with the category20 colour palette
+
+## v0.5.1 (2022-04-11)
+
+### Fixed
+
+- Updated Numpy requirements to be compatible with the `EDSPhraseMatcher`
+
+## v0.5.0 (2022-04-08)
+
+### Added
+
+- New `eds` language to better fit French clinical documents and improve speed
+- Testing for markdown codeblocks to make sure the documentation is actually executable
+
+### Changed
+
+- Complete revamp of the date detection pipeline, with better parsing and more exhaustive matching
+- Reimplementation of the EDSPhraseMatcher in Cython, leading to a x15 speed increase
+
+## v0.4.4
+
+- Add `measures` pipeline
+- Cap Jinja2 version to fix mkdocs
+- Adding the possibility to add context in the processing module
+- Improve the speed of char replacement pipelines (accents and quotes)
+- Improve the speed of the regex matcher
+
+## v0.4.3
+
+- Fix regex matching on spans.
+- Add fast_parse in date pipeline.
+- Add relative_date information parsing
+
 ## v0.4.2
 
 - Fix issue with `dateparser` library (see scrapinghub/dateparser#1045)
@@ -65,9 +104,13 @@
 ## v0.3.0
 
 - Renamed `generic` to `matcher`. This is a non-breaking change for the average user, adding the pipeline is still :
+
+  <!-- no-check -->
+
   ```python
   nlp.add_pipe("matcher", config=dict(terms=dict(maladie="maladie")))
   ```
+
 - Removed `quickumls` pipeline. It was untested, unmaintained. Will be added back in a future release.
 - Add `score` pipeline, and `charlson`.
 - Add `advanced-regex` pipeline

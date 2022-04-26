@@ -3,6 +3,7 @@
 [![PyPI](https://img.shields.io/pypi/v/edsnlp?color=blue&style=flat-square)](https://pypi.org/project/edsnlp/)
 [![Demo](https://img.shields.io/badge/demo%20%F0%9F%9A%80-streamit-grean?style=flat-square)](https://aphp.github.io/edsnlp/demo/)
 [![Codecov](https://img.shields.io/codecov/c/github/aphp/edsnlp?logo=codecov&style=flat-square)](https://codecov.io/gh/aphp/edsnlp)
+[![DOI](https://zenodo.org/badge/467585436.svg)](https://zenodo.org/badge/latestdoi/467585436)
 
 # EDS-NLP
 
@@ -25,7 +26,7 @@ pip install edsnlp
 We recommend pinning the library version in your projects, or use a strict package manager like [Poetry](https://python-poetry.org/).
 
 ```shell
-pip install edsnlp==0.4.2
+pip install edsnlp==0.5.1
 ```
 
 ### A first pipeline
@@ -70,3 +71,16 @@ The performances of an extraction pipeline may depend on the population and docu
 
 We welcome contributions ! Fork the project and propose a pull request.
 Take a look at the [dedicated page](https://aphp.github.io/edsnlp/latest/contributing/) for detail.
+
+## Citation
+
+If you use EDS-NLP, please cite us as below.
+
+```bibtex
+@misc{edsnlp,
+  author = {Dura, Basile and Wajsburt, Perceval and Petit-Jean, Thomas and Cohen, Ariel and Jean, Charline and Bey, Romain},
+  doi    = {10.5281/zenodo.6424993},
+  title  = {EDS-NLP: efficient information extraction from French clinical notes},
+  url    = {http://aphp.github.io/edsnlp}
+}
+```

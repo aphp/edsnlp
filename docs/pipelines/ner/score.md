@@ -31,7 +31,7 @@ We can see that only one occurrence was extracted.
 ```python
 ent = doc.ents[0]
 ent.start, ent.end
-# Out: 0, 1
+# Out: (0, 1)
 ```
 
 The second mention of Charlson in the text doesn't contain any numerical value, so it isn't extracted.
@@ -40,7 +40,7 @@ Each extraction exposes 2 extensions:
 
 ```python
 ent._.score_name
-# Out: 'charlson'
+# Out: 'eds.charlson'
 
 ent._.score_value
 # Out: 7
@@ -68,14 +68,16 @@ doc.ents
 Each extraction exposes 3 extensions:
 
 ```python
+ent = doc.ents[0]
+
 ent._.score_name
-# Out: 'SOFA'
+# Out: 'eds.SOFA'
 
 ent._.score_value
 # Out: 12
 
 ent._.score_method
-# Out: "24H"
+# Out: '24H'
 ```
 
 Score method can here be "24H", "Maximum", "A l'admission" or "Non précisée"

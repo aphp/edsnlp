@@ -1,4 +1,7 @@
+import re
 from typing import List, Optional
+
+import regex
 
 
 def make_pattern(
@@ -38,3 +41,25 @@ def make_pattern(
         pattern = r"\b" + pattern + r"\b"
 
     return pattern
+
+
+def compile_regex(reg):
+    """
+    This function tries to compile `reg`  using the `re` module, and
+    fallbacks to the `regex` module that is more permissive.
+
+    Parameters
+    ----------
+    reg: str
+
+    Returns
+    -------
+    Union[re.Pattern, regex.Pattern]
+    """
+    try:
+        return re.compile(reg)
+    except re.error:
+        try:
+            return regex.compile(reg)
+        except regex.error:
+            raise Exception("Could not compile: {}".format(repr(reg)))

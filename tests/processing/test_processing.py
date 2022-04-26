@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import databricks.koalas  # noqa F401
 import pandas as pd
 import pytest
@@ -6,11 +8,11 @@ from pyspark.sql import types as T
 from pyspark.sql.session import SparkSession
 
 from edsnlp.processing import pipe
-from edsnlp.processing.typing import DataFrameModules
+from edsnlp.processing.helpers import DataFrameModules
 
 text = """
 Motif :
-Le patient est admis le 29 août pour des difficultés respiratoires.
+Le patient est admis le 29 août 2020 pour des difficultés respiratoires.
 
 Antécédents familiaux :
 Le père est asthmatique, sans traitement particulier.
@@ -27,21 +29,26 @@ Possible infection au coronavirus
 
 def note(module: DataFrameModules):
 
-    spark = SparkSession.builder.getOrCreate()
-
-    data = [(i, i // 5, text) for i in range(20)]
+    data = [(i, i // 5, text, datetime(2021, 1, 1)) for i in range(20)]
 
     if module == DataFrameModules.PANDAS:
-        return pd.DataFrame(data=data, columns=["note_id", "person_id", "note_text"])
+        return pd.DataFrame(
+            data=data, columns=["note_id", "person_id", "note_text", "note_datetime"]
+        )
 
     note_schema = T.StructType(
         [
             T.StructField("note_id", T.IntegerType()),
             T.StructField("person_id", T.IntegerType()),
             T.StructField("note_text", T.StringType()),
+            T.StructField(
+                "note_datetime",
+                T.TimestampType(),
+            ),
         ]
     )
 
+    spark = SparkSession.builder.getOrCreate()
     notes = spark.createDataFrame(data=data, schema=note_schema)
     if module == DataFrameModules.PYSPARK:
         return notes
@@ -51,9 +58,9 @@ def note(module: DataFrameModules):
 
 
 @pytest.fixture
-def model():
+def model(lang):
     # Creates the spaCy instance
-    nlp = spacy.blank("fr")
+    nlp = spacy.blank(lang)
 
     # Normalisation of accents, case and other special characters
     nlp.add_pipe("eds.normalizer")
@@ -108,13 +115,15 @@ def test_pipelines(param, model):
         note(module=module),
         nlp=model,
         n_jobs=param["n_jobs"],
+        context=["note_datetime"],
         extensions={
             "score_method": T.StringType(),
             "negation": T.BooleanType(),
             "hypothesis": T.BooleanType(),
             "family": T.BooleanType(),
             "reported_speech": T.BooleanType(),
-            "parsed_date": T.TimestampType(),
+            "date.year": T.IntegerType(),
+            "date.month": T.IntegerType(),
         },
         additional_spans=["dates"],
     )
@@ -138,7 +147,8 @@ def test_pipelines(param, model):
             "reported_speech",
             "family",
             "score_method",
-            "parsed_date",
+            "date_year",
+            "date_month",
         )
     )
 
@@ -150,5 +160,4 @@ def test_spark_missing_types(model):
             note(module=DataFrameModules.PYSPARK),
             nlp=model,
             extensions={"negation", "hypothesis", "family"},
-            additional_spans=["dates"],
         )

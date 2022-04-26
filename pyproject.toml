@@ -1,0 +1,46 @@
+[build-system]
+requires = [
+    "setuptools",
+    "cython>=0.25,<3.0",
+    "spacy>=3.2<4.0",
+    "numpy>=1.21",
+]
+build-backend = "setuptools.build_meta"
+
+
+[tool.interrogate]
+ignore-init-method = true
+ignore-init-module = true
+ignore-magic = false
+ignore-semiprivate = false
+ignore-private = false
+ignore-property-decorators = false
+ignore-module = true
+ignore-nested-functions = false
+ignore-nested-classes = true
+ignore-setters = false
+fail-under = 40
+exclude = ["setup.py", "docs", "build", "tests"]
+verbose = 0
+quiet = false
+whitelist-regex = []
+color = true
+omit-covered-files = false
+# generate-badge = "."
+# badge-format = "svg"
+
+[tool.cibuildwheel]
+skip = [
+    "*p36-*",               # Skip Python 3.6
+    "pp*",                  # Skip PyPy
+    "*-win32",              # Skip 32-bit Windows
+    "*-manylinux_i686",     # Skip 32-bit Linux
+    "*-win_arm64",          # Skip experimental Windows on ARM
+    "*-musllinux*",         # Skip slow Linux
+    "*-manylinux_aarch64",  # Skip slow Linux
+    "*-manylinux_ppc64le",  # Skip slow Linux
+    "*-manylinux_s390x",    # Skip slow Linux
+]
+
+before-test = "pip install pytest"
+test-command = "pytest {project}/tests/pipelines/test_pipelines.py"

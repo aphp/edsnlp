@@ -38,6 +38,7 @@ class Pollution(BaseComponent):
     ):
 
         self.nlp = nlp
+        self.nlp.vocab.strings.add("EXCLUDED")
 
         if pollution is None:
             pollution = patterns.pollution
@@ -94,12 +95,14 @@ class Pollution(BaseComponent):
         doc:
             spaCy Doc object, annotated for pollutions.
         """
+        excluded_hash = doc.vocab.strings["EXCLUDED"]
         pollutions = self.process(doc)
 
         for pollution in pollutions:
 
             for token in pollution:
                 token._.excluded = True
+                token.tag = excluded_hash
 
         doc.spans["pollutions"] = pollutions
 

@@ -8,7 +8,7 @@ import edsnlp
 
 app = FastAPI(title="EDS-NLP", version=edsnlp.__version__)
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 
 nlp.add_pipe("eds.sentences")
 

@@ -11,9 +11,9 @@ We welcome contributions ! There are many ways to help. For example, you can:
 
 To be able to run the test suite, run the example notebooks and develop your own pipeline, you should clone the repo and install it locally.
 
-<!-- termynal -->
+<div class="termy">
 
-```
+```console
 # Clone the repository and change directory
 $ git clone https://github.com/aphp/edsnlp.git
 ---> 100%
@@ -32,29 +32,35 @@ $ python scripts/conjugate_verbs.py
 $ pip install -r requirements-dev.txt
 $ pip install -r requirements-docs.txt
 
-# Finally, install the package
-$ pip install .
+# Finally, install the package in editable mode
+$ pip install -e .
 ```
+
+</div>
 
 To make sure the pipeline will not fail because of formatting errors, we added pre-commit hooks using the `pre-commit` Python library. To use it, simply install it:
 
-<!-- termynal -->
+<div class="termy">
 
-```
+```console
 $ pre-commit install
 ```
 
-The pre-commit hooks defined in the [configuration](https://gitlab.eds.aphp.fr/datasciencetools/edsnlp/-/blob/master/.pre-commit-config.yaml) will automatically run when you commit your changes, letting you know if something went wrong.
+</div>
+
+The pre-commit hooks defined in the [configuration](https://github.com/aphp/edsnlp/blob/master/.pre-commit-config.yaml) will automatically run when you commit your changes, letting you know if something went wrong.
 
 The hooks only run on staged changes. To force-run it on all files, run:
 
-<!-- termynal -->
+<div class="termy">
 
-```
+```console
 $ pre-commit run --all-files
 ---> 100%
-All good !
+color:green All good !
 ```
+
+</div>
 
 ## Proposing a merge request
 
@@ -74,11 +80,16 @@ The following command will run the test suite. Writing your own tests is encoura
 python -m pytest
 ```
 
+!!! warning "Testing Cython code"
+
+    Make sure the package is [installed in editable mode](#development-installation).
+    Otherwise `Pytest` won't be able to find the Cython modules.
+
 Should your contribution propose a bug fix, we require the bug be thoroughly tested.
 
 ### Architecture of a pipeline
 
-All pipelines should follow the same pattern :
+Pipelines should follow the same pattern :
 
 ```
 edsnlp/pipelines/<pipeline>
@@ -105,17 +116,19 @@ as well as in the documentation itself if need be.
 
 We use `MkDocs` for EDS-NLP's documentation. You can checkout the changes you make with:
 
-<!-- termynal -->
+<div class="termy">
 
-```
+```console
 # Install the requirements
 $ pip install -r requirements-docs.txt
 ---> 100%
-Installation successful
-A
+color:green Installation successful
+
 # Run the documentation
 $ mkdocs serve
 ```
+
+</div>
 
 Go to [`localhost:8000`](http://localhost:8000) to see your changes. MkDocs watches for changes in the documentation folder
 and automatically reloads the page.

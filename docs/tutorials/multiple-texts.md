@@ -114,6 +114,8 @@ To make sure we can follow along, we propose three recipes for getting the DataF
 
 === "Loading data from a CSV"
 
+    <!-- no-check -->
+
     ```python
     import pandas as pd
 
@@ -121,6 +123,8 @@ To make sure we can follow along, we propose three recipes for getting the DataF
     ```
 
 === "Loading data from a Spark DataFrame"
+
+    <!-- no-check -->
 
     ```python
     from pyspark.sql.session import SparkSession
@@ -177,6 +181,8 @@ def get_entities(doc: Doc) -> List[Dict[str, Any]]:
     return entities
 ```
 
+<!-- no-check -->
+
 ```python
 # ↑ Omitted code above ↑
 from processing import get_entities
@@ -216,8 +222,28 @@ They share the same arguments:
 | ------------------ | --------------------------------------------------------------- | -------- |
 | `note`             | A DataFrame, with two required columns, `note_id` and `note_id` | Required |
 | `nlp`              | The pipeline object                                             | Required |
+| `context`          | A list of column names to add context to the generate `Doc`     | `[]`     |
 | `additional_spans` | Keys in `doc.spans` to include besides `doc.ents`               | `[]`     |
 | `extensions`       | Custom extensions to use                                        | `[]`     |
+
+!!! tip "Adding 'context'"
+
+    You may want to store some values contained in your `note` DataFrame as an extension in the generated `Doc` object.
+
+    For instance, the [dates](../pipelines/misc/dates.md) pipeline will use, if provided, the `note_datetime` to add a _year_ to an incomplete year such as in: _"The 21st of August, the patient came to the hospital"_.
+    In this case, you can use the `context` parameter and provide a list of column names you want to add:
+
+    <!-- no-check -->
+
+    ```python
+    note_nlp = single_pipe(
+        data,
+        nlp,
+        context=["note_datetime"],
+        additional_spans=["dates"],
+        extensions=["date.day", "date.month", "date.year"],
+    )
+    ```
 
 Depending on your pipeline, you may want to extract other extensions. To do so, simply provide those extension names (without the leading underscore) to the `extensions` argument.
 
@@ -233,7 +259,7 @@ note_nlp = single_pipe(
     data,
     nlp,
     additional_spans=["dates"],
-    extensions=["parsed_date"],
+    extensions=["date.day", "date.month", "date.year"],
 )
 ```
 
@@ -251,7 +277,7 @@ note_nlp = parallel_pipe(
     data,
     nlp,
     additional_spans=["dates"],
-    extensions=["parsed_date"],
+    extensions=["date.day", "date.month", "date.year"],
     n_jobs=-2,  # (1)
 )
 ```
@@ -300,6 +326,8 @@ Suppose you have a Spark DataFrame:
 
 === "Loading a pre-existing table"
 
+    <!-- no-check -->
+
     ```python
     from pyspark.sql.session import SparkSession
 
@@ -310,6 +338,8 @@ Suppose you have a Spark DataFrame:
     ```
 
 === "Using a Koalas DataFrame"
+
+    <!-- no-check -->
 
     ```python
     from pyspark.sql.session import SparkSession
@@ -328,8 +358,12 @@ Accepted types are the ones present in [`pyspark.sql.types`](https://spark.apach
 
 EDS-NLP provides a helper function, [`pyspark_type_finder`][edsnlp.processing.distributed.pyspark_type_finder], is available to get the correct type for most Python objects. You just need to provide an example of the type you wish to collect:
 
+<!-- no-check -->
+
 ```python
-dt_type = pyspark_type_finder(datetime.datetime(2020, 1, 1))
+int_type = pyspark_type_finder(1)
+
+# Out: IntegerType()
 ```
 
 !!! danger "Be careful when providing the example"
@@ -342,6 +376,9 @@ dt_type = pyspark_type_finder(datetime.datetime(2020, 1, 1))
 Once again, using the helper is trivial:
 
 === "Spark"
+
+    <!-- no-check -->
+
     ```python
     # ↑ Omitted code above ↑
     from edsnlp.processing.distributed import pipe as distributed_pipe
@@ -350,7 +387,7 @@ Once again, using the helper is trivial:
         df,
         nlp,
         additional_spans=["dates"],
-        extensions={"parsed_date": dt_type},
+        extensions={"date.year": int_type, "date.month": int_type, "date.day": int_type},
     )
 
     # Check that the pipeline was correctly distributed:
@@ -358,6 +395,9 @@ Once again, using the helper is trivial:
     ```
 
 === "Koalas"
+
+    <!-- no-check -->
+
     ```python
     # ↑ Omitted code above ↑
     from edsnlp.processing.distributed import pipe as distributed_pipe
@@ -366,7 +406,7 @@ Once again, using the helper is trivial:
         df,
         nlp,
         additional_spans=["dates"],
-        extensions={"parsed_date": dt_type},
+        extensions={"date.year": int_type, "date.month": int_type, "date.day": int_type},
     )
 
     # Check that the pipeline was correctly distributed:
@@ -379,6 +419,8 @@ Using Spark or Koalas, you can deploy EDS-NLP pipelines on tens of millions of d
 
 EDS-NLP provides a wrapper to simplify deployment even further:
 
+<!-- no-check -->
+
 ```python
 # ↑ Omitted code above ↑
 from edsnlp.processing import pipe
@@ -389,7 +431,7 @@ note_nlp = pipe(
     nlp=nlp,
     n_jobs=1,
     additional_spans=["dates"],
-    extensions=["parsed_date"],
+    extensions=["date.day", "date.month", "date.year"],
 )
 
 ### Larger pandas DataFrame
@@ -398,7 +440,7 @@ note_nlp = pipe(
     nlp=nlp,
     n_jobs=-2,
     additional_spans=["dates"],
-    extensions=["parsed_date"],
+    extensions=["date.day", "date.month", "date.year"],
 )
 
 ### Huge Spark or Koalas DataFrame
@@ -407,6 +449,6 @@ note_nlp = pipe(
     nlp=nlp,
     how="spark",
     additional_spans=["dates"],
-    extensions={"parsed_date": dt_type},
+    extensions={"date.year": int_type, "date.month": int_type, "date.day": int_type},
 )
 ```

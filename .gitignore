@@ -17,9 +17,13 @@ lib64/
 parts/
 sdist/
 var/
+site/
 *.egg-info/
 .installed.cfg
 *.egg
+*.cpp
+*.so
+*.c
 
 # Unit test / coverage reports
 htmlcov/

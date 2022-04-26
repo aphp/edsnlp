@@ -27,6 +27,7 @@ EDS-NLP provides easy-to-use spaCy components.
     | Pipeline               | Description                                     |
     | ---------------------- | ----------------------------------------------- |
     | `eds.dates`            | Date extraction and normalisation               |
+    | `eds.measures`         | Measure extraction and normalisation            |
     | `eds.sections`         | Section detection                               |
     | `eds.reason`           | Rule-based hospitalisation reason detection     |
 
@@ -42,6 +43,8 @@ EDS-NLP provides easy-to-use spaCy components.
     | `eds.emergency.gemsa`    | A GEMSA score extractor    |
 
 You can add them to your spaCy pipeline by simply calling `add_pipe`, for instance:
+
+<!-- no-check -->
 
 ```python
 # ↑ Omitted code that defines the nlp object ↑

@@ -1,4 +1,5 @@
 black
+fastapi
 flake8
 jupytext
 koalas

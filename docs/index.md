@@ -10,18 +10,20 @@ If it's your first time with spaCy, we recommend you familiarise yourself with s
 
 You can install EDS-NLP via `pip`:
 
-<!-- termynal -->
+<div class="termy">
 
-```
+```console
 $ pip install edsnlp
 ---> 100%
-Installed
+color:green Successfully installed!
 ```
+
+</div>
 
 We recommend pinning the library version in your projects, or use a strict package manager like [Poetry](https://python-poetry.org/).
 
 ```
-pip install edsnlp==0.4.2
+pip install edsnlp==0.5.1
 ```
 
 ### A first pipeline
@@ -90,6 +92,7 @@ This example is complete, it should run as-is. Check out the [spaCy 101 page](tu
     | Pipeline               | Description                                     |
     | ---------------------- | ----------------------------------------------- |
     | `eds.dates`            | Date extraction and normalisation               |
+    | `eds.measures`         | Measure extraction and normalisation            |
     | `eds.sections`         | Section detection                               |
     | `eds.reason`           | Rule-based hospitalisation reason detection     |
 
@@ -111,3 +114,18 @@ The performances of an extraction pipeline may depend on the population and docu
 ## Contributing to EDS-NLP
 
 We welcome contributions ! Fork the project and propose a pull request. Take a look at the [dedicated page](contributing.md) for detail.
+
+## Citation
+
+If you use EDS-NLP, please cite us as below.
+
+```bibtex
+@misc{edsnlp,
+  author = {Dura, Basile and Wajsburt, Perceval and Petit-Jean, Thomas and Cohen, Ariel and Jean, Charline and Bey, Romain},
+  doi    = {10.5281/zenodo.6424993},
+  title  = {EDS-NLP: efficient information extraction from French clinical notes},
+  url    = {http://aphp.github.io/edsnlp}
+}
+```
+
+\bibliography

@@ -26,7 +26,7 @@ text = (
 doc = nlp(text)
 
 doc.ents
-# Out: [douleur, fracture]
+# Out: (douleur, fracture)
 
 doc.ents[0]._.hypothesis
 # Out: False

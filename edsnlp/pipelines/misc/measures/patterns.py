@@ -116,8 +116,8 @@ class Temperature(SimpleMeasure):
     - CelsiusDegree
 
     Note that temperature and angle can be expressed usint the same symbol °
-    But Celsius-degree is usually given in decimal units while angular degree is
-    usually given in degree and minutes. 
+    But Celsius-degree is usually given in decimal units while angular degree 
+    is usually given in degree and minutes. 
     """
 
     COMPOSITE = None
@@ -184,7 +184,7 @@ class Energy(SimpleMeasure):
         "kJ": {"prefix": "kilojou", "abbr": "kj", "value": 0.001},
         "MJ": {"prefix": "megajou", "abbr": "mj", "value": 0.000001},
         "cal": {"prefix": "calorie", "abbr": "cal", "value": 4.184},
-        "kcal":{"prefix": "kilocal",  "abbr": "kcal", "value": 0.004184}, 
+        "kcal":{"prefix": "kilocal",  "abbr": "kcal", "value": 4184}, 
     }
 
     @classmethod

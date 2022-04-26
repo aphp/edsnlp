@@ -197,6 +197,5 @@ def test_arbitrary_callback(param, model):
             "note_id",
             "snippet",
             "length",
-            "note_datetime",
         }
         assert (note_nlp.snippet.str.len() == note_nlp.length).all()

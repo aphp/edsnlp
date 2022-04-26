@@ -211,7 +211,7 @@ def pipe(
     )
     note_nlp = note_nlp.withColumn("matches", F.explode(note_nlp.matches))
 
-    note_nlp = note_nlp.select("note_id", "matches.*")
+    note_nlp = note_nlp.select("note_id", "matches.*", *context)
 
     return note_nlp
 
@@ -280,17 +280,17 @@ def custom_pipe(
         if text is None:
             return []
 
-        nlp = nlp_bc.value
+        nlp_ = nlp_bc.value
 
         for _, pipe in nlp.pipeline:
             if isinstance(pipe, BaseComponent):
                 pipe.set_extensions()
 
-        doc = nlp.make_doc(text)
+        doc = nlp_.make_doc(text)
         for context_name, context_value in zip(context, context_values):
             doc._.set(context_name, context_value)
 
-        doc = nlp(doc)
+        doc = nlp_(doc)
 
         results = []
 
@@ -304,6 +304,6 @@ def custom_pipe(
     )
 
     note_nlp = note_nlp.withColumn("matches", F.explode(note_nlp.matches))
-    note_nlp = note_nlp.select("note_id", "matches.*")
+    note_nlp = note_nlp.select("note_id", "matches.*", *context)
 
     return note_nlp

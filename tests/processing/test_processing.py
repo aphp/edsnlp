@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Any, Dict, List
 
 import databricks.koalas  # noqa F401
 import pandas as pd
@@ -7,7 +6,6 @@ import pytest
 import spacy
 from pyspark.sql import types as T
 from pyspark.sql.session import SparkSession
-from spacy.tokens import Doc
 
 from edsnlp.processing import pipe
 from edsnlp.processing.helpers import DataFrameModules
@@ -165,15 +163,11 @@ def test_spark_missing_types(model):
         )
 
 
-def results_extractor(doc: Doc) -> List[Dict[str, Any]]:
-    return [
-        dict(snippet=ent.text, length=len(ent.text), note_datetime=doc._.note_datetime)
-        for ent in doc.ents
-    ]
-
-
-@pytest.mark.parametrize("param", params[:2])
+@pytest.mark.parametrize("param", params)
 def test_arbitrary_callback(param, model):
+
+    # We need to test PySpark with an installed function
+    from edsnlp.processing.utils import dummy_extractor
 
     module = param["module"]
 
@@ -182,17 +176,27 @@ def test_arbitrary_callback(param, model):
         nlp=model,
         n_jobs=param["n_jobs"],
         context=["note_datetime"],
-        results_extractor=results_extractor,
+        results_extractor=dummy_extractor,
         dtypes={
             "snippet": T.StringType(),
             "length": T.IntegerType(),
         },
     )
 
-    if module == DataFrameModules.PYSPARK:
-        note_nlp = note_nlp.toPandas()
-    elif module == DataFrameModules.KOALAS:
-        note_nlp = note_nlp.to_pandas()
+    if module == DataFrameModules.PANDAS:
+        assert set(note_nlp.columns) == {"snippet", "length", "note_datetime"}
+        assert (note_nlp.snippet.str.len() == note_nlp.length).all()
 
-    assert set(note_nlp.columns) == {"snippet", "length", "note_datetime"}
-    assert (note_nlp.snippet.str.len() == note_nlp.length).all()
+    else:
+        if module == DataFrameModules.PYSPARK:
+            note_nlp = note_nlp.toPandas()
+        elif module == DataFrameModules.KOALAS:
+            note_nlp = note_nlp.to_pandas()
+
+        assert set(note_nlp.columns) == {
+            "note_id",
+            "snippet",
+            "length",
+            "note_datetime",
+        }
+        assert (note_nlp.snippet.str.len() == note_nlp.length).all()

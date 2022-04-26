@@ -1,6 +1,7 @@
 black
 fastapi
 flake8
+hypothesis
 jupytext
 koalas
 pre-commit

@@ -59,6 +59,7 @@ _build/
 # Editors
 .idea
 .vscode
+.spyproject/
 
 # Files
 .DS_Store

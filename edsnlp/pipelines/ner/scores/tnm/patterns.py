@@ -1,9 +1,16 @@
-modifier_pattern = r"(?P<modifier>[cpyraums])"
-tumour_pattern = r"t\s?(?P<tumour>([0-4]|x|is))"
-node_pattern = r"n\s?(?P<node>([0-3]|x))"
-metastasis_pattern = r"m\s?(?P<metastasis>[01])"
+modifier_pattern = r"(?P<modifier>[cpyraum])"
+tumour_pattern = r"t\s?(?P<tumour>([0-4o]|is|x))x?"
+node_pattern = r"n\s?(?P<node>[0-3o]|x)x?"
+metastasis_pattern = r"m\s?(?P<metastasis>[01o]|x)x?"
 
-tnm_pattern = f"({modifier_pattern}\\s?)?"
-tnm_pattern += r"\s*" + tumour_pattern
-tnm_pattern += r"\s*" + node_pattern
-tnm_pattern += r"\s*" + metastasis_pattern
+version_pattern = (
+    r"(?P<version>\(?(uicc|tnm|accj)\s+([ée]ditions|[ée]d\.?)?\s*\d{4})\)?"
+)
+
+spacer = r"(.|\n){1,5}"
+
+tnm_pattern = f"(?<={version_pattern}{spacer})?"
+tnm_pattern += modifier_pattern + r"\s*" + f"({tumour_pattern})"
+tnm_pattern += r"\s*" + f"({node_pattern})?"
+tnm_pattern += r"\s*" + f"({metastasis_pattern})?"
+tnm_pattern += f"({spacer}{version_pattern})?"

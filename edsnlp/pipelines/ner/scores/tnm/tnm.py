@@ -101,6 +101,7 @@ class TNM(BaseComponent):
         for span, groupdict in spans:
 
             span._.value = models.TNM.parse_obj(groupdict)
+            span.kb_id_ = span._.value.norm()
 
         return [span for span, _ in spans]
 
@@ -119,6 +120,8 @@ class TNM(BaseComponent):
             spaCy Doc object, annotated for TNM
         """
         spans = self.process(doc)
+        spans = filter_spans(spans)
+
         spans = self.parse(spans)
 
         doc.spans["tnm"] = spans

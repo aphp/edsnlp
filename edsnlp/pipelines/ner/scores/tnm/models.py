@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Optional, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 
 class TnmEnum(Enum):
@@ -9,31 +9,39 @@ class TnmEnum(Enum):
         return self.value
 
 
+class Unknown(TnmEnum):
+    unknown = "x"
+
+
 class Modifier(TnmEnum):
-    c = "c"
-    p = "p"
-    y = "y"
-    a = "a"
-    u = "u"
-    m = "m"
-    s = "s"
-
-
-class Node(TnmEnum):
-    x = "x"
+    clinical = "c"
+    histopathology = "p"
+    neoadjuvant_therapy = "y"
+    recurrent = "r"
+    autopsy = "a"
+    ultrasonography = "u"
+    multifocal = "m"
 
 
 class Tumour(TnmEnum):
-    x = "x"
-    i = "is"
+    unknown = "x"
+    in_situ = "is"
 
 
 class TNM(BaseModel):
 
     modifier: Optional[Union[int, Modifier]] = None
     tumour: Optional[Union[int, Tumour]] = None
-    node: Optional[Union[int, Node]] = None
-    metastasis: Optional[int] = None
+    node: Optional[Union[int, Unknown]] = None
+    metastasis: Optional[Union[int, Unknown]] = None
+
+    version: Optional[str] = None
+
+    @validator("*", pre=True)
+    def coerce_o(cls, v):
+        if isinstance(v, str):
+            v = v.replace("o", "0")
+        return v
 
     def norm(self) -> str:
         norm = []
@@ -49,5 +57,8 @@ class TNM(BaseModel):
 
         if self.metastasis is not None:
             norm.append(f"M{self.metastasis}")
+
+        if self.version is not None:
+            norm.append(f" ({self.version.upper()})")
 
         return "".join(norm)

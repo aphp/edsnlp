@@ -4,7 +4,9 @@ node_pattern = r"n\s?(?P<node>[0-3o]|x)x?"
 metastasis_pattern = r"m\s?(?P<metastasis>[01o]|x)x?"
 
 version_pattern = (
-    r"\(?(?P<version>(uicc|tnm|accj)\s+([ée]ditions|[ée]d\.?)?\s*\d{4})\)?"
+    r"\(?(?P<version>uicc|accj|tnm)"
+    r"\s+([ée]ditions|[ée]d\.?)?\s*"
+    r"(?P<version_year>\d{4}|\d{2})\)?"
 )
 
 spacer = r"(.|\n){1,5}"

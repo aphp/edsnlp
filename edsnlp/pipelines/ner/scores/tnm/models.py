@@ -36,11 +36,24 @@ class TNM(BaseModel):
     metastasis: Optional[Union[int, Unknown]] = None
 
     version: Optional[str] = None
+    version_year: Optional[int] = None
 
     @validator("*", pre=True)
     def coerce_o(cls, v):
         if isinstance(v, str):
             v = v.replace("o", "0")
+        return v
+
+    @validator("version_year")
+    def validate_year(cls, v):
+        if v is None:
+            return v
+
+        if v < 40:
+            v += 2000
+        elif v < 100:
+            v += 1900
+
         return v
 
     def norm(self) -> str:
@@ -58,7 +71,7 @@ class TNM(BaseModel):
         if self.metastasis is not None:
             norm.append(f"M{self.metastasis}")
 
-        if self.version is not None:
-            norm.append(f" ({self.version.upper()})")
+        if self.version is not None and self.version_year is not None:
+            norm.append(f" ({self.version.upper()} {self.version_year})")
 
         return "".join(norm)

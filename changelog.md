@@ -4,6 +4,7 @@
 
 ### Added
 
+- Support for strings in the example utility
 - Support for chained attributes in the `processing` pipelines
 - Colour utility with the category20 colour palette
 - [TNM](https://en.wikipedia.org/wiki/TNM_staging_system) detection and normalisation with the `eds.TNM` pipeline

@@ -1,6 +1,7 @@
 import re
 from typing import List, Tuple, Union
 
+import regex
 from pydantic import BaseModel
 
 
@@ -25,6 +26,9 @@ class Entity(BaseModel):
 entity_pattern = re.compile(r"(<ent[^<>]*>[^<>]+</ent>)")
 text_pattern = re.compile(r"<ent.*>(.+)</ent>")
 modifiers_pattern = re.compile((r"<ent\s?(.*)>.+</ent>"))
+single_modifiers_pattern = regex.compile(
+    (r"(?P<key>[^\s]+?)=((?P<value>[^\s']+)|'(?P<value>.+)')")
+)
 
 
 def find_matches(example: str) -> List[re.Match]:
@@ -98,14 +102,16 @@ def parse_example(example: str) -> Tuple[str, List[Entity]]:
         start_char = len(text)
         text += match.text
         end_char = len(text)
-        modifiers = [m.split("=") for m in match.modifiers.split()]
 
         cursor = match.end_char
 
         entity = Entity(
             start_char=start_char,
             end_char=end_char,
-            modifiers=[Modifier(key=k, value=v) for k, v in modifiers],
+            modifiers=[
+                Modifier.parse_obj(m.groupdict())
+                for m in single_modifiers_pattern.finditer(match.modifiers)
+            ],
         )
 
         entities.append(entity)

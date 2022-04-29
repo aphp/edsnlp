@@ -6,9 +6,9 @@ from spacy import Language
 from spacy.tokens import Doc, Span
 from tqdm import tqdm
 
-from .helpers import check_spacy_version_for_context
+from .helpers import check_spacy_version_for_context, rgetattr, slugify
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 
 ExtensionSchema = Union[
     str,
@@ -52,7 +52,7 @@ def _df_to_spacy(
         note_text = context_values.note_text
         doc = nlp.make_doc(note_text)
         for col in context:
-            doc._.set(col, getattr(context_values, col))
+            doc._.set(slugify(col), rgetattr(context_values, col))
         return doc
 
     yield from map(
@@ -118,7 +118,7 @@ def _single_schema(
         "span_type": span_type,
         "start": ent.start_char,
         "end": ent.end_char,
-        **{extension: getattr(ent._, extension) for extension in extensions},
+        **{slugify(extension): rgetattr(ent._, extension) for extension in extensions},
     }
 
 

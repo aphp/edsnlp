@@ -1,5 +1,3 @@
-from datetime import datetime
-
 import pytest
 
 from edsnlp.pipelines.misc.consultation_dates import factory  # noqa
@@ -21,18 +19,22 @@ Document signé le 10/02/2020
 """
 
 cons = dict(
-    additionnal_params=dict(),
-    result=[datetime(2018, 10, 7)],
+    additional_params=dict(),
+    result=[dict(year=2018, month=10, day=7)],
 )
 
 cons_town = dict(
-    additionnal_params=dict(town_mention=True),
-    result=[datetime(2018, 10, 7), datetime(2020, 1, 24)],
+    additional_params=dict(town_mention=True),
+    result=[dict(year=2018, month=10, day=7), dict(year=2020, month=1, day=24)],
 )
 
 cons_town_doc = dict(
-    additionnal_params=dict(town_mention=True, document_date_mention=True),
-    result=[datetime(2018, 10, 7), datetime(2020, 1, 24), datetime(2020, 2, 10)],
+    additional_params=dict(town_mention=True, document_date_mention=True),
+    result=[
+        dict(year=2018, month=10, day=7),
+        dict(year=2020, month=1, day=24),
+        dict(year=2020, month=2, day=10),
+    ],
 )
 
 
@@ -49,10 +51,14 @@ def test_cons_dates(date_pipeline, example, blank_nlp):
         blank_nlp.add_pipe("dates")
 
     blank_nlp.add_pipe(
-        "consultation_dates", config=dict(**example["additionnal_params"])
+        "consultation_dates", config=dict(**example["additional_params"])
     )
 
     doc = blank_nlp(TEXT)
-    assert [
-        date._.consultation_date for date in doc.spans["consultation_dates"]
-    ] == example["result"]
+
+    assert len(doc.spans["dates"]) == 4 or not date_pipeline
+
+    assert len(doc.spans["consultation_dates"]) == len(example["result"])
+
+    for span, result in zip(doc.spans["consultation_dates"], example["result"]):
+        assert all([span._.consultation_date.dict()[k] == result[k] for k in result])

@@ -1,3 +1,5 @@
+from typing import Any
+
 import pandas as pd
 import spacy
 import streamlit as st
@@ -37,7 +39,7 @@ CODE = """
 import spacy
 
 # Declare the pipeline
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 
 # General-purpose components
 nlp.add_pipe("eds.normalizer")
@@ -74,7 +76,7 @@ def load_model(
     pipes = []
 
     # Declare the pipeline
-    nlp = spacy.blank("fr")
+    nlp = spacy.blank("eds")
     nlp.add_pipe("eds.normalizer")
     nlp.add_pipe("eds.sentences")
 
@@ -205,36 +207,64 @@ st.markdown(
     "[Export the pipeline section](#export-the-pipeline) for more information)."
 )
 
-colors = {
-    "covid": "orange",
-    "traitement": "#ff6363",
-    "respiratoire": "#37b9fa",
-    "custom": "linear-gradient(90deg, #aa9cfc, #fc9ce7)",
-}
-options = {
-    "colors": colors,
-}
-
 ents = list(doc.ents)
+
+for ent in ents:
+    if ent._.score_value:
+        ent._.value = ent._.score_value
 
 for date in doc.spans.get("dates", []):
     span = Span(doc, date.start, date.end, label="date")
+    span._.value = span._.date.norm()
     ents.append(span)
 
 for measure in doc.spans.get("measures", []):
     span = Span(doc, measure.start, measure.end, label=measure.label_)
+    span._.value = span._.value
     ents.append(span)
-
-for ent in ents:
-    ent._.value = ent._.value or ent._.date or ent._.score_value
-
-res = ""
-for ent in ents:
-    res += "\n - " + str(ent) + " | " + str(ent._.value)
-st.markdown(res)
 
 
 doc.ents = ents
+
+category20 = [
+    "#1f77b4",
+    "#aec7e8",
+    "#ff7f0e",
+    "#ffbb78",
+    "#2ca02c",
+    "#98df8a",
+    "#d62728",
+    "#ff9896",
+    "#9467bd",
+    "#c5b0d5",
+    "#8c564b",
+    "#c49c94",
+    "#e377c2",
+    "#f7b6d2",
+    "#7f7f7f",
+    "#c7c7c7",
+    "#bcbd22",
+    "#dbdb8d",
+    "#17becf",
+    "#9edae5",
+]
+
+labels = [
+    "date",
+    "covid",
+    "eds.emergency.priority",
+    "eds.SOFA",
+    "eds.charlson",
+    "eds.measures.size",
+    "eds.measures.weight",
+    "eds.measures.angle",
+]
+
+colors = {label: cat for label, cat in zip(labels, category20)}
+colors["custom"] = "linear-gradient(90deg, #aa9cfc, #fc9ce7)"
+options = {
+    "colors": colors,
+}
 
 html = displacy.render(doc, style="ent", options=options)
 html = html.replace("line-height: 2.5;", "line-height: 2.25;")
@@ -280,9 +310,33 @@ for ent in doc.ents:
 
 st.header("Entity qualification")
 
+
+def color_qualifiers(val: Any) -> str:
+    """
+    Add color to qualifiers.
+
+    Parameters
+    ----------
+    val : Any
+        DataFrame value
+
+    Returns
+    -------
+    str
+        style
+    """
+    if val == "NO":
+        return "color: #dc3545;"
+    elif val == "YES":
+        return "color: #198754;"
+    return ""
+
+
 if data:
     df = pd.DataFrame.from_records(data)
     df.normalized_value = df.normalized_value.replace({"None": ""})
+
+    df = df.style.applymap(color_qualifiers)
 
     st.dataframe(df)
 

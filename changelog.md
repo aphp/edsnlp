@@ -37,6 +37,8 @@
 ## v0.4.3
 
 - Fix regex matching on spans.
+- Add fast_parse in date pipeline.
+- Add relative_date information parsing
 
 ## v0.4.2
 
@@ -103,9 +105,13 @@
 ## v0.3.0
 
 - Renamed `generic` to `matcher`. This is a non-breaking change for the average user, adding the pipeline is still :
+
+  <!-- no-check -->
+
   ```python
   nlp.add_pipe("matcher", config=dict(terms=dict(maladie="maladie")))
   ```
+
 - Removed `quickumls` pipeline. It was untested, unmaintained. Will be added back in a future release.
 - Add `score` pipeline, and `charlson`.
 - Add `advanced-regex` pipeline

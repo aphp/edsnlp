@@ -1,16 +1,18 @@
 from datetime import datetime
 
-import context  # noqa
 import pandas as pd
 import spacy
 from pytest import fixture
 
-import edsnlp.components  # noqa
+
+@fixture(scope="session", params=["eds", "fr"])
+def lang(request):
+    return request.param
 
 
 @fixture(scope="session")
-def nlp():
-    model = spacy.blank("fr")
+def nlp(lang):
+    model = spacy.blank(lang)
 
     model.add_pipe("eds.normalizer")
 
@@ -61,8 +63,8 @@ def nlp():
 
 
 @fixture
-def blank_nlp():
-    model = spacy.blank("fr")
+def blank_nlp(lang):
+    model = spacy.blank(lang)
     model.add_pipe("eds.sentences")
     return model
 

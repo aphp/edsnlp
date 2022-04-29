@@ -12,7 +12,7 @@ from edsnlp.processing.helpers import DataFrameModules
 
 text = """
 Motif :
-Le patient est admis le 29 août pour des difficultés respiratoires.
+Le patient est admis le 29 août 2020 pour des difficultés respiratoires.
 
 Antécédents familiaux :
 Le père est asthmatique, sans traitement particulier.
@@ -26,14 +26,10 @@ Conclusion
 Possible infection au coronavirus
 """
 
-spark = SparkSession.builder.getOrCreate()
-
-NOTE_YEAR = 1980
-
 
 def note(module: DataFrameModules):
 
-    data = [(i, i // 5, text, datetime(NOTE_YEAR, 1, 1)) for i in range(20)]
+    data = [(i, i // 5, text, datetime(2021, 1, 1)) for i in range(20)]
 
     if module == DataFrameModules.PANDAS:
         return pd.DataFrame(
@@ -52,6 +48,7 @@ def note(module: DataFrameModules):
         ]
     )
 
+    spark = SparkSession.builder.getOrCreate()
     notes = spark.createDataFrame(data=data, schema=note_schema)
     if module == DataFrameModules.PYSPARK:
         return notes
@@ -61,9 +58,9 @@ def note(module: DataFrameModules):
 
 
 @pytest.fixture
-def model():
+def model(lang):
     # Creates the spaCy instance
-    nlp = spacy.blank("fr")
+    nlp = spacy.blank(lang)
 
     # Normalisation of accents, case and other special characters
     nlp.add_pipe("eds.normalizer")
@@ -125,8 +122,8 @@ def test_pipelines(param, model):
             "hypothesis": T.BooleanType(),
             "family": T.BooleanType(),
             "reported_speech": T.BooleanType(),
-            "parsed_date": T.TimestampType(),
-            "date": T.StringType(),
+            "date.year": T.IntegerType(),
+            "date.month": T.IntegerType(),
         },
         additional_spans=["dates"],
     )
@@ -150,13 +147,10 @@ def test_pipelines(param, model):
             "reported_speech",
             "family",
             "score_method",
-            "parsed_date",
-            "date",
+            "date_year",
+            "date_month",
         )
     )
-
-    # Check that context is correctly added
-    assert f"{NOTE_YEAR}-08-29" in note_nlp["date"].unique()
 
 
 def test_spark_missing_types(model):
@@ -166,5 +160,4 @@ def test_spark_missing_types(model):
             note(module=DataFrameModules.PYSPARK),
             nlp=model,
             extensions={"negation", "hypothesis", "family"},
-            additional_spans=["dates"],
         )

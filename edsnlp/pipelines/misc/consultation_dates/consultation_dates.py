@@ -121,7 +121,9 @@ class ConsultationDates(GenericMatcher):
 
         Returns
         -------
-        doc: spaCy Doc object with additionnal doc.spans['consultation_dates] SpanGroup
+        doc: Doc
+            spaCy Doc object with additional
+            `doc.spans['consultation_dates]` `SpanGroup`
         """
 
         ents = self.process(doc)
@@ -151,7 +153,7 @@ class ConsultationDates(GenericMatcher):
                 kept_date = min(matching_dates, key=lambda d: d.start)
                 span = doc[mention.start : kept_date.end]
                 span.label_ = mention.label_
-                span._.consultation_date = kept_date._.parsed_date
+                span._.consultation_date = kept_date._.date
 
                 doc.spans["consultation_dates"].append(span)
 

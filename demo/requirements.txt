@@ -1,2 +1,2 @@
-edsnlp==0.4.4
+git+https://github.com/aphp/edsnlp.git
 streamlit

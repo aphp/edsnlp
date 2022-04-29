@@ -1,0 +1,33 @@
+# This tries to build packages, and tests the packages.
+# It runs on every push to branches following the pattern v*.*.*.
+# It makes sure that everything will run when the version is released.
+
+name: Test Build
+
+on:
+  push:
+    branches:
+      - v*.*.*
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, windows-2019, macos-10.15]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.4.0
+
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build sdist
+        run: pipx run build --sdist

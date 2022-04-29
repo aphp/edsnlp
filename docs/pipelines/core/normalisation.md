@@ -2,6 +2,8 @@
 
 The normalisation scheme used by EDS-NLP adheres to the non-destructive doctrine. In other words,
 
+<!-- no-check -->
+
 ```python
 nlp(text).text == text
 ```
@@ -44,8 +46,8 @@ text = "Le patient est admis à l'hôpital le 23 août 2021 pour une douleur ʺa
 
 doc = nlp(text)
 
-get_text(doc, attr="NORM")
-# Out: le patient est admis a l'hopital le 23 aout 2021 pour une douleur "affreuse" a l'estomac
+get_text(doc, attr="NORM", ignore_excluded=False)
+# Out: le patient est admis a l'hopital le 23 aout 2021 pour une douleur "affreuse" a l'estomac.
 ```
 
 ## Utilities
@@ -91,8 +93,8 @@ text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
 
 doc = nlp(text)
 
-get_text(doc, attr="NORM")
-# Out: pneumopathie à nbnbwbwbnbwbnbnbnbwbw `coronavirus'
+get_text(doc, attr="NORM", ignore_excluded=False)
+# Out: pneumopathie à nbnbwbwbnbwbnbnbnbwbw 'coronavirus'
 ```
 
 ### Accents
@@ -121,7 +123,7 @@ text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
 
 doc = nlp(text)
 
-get_text(doc, attr="NORM")
+get_text(doc, attr="NORM", ignore_excluded=False)
 # Out: Pneumopathie a NBNbWbWbNbWbNBNbNbWbW `coronavirus'
 ```
 
@@ -149,7 +151,7 @@ text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
 
 doc = nlp(text)
 
-get_text(doc, attr="NORM")
+get_text(doc, attr="NORM", ignore_excluded=False)
 # Out: Pneumopathie à NBNbWbWbNbWbNBNbNbWbW 'coronavirus'
 ```
 
@@ -177,7 +179,7 @@ text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
 
 doc = nlp(text)
 
-get_text(doc, attr="NORM")
+get_text(doc, attr="NORM", ignore_excluded=False)
 # Out: Pneumopathie a NBNbWbWbNbWbNBNbNbWbW `coronavirus'
 
 get_text(doc, attr="TEXT", ignore_excluded=True)

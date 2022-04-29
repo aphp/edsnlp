@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from spacy.language import Language
 
@@ -7,14 +7,11 @@ from edsnlp.utils.deprecation import deprecated_factory
 from . import Dates
 
 DEFAULT_CONFIG = dict(
-    no_year=None,
-    year_only=None,
-    no_day=None,
     absolute=None,
     relative=None,
-    full=None,
-    current=None,
+    duration=None,
     false_positive=None,
+    detect_periods=False,
     on_ents_only=False,
     attr="LOWER",
 )
@@ -25,27 +22,21 @@ DEFAULT_CONFIG = dict(
 def create_component(
     nlp: Language,
     name: str,
-    no_year: Optional[List[str]],
-    year_only: Optional[List[str]],
-    no_day: Optional[List[str]],
     absolute: Optional[List[str]],
-    full: Optional[List[str]],
     relative: Optional[List[str]],
-    current: Optional[List[str]],
+    duration: Optional[List[str]],
     false_positive: Optional[List[str]],
-    on_ents_only: bool,
+    on_ents_only: Union[bool, List[str]],
+    detect_periods: bool,
     attr: str,
 ):
     return Dates(
         nlp,
-        no_year=no_year,
         absolute=absolute,
         relative=relative,
-        year_only=year_only,
-        no_day=no_day,
-        full=full,
-        current=current,
+        duration=duration,
         false_positive=false_positive,
         on_ents_only=on_ents_only,
+        detect_periods=detect_periods,
         attr=attr,
     )

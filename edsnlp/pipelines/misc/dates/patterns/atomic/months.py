@@ -1,5 +1,3 @@
-from typing import Dict, List
-
 from edsnlp.utils.regex import make_pattern
 
 
@@ -24,7 +22,6 @@ letter_month_pattern = make_pattern(letter_months, with_breaks=True)
 numeric_month_pattern = r"(?<!\d)(0?[1-9]|1[0-2])(?!\d)"
 lz_numeric_month_pattern = r"(?<!\d)(0[1-9]|1[0-2])(?!\d)"
 
-month_pattern = f"(?P<month>{letter_month_pattern}|{numeric_month_pattern})"
-letter_month_pattern = f"(?P<month>{letter_month_pattern})"
 numeric_month_pattern = f"(?P<month>{numeric_month_pattern})"
 lz_numeric_month_pattern = f"(?P<month>{lz_numeric_month_pattern})"
+month_pattern = f"({letter_month_pattern}|{numeric_month_pattern})"

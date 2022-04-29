@@ -1,0 +1,41 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: >-
+  EDS-NLP: efficient information extraction from
+  French clinical notes
+message: If you use EDS-NLP, please cite us as below.
+type: software
+authors:
+  - given-names: Basile
+    family-names: Dura
+    orcid: 'https://orcid.org/0000-0002-8315-4050'
+    affiliation: Assistance Publique – Hôpitaux de Paris
+  - given-names: Perceval
+    family-names: Wajsburt
+    affiliation: Assistance Publique – Hôpitaux de Paris
+  - given-names: Thomas
+    family-names: Petit-Jean
+    affiliation: Assistance Publique – Hôpitaux de Paris
+  - given-names: Ariel
+    family-names: Cohen
+    affiliation: Assistance Publique – Hôpitaux de Paris
+  - given-names: Charline
+    family-names: Jean
+    affiliation: Assistance Publique – Hôpitaux de Paris
+  - given-names: Romain
+    family-names: Bey
+    affiliation: Assistance Publique – Hôpitaux de Paris
+repository-code: 'https://github.com/aphp/edsnlp'
+url: 'http://aphp.github.io/edsnlp'
+abstract: >-
+  EDS-NLP provides a set of spaCy components that are
+  used to extract information from clinical notes
+  written in French.
+keywords:
+  - NLP
+  - clinical
+license: BSD-3-Clause
+year: 2022
+doi: 10.5281/zenodo.6424993

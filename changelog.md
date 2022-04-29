@@ -1,5 +1,31 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Support for chained attributes in the `processing` pipelines
+- Colour utility with the category20 colour palette
+- Correct a REGEX on the date detector (both `nov` and `nov.` are now detected, as all other months)
+
+## v0.5.1 (2022-04-11)
+
+### Fixed
+
+- Updated Numpy requirements to be compatible with the `EDSPhraseMatcher`
+
+## v0.5.0 (2022-04-08)
+
+### Added
+
+- New `eds` language to better fit French clinical documents and improve speed
+- Testing for markdown codeblocks to make sure the documentation is actually executable
+
+### Changed
+
+- Complete revamp of the date detection pipeline, with better parsing and more exhaustive matching
+- Reimplementation of the EDSPhraseMatcher in Cython, leading to a x15 speed increase
+
 ## v0.4.4
 
 - Add `measures` pipeline

@@ -1,6 +1,5 @@
 from edsnlp.utils.regex import make_pattern
 
-
 letter_months = [
     r"(?P<month_01>janvier|janv\.?)",
     r"(?P<month_02>f[ée]vrier|f[ée]v\.?)",

@@ -44,14 +44,14 @@ def check_spacy_version_for_context():  # pragma: no cover
 
 def rgetattr(obj: Any, attr: str, *args: List[Any]) -> Any:
     """
-    Recursively getting attribute
+    Get attribute recursively
 
     Parameters
     ----------
     obj : Any
         An object
     attr : str
-        The name of the attriute to get. Can contain dots.
+        The name of the attribute to get. Can contain dots.
     """
 
     def _getattr(obj, attr):

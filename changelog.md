@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.5.2 (2022-04-29)
 
 ### Added
 
@@ -8,6 +8,10 @@
 - Support for chained attributes in the `processing` pipelines
 - Colour utility with the category20 colour palette
 - [TNM](https://en.wikipedia.org/wiki/TNM_staging_system) detection and normalisation with the `eds.TNM` pipeline
+
+### Fixed
+
+- Correct a REGEX on the date detector (both `nov` and `nov.` are now detected, as all other months)
 
 ## v0.5.1 (2022-04-11)
 

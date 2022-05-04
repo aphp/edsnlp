@@ -1,12 +1,17 @@
 # Changelog
 
+## Pending release
+
+### Added
+
+- Support for arbitrary callback for Pandas multiprocessing, with the `callback` argument
+
 ## v0.5.2 (2022-04-29)
 
 ### Added
 
 - Support for chained attributes in the `processing` pipelines
 - Colour utility with the category20 colour palette
-- Support for arbitrary callback for Pandas multiprocessing, with the `callback` argument
 
 ### Fixed
 

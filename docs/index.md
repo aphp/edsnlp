@@ -23,7 +23,7 @@ color:green Successfully installed!
 We recommend pinning the library version in your projects, or use a strict package manager like [Poetry](https://python-poetry.org/).
 
 ```
-pip install edsnlp==0.5.2
+pip install edsnlp==0.5.3
 ```
 
 ### A first pipeline

@@ -4,6 +4,8 @@
 
 ### Added
 
+- Support for strings in the example utility
+- [TNM](https://en.wikipedia.org/wiki/TNM_staging_system) detection and normalisation with the `eds.TNM` pipeline
 - Support for arbitrary callback for Pandas multiprocessing, with the `callback` argument
 
 ## v0.5.2 (2022-04-29)

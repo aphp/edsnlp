@@ -1,13 +1,18 @@
 # Changelog
 
-## v0.5.2 (2022-04-29)
+## Pending release
 
 ### Added
 
 - Support for strings in the example utility
+- [TNM](https://en.wikipedia.org/wiki/TNM_staging_system) detection and normalisation with the `eds.TNM` pipeline
+
+## v0.5.2 (2022-04-29)
+
+### Added
+
 - Support for chained attributes in the `processing` pipelines
 - Colour utility with the category20 colour palette
-- [TNM](https://en.wikipedia.org/wiki/TNM_staging_system) detection and normalisation with the `eds.TNM` pipeline
 
 ### Fixed
 

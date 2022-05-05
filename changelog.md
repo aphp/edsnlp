@@ -1,5 +1,11 @@
 # Changelog
 
+## Pending v0.5.3
+
+### Added
+
+- Using a batch size of 2000 when distributing a pipeline with Spark
+
 ## v0.5.3 (2022-05-04)
 
 ### Added

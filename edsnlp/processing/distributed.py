@@ -206,7 +206,7 @@ def pipe(
         extensions=extensions,
     )
 
-    n_needed_partitions = note.count() // 2000  # Batch sizes of 2000
+    n_needed_partitions = max(note.count() // 2000, 1)  # Batch sizes of 2000
 
     note_nlp = note.repartition(n_needed_partitions).withColumn(
         "matches", matcher(F.col("note_text"), *[F.col(c) for c in context])

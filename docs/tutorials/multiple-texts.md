@@ -5,7 +5,7 @@ Once the pipeline is tested and ready to be applied on an entire corpus, we'll w
 
 In this tutorial, we'll cover a few best practices and some _caveats_ to avoid.
 Then, we'll explore methods that EDS-NLP provides to use a spaCy pipeline directly on a pandas or Spark DataFrame.
-These can drastically increase throughput (up to 20x speed increase on our 64-core machines).
+These can drastically increase throughput.
 
 Consider this simple pipeline:
 
@@ -89,9 +89,13 @@ Processing text within a pandas DataFrame is a very common use case. In many app
 
     In every tutorial that mentions distributing EDS-NLP over a corpus of documents,
     we will expect the data to be organised using a flavour of the
-    [OMOP Common Data Model](https://www.ohdsi.org/data-standardization/the-common-data-model/).
+    [OMOP Common Data Model](https://ohdsi.github.io/CommonDataModel/).
 
-    For instance, we expect the input table to provide at least two columns, `note_id` and `note_text`.
+    The OMOP CDM defines two tables of interest to us:
+
+    - the [`note` table](https://ohdsi.github.io/CommonDataModel/cdm54.html#NOTE) contains the clinical notes
+    - the [`note_nlp` table](https://ohdsi.github.io/CommonDataModel/cdm54.html#NOTE_NLP) holds the results of
+      a NLP pipeline applied to the `note` table.
 
 To make sure we can follow along, we propose three recipes for getting the DataFrame: using a dummy dataset like before, loading a CSV or by loading a Spark DataFrame into memory.
 
@@ -206,11 +210,11 @@ data = data[["note_id"]].join(pd.json_normalize(data.entities))
 
 The result on the first note:
 
-| note_id | start |  end | label      | lexical_variant   | negation | hypothesis | family | key   |
-| ------: | ----: | ---: | :--------- | :---------------- | -------: | ---------: | -----: | :---- |
-|       0 |     0 |    7 | patient    | Patient           |        0 |          0 |      0 | ents  |
-|       0 |   114 |  121 | patient    | patient           |        0 |          0 |      1 | ents  |
-|       0 |    17 |   34 | 2021-09-25 | 25 septembre 2021 |      nan |        nan |    nan | dates |
+| note_id | start | end | label      | lexical_variant   | negation | hypothesis | family | key   |
+| ------: | ----: | --: | :--------- | :---------------- | -------: | ---------: | -----: | :---- |
+|       0 |     0 |   7 | patient    | Patient           |        0 |          0 |      0 | ents  |
+|       0 |   114 | 121 | patient    | patient           |        0 |          0 |      1 | ents  |
+|       0 |    17 |  34 | 2021-09-25 | 25 septembre 2021 |      nan |        nan |    nan | dates |
 
 ## Using EDS-NLP's helper functions
 
@@ -218,19 +222,23 @@ Let's see how we can efficiently deploy our pipeline using EDS-NLP's utility met
 
 They share the same arguments:
 
-| Argument           | Description                                                     | Default  |
-| ------------------ | --------------------------------------------------------------- | -------- |
-| `note`             | A DataFrame, with two required columns, `note_id` and `note_id` | Required |
-| `nlp`              | The pipeline object                                             | Required |
-| `context`          | A list of column names to add context to the generate `Doc`     | `[]`     |
-| `additional_spans` | Keys in `doc.spans` to include besides `doc.ents`               | `[]`     |
-| `extensions`       | Custom extensions to use                                        | `[]`     |
+| Argument            | Description                                                                   | Default                 |
+| ------------------- | ----------------------------------------------------------------------------- | ----------------------- |
+| `note`              | A DataFrame, with two required columns, `note_id` and `note_id`               | Required                |
+| `nlp`               | The pipeline object                                                           | Required                |
+| `context`           | A list of column names to add context to the generate `Doc`                   | `[]`                    |
+| `additional_spans`  | Keys in `doc.spans` to include besides `doc.ents`                             | `[]`                    |
+| `extensions`        | Custom extensions to use                                                      | `[]`                    |
+| `results_extractor` | An arbitrary callback function that turns a `Doc` into a list of dictionaries | `None` (use extensions) |
 
-!!! tip "Adding 'context'"
+!!! tip "Adding context"
 
-    You may want to store some values contained in your `note` DataFrame as an extension in the generated `Doc` object.
+    You might want to store some context information contained in the `note` DataFrame as an extension in the generated `Doc` object.
 
-    For instance, the [dates](../pipelines/misc/dates.md) pipeline will use, if provided, the `note_datetime` to add a _year_ to an incomplete year such as in: _"The 21st of August, the patient came to the hospital"_.
+    For instance, you may use the [`eds.dates` pipeline](../pipelines/misc/dates.md)
+    in coordination with the `note_datetime` field to normalise a relative date
+    (eg `Le patient est venu il y a trois jours/The patient came three days ago`).
+
     In this case, you can use the `context` parameter and provide a list of column names you want to add:
 
     <!-- no-check -->
@@ -245,7 +253,41 @@ They share the same arguments:
     )
     ```
 
-Depending on your pipeline, you may want to extract other extensions. To do so, simply provide those extension names (without the leading underscore) to the `extensions` argument.
+    In this example, the `note_datetime` field becomes available as `doc._.note_datetime`.
+
+Depending on your pipeline, you may want to extract other extensions.
+To do so, simply provide those extension names (without the leading underscore) to the `extensions` argument.
+**This should cover most use-cases**.
+
+In case you need more fine-grained control over how you want to process the results of your pipeline,
+you can provide an arbitrary `results_extractor` function. Said function is expected to take a spaCy `Doc`
+object as input, and return a list of dictionaries that will be used to construct the `note_nlp` table.
+For instance, the `get_entities` function defined earlier could be distributed directly:
+
+<!-- no-check -->
+
+```python
+# ↑ Omitted code above ↑
+from edsnlp.processing.simple import pipe as single_pipe
+from processing import get_entities
+
+note_nlp = single_pipe(
+    data,
+    nlp,
+    results_extractor=get_entities,
+)
+```
+
+!!! danger "A few caveats on using an arbitrary function"
+
+    Should you use multiprocessing, your arbitrary function needs to be serialisable
+    as a pickle object in order to be distributed. That implies a few limitations on the way your
+    function can be defined.
+
+    Namely, your **function needs to be discoverable** (see the [pickle documentation on the subject](https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled)). When deploying it should be defined such a way that can be accessed by the worker processes.
+
+    For that reason, **arbitrary functions can only be distributed via Spark/Koalas if their source code is advertised to the Spark workers**.
+    To that end, you should define your custom function in a pip-installed Python package.
 
 ### Single process
 

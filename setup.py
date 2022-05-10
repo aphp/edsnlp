@@ -56,6 +56,7 @@ factories = [
     "quotes = edsnlp.components:quotes",
     "charlson = edsnlp.components:charlson",
     "sofa = edsnlp.components:sofa",
+    "tnm = edsnlp.components:tnm",
     "priority = edsnlp.components:priority",
     "ccmu = edsnlp.components:ccmu",
     'gemsa" = edsnlp.components:gemsa',

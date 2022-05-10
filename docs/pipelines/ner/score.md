@@ -82,6 +82,26 @@ ent._.score_method
 
 Score method can here be "24H", "Maximum", "A l'admission" or "Non précisée"
 
+## TNM score
+
+The `eds.TNM` pipe allows to extract SOFA scores.
+
+```python
+import spacy
+
+nlp = spacy.blank("fr")
+nlp.add_pipe("eds.sentences")
+nlp.add_pipe("eds.TNM")
+
+text = "TNM: pTx N1 M1"
+
+doc = nlp(text)
+doc.ents
+# Out: (pTx N1 M1,)
+```
+
+The TNM score was developed with S. Priou and E. Kempf.
+
 ## Implementing your own score
 
 Using the `eds.score` pipeline, you only have to change its configuration in order to implement a _simple_ score extraction algorithm. As an example, let us see the configuration used for the `eds.charlson` pipe

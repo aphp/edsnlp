@@ -11,9 +11,10 @@ letter_months = [
     r"(?P<month_08>ao[uû]t)",
     r"(?P<month_09>septembre|sept?\.?)",
     r"(?P<month_10>octobre|oct\.?)",
-    r"(?P<month_11>novembre|nov\.)",
+    r"(?P<month_11>novembre|nov\.?)",
     r"(?P<month_12>d[ée]cembre|d[ée]c\.?)",
 ]
+
 
 letter_month_pattern = make_pattern(letter_months, with_breaks=True)
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Detection of privacy-related entities, for use as a rule-base pseudonymisation pipeline. Detected patterns: ``IPP` (APHP-specific identification number), `MAIL`, `NDA` (APHP-specific), `SECU` (French social-security number), `TEL`, `ZIP`. Also created new date patterns to handle PDF-extracted medical texts (eg `0 6 0 4 2 0 2 2`)
+- Added a `as_ents` parameter to `eds.dates`, mainly used for the pseudonymisation. Dates are added in the `ents` attribute.
+
 ## v0.5.3 (2022-05-04)
 
 ### Added

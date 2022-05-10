@@ -36,6 +36,12 @@ class BaseDate(BaseModel):
 
     mode: Optional[Mode] = None
 
+    @validator("*", pre=True)
+    def strip_space(cls, v):
+        if isinstance(v, str):
+            return v.replace(" ", "")
+        return v
+
     @root_validator(pre=True)
     def validate_strings(cls, d: Dict[str, str]) -> Dict[str, str]:
         result = d.copy()

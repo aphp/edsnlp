@@ -4,7 +4,7 @@ from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 from pytest import fixture
 
-from edsnlp.pipelines.misc.pseudonymisation import Pseudonymisation
+from edsnlp.pipelines.misc.pseudonymisation.date_patterns import pseudo_date_pattern
 from edsnlp.utils.examples import parse_example
 
 examples: List[str] = [
@@ -12,25 +12,39 @@ examples: List[str] = [
         "Le patient habite à <ent label=VILLE>Clermont-Ferrand</ent>, "
         "<ent label=ZIP>63 000</ent>"
     ),
-    "Le patient téléphone au <ent label=TEL>06 12 34 56 79</ent>",
+    (
+        "Le patient téléphone au <ent label=TEL>06 12 34 56 79</ent>, "
+        "<ent label=TEL>0 6 1 2 3 4 5 6 7 9</ent>"
+    ),
     (
         "<ent label=MAIL>medecin@aphp.fr</ent>, "
-        "<ent label=MAIL>patient@test.example.com</ent>"
+        "<ent label=MAIL>patient@test.example.com</ent>, "
+        "<ent label=MAIL>patient @ test . example . com</ent>"
     ),
+    "Date d'examen <ent label=date>0 6 0 9 2 0 2 2</ent>",
 ]
 
 
 @fixture(scope="function")
 def pseudo(blank_nlp):
-    return Pseudonymisation(blank_nlp, "NORM")
+    blank_nlp.add_pipe("eds.pseudonymisation")
+    blank_nlp.add_pipe(
+        "eds.dates",
+        config=dict(
+            absolute=pseudo_date_pattern,
+            false_positive=[],
+            as_ents=True,
+        ),
+    )
+    return blank_nlp
+    # return Pseudonymisation(blank_nlp, "NORM")
 
 
-def test_pseudonymisation(blank_nlp, pseudo):
+def test_pseudonymisation(pseudo):
 
     for example in examples:
         text, entities = parse_example(example=example)
-        doc = blank_nlp(text)
-        doc = pseudo(doc)
+        doc = pseudo(text)
 
         assert len(doc.ents) == len(entities)
 

@@ -17,7 +17,13 @@ class MatcherType(Enum):
 
 class ContextMatcher(BaseComponent):
     """
-    Provides a generic matcher component.
+    The `ContextMatcher` is designed to match dynamic patterns,
+    that depend on each individual document.
+
+    !!! aphp "AP-HP use case"
+
+        At AP-HP, the main use-case is for pseudonymisation. Using the `ContextMatcher`,
+        we can look for a patient's information directly (eg name, address).
 
     Parameters
     ----------

@@ -72,6 +72,7 @@ factories = [
     "sections = edsnlp.components:sections",
     "context = edsnlp.components:context",
     "measures = edsnlp.components:measures",
+    "pseudonymisation = edsnlp.components:pseudonymisation",
 ]
 
 setup(
@@ -100,7 +101,7 @@ setup(
         distributed=["pyspark"],
     ),
     package_data={
-        "edsnlp": ["resources/*.csv"],
+        "edsnlp": ["resources/*"],
         "": ["*.pyx", "*.pxd", "*.pxi"],
     },
     entry_points={

@@ -13,6 +13,7 @@ DEFAULT_CONFIG = dict(
     false_positive=None,
     detect_periods=False,
     on_ents_only=False,
+    as_ents=False,
     attr="LOWER",
 )
 
@@ -28,6 +29,7 @@ def create_component(
     false_positive: Optional[List[str]],
     on_ents_only: Union[bool, List[str]],
     detect_periods: bool,
+    as_ents: bool,
     attr: str,
 ):
     return Dates(
@@ -38,5 +40,6 @@ def create_component(
         false_positive=false_positive,
         on_ents_only=on_ents_only,
         detect_periods=detect_periods,
+        as_ents=as_ents,
         attr=attr,
     )

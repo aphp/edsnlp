@@ -48,7 +48,9 @@ class Dates(BaseComponent):
         - If given a string `key` or list of string: Only look in the sentences of
           each entity in `#!python doc.spans[key]`
     detect_periods : bool
-        Wether to detect periods (experimental)
+        Whether to detect periods (experimental)
+    as_ents : bool
+        Whether to treat dates as entities
     attr : str
         spaCy attribute to use
     """
@@ -63,6 +65,7 @@ class Dates(BaseComponent):
         false_positive: Optional[List[str]],
         on_ents_only: Union[bool, List[str]],
         detect_periods: bool,
+        as_ents: bool,
         attr: str,
     ):
 
@@ -95,6 +98,8 @@ class Dates(BaseComponent):
         self.regex_matcher.add("duration", duration)
 
         self.detect_periods = detect_periods
+
+        self.as_ents = as_ents
 
         if detect_periods:
             logger.warning("The period extractor is experimental.")
@@ -270,5 +275,16 @@ class Dates(BaseComponent):
 
         if self.detect_periods:
             doc.spans["periods"] = self.process_periods(dates)
+
+        if self.as_ents:
+            ents, discarded = filter_spans(
+                list(doc.ents) + dates, return_discarded=True
+            )
+
+            doc.ents = ents
+
+            if "discarded" not in doc.spans:
+                doc.spans["discarded"] = []
+            doc.spans["discarded"].extend(discarded)
 
         return doc

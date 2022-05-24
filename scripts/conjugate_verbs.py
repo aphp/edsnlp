@@ -14,7 +14,7 @@ warnings.filterwarnings("ignore")
 
 def conjugate_verbs(
     output_path: Path = typer.Argument(
-        "edsnlp/resources/verbs.csv", help="Path to the output CSV table."
+        "edsnlp/resources/verbs.csv.gz", help="Path to the output CSV table."
     )
 ) -> None:
     """

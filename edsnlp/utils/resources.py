@@ -25,7 +25,7 @@ def get_verbs(
         DataFrame containing conjugated verbs.
     """
 
-    conjugated_verbs = pd.read_csv(BASE_DIR / "resources" / "verbs.csv")
+    conjugated_verbs = pd.read_csv(BASE_DIR / "resources" / "verbs.csv.gz")
 
     if not verbs:
         return conjugated_verbs
@@ -38,3 +38,15 @@ def get_verbs(
         assert len(verbs) == selected_verbs.verb.nunique(), "Some verbs are missing !"
 
     return selected_verbs
+
+
+def get_cities() -> pd.DataFrame:
+    """
+    Get the cities DataFrame from the resources.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing French cities.
+    """
+    return pd.read_csv(BASE_DIR / "resources" / "cities.csv.gz")

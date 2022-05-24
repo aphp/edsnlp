@@ -1,6 +1,6 @@
 # Changelog
 
-## Pending v0.5.3
+## Pending Release
 
 ### Added
 

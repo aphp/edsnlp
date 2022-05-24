@@ -2,7 +2,7 @@
 
 ## Pending release
 
-### Fixed
+### Added
 
 - Add new pattern to pipeline `eds.dates` to identify cases where only the month is mentioned.
 

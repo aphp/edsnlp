@@ -1,5 +1,5 @@
 # Changelog
-## [Unreleased] (2022-05-24)
+## Pending release
 ### Added
 - Add new pattern to pipeline `dates` to identify cases where only the month is mentioned.
 

@@ -62,6 +62,11 @@ no_day_pattern = [
 ]
 absolute_pattern.extend(no_day_pattern)
 
+no_day_no_year_pattern = [
+    letter_month_pattern,
+]
+absolute_pattern.extend(no_day_no_year_pattern)
+
 full_year_pattern = ante_num_pattern + fy_pattern + post_num_pattern
 
 absolute_pattern.append(full_year_pattern)

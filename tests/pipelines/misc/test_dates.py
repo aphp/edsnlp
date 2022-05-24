@@ -41,6 +41,7 @@ examples = [
     "Le <ent day=7 month=1>07/01</ent>.",
     # "il est venu <ent year=0 direction=CURRENT>cette année</ent>",
     # "je vous écris <ent direction=CURRENT day=0>ce jour</ent> à propos du patient",
+    "Il est venu en <ent month=8>août</ent>.",
 ]
 
 

@@ -1,7 +1,9 @@
 # Changelog
 ## Pending release
-### Added
-- Add new pattern to pipeline `dates` to identify cases where only the month is mentioned.
+
+### Changed
+
+- Add new pattern to pipeline `eds.dates` to identify cases where only the month is mentioned.
 
 ## v0.5.3 (2022-05-04)
 

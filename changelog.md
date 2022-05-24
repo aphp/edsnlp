@@ -1,4 +1,5 @@
 # Changelog
+
 ## Pending release
 
 ### Changed

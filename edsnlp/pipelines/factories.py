@@ -9,6 +9,7 @@ from .core.normalizer.lowercase.factory import remove_lowercase
 from .core.normalizer.pollution.factory import create_component as pollution
 from .core.normalizer.quotes.factory import create_component as quotes
 from .core.sentences.factory import create_component as sentences
+from .core.terminology.factory import create_component as terminology
 from .misc.consultation_dates.factory import create_component as consultation_dates
 from .misc.dates.factory import create_component as dates
 from .misc.measures.factory import create_component as measures

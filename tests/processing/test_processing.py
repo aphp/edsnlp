@@ -161,3 +161,41 @@ def test_spark_missing_types(model):
             nlp=model,
             extensions={"negation", "hypothesis", "family"},
         )
+
+
+@pytest.mark.parametrize("param", params)
+def test_arbitrary_callback(param, model):
+
+    # We need to test PySpark with an installed function
+    from edsnlp.processing.utils import dummy_extractor
+
+    module = param["module"]
+
+    note_nlp = pipe(
+        note(module=module),
+        nlp=model,
+        n_jobs=param["n_jobs"],
+        context=["note_datetime"],
+        results_extractor=dummy_extractor,
+        dtypes={
+            "snippet": T.StringType(),
+            "length": T.IntegerType(),
+        },
+    )
+
+    if module == DataFrameModules.PANDAS:
+        assert set(note_nlp.columns) == {"snippet", "length", "note_datetime"}
+        assert (note_nlp.snippet.str.len() == note_nlp.length).all()
+
+    else:
+        if module == DataFrameModules.PYSPARK:
+            note_nlp = note_nlp.toPandas()
+        elif module == DataFrameModules.KOALAS:
+            note_nlp = note_nlp.to_pandas()
+
+        assert set(note_nlp.columns) == {
+            "note_id",
+            "snippet",
+            "length",
+        }
+        assert (note_nlp.snippet.str.len() == note_nlp.length).all()

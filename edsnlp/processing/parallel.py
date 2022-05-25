@@ -1,9 +1,10 @@
-from typing import Iterable, List, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 import spacy
 from joblib import Parallel, delayed
 from spacy import Language
+from spacy.tokens import Doc
 
 from .helpers import check_spacy_version_for_context
 from .simple import ExtensionSchema, _flatten, _pipe_generator
@@ -47,8 +48,9 @@ def pipe(
     note: pd.DataFrame,
     nlp: Language,
     context: List[str] = [],
-    additional_spans: Union[List[str], str] = "discarded",
+    additional_spans: Union[List[str], str] = [],
     extensions: ExtensionSchema = [],
+    results_extractor: Optional[Callable[[Doc], List[Dict[str, Any]]]] = None,
     chunksize: int = 100,
     n_jobs: int = -2,
     progress_bar: bool = True,
@@ -68,13 +70,17 @@ def pipe(
         For instance, if `context=["note_datetime"], the corresponding value found
         in the `note_datetime` column will be stored in `doc._.note_datetime`,
         which can be useful e.g. for the `dates` pipeline.
-    additional_spans : Union[List[str], str], by default "discarded"
+    results_extractor : Optional[Callable[[Doc], List[Dict[str, Any]]]]
+        Arbitrary function that takes extract serialisable results from the computed
+        spaCy `Doc` object. The output of the function must be a list of dictionaries
+        containing the extracted spans or entities.
+    additional_spans : Union[List[str], str], by default [] (empty list)
         A name (or list of names) of SpanGroup on which to apply the pipe too:
         SpanGroup are available as `doc.spans[spangroup_name]` and can be generated
         by some pipes. For instance, the `date` pipe populates doc.spans['dates']
     extensions : List[Tuple[str, T.DataType]], by default []
         Spans extensions to add to the extracted results:
-        FOr instance, if `extensions=["score_name"]`, the extracted result
+        For instance, if `extensions=["score_name"]`, the extracted result
         will include, for each entity, `ent._.score_name`.
     chunksize: int, by default 100
         Batch size used to split tasks
@@ -107,6 +113,7 @@ def pipe(
 
     pipe_kwargs["additional_spans"] = additional_spans
     pipe_kwargs["extensions"] = extensions
+    pipe_kwargs["results_extractor"] = results_extractor
     pipe_kwargs["context"] = context
 
     if verbose:

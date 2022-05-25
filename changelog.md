@@ -1,11 +1,30 @@
 # Changelog
 
-## Unreleased
+## Pending release
+
+### Added
+
+- New patterns to pipeline `eds.dates` to identify cases where only the month is mentioned
+- New `eds.terminology` component for generic terminology matching, using the `kb_id_` attribute to store fine-grained entity label
+
+## v0.5.3 (2022-05-04)
+
+### Added
+
+- Support for strings in the example utility
+- [TNM](https://en.wikipedia.org/wiki/TNM_staging_system) detection and normalisation with the `eds.TNM` pipeline
+- Support for arbitrary callback for Pandas multiprocessing, with the `callback` argument
+
+## v0.5.2 (2022-04-29)
 
 ### Added
 
 - Support for chained attributes in the `processing` pipelines
 - Colour utility with the category20 colour palette
+
+### Fixed
+
+- Correct a REGEX on the date detector (both `nov` and `nov.` are now detected, as all other months)
 
 ## v0.5.1 (2022-04-11)
 

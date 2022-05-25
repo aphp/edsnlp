@@ -9,6 +9,7 @@ from .core.normalizer.lowercase.factory import remove_lowercase
 from .core.normalizer.pollution.factory import create_component as pollution
 from .core.normalizer.quotes.factory import create_component as quotes
 from .core.sentences.factory import create_component as sentences
+from .core.terminology.factory import create_component as terminology
 from .misc.consultation_dates.factory import create_component as consultation_dates
 from .misc.dates.factory import create_component as dates
 from .misc.measures.factory import create_component as measures
@@ -22,6 +23,7 @@ from .ner.scores.emergency.gemsa.factory import create_component as gemsa
 from .ner.scores.emergency.priority.factory import create_component as priority
 from .ner.scores.factory import create_component as score
 from .ner.scores.sofa.factory import create_component as sofa
+from .ner.scores.tnm.factory import create_component as tnm
 from .qualifiers.family.factory import create_component as family
 from .qualifiers.history.factory import create_component as history
 from .qualifiers.hypothesis.factory import create_component as hypothesis

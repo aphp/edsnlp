@@ -23,7 +23,7 @@ color:green Successfully installed!
 We recommend pinning the library version in your projects, or use a strict package manager like [Poetry](https://python-poetry.org/).
 
 ```
-pip install edsnlp==0.5.1
+pip install edsnlp==0.5.3
 ```
 
 ### A first pipeline
@@ -106,6 +106,7 @@ This example is complete, it should run as-is. Check out the [spaCy 101 page](tu
     | `eds.emergency.priority` | A priority score extractor |
     | `eds.emergency.ccmu`     | A CCMU score extractor     |
     | `eds.emergency.gemsa`    | A GEMSA score extractor    |
+    | `eds.TNM`                | A TNM score extractor      |
     | `eds.drugs`              | A Drug mentions extractor  |
 
 ## Disclaimer

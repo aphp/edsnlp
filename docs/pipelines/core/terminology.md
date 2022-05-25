@@ -9,8 +9,9 @@ towards high volume terminologies.
 
 There are some key differences:
 
-1. It labels every matched entity to the same value, provided to the pipeline.
-2. The keys provided in the `regex` and `terms` dictionaries are used as the `kb_id_` of the entity.
+1. It labels every matched entity to the same value, provided to the pipeline
+2. The keys provided in the `regex` and `terms` dictionaries are used as the `kb_id_` of the entity,
+   which handles fine-grained labelling
 
 For instance, a terminology matcher could detect every drug mention under the top-level label `drug`,
 and link each individual mention to a given drug through its `kb_id_` attribute.

@@ -4,6 +4,7 @@
 
 ### Added
 
+- Add new pattern to pipeline `eds.dates` to identify cases where only the month is mentioned.
 - Using a batch size of 2000 when distributing a pipeline with Spark
 
 ## v0.5.3 (2022-05-04)

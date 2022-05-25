@@ -2,7 +2,10 @@ from spacy.language import Language
 
 from edsnlp.utils.examples import parse_example
 
-examples = ["Patient admis pour <ent code=A01>fièvres typhoïde et paratyphoïde</ent>"]
+examples = [
+    "Patient admis pour <ent code=A01>fièvres typhoïde et paratyphoïde</ent>",
+    "Patient admis pour <ent code=C221>C2.21</ent>",
+]
 
 
 def test_cim10(blank_nlp: Language):

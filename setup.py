@@ -46,6 +46,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 factories = [
     "matcher = edsnlp.components:matcher",
+    "terminology = edsnlp.components:terminology",
     "advanced = edsnlp.components:advanced",
     "endlines = edsnlp.components:endlines",
     "sentences = edsnlp.components:sentences",

@@ -1,3 +1,4 @@
+from itertools import chain
 from typing import List, Optional
 
 from spacy.language import Language
@@ -10,9 +11,13 @@ from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
 
 
-class GenericMatcher(BaseComponent):
+class TerminologyMatcher(BaseComponent):
     """
-    Provides a generic matcher component.
+    Provides a terminology matching component.
+
+    The terminology matching component differs from the simple matcher component in that
+    the `regex` and `terms` keys are used as spaCy's `kb_id`. All matched entities
+    have the same label, defined in the top-level constructor (argument `label`).
 
     Parameters
     ----------
@@ -35,6 +40,7 @@ class GenericMatcher(BaseComponent):
     def __init__(
         self,
         nlp: Language,
+        label: str,
         terms: Optional[Patterns],
         regex: Optional[Patterns],
         attr: str,
@@ -42,6 +48,8 @@ class GenericMatcher(BaseComponent):
     ):
 
         self.nlp = nlp
+
+        self.label = label
 
         self.attr = attr
 
@@ -64,6 +72,8 @@ class GenericMatcher(BaseComponent):
         """
         Find matching spans in doc.
 
+        Post-process matches to account for terminology.
+
         Parameters
         ----------
         doc:
@@ -78,7 +88,17 @@ class GenericMatcher(BaseComponent):
         matches = self.phrase_matcher(doc, as_spans=True)
         regex_matches = self.regex_matcher(doc, as_spans=True)
 
-        spans = list(matches) + list(regex_matches)
+        spans = []
+
+        for match in chain(matches, regex_matches):
+            span = Span(
+                doc=match.doc,
+                start=match.start,
+                end=match.end,
+                label=self.label,
+                kb_id=match.label,
+            )
+            spans.append(span)
 
         return spans
 
@@ -98,10 +118,8 @@ class GenericMatcher(BaseComponent):
         """
         matches = self.process(doc)
 
-        for span in matches:
-            if span.label_ not in doc.spans:
-                doc.spans[span.label_] = []
-            doc.spans[span.label_].append(span)
+        if self.label not in doc.spans:
+            doc.spans[self.label] = matches
 
         ents, discarded = filter_spans(list(doc.ents) + matches, return_discarded=True)
 

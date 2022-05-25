@@ -9,6 +9,7 @@ EDS-NLP provides easy-to-use spaCy components.
     | `eds.normalizer`       | Non-destructive input text normalisation        |
     | `eds.sentences`        | Better sentence boundary detection              |
     | `eds.matcher`          | A simple yet powerful entity extractor          |
+    | `eds.terminology`      | A simple yet powerful terminology matcher       |
     | `eds.advanced-matcher` | A conditional entity extractor                  |
     | `eds.endlines`         | An unsupervised model to classify each end line |
 
@@ -33,15 +34,16 @@ EDS-NLP provides easy-to-use spaCy components.
 
 === "NER"
 
-    | Pipeline                 | Description                |
-    | ------------------------ | -------------------------- |
-    | `eds.covid`              | A COVID mentions detector  |
-    | `eds.charlson`           | A Charlson score extractor |
-    | `eds.sofa`               | A SOFA score extractor     |
-    | `eds.emergency.priority` | A priority score extractor |
-    | `eds.emergency.ccmu`     | A CCMU score extractor     |
-    | `eds.emergency.gemsa`    | A GEMSA score extractor    |
-    | `eds.TNM`                | A TNM score extractor      |
+    | Pipeline                 | Description                 |
+    | ------------------------ | --------------------------- |
+    | `eds.covid`              | A COVID mentions detector   |
+    | `eds.charlson`           | A Charlson score extractor  |
+    | `eds.sofa`               | A SOFA score extractor      |
+    | `eds.emergency.priority` | A priority score extractor  |
+    | `eds.emergency.ccmu`     | A CCMU score extractor      |
+    | `eds.emergency.gemsa`    | A GEMSA score extractor     |
+    | `eds.TNM`                | A TNM score extractor       |
+    | `eds.cim10`              | A CIM10 terminology matcher |
 
 You can add them to your spaCy pipeline by simply calling `add_pipe`, for instance:
 

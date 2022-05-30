@@ -99,10 +99,12 @@ class TrainableQualifier(TrainablePipe):
 
     def set_annotations(self, docs: Iterable[Doc], scores: Floats2d) -> None:
         """Modify a batch of `Doc` objects, using pre-computed scores."""
+        c = 0
         for doc in docs:
-            for ent, score in zip(doc.ents, scores):
+            for ent in doc.ents:
                 for j, label in enumerate(self.labels):
-                    ent._.qualifiers[label] = score[j]
+                    ent._.qualifiers[label] = scores[c, j]
+                c += 1
 
     def update(
         self,

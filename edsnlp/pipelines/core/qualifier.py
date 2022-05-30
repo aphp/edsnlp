@@ -217,6 +217,34 @@ def prepare_qualifiers(
     qualifiers: Union[List[str], Dict[str, float]],
     labels: Optional[List[str]] = None,
 ) -> Dict[str, float]:
+    """
+    Convert `span._.qualifiers` to a dictionary.
+
+    `span._.qualifiers` can be either a list of qualifiers,
+    or a dictionary in the form `qualifier=score`.
+
+    In the former case, listed qualifiers are set a score of 1,
+    and unlisted ones are given a score of 0.
+
+    !!! danger "Be careful when using the list setting"
+
+        Should you use the list setting, it becomes very easy to overlook
+        a qualifier that should **not** lead to error propagation.
+
+        For that reason, you should always prefer the dictionary setting.
+
+    Parameters
+    ----------
+    qualifiers : Union[List[str], Dict[str, float]]
+        `span._.qualifier` custom attribute
+    labels : Optional[List[str]], optional
+        A list of labels, whose absence is considered a negation, by default None
+
+    Returns
+    -------
+    Dict[str, float]
+        Dictionary-setting qualifiers.
+    """
     if isinstance(qualifiers, dict):
         return qualifiers
     elif labels is not None:
@@ -230,22 +258,27 @@ def score_qualifiers(examples: Iterable[Example], threshold: float) -> Dict[str,
     """Score a batch of examples."""
     micro_prf = PRFScore()
     for example in examples:
-        gold = example.reference._.qualifiers
-        pred = example.predicted._.qualifiers
 
-        gold = prepare_qualifiers(gold)
+        for gold_ent, pred_ent in zip(example.reference.ents, example.predicted.ents):
 
-        gold_labels = [k for (k, v) in gold.items() if v == 1.0]
+            gold = gold_ent._.qualifiers
+            pred = pred_ent._.qualifiers
 
-        for k, v in pred.items():
-            if v >= threshold:
-                if k in gold_labels:
-                    micro_prf.tp += 1
+            gold = prepare_qualifiers(gold)
+
+            for label, score in gold.items():
+
+                g = bool(score)
+                p = pred[label]
+
+                if p >= threshold:
+                    if g:
+                        micro_prf.tp += 1
+                    else:
+                        micro_prf.fp += 1
                 else:
-                    micro_prf.fp += 1
-            else:
-                if k in gold_labels:
-                    micro_prf.fn += 1
+                    if g:
+                        micro_prf.fn += 1
     return {
         "qual_micro_p": micro_prf.precision,
         "qual_micro_r": micro_prf.recall,

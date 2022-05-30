@@ -1,9 +1,10 @@
 # Changelog
 
-## Pending release
+## Pending Release
 
 ### Added
 
+- Force a batch size of 2000 when distributing a pipeline with Spark
 - New patterns to pipeline `eds.dates` to identify cases where only the month is mentioned
 - New `eds.terminology` component for generic terminology matching, using the `kb_id_` attribute to store fine-grained entity label
 

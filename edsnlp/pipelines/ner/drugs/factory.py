@@ -1,6 +1,6 @@
 from spacy.language import Language
 
-from edsnlp.pipelines.core.matcher import GenericMatcher
+from edsnlp.pipelines.core.terminology import TerminologyMatcher
 
 from . import patterns
 
@@ -17,8 +17,9 @@ def create_component(
     attr: str,
     ignore_excluded: bool,
 ):
-    return GenericMatcher(
+    return TerminologyMatcher(
         nlp,
+        label="drug",
         terms=patterns.terms,
         regex=dict(),
         attr=attr,

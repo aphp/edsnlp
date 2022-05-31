@@ -8,7 +8,7 @@
 - New patterns to pipeline `eds.dates` to identify cases where only the month is mentioned
 - New `eds.terminology` component for generic terminology matching, using the `kb_id_` attribute to store fine-grained entity label
 - New `eds.cim10` terminology matching pipeline
-- New `eds.drugs` terminology pipeline that uses Romedi
+- New `eds.drugs` terminology pipeline that maps brand names and active ingredients to a unique [ATC](https://en.wikipedia.org/wiki/Anatomical_Therapeutic_Chemical_Classification_System) code
 
 ## v0.5.3 (2022-05-04)
 

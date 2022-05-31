@@ -21,7 +21,7 @@ A noter deux petits kystes bénins de 1 et 2cm biopsiés en 2005.
 Priorité: 2 (établie par l'IAO à l'entrée)
 
 Conclusion
-Possible infection au coronavirus\
+Possible infection au coronavirus. Prescription de paracétamol pour la fièvre.\
 """
 
 REGEX = """
@@ -64,6 +64,8 @@ doc.ents
 
 @st.cache(allow_output_mutation=True)
 def load_model(
+    drugs: bool,
+    cim10: bool,
     covid: bool,
     dates: bool,
     measures: bool,
@@ -79,6 +81,14 @@ def load_model(
     nlp = spacy.blank("eds")
     nlp.add_pipe("eds.normalizer")
     nlp.add_pipe("eds.sentences")
+
+    if drugs:
+        nlp.add_pipe("eds.drugs")
+        pipes.append('nlp.add_pipe("eds.drugs")')
+
+    if cim10:
+        nlp.add_pipe("eds.cim10")
+        pipes.append('nlp.add_pipe("eds.cim10")')
 
     if covid:
         nlp.add_pipe("eds.covid")
@@ -165,6 +175,8 @@ custom_regex = st.sidebar.text_input(
 st.sidebar.markdown("The RegEx you defined above is detected under the `custom` label.")
 
 st.sidebar.subheader("Pipeline Components")
+cim10 = st.sidebar.checkbox("CIM10 (loading can be slow)", value=False)
+drugs = st.sidebar.checkbox("Drugs", value=True)
 covid = st.sidebar.checkbox("COVID", value=True)
 dates = st.sidebar.checkbox("Dates", value=True)
 measures = st.sidebar.checkbox("Measures", value=True)
@@ -180,6 +192,8 @@ st.sidebar.markdown(
 model_load_state = st.info("Loading model...")
 
 nlp, pipes, regex = load_model(
+    drugs=drugs,
+    cim10=cim10,
     covid=covid,
     dates=dates,
     measures=measures,
@@ -252,6 +266,8 @@ category20 = [
 labels = [
     "date",
     "covid",
+    "drug",
+    "cim10",
     "eds.emergency.priority",
     "eds.SOFA",
     "eds.charlson",

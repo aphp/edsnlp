@@ -37,11 +37,11 @@ Glucophage is the brand name of a medication that contains metformine, the first
 
 The pipeline can be configured using the following parameters :
 
-| Parameter         | Description                                              | Default   |
-| ----------------- | -------------------------------------------------------- | --------- |
+| Parameter         | Description                                              | Default  |
+| ----------------- | -------------------------------------------------------- | -------- |
 | `attr`            | spaCy attribute to match on (eg `NORM`, `TEXT`, `LOWER`) | `"NORM"` |
-| `ignore_excluded` | Whether to ignore excluded tokens for matching           | `False`   |
+| `ignore_excluded` | Whether to ignore excluded tokens for matching           | `False`  |
 
 ## Authors and citation
 
-The `eds.drugs` pipeline was developed by CHU de Bordeaux's Data Science team.
+The `eds.drugs` pipeline was developed by the IAM team and CHU de Bordeaux's Data Science team.

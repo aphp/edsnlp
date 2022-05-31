@@ -15,6 +15,7 @@ from .misc.dates.factory import create_component as dates
 from .misc.measures.factory import create_component as measures
 from .misc.reason.factory import create_component as reason
 from .misc.sections.factory import create_component as sections
+from .ner.cim10.factory import create_component as cim10
 from .ner.covid.factory import create_component as covid
 from .ner.drugs.factory import create_component as drugs
 from .ner.scores.charlson.factory import create_component as charlson

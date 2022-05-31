@@ -11,5 +11,5 @@ def test_drugs(blank_nlp):
         ("glucophage", "A10BA02"),
         ("lasilix", "C03CA01"),
     ]
-    drugs_detected = [(x.text, x.label_) for x in doc.ents]
+    drugs_detected = [(x.text, x.kb_id_) for x in doc.ents]
     assert drugs_detected == drugs_expected

@@ -19,7 +19,7 @@ text = "Traitement habituel: Kardégic, cardensiel (bisoprolol), glucophage, las
 
 doc = nlp(text)
 
-drugs_detected = [(x.text, x.label_) for x in doc.ents]
+drugs_detected = [(x.text, x.kb_id_) for x in doc.ents]
 
 drugs_detected
 # Out: [('Kardégic', 'B01AC06'), ('cardensiel', 'C07AB07'), ('bisoprolol', 'C07AB07'), ('glucophage', 'A10BA02'), ('lasilix', 'C03CA01')]

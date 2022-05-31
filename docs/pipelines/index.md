@@ -44,6 +44,7 @@ EDS-NLP provides easy-to-use spaCy components.
     | `eds.emergency.gemsa`    | A GEMSA score extractor     |
     | `eds.TNM`                | A TNM score extractor       |
     | `eds.cim10`              | A CIM10 terminology matcher |
+    | `eds.drugs`              | A Drug mentions extractor   |
 
 You can add them to your spaCy pipeline by simply calling `add_pipe`, for instance:
 

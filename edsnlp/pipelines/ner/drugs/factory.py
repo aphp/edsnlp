@@ -20,7 +20,7 @@ def create_component(
     return TerminologyMatcher(
         nlp,
         label="drug",
-        terms=patterns.terms,
+        terms=patterns.get_patterns(),
         regex=dict(),
         attr=attr,
         ignore_excluded=ignore_excluded,

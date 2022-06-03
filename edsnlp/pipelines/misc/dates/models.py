@@ -60,16 +60,39 @@ class AbsoluteDate(BaseDate):
     def to_datetime(
         self,
         tz: Union[str, pendulum.tz.timezone] = "Europe/Paris",
+        enhance: bool = False,
+        note_datetime: Optional[datetime] = None,
         **kwargs,
     ) -> Optional[pendulum.datetime]:
 
+        d = self.dict(exclude_none=True)
+        d.pop("mode", None)
         if self.year and self.month and self.day:
-
-            d = self.dict(exclude_none=True)
-
-            d.pop("mode", None)
-
             return pendulum.datetime(**d, tz=tz)
+
+        elif enhance and note_datetime:
+            # no year
+            if not self.year and self.month and self.day:
+                d["year"] = note_datetime.year
+                return pendulum.datetime(**d, tz=tz)
+
+            # no day
+            elif self.year and self.month and not self.day:
+                d["day"] = 1
+                return pendulum.datetime(**d, tz=tz)
+
+            # year only
+            elif self.year and not self.month and not self.day:
+                d["day"] = 1
+                d["month"] = 1
+                return pendulum.datetime(**d, tz=tz)
+
+            # month only
+            elif not self.year and self.month and not self.day:
+                d["day"] = 1
+                d["year"] = note_datetime.year
+                return pendulum.datetime(**d, tz=tz)
+            return None
 
         return None
 
@@ -154,7 +177,9 @@ class RelativeDate(Relative):
     direction: Direction = Direction.CURRENT
 
     def to_datetime(
-        self, note_datetime: Optional[datetime] = None
+        self,
+        note_datetime: Optional[datetime] = None,
+        **kwargs,
     ) -> pendulum.Duration:
         td = super(RelativeDate, self).to_datetime()
 

@@ -44,6 +44,17 @@ ext_modules = cythonize(ext_modules, compiler_directives=COMPILER_DIRECTIVES)
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+
+architectures = [
+    "edsnlp.qualifier_model.v1 = edsnlp.models.qualifier:create_qualifier_model",
+    (
+        "edsnlp.classification_layer.v1 = "
+        "edsnlp.models.qualifier:create_classification_layer"
+    ),
+    "edsnlp.qualifier_tensor.v1 = edsnlp.models.qualifier:create_tensors",
+]
+
+
 factories = [
     "matcher = edsnlp.components:matcher",
     "terminology = edsnlp.components:terminology",
@@ -73,6 +84,15 @@ factories = [
     "sections = edsnlp.components:sections",
     "context = edsnlp.components:context",
     "measures = edsnlp.components:measures",
+    "qualifier = edsnlp.pipelines.core.qualifier:make_qualifier",
+]
+
+languages = [
+    "eds = edsnlp.language:EDSLanguage",
+]
+
+readers = [
+    "edsnlp.ents_corpus.v1 = edsnlp.readers.entity:create_docbin_reader",
 ]
 
 setup(
@@ -105,7 +125,9 @@ setup(
         "": ["*.pyx", "*.pxd", "*.pxi"],
     },
     entry_points={
+        "spacy_architectures": architectures,
         "spacy_factories": factories,
-        "spacy_languages": ["eds = edsnlp.language:EDSLanguage"],
+        "spacy_languages": languages,
+        "spacy_readers": readers,
     },
 )

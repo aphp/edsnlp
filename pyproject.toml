@@ -44,3 +44,9 @@ skip = [
 
 before-test = "pip install pytest"
 test-command = "pytest {project}/tests/pipelines/test_pipelines.py"
+
+
+[tool.mypy]
+plugins = [
+    "thinc.mypy",
+]

@@ -1,18 +1,17 @@
 from itertools import islice
-from typing import Tuple, List, Iterable, Optional, Dict, Callable, Any, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from spacy.scorer import PRFScore
-from thinc.types import Floats2d
 import numpy
-from spacy.training.example import Example
-from thinc.api import Model, Optimizer
-from spacy.tokens import Doc, Span
-from spacy.pipeline.trainable_pipe import TrainablePipe
-from spacy.vocab import Vocab
 from spacy import Language
+from spacy.pipeline.trainable_pipe import TrainablePipe
+from spacy.scorer import PRFScore
+from spacy.tokens import Doc, Span
+from spacy.training.example import Example
+from spacy.vocab import Vocab
+from thinc.api import Model, Optimizer
 from thinc.model import set_dropout_rate
+from thinc.types import Floats2d
 from wasabi import Printer
-
 
 Span.set_extension("qualifiers", default={}, force=True)
 msg = Printer()
@@ -21,14 +20,14 @@ msg = Printer()
 @Language.factory(
     "qualifier",
     requires=["doc.ents"],
-    assigns=["span._.qualifiers"],
+    assigns=["token._.qualifier"],
     default_score_weights={
         "qual_micro_p": 0.0,
         "qual_micro_r": 0.0,
         "qual_micro_f": 1.0,
     },
 )
-def make_relation_extractor(
+def make_qualifier(
     nlp: Language,
     name: str,
     model: Model,
@@ -77,7 +76,8 @@ class TrainableQualifier(TrainablePipe):
 
     def __call__(self, doc: Doc) -> Doc:
         """Apply the pipe to a Doc."""
-        # check that there are actually any candidate instances in this batch of examples
+        # check that there are actually any candidate
+        # instances in this batch of examples
         total_instances = len(doc.ents)
         if total_instances == 0:
             msg.info("Could not determine any instances in doc - returning doc as is.")
@@ -92,7 +92,8 @@ class TrainableQualifier(TrainablePipe):
         total_instances = sum([len(doc.ents) for doc in docs])
         if total_instances == 0:
             msg.info(
-                "Could not determine any instances in any docs - can not make any predictions."
+                "Could not determine any instances in any docs - "
+                "can not make any predictions."
             )
         scores = self.model.predict(docs)
         return self.model.ops.asarray(scores)
@@ -122,7 +123,8 @@ class TrainableQualifier(TrainablePipe):
         losses.setdefault(self.name, 0.0)
         set_dropout_rate(self.model, drop)
 
-        # check that there are actually any candidate instances in this batch of examples
+        # check that there are actually any candidate instances
+        # in this batch of examples
         total_instances = 0
         for eg in examples:
             total_instances += len(eg.predicted.ents)
@@ -166,7 +168,7 @@ class TrainableQualifier(TrainablePipe):
         else:
             for example in get_examples():
                 for ent in example.reference.ents:
-                    for label in ent._qualifiers.keys():
+                    for label in ent._.qualifiers.keys():
                         self.add_label(label)
         self._require_labels()
 
@@ -175,7 +177,8 @@ class TrainableQualifier(TrainablePipe):
         label_sample = self._examples_to_truth(subbatch)
         if label_sample is None:
             raise ValueError(
-                "Call begin_training with relevant entities and relations annotated in "
+                "Call begin_training with relevant entities "
+                "and relations annotated in "
                 "at least a few reference examples!"
             )
         self.model.initialize(X=doc_sample, Y=label_sample[0])
@@ -183,7 +186,8 @@ class TrainableQualifier(TrainablePipe):
     def _examples_to_truth(
         self, examples: List[Example]
     ) -> Optional[Tuple[numpy.ndarray, numpy.ndarray]]:
-        # check that there are actually any candidate instances in this batch of examples
+        # check that there are actually any candidate instances
+        # in this batch of examples
         nr_instances = 0
         for eg in examples:
             nr_instances += len(eg.reference.ents)

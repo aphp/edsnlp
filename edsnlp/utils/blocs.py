@@ -37,7 +37,7 @@ def check_outputs(code: str) -> str:
     """
 
     lines: List[str] = code.split("\n")
-    code = []
+    code_lines = []
 
     skip = False
 
@@ -55,18 +55,18 @@ def check_outputs(code: str) -> str:
             output = output[len(OUTPUT_PATTERN) :].replace('"', r"\"")
             output = f'assert repr(v) == "{output}" or str(v) == "{output}"'
 
-            code.append(expression)
-            code.append(output)
+            code_lines.append(expression)
+            code_lines.append(output)
 
             skip = True
 
         else:
-            code.append(expression)
+            code_lines.append(expression)
 
     if not skip:
-        code.append(output)
+        code_lines.append(output)
 
-    return "\n".join(code)
+    return "\n".join(code_lines)
 
 
 def remove_indentation(code: str, indent: int) -> str:

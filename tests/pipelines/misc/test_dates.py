@@ -51,6 +51,7 @@ def add_date_pipeline(blank_nlp: Language):
 
 
 def test_dates_component(blank_nlp: Language):
+    # note_datetime = datetime(year=1993, month=9, day=23)
 
     for example in examples:
         text, entities = parse_example(example)
@@ -80,6 +81,22 @@ def test_dates_component(blank_nlp: Language):
 
             elif isinstance(date, AbsoluteDate):
                 assert date.to_datetime() is None
+
+                # add here the tests [TODO]
+
+                # no year
+                # d["year"] = note_datetime.year
+                # assert date.to_datetime(
+                # note_datetime=note_datetime, **dict(enhance=True)
+                # ) == TZ.localize(
+                # datetime(**d)
+                # )
+
+                # no day
+
+                # year only
+
+                # month only
 
             else:
                 assert date.to_datetime()

@@ -1,6 +1,9 @@
 # Changelog
 
 ## Pending Release
+### Fixed
+
+- Add all resources to the setup.py that are available in the  `edsnlp/resources` folder.
 
 ### Added
 

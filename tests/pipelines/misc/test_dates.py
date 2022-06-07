@@ -51,7 +51,7 @@ def add_date_pipeline(blank_nlp: Language):
 
 
 def test_dates_component(blank_nlp: Language):
-    # note_datetime = datetime(year=1993, month=9, day=23)
+    note_datetime = datetime(year=1993, month=9, day=23)
 
     for example in examples:
         text, entities = parse_example(example)
@@ -72,8 +72,10 @@ def test_dates_component(blank_nlp: Language):
 
             assert date.dict(exclude_none=True) == d
 
+            set_d = set(d)
+
             if isinstance(date, AbsoluteDate) and {"year", "month", "day"}.issubset(
-                set(d)
+                set_d
             ):
                 d.pop("direction", None)
                 d.pop("mode", None)
@@ -82,21 +84,35 @@ def test_dates_component(blank_nlp: Language):
             elif isinstance(date, AbsoluteDate):
                 assert date.to_datetime() is None
 
-                # add here the tests [TODO]
-
                 # no year
-                # d["year"] = note_datetime.year
-                # assert date.to_datetime(
-                # note_datetime=note_datetime, **dict(enhance=True)
-                # ) == TZ.localize(
-                # datetime(**d)
-                # )
+                if {"month", "day"}.issubset(set_d) and {"year"}.isdisjoint(set_d):
+                    d["year"] = note_datetime.year
+                    assert date.to_datetime(
+                        note_datetime=note_datetime, **dict(enhance=True)
+                    ) == TZ.localize(datetime(**d))
 
                 # no day
+                if {"month", "year"}.issubset(set_d) and {"day"}.isdisjoint(set_d):
+                    d["day"] = 1
+                    assert date.to_datetime(
+                        note_datetime=note_datetime, **dict(enhance=True)
+                    ) == TZ.localize(datetime(**d))
 
                 # year only
+                if {"year"}.issubset(set_d) and {"day", "month"}.isdisjoint(set_d):
+                    d["day"] = 1
+                    d["month"] = 1
+                    assert date.to_datetime(
+                        note_datetime=note_datetime, **dict(enhance=True)
+                    ) == TZ.localize(datetime(**d))
 
                 # month only
+                if {"month"}.issubset(set_d) and {"day", "year"}.isdisjoint(set_d):
+                    d["day"] = 1
+                    d["year"] = note_datetime.year
+                    assert date.to_datetime(
+                        note_datetime=note_datetime, **dict(enhance=True)
+                    ) == TZ.localize(datetime(**d))
 
             else:
                 assert date.to_datetime()

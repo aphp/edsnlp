@@ -7,6 +7,9 @@ import pytest
 
 from edsnlp.connectors.omop import OmopConnector
 
+random.seed(10)
+print("Random seed set:", random.random())
+
 
 def random_word():
     n = randint(1, 20)

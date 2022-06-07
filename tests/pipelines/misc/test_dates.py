@@ -88,14 +88,14 @@ def test_dates_component(blank_nlp: Language):
                 if {"month", "day"}.issubset(set_d) and {"year"}.isdisjoint(set_d):
                     d["year"] = note_datetime.year
                     assert date.to_datetime(
-                        note_datetime=note_datetime, **dict(enhance=True)
+                        note_datetime=note_datetime, infer_from_context=True
                     ) == TZ.localize(datetime(**d))
 
                 # no day
                 if {"month", "year"}.issubset(set_d) and {"day"}.isdisjoint(set_d):
                     d["day"] = 1
                     assert date.to_datetime(
-                        note_datetime=note_datetime, **dict(enhance=True)
+                        note_datetime=note_datetime, infer_from_context=True
                     ) == TZ.localize(datetime(**d))
 
                 # year only
@@ -103,7 +103,7 @@ def test_dates_component(blank_nlp: Language):
                     d["day"] = 1
                     d["month"] = 1
                     assert date.to_datetime(
-                        note_datetime=note_datetime, **dict(enhance=True)
+                        note_datetime=note_datetime, infer_from_context=True
                     ) == TZ.localize(datetime(**d))
 
                 # month only
@@ -111,7 +111,7 @@ def test_dates_component(blank_nlp: Language):
                     d["day"] = 1
                     d["year"] = note_datetime.year
                     assert date.to_datetime(
-                        note_datetime=note_datetime, **dict(enhance=True)
+                        note_datetime=note_datetime, infer_from_context=True
                     ) == TZ.localize(datetime(**d))
 
             else:

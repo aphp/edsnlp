@@ -1,5 +1,7 @@
+import random
 import re
-from random import choice, randint, random
+from random import choice, randint
+from random import random as randomf
 from string import ascii_letters, ascii_lowercase
 
 import pandas as pd
@@ -28,13 +30,13 @@ def random_note_nlp(text):
     ents = []
 
     for match in re.finditer(r"\w+", text):
-        if random() > 0.8:
+        if randomf() > 0.8:
             ent = dict(
                 start_char=match.start(),
                 end_char=match.end(),
                 lexical_variant=match.group(),
                 note_nlp_source_value=random_word().lower(),
-                negation=random() > 0.5,
+                negation=randomf() > 0.5,
             )
             ents.append(ent)
 

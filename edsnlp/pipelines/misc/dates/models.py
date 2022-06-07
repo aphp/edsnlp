@@ -60,8 +60,10 @@ class AbsoluteDate(BaseDate):
     def to_datetime(
         self,
         tz: Union[str, pendulum.tz.timezone] = "Europe/Paris",
-        enhance: bool = False,
         note_datetime: Optional[datetime] = None,
+        infer_from_context: bool = False,
+        default_day=1,
+        default_month=1,
         **kwargs,
     ) -> Optional[pendulum.datetime]:
 
@@ -70,26 +72,26 @@ class AbsoluteDate(BaseDate):
         if self.year and self.month and self.day:
             return pendulum.datetime(**d, tz=tz)
 
-        elif enhance and note_datetime:
+        elif infer_from_context:
             # no year
-            if not self.year and self.month and self.day:
+            if not self.year and self.month and self.day and note_datetime:
                 d["year"] = note_datetime.year
                 return pendulum.datetime(**d, tz=tz)
 
             # no day
             elif self.year and self.month and not self.day:
-                d["day"] = 1
+                d["day"] = default_day
                 return pendulum.datetime(**d, tz=tz)
 
             # year only
             elif self.year and not self.month and not self.day:
-                d["day"] = 1
-                d["month"] = 1
+                d["day"] = default_day
+                d["month"] = default_month
                 return pendulum.datetime(**d, tz=tz)
 
             # month only
-            elif not self.year and self.month and not self.day:
-                d["day"] = 1
+            elif not self.year and self.month and not self.day and note_datetime:
+                d["day"] = default_day
                 d["year"] = note_datetime.year
                 return pendulum.datetime(**d, tz=tz)
             return None

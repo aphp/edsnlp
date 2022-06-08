@@ -27,6 +27,8 @@ class History(Qualifier):
         spaCy nlp pipeline to use for matching.
     history : Optional[List[str]]
         List of terms indicating medical history reference.
+    termination : Optional[List[str]]
+        List of syntagms termination terms.
     use_sections : bool
         Whether to use section pipeline to detect medical history section.
     use_dates : bool
@@ -35,7 +37,7 @@ class History(Qualifier):
     history_limit : int
         The number of days after which the event is considered as history.
     exclude_birthdate : bool
-        Whether to exclude the birth date from history dates.
+        Whether to exclude the birthdate from history dates.
     closest_dates_only : bool
         Whether to include the closest dates only.
     attr : str
@@ -280,7 +282,7 @@ class History(Qualifier):
             for date in doc.spans["dates"]:
                 value = date._.date
                 if value.mode == "relative":
-                    if value.direction.value == "CURRENT":
+                    if value.direction.value == "current":
                         if (
                             (value.year == 0 and self.history_limit >= timedelta(365))
                             or (
@@ -293,7 +295,15 @@ class History(Qualifier):
                                 Span(doc, date.start, date.end, label="relative_date")
                             )
                     elif value.direction.value == "past":
-                        if -value.to_datetime() >= self.history_limit:
+                        if (
+                            -value.to_duration(
+                                note_datetime=doc._.note_datetime,
+                                infer_from_context=True,
+                                tz="Europe/Paris",
+                                default_day=15,
+                            )
+                            >= self.history_limit
+                        ):
                             history_dates.append(
                                 Span(doc, date.start, date.end, label="relative_date")
                             )

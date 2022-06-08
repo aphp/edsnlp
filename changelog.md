@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- New `to_duration` method to convert an absolute date into a date relative to the note_datetime (or None)
+
 ### Changes
 
 - Score / disorders / behaviors entities now have a hardcoded label, instead of being dynamically set from the component name. The following scores may have a different name than the current one in your pipelines:
@@ -18,6 +22,7 @@
 - the "relative" / "absolute" / "duration" mode of the time entity is now stored in
   the `mode` attribute of the `span._.date/duration`
 - the "from" / "until" period bound, if any, is now stored in the `span._.date.bound` attribute
+- `to_datetime` now only return absolute dates, converts relative dates into absolute if `doc._.note_datetime` is given, and None otherwise
 
 ### Fixed
 - `export_to_brat` issue with spans of entities on multiple lines.

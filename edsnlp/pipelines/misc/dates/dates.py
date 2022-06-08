@@ -49,6 +49,8 @@ class Dates(BaseComponent):
           each entity in `#!python doc.spans[key]`
     detect_periods : bool
         Whether to detect periods (experimental)
+    detect_time: bool
+        Whether to detect time inside dates
     as_ents : bool
         Whether to treat dates as entities
     attr : str
@@ -68,8 +70,10 @@ class Dates(BaseComponent):
         detect_time: bool,
         as_ents: bool,
         attr: str,
+        name: str = "eds.dates",
     ):
         self.nlp = nlp
+        self.name = name
 
         if absolute is None:
             if detect_time:
@@ -170,7 +174,7 @@ class Dates(BaseComponent):
         self, matches: List[Tuple[Span, Dict[str, str]]]
     ) -> Tuple[List[Span], List[Span]]:
         """
-        Parse dates using the groupdict returned by the matcher.
+        Parse dates/durations using the groupdict returned by the matcher.
 
         Parameters
         ----------
@@ -184,29 +188,21 @@ class Dates(BaseComponent):
             List of processed spans, with the date parsed.
         """
 
-        dates = []
-        durations = []
         for span, groupdict in matches:
             if span.label_ == "relative":
                 parsed = RelativeDate.parse_obj(groupdict)
                 span.label_ = "date"
                 span._.date = parsed
-                dates.append(span)
-                print("SPAN", span, parsed.dict())
             elif span.label_ == "absolute":
                 parsed = AbsoluteDate.parse_obj(groupdict)
                 span.label_ = "date"
                 span._.date = parsed
-                dates.append(span)
-                print("SPAN", span, parsed.dict())
             else:
                 parsed = Duration.parse_obj(groupdict)
                 span.label_ = "duration"
                 span._.duration = parsed
-                durations.append(span)
-                print("SPAN", span, parsed.dict())
 
-        return dates, durations
+        return [span for span, _ in matches]
 
     def process_periods(self, dates: List[Span]) -> List[Span]:
         """
@@ -283,17 +279,17 @@ class Dates(BaseComponent):
             spaCy Doc object, annotated for dates
         """
         matches = self.process(doc)
-        dates, durations = self.parse(matches)
+        matches = self.parse(matches)
 
-        doc.spans["dates"] = dates
-        doc.spans["durations"] = durations
+        doc.spans["dates"] = [d for d in matches if d.label_ != "duration"]
+        doc.spans["durations"] = [d for d in matches if d.label_ == "duration"]
 
         if self.detect_periods:
-            doc.spans["periods"] = self.process_periods(dates + durations)
+            doc.spans["periods"] = self.process_periods(matches)
 
         if self.as_ents:
             ents, discarded = filter_spans(
-                list(doc.ents) + dates + durations, return_discarded=True
+                list(doc.ents) + matches, return_discarded=True
             )
 
             doc.ents = ents

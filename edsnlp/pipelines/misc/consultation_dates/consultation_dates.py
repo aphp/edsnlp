@@ -49,6 +49,7 @@ class ConsultationDates(GenericMatcher):
         town_mention: Union[List[str], bool],
         document_date_mention: Union[List[str], bool],
         attr: str,
+        name: str = "eds.consultation_dates",
         **kwargs,
     ):
 

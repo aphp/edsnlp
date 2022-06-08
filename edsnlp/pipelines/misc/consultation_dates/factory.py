@@ -34,6 +34,7 @@ def create_component(
 ):
     return ConsultationDates(
         nlp,
+        name=name,
         attr=attr,
         consultation_mention=consultation_mention,
         document_date_mention=document_date_mention,

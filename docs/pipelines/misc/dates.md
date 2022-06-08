@@ -46,7 +46,7 @@ dates[1]._.date.to_datetime()
 note_datetime = pendulum.datetime(2021, 8, 27, tz="Europe/Paris")
 
 dates[1]._.date.to_datetime(note_datetime=note_datetime)
-# Out: 2020-08-27T00:00:00+02:00
+# Out: DateTime(2020, 8, 27, 0, 0, 0, tzinfo=Timezone('Europe/Paris'))
 
 dates[3]._.date.to_datetime(
     note_datetime=note_datetime,
@@ -54,7 +54,7 @@ dates[3]._.date.to_datetime(
     tz="Europe/Paris",
     default_day=15,
 )
-# Out: 1995-05-15T00:00:00+02:00
+# Out: DateTime(1995, 5, 15, 0, 0, 0, tzinfo=Timezone('Europe/Paris'))
 ```
 
 ## Declared extensions

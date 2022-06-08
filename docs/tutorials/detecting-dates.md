@@ -146,7 +146,7 @@ doc.ents
 # Out: (admis, pris en charge)
 
 doc.spans["dates"]
-# Out: [12 avril, il y a trois jours, l'année dernière]
+# Out: [12 avril, il y a trois jours, l'année dernière, mai 1995]
 
 note_datetime = datetime(year=1999, month=8, day=27)
 
@@ -160,11 +160,10 @@ for i, date in enumerate(doc.spans["dates"]):
             note_datetime=note_datetime, infer_from_context=False, tz=None
         ),
     )
-# Out:
-# 0  -  12 avril  -  None
-# 1  -  il y a trois jours  -  1999-08-24 00:00:00
-# 2  -  l'année dernière  -  1998-08-27 00:00:00
-# 3  -  mai 1995  -  None
+    # Out: 0  -  12 avril  -  None
+    # Out: 1  -  il y a trois jours  -  1999-08-24 00:00:00
+    # Out: 2  -  l'année dernière  -  1998-08-27 00:00:00
+    # Out: 3  -  mai 1995  -  None
 
 
 for i, date in enumerate(doc.spans["dates"]):
@@ -180,11 +179,10 @@ for i, date in enumerate(doc.spans["dates"]):
             default_day=15,
         ),
     )
-# Out:
-# 0  -  12 avril  -  1999-04-12T00:00:00
-# 1  -  il y a trois jours  -  1999-08-24 00:00:00
-# 2  -  l'année dernière  -  1998-08-27 00:00:00
-# 3  -  mai 1995  -  1995-05-15T00:00:00
+    # Out: 0  -  12 avril  -  1999-04-12T00:00:00
+    # Out: 1  -  il y a trois jours  -  1999-08-24 00:00:00
+    # Out: 2  -  l'année dernière  -  1998-08-27 00:00:00
+    # Out: 3  -  mai 1995  -  1995-05-15T00:00:00
 ```
 
 As a first heuristic, let's consider that an entity can be linked to a date if the two are in the same

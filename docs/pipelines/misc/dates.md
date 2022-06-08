@@ -48,12 +48,13 @@ note_datetime = pendulum.datetime(2021, 8, 27, tz="Europe/Paris")
 dates[1]._.date.to_datetime(note_datetime=note_datetime)
 # Out: DateTime(2020, 8, 27, 0, 0, 0, tzinfo=Timezone('Europe/Paris'))
 
-dates[3]._.date.to_datetime(
+date_3_output = dates[3]._.date.to_datetime(
     note_datetime=note_datetime,
     infer_from_context=True,
     tz="Europe/Paris",
     default_day=15,
 )
+date_3_output
 # Out: DateTime(1995, 5, 15, 0, 0, 0, tzinfo=Timezone('Europe/Paris'))
 ```
 

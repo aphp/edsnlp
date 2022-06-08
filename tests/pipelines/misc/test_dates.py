@@ -184,7 +184,8 @@ def test_dates_component(blank_nlp: Language):
                     ) == TZ.localize(datetime(**d))
 
             else:
-                assert date.to_datetime() is not None
+                assert date.to_duration()
+                assert date.to_datetime(note_datetime=note_datetime)
 
 
 def test_periods(blank_nlp: Language):

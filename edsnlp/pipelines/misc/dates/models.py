@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Dict, Optional, Union
 
 import pendulum
+from pandas._libs.tslibs.nattype import NaTType
 from pydantic import BaseModel, root_validator, validator
 from spacy.tokens import Span
 
@@ -74,7 +75,13 @@ class AbsoluteDate(BaseDate):
 
         elif infer_from_context:
             # no year
-            if not self.year and self.month and self.day and note_datetime:
+            if (
+                not self.year
+                and self.month
+                and self.day
+                and note_datetime
+                and not isinstance(note_datetime, NaTType)
+            ):
                 d["year"] = note_datetime.year
                 return pendulum.datetime(**d, tz=tz)
 
@@ -90,7 +97,13 @@ class AbsoluteDate(BaseDate):
                 return pendulum.datetime(**d, tz=tz)
 
             # month only
-            elif not self.year and self.month and not self.day and note_datetime:
+            elif (
+                not self.year
+                and self.month
+                and not self.day
+                and note_datetime
+                and not isinstance(note_datetime, NaTType)
+            ):
                 d["day"] = default_day
                 d["year"] = note_datetime.year
                 return pendulum.datetime(**d, tz=tz)
@@ -185,7 +198,7 @@ class RelativeDate(Relative):
     ) -> pendulum.Duration:
         td = super(RelativeDate, self).to_datetime()
 
-        if note_datetime is not None:
+        if note_datetime is not None and not isinstance(note_datetime, NaTType):
             return note_datetime + td
 
         return td

@@ -35,27 +35,30 @@ doc = nlp(text)
 
 dates = doc.spans["dates"]
 dates
-# Out: [23 août 2021, il y a un an, pendant une semaine, mai 1995]
+# Out: [23 août 2021, il y a un an, mai 1995]
 
 dates[0]._.date.to_datetime()
 # Out: 2021-08-23T00:00:00+02:00
 
 dates[1]._.date.to_datetime()
-# Out: -1 year
+# Out: None
 
 note_datetime = pendulum.datetime(2021, 8, 27, tz="Europe/Paris")
 
 dates[1]._.date.to_datetime(note_datetime=note_datetime)
-# Out: DateTime(2020, 8, 27, 0, 0, 0, tzinfo=Timezone('Europe/Paris'))
+# Out: 2020-08-27T00:00:00+02:00
 
-date_3_output = dates[3]._.date.to_datetime(
+date_2_output = dates[2]._.date.to_datetime(
     note_datetime=note_datetime,
     infer_from_context=True,
     tz="Europe/Paris",
     default_day=15,
 )
-date_3_output
-# Out: DateTime(1995, 5, 15, 0, 0, 0, tzinfo=Timezone('Europe/Paris'))
+date_2_output
+# Out: 1995-05-15T00:00:00+02:00
+
+doc.spans["durations"]
+# Out: [pendant une semaine]
 ```
 
 ## Declared extensions
@@ -66,17 +69,9 @@ The `eds.dates` pipeline declares one [spaCy extension](https://spacy.io/usage/p
 
 The pipeline can be configured using the following parameters :
 
-| Parameter        | Explanation                                      | Default                           |
-|------------------|--------------------------------------------------|-----------------------------------|
-| `absolute`       | Absolute date patterns, eg `le 5 août 2020`      | `None` (use pre-defined patterns) |
-| `relative`       | Relative date patterns, eg `hier`)               | `None` (use pre-defined patterns) |
-| `durations`      | Duration patterns, eg `pendant trois mois`)      | `None` (use pre-defined patterns) |
-| `false_positive` | Some false positive patterns to exclude          | `None` (use pre-defined patterns) |
-| `detect_periods` | Whether to look for periods                      | `False`                           |
-| `detect_time`    | Whether to look for time around dates            | `True`                            |
-| `on_ents_only`   | Whether to look for dates around entities only   | `False`                           |
-| `as_ents`        | Whether to save detected dates as entities       | `False`                           |
-| `attr`           | spaCy attribute to match on, eg `NORM` or `TEXT` | `"NORM"`                          |
+::: edsnlp.pipelines.misc.dates.factory.create_component
+    options:
+        only_parameters: true
 
 ## Authors and citation
 

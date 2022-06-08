@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Dict, Optional, Union
 
 import pendulum
+from pandas._libs.tslibs.nattype import NaTType
 from pydantic import BaseModel, root_validator, validator
 from spacy.tokens import Span
 
@@ -60,16 +61,53 @@ class AbsoluteDate(BaseDate):
     def to_datetime(
         self,
         tz: Union[str, pendulum.tz.timezone] = "Europe/Paris",
+        note_datetime: Optional[datetime] = None,
+        infer_from_context: bool = False,
+        default_day=1,
+        default_month=1,
         **kwargs,
     ) -> Optional[pendulum.datetime]:
 
+        d = self.dict(exclude_none=True)
+        d.pop("mode", None)
         if self.year and self.month and self.day:
-
-            d = self.dict(exclude_none=True)
-
-            d.pop("mode", None)
-
             return pendulum.datetime(**d, tz=tz)
+
+        elif infer_from_context:
+            # no year
+            if (
+                not self.year
+                and self.month
+                and self.day
+                and note_datetime
+                and not isinstance(note_datetime, NaTType)
+            ):
+                d["year"] = note_datetime.year
+                return pendulum.datetime(**d, tz=tz)
+
+            # no day
+            elif self.year and self.month and not self.day:
+                d["day"] = default_day
+                return pendulum.datetime(**d, tz=tz)
+
+            # year only
+            elif self.year and not self.month and not self.day:
+                d["day"] = default_day
+                d["month"] = default_month
+                return pendulum.datetime(**d, tz=tz)
+
+            # month only
+            elif (
+                not self.year
+                and self.month
+                and not self.day
+                and note_datetime
+                and not isinstance(note_datetime, NaTType)
+            ):
+                d["day"] = default_day
+                d["year"] = note_datetime.year
+                return pendulum.datetime(**d, tz=tz)
+            return None
 
         return None
 
@@ -154,11 +192,13 @@ class RelativeDate(Relative):
     direction: Direction = Direction.CURRENT
 
     def to_datetime(
-        self, note_datetime: Optional[datetime] = None
+        self,
+        note_datetime: Optional[datetime] = None,
+        **kwargs,
     ) -> pendulum.Duration:
         td = super(RelativeDate, self).to_datetime()
 
-        if note_datetime is not None:
+        if note_datetime is not None and not isinstance(note_datetime, NaTType):
             return note_datetime + td
 
         return td

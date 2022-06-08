@@ -91,6 +91,8 @@ To get a more usable representation, you may call the `to_datetime()` method.
 If there's enough information, the date will be represented
 in a `datetime.datetime` or `datetime.timedelta` object. If some information is missing,
 It will return `None`.
+Alternatively for this case, you can optionally set to `True` the parameter `infer_from_context` and
+you may also give a value for `note_datetime`.
 
 !!! note "Date normalisation"
 
@@ -113,6 +115,7 @@ whether a given entity can be linked to a date.
 
 ```python
 import spacy
+from datetime import datetime
 
 nlp = spacy.blank("fr")
 nlp.add_pipe("eds.sentences")
@@ -127,7 +130,8 @@ nlp.add_pipe("eds.matcher", config=config)
 text = (
     "Le patient est admis le 12 avril pour une douleur "
     "survenue il y a trois jours. "
-    "Il avait été pris en charge l'année dernière."
+    "Il avait été pris en charge l'année dernière. "
+    "Il a été diagnostiqué en mai 1995."
 )
 
 doc = nlp(text)
@@ -142,7 +146,43 @@ doc.ents
 # Out: (admis, pris en charge)
 
 doc.spans["dates"]
-# Out: [12 avril, il y a trois jours, l'année dernière]
+# Out: [12 avril, il y a trois jours, l'année dernière, mai 1995]
+
+note_datetime = datetime(year=1999, month=8, day=27)
+
+for i, date in enumerate(doc.spans["dates"]):
+    print(
+        i,
+        " - ",
+        date,
+        " - ",
+        date._.date.to_datetime(
+            note_datetime=note_datetime, infer_from_context=False, tz=None
+        ),
+    )
+    # Out: 0  -  12 avril  -  None
+    # Out: 1  -  il y a trois jours  -  1999-08-24 00:00:00
+    # Out: 2  -  l'année dernière  -  1998-08-27 00:00:00
+    # Out: 3  -  mai 1995  -  None
+
+
+for i, date in enumerate(doc.spans["dates"]):
+    print(
+        i,
+        " - ",
+        date,
+        " - ",
+        date._.date.to_datetime(
+            note_datetime=note_datetime,
+            infer_from_context=True,
+            tz=None,
+            default_day=15,
+        ),
+    )
+    # Out: 0  -  12 avril  -  1999-04-12T00:00:00
+    # Out: 1  -  il y a trois jours  -  1999-08-24 00:00:00
+    # Out: 2  -  l'année dernière  -  1998-08-27 00:00:00
+    # Out: 3  -  mai 1995  -  1995-05-15T00:00:00
 ```
 
 As a first heuristic, let's consider that an entity can be linked to a date if the two are in the same
@@ -212,7 +252,7 @@ for ent in doc.ents:
 
 Which will output:
 
-| `ent`          | `get_event_date(ent)` | `get_event_date(ent)._.date.to_datetime(` |
+| `ent`          | `get_event_date(ent)` | `get_event_date(ent)._.date.to_datetime()` |
 | -------------- | --------------------- | ----------------------------------------- |
 | admis          | 12 avril              | `2020-04-12T00:00:00+02:00`               |
 | pris en charge | l'année dernière      | `-1 year`                                 |

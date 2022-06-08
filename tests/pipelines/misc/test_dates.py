@@ -6,7 +6,7 @@ import spacy
 from pytest import fixture
 from spacy.language import Language
 
-from edsnlp.pipelines.misc.dates.models import AbsoluteDate, Direction, Mode
+from edsnlp.pipelines.misc.dates.models import AbsoluteDate, Direction, Mode, Relative
 from edsnlp.utils.examples import parse_example
 
 TZ = pytz.timezone("Europe/Paris")
@@ -183,6 +183,8 @@ def test_dates_component(blank_nlp: Language):
                         note_datetime=note_datetime, infer_from_context=True
                     ) == TZ.localize(datetime(**d))
 
+            elif isinstance(date, Relative):
+                assert date.to_datetime() is None
             else:
                 assert date.to_duration()
                 assert date.to_datetime(note_datetime=note_datetime)

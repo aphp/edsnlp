@@ -79,6 +79,9 @@ nav:
       - pipelines/ner/score.md
       - pipelines/ner/covid.md
       - pipelines/ner/drugs.md
+    - Trainable components:
+      - pipelines/trainable/index.md
+      - pipelines/trainable/ner.md
   - languages.md
   - Connectors:
     - utilities/connectors/index.md

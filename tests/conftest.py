@@ -57,7 +57,7 @@ def nlp(lang):
     model.add_pipe("eds.reported_speech")
 
     model.add_pipe("eds.dates")
-    model.add_pipe("eds.measures")
+    model.add_pipe("eds.measurements")
 
     return model
 

@@ -89,8 +89,8 @@ def load_model(
         pipes.append('nlp.add_pipe("eds.dates")')
 
     if measures:
-        nlp.add_pipe("eds.measures")
-        pipes.append('nlp.add_pipe("eds.measures")')
+        nlp.add_pipe("eds.measurements")
+        pipes.append('nlp.add_pipe("eds.measurements")')
 
     if charlson:
         nlp.add_pipe("eds.charlson")
@@ -255,9 +255,8 @@ labels = [
     "eds.emergency.priority",
     "eds.SOFA",
     "eds.charlson",
-    "eds.measures.size",
-    "eds.measures.weight",
-    "eds.measures.angle",
+    "eds.size",
+    "eds.weight",
 ]
 
 colors = {label: cat for label, cat in zip(labels, category20)}

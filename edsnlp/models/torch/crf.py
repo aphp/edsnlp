@@ -1,5 +1,7 @@
 import torch
 
+IMPOSSIBLE = -10000000
+
 
 def multi_dim_triu(x, diagonal=0):
     return x.masked_fill(
@@ -16,15 +18,20 @@ def masked_flip(x, mask, dim_x=-2):
     return flipped_x
 
 
-IMPOSSIBLE = -10000000
-
-
 @torch.jit.script
-def logdotexp(log_A, log_B):
+def logsumexp_reduce(log_A, log_B):
     # log_A: 2 * N * M
     # log_B: 2 *     M * O
     # out: 2 * N * O
     return (log_A.unsqueeze(-1) + log_B.unsqueeze(-3)).logsumexp(-2)
+
+
+@torch.jit.script
+def max_reduce(log_A, log_B):
+    # log_A: 2 * N * M
+    # log_B: 2 *     M * O
+    # out: 2 * N * O
+    return (log_A.unsqueeze(-1) + log_B.unsqueeze(-3)).max(-2)
 
 
 # noinspection PyTypeChecker
@@ -37,6 +44,27 @@ class LinearChainCRF(torch.nn.Module):
         learnable_transitions=True,
         with_start_end_transitions=True,
     ):
+        """
+        A linear chain CRF in Pytorch
+
+        Parameters
+        ----------
+        forbidden_transitions: torch.BoolTensor
+            Shape: n_tags * n_tags
+            Impossible transitions (1 means impossible) from position n to position n+1
+        start_forbidden_transitions: Optional[torch.BoolTensor]
+            Shape: n_tags
+            Impossible transitions at the start of a sequence
+        end_forbidden_transitions Optional[torch.BoolTensor]
+            Shape: n_tags
+            Impossible transitions at the end of a sequence
+        learnable_transitions: bool
+            Should we learn transition scores to complete the
+            constraints ?
+        with_start_end_transitions:
+            Should we apply start-end transitions.
+            If learnable_transitions is True, learn start/end transition scores
+        """
         super().__init__()
 
         num_tags = forbidden_transitions.shape[0]
@@ -88,19 +116,54 @@ class LinearChainCRF(torch.nn.Module):
             )
 
     def decode(self, emissions, mask):
-        # Forward pass
-        backtrack = self.propagate(
-            emissions, mask, ring_op_name="max", use_constraints=True, way="forward"
-        )[2]
-        path = [backtrack[-1][0, :, 0]]
-        if len(backtrack) > 1:
-            backtrack = torch.stack(backtrack[:-1] + backtrack[-2:-1], 2).squeeze(0)
-            backtrack[range(len(mask)), mask.sum(1) - 1] = path[-1].unsqueeze(-1)
+        """
+        Decodes a sequence of tag scores using the Viterbi algorithm
 
+        Parameters
+        ----------
+        emissions: torch.FloatTensor
+            Shape: ... * n_tokens * n_tags
+        mask: torch.BoolTensor
+            Shape: ... * n_tokens
+
+        Returns
+        -------
+        torch.LongTensor
+            Backtrack indices (= argmax), ie best tag sequence
+        """
+        transitions = self.transitions.masked_fill(
+            self.forbidden_transitions, IMPOSSIBLE
+        )
+        start_transitions = self.start_transitions.masked_fill(
+            self.start_forbidden_transitions, IMPOSSIBLE
+        )
+        end_transitions = self.end_transitions.masked_fill(
+            self.end_forbidden_transitions, IMPOSSIBLE
+        )
+        n_samples, n_tokens = mask.shape
+
+        emissions[..., 1:][~mask] = IMPOSSIBLE
+        emissions = emissions.transpose(0, 1)
+
+        # emissions: n_tokens * n_samples * n_tags
+        out = [emissions[0] + start_transitions]
+        backtrack = []
+
+        for k in range(1, len(emissions)):
+            res, indices = max_reduce(out[-1], transitions)
+            backtrack.append(indices)
+            out.append(res + emissions[k])
+
+        res, indices = max_reduce(out[-1], end_transitions.unsqueeze(-1))
+        path = torch.zeros(n_samples, n_tokens, dtype=torch.long)
+        path[:, -1] = indices.squeeze(-1)
+
+        path_range = torch.arange(n_samples, device=path.device)
+        if len(backtrack) > 1:
             # Backward max path following
-            for k in range(backtrack.shape[1] - 2, -1, -1):
-                path.insert(0, backtrack[:, k][range(len(path[0])), path[0]])
-        path = torch.stack(path, -1).masked_fill(~mask, 0)
+            for k, b in enumerate(backtrack[::-1]):
+                path[:, -k - 2] = b[path_range, path[:, -k - 1]]
+
         return path
 
     def propagate(
@@ -112,6 +175,35 @@ class LinearChainCRF(torch.nn.Module):
         use_constraints=True,
         way="forward",
     ):
+        """
+        Propagate scores through the CRF to perform either
+        - Viterbi decoding (ring_op_name = max)
+        - Posterior inference for training (ring_op_name = posterior)
+        - Marginalization to get smoothed log probs (ring_op_name = logsumexp)
+
+        Parameters
+        ----------
+        emissions: torch.FloatTensor
+            Shape: ... * n_tokens * n_tags
+        mask: torch.BoolTensor
+            Shape: ... * n_tokens
+        tags: torch.BoolTensor
+            Shape: ... * n_tokens * n_tags
+        ring_op_name: str
+            Which ring operation should we carry when reducing the
+            emissions sequences
+        use_constraints: bool
+            Whether to enforce constraints (default = True)
+        way: str
+            Whether to run the propagation forward or backward
+
+        Returns
+        -------
+        Tuple[torch.FloatTensor, torch.FloatTensor, torch.LongTensor]
+        - Reduced score = normalization constant or max viterbi score)
+        - Log probabilities = intermediate scores reduction at each time step
+        - Backtrack indices (= argmax) only non null for viterbi decoding
+        """
         """
         Each alpha is the potential for the state given all previous observations
         and the current one
@@ -217,6 +309,26 @@ class LinearChainCRF(torch.nn.Module):
         return z, log_probs, backtrack
 
     def marginal(self, emissions, mask):
+        """
+        Compute the marginal log-probabilities of the tags
+        given the emissions and the transition probabilities and
+        constraints of the CRF
+
+        We could use the `propagate` method but this implementation
+        is faster.
+
+        Parameters
+        ----------
+        emissions: torch.FloatTensor
+            Shape: ... * n_tokens * n_tags
+        mask: torch.BoolTensor
+            Shape: ... * n_tokens
+
+        Returns
+        -------
+        torch.FloatTensor
+            Shape: ... * n_tokens * n_tags
+        """
         device = emissions.device
 
         transitions = self.transitions.masked_fill(
@@ -256,7 +368,7 @@ class LinearChainCRF(torch.nn.Module):
 
         out = [bi_emissions[0]]
         for k in range(1, len(bi_emissions)):
-            res = logdotexp(out[-1], bi_transitions)
+            res = logsumexp_reduce(out[-1], bi_transitions)
             out.append(res + bi_emissions[k])
         out = torch.stack(out, dim=0).transpose(0, 2)
 
@@ -267,6 +379,34 @@ class LinearChainCRF(torch.nn.Module):
         return forward + backward - emissions - backward_z[:, None, None]
 
     def forward(self, emissions, mask, target):
+        """
+        Compute the posterior reduced log-probabilities of the tags
+        given the emissions and the transition probabilities and
+        constraints of the CRF, ie the loss.
+
+
+        We could use the `propagate` method but this implementation
+        is faster.
+
+        Parameters
+        ----------
+        emissions: torch.FloatTensor
+            Shape: ... * n_tokens * n_tags
+        mask: torch.BoolTensor
+            Shape: ... * n_tokens
+        target: torch.BoolTensor
+            Shape: ... * n_tokens * n_tags
+            The target tags represented with 1-hot encoding
+            We use 1-hot instead of long format to handle
+            cases when multiple tags at a given position are
+            allowed during training.
+
+        Returns
+        -------
+        torch.FloatTensor
+            Shape: ...
+            The loss
+        """
         transitions = self.transitions.masked_fill(
             self.forbidden_transitions, IMPOSSIBLE
         )
@@ -286,7 +426,7 @@ class LinearChainCRF(torch.nn.Module):
         out = [bi_emissions[0] + start_transitions]
 
         for k in range(1, len(bi_emissions)):
-            res = logdotexp(out[-1], transitions)
+            res = logsumexp_reduce(out[-1], transitions)
             out.append(res + bi_emissions[k])
         out = torch.stack(out, dim=0).transpose(0, 2)
         # n_samples * 2 * n_tokens * n_tags
@@ -299,18 +439,26 @@ class LinearChainCRF(torch.nn.Module):
         return -(supervised_z - unsupervised_z)
 
 
-class BIOULDecoder(LinearChainCRF):
+# noinspection PyTypeChecker
+class MultiLabelBIOULDecoder(LinearChainCRF):
     def __init__(
         self,
         num_labels,
         with_start_end_transitions=True,
-        allow_overlap=False,
-        allow_juxtaposition=True,
         learnable_transitions=True,
     ):
+        """
+        Create a linear chain CRF with hard constraints to enforce the BIOUL tagging
+        scheme
+
+        Parameters
+        ----------
+        num_labels: int
+        with_start_end_transitions: bool
+        learnable_transitions: bool
+        """
         O, I, B, L, U = 0, 1, 2, 3, 4
 
-        self.allow_overlap = allow_overlap
         num_tags = 1 + num_labels * 4
         self.num_tags = num_tags
         forbidden_transitions = torch.ones(num_tags, num_tags, dtype=torch.bool)
@@ -333,25 +481,6 @@ class BIOULDecoder(LinearChainCRF):
             forbidden_transitions[L + STRIDE, O] = 0  # L-i to O
             forbidden_transitions[O, U + STRIDE] = 0  # O to U-i
             forbidden_transitions[U + STRIDE, O] = 0  # U-i to O
-
-            if not allow_juxtaposition:
-                forbidden_transitions[L + STRIDE, U + STRIDE] = 1  # L-i to U-i
-                forbidden_transitions[U + STRIDE, B + STRIDE] = 1  # U-i to B-i
-                forbidden_transitions[U + STRIDE, U + STRIDE] = 1  # U-i to U-i
-                forbidden_transitions[L + STRIDE, B + STRIDE] = 1  # L-i to B-i
-
-            if allow_overlap:
-                forbidden_transitions[L + STRIDE, I + STRIDE] = 0  # L-i to I-i
-                forbidden_transitions[L + STRIDE, L + STRIDE] = 0  # L-i to L-i
-
-                forbidden_transitions[I + STRIDE, B + STRIDE] = 0  # I-i to B-i
-                forbidden_transitions[B + STRIDE, B + STRIDE] = 0  # B-i to B-i
-
-                forbidden_transitions[B + STRIDE, U + STRIDE] = 0  # B-i to U-i
-                forbidden_transitions[U + STRIDE, L + STRIDE] = 0  # U-i to L-i
-
-                forbidden_transitions[U + STRIDE, I + STRIDE] = 0  # U-i to I-i
-                forbidden_transitions[I + STRIDE, U + STRIDE] = 0  # I-i to U-i
 
         start_forbidden_transitions = torch.zeros(num_tags, dtype=torch.bool)
         if with_start_end_transitions:
@@ -376,22 +505,38 @@ class BIOULDecoder(LinearChainCRF):
         )
 
     @staticmethod
-    def spans_to_tags(spans, n_samples, n_labels, n_tokens):
+    def spans_to_tags(
+        spans: torch.Tensor, n_samples: int, n_labels: int, n_tokens: int
+    ):
+        """
+        Convert a tensor of spans of shape n_spans * (doc_idx, label, begin, end)
+        to a matrix of BIOUL tags of shape n_samples * n_labels * n_tokens
+
+        Parameters
+        ----------
+        spans: torch.Tensor
+        n_samples: int
+        n_labels: int
+        n_tokens: int
+
+        Returns
+        -------
+        torch.Tensor
+        """
         device = spans.device
+        cpu = torch.device("cpu")
         if not len(spans):
             return torch.zeros(
                 n_samples, n_labels, n_tokens, dtype=torch.long, device=device
             )
-        doc_indices, label_indices, begins, ends = spans.unbind(-1)
+        doc_indices, label_indices, begins, ends = spans.cpu().unbind(-1)
         ends = ends - 1
 
-        pos = torch.arange(n_tokens, device=device)
+        pos = torch.arange(n_tokens, device=cpu)
         b_tags, l_tags, u_tags, i_tags = torch.zeros(
-            4, n_samples, n_labels, n_tokens, dtype=torch.bool, device=device
+            4, n_samples, n_labels, n_tokens, dtype=torch.bool, device=cpu
         ).unbind(0)
-        tags = torch.zeros(
-            n_samples, n_labels, n_tokens, dtype=torch.long, device=device
-        )
+        tags = torch.zeros(n_samples, n_labels, n_tokens, dtype=torch.long, device=cpu)
         where_u = begins == ends
         u_tags[doc_indices[where_u], label_indices[where_u], begins[where_u]] = True
         b_tags[doc_indices[~where_u], label_indices[~where_u], begins[~where_u]] = True
@@ -405,10 +550,26 @@ class BIOULDecoder(LinearChainCRF):
         tags[b_tags] = 2
         tags[l_tags] = 3
         tags[i_tags.bool()] = 1
-        return tags
+        return tags.to(device)
 
     @staticmethod
-    def tags_to_spans(tags, mask=None, do_overlap_disambiguation=False):
+    def tags_to_spans(tags):
+        """
+        Convert a sequence of multiple label BIOUL tags to a sequence of spans
+
+        Parameters
+        ----------
+        tags: torch.LongTensor
+            Shape: n_samples * n_labels * n_tokens
+        mask: torch.BoolTensor
+            Shape: n_samples * n_labels * n_tokens
+
+        Returns
+        -------
+        torch.LongTensor
+            Shape: n_spans *  4
+            (doc_idx, label_idx, begin, end)
+        """
         return torch.cat(
             [
                 torch.nonzero((tags == 4) | (tags == 2)),

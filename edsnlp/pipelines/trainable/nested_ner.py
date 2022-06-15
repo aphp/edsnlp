@@ -2,7 +2,6 @@ from collections import defaultdict
 from itertools import islice
 from typing import Callable, Dict, Iterable, List, Mapping, Optional, Tuple
 
-import numpy as np
 import spacy
 from spacy import Language
 from spacy.pipeline.trainable_pipe import TrainablePipe
@@ -10,6 +9,7 @@ from spacy.tokens import Doc, Span
 from spacy.training.example import Example
 from spacy.vocab import Vocab
 from thinc.api import Model, Optimizer
+from thinc.backends import NumpyOps
 from thinc.config import Config
 from thinc.model import set_dropout_rate
 from thinc.types import Ints2d
@@ -48,6 +48,7 @@ nested_ner_default_config = """
 """
 
 NESTED_NER_DEFAULTS = Config().from_str(nested_ner_default_config)
+np_ops = NumpyOps()
 
 
 @Language.factory(
@@ -228,7 +229,7 @@ class TrainableNer(TrainablePipe):
         """Modify a batch of `Doc` objects, using predicted spans."""
         docs = list(docs)
         new_doc_spans: List[List[Span]] = [[] for _ in docs]
-        for doc_idx, label_idx, begin, end in predictions:
+        for doc_idx, label_idx, begin, end in np_ops.asarray(predictions):
             label = self.labels[label_idx]
             new_doc_spans[doc_idx].append(Span(docs[doc_idx], begin, end, label))
 
@@ -281,7 +282,7 @@ class TrainableNer(TrainablePipe):
     def get_loss(self, examples: Iterable[Example], loss) -> Tuple[float, float]:
         """Find the loss and gradient of loss for the batch of documents and
         their predicted scores."""
-        return loss, np.full((), fill_value=1)
+        return float(loss.item()), self.model.ops.xp.array([1])
 
     def initialize(
         self,
@@ -294,30 +295,41 @@ class TrainableNer(TrainablePipe):
         of data examples.
         """
         sub_batch = list(islice(get_examples(), 100))
-        if self.ent_labels is None and self.spans_labels is None:
-            self.cfg["ent_labels"] = tuple(
-                sorted(
-                    {span.label_ for doc in sub_batch for span in doc.reference.ents}
+        if self.ent_labels is None or self.spans_labels is None:
+            ent_labels_before = self.ent_labels
+            if self.ent_labels is None:
+                self.cfg["ent_labels"] = tuple(
+                    sorted(
+                        {
+                            span.label_
+                            for doc in sub_batch
+                            for span in doc.reference.ents
+                        }
+                    )
                 )
-            )
 
-            spans_labels = defaultdict(lambda: set())
-            for doc in sub_batch:
-                for name, group in doc.reference.spans.items():
-                    for span in group:
-                        spans_labels[name].add(span.label_)
+            if self.spans_labels is None:
+                spans_labels = defaultdict(lambda: set())
+                for doc in sub_batch:
+                    for name, group in doc.reference.spans.items():
+                        for span in group:
+                            if (
+                                ent_labels_before is None
+                                or span.label_ in ent_labels_before
+                            ):
+                                spans_labels[name].add(span.label_)
 
-            self.cfg["spans_labels"] = {
-                name: tuple(sorted(group)) for name, group in spans_labels.items()
-            }
+                self.cfg["spans_labels"] = {
+                    name: tuple(sorted(group)) for name, group in spans_labels.items()
+                }
 
             self.cfg["labels"] = tuple(
                 sorted(
                     set(
-                        (list(self.ent_labels) if self.ent_labels is not None else [])
+                        list(self.ent_labels)
                         + [
                             label
-                            for group in (spans_labels or {}).values()
+                            for group in self.spans_labels.values()
                             for label in group
                         ]
                     )
@@ -332,9 +344,9 @@ class TrainableNer(TrainablePipe):
                 "and relations annotated in "
                 "at least a few reference examples!"
             )
+        self.model.attrs["set_n_labels"](len(self.labels))
         self.model.initialize(X=doc_sample, Y=spans_sample)
         print("LABELS", self.labels)
-        self.model.attrs["set_n_labels"](len(self.labels))
 
     def examples_to_truth(self, examples: List[Example]) -> Ints2d:
         # check that there are actually any candidate instances
@@ -342,7 +354,6 @@ class TrainableNer(TrainablePipe):
         label_vocab = {self.vocab.strings[l]: i for i, l in enumerate(self.labels)}
         spans = set()
         for eg_idx, eg in enumerate(examples):
-            by_label = {i: [] for i in range(len(label_vocab.items()))}
             for span in (
                 *eg.reference.ents,
                 *(
@@ -358,8 +369,6 @@ class TrainableNer(TrainablePipe):
                 label_idx = label_vocab.get(span.label)
                 if label_idx is None:
                     continue
-                by_label[label_idx].append((span.start, span.end))
                 spans.add((eg_idx, label_idx, span.start, span.end))
-
         truths = self.model.ops.asarray(list(spans))
         return truths

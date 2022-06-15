@@ -1,6 +1,5 @@
 from typing import Any, Iterable, List, OrderedDict, Tuple
 
-import numpy as np
 import torch
 from spacy import registry
 from spacy.tokens import Doc
@@ -16,7 +15,7 @@ from thinc.util import (
     xp2torch,
 )
 
-from edsnlp.models.torch.crf import IMPOSSIBLE, BIOULDecoder
+from edsnlp.models.torch.crf import IMPOSSIBLE, MultiLabelBIOULDecoder
 
 
 def repeat(t, n, dim, interleave=True):
@@ -38,34 +37,32 @@ def flatten_dim(t, dim, ndim=1):
 
 
 class NestedNERModule(torch.nn.Module):
-    def __init__(self, input_size, n_labels, mode="joint"):
+    def __init__(self, input_size=None, n_labels=None, mode="joint"):
         super().__init__()
 
-        self.input_size = input_size
         self.mode = mode
+
         assert mode in ("independent", "joint", "marginal")
-        self.crf = BIOULDecoder(1, learnable_transitions=False)
-        self.num_tags = 0
-        self.n_labels = 0
+        self.crf = MultiLabelBIOULDecoder(1, learnable_transitions=False)
+        self.n_labels = n_labels
+        self.input_size = input_size
+
         self.classifier = None
-        if n_labels is not None:
-            self.set_n_labels(n_labels)
-        else:
-            self.set_n_labels(1)
 
     def load_state_dict(
         self, state_dict: OrderedDict[str, torch.Tensor], strict: bool = True
     ):
-        self.set_n_labels(state_dict["classifier.weight"].shape[0] // self.crf.num_tags)
+        self.n_labels = state_dict["classifier.weight"].shape[0] // self.crf.num_tags
+        self.input_size = state_dict["classifier.weight"].shape[1]
+        self.initialize()
         super().load_state_dict(state_dict, strict)
 
     def set_n_labels(self, n_labels):
-        if n_labels is None:
-            return
-
-        self.num_tags = n_labels * self.crf.num_tags
         self.n_labels = n_labels
-        self.classifier = torch.nn.Linear(self.input_size, self.num_tags)
+
+    def initialize(self):
+        num_tags = self.n_labels * self.crf.num_tags
+        self.classifier = torch.nn.Linear(self.input_size, num_tags)
 
     def forward(
         self,
@@ -122,7 +119,7 @@ class NestedNERModule(torch.nn.Module):
                 )
             if (loss > -IMPOSSIBLE).any():
                 raise
-            loss = loss.sum() / 100.0
+            loss = loss.sum().unsqueeze(0) / 100.0
         if is_predict:
             pred_tags = self.crf.decode(crf_logits, crf_mask).reshape(
                 n_samples, self.n_labels, n_tokens
@@ -145,11 +142,7 @@ def convert_ner_crf_inputs(model, X):
 
 def list_to_unsorted_padded():
     def forward(model, items, is_train=False):
-        res = np.zeros(
-            (len(items), max(map(len, items)), items[0].shape[-1]), dtype=items[0].dtype
-        )
-        for i, item in enumerate(items):
-            res[i, : len(item)] = item
+        res = model.ops.pad(items)
 
         def backprop(d_padded):
             return [
@@ -172,14 +165,14 @@ def create_nested_ner_model(
     mode: str,
     n_labels: int = None,
 ) -> Model[Any, Any]:
-    tok2vec_size = tok2vec.get_dim("nO")
     padded_tok2vec = chain(tok2vec, list_to_unsorted_padded())
-    pt_model = NestedNERModule(input_size=tok2vec_size, n_labels=n_labels, mode=mode)
+    pt_model = NestedNERModule(n_labels=n_labels, mode=mode)
     return Model(
         "pytorch",
         nested_ner_forward,
         attrs={
             "set_n_labels": pt_model.set_n_labels,
+            "pt_model": pt_model,
         },
         layers=[padded_tok2vec],
         shims=[PyTorchShim(pt_model)],
@@ -250,4 +243,9 @@ def instance_init(model: Model, X: List[Doc] = None, Y: Ints2d = None) -> Model:
     tok2vec = model.get_ref("tok2vec")
     if X is not None:
         tok2vec.initialize(X)
+
+    pt_model = model.attrs["pt_model"]
+    pt_model.input_size = tok2vec.get_dim("nO")
+    pt_model.initialize()
+
     return model

@@ -16,6 +16,8 @@ from wasabi import Printer
 Span.set_extension("qualifiers", default={}, force=True)
 msg = Printer()
 
+NUM_EXAMPLES = 100
+
 
 @Language.factory(
     "qualifier",
@@ -159,7 +161,7 @@ class TrainableQualifier(TrainablePipe):
                         self.add_label(label)
         self._require_labels()
 
-        subbatch = list(islice(get_examples(), 10))
+        subbatch = list(islice(get_examples(), NUM_EXAMPLES))
         doc_sample = [eg.reference for eg in subbatch]
         label_sample = self._examples_to_truth(subbatch)
         if label_sample is None:

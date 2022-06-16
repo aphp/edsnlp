@@ -76,8 +76,12 @@ limit = 0
 augmenter = null
 
 [corpora.train]
-@readers = "edsnlp.ents_corpus.v1"
-file = ${paths.train}
+@readers = "spacy.Corpus.v1"
+path = ${paths.train}
+max_length = 0
+gold_preproc = false
+limit = 0
+augmenter = null
 
 [training]
 seed = ${system.seed}

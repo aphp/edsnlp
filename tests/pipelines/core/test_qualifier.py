@@ -68,8 +68,12 @@ subword_features = true
 [corpora]
 
 [corpora.dev]
-@readers = "edsnlp.ents_corpus.v1"
-file = ${paths.dev}
+@readers = "spacy.Corpus.v1"
+path = ${paths.dev}
+max_length = 0
+gold_preproc = false
+limit = 0
+augmenter = null
 
 [corpora.train]
 @readers = "edsnlp.ents_corpus.v1"

@@ -74,19 +74,6 @@ class TrainableQualifier(TrainablePipe):
         self.cfg["labels"] = list(self.labels) + [label]
         return 1
 
-    def __call__(self, doc: Doc) -> Doc:
-        """Apply the pipe to a Doc."""
-        # check that there are actually any candidate
-        # instances in this batch of examples
-        total_instances = len(doc.ents)
-        if total_instances == 0:
-            msg.info("Could not determine any instances in doc - returning doc as is.")
-            return doc
-
-        predictions = self.predict([doc])
-        self.set_annotations([doc], predictions)
-        return doc
-
     def predict(self, docs: Iterable[Doc]) -> Floats2d:
         """Apply the pipeline's model to a batch of docs, without modifying them."""
         total_instances = sum([len(doc.ents) for doc in docs])

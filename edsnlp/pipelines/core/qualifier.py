@@ -22,7 +22,7 @@ NUM_EXAMPLES = 100
 @Language.factory(
     "qualifier",
     requires=["doc.ents"],
-    assigns=["token._.qualifier"],
+    assigns=["token._.qualifiers"],
     default_score_weights={
         "qual_micro_p": 0.0,
         "qual_micro_r": 0.0,
@@ -116,7 +116,7 @@ class TrainableQualifier(TrainablePipe):
         # in this batch of examples
         total_instances = 0
         for eg in examples:
-            total_instances += len(eg.predicted.ents)
+            total_instances += len(eg.reference.ents)
         if total_instances == 0:
             msg.info("Could not determine any instances in doc.")
             return losses

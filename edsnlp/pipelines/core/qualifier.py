@@ -122,7 +122,7 @@ class TrainableQualifier(TrainablePipe):
             return losses
 
         # run the model
-        docs = [eg.predicted for eg in examples]
+        docs = [eg.reference for eg in examples]
         predictions, backprop = self.model.begin_update(docs)
         loss, gradient = self.get_loss(examples, predictions)
         backprop(gradient)

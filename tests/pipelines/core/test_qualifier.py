@@ -68,20 +68,12 @@ subword_features = true
 [corpora]
 
 [corpora.dev]
-@readers = "spacy.Corpus.v1"
-path = ${paths.dev}
-max_length = 0
-gold_preproc = false
-limit = 0
-augmenter = null
+@readers = "edsnlp.ents_corpus.v1"
+file = ${paths.dev}
 
 [corpora.train]
-@readers = "spacy.Corpus.v1"
-path = ${paths.train}
-max_length = 0
-gold_preproc = false
-limit = 0
-augmenter = null
+@readers = "edsnlp.ents_corpus.v1"
+file = ${paths.train}
 
 [training]
 seed = ${system.seed}

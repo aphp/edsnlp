@@ -93,8 +93,6 @@ use_averages = false
 eps = 0.00000001
 learn_rate = 0.001
 
-[pretraining]
-
 [initialize]
 vectors = ${paths.vectors}
 init_tok2vec = ${paths.init_tok2vec}
@@ -212,7 +210,9 @@ def console_logger(progress_bar: bool = False):
         ]
         eval_frequency = nlp.config["training"]["eval_frequency"]
         score_weights = nlp.config["training"]["score_weights"]
-        score_cols = [col for col, value in score_weights.items() if value is not None]
+        score_cols = [
+            col for col, value in score_weights.items() if value is not None
+        ] + ["speed"]
 
         fields = {"epoch": {}, "step": {}}
         for pipe in logged_pipes:
@@ -228,13 +228,15 @@ def console_logger(progress_bar: bool = False):
                     "name": score.upper(),
                     "goal": "higher_is_better",
                 }
-        fields["speed"] = {"name": "speed"}
+        fields["speed"] = {"name": "WPS"}
+        fields["duration"] = {"name": "DURATION"}
         table_printer = RichTablePrinter(fields=fields)
 
         progress = None
+        last_seconds = 0
 
         def log_step(info: Optional[Dict[str, Any]]) -> None:
-            nonlocal progress
+            nonlocal progress, last_seconds
 
             if info is None:
                 # If we don't have a new checkpoint, just return.
@@ -260,6 +262,8 @@ def console_logger(progress_bar: bool = False):
                 if col != "speed":
                     score *= 100
                 data[col] = score
+            data["duration"] = info["seconds"] - last_seconds
+            last_seconds = info["seconds"]
 
             if progress is not None:
                 progress.close()

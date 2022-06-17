@@ -169,8 +169,8 @@ def test_wrong_extraction(
     )
     doc = blank_nlp(text)
 
-    clean = get_text(doc, attr="NORM", ignore_excluded=True).strip()
-    if leading_text.strip():
+    clean = get_text(doc, attr="NORM", ignore_excluded=True)
+    if leading_text:
         assert clean == f"{leading_text.lower()} transplantation cardiaque en 2000."
     else:
         assert clean == "transplantation cardiaque en 2000."
@@ -178,5 +178,5 @@ def test_wrong_extraction(
     assert doc.ents
     assert doc.ents[0][0].text == "transplantation"
 
-    clean = get_text(doc.ents[0], attr="NORM", ignore_excluded=True).strip()
+    clean = get_text(doc.ents[0], attr="NORM", ignore_excluded=True)
     assert clean == "transplantation cardiaque"

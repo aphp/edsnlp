@@ -184,7 +184,7 @@ class RegexMatcher(object):
 
             if isinstance(patterns, str):
                 patterns = [patterns]
-
+            print(patterns)
             self.add(
                 key=key, patterns=patterns, attr=attr, alignment_mode=alignment_mode
             )

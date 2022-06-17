@@ -28,7 +28,7 @@ EDS-NLP provides easy-to-use spaCy components.
     | Pipeline               | Description                                     |
     | ---------------------- | ----------------------------------------------- |
     | `eds.dates`            | Date extraction and normalisation               |
-    | `eds.measures`         | Measure extraction and normalisation            |
+    | `eds.measurements`         | Measure extraction and normalisation            |
     | `eds.sections`         | Section detection                               |
     | `eds.reason`           | Rule-based hospitalisation reason detection     |
 

@@ -69,7 +69,7 @@ nav:
     - Miscellaneous:
       - pipelines/misc/index.md
       - pipelines/misc/dates.md
-      - pipelines/misc/measures.md
+      - pipelines/misc/measurements.md
       - pipelines/misc/consultation-dates.md
       - pipelines/misc/sections.md
       - pipelines/misc/reason.md

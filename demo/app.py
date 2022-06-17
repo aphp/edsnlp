@@ -68,7 +68,7 @@ def load_model(
     cim10: bool,
     covid: bool,
     dates: bool,
-    measures: bool,
+    measurements: bool,
     charlson: bool,
     sofa: bool,
     priority: bool,
@@ -98,7 +98,7 @@ def load_model(
         nlp.add_pipe("eds.dates")
         pipes.append('nlp.add_pipe("eds.dates")')
 
-    if measures:
+    if measurements:
         nlp.add_pipe("eds.measurements")
         pipes.append('nlp.add_pipe("eds.measurements")')
 
@@ -179,7 +179,7 @@ cim10 = st.sidebar.checkbox("CIM10 (loading can be slow)", value=False)
 drugs = st.sidebar.checkbox("Drugs", value=True)
 covid = st.sidebar.checkbox("COVID", value=True)
 dates = st.sidebar.checkbox("Dates", value=True)
-measures = st.sidebar.checkbox("Measures", value=True)
+measurements = st.sidebar.checkbox("Measurements", value=True)
 priority = st.sidebar.checkbox("Emergency Priority Score", value=True)
 charlson = st.sidebar.checkbox("Charlson Score", value=True)
 sofa = st.sidebar.checkbox("SOFA Score", value=True)
@@ -196,7 +196,7 @@ nlp, pipes, regex = load_model(
     cim10=cim10,
     covid=covid,
     dates=dates,
-    measures=measures,
+    measurements=measurements,
     charlson=charlson,
     sofa=sofa,
     priority=priority,
@@ -232,7 +232,7 @@ for date in doc.spans.get("dates", []):
     span._.value = span._.date.norm()
     ents.append(span)
 
-for measure in doc.spans.get("measures", []):
+for measure in doc.spans.get("measurements", []):
     span = Span(doc, measure.start, measure.end, label=measure.label_)
     span._.value = span._.value
     ents.append(span)

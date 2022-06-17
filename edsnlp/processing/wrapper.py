@@ -88,21 +88,24 @@ def pipe(
                 n_jobs=n_jobs,
                 **kwargs,
             )
-
-    if extensions and type(extensions) != dict:
-        raise ValueError(
-            """
-            When using Spark or Koalas, you should provide extension names
-            along with the extension type (as a dictionnary):
-            `d[extension_name] = extension_type`
-            """  # noqa W291
-        )
+    
+    if type(extensions) != dict:
+        if extensions:
+            raise ValueError(
+                """
+                When using Spark or Koalas, you should provide extension names
+                along with the extension type (as a dictionnary):
+                `d[extension_name] = extension_type`
+                """  # noqa W291
+            )
+        else:
+            extensions = {}
 
     from .distributed import custom_pipe
     from .distributed import pipe as distributed_pipe
 
     if results_extractor is None:
-
+            
         return distributed_pipe(
             note=note,
             nlp=nlp,

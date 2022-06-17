@@ -60,7 +60,7 @@ def pipe(
     nlp: Language,
     context: List[str] = [],
     additional_spans: Union[List[str], str] = "discarded",
-    extensions: List[Tuple[str, T.DataType]] = [],
+    extensions: Dict[str, T.DataType] = {},
 ) -> DataFrame:
     """
     Function to apply a spaCy pipe to a pyspark or koalas DataFrame note

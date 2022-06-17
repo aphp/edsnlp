@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Union
 
 from decorator import decorator
 from loguru import logger

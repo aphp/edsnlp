@@ -1,6 +1,6 @@
 # Changelog
 
-## Pending Release
+## v0.6.0 (2022-05-17)
 
 ### Added
 

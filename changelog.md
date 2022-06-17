@@ -4,6 +4,7 @@
 
 ### Added
 
+- Complete revamp of the measurements detection pipeline, with better parsing and more exhaustive matching
 - Add new functionality to the method `Span._.date.to_datetime()` to return a result infered from context for those cases with missing information.
 - Force a batch size of 2000 when distributing a pipeline with Spark
 - New patterns to pipeline `eds.dates` to identify cases where only the month is mentioned

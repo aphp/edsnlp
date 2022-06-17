@@ -105,7 +105,7 @@ def pipe(
     from .distributed import pipe as distributed_pipe
 
     if results_extractor is None:
-            
+
         return distributed_pipe(
             note=note,
             nlp=nlp,

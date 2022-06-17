@@ -42,10 +42,17 @@ def get_text(
     else:
         tokens = [t for t in doclike if not t._.excluded]
 
+    if not tokens:
+        return ""
+
     attr = ATTRIBUTES.get(attr, attr)
 
     if attr.startswith("_"):
         attr = attr[1:].lower()
-        return "".join([getattr(t._, attr) + t.whitespace_ for t in tokens])
+        return "".join(
+            [getattr(t._, attr) + t.whitespace_ for t in tokens[:-1]]
+        ) + getattr(tokens[-1], attr)
     else:
-        return "".join([getattr(t, attr) + t.whitespace_ for t in tokens])
+        return "".join(
+            [getattr(t, attr) + t.whitespace_ for t in tokens[:-1]]
+        ) + getattr(tokens[-1], attr)

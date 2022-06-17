@@ -88,7 +88,7 @@ def pipe(
                 n_jobs=n_jobs,
                 **kwargs,
             )
-    
+
     if type(extensions) != dict:
         if extensions:
             raise ValueError(

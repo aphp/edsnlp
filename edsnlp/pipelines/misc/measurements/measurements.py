@@ -4,7 +4,7 @@ import unicodedata
 from collections import defaultdict
 from functools import lru_cache
 from itertools import repeat
-from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import regex
 import spacy
@@ -17,6 +17,10 @@ from edsnlp.pipelines.misc.measurements.patterns import common_measurements
 from edsnlp.utils.filter import filter_spans
 
 __all__ = ["MeasurementsMatcher"]
+
+
+AFTER_SNIPPET_LIMIT = 6
+BEFORE_SNIPPET_LIMIT = 10
 
 
 class UnitConfig(TypedDict):
@@ -126,7 +130,7 @@ class SimpleMeasurement(Measurement):
     def __repr__(self):
         return f"Measurement({self.value}, {repr(self.unit)})"
 
-    def __eq__(self, other: "SimpleMeasurement"):
+    def __eq__(self, other: Any):
         if isinstance(other, SimpleMeasurement):
             return self.convert_to(other.unit) == other.value
         return False
@@ -295,8 +299,11 @@ class MeasurementsMatcher:
     def extract_units(self, term_matches: Iterable[Span]) -> Iterable[Span]:
         """
         Extracts unit spans from the document by extracting unit atoms (declared in the
-        units_config parameter)
-        and aggregating them automatically
+        units_config parameter) and aggregating them automatically
+        Ex: "il faut 2 g par jour"
+        => we extract [g]=unit(g), [par]=divisor(per), [jour]=unit(day)
+        => we aggregate these adjacent matches together to compose a new unit g_per_day
+
 
         Parameters
         ----------
@@ -315,6 +322,7 @@ class MeasurementsMatcher:
                 continue
             if last is not None and unit_part.start != last.end and len(current):
                 doc = current[0].doc
+                # Last non "per" match: we don't want our units to be like `g_per`
                 end = next(
                     (i for i, e in list(enumerate(current))[::-1] if e.label_ != "per"),
                     None,
@@ -342,21 +350,29 @@ class MeasurementsMatcher:
 
     @staticmethod
     def make_pseudo_sentence(
-        doc: Doc, matches: List[Tuple[Span, bool]], pseudo_mapping: Dict[int, str]
+        doc: Doc,
+        matches: List[Tuple[Span, bool]],
+        pseudo_mapping: Dict[int, str],
     ) -> Tuple[str, List[int]]:
         """
         Creates a pseudo sentence (one letter per entity)
         to extract higher order patterns
+        Ex: the sentence
+        "Il font [1][,] [2] [et] [3] [cm] de long[.]" is transformed into "wn,n,nuw."
 
         Parameters
         ----------
         doc: Doc
         matches: List[(Span, bool)]
+            List of tuple of span and whether the span represents a sentence end
         pseudo_mapping: Dict[int, str]
+            A mapping from label to char in the pseudo sentence
 
         Returns
         -------
         (str, List[int])
+            - the pseudo sentence
+            - a list of offsets to convert match indices into pseudo sent char indices
         """
         pseudo = []
         last = 0
@@ -380,7 +396,7 @@ class MeasurementsMatcher:
         """
         Extract and filter regex and phrase matches in the document
         to prepare the measurement extraction.
-        Returns the mathes and a list of hashes to quickly find unit matches
+        Returns the matches and a list of hashes to quickly find unit matches
 
         Parameters
         ----------
@@ -389,6 +405,8 @@ class MeasurementsMatcher:
         Returns
         -------
         Tuple[List[(Span, bool)], Set[int]]
+            - List of tuples of spans and whether the spans represents a sentence end
+            - List of hash label to distinguish unit from other matches
         """
         sent_ends = [doc[i : i + 1] for i in range(len(doc)) if doc[i].is_sent_end]
 
@@ -405,34 +423,35 @@ class MeasurementsMatcher:
             for term in term_matches
             if term.label not in self.unit_part_label_hashes
         ]
-        matches: List[(Span, bool)] = sorted(
+
+        # Filter out measurement-related spans that overlap already matched
+        # entities (in doc.ents or doc.spans["dates"])
+        # Note: we also include sentence ends tokens as 1-token spans in those matches
+        spans__keep__is_sent_end = filter_spans(
             [
-                (ent, is_sent_end)
-                for ent, (keep, is_sent_end) in filter_spans(
-                    [
-                        *zip(doc.spans.get("dates", ()), repeat((False, False))),
-                        *zip(regex_matches, repeat((True, False))),
-                        *zip(non_unit_terms, repeat((True, False))),
-                        *zip(units, repeat((True, False))),
-                        *zip(doc.ents, repeat((False, False))),
-                        *zip(sent_ends, repeat((True, True))),
-                    ],
-                    # filter entities to keep only the ...
-                    sort_key=lambda ent: (
-                        # largest ...
-                        ent[0].end - ent[0].start,
-                        # rightmost entities ...
-                        ent[0].end,
-                        # that are preferably not sentence ends
-                        not ent[1][0],
-                    ),
-                )
+                # Tuples (span, keep = is measurement related, is sentence end)
+                *zip(doc.spans.get("dates", ()), repeat(False), repeat(False)),
+                *zip(regex_matches, repeat(True), repeat(False)),
+                *zip(non_unit_terms, repeat(True), repeat(False)),
+                *zip(units, repeat(True), repeat(False)),
+                *zip(doc.ents, repeat(False), repeat(False)),
+                *zip(sent_ends, repeat(True), repeat(True)),
+            ],
+            # filter entities to keep only the ...
+            sort_key=measurements_match_tuples_sort_key,
+        )
+
+        # Remove non-measurement related spans (keep = False) and sort the matches
+        matches_and_is_sentence_end: List[(Span, bool)] = sorted(
+            [
+                (span, is_sent_end)
+                for span, keep, is_sent_end in spans__keep__is_sent_end
                 # and remove entities that are not relevant to this pipeline
                 if keep
             ]
         )
 
-        return matches, unit_label_hashes
+        return matches_and_is_sentence_end, unit_label_hashes
 
     def extract_measurements(self, doc: Doc):
         """
@@ -452,14 +471,14 @@ class MeasurementsMatcher:
         def get_matches_after(i):
             anchor = matches[i][0]
             for j, (ent, is_sent_end) in enumerate(matches[i + 1 :]):
-                if not is_sent_end and ent.start > anchor.end + 6:
+                if not is_sent_end and ent.start > anchor.end + AFTER_SNIPPET_LIMIT:
                     return
                 yield j + i + 1, ent
 
         def get_matches_before(i):
             anchor = matches[i][0]
             for j, (ent, is_sent_end) in enumerate(matches[i::-1]):
-                if not is_sent_end and ent.end < anchor.start - 10:
+                if not is_sent_end and ent.end < anchor.start - BEFORE_SNIPPET_LIMIT:
                     return
                 yield i - j, ent
 
@@ -641,3 +660,13 @@ class MeasurementsMatcher:
         doc.spans["measures"] = doc.spans["measurements"]
 
         return doc
+
+
+def measurements_match_tuples_sort_key(
+    span__keep__is_sent_end: Tuple[Span, bool, bool]
+) -> Tuple[int, int, bool]:
+    span, _, is_sent_end = span__keep__is_sent_end
+
+    length = span.end - span.start
+
+    return length, span.end, not is_sent_end

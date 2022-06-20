@@ -1,4 +1,6 @@
 # noqa: F401
+from black import re
+
 from edsnlp.pipelines.ner.scores import Score
 
 # from edsnlp.pipelines.ner.scores.charlson import patterns as charlson_terms
@@ -46,7 +48,7 @@ def test_scores(blank_nlp):
         after_extract=r"(\d+)",
         score_normalization=testscore_normalization,
         window=4,
-        verbose=0,
+        flags=re.S,
     )
 
     text, entities = parse_example(example=example)

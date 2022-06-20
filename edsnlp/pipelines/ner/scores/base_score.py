@@ -1,14 +1,15 @@
-from typing import Any, Callable, List, Union
+from typing import Any, Callable, Dict, List, Union
 
+from black import re
 from spacy import registry
 from spacy.language import Language
 from spacy.tokens import Doc, Span
 
-from edsnlp.pipelines.core.advanced import AdvancedRegex
+from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
 from edsnlp.utils.filter import filter_spans
 
 
-class Score(AdvancedRegex):
+class Score(ContextualMatcher):
     """
     Matcher component to extract a numeric score
 
@@ -40,24 +41,40 @@ class Score(AdvancedRegex):
         score_name: str,
         regex: List[str],
         attr: str,
-        after_extract: str,
+        after_extract: Union[str, Dict[str, str]],
         score_normalization: Union[str, Callable[[Union[str, None]], Any]],
         window: int,
-        verbose: int,
         ignore_excluded: bool,
+        flags: Union[re.RegexFlag, int],
     ):
+        if type(after_extract) == str:
+            after_extract_pattern = dict(
+                value=after_extract,
+            )
 
-        regex_config = {
-            score_name: dict(regex=regex, attr=attr, after_extract=after_extract)
-        }
+        else:
+            after_extract_pattern = after_extract
+
+        patterns = dict(
+            source=score_name,
+            regex=regex,
+            assign=dict(
+                after=dict(
+                    regex=after_extract_pattern,
+                    window=window,
+                    expand_entity=True,
+                ),
+            ),
+        )
 
         super().__init__(
             nlp=nlp,
-            regex_config=regex_config,
-            window=window,
-            verbose=verbose,
+            name=score_name,
+            patterns=patterns,
+            alignment_mode="expand",
             ignore_excluded=ignore_excluded,
             attr=attr,
+            regex_flags=flags,
         )
 
         self.score_name = score_name
@@ -122,7 +139,7 @@ class Score(AdvancedRegex):
         """
         to_keep_ents = []
         for ent in ents:
-            value = ent._.after_extract[0]
+            value = ent._.assigned.get("value", None)
             normalized_value = self.score_normalization(value)
             if normalized_value is not None:
                 ent._.score_name = self.score_name

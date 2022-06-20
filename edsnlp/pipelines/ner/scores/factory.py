@@ -1,5 +1,6 @@
 from typing import Any, Callable, List, Union
 
+from black import re
 from spacy.language import Language
 
 from edsnlp.pipelines.ner.scores import Score
@@ -8,8 +9,8 @@ from edsnlp.utils.deprecation import deprecated_factory
 DEFAULT_CONFIG = dict(
     attr="NORM",
     window=7,
-    verbose=0,
     ignore_excluded=False,
+    flags=0,
 )
 
 
@@ -24,7 +25,7 @@ def create_component(
     score_normalization: Union[str, Callable[[Union[str, None]], Any]],
     attr: str,
     window: int,
-    verbose: int,
+    flags: Union[re.RegexFlag, int],
     ignore_excluded: bool,
 ):
     return Score(
@@ -34,7 +35,7 @@ def create_component(
         after_extract=after_extract,
         score_normalization=score_normalization,
         attr=attr,
+        flags=flags,
         window=window,
-        verbose=verbose,
         ignore_excluded=ignore_excluded,
     )

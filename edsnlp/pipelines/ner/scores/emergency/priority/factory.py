@@ -1,5 +1,6 @@
 from typing import Any, Callable, List, Union
 
+from black import re
 from spacy.language import Language
 
 from edsnlp.pipelines.ner.scores import Score
@@ -12,8 +13,8 @@ DEFAULT_CONFIG = dict(
     score_normalization=patterns.score_normalization_str,
     attr="NORM",
     window=7,
-    verbose=0,
     ignore_excluded=False,
+    flags=re.S,
 )
 
 
@@ -29,8 +30,8 @@ def create_component(
     score_normalization: Union[str, Callable[[Union[str, None]], Any]],
     attr: str,
     window: int,
-    verbose: int,
     ignore_excluded: bool,
+    flags: Union[re.RegexFlag, int],
 ):
     return Score(
         nlp,
@@ -40,6 +41,6 @@ def create_component(
         score_normalization=score_normalization,
         attr=attr,
         window=window,
-        verbose=verbose,
         ignore_excluded=ignore_excluded,
+        flags=flags,
     )

@@ -43,7 +43,7 @@ def make_pattern(
     return pattern
 
 
-def compile_regex(reg):
+def compile_regex(reg: str, flags: re.RegexFlag):
     """
     This function tries to compile `reg`  using the `re` module, and
     fallbacks to the `regex` module that is more permissive.
@@ -57,9 +57,9 @@ def compile_regex(reg):
     Union[re.Pattern, regex.Pattern]
     """
     try:
-        return re.compile(reg)
+        return re.compile(reg, flags=flags)
     except re.error:
         try:
-            return regex.compile(reg)
+            return regex.compile(reg, flags=flags)
         except regex.error:
             raise Exception("Could not compile: {}".format(repr(reg)))

@@ -1,15 +1,16 @@
+import re
 from typing import Union
 
 import spacy
 
 regex = [r"\bsofa\b"]
 
-method_regex = (
-    r"sofa.*?((?P<max>max\w*)|(?P<vqheures>24h\w*)|"
-    r"(?P<admission>admission\w*))(?P<after_value>(.|\n)*)"
+after_extract = dict(
+    method_max=r"sofa.*?(?:(?:max\w*(.*))|(?:24h\w*)|(?:admission\w*))",
+    method_24h=r"sofa.*?(?:(?:max\w*)|(?:24h\w*(.*))|(?:admission\w*))",
+    method_adm=r"sofa.*?(?:(?:max\w*)|(?:24h\w*)|(?:admission\w*(.*)))",
+    no_method=r"sofa.*?(.*)",
 )
-
-value_regex = r".*?.[\n\W]*?(\d+)[^h\d]"
 
 score_normalization_str = "score_normalization.sofa"
 
@@ -20,6 +21,12 @@ def score_normalization(extracted_score: Union[str, None]):
     Sofa score normalization.
     If available, returns the integer value of the SOFA score.
     """
+    value_regex = r".*?.[\n\W]*?(\d+)"
+    digit_value = re.match(
+        value_regex, extracted_score
+    )  # Use match instead of search to only look at the beginning
+    digit_value = None if digit_value is None else digit_value.groups()[0]
+
     score_range = list(range(0, 30))
-    if (extracted_score is not None) and (int(extracted_score) in score_range):
-        return int(extracted_score)
+    if (digit_value is not None) and (int(digit_value) in score_range):
+        return int(digit_value)

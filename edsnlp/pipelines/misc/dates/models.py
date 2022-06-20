@@ -71,7 +71,10 @@ class AbsoluteDate(BaseDate):
         d = self.dict(exclude_none=True)
         d.pop("mode", None)
         if self.year and self.month and self.day:
-            return pendulum.datetime(**d, tz=tz)
+            try:
+                return pendulum.datetime(**d, tz=tz)
+            except ValueError:
+                return None
 
         elif infer_from_context:
             # no year
@@ -207,9 +210,10 @@ class RelativeDate(Relative):
 
         if self.direction == Direction.CURRENT:
             d = self.dict(exclude_none=True)
-            d.pop("direction")
+            d.pop("direction", None)
+            d.pop("mode", None)
 
-            (key,) = d.keys()
+            key = next(iter(d.keys()), "day")
 
             norm = f"~0 {key}"
         else:

@@ -40,7 +40,27 @@ class GroupRegexMatcher(RegexMatcher):
         flags: models.Flags,
         ignore_excluded: bool,
     ):
+        """
+        Simple RegExp matcher that extract a capturing group instead of a full match.
 
+        Parameters
+        ----------
+        alignment_mode : str
+            How spans should be aligned with tokens.
+            Possible values are `strict` (character indices must be aligned
+            with token boundaries), "contract" (span of all tokens completely
+            within the character span), "expand" (span of all tokens at least
+            partially covered by the character span).
+            Defaults to `expand`.
+        attr : str
+            Default attribute to match on, by default "TEXT".
+            Can be overiden in the `add` method.
+        flags : Union[re.RegexFlag, int]
+            Additional flags provided to the `re` module.
+            Can be overiden in the `add` method.
+        ignore_excluded : bool
+            Whether to skip exclusions
+        """
         super().__init__(
             alignment_mode=alignment_mode,
             attr=attr,
@@ -101,10 +121,10 @@ class ContextualMatcher(BaseComponent):
 
     Parameters
     ----------
-    name : str
-        The name of the pipe
     nlp : Language
         spaCy `Language` object.
+    name : str
+        The name of the pipe
     patterns: Union[Dict[str, Any], List[Dict[str, Any]]]
         The configuration dictionary
     attr : str

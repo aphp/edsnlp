@@ -136,6 +136,9 @@ class RegexMatcher(object):
     attr : str
         Default attribute to match on, by default "TEXT".
         Can be overiden in the `add` method.
+    flags : Union[re.RegexFlag, int]
+        Additional flags provided to the `re` module.
+        Can be overiden in the `add` method.
     ignore_excluded : bool
         Whether to skip exclusions
     """
@@ -145,11 +148,14 @@ class RegexMatcher(object):
         alignment_mode: str = "expand",
         attr: str = "TEXT",
         ignore_excluded: bool = False,
+        flags: Union[re.RegexFlag, int] = 0,  # No additional flags
     ):
         self.alignment_mode = alignment_mode
         self.regex = []
 
         self.default_attr = attr
+
+        self.flags = flags
 
         self.ignore_excluded = ignore_excluded
 
@@ -177,16 +183,22 @@ class RegexMatcher(object):
             if isinstance(patterns, dict):
                 attr = patterns.get("attr")
                 alignment_mode = patterns.get("alignment_mode")
+                flags = patterns.get("flags")
                 patterns = patterns.get("regex")
             else:
                 attr = None
                 alignment_mode = None
+                flags = None
 
             if isinstance(patterns, str):
                 patterns = [patterns]
-            print(patterns)
+
             self.add(
-                key=key, patterns=patterns, attr=attr, alignment_mode=alignment_mode
+                key=key,
+                patterns=patterns,
+                attr=attr,
+                alignment_mode=alignment_mode,
+                flags=flags,
             )
 
     def add(
@@ -196,6 +208,7 @@ class RegexMatcher(object):
         attr: Optional[str] = None,
         ignore_excluded: Optional[bool] = None,
         alignment_mode: Optional[str] = None,
+        flags: Optional[re.RegexFlag] = None,
     ):
         """
         Add a pattern to the registry.
@@ -224,7 +237,10 @@ class RegexMatcher(object):
         if alignment_mode is None:
             alignment_mode = self.alignment_mode
 
-        patterns = [compile_regex(pattern) for pattern in patterns]
+        if flags is None:
+            flags = self.flags
+
+        patterns = [compile_regex(pattern, flags) for pattern in patterns]
 
         self.regex.append((key, patterns, attr, ignore_excluded, alignment_mode))
 

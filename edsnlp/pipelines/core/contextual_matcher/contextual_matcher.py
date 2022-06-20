@@ -35,13 +35,17 @@ def get_window(
 class GroupRegexMatcher(RegexMatcher):
     def __init__(
         self,
-        alignment_mode: str = "expand",
-        attr: str = "TEXT",
-        ignore_excluded: bool = False,
+        alignment_mode: str,
+        attr: str,
+        flags: models.Flags,
+        ignore_excluded: bool,
     ):
 
         super().__init__(
-            alignment_mode=alignment_mode, attr=attr, ignore_excluded=ignore_excluded
+            alignment_mode=alignment_mode,
+            attr=attr,
+            ignore_excluded=ignore_excluded,
+            flags=flags,
         )
 
     def match(
@@ -74,6 +78,9 @@ class GroupRegexMatcher(RegexMatcher):
                 logger.trace(f"Matched a regex from {key}: {repr(match.group())}")
                 span_char = match.span(1)
 
+                if span_char[0] < 0:  # Group didn't match
+                    continue
+
                 span = create_span(
                     doclike=doclike,
                     start_char=span_char[0],
@@ -94,35 +101,36 @@ class ContextualMatcher(BaseComponent):
 
     Parameters
     ----------
+    name : str
+        The name of the pipe
     nlp : Language
         spaCy `Language` object.
-    regex_config : Dict[str, Any]
-        Configuration for the main expression.
-    window : int
-        Number of tokens to consider before and after the main expression.
+    patterns: Union[Dict[str, Any], List[Dict[str, Any]]]
+        The configuration dictionary
     attr : str
         Attribute to match on, eg `TEXT`, `NORM`, etc.
-    verbose : int
-        Verbosity level, useful for debugging.
     ignore_excluded : bool
-        Whether to skip excluded tokens.
+        Whether to skip excluded tokens during matching.
+    alignment_mode : str
+        Overwrite alignment mode.
     """
 
     def __init__(
         self,
-        name: str,
         nlp: Language,
+        name: str,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]],
         alignment_mode: str,
         attr: str,
+        regex_flags: Union[re.RegexFlag, int],
         ignore_excluded: bool,
     ):
-
         self.name = name
         self.nlp = nlp
         self.attr = attr
         self.ignore_excluded = ignore_excluded
         self.alignment_mode = alignment_mode
+        self.regex_flags = regex_flags
 
         if isinstance(patterns, dict):
             patterns = [patterns]
@@ -142,6 +150,7 @@ class ContextualMatcher(BaseComponent):
         )
         self.regex_matcher = RegexMatcher(
             attr=attr,
+            flags=regex_flags,
             ignore_excluded=ignore_excluded,
             alignment_mode=alignment_mode,
         )
@@ -160,6 +169,7 @@ class ContextualMatcher(BaseComponent):
                 source: {
                     "regex": p.regex,
                     "attr": p.regex_attr,
+                    "flags": p.regex_flags,
                 }
                 for source, p in self.patterns.items()
             }
@@ -175,29 +185,41 @@ class ContextualMatcher(BaseComponent):
 
                 p = p.dict()
 
-                exclude_matcher = RegexMatcher(
-                    attr=p["regex_attr"] or self.attr,
-                    ignore_excluded=ignore_excluded,
-                    alignment_mode="expand",
-                )
-                exclude_matcher.build_patterns(
-                    regex=dict(
-                        exclude=p["exclude"][side]["regex"],
+                exclude_matcher = None
+
+                if p["exclude"][side]["regex"]:
+                    exclude_matcher = RegexMatcher(
+                        attr=p["regex_attr"] or self.attr,
+                        flags=p["regex_flags"] or self.regex_flags,
+                        ignore_excluded=ignore_excluded,
+                        alignment_mode="expand",
                     )
-                )
+                    exclude_matcher.build_patterns(
+                        regex=dict(
+                            exclude=p["exclude"][side]["regex"],
+                        )
+                    )
 
                 self.exclude_matchers[side][source] = dict(
                     matcher=exclude_matcher,
                     window=p["exclude"][side]["window"],
                 )
 
-                assign_matcher = GroupRegexMatcher(
-                    attr=p["regex_attr"] or self.attr,
-                    ignore_excluded=ignore_excluded,
-                    alignment_mode=alignment_mode,
-                )
+                assign_matcher = None
 
-                assign_matcher.build_patterns(regex=p["assign"][side]["regex"])
+                if p["assign"][side]["regex"]:
+
+                    assign_matcher = GroupRegexMatcher(
+                        attr=p["regex_attr"] or self.attr,
+                        flags=p["regex_flags"] or self.regex_flags,
+                        ignore_excluded=ignore_excluded,
+                        alignment_mode=alignment_mode,
+                    )
+
+                    assign_matcher.build_patterns(
+                        regex=p["assign"][side]["regex"],
+                    )
+
                 self.assign_matchers[side][source] = dict(
                     matcher=assign_matcher,
                     window=p["assign"][side]["window"],
@@ -208,25 +230,10 @@ class ContextualMatcher(BaseComponent):
 
     @staticmethod
     def set_extensions() -> None:
-        if not Doc.has_extension("my_ents"):
-            Doc.set_extension("my_ents", default=[])
         if not Span.has_extension("assigned"):
-            Span.set_extension("assigned", default=[])
+            Span.set_extension("assigned", default=dict())
         if not Span.has_extension("source"):
             Span.set_extension("source", default=None)
-
-        if not Span.has_extension("before_extract"):
-            Span.set_extension("before_extract", default=None)
-        if not Span.has_extension("after_extract"):
-            Span.set_extension("after_extract", default=None)
-
-        if not Span.has_extension("window"):
-            Span.set_extension("window", default=None)
-
-        if not Span.has_extension("before_snippet"):
-            Span.set_extension("before_snippet", default=None)
-        if not Span.has_extension("after_snippet"):
-            Span.set_extension("after_snippet", default=None)
 
     def process(self, doc: Doc) -> List[Span]:
         """
@@ -247,17 +254,36 @@ class ContextualMatcher(BaseComponent):
         regex_matches = self.regex_matcher(doc, as_spans=True)
 
         spans = list(matches) + list(regex_matches)
-        print("SPANS", spans)
         spans = list(self.filter(spans))
-        print("SPANS", spans)
         spans = list(self.assign(spans))
         return spans
 
     def filter(self, spans: List[Span]) -> List[Span]:
+        """
+        Filter extracted entities based on the "exclusion filter" mentionned
+        in the configuration
+
+        Parameters
+        ----------
+        spans : List[Span]
+            Spans to filter
+
+        Yields
+        ------
+        Iterator[List[Span]]
+            All spans that passed the filtering step
+        """
+
         for ent in spans:
             to_keep = True
             for side in self.sides:
                 source = ent.label_
+
+                if (
+                    self.exclude_matchers[side][source]["matcher"] is None
+                ):  # Nothing to match
+                    continue
+
                 window = self.exclude_matchers[side][source]["window"]
                 snippet = get_window(
                     doclike=ent,
@@ -279,9 +305,36 @@ class ContextualMatcher(BaseComponent):
                 yield ent
 
     def assign(self, spans: List[Span]) -> List[Span]:
+        """
+        Get additional information in the context
+        of each entity. This funciton will populate two custom attributes:
+
+        - `ent._.source`
+        - `ent._.assigned`, a dictionary with all retrieved informations
+
+        Parameters
+        ----------
+        spans : List[Span]
+            _description_
+
+        Parameters
+        ----------
+        spans : List[Span]
+            Spans to filter
+
+        Yields
+        ------
+        Iterator[List[Span]]
+            All spans with additional informations
+        """
+
         for ent in spans:
             source = ent.label_
             for side in self.sides:
+                if (
+                    self.assign_matchers[side][source]["matcher"] is None
+                ):  # Nothing to match
+                    continue
                 attr = (
                     self.patterns[source].regex_attr
                     or self.assign_matchers[side][source]["matcher"].default_attr
@@ -302,45 +355,41 @@ class ContextualMatcher(BaseComponent):
 
                     continue
 
-                ent._.assigned.extend(
-                    [
-                        {
-                            "span": assigned,
-                            "value": get_text(
-                                assigned,
-                                attr=attr,
-                                ignore_excluded=self.ignore_excluded,
-                            ),
-                            "title": assigned.label_,
-                            "source": ent.label_,
-                            "side": side,
-                        }
-                        for assigned in assigned_list
-                        if assigned is not None
-                    ],
+                for assigned in assigned_list:
+                    if assigned is None:
+                        continue
+                    ent._.assigned[assigned.label_] = {
+                        "span": assigned,
+                        assigned.label_: get_text(
+                            assigned,
+                            attr=attr,
+                            ignore_excluded=self.ignore_excluded,
+                        ),
+                        "expand_entity": expand_entity,
+                    }
+
+            assigned = ent._.assigned
+            expandables = [
+                a["span"] for a in assigned.values() if a.get("expand_entity", False)
+            ]
+
+            if expandables:
+
+                min_start = min([a.start_char for a in expandables] + [ent.start_char])
+                max_end = max([a.end_char for a in expandables] + [ent.end_char])
+                ent = create_span(
+                    doclike=ent.doc,
+                    start_char=min_start,
+                    end_char=max_end,
+                    key=ent.label_,
+                    attr=attr,
+                    alignment_mode=self.alignment_mode,
+                    ignore_excluded=self.ignore_excluded,
                 )
-                print(ent._.assigned)
-                if expand_entity:
-                    assigned = ent._.assigned
-                    min_start = min(
-                        [a["span"].start_char for a in assigned] + [ent.start_char]
-                    )
-                    max_end = max(
-                        [a["span"].end_char for a in assigned] + [ent.end_char]
-                    )
-                    ent = create_span(
-                        doclike=ent.doc,
-                        start_char=min_start,
-                        end_char=max_end,
-                        key=ent.label_,
-                        attr=attr,
-                        alignment_mode=self.alignment_mode,
-                        ignore_excluded=self.ignore_excluded,
-                    )
-                    ent._.assigned = assigned
 
             ent._.source = source
             ent.label_ = self.name
+            ent._.assigned = {k: v[k] for k, v in assigned.items()}
 
             yield ent
 
@@ -361,6 +410,8 @@ class ContextualMatcher(BaseComponent):
 
         ents = self.process(doc)
 
+        doc.spans[self.name] = ents
+
         ents, discarded = filter_spans(list(doc.ents) + ents, return_discarded=True)
 
         doc.ents = ents
@@ -370,130 +421,3 @@ class ContextualMatcher(BaseComponent):
         doc.spans["discarded"].extend(discarded)
 
         return doc
-
-    def _postprocessing_pipeline(self, ents: List[Span]):
-        # add a window within the sentence around entities
-        ents = [self._add_window(ent) for ent in ents]
-
-        # Remove entities based on the snippet located just before and after the entity
-        ents = filter(self._exclude_filter, ents)
-
-        # Extract informations from the entity's context via regex
-        ents = [self._snippet_extraction(ent) for ent in ents]
-
-        return ents
-
-    def _add_window(self, ent: Span) -> Span:
-        ent._.window = ent.doc[
-            max(ent.start - self.window, ent.sent.start) : min(
-                ent.end + self.window, ent.sent.end
-            )
-        ]
-
-        # include the entity in the snippets so that we can extract
-        # the number when it is attached to the word, e.g. "3PA"
-        ent._.before_snippet = ent.doc[
-            max(ent.start - self.window, ent.sent.start) : ent.end
-        ]
-        ent._.after_snippet = ent.doc[
-            ent.start : min(ent.end + self.window, ent.sent.end)
-        ]
-        return ent
-
-    def get_text(self, span: Span, label) -> str:
-        attr = self.regex_config[label].get("attr", self.attr)
-
-        return get_text(
-            doclike=span,
-            attr=attr,
-            ignore_excluded=self.ignore_excluded,
-        )
-
-    def _exclude_filter(self, ent: Span) -> Span:
-        label = ent.label_
-
-        before_exclude = self.regex_config[label].get("before_exclude", None)
-        after_exclude = self.regex_config[label].get("after_exclude", None)
-
-        if before_exclude is not None:
-            t = ent._.before_snippet
-            t = self.get_text(t, label)
-            if re.compile(before_exclude).search(t) is not None:
-                if self.verbose:
-                    logger.info(
-                        f"excluded (before) string: {t} - pattern {before_exclude}"
-                    )
-                return False
-
-        if after_exclude is not None:
-            t = ent._.after_snippet
-            t = self.get_text(t, label)
-            if re.compile(after_exclude).search(t) is not None:
-                if self.verbose:
-                    logger.info(
-                        f"excluded (after) string: {t} - pattern {after_exclude}"
-                    )
-                return False
-
-        return True
-
-    def _snippet_extraction(self, ent: Span) -> Span:
-        label = ent.label_
-
-        before_extract = self.regex_config[label].get("before_extract", [])
-        after_extract = self.regex_config[label].get("after_extract", [])
-
-        if type(before_extract) == str:
-            before_extract = [before_extract]
-        if type(after_extract) == str:
-            after_extract = [after_extract]
-
-        t = ent._.before_snippet
-        t = self.get_text(t, label)
-        ent._.before_extract = []
-        for pattern in before_extract:
-            pattern = re.compile(pattern)
-            match = pattern.search(t)
-            ent._.before_extract.append(match.groups()[0] if match else None)
-
-        t = ent._.after_snippet
-        t = self.get_text(t, label)
-        ent._.after_extract = []
-        for pattern in after_extract:
-            pattern = re.compile(pattern)
-            match = pattern.search(t)
-            ent._.after_extract.append(match.groups()[0] if match else None)
-
-        return ent
-
-
-def _check_regex_config(regex_config):
-    for k, v in regex_config.items():
-        if type(v) is not dict:
-            raise TypeError(
-                f"The value of the key {k} is of type {type(v)}, but a dict is expected"
-            )
-
-        single_group_regex_keys = ["before_extract", "after_extract"]
-
-        for single_group_regex_key in single_group_regex_keys:
-            if single_group_regex_key in v:
-                # ensure it is a list
-                if type(v[single_group_regex_key]) is not list:
-                    v[single_group_regex_key] = [v[single_group_regex_key]]
-
-                for i, regex in enumerate(v[single_group_regex_key]):
-                    n_groups = re.compile(regex).groups
-
-                    if n_groups == 0:
-                        # Adding grouping parenthesis
-                        v[single_group_regex_key][i] = r"(" + regex + r")"
-                    elif n_groups != 1:
-                        # Accepting only 1 group per regex
-                        raise ValueError(
-                            f"The RegEx for {repr(k)} ({repr(regex)}) "
-                            f"stored in {repr(single_group_regex_key)} "
-                            f"contains {n_groups} capturing groups, 1 expected"
-                        )
-
-    return regex_config

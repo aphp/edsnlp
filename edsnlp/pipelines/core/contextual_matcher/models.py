@@ -1,14 +1,17 @@
 import re
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 from pydantic import BaseModel, Extra, validator
 
 from edsnlp.matchers.utils import ListOrStr
 
+Flags = Union[re.RegexFlag, int]
+
 
 class SidedExcludeModel(BaseModel):
     regex: ListOrStr = []
-    window: int
+    regex_flags: Optional[Flags] = None
+    window: int = 10
 
     @validator("regex")
     def exclude_regex_validation(cls, v):
@@ -18,12 +21,13 @@ class SidedExcludeModel(BaseModel):
 
 
 class ExcludeModel(BaseModel):
-    after: SidedExcludeModel
-    before: SidedExcludeModel
+    after: SidedExcludeModel = SidedExcludeModel()
+    before: SidedExcludeModel = SidedExcludeModel()
 
 
 class SidedAssignModel(BaseModel):
     regex: Dict[str, str] = dict()
+    regex_flags: Optional[Flags] = None
     window: int = 10
     expand_entity: bool = True
 
@@ -55,5 +59,6 @@ class SingleConfig(BaseModel, extra=Extra.forbid):
     terms: ListOrStr = []
     regex: ListOrStr = []
     regex_attr: Optional[str] = None
-    exclude: Optional[ExcludeModel] = None
-    assign: Optional[AssignModel] = None
+    regex_flags: Union[re.RegexFlag, int] = None
+    exclude: Optional[ExcludeModel] = ExcludeModel()
+    assign: Optional[AssignModel]

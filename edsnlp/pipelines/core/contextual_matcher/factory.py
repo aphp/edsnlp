@@ -1,8 +1,9 @@
-from typing import Any, Dict
+from ctypes import Union
+from typing import Any, Dict, List
 
 from spacy.language import Language
 
-from edsnlp.pipelines.core.advanced import AdvancedRegex
+from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
 from edsnlp.utils.deprecation import deprecated_factory
 
 DEFAULT_CONFIG = dict(
@@ -14,24 +15,23 @@ DEFAULT_CONFIG = dict(
 
 
 @deprecated_factory(
-    "advanced-regex", "eds.advanced-regex", default_config=DEFAULT_CONFIG
+    "contextual-matcher", "eds.contextual-matcher", default_config=DEFAULT_CONFIG
 )
-@Language.factory("eds.advanced-regex", default_config=DEFAULT_CONFIG)
+@Language.factory("eds.contextual-matcher", default_config=DEFAULT_CONFIG)
 def create_component(
     nlp: Language,
     name: str,
-    regex_config: Dict[str, Any],
-    window: int,
-    verbose: int,
-    ignore_excluded: bool,
+    patterns: Union[Dict[str, Any], List[Dict[str, Any]]],
+    alignment_mode: str,
     attr: str,
+    ignore_excluded: bool,
 ):
 
-    return AdvancedRegex(
+    return ContextualMatcher(
         nlp,
-        regex_config=regex_config,
-        window=window,
-        verbose=verbose,
-        ignore_excluded=ignore_excluded,
+        name,
+        patterns,
+        alignment_mode,
         attr=attr,
+        ignore_excluded=ignore_excluded,
     )

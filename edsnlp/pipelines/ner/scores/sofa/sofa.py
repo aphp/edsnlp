@@ -1,10 +1,9 @@
 import re
-from typing import Any, Callable, List, Union
+from typing import Any, Callable, Dict, List, Union
 
 from spacy.language import Language
 from spacy.tokens import Span
 
-from edsnlp.matchers.utils import get_text
 from edsnlp.pipelines.ner.scores import Score
 
 
@@ -43,11 +42,10 @@ class Sofa(Score):
         score_name: str,
         regex: List[str],
         attr: str,
-        method_regex: str,
-        value_regex: str,
+        after_extract: Dict[str, str],
         score_normalization: Union[str, Callable[[Union[str, None]], Any]],
         window: int,
-        verbose: int,
+        flags: Union[re.RegexFlag, int],
         ignore_excluded: bool,
     ):
 
@@ -55,16 +53,13 @@ class Sofa(Score):
             nlp,
             score_name=score_name,
             regex=regex,
-            after_extract=[],
+            after_extract=after_extract,
             score_normalization=score_normalization,
             attr=attr,
             window=window,
-            verbose=verbose,
+            flags=flags,
             ignore_excluded=ignore_excluded,
         )
-
-        self.method_regex = method_regex
-        self.value_regex = value_regex
 
         self.set_extensions()
 
@@ -93,33 +88,22 @@ class Sofa(Score):
         to_keep_ents = []
 
         for ent in ents:
-            after_snippet = get_text(
-                ent._.after_snippet,
-                attr=self.attr,
-                ignore_excluded=self.ignore_excluded,
-            )
-            matches = re.search(self.method_regex, after_snippet)
-
-            if matches is None:
-                method = "Non précisée"
-                value = after_snippet
-
+            assigned = ent._.assigned
+            if not assigned:
+                continue
+            if assigned.get("method_max") is not None:
+                method = "Maximum"
+                value = assigned["method_max"]
+            elif assigned.get("method_24h") is not None:
+                method = "24H"
+                value = assigned["method_24h"]
+            elif assigned.get("method_adm") is not None:
+                method = "A l'admission"
+                value = assigned["method_adm"]
             else:
-                groups = matches.groupdict()
-                value = groups["after_value"]
-                if groups["max"] is not None:
-                    method = "Maximum"
-                elif groups["vqheures"] is not None:
-                    method = "24H"
-                elif groups["admission"] is not None:
-                    method = "A l'admission"
-
-            digit_value = re.match(
-                self.value_regex, value
-            )  # Use match instead of search to only look at the beginning
-            digit_value = None if digit_value is None else digit_value.groups()[0]
-
-            normalized_value = self.score_normalization(digit_value)
+                method = "Non précisée"
+                value = assigned["no_method"]
+            normalized_value = self.score_normalization(value)
             if normalized_value is not None:
                 ent._.score_name = self.score_name
                 ent._.score_value = int(normalized_value)

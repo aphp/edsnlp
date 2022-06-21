@@ -55,6 +55,7 @@ nav:
     - Core Pipelines:
       - pipelines/core/index.md
       - pipelines/core/matcher.md
+      - pipelines/core/contextual-matcher.md
       - pipelines/core/terminology.md
       - pipelines/core/normalisation.md
       - pipelines/core/endlines.md

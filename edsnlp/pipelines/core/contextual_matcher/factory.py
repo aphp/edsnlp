@@ -1,16 +1,16 @@
-from ctypes import Union
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
+from black import re
 from spacy.language import Language
 
 from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
 from edsnlp.utils.deprecation import deprecated_factory
 
 DEFAULT_CONFIG = dict(
-    window=10,
-    verbose=0,
-    ignore_excluded=False,
     attr="NORM",
+    ignore_excluded=False,
+    regex_flags=0,
+    alignment_mode="expand",
 )
 
 
@@ -25,6 +25,7 @@ def create_component(
     alignment_mode: str,
     attr: str,
     ignore_excluded: bool,
+    regex_flags: Union[re.RegexFlag, int],
 ):
 
     return ContextualMatcher(
@@ -34,4 +35,5 @@ def create_component(
         alignment_mode,
         attr=attr,
         ignore_excluded=ignore_excluded,
+        regex_flags=regex_flags,
     )

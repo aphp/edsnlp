@@ -1,5 +1,5 @@
 import re
-from typing import Dict, List, Optional, Union
+from typing import Dict, Optional, Union
 
 from pydantic import BaseModel, Extra, validator
 
@@ -29,7 +29,7 @@ class SidedAssignModel(BaseModel):
     regex: Dict[str, str] = dict()
     regex_flags: Optional[Flags] = None
     window: int = 10
-    expand_entity: bool = True
+    expand_entity: bool = False
 
     @validator("regex")
     def check_single_regex_group(cls, v):

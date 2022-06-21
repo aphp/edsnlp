@@ -31,7 +31,7 @@ CR-URG.
 def test_scores(blank_nlp):
 
     blank_nlp.add_pipe(
-        "normalizer",
+        "eds.normalizer",
         config=dict(lowercase=True, accents=True, quotes=True, pollution=False),
     )
 

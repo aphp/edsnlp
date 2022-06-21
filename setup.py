@@ -51,6 +51,7 @@ factories = [
     "matcher = edsnlp.components:matcher",
     "terminology = edsnlp.components:terminology",
     "advanced = edsnlp.components:advanced",
+    "contextual_matcher = edsnlp.components:contextual_matcher",
     "endlines = edsnlp.components:endlines",
     "sentences = edsnlp.components:sentences",
     "normalizer = edsnlp.components:normalizer",

@@ -80,7 +80,7 @@ cancer = dict(
             regex=benine,
             window=3,
         )
-    )
+    ),
     assign=dict(
         after=dict(
             regex=dict(
@@ -104,7 +104,7 @@ lymphome = dict(
             regex=benine,
             window=3,
         )
-    )
+    ),
     assign=dict(
         after=dict(
             regex=dict(

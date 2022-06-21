@@ -134,7 +134,7 @@ nlp.add_pipe("sentences")
 nlp.add_pipe("normalizer")
 
 nlp.add_pipe(
-    "eds.contextual_matcher",
+    "eds.contextual-matcher",
     config=dict(patterns=patterns),
 )
 ```

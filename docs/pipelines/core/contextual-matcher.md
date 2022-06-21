@@ -16,7 +16,7 @@ This pipeline allows for a much easier filtering step.
 - Extract the stage of a cancer: To do so you need to
     1. Find mentions of cancer
     2. Find mention of a *stage* and extract its value
-   
+
   We will see how we can easily do this with the ContextualMatcher.
 
 ## The configuration file
@@ -134,7 +134,7 @@ nlp.add_pipe("sentences")
 nlp.add_pipe("normalizer")
 
 nlp.add_pipe(
-    "eds.contextual_matcher", 
+    "eds.contextual_matcher",
     config=dict(patterns=patterns),
 )
 ```
@@ -221,7 +221,7 @@ The pattern dictionnary is a nested dictionary with the following keys:
 
 === "`exclude`"
 
-    A dictionary to define exclusion rules. Exclusion rules are given as Regexes, and if a 
+    A dictionary to define exclusion rules. Exclusion rules are given as Regexes, and if a
     match is found in the surrounding context of an extraction, the extraction is removed.
 
     === "`before`"
@@ -230,7 +230,7 @@ The pattern dictionnary is a nested dictionary with the following keys:
 
         === "`window`"
 
-            Size of the context to use (in number of words) 
+            Size of the context to use (in number of words)
 
         === "`regex`"
 
@@ -242,7 +242,7 @@ The pattern dictionnary is a nested dictionary with the following keys:
 
         === "`window`"
 
-            Size of the context to use (in number of words) 
+            Size of the context to use (in number of words)
 
         === "`regex`"
 
@@ -251,7 +251,7 @@ The pattern dictionnary is a nested dictionary with the following keys:
 === "`assign`"
 
     A dictionary to refine the extraction. Similarily to the `exclude` key, you can provide a dictionary to
-    use on the context **before** and **after** the extraction. 
+    use on the context **before** and **after** the extraction.
 
     === "`before`"
 
@@ -259,7 +259,7 @@ The pattern dictionnary is a nested dictionary with the following keys:
 
         === "`window`"
 
-            Size of the context to use (in number of words) 
+            Size of the context to use (in number of words)
 
         === "`regex`"
 
@@ -276,7 +276,7 @@ The pattern dictionnary is a nested dictionary with the following keys:
 
         === "`window`"
 
-            Size of the context to use (in number of words) 
+            Size of the context to use (in number of words)
 
         === "`regex`"
 

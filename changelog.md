@@ -2,6 +2,11 @@
 
 ## Pending Release
 
+### Added
+
+- Now possible to provide regex flags when using the RegexMatcher
+- New `ContextualMatcher` pipe, aiming at replacing the `AdvancedRegex` pipe.
+
 ### Changed
 
 - Faster `eds.sentences` pipeline component with Cython

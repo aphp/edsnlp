@@ -71,7 +71,7 @@ We can now put everything together:
 ```python3
 
 cancer = dict(
-    source="Cancer Solide",
+    source="Cancer solide",
     regex=regex,
     terms=terms,
     regex_attr="NORM",
@@ -135,7 +135,10 @@ nlp.add_pipe("normalizer")
 
 nlp.add_pipe(
     "eds.contextual-matcher",
-    config=dict(patterns=patterns),
+    config=dict(
+        patterns=patterns,
+        name="Cancer",
+    ),
 )
 ```
 
@@ -147,16 +150,16 @@ This snippet is complete, and should run as is. Let us see what we can get from 
     ```python3
     txt = "Le patient a eu un cancer il y a 5 ans"
     doc = nlp(txt)
-    ent = doc.ents
+    ent = doc.ents[0]
 
     ent.label_
-    # Out: "Cancer"
+    # Out: Cancer
 
     ent._.source
-    # Out: "Cancer solide"
+    # Out: Cancer solide
 
     ent.text, ent.start, ent.end
-    # Out: "cancer", 5, 6
+    # Out: ('cancer', 5, 6)
     ```
 
 === "Exclusion rule"
@@ -190,7 +193,8 @@ The pipeline can be configured using the following parameters :
 
 | Parameter         | Explanation                                                                                                              | Default              |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------ | -------------------- |
-| `patterns`        | Dictionary or List of dictionaries. See below                                                                            | `None`               |
+| `patterns`        | Dictionary or List of dictionaries. See below                                                                            |
+| `assign_as_span`  | Wether to store eventual extractions defined via the `assign` key as Spans or as string                                  | False                |
 | `attr`            | spaCy attribute to match on (eg `NORM`, `LOWER`)                                                                         | `"TEXT"`             |
 | `ignore_excluded` | Whether to skip excluded tokens during matching                                                                          | `False`              |
 | `regex_flags`     | RegExp flags to use when matching, filtering and assigning (See [here](https://docs.python.org/3/library/re.html#flags)) | 0 (use default flag) |

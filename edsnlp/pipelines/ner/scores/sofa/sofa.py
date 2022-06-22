@@ -4,6 +4,7 @@ from typing import Any, Callable, Dict, List, Union
 from spacy.language import Language
 from spacy.tokens import Span
 
+from edsnlp.matchers.utils import get_text
 from edsnlp.pipelines.ner.scores import Score
 
 
@@ -103,11 +104,17 @@ class Sofa(Score):
             else:
                 method = "Non précisée"
                 value = assigned["no_method"]
-            normalized_value = self.score_normalization(value)
+            text_value = get_text(
+                value,
+                self.attr,
+                self.ignore_excluded,
+            )
+            normalized_value = self.score_normalization(text_value)
+
             if normalized_value is not None:
-                ent._.score_name = self.score_name
-                ent._.score_value = int(normalized_value)
-                ent._.score_method = method
-                to_keep_ents.append(ent)
+                value._.score_name = self.score_name
+                value._.score_value = int(normalized_value)
+                value._.score_method = method
+                to_keep_ents.append(value)
 
         return to_keep_ents

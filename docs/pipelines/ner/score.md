@@ -23,22 +23,17 @@ text = "Charlson à l'admission: 7.\n" "Charlson: \n" "OMS: \n"
 
 doc = nlp(text)
 doc.ents
-# Out: (Charlson,)
+# Out: (7,)
 ```
 
-We can see that only one occurrence was extracted.
-
-```python
-ent = doc.ents[0]
-ent.start, ent.end
-# Out: (0, 1)
-```
-
-The second mention of Charlson in the text doesn't contain any numerical value, so it isn't extracted.
+We can see that only one occurrence was extracted. The second mention of Charlson in the text
+doesn't contain any numerical value, so it isn't extracted.
 
 Each extraction exposes 2 extensions:
 
 ```python
+ent = doc.ents[0]
+
 ent._.score_name
 # Out: 'eds.charlson'
 
@@ -62,7 +57,7 @@ text = "SOFA (à 24H) : 12.\n" "OMS: \n"
 
 doc = nlp(text)
 doc.ents
-# Out: (SOFA,)
+# Out: (12,)
 ```
 
 Each extraction exposes 3 extensions:

@@ -69,33 +69,33 @@ This example is complete, it should run as-is. Check out the [spaCy 101 page](tu
 
 === "Core"
 
-    | Pipeline               | Description                                     |
-    | ---------------------- | ----------------------------------------------- |
-    | `eds.normalizer`       | Non-destructive input text normalisation        |
-    | `eds.sentences`        | Better sentence boundary detection              |
-    | `eds.matcher`          | A simple yet powerful entity extractor          |
-    | `eds.terminology`      | A simple yet powerful terminology matcher       |
-    | `eds.advanced-matcher` | A conditional entity extractor                  |
-    | `eds.endlines`         | An unsupervised model to classify each end line |
+    | Pipeline                 | Description                                     |
+    | ------------------------ | ----------------------------------------------- |
+    | `eds.normalizer`         | Non-destructive input text normalisation        |
+    | `eds.sentences`          | Better sentence boundary detection              |
+    | `eds.matcher`            | A simple yet powerful entity extractor          |
+    | `eds.terminology`        | A simple yet powerful terminology matcher       |
+    | `eds.contextual-matcher` | A conditional entity extractor                  |
+    | `eds.endlines`           | An unsupervised model to classify each end line |
 
 === "Qualifiers"
 
-    | Pipeline               | Description                                     |
-    | ---------------------- | ----------------------------------------------- |
-    | `eds.negation`         | Rule-based negation detection                   |
-    | `eds.family`           | Rule-based family context detection             |
-    | `eds.hypothesis`       | Rule-based speculation detection                |
-    | `eds.reported_speech`  | Rule-based reported speech detection            |
-    | `eds.history`          | Rule-based medical history detection            |
+    | Pipeline              | Description                          |
+    | --------------------- | ------------------------------------ |
+    | `eds.negation`        | Rule-based negation detection        |
+    | `eds.family`          | Rule-based family context detection  |
+    | `eds.hypothesis`      | Rule-based speculation detection     |
+    | `eds.reported_speech` | Rule-based reported speech detection |
+    | `eds.history`         | Rule-based medical history detection |
 
 === "Miscellaneous"
 
-    | Pipeline               | Description                                     |
-    | ---------------------- | ----------------------------------------------- |
-    | `eds.dates`            | Date extraction and normalisation               |
-    | `eds.measurements`         | Measure extraction and normalisation            |
-    | `eds.sections`         | Section detection                               |
-    | `eds.reason`           | Rule-based hospitalisation reason detection     |
+    | Pipeline           | Description                                 |
+    | ------------------ | ------------------------------------------- |
+    | `eds.dates`        | Date extraction and normalisation           |
+    | `eds.measurements` | Measure extraction and normalisation        |
+    | `eds.sections`     | Section detection                           |
+    | `eds.reason`       | Rule-based hospitalisation reason detection |
 
 === "NER"
 

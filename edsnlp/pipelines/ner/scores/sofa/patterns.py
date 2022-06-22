@@ -5,11 +5,13 @@ import spacy
 
 regex = [r"\bsofa\b"]
 
+digits = r"[^\d]*(\d*)"
+
 after_extract = dict(
-    method_max=r"sofa.*?(?:(?:max\w*(.*))|(?:24h\w*)|(?:admission\w*))",
-    method_24h=r"sofa.*?(?:(?:max\w*)|(?:24h\w*(.*))|(?:admission\w*))",
-    method_adm=r"sofa.*?(?:(?:max\w*)|(?:24h\w*)|(?:admission\w*(.*)))",
-    no_method=r"sofa.*?(.*)",
+    method_max=r"sofa.*?(?:max{digits})".format(digits=digits),
+    method_24h=r"sofa.*?(?:24h{digits})".format(digits=digits),
+    method_adm=r"sofa.*?(?:admission{digits})".format(digits=digits),
+    no_method=r"sofa.*?{digits}".format(digits=digits),
 )
 
 score_normalization_str = "score_normalization.sofa"
@@ -21,12 +23,11 @@ def score_normalization(extracted_score: Union[str, None]):
     Sofa score normalization.
     If available, returns the integer value of the SOFA score.
     """
-    value_regex = r".*?.[\n\W]*?(\d+)"
+    value_regex = r".*?[\n\W]*?(\d+)"
     digit_value = re.match(
         value_regex, extracted_score
     )  # Use match instead of search to only look at the beginning
     digit_value = None if digit_value is None else digit_value.groups()[0]
-
     score_range = list(range(0, 30))
     if (digit_value is not None) and (int(digit_value) in score_range):
         return int(digit_value)

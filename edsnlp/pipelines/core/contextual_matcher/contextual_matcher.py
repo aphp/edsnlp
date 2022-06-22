@@ -140,6 +140,7 @@ class ContextualMatcher(BaseComponent):
         nlp: Language,
         name: str,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]],
+        assign_as_span: bool,
         alignment_mode: str,
         attr: str,
         regex_flags: Union[re.RegexFlag, int],
@@ -148,14 +149,12 @@ class ContextualMatcher(BaseComponent):
         self.name = name
         self.nlp = nlp
         self.attr = attr
+        self.assign_at_span = assign_as_span
         self.ignore_excluded = ignore_excluded
         self.alignment_mode = alignment_mode
         self.regex_flags = regex_flags
 
-        if isinstance(patterns, dict):
-            patterns = [patterns]
-
-        patterns = [models.SingleConfig.parse_obj(pattern) for pattern in patterns]
+        patterns = models.FullConfig.parse_obj(patterns).__root__
 
         assert len([pattern.source for pattern in patterns]) == len(
             set([pattern.source for pattern in patterns])
@@ -409,7 +408,11 @@ class ContextualMatcher(BaseComponent):
 
             ent._.source = source
             ent.label_ = self.name
-            ent._.assigned = {k: v[k] for k, v in assigned.items()}
+
+            if self.assign_at_span:
+                ent._.assigned = {k: v["span"] for k, v in assigned.items()}
+            else:
+                ent._.assigned = {k: v[k] for k, v in assigned.items()}
 
             yield ent
 

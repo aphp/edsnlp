@@ -1,7 +1,7 @@
 import re
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 
-from pydantic import BaseModel, Extra, validator
+from pydantic import BaseModel, Extra, root_validator, validator
 
 from edsnlp.matchers.utils import ListOrStr
 
@@ -52,6 +52,18 @@ class AssignModel(BaseModel):
     after: SidedAssignModel = SidedAssignModel()
     before: SidedAssignModel = SidedAssignModel()
 
+    @root_validator()
+    def check_keys_uniqueness(cls, values):
+
+        common_keys = set(values.get("before").regex.keys()) & set(
+            values.get("after").regex.keys()
+        )
+        assert not common_keys, (
+            f"The keys {common_keys} are present in"
+            " both 'before' and 'after' assign dictionaries"
+        )
+        return values
+
 
 class SingleConfig(BaseModel, extra=Extra.forbid):
 
@@ -62,3 +74,17 @@ class SingleConfig(BaseModel, extra=Extra.forbid):
     regex_flags: Union[re.RegexFlag, int] = None
     exclude: Optional[ExcludeModel] = ExcludeModel()
     assign: Optional[AssignModel]
+
+
+class FullConfig(BaseModel, extra=Extra.forbid):
+
+    __root__: Union[
+        List[SingleConfig],
+        SingleConfig,
+    ]
+
+    @validator("__root__", pre=True)
+    def pattern_to_list(cls, v):
+        if not isinstance(v, list):
+            return [v]
+        return v

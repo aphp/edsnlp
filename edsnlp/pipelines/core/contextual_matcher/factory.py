@@ -11,6 +11,7 @@ DEFAULT_CONFIG = dict(
     ignore_excluded=False,
     regex_flags=0,
     alignment_mode="expand",
+    assign_as_span=False,
 )
 
 
@@ -22,6 +23,7 @@ def create_component(
     nlp: Language,
     name: str,
     patterns: Union[Dict[str, Any], List[Dict[str, Any]]],
+    assign_as_span: bool,
     alignment_mode: str,
     attr: str,
     ignore_excluded: bool,
@@ -32,6 +34,7 @@ def create_component(
         nlp,
         name,
         patterns,
+        assign_as_span,
         alignment_mode,
         attr=attr,
         ignore_excluded=ignore_excluded,

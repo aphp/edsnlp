@@ -5,6 +5,7 @@ from spacy import registry
 from spacy.language import Language
 from spacy.tokens import Doc, Span
 
+from edsnlp.matchers.utils import get_text
 from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
 from edsnlp.utils.filter import filter_spans
 
@@ -62,7 +63,7 @@ class Score(ContextualMatcher):
                 after=dict(
                     regex=after_extract_pattern,
                     window=window,
-                    expand_entity=True,
+                    expand_entity=False,
                 ),
             ),
         )
@@ -71,6 +72,7 @@ class Score(ContextualMatcher):
             nlp=nlp,
             name=score_name,
             patterns=patterns,
+            assign_as_span=True,
             alignment_mode="expand",
             ignore_excluded=ignore_excluded,
             attr=attr,
@@ -140,10 +142,17 @@ class Score(ContextualMatcher):
         to_keep_ents = []
         for ent in ents:
             value = ent._.assigned.get("value", None)
-            normalized_value = self.score_normalization(value)
+            if value is None:
+                continue
+            text_value = get_text(
+                value,
+                self.attr,
+                self.ignore_excluded,
+            )
+            normalized_value = self.score_normalization(text_value)
             if normalized_value is not None:
-                ent._.score_name = self.score_name
-                ent._.score_value = int(value)
-                to_keep_ents.append(ent)
+                value._.score_name = self.score_name
+                value._.score_value = normalized_value
+                to_keep_ents.append(value)
 
         return to_keep_ents

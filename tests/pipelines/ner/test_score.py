@@ -9,21 +9,21 @@ from edsnlp.utils.examples import parse_example
 
 example = """
 CR-REA.
-<ent score_name=charlson score_value=8>Charlson</ent> à l'admission: 8.
+Charlson à l'admission: <ent score_name=charlson score_value=8>8</ent>.
 - Charlson:
 - IMC: 21
 Cette phrase teste un score qui s'appelle TestScore.
 La seule valeur admissible est 0.
 testScore de 1.
-<ent score_name=TestScore score_value=0>testtscore</ent> de 0.
+TestScore de <ent score_name=TestScore score_value=0>0</ent>.
 Testons également un autre score.
-<ent score_name=SOFA score_value=12 score_method=Maximum>SOFA</ent> maximum : 12.
+SOFA maximum : <ent score_name=SOFA score_value=12 score_method=Maximum>12</ent>.
 
 
 CR-URG.
-<ent score_name=emergency.priority score_value=2>PRIORITE</ent>: 2 - Urgence relative.
-<ent score_name=emergency.gemsa score_value=2>GEMSA</ent>  : (2) Patient non convoque sortant apres consultation
-<ent score_name=emergency.ccmu score_value=2>CCMU</ent>  : Etat clinique jugé stable avec actes diag ou thérapeutiques ( 2 )
+PRIORITE: <ent score_name=emergency.priority score_value=2>2</ent>: 2 - Urgence relative.
+GEMSA: (<ent score_name=emergency.gemsa score_value=2>2</ent>) Patient non convoque sortant apres consultation
+CCMU: Etat clinique jugé stable avec actes diag ou thérapeutiques ( <ent score_name=emergency.ccmu score_value=2>2</ent> )
 
 """  # noqa: E501
 

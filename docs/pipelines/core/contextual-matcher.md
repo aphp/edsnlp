@@ -147,6 +147,8 @@ This snippet is complete, and should run as is. Let us see what we can get from 
 
 === "Simple match"
 
+    <!-- no-check -->
+
     ```python3
     txt = "Le patient a eu un cancer il y a 5 ans"
     doc = nlp(txt)
@@ -166,6 +168,8 @@ This snippet is complete, and should run as is. Let us see what we can get from 
 
     Let us check that when a *benine* mention is present, the extraction is excluded:
 
+    <!-- no-check -->
+
     ```python3
     txt = "Le patient a eu un cancer relativement bénin il y a 5 ans"
     doc = nlp(txt)
@@ -175,6 +179,8 @@ This snippet is complete, and should run as is. Let us see what we can get from 
     ```
 
 === "Extracting additional infos"
+
+    <!-- no-check -->
 
     All informations extracted from the provided `assign` configuration can be found in the `assigned` attribute
     under the form of a dictionary:

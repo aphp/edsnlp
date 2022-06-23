@@ -272,9 +272,9 @@ class ContextualMatcher(BaseComponent):
         matches = self.phrase_matcher(doc, as_spans=True)
         regex_matches = self.regex_matcher(doc, as_spans=True)
 
-        spans = list(matches) + list(regex_matches)
-        spans = list(self.filter(spans))
-        spans = list(self.assign(spans))
+        spans = (*matches, *regex_matches)
+        spans = self.filter(spans)
+        spans = self.assign(spans)
         return spans
 
     def filter(self, spans: List[Span]) -> List[Span]:

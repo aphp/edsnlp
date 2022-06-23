@@ -334,7 +334,7 @@ class ContextualMatcher(BaseComponent):
         Parameters
         ----------
         spans : List[Span]
-            _description_
+            Spans to enrich
 
         Parameters
         ----------

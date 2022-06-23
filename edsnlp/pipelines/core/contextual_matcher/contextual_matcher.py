@@ -433,7 +433,7 @@ class ContextualMatcher(BaseComponent):
 
         ents = self.process(doc)
 
-        doc.spans[self.name] = ents
+        doc.spans[self.name] = list(ents)
 
         ents, discarded = filter_spans(list(doc.ents) + ents, return_discarded=True)
 

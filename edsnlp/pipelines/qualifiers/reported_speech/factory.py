@@ -18,9 +18,17 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@deprecated_factory("rspeech", "eds.reported_speech", default_config=DEFAULT_CONFIG)
 @deprecated_factory(
-    "reported_speech", "eds.reported_speech", default_config=DEFAULT_CONFIG
+    "rspeech",
+    "eds.reported_speech",
+    default_config=DEFAULT_CONFIG,
+    assigns=["span._.reported_speech"],
+)
+@deprecated_factory(
+    "reported_speech",
+    "eds.reported_speech",
+    default_config=DEFAULT_CONFIG,
+    assigns=["span._.reported_speech"],
 )
 @Language.factory(
     "eds.reported_speech",

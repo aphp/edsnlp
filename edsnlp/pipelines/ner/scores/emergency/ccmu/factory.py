@@ -19,7 +19,10 @@ DEFAULT_CONFIG = dict(
 
 
 @deprecated_factory(
-    "emergency.ccmu", "eds.emergency.ccmu", default_config=DEFAULT_CONFIG
+    "emergency.ccmu",
+    "eds.emergency.ccmu",
+    default_config=DEFAULT_CONFIG,
+    assigns=["doc.ents", "doc.spans"],
 )
 @Language.factory(
     "eds.emergency.ccmu",

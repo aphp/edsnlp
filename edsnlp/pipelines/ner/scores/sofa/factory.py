@@ -17,7 +17,12 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@deprecated_factory("SOFA", "eds.SOFA", default_config=DEFAULT_CONFIG)
+@deprecated_factory(
+    "SOFA",
+    "eds.SOFA",
+    default_config=DEFAULT_CONFIG,
+    assigns=["doc.ents", "doc.spans"],
+)
 @Language.factory(
     "eds.SOFA",
     default_config=DEFAULT_CONFIG,

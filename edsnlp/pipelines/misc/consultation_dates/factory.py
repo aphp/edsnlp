@@ -17,6 +17,7 @@ DEFAULT_CONFIG = dict(
     "consultation_dates",
     "eds.consultation_dates",
     default_config=DEFAULT_CONFIG,
+    assigns=["doc._.consultation_dates"],
 )
 @Language.factory(
     "eds.consultation_dates",

@@ -16,9 +16,24 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@deprecated_factory("antecedents", "eds.history", default_config=DEFAULT_CONFIG)
-@deprecated_factory("eds.antecedents", "eds.history", default_config=DEFAULT_CONFIG)
-@deprecated_factory("history", "eds.history", default_config=DEFAULT_CONFIG)
+@deprecated_factory(
+    "antecedents",
+    "eds.history",
+    default_config=DEFAULT_CONFIG,
+    assigns=["span._.history"],
+)
+@deprecated_factory(
+    "eds.antecedents",
+    "eds.history",
+    default_config=DEFAULT_CONFIG,
+    assigns=["span._.history"],
+)
+@deprecated_factory(
+    "history",
+    "eds.history",
+    default_config=DEFAULT_CONFIG,
+    assigns=["span._.history"],
+)
 @Language.factory(
     "eds.history",
     default_config=DEFAULT_CONFIG,

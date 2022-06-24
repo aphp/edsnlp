@@ -11,10 +11,10 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@deprecated_factory("pollution", "eds.pollution", default_config=DEFAULT_CONFIG)
-@Language.factory(
-    "eds.pollution", default_config=DEFAULT_CONFIG, assigns=["token.norm"]
+@deprecated_factory(
+    "pollution", "eds.pollution", default_config=DEFAULT_CONFIG, assigns=["token.tag"]
 )
+@Language.factory("eds.pollution", default_config=DEFAULT_CONFIG, assigns=["token.tag"])
 def create_component(
     nlp: Language,
     name: str,

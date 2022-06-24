@@ -14,7 +14,12 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@deprecated_factory("score", "eds.score", default_config=DEFAULT_CONFIG)
+@deprecated_factory(
+    "score",
+    "eds.score",
+    default_config=DEFAULT_CONFIG,
+    assigns=["doc.ents", "doc.spans"],
+)
 @Language.factory(
     "eds.score",
     default_config=DEFAULT_CONFIG,

@@ -93,7 +93,16 @@ cdef class EDSPhraseMatcher(PhraseMatcher):
                 attr = None
             if isinstance(expressions, str):
                 expressions = [expressions]
-            patterns = list(nlp.pipe(expressions))
+            token_pipelines = [
+                name
+                for name, pipe in nlp.pipeline
+                if any(
+                    "token" in assign and not assign == "token.is_sent_start"
+                    for assign in nlp.get_pipe_meta(name).assigns
+                )
+            ]
+            with nlp.select_pipes(enable=token_pipelines):
+                patterns = list(nlp.pipe(expressions))
             self.add(key, patterns, attr)
 
     cdef void find_matches(self, Doc doc, int start_idx, int end_idx, vector[SpanC] *matches) nogil:

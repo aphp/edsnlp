@@ -1,10 +1,11 @@
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span
 
 from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher
+from edsnlp.matchers.simstring import SimstringMatcher
 from edsnlp.matchers.utils import Patterns
 from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
@@ -39,17 +40,28 @@ class GenericMatcher(BaseComponent):
         regex: Optional[Patterns],
         attr: str,
         ignore_excluded: bool,
+        algorithm: str = "exact",
+        algorithm_config: Dict[str, Any] = {},
     ):
 
         self.nlp = nlp
 
         self.attr = attr
 
-        self.phrase_matcher = EDSPhraseMatcher(
-            self.nlp.vocab,
-            attr=attr,
-            ignore_excluded=ignore_excluded,
-        )
+        if algorithm == "exact":
+            self.phrase_matcher = EDSPhraseMatcher(
+                self.nlp.vocab,
+                attr=attr,
+                ignore_excluded=ignore_excluded,
+            )
+        else:
+            self.phrase_matcher = SimstringMatcher(
+                self.nlp.vocab,
+                attr=attr,
+                ignore_excluded=ignore_excluded,
+                **algorithm_config,
+            )
+
         self.regex_matcher = RegexMatcher(
             attr=attr,
             ignore_excluded=ignore_excluded,

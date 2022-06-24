@@ -47,6 +47,7 @@ def deprecated_factory(
     new_name: Optional[str] = None,
     default_config: Optional[Dict[str, Any]] = None,
     func: Optional[Callable] = None,
+    **kwargs,
 ) -> Callable:
     """
     Execute the Language.factory method on a modified factory function.
@@ -71,7 +72,7 @@ def deprecated_factory(
     if default_config is None:
         default_config = dict()
 
-    wrapper = Language.factory(name, default_config=default_config)
+    wrapper = Language.factory(name, default_config=default_config, **kwargs)
 
     def wrap(factory):
 

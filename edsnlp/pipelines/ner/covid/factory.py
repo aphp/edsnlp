@@ -12,7 +12,11 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@Language.factory("eds.covid", default_config=DEFAULT_CONFIG)
+@Language.factory(
+    "eds.covid",
+    default_config=DEFAULT_CONFIG,
+    assigns=["doc.ents", "doc.spans"],
+)
 def create_component(
     nlp: Language,
     name: str,

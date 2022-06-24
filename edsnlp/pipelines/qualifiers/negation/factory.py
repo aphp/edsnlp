@@ -19,7 +19,11 @@ DEFAULT_CONFIG = dict(
 
 
 @deprecated_factory("negation", "eds.negation", default_config=DEFAULT_CONFIG)
-@Language.factory("eds.negation", default_config=DEFAULT_CONFIG)
+@Language.factory(
+    "eds.negation",
+    default_config=DEFAULT_CONFIG,
+    assigns=["span._.negation"],
+)
 def create_component(
     nlp: Language,
     name: str,

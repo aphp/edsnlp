@@ -22,7 +22,11 @@ DEFAULT_CONFIG = dict(
 @deprecated_factory(
     "reported_speech", "eds.reported_speech", default_config=DEFAULT_CONFIG
 )
-@Language.factory("eds.reported_speech", default_config=DEFAULT_CONFIG)
+@Language.factory(
+    "eds.reported_speech",
+    default_config=DEFAULT_CONFIG,
+    assigns=["span._.reported_speech"],
+)
 def create_component(
     nlp: Language,
     name: str,

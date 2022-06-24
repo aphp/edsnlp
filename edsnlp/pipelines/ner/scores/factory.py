@@ -15,7 +15,11 @@ DEFAULT_CONFIG = dict(
 
 
 @deprecated_factory("score", "eds.score", default_config=DEFAULT_CONFIG)
-@Language.factory("eds.score", default_config=DEFAULT_CONFIG)
+@Language.factory(
+    "eds.score",
+    default_config=DEFAULT_CONFIG,
+    assigns=["doc.ents", "doc.spans"],
+)
 def create_component(
     nlp: Language,
     name: str,

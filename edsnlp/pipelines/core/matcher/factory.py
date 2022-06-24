@@ -14,7 +14,9 @@ DEFAULT_CONFIG = dict(
 
 
 @deprecated_factory("matcher", "eds.matcher", default_config=DEFAULT_CONFIG)
-@Language.factory("eds.matcher", default_config=DEFAULT_CONFIG)
+@Language.factory(
+    "eds.matcher", default_config=DEFAULT_CONFIG, assigns=["doc.ents", "doc.spans"]
+)
 def create_component(
     nlp: Language,
     name: str,

@@ -19,7 +19,11 @@ DEFAULT_CONFIG = dict(
 @deprecated_factory("antecedents", "eds.history", default_config=DEFAULT_CONFIG)
 @deprecated_factory("eds.antecedents", "eds.history", default_config=DEFAULT_CONFIG)
 @deprecated_factory("history", "eds.history", default_config=DEFAULT_CONFIG)
-@Language.factory("eds.history", default_config=DEFAULT_CONFIG)
+@Language.factory(
+    "eds.history",
+    default_config=DEFAULT_CONFIG,
+    assigns=["span._.history"],
+)
 def create_component(
     nlp: Language,
     name: str,

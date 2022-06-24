@@ -16,7 +16,11 @@ DEFAULT_CONFIG = dict(
 
 
 @deprecated_factory("family", "eds.family", default_config=DEFAULT_CONFIG)
-@Language.factory("eds.family", default_config=DEFAULT_CONFIG)
+@Language.factory(
+    "eds.family",
+    default_config=DEFAULT_CONFIG,
+    assigns=["span._.family"],
+)
 def create_component(
     nlp: Language,
     name: str,

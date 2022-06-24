@@ -85,25 +85,25 @@ cdef class EDSPhraseMatcher(PhraseMatcher):
         if not terms:
             terms = dict()
 
-        for key, expressions in terms.items():
-            if isinstance(expressions, dict):
-                attr = expressions.get("attr")
-                expressions = expressions.get("patterns")
-            else:
-                attr = None
-            if isinstance(expressions, str):
-                expressions = [expressions]
-            token_pipelines = [
-                name
-                for name, pipe in nlp.pipeline
-                if any(
-                    "token" in assign and not assign == "token.is_sent_start"
-                    for assign in nlp.get_pipe_meta(name).assigns
-                )
-            ]
-            with nlp.select_pipes(enable=token_pipelines):
+        token_pipelines = [
+            name
+            for name, pipe in nlp.pipeline
+            if any(
+                "token" in assign and not assign == "token.is_sent_start"
+                for assign in nlp.get_pipe_meta(name).assigns
+            )
+        ]
+        with nlp.select_pipes(enable=token_pipelines):
+            for key, expressions in terms.items():
+                if isinstance(expressions, dict):
+                    attr = expressions.get("attr")
+                    expressions = expressions.get("patterns")
+                else:
+                    attr = None
+                if isinstance(expressions, str):
+                    expressions = [expressions]
                 patterns = list(nlp.pipe(expressions))
-            self.add(key, patterns, attr)
+                self.add(key, patterns, attr)
 
     cdef void find_matches(self, Doc doc, int start_idx, int end_idx, vector[SpanC] *matches) nogil:
         cdef MapStruct * current_node = self.c_map

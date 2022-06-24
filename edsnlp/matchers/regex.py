@@ -13,9 +13,17 @@ from .utils import Patterns, alignment, get_text, offset
 @lru_cache(32)
 def get_first_included(doclike: Union[Doc, Span]) -> Token:
     for token in doclike:
-        if not token._.excluded:
+        if token.tag_ != "EXCLUDED":
             return token
     raise IndexError("The provided Span does not include any token")
+
+
+def get_normalized_variant(doclike) -> str:
+    tokens = [t.text + t.whitespace_ for t in doclike if not t._.excluded]
+    variant = "".join(tokens)
+    variant = variant.rstrip(" ")
+    variant = re.sub(r"\s+", " ", variant)
+    return variant
 
 
 def create_span(
@@ -144,6 +152,13 @@ class RegexMatcher(object):
         self.default_attr = attr
 
         self.ignore_excluded = ignore_excluded
+
+        self.set_extensions()
+
+    @staticmethod
+    def set_extensions():
+        if not Span.has_extension("normalized_variant"):
+            Span.set_extension("normalized_variant", getter=get_normalized_variant)
 
     def build_patterns(self, regex: Patterns):
         """

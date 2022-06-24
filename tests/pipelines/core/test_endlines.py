@@ -1,3 +1,4 @@
+import spacy
 from pytest import fixture
 
 from edsnlp.pipelines.core.endlines.endlinesmodel import EndLinesModel
@@ -27,6 +28,7 @@ Antecedents Familiaux:
 
 @fixture
 def model_path(tmp_path, blank_nlp):
+    blank_nlp = spacy.blank("eds")
 
     # Train model
     docs = list(blank_nlp.pipe(texts))
@@ -44,36 +46,22 @@ def model_path(tmp_path, blank_nlp):
     return path_model
 
 
-def test_set_spans(blank_nlp):
-    # Train model
-    docs = list(blank_nlp.pipe(texts))
-
-    # Train and predict an EndLinesModel
-    endlines = EndLinesModel(nlp=blank_nlp)
-    df = endlines.fit_and_predict(docs)
-
-    # Test set_spans function
-    endlines.set_spans(docs, df)
-    doc_example = docs[1]
-    assert "new_lines" in doc_example.spans.keys()
-
-
 def test_endlines(blank_nlp, model_path):
+    blank_nlp = spacy.blank("eds")
 
     # Use an existing trained model
     blank_nlp.add_pipe("endlines", config=dict(model_path=model_path))
     docs = list(blank_nlp.pipe(texts))
 
-    assert docs[0][0]._.end_line is None
-    assert docs[1].spans["new_lines"][0].label_ == "space"
+    assert [i for i, t in enumerate(docs[1]) if t.tag_ == "EXCLUDED"] == [3, 8]
 
 
 def test_normalizer_endlines(blank_nlp, model_path):
+    blank_nlp = spacy.blank("eds")
 
     # Use an existing trained model
     blank_nlp.add_pipe("normalizer")
     blank_nlp.add_pipe("endlines", config=dict(model_path=model_path))
     docs = list(blank_nlp.pipe(texts))
 
-    assert docs[0][0]._.end_line is None
-    assert docs[1].spans["new_lines"][0].label_ == "space"
+    assert [i for i, t in enumerate(docs[1]) if t.tag_ == "EXCLUDED"] == [3, 8]

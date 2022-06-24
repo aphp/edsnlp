@@ -1,5 +1,11 @@
 # Changelog
 
+## Pending Release
+
+### Changed
+
+- Faster `eds.sentences` pipeline component with Cython
+
 ## v0.6.0 (2022-06-17)
 
 ### Added

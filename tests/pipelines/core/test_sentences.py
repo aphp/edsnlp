@@ -1,7 +1,6 @@
 import spacy
 from pytest import mark
 from spacy.pipeline.sentencizer import Sentencizer
-from spacy.tokens import Token
 
 from edsnlp.pipelines.core.sentences import SentenceSegmenter, terms
 
@@ -21,16 +20,15 @@ def test_sentences(nlp, endlines):
     nlp_blank = spacy.blank("fr")
 
     sentencizer = Sentencizer()
-    segmenter = SentenceSegmenter(punct_chars=terms.punctuation, use_endlines=True)
+    segmenter = SentenceSegmenter(
+        nlp.vocab, punct_chars=terms.punctuation, use_endlines=True
+    )
 
     doc = nlp(text)
     doc_blank = nlp_blank(text)
 
     if endlines:
-        if not Token.has_extension("end_line"):
-            Token.set_extension("end_line", default=True)
-
-        doc_blank[28]._.end_line = False
+        doc_blank[28].tag_ = "EXCLUDED"
 
     doc_blank = segmenter(doc_blank)
 

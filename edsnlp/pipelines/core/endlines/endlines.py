@@ -10,7 +10,7 @@ from edsnlp.pipelines.core.matcher import GenericMatcher
 from edsnlp.utils.filter import get_spans
 
 from .endlinesmodel import EndLinesModel
-from .functional import _get_label, build_path
+from .functional import build_path
 
 
 class EndLines(GenericMatcher):
@@ -51,12 +51,6 @@ class EndLines(GenericMatcher):
             ignore_excluded=False,
             **kwargs,
         )
-
-        if not Token.has_extension("end_line"):
-            Token.set_extension("end_line", default=None)
-
-        if not Span.has_extension("end_line"):
-            Span.set_extension("end_line", default=None)
 
         self._read_model(end_lines_model)
 
@@ -226,17 +220,11 @@ class EndLines(GenericMatcher):
             df = self._get_df(doc=doc, new_lines=new_lines)
             df = self.model.predict(df)
 
-            spans = []
             for span, prediction in zip(new_lines, df.PREDICTED_END_LINE):
 
-                span.label_ = _get_label(prediction)
-                span._.end_line = prediction
-
-                spans.append(span)
                 for t in span:
-                    t._.end_line = prediction
-                    if not prediction:
+                    t.tag_ = "ENDLINE" if prediction else "EXCLUDED"
+                    if prediction:
                         t._.excluded = True
 
-            doc.spans["new_lines"] = spans
         return doc

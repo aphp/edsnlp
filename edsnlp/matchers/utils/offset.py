@@ -58,7 +58,7 @@ def alignment(
 
     for token in doc:
 
-        if not ignore_excluded or not token._.excluded:
+        if not ignore_excluded or token.tag_ != "EXCLUDED":
 
             # The token is not excluded, we add its extremities to the list
             original.append(token.idx)

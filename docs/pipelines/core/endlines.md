@@ -13,8 +13,6 @@ The following example shows a simple usage.
 ```python
 import spacy
 from edsnlp.pipelines.core.endlines.endlinesmodel import EndLinesModel
-import pandas as pd
-from spacy import displacy
 
 nlp = spacy.blank("fr")
 
@@ -55,6 +53,8 @@ endlines.save(PATH)
 
 ```python
 import spacy
+from spacy.tokens import Span
+from spacy import displacy
 
 nlp = spacy.blank("fr")
 
@@ -65,10 +65,10 @@ docs = list(nlp.pipe(texts))
 
 doc_exemple = docs[1]
 
-doc_exemple
-
 doc_exemple.ents = tuple(
-    s for s in doc_exemple.spans["new_lines"] if s.label_ == "space"
+    Span(doc_exemple, token.i, token.i + 1, "excluded")
+    for token in doc_exemple
+    if token.tag_ == "EXCLUDED"
 )
 
 displacy.render(doc_exemple, style="ent", options={"colors": {"space": "red"}})

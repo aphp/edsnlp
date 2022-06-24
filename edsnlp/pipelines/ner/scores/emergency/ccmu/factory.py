@@ -21,7 +21,11 @@ DEFAULT_CONFIG = dict(
 @deprecated_factory(
     "emergency.ccmu", "eds.emergency.ccmu", default_config=DEFAULT_CONFIG
 )
-@Language.factory("eds.emergency.ccmu", default_config=DEFAULT_CONFIG)
+@Language.factory(
+    "eds.emergency.ccmu",
+    default_config=DEFAULT_CONFIG,
+    assigns=["doc.ents", "doc.spans"],
+)
 def create_component(
     nlp: Language,
     name: str,

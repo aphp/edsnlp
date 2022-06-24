@@ -13,7 +13,12 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@deprecated_factory("sentences", "eds.sentences", default_config=DEFAULT_CONFIG)
+@deprecated_factory(
+    "sentences",
+    "eds.sentences",
+    default_config=DEFAULT_CONFIG,
+    assigns=["token.is_sent_start"],
+)
 @Language.factory(
     "eds.sentences",
     default_config=DEFAULT_CONFIG,

@@ -18,7 +18,12 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@deprecated_factory("normalizer", "eds.normalizer", default_config=DEFAULT_CONFIG)
+@deprecated_factory(
+    "normalizer",
+    "eds.normalizer",
+    default_config=DEFAULT_CONFIG,
+    assigns=["token.norm", "token.tag"],
+)
 @Language.factory(
     "eds.normalizer", default_config=DEFAULT_CONFIG, assigns=["token.norm", "token.tag"]
 )

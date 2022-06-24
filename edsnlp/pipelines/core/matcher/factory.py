@@ -15,7 +15,12 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@deprecated_factory("matcher", "eds.matcher", default_config=DEFAULT_CONFIG)
+@deprecated_factory(
+    "matcher",
+    "eds.matcher",
+    default_config=DEFAULT_CONFIG,
+    assigns=["doc.ents", "doc.spans"],
+)
 @Language.factory(
     "eds.matcher", default_config=DEFAULT_CONFIG, assigns=["doc.ents", "doc.spans"]
 )

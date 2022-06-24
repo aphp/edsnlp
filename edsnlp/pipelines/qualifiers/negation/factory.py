@@ -18,7 +18,12 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@deprecated_factory("negation", "eds.negation", default_config=DEFAULT_CONFIG)
+@deprecated_factory(
+    "negation",
+    "eds.negation",
+    default_config=DEFAULT_CONFIG,
+    assigns=["span._.negation"],
+)
 @Language.factory(
     "eds.negation",
     default_config=DEFAULT_CONFIG,

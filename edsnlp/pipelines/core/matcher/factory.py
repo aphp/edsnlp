@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from spacy.language import Language
 
@@ -10,6 +10,8 @@ DEFAULT_CONFIG = dict(
     regex=None,
     attr="TEXT",
     ignore_excluded=False,
+    algorithm="exact",
+    algorithm_config={},
 )
 
 
@@ -24,6 +26,8 @@ def create_component(
     attr: Union[str, Dict[str, str]],
     regex: Optional[Dict[str, Union[str, List[str]]]],
     ignore_excluded: bool,
+    algorithm: str,
+    algorithm_config: Dict[str, Any],
 ):
     assert not (terms is None and regex is None)
 
@@ -38,4 +42,6 @@ def create_component(
         attr=attr,
         regex=regex,
         ignore_excluded=ignore_excluded,
+        algorithm=algorithm,
+        algorithm_config=algorithm_config,
     )

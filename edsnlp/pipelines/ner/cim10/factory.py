@@ -1,4 +1,4 @@
-from typing import Dict, Union
+from typing import Any, Dict, Union
 
 from spacy.language import Language
 
@@ -9,6 +9,8 @@ from . import patterns
 DEFAULT_CONFIG = dict(
     attr="NORM",
     ignore_excluded=False,
+    algorithm="exact",
+    algorithm_config={},
 )
 
 
@@ -20,6 +22,8 @@ def create_component(
     name: str,
     attr: Union[str, Dict[str, str]],
     ignore_excluded: bool,
+    algorithm: str,
+    algorithm_config: Dict[str, Any],
 ):
 
     return TerminologyMatcher(
@@ -29,4 +33,6 @@ def create_component(
         terms=patterns.get_patterns(),
         attr=attr,
         ignore_excluded=ignore_excluded,
+        algorithm=algorithm,
+        algorithm_config=algorithm_config,
     )

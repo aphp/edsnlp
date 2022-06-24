@@ -6,6 +6,7 @@ from spacy.tokens import Doc, Span
 
 from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher
+from edsnlp.matchers.simstring import SimstringMatcher
 from edsnlp.matchers.utils import Patterns
 from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
@@ -45,6 +46,8 @@ class TerminologyMatcher(BaseComponent):
         regex: Optional[Patterns],
         attr: str,
         ignore_excluded: bool,
+        algorithm="exact",
+        algorithm_config=None,
     ):
 
         self.nlp = nlp
@@ -53,11 +56,20 @@ class TerminologyMatcher(BaseComponent):
 
         self.attr = attr
 
-        self.phrase_matcher = EDSPhraseMatcher(
-            self.nlp.vocab,
-            attr=attr,
-            ignore_excluded=ignore_excluded,
-        )
+        if algorithm == "exact":
+            self.phrase_matcher = EDSPhraseMatcher(
+                self.nlp.vocab,
+                attr=attr,
+                ignore_excluded=ignore_excluded,
+            )
+        elif algorithm == "simstring":
+            self.phrase_matcher = SimstringMatcher(
+                vocab=self.nlp.vocab,
+                attr=attr,
+                ignore_excluded=ignore_excluded,
+                **(algorithm_config or {}),
+            )
+
         self.regex_matcher = RegexMatcher(
             attr=attr,
             ignore_excluded=ignore_excluded,

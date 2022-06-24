@@ -21,7 +21,10 @@ def get_version(path):
 COMPILER_DIRECTIVES = {
     "language_level": "3",
 }
-MOD_NAMES = ["edsnlp.matchers.phrase"]
+MOD_NAMES = [
+    "edsnlp.matchers.phrase",
+    "edsnlp.pipelines.core.sentences.sentences",
+]
 
 include_dirs = [
     numpy.get_include(),

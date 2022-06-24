@@ -8,7 +8,8 @@ from . import SentenceSegmenter
 
 DEFAULT_CONFIG = dict(
     punct_chars=None,
-    use_endlines=True,
+    ignore_excluded=True,
+    use_endlines=None,
 )
 
 
@@ -18,9 +19,12 @@ def create_component(
     nlp: Language,
     name: str,
     punct_chars: Optional[List[str]],
-    use_endlines: bool,
+    use_endlines: Optional[bool],
+    ignore_excluded: bool,
 ):
     return SentenceSegmenter(
+        nlp.vocab,
         punct_chars=punct_chars,
         use_endlines=use_endlines,
+        ignore_excluded=ignore_excluded,
     )

@@ -4,25 +4,6 @@ import numpy as np
 import pandas as pd
 
 
-def _get_label(prediction: bool) -> str:
-    """Returns the label for the prediction `PREDICTED_END_LINE`
-
-    Parameters
-    ----------
-    prediction : bool
-        value of `PREDICTED_END_LINE`
-
-    Returns
-    -------
-    str
-        Label for `PREDICTED_END_LINE`
-    """
-    if prediction:
-        return "end_line"
-    else:
-        return "space"
-
-
 def get_dir_path(file):
     path_file = os.path.dirname(os.path.realpath(file))
     return path_file

@@ -40,7 +40,7 @@ def get_text(
         else:
             tokens = doclike
     else:
-        tokens = [t for t in doclike if not t._.excluded]
+        tokens = [t for t in doclike if t.tag_ != "EXCLUDED"]
 
     if not tokens:
         return ""

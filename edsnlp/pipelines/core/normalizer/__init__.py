@@ -12,5 +12,5 @@ if not Token.has_extension("excluded"):
 
 if not Token.has_extension("excluded_or_space"):
     Token.set_extension(
-        "excluded_or_space", getter=lambda t: t.is_space or t._.excluded
+        "excluded_or_space", getter=lambda t: t.is_space or t.tag_ == "EXCLUDED"
     )

@@ -11,9 +11,9 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.preprocessing import OneHotEncoder
 from spacy.language import Language
 from spacy.strings import StringStore
-from spacy.tokens import Doc, Span
+from spacy.tokens import Doc
 
-from .functional import _convert_series_to_array, _get_label
+from .functional import _convert_series_to_array
 
 
 class EndLinesModel:
@@ -568,31 +568,6 @@ class EndLinesModel:
         _S = _convert_series_to_array(S)
         S_enc = encoder.transform(_S)
         return S_enc
-
-    def set_spans(self, corpus: Iterable[Doc], df: pd.DataFrame):
-        """
-        Function to set the results of the algorithm (pd.DataFrame)
-        as spans of the spaCy document.
-
-        Parameters
-        ----------
-        corpus : Iterable[Doc]
-            Iterable of spaCy Documents
-        df : pd.DataFrame
-            It should have the columns:
-            ["DOC_ID","original_token_index","PREDICTED_END_LINE"]
-        """
-
-        for doc_id, doc in enumerate(corpus):
-            spans = []
-            for token_i, pred in df.loc[
-                df.DOC_ID == doc_id, ["original_token_index", "PREDICTED_END_LINE"]
-            ].values:
-                s = Span(doc, start=token_i, end=token_i + 1, label=_get_label(pred))
-
-                spans.append(s)
-
-            doc.spans["new_lines"] = spans
 
     @staticmethod
     def _retrieve_lines(dfg: DataFrameGroupBy) -> DataFrameGroupBy:

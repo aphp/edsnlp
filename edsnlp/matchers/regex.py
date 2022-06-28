@@ -26,6 +26,52 @@ def get_normalized_variant(doclike) -> str:
     return variant
 
 
+def spans_generator(match: re.Match) -> Tuple[int, int]:
+    """
+    Iterates over every group, and then yields the full match
+
+    Parameters
+    ----------
+    match : re.Match
+        A match object
+
+    Yields
+    ------
+    Tuple[int, int]
+        A tuple containing the start and end of the group or match
+    """
+    for idx in range(1, len(match.groups()) + 1):
+        yield match.start(idx), match.end(idx)
+    yield match.start(0), match.end(0)
+
+
+def span_from_match(
+    match: re.Match,
+    span_from_group: bool,
+) -> Tuple[int, int]:
+    """
+    Return the span (as a (start, end) tuple) of the first matching group.
+    If `span_from_group=True`, returns the full match instead.
+
+    Parameters
+    ----------
+    match : re.Match
+        The Match object
+    span_from_group : bool
+        Whether to work on groups or on the full match
+
+    Returns
+    -------
+    Tuple[int, int]
+        A tuple containing the start and end of the group or match
+    """
+    if not span_from_group:
+        start_char, end_char = match.start(), match.end()
+    else:
+        start_char, end_char = next(filter(lambda x: x[0] >= 0, spans_generator(match)))
+    return start_char, end_char
+
+
 def create_span(
     doclike: Union[Doc, Span],
     start_char: int,
@@ -38,7 +84,6 @@ def create_span(
     """
     spaCy only allows strict alignment mode for char_span on Spans.
     This method circumvents this.
-
     Parameters
     ----------
     doclike : Union[Doc, Span]
@@ -53,7 +98,6 @@ def create_span(
         The alignment mode.
     ignore_excluded : bool
         Whether to skip excluded tokens.
-
     Returns
     -------
     span:
@@ -141,6 +185,10 @@ class RegexMatcher(object):
         Can be overiden in the `add` method.
     ignore_excluded : bool
         Whether to skip exclusions
+    span_from_group : bool
+        If set to `False`, will create spans basede on the regex's full match.
+        If set to `True`, will use the first matching capturing group as a span
+        (and fall back to using the full match if no capturing group is matching)
     """
 
     def __init__(
@@ -149,6 +197,7 @@ class RegexMatcher(object):
         attr: str = "TEXT",
         ignore_excluded: bool = False,
         flags: Union[re.RegexFlag, int] = 0,  # No additional flags
+        span_from_group: bool = False,
     ):
         self.alignment_mode = alignment_mode
         self.regex = []
@@ -156,6 +205,7 @@ class RegexMatcher(object):
         self.default_attr = attr
 
         self.flags = flags
+        self.span_from_group = span_from_group
 
         self.ignore_excluded = ignore_excluded
 
@@ -294,10 +344,15 @@ class RegexMatcher(object):
                 for match in pattern.finditer(text):
                     logger.trace(f"Matched a regex from {key}: {repr(match.group())}")
 
+                    start_char, end_char = span_from_match(
+                        match=match,
+                        span_from_group=self.span_from_group,
+                    )
+
                     span = create_span(
                         doclike=doclike,
-                        start_char=match.start(),
-                        end_char=match.end(),
+                        start_char=start_char,
+                        end_char=end_char,
                         key=key,
                         attr=attr,
                         alignment_mode=alignment_mode,

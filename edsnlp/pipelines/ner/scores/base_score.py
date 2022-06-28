@@ -42,30 +42,32 @@ class Score(ContextualMatcher):
         score_name: str,
         regex: List[str],
         attr: str,
-        after_extract: Union[str, Dict[str, str]],
+        after_extract: Union[str, Dict[str, str], List[Dict[str, str]]],
         score_normalization: Union[str, Callable[[Union[str, None]], Any]],
         window: int,
         ignore_excluded: bool,
         flags: Union[re.RegexFlag, int],
     ):
-        if type(after_extract) == str:
-            after_extract_pattern = dict(
-                value=after_extract,
-            )
+        if isinstance(after_extract, str):
+            after_extract = [
+                dict(
+                    name="value",
+                    regex=after_extract,
+                    window=window,
+                )
+            ]
 
-        else:
-            after_extract_pattern = after_extract
+        if isinstance(after_extract, dict):
+            after_extract = [after_extract]
+
+        for i, extract in enumerate(after_extract):
+            extract["window"] = extract.get("window", window)
+            after_extract[i] = extract
 
         patterns = dict(
             source=score_name,
             regex=regex,
-            assign=dict(
-                after=dict(
-                    regex=after_extract_pattern,
-                    window=window,
-                    expand_entity=False,
-                ),
-            ),
+            assign=after_extract,
         )
 
         super().__init__(
@@ -111,7 +113,7 @@ class Score(ContextualMatcher):
             spaCy Doc object, annotated for extracted terms.
         """
 
-        ents = super(Score, Score).process(self, doc)
+        ents = self.process(doc)
         ents = self.score_filtering(ents)
 
         ents, discarded = filter_spans(list(doc.ents) + ents, return_discarded=True)

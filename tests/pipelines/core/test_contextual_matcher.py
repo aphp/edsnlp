@@ -1,11 +1,12 @@
 from edsnlp.pipelines.core.advanced import AdvancedRegex
 from edsnlp.utils.examples import parse_example
+from edsnlp.processing.helpers import rgetattr
 
 example = """
-Un Cancer métastasé de stade IV.
-On a également un mélanome malin.
-Aussi, un autre mélanome plutôt bénin
-Enfin, on remarque un lymphome de stade 3.
+Un <ent label_='Cancer' _.source='Cancer Solide' _.assigned={'metastase': 'metastase'}>Cancer</ent> métastasé de stade IV.
+On a également un <ent label_='Cancer' _.source='Cancer Solide'>mélanome</ent> malin.
+Aussi, un autre mélanome plutôt bénin.
+Enfin, on remarque un <ent label_='Cancer' _.source='Lymphome' _.assigned={'stage': '3'}>lymphome de stade 3</ent>.
 """
 
 
@@ -29,43 +30,33 @@ def test_advanced(blank_nlp):
     stage = "stade (I{1,3}V?|[1234])"
     metastase = "(metasta)"
     cancer = dict(
-        source="Cancer solide",
+        source="Cancer Solide",
         regex=regex,
         terms=terms,
         regex_attr="NORM",
         exclude=dict(
-            after=dict(
-                regex=benine,
-                window=3,
-            )
+            regex=benine,
+            window=3,
         ),
-        assign=dict(
-            after=dict(
-                regex=dict(
-                    stage=stage,
-                    metastase=metastase,
-                )
-            )
-        ),
+        assign=[
+            dict(
+                name="stage",
+                regex=stage,
+                window=(-10, 10),
+                expand_entity=False,
+            ),
+            dict(
+                name="metastase",
+                regex=metastase,
+                window=10,
+                expand_entity=False,
+            ),
+        ],
     )
     lymphome = dict(
         source="Lymphome",
         regex=["lymphom", "lymphangio"],
         regex_attr="NORM",
-        exclude=dict(
-            after=dict(
-                regex=benine,
-                window=3,
-            )
-        ),
-        assign=dict(
-            after=dict(
-                regex=dict(
-                    stage=stage,
-                    metastase=metastase,
-                )
-            )
-        ),
     )
     patterns = [cancer, lymphome]
 
@@ -82,14 +73,13 @@ def test_advanced(blank_nlp):
     doc = blank_nlp(text)
 
     assert len(doc.ents) == 3
-    return
 
     for entity, ent in zip(entities, doc.ents):
 
         for modifier in entity.modifiers:
 
             assert (
-                getattr(ent, modifier.key) == modifier.value
+                rgetattr(ent, modifier.key) == modifier.value
             ), f"{modifier.key} labels don't match."
 
 

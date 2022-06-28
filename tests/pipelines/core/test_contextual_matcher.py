@@ -1,13 +1,13 @@
 from edsnlp.pipelines.core.advanced import AdvancedRegex
-from edsnlp.utils.examples import parse_example
 from edsnlp.processing.helpers import rgetattr
+from edsnlp.utils.examples import parse_example
 
 example = """
 Un <ent label_='Cancer' _.source='Cancer Solide' _.assigned={'metastase': 'metastase'}>Cancer</ent> métastasé de stade IV.
 On a également un <ent label_='Cancer' _.source='Cancer Solide'>mélanome</ent> malin.
 Aussi, un autre mélanome plutôt bénin.
 Enfin, on remarque un <ent label_='Cancer' _.source='Lymphome' _.assigned={'stage': '3'}>lymphome de stade 3</ent>.
-"""
+"""  # noqa: E501
 
 
 def test_advanced(blank_nlp):
@@ -22,9 +22,9 @@ def test_advanced(blank_nlp):
         "tumeur",
     ]
     regex = [
-        "adeno(carcinom|[\s-]?k)",
-        "neoplas",
-        "melanom",
+        r"adeno(carcinom|[\s-]?k)",
+        r"neoplas",
+        r"melanom",
     ]
     benine = "benign|benin"
     stage = "stade (I{1,3}V?|[1234])"

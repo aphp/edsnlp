@@ -1,8 +1,9 @@
+import json
 import re
-from typing import List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import regex
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 
 class Match(BaseModel):
@@ -14,7 +15,14 @@ class Match(BaseModel):
 
 class Modifier(BaseModel):
     key: str
-    value: Union[int, float, bool, str]
+    value: Union[int, float, bool, str, Dict[str, Any]]
+
+    @validator("value")
+    def optional_dict_parsing(cls, v):
+        try:
+            return json.loads(v.replace("'", '"'))
+        except json.JSONDecodeError:
+            return v
 
 
 class Entity(BaseModel):
@@ -27,7 +35,7 @@ entity_pattern = re.compile(r"(<ent[^<>]*>[^<>]+</ent>)")
 text_pattern = re.compile(r"<ent.*>(.+)</ent>")
 modifiers_pattern = re.compile((r"<ent\s?(.*)>.+</ent>"))
 single_modifiers_pattern = regex.compile(
-    (r"(?P<key>[^\s]+?)=((?P<value>[^\s']+)|'(?P<value>.+)')")
+    (r"(?P<key>[^\s]+?)=((?P<value>{.*})|(?P<value>[^\s']+)|'(?P<value>.+)')")
 )
 
 

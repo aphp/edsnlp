@@ -12,7 +12,6 @@ from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
 
 from . import models
-from pydantic import create_model
 
 
 @lru_cache(64)
@@ -206,7 +205,6 @@ class ContextualMatcher(BaseComponent):
         for ent in spans:
             to_keep = True
             for matcher in self.exclude_matchers:
-                source = ent.label_
 
                 window = matcher["window"]
                 snippet = get_window(

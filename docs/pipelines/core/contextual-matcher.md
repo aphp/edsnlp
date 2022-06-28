@@ -235,7 +235,7 @@ The pattern dictionnary is a nested dictionary with the following keys:
 
         - A positive integer, in this case the used context will be taken **after** the extraction
         - A negative integer, in this case the used context will be taken **before** the extraction
-        - A tuple of integers `(start, end)`, in this case the used context will be the snippet from `start` tokens before the extraction to `end` tokens after the extraction 
+        - A tuple of integers `(start, end)`, in this case the used context will be the snippet from `start` tokens before the extraction to `end` tokens after the extraction
 
     === "`regex`"
 
@@ -248,7 +248,7 @@ The pattern dictionnary is a nested dictionary with the following keys:
 
     === "`name`"
 
-        A name (string) 
+        A name (string)
 
     === "`window`"
 
@@ -256,7 +256,7 @@ The pattern dictionnary is a nested dictionary with the following keys:
 
         - A positive integer, in this case the used context will be taken **after** the extraction
         - A negative integer, in this case the used context will be taken **before** the extraction
-        - A tuple of integers `(start, end)`, in this case the used context will be the snippet from `start` tokens before the extraction to `end` tokens after the extraction 
+        - A tuple of integers `(start, end)`, in this case the used context will be the snippet from `start` tokens before the extraction to `end` tokens after the extraction
 
     === "`regex`"
 

@@ -1,7 +1,7 @@
 import re
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
-from pydantic import BaseModel, Extra, root_validator, validator
+from pydantic import BaseModel, Extra, validator
 
 from edsnlp.matchers.utils import ListOrStr
 
@@ -17,7 +17,7 @@ def normalize_window(cls, v):
     if isinstance(v, list):
         assert (
             len(v) == 2
-        ), "The provided `window` should be a tuple/list of two integer, or a single integer"
+        ), "`window` should be a tuple/list of two integer, or a single integer"
         v = tuple(v)
     if isinstance(v, int):
         assert v != 0, "The provided `window` should not be 0"

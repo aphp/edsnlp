@@ -23,6 +23,44 @@ def test_regex(doc):
     assert list(matches)
 
 
+@mark.parametrize(
+    "pattern, txt, span_from_group, result",
+    [
+        (
+            r"match1 (?:group1|(group2))",  # pattern
+            "It is a match1 group1",  # txt
+            True,  # span_from_group
+            "match1 group1",  # result
+        ),
+        (
+            r"match1 (?:group1|(group2))",
+            "It is a match1 group1",
+            False,
+            "match1 group1",
+        ),
+        (
+            r"match1 (?:group1|(group2))",
+            "It is a match1 group2",
+            True,
+            "group2",
+        ),
+        (
+            r"match1 (?:group1|(group2))",
+            "It is a match1 group2",
+            False,
+            "match1 group2",
+        ),
+    ],
+)
+def test_regex_with_groups(blank_nlp, pattern, txt, span_from_group, result):
+
+    doc = blank_nlp(txt)
+    matcher = RegexMatcher(span_from_group=span_from_group)
+    matcher.add("test", [pattern])
+    match = list(matcher(doc, as_spans=True))[0].text
+    assert match == result
+
+
 def test_regex_with_norm(blank_nlp):
     blank_nlp.add_pipe("pollution")
 

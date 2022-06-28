@@ -11,7 +11,7 @@ DEFAULT_CONFIG = dict(
     after_extract=patterns.after_extract,
     score_normalization=patterns.score_normalization_str,
     attr="NORM",
-    window=20,
+    window=10,
     ignore_excluded=False,
     flags=re.S,
 )
@@ -23,7 +23,7 @@ def create_component(
     nlp: Language,
     name: str,
     regex: List[str],
-    after_extract: Dict[str, str],
+    after_extract: List[Dict[str, str]],
     score_normalization: Union[str, Callable[[Union[str, None]], Any]],
     attr: str,
     window: int,

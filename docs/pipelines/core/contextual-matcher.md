@@ -76,19 +76,23 @@ cancer = dict(
     terms=terms,
     regex_attr="NORM",
     exclude=dict(
-        after=dict(
-            regex=benine,
-            window=3,
-        )
+        regex=benine,
+        window=3,
     ),
-    assign=dict(
-        after=dict(
-            regex=dict(
-                stage=stage,
-                metastase=metastase,
-            )
-        )
-    )
+    assign=[
+        dict(
+            name="stage",
+            regex=stage,
+            window=(-10,10),
+            expand_entity=False,
+        ),
+        dict(
+            name="metastase",
+            regex=metastase,
+            window=10,
+            expand_entity=True,
+        ),
+    ]
 )
 ```
 
@@ -100,21 +104,12 @@ lymphome = dict(
     regex=["lymphom","lymphangio"],
     regex_attr="NORM",
     exclude=dict(
-        after=dict(
-            regex=benine,
-            window=3,
-        )
+        regex=["hodgkin"], # (1)
+        window=3,
     ),
-    assign=dict(
-        after=dict(
-            regex=dict(
-                stage=stage,
-                metastase=metastase,
-            )
-        )
-    )
 )
 ```
+1. We are excluding "Lymphome de Hodgkin" here
 
 In this case, the configuration can be concatenated in a list:
 
@@ -231,70 +226,46 @@ The pattern dictionnary is a nested dictionary with the following keys:
 
 === "`exclude`"
 
-    A dictionary to define exclusion rules. Exclusion rules are given as Regexes, and if a
-    match is found in the surrounding context of an extraction, the extraction is removed.
+    A dictionary (or list of dictionaries) to define exclusion rules. Exclusion rules are given as Regexes, and if a
+    match is found in the surrounding context of an extraction, the extraction is removed. Each dictionnary should have the following keys:
 
-    === "`before`"
+    === "`window`"
 
-        A dictionnary to define exclusion rules in the context **after** the extraction
+        Size of the context to use (in number of words). You can provide the window as:
 
-        === "`window`"
+        - A positive integer, in this case the used context will be taken **after** the extraction
+        - A negative integer, in this case the used context will be taken **before** the extraction
+        - A tuple of integers `(start, end)`, in this case the used context will be the snippet from `start` tokens before the extraction to `end` tokens after the extraction 
 
-            Size of the context to use (in number of words)
+    === "`regex`"
 
-        === "`regex`"
-
-            A single Regex or a list of Regexes.
-
-    === "`after`"
-
-        A dictionnary to define exclusion rules in the context **before** the extraction
-
-        === "`window`"
-
-            Size of the context to use (in number of words)
-
-        === "`regex`"
-
-            A single Regex or a list of Regexes.
+        A single Regex or a list of Regexes.
 
 === "`assign`"
 
     A dictionary to refine the extraction. Similarily to the `exclude` key, you can provide a dictionary to
     use on the context **before** and **after** the extraction.
 
-    === "`before`"
+    === "`name`"
 
-        A dictionnary to extract additional informations in the context **before** the extraction
+        A name (string) 
 
-        === "`window`"
+    === "`window`"
 
-            Size of the context to use (in number of words)
+        Size of the context to use (in number of words). You can provide the window as:
 
-        === "`regex`"
+        - A positive integer, in this case the used context will be taken **after** the extraction
+        - A negative integer, in this case the used context will be taken **before** the extraction
+        - A tuple of integers `(start, end)`, in this case the used context will be the snippet from `start` tokens before the extraction to `end` tokens after the extraction 
 
-            A dictionary where keys are labels and values are **Regexes with a single capturing group**
+    === "`regex`"
 
-        === "`expand_entity`"
+        A dictionary where keys are labels and values are **Regexes with a single capturing group**
 
-            If set to `True`, the initial entity's span will be expanded to the furthest match from the `regex` dictionary
+    === "`expand_entity`"
 
+        If set to `True`, the initial entity's span will be expanded to the furthest match from the `regex` dictionary
 
-    === "`after`"
-
-        A dictionnary to extract additional informations in the context **after** the extraction
-
-        === "`window`"
-
-            Size of the context to use (in number of words)
-
-        === "`regex`"
-
-            A dictionary where keys are labels and values are **Regexes with a single capturing group**
-
-        === "`expand_entity`"
-
-            If set to `True`, the initial entity's span will be expanded to the furthest match from the `regex` dictionary
 
 ### A full pattern dictionary example
 
@@ -306,34 +277,42 @@ dict(
     ],
     terms="avc",
     regex_attr="NORM",
-    exclude=dict(
-        after=dict(
+    exclude=[
+        dict(
             regex=["service"],
             window=3,
         ),
-        before=dict(
+        dict(
             regex=[" a "],
-            window=2,
+            window=-2,
         ),
-    ),
-    assign=dict(
-        after=dict(
-            regex=dict(
-                neo=r"(neonatal)",
-                hemo=r"(hemorragique)",
-                trans=r"(transitoire)"
-            ),
-            window=3,
+    ],
+    assign=[
+        dict(
+            name="neo",
+            regex=r"(neonatal)",
             expand_entity=True,
-        ),
-        before=dict(
-            regex=dict(
-                risk=r"(risque)",
-            ),
             window=3,
-            expand_entity=False,
         ),
-    ),
+        dict(
+            name="trans",
+            regex="(transitoire)",
+            expand_entity=True,
+            window=3,
+        ),
+        dict(
+            name="hemo",
+            regex=r"(hemorragique)",
+            expand_entity=True,
+            window=3,
+        ),
+        dict(
+            name="risk",
+            regex=r"(risque)",
+            expand_entity=False,
+            window=-3,
+        ),
+    ]
 )
 ```
 

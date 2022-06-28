@@ -43,7 +43,7 @@ class Sofa(Score):
         score_name: str,
         regex: List[str],
         attr: str,
-        after_extract: Dict[str, str],
+        after_extract: List[Dict[str, str]],
         score_normalization: Union[str, Callable[[Union[str, None]], Any]],
         window: int,
         flags: Union[re.RegexFlag, int],

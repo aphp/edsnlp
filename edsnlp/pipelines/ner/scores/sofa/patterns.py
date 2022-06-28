@@ -7,12 +7,24 @@ regex = [r"\bsofa\b"]
 
 digits = r"[^\d]*(\d*)"
 
-after_extract = dict(
-    method_max=r"sofa.*?(?:max{digits})".format(digits=digits),
-    method_24h=r"sofa.*?(?:24h{digits})".format(digits=digits),
-    method_adm=r"sofa.*?(?:admission{digits})".format(digits=digits),
-    no_method=r"sofa.*?{digits}".format(digits=digits),
-)
+after_extract = [
+    dict(
+        name="method_max",
+        regex=r"sofa.*?(?:max{digits})".format(digits=digits),
+    ),
+    dict(
+        name="method_24h",
+        regex=r"sofa.*?(?:24h{digits})".format(digits=digits),
+    ),
+    dict(
+        name="method_adm",
+        regex=r"sofa.*?(?:admission{digits})".format(digits=digits),
+    ),
+    dict(
+        name="no_method",
+        regex=r"sofa.*?{digits}".format(digits=digits),
+    ),
+]
 
 score_normalization_str = "score_normalization.sofa"
 

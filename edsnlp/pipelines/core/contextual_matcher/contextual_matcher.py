@@ -1,6 +1,6 @@
 import re
 from functools import lru_cache
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span
@@ -12,23 +12,20 @@ from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
 
 from . import models
+from pydantic import create_model
 
 
 @lru_cache(64)
 def get_window(
     doclike: Union[Doc, Span],
-    window: int,
-    side: str,
+    window: Tuple[int, int],
 ):
-    if side == "before":
-        snippet = doclike.doc[
-            max(doclike.start - window, doclike.sent.start) : doclike.end
-        ]
-    elif side == "after":
-        snippet = doclike.doc[
-            doclike.start : min(doclike.end + window, doclike.sent.end)
-        ]
-    return snippet
+
+    return doclike.doc[
+        max(doclike.start + window[0], doclike.sent.start) : min(
+            doclike.end + window[1], doclike.sent.end
+        )
+    ]
 
 
 class ContextualMatcher(BaseComponent):
@@ -111,56 +108,51 @@ class ContextualMatcher(BaseComponent):
             }
         )
 
-        self.sides = ["before", "after"]
+        self.exclude_matchers = []
+        self.assign_matchers = []
 
-        self.exclude_matchers = {side: dict() for side in self.sides}
-        self.assign_matchers = {side: dict() for side in self.sides}
+        for source, p in self.patterns.items():
 
-        for side in self.sides:
-            for source, p in self.patterns.items():
+            p = p.dict()
 
-                p = p.dict()
+            for exclude in p["exclude"]:
 
-                exclude_matcher = None
-
-                if p["exclude"][side]["regex"]:
-                    exclude_matcher = RegexMatcher(
-                        attr=p["regex_attr"] or self.attr,
-                        flags=p["regex_flags"] or self.regex_flags,
-                        ignore_excluded=ignore_excluded,
-                        alignment_mode="expand",
-                    )
-                    exclude_matcher.build_patterns(
-                        regex=dict(
-                            exclude=p["exclude"][side]["regex"],
-                        )
-                    )
-
-                self.exclude_matchers[side][source] = dict(
-                    matcher=exclude_matcher,
-                    window=p["exclude"][side]["window"],
+                exclude_matcher = RegexMatcher(
+                    attr=p["regex_attr"] or self.attr,
+                    flags=p["regex_flags"] or self.regex_flags,
+                    ignore_excluded=ignore_excluded,
+                    alignment_mode="expand",
                 )
 
-                assign_matcher = None
+                exclude_matcher.build_patterns(regex={"exclude": exclude["regex"]})
 
-                if p["assign"][side]["regex"]:
-
-                    assign_matcher = RegexMatcher(
-                        attr=p["regex_attr"] or self.attr,
-                        flags=p["regex_flags"] or self.regex_flags,
-                        ignore_excluded=ignore_excluded,
-                        alignment_mode=alignment_mode,
-                        span_from_group=True,
+                self.exclude_matchers.append(
+                    dict(
+                        matcher=exclude_matcher,
+                        window=exclude["window"],
                     )
+                )
 
-                    assign_matcher.build_patterns(
-                        regex=p["assign"][side]["regex"],
+            for assign in p["assign"]:
+
+                assign_matcher = RegexMatcher(
+                    attr=p["regex_attr"] or self.attr,
+                    flags=p["regex_flags"] or self.regex_flags,
+                    ignore_excluded=ignore_excluded,
+                    alignment_mode=alignment_mode,
+                    span_from_group=True,
+                )
+
+                assign_matcher.build_patterns(
+                    regex={assign["name"]: assign["regex"]},
+                )
+
+                self.assign_matchers.append(
+                    dict(
+                        matcher=assign_matcher,
+                        window=assign["window"],
+                        expand_entity=assign["expand_entity"],
                     )
-
-                self.assign_matchers[side][source] = dict(
-                    matcher=assign_matcher,
-                    window=p["assign"][side]["window"],
-                    expand_entity=p["assign"][side]["expand_entity"],
                 )
 
         self.set_extensions()
@@ -213,26 +205,18 @@ class ContextualMatcher(BaseComponent):
 
         for ent in spans:
             to_keep = True
-            for side in self.sides:
+            for matcher in self.exclude_matchers:
                 source = ent.label_
 
-                if (
-                    self.exclude_matchers[side][source]["matcher"] is None
-                ):  # Nothing to match
-                    continue
-
-                window = self.exclude_matchers[side][source]["window"]
+                window = matcher["window"]
                 snippet = get_window(
                     doclike=ent,
                     window=window,
-                    side=side,
                 )
 
                 if (
                     next(
-                        self.exclude_matchers[side][source]["matcher"](
-                            snippet, as_spans=True
-                        ),
+                        matcher["matcher"](snippet, as_spans=True),
                         None,
                     )
                     is not None
@@ -269,28 +253,20 @@ class ContextualMatcher(BaseComponent):
 
         for ent in spans:
             source = ent.label_
-            for side in self.sides:
-                if (
-                    self.assign_matchers[side][source]["matcher"] is None
-                ):  # Nothing to match
-                    continue
+
+            for matcher in self.assign_matchers:
+
                 attr = (
-                    self.patterns[source].regex_attr
-                    or self.assign_matchers[side][source]["matcher"].default_attr
+                    self.patterns[source].regex_attr or matcher["matcher"].default_attr
                 )
-                window = self.assign_matchers[side][source]["window"]
-                expand_entity = self.assign_matchers[side][source]["expand_entity"]
+                window = matcher["window"]
+                expand_entity = matcher["expand_entity"]
 
                 snippet = get_window(
                     doclike=ent,
                     window=window,
-                    side=side,
                 )
-                assigned_list = list(
-                    self.assign_matchers[side][source]["matcher"](
-                        snippet, as_spans=True
-                    )
-                )
+                assigned_list = list(matcher["matcher"](snippet, as_spans=True))
 
                 if not assigned_list:
 

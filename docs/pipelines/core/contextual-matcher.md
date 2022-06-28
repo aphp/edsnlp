@@ -280,9 +280,9 @@ The pattern dictionnary is a nested dictionary with the following keys:
             If set to `True`, the initial entity's span will be expanded to the furthest match from the `regex` dictionary
 
 
-    === "`before`"
+    === "`after`"
 
-        A dictionnary to extract additional informations in the context **before** the extraction
+        A dictionnary to extract additional informations in the context **after** the extraction
 
         === "`window`"
 

@@ -1,8 +1,7 @@
 import re
 from functools import lru_cache
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Union
 
-from loguru import logger
 from spacy.language import Language
 from spacy.tokens import Doc, Span
 
@@ -30,88 +29,6 @@ def get_window(
             doclike.start : min(doclike.end + window, doclike.sent.end)
         ]
     return snippet
-
-
-class GroupRegexMatcher(RegexMatcher):
-    def __init__(
-        self,
-        alignment_mode: str,
-        attr: str,
-        flags: models.Flags,
-        ignore_excluded: bool,
-    ):
-        """
-        Simple RegExp matcher that extract a capturing group instead of a full match.
-
-        Parameters
-        ----------
-        alignment_mode : str
-            How spans should be aligned with tokens.
-            Possible values are `strict` (character indices must be aligned
-            with token boundaries), "contract" (span of all tokens completely
-            within the character span), "expand" (span of all tokens at least
-            partially covered by the character span).
-            Defaults to `expand`.
-        attr : str
-            Default attribute to match on, by default "TEXT".
-            Can be overiden in the `add` method.
-        flags : Union[re.RegexFlag, int]
-            Additional flags provided to the `re` module.
-            Can be overiden in the `add` method.
-        ignore_excluded : bool
-            Whether to skip exclusions
-        """
-        super().__init__(
-            alignment_mode=alignment_mode,
-            attr=attr,
-            ignore_excluded=ignore_excluded,
-            flags=flags,
-        )
-
-    def match(
-        self,
-        doclike: Union[Doc, Span],
-    ) -> Tuple[Span, re.Match]:
-        """
-        Iterates on the matches.
-
-        Parameters
-        ----------
-        doclike:
-            spaCy Doc or Span object to match on.
-
-        Yields
-        -------
-        span:
-            A match.
-        """
-
-        for key, patterns, attr, ignore_excluded, alignment_mode in self.regex:
-            text = get_text(doclike, attr, ignore_excluded)
-
-            for pattern in patterns:
-                match = pattern.search(text)
-
-                if match is None:
-                    continue
-
-                logger.trace(f"Matched a regex from {key}: {repr(match.group())}")
-                span_char = match.span(1)
-
-                if span_char[0] < 0:  # Group didn't match
-                    continue
-
-                span = create_span(
-                    doclike=doclike,
-                    start_char=span_char[0],
-                    end_char=span_char[1],
-                    key=key,
-                    attr=attr,
-                    alignment_mode=alignment_mode,
-                    ignore_excluded=ignore_excluded,
-                )
-
-                yield span
 
 
 class ContextualMatcher(BaseComponent):
@@ -228,11 +145,12 @@ class ContextualMatcher(BaseComponent):
 
                 if p["assign"][side]["regex"]:
 
-                    assign_matcher = GroupRegexMatcher(
+                    assign_matcher = RegexMatcher(
                         attr=p["regex_attr"] or self.attr,
                         flags=p["regex_flags"] or self.regex_flags,
                         ignore_excluded=ignore_excluded,
                         alignment_mode=alignment_mode,
+                        span_from_group=True,
                     )
 
                     assign_matcher.build_patterns(
@@ -312,7 +230,9 @@ class ContextualMatcher(BaseComponent):
 
                 if (
                     next(
-                        self.exclude_matchers[side][source]["matcher"].match(snippet),
+                        self.exclude_matchers[side][source]["matcher"](
+                            snippet, as_spans=True
+                        ),
                         None,
                     )
                     is not None
@@ -367,7 +287,9 @@ class ContextualMatcher(BaseComponent):
                     side=side,
                 )
                 assigned_list = list(
-                    self.assign_matchers[side][source]["matcher"].match(snippet)
+                    self.assign_matchers[side][source]["matcher"](
+                        snippet, as_spans=True
+                    )
                 )
 
                 if not assigned_list:
@@ -431,9 +353,9 @@ class ContextualMatcher(BaseComponent):
             spaCy Doc object, annotated for extracted terms.
         """
 
-        ents = self.process(doc)
+        ents = list(self.process(doc))
 
-        doc.spans[self.name] = list(ents)
+        doc.spans[self.name] = ents
 
         ents, discarded = filter_spans(list(doc.ents) + ents, return_discarded=True)
 

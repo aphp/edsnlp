@@ -228,7 +228,7 @@ class ContextualMatcher(BaseComponent):
     def assign(self, spans: List[Span]) -> List[Span]:
         """
         Get additional information in the context
-        of each entity. This funciton will populate two custom attributes:
+        of each entity. This function will populate two custom attributes:
 
         - `ent._.source`
         - `ent._.assigned`, a dictionary with all retrieved informations

@@ -101,10 +101,10 @@ Here the configuration consists of a single dictionary. We might want to also in
 ```python
 lymphome = dict(
     source="Lymphome",
-    regex=["lymphom","lymphangio"],
+    regex=["lymphom", "lymphangio"],
     regex_attr="NORM",
     exclude=dict(
-        regex=["hodgkin"], # (1)
+        regex=["hodgkin"],  # (1)
         window=3,
     ),
 )

@@ -98,7 +98,7 @@ cancer = dict(
 
 Here the configuration consists of a single dictionary. We might want to also include lymphoma in the matcher:
 
-```python3
+```python
 lymphome = dict(
     source="Lymphome",
     regex=["lymphom","lymphangio"],
@@ -109,6 +109,7 @@ lymphome = dict(
     ),
 )
 ```
+
 1. We are excluding "Lymphome de Hodgkin" here
 
 In this case, the configuration can be concatenated in a list:

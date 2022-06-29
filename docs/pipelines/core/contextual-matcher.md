@@ -131,9 +131,9 @@ nlp.add_pipe("normalizer")
 
 nlp.add_pipe(
     "eds.contextual-matcher",
+    name="Cancer",
     config=dict(
         patterns=patterns,
-        name="Cancer",
     ),
 )
 ```

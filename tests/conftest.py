@@ -35,21 +35,6 @@ def nlp(lang):
         ),
     )
 
-    model.add_pipe(
-        "eds.advanced-regex",
-        config=dict(
-            regex_config=dict(
-                fracture=dict(
-                    regex=[r"fracture", r"felure"],
-                    attr="NORM",
-                    ignore_excluded=True,
-                    before_exclude="petite|faible",
-                    after_exclude="legere|de fatigue",
-                )
-            )
-        ),
-    )
-
     model.add_pipe("eds.hypothesis")
     model.add_pipe("eds.negation")
     model.add_pipe("eds.family")

@@ -1,7 +1,7 @@
 
 # Contextual Matcher
 
-During feature extraction, it may be necessary to search for additional patterns in their neighborhood, namely: 
+During feature extraction, it may be necessary to search for additional patterns in their neighborhood, namely:
 
 - patterns to discard irrelevant entities
 - patterns to enrich these entities and store some information

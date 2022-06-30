@@ -1,23 +1,15 @@
+
 # Contextual Matcher
 
-Sometimes, once you've extracted some entities, you need to extract information in its surrounding.
-Most of the time, you are looking for:
+During feature extraction, it may be necessary to search for additional patterns in their neighborhood, namely: 
 
-- Information that could be used to **discard the entity**
-- Additional information to enrich **the entity**
+- patterns to discard irrelevant entities
+- patterns to enrich these entities and store some information
 
-For instance, you may want to
+For example, to extract mentions of non-benign cancers, we need to discard all extractions that mention "benin" in their immediate neighborhood.
+Although such a filtering is feasible using a regular expression, it essentially requires modifying each of the regular expressions.
 
-- Extract a bunch of diseases, but only if they're symptomatic. In this case, you want to discard every extraction that mentions
-"asymptomatic" in its immediate vicinity. While such a filtering is doable using Regular Expression, it basically imposes to modify each RegEx at once.
-
-This pipeline allows for a much easier filtering step.
-
-- Extract the stage of a cancer: To do so you need to
-    1. Find mentions of cancer
-    2. Find mention of a *stage* and extract its value
-
-  We will see how we can easily do this with the ContextualMatcher.
+The ContextualMatcher allows to perform this extraction in a clear and concise way.
 
 ## The configuration file
 
@@ -42,15 +34,15 @@ regex = [
 ]
 ```
 
-Maybe we want to exclude mentions of benine cancers:
+Maybe we want to exclude mentions of benign cancers:
 
 ```python3
-benine = "benign|benin"
+benign = "benign|benin"
 ```
 
 ### b. Find mention of a *stage* and extract its value
 
-For this we will forge a RegEx with one capturing group (basically a pattern enclosed in parenthesis):
+For this we will forge a RegEx with one capturing group (basically a pattern enclosed in parentheses):
 
 ```python3
 stage = "stade (I{1,3}V?|[1234])"
@@ -76,7 +68,7 @@ cancer = dict(
     terms=terms,
     regex_attr="NORM",
     exclude=dict(
-        regex=benine,
+        regex=benign,
         window=3,
     ),
     assign=[
@@ -138,7 +130,7 @@ nlp.add_pipe(
 )
 ```
 
-This snippet is complete, and should run as is. Let us see what we can get from this pipeline with a few examples
+Let us see what we can get from this pipeline with a few examples
 
 
 === "Simple match"
@@ -162,7 +154,7 @@ This snippet is complete, and should run as is. Let us see what we can get from 
 
 === "Exclusion rule"
 
-    Let us check that when a *benine* mention is present, the extraction is excluded:
+    Let us check that when a *benign* mention is present, the extraction is excluded:
 
     <!-- no-check -->
 
@@ -195,19 +187,19 @@ The pipeline can be configured using the following parameters :
 
 | Parameter         | Explanation                                                                                                              | Default              |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------ | -------------------- |
-| `patterns`        | Dictionary or List of dictionaries. See below                                                                            |
-| `assign_as_span`  | Wether to store eventual extractions defined via the `assign` key as Spans or as string                                  | False                |
+| `patterns`        | Dictionary or List of dictionaries. See below                                                                            |                      |
+| `assign_as_span`  | Whether to store eventual extractions defined via the `assign` key as Spans or as string                                 | False                |
 | `attr`            | spaCy attribute to match on (eg `NORM`, `LOWER`)                                                                         | `"TEXT"`             |
 | `ignore_excluded` | Whether to skip excluded tokens during matching                                                                          | `False`              |
 | `regex_flags`     | RegExp flags to use when matching, filtering and assigning (See [here](https://docs.python.org/3/library/re.html#flags)) | 0 (use default flag) |
 
 However, most of the configuration is provided in the `patterns` key, as a **pattern dictionary** or a **list of pattern dictionaries**
 
-## The pattern dictionnary
+## The pattern dictionary
 
 ### Description
 
-The pattern dictionnary is a nested dictionary with the following keys:
+A patterr is a nested dictionary with the following keys:
 
 === "`source`"
 
@@ -228,7 +220,7 @@ The pattern dictionnary is a nested dictionary with the following keys:
 === "`exclude`"
 
     A dictionary (or list of dictionaries) to define exclusion rules. Exclusion rules are given as Regexes, and if a
-    match is found in the surrounding context of an extraction, the extraction is removed. Each dictionnary should have the following keys:
+    match is found in the surrounding context of an extraction, the extraction is removed. Each dictionary should have the following keys:
 
     === "`window`"
 

@@ -9,7 +9,7 @@ Enfin, on remarque un <ent label_='Cancer' _.source='Lymphome' _.assigned={'stag
 """  # noqa: E501
 
 
-def test_advanced(blank_nlp):
+def test_contextual(blank_nlp):
 
     blank_nlp.add_pipe(
         "normalizer",

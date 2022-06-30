@@ -6,7 +6,7 @@ from spacy.language import Language
 from spacy.tokens import Doc, Span
 
 from edsnlp.matchers.phrase import EDSPhraseMatcher
-from edsnlp.matchers.regex import RegexMatcher, create_span
+from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.matchers.utils import get_text
 from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
@@ -248,11 +248,9 @@ class ContextualMatcher(BaseComponent):
         Iterator[List[Span]]
             All spans with additional informations
         """
-
         for ent in spans:
             source = ent.label_
-            expandables = []
-            assigned = {}
+            assigned_dict = {}
             for matcher in self.assign_matchers:
 
                 attr = (
@@ -274,27 +272,38 @@ class ContextualMatcher(BaseComponent):
                 for assigned in assigned_list:
                     if assigned is None:
                         continue
-                    assigned[assigned.label_] = get_text(
-                        assigned,
-                        attr=attr,
-                        ignore_excluded=self.ignore_excluded,
-                    )
-                    if expand_entity:
-                        expandables.append(assigned)
+                    assigned_dict[assigned.label_] = {
+                        "span": assigned,
+                        assigned.label_: get_text(
+                            assigned,
+                            attr=attr,
+                            ignore_excluded=self.ignore_excluded,
+                        ),
+                        "expand_entity": expand_entity,
+                    }
+
+            expandables = [
+                a["span"]
+                for a in assigned_dict.values()
+                if a.get("expand_entity", False)
+            ]
 
             if expandables:
 
-                min_start = min([a.start for a in expandables] + [ent.start])
-                max_end = max([a.end for a in expandables] + [ent.end])
                 ent = Span(
                     ent.doc,
                     ent.start,
                     ent.end,
                     ent.label_,
                 )
+
             ent._.source = source
             ent.label_ = self.name
-        ent._.assigned = assigned
+
+            if self.assign_at_span:
+                ent._.assigned = {k: v["span"] for k, v in assigned_dict.items()}
+            else:
+                ent._.assigned = {k: v[k] for k, v in assigned_dict.items()}
 
             yield ent
 

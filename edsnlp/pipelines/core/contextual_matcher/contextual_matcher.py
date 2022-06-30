@@ -251,7 +251,8 @@ class ContextualMatcher(BaseComponent):
 
         for ent in spans:
             source = ent.label_
-
+            expandables = []
+            assigned = {}
             for matcher in self.assign_matchers:
 
                 attr = (
@@ -273,20 +274,13 @@ class ContextualMatcher(BaseComponent):
                 for assigned in assigned_list:
                     if assigned is None:
                         continue
-                    ent._.assigned[assigned.label_] = {
-                        "span": assigned,
-                        assigned.label_: get_text(
-                            assigned,
-                            attr=attr,
-                            ignore_excluded=self.ignore_excluded,
-                        ),
-                        "expand_entity": expand_entity,
-                    }
-
-            assigned = ent._.assigned
-            expandables = [
-                a["span"] for a in assigned.values() if a.get("expand_entity", False)
-            ]
+                    assigned[assigned.label_] = get_text(
+                        assigned,
+                        attr=attr,
+                        ignore_excluded=self.ignore_excluded,
+                    )
+                    if expand_entity:
+                        expandables.append(assigned)
 
             if expandables:
 

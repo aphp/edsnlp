@@ -284,25 +284,17 @@ class ContextualMatcher(BaseComponent):
 
             if expandables:
 
-                min_start = min([a.start_char for a in expandables] + [ent.start_char])
-                max_end = max([a.end_char for a in expandables] + [ent.end_char])
-                ent = create_span(
-                    doclike=ent.doc,
-                    start_char=min_start,
-                    end_char=max_end,
-                    key=ent.label_,
-                    attr=attr,
-                    alignment_mode=self.alignment_mode,
-                    ignore_excluded=self.ignore_excluded,
+                min_start = min([a.start for a in expandables] + [ent.start])
+                max_end = max([a.end for a in expandables] + [ent.end])
+                ent = Span(
+                    ent.doc,
+                    ent.start,
+                    ent.end,
+                    ent.label_,
                 )
-
             ent._.source = source
             ent.label_ = self.name
-
-            if self.assign_at_span:
-                ent._.assigned = {k: v["span"] for k, v in assigned.items()}
-            else:
-                ent._.assigned = {k: v[k] for k, v in assigned.items()}
+        ent._.assigned = assigned
 
             yield ent
 

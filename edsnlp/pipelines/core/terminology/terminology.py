@@ -61,6 +61,7 @@ class TerminologyMatcher(BaseComponent):
                 self.nlp.vocab,
                 attr=attr,
                 ignore_excluded=ignore_excluded,
+                **(algorithm_config or {}),
             )
         elif algorithm == "simstring":
             self.phrase_matcher = SimstringMatcher(
@@ -68,6 +69,11 @@ class TerminologyMatcher(BaseComponent):
                 attr=attr,
                 ignore_excluded=ignore_excluded,
                 **(algorithm_config or {}),
+            )
+        else:
+            raise ValueError(
+                f"Algorithm {repr(algorithm)} does not belong to"
+                f' known algorithms ["exact", "simstring"].'
             )
 
         self.regex_matcher = RegexMatcher(

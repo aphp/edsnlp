@@ -19,8 +19,6 @@ class GenericMatcher(BaseComponent):
     ----------
     nlp : Language
         The spaCy object.
-    label : str
-        Top-level label
     terms : Optional[Patterns]
         A dictionary of terms.
     regex : Optional[Patterns]
@@ -41,7 +39,7 @@ class GenericMatcher(BaseComponent):
         attr: str,
         ignore_excluded: bool,
         algorithm: str = "exact",
-        algorithm_config: Dict[str, Any] = {},
+        algorithm_config: Dict[str, Any] = None,
     ):
 
         self.nlp = nlp
@@ -53,13 +51,19 @@ class GenericMatcher(BaseComponent):
                 self.nlp.vocab,
                 attr=attr,
                 ignore_excluded=ignore_excluded,
+                **(algorithm_config or {}),
             )
-        else:
+        elif algorithm == "simstring":
             self.phrase_matcher = SimstringMatcher(
                 self.nlp.vocab,
                 attr=attr,
                 ignore_excluded=ignore_excluded,
-                **algorithm_config,
+                **(algorithm_config or {}),
+            )
+        else:
+            raise ValueError(
+                f"Algorithm {repr(algorithm)} does not belong to"
+                f' known algorithms ["exact", "simstring"].'
             )
 
         self.regex_matcher = RegexMatcher(

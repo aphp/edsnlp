@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- New `SimstringMatcher` matcher to perform fuzzy term matching, and `algorithm` parameter in terminology components and `eds.matcher` component
+
 ### Changed
 
 - Add consultation date pattern "CS", and False Positive patterns for dates (namely phone numbers and pagination).
@@ -13,8 +17,8 @@
 
 - Now possible to provide regex flags when using the RegexMatcher
 - New `ContextualMatcher` pipe, aiming at replacing the `AdvancedRegex` pipe.
-- New `as_ents` parameter for `eds.dates`, to save detected dates as entities
 
+- New `as_ents` parameter for `eds.dates`, to save detected dates as entities
 ### Changed
 
 - Faster `eds.sentences` pipeline component with Cython

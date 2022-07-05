@@ -13,7 +13,7 @@ import spacy
 
 nlp = spacy.blank("fr")
 nlp.add_pipe("eds.normalizer")
-nlp.add_pipe("eds.drugs")
+nlp.add_pipe("eds.drugs", config=dict(algorithm="exact"))
 
 text = "Traitement habituel: Kardégic, cardensiel (bisoprolol), glucophage, lasilix"
 
@@ -37,10 +37,12 @@ Glucophage is the brand name of a medication that contains metformine, the first
 
 The pipeline can be configured using the following parameters :
 
-| Parameter         | Description                                              | Default  |
-| ----------------- | -------------------------------------------------------- | -------- |
-| `attr`            | spaCy attribute to match on (eg `NORM`, `TEXT`, `LOWER`) | `"NORM"` |
-| `ignore_excluded` | Whether to ignore excluded tokens for matching           | `False`  |
+| Parameter          | Description                                                    | Default   |
+|--------------------|----------------------------------------------------------------|-----------|
+| `algorithm`        | Which algorithm should we use : `exact` or `simstring`         | `"LOWER"` |
+| `algorithm_config` | Config of the algorithm (`SimstringMatcher`'s for `simstring`) | `"LOWER"` |
+| `attr`             | spaCy attribute to match on (eg `NORM`, `TEXT`, `LOWER`)       | `"NORM"`  |
+| `ignore_excluded`  | Whether to ignore excluded tokens for matching                 | `False`   |
 
 ## Authors and citation
 

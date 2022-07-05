@@ -3,8 +3,8 @@ loguru
 numpy>=1.21
 pandas>=1.1
 pendulum
-regex<=2022.3.2  # due to dateparser bug issue 1045
 pydantic>=1.8.2,<1.10.0
+regex<=2022.3.2  # due to dateparser bug issue 1045
 scikit-learn>=1.0.0
 spacy>=3.1<4.0.0
 tqdm

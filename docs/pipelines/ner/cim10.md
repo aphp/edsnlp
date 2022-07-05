@@ -13,7 +13,7 @@ The `eds.cim10` pipeline component matches the CIM10 (French-language ICD) termi
 import spacy
 
 nlp = spacy.blank("fr")
-nlp.add_pipe("eds.cim10")
+nlp.add_pipe("eds.cim10", config=dict(algorithm="simstring"))
 
 text = "Le patient est suivi pour fièvres typhoïde et paratyphoïde."
 
@@ -35,10 +35,12 @@ ent.kb_id_
 
 The pipeline can be configured using the following parameters :
 
-| Parameter         | Description                                              | Default   |
-| ----------------- | -------------------------------------------------------- | --------- |
-| `attr`            | spaCy attribute to match on (eg `NORM`, `TEXT`, `LOWER`) | `"LOWER"` |
-| `ignore_excluded` | Whether to ignore excluded tokens for matching           | `False`   |
+| Parameter          | Description                                                    | Default   |
+|--------------------|----------------------------------------------------------------|-----------|
+| `algorithm`        | Which algorithm should we use : `exact` or `simstring`         | `"LOWER"` |
+| `algorithm_config` | Config of the algorithm (`SimstringMatcher`'s for `simstring`) | `"LOWER"` |
+| `attr`             | spaCy attribute to match on (eg `NORM`, `TEXT`, `LOWER`)       | `"LOWER"` |
+| `ignore_excluded`  | Whether to ignore excluded tokens for matching                 | `False`   |
 
 ## Authors and citation
 

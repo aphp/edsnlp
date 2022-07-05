@@ -10,6 +10,7 @@
 ### Changed
 
 - Faster `eds.sentences` pipeline component with Cython
+- Bump version of PyDantic in `requirements.txt` to 1.8.2 to handle an incompatibility with the ContextualMatcher
 
 ## v0.6.0 (2022-06-17)
 

@@ -79,7 +79,7 @@ Score method can here be "24H", "Maximum", "A l'admission" or "Non précisée"
 
 ## TNM score
 
-The `eds.TNM` pipe allows to extract SOFA scores.
+The `eds.TNM` pipe allows to extract TNM scores.
 
 ```python
 import spacy

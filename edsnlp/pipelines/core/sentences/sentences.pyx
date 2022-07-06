@@ -90,6 +90,8 @@ cdef class SentenceSegmenter(object):
             is_newline = Lexeme.c_check_flag(token.lex, IS_SPACE) and token.lex.orth == self.newline_hash
 
             if seen_period or seen_newline:
+                if seen_period and Lexeme.c_check_flag(token.lex, IS_DIGIT):
+                    continue
                 if is_in_punct_chars or is_newline or Lexeme.c_check_flag(token.lex, IS_PUNCT):
                     continue
                 if seen_period:

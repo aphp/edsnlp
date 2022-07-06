@@ -39,3 +39,14 @@ def test_sentences(nlp, endlines):
     assert len(list(sentencizer(doc).sents)) == 7
 
     segmenter(nlp_blank(""))
+
+
+def test_false_positives(blank_nlp):
+
+    false_positives = [
+        "02.04.2018",
+    ]
+
+    for fp in false_positives:
+        doc = blank_nlp(fp)
+        assert len(list(doc.sents)) == 1

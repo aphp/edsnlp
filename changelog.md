@@ -12,6 +12,10 @@
 - Faster `eds.sentences` pipeline component with Cython
 - Bump version of PyDantic in `requirements.txt` to 1.8.2 to handle an incompatibility with the ContextualMatcher
 
+### Fixed
+
+- `eds.sentences` behaviour with dot-delimited dates (eg `02.07.2022`, which counted as three sentences)
+
 ## v0.6.0 (2022-06-17)
 
 ### Added

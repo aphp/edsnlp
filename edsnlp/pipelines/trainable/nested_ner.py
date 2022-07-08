@@ -1,12 +1,12 @@
 from collections import defaultdict
 from itertools import islice
-from typing import Callable, Dict, Iterable, List, Mapping, Optional, Tuple
+from typing import Callable, Dict, Iterable, Mapping, Optional, Tuple
 
 import spacy
 from spacy import Language
-from spacy.pipeline.trainable_pipe import TrainablePipe
+from spacy.pipeline import TrainablePipe
 from spacy.tokens import Doc, Span
-from spacy.training.example import Example
+from spacy.training import Example
 from spacy.vocab import Vocab
 from thinc.api import Model, Optimizer
 from thinc.backends import NumpyOps
@@ -19,7 +19,9 @@ from edsnlp.utils.filter import filter_spans
 
 msg = Printer()
 
-glob = {}
+
+NUM_INITIALIZATION_EXAMPLES = 1000
+
 
 nested_ner_default_config = """
 [model]
@@ -165,11 +167,11 @@ class TrainableNer(TrainablePipe):
         vocab: Vocab
             Spacy vocabulary
         model: Model
-            Model to extract these entities
+            The model to extract the spans
         name: str
             Name of the component
         ent_labels: Iterable[str]
-            List of labels to filter entities for in `doc.ents`
+            list of labels to filter entities for in `doc.ents`
         spans_labels: Mapping[str, Iterable[str]]
             Mapping from span group names to list of labels to look for entities
             and assign the predicted entities
@@ -221,14 +223,35 @@ class TrainableNer(TrainablePipe):
         """Add a new label to the pipe."""
         raise Exception("Cannot add a new label to the pipe")
 
-    def predict(self, docs: List[Doc]) -> Ints2d:
-        """Apply the pipeline's model to a batch of docs, without modifying them."""
+    def predict(self, docs: list[Doc]) -> Ints2d:
+        """
+        Apply the pipeline's model to a batch of docs, without modifying them.
+
+        Parameters
+        ----------
+        docs: list[Doc]
+
+        Returns
+        -------
+        Int2d
+            The predicted list of (doc_idx, label_idx, begin, end) tuples as a tensor
+            that contain the spans' prediction for all the batch
+        """
         return self.model.predict((docs, None, True))[1]
 
-    def set_annotations(self, docs: List[Doc], predictions: Ints2d, **kwargs) -> None:
-        """Modify a batch of `Doc` objects, using predicted spans."""
+    def set_annotations(self, docs: list[Doc], predictions: Ints2d, **kwargs) -> None:
+        """
+        Modify a batch of `Doc` objects, using predicted spans.
+
+        Parameters
+        ----------
+        docs: list[Doc]
+            The documents to update
+        predictions:
+            Spans predictions, as returned by the model's predict method
+        """
         docs = list(docs)
-        new_doc_spans: List[List[Span]] = [[] for _ in docs]
+        new_doc_spans: list[list[Span]] = [[] for _ in docs]
         for doc_idx, label_idx, begin, end in np_ops.asarray(predictions):
             label = self.labels[label_idx]
             new_doc_spans[doc_idx].append(Span(docs[doc_idx], begin, end, label))
@@ -253,10 +276,31 @@ class TrainableNer(TrainablePipe):
         sgd: Optional[Optimizer] = None,
         losses: Optional[Dict[str, float]] = None,
     ) -> Dict[str, float]:
-        """Learn from a batch of documents and gold-standard information,
-        updating the pipe's model. Delegates to predict and get_loss."""
+        """
+        Learn from a batch of documents and gold-standard information,
+        updating the pipe's model. Delegates to begin_update and get_loss.
 
-        glob["last_examples"] = examples
+        Unlike standard TrainablePipe components, the discrete ops (best selection
+        of tags) is performed by the model directly (`begin_update` returns the loss
+        and the predictions)
+
+        Parameters
+        ----------
+        examples: Iterable[Example]
+        drop: float = 0.0
+
+        set_annotations: bool
+            Whether to update the document with predicted spans
+        sgd: Optional[Optimizer]
+            Optimizer
+        losses: Optional[Dict[str, float]]
+            Dict of loss, updated in place
+
+        Returns
+        -------
+        Dict[str, float]
+            Updated losses dict
+        """
 
         if losses is None:
             losses = {}
@@ -274,10 +318,12 @@ class TrainableNer(TrainablePipe):
         backprop(gradient)
         if sgd is not None:
             self.model.finish_update(sgd)
-        losses[self.name] += loss
         if set_annotations:
             self.set_annotations(docs, predictions)
-        return losses
+
+        losses[self.name] = loss
+
+        return loss
 
     def get_loss(self, examples: Iterable[Example], loss) -> Tuple[float, float]:
         """Find the loss and gradient of loss for the batch of documents and
@@ -289,12 +335,27 @@ class TrainableNer(TrainablePipe):
         get_examples: Callable[[], Iterable[Example]],
         *,
         nlp: Language = None,
-        labels: Optional[List[str]] = None,
+        labels: Optional[list[str]] = None,
     ):
-        """Initialize the pipe for training, using a representative set
-        of data examples.
         """
-        sub_batch = list(islice(get_examples(), 100))
+        Initialize the pipe for training, using a representative set
+        of data examples.
+
+        1. If no ent_labels are provided, we scrap them from the ents
+           of the set of examples.
+        2. If no span labels are provided, we scrap them from the spans of the set
+           of examples, and filter these labels with the ents_labels.
+
+        Parameters
+        ----------
+        get_examples: Callable[[], Iterable[Example]]
+            Method to sample some examples
+        nlp: spacy.Language
+            Unused spacy model
+        labels
+            Unused list of labels
+        """
+        sub_batch = list(islice(get_examples(), NUM_INITIALIZATION_EXAMPLES))
         if self.ent_labels is None or self.spans_labels is None:
             ent_labels_before = self.ent_labels
             if self.ent_labels is None:
@@ -346,11 +407,21 @@ class TrainableNer(TrainablePipe):
             )
         self.model.attrs["set_n_labels"](len(self.labels))
         self.model.initialize(X=doc_sample, Y=spans_sample)
-        print("LABELS", self.labels)
 
-    def examples_to_truth(self, examples: List[Example]) -> Ints2d:
-        # check that there are actually any candidate instances
-        # in this batch of examples
+    def examples_to_truth(self, examples: list[Example]) -> Ints2d:
+        """
+        Converts the spans of the examples into a list
+        of (doc_idx, label_idx, begin, end) tuple as a tensor,
+        that will be fed to the model with the `begin_update` method.
+
+        Parameters
+        ----------
+        examples: list[Example]
+
+        Returns
+        -------
+        Ints2d
+        """
         label_vocab = {self.vocab.strings[l]: i for i, l in enumerate(self.labels)}
         spans = set()
         for eg_idx, eg in enumerate(examples):

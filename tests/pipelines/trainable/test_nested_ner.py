@@ -1,9 +1,9 @@
 import spacy
 from pytest import fixture
-from spacy.tokens import DocBin, Span
+from spacy.tokens import Span
 from spacy.training import Example
 
-from edsnlp.utils.training import train
+from edsnlp.utils.training import make_spacy_corpus_config, train
 
 
 @fixture
@@ -22,23 +22,17 @@ def gold(blank_nlp):
     return doc
 
 
-def test_nested_ner_training(blank_nlp, gold, tmpdir):
+def test_nested_ner_training(blank_nlp, gold):
     nlp = spacy.blank("eds")
     nlp.add_pipe("nested_ner")
-
-    DocBin(docs=[gold]).to_disk(tmpdir / "train.spacy")
-    DocBin(docs=[gold]).to_disk(tmpdir / "dev.spacy")
 
     train(
         nlp,
         output_path="/tmp/test-train-edsnlp/",
-        config={
-            "paths": {
-                "train": str(tmpdir / "train.spacy"),
-                "dev": str(tmpdir / "dev.spacy"),
-            },
-            "training": {"max_steps": 10, "eval_frequency": 5},
-        },
+        config=dict(
+            **make_spacy_corpus_config(train_data=[gold], dev_data=[gold]),
+            training=dict(max_steps=10, eval_frequency=5),
+        ),
     )
 
     pred = nlp(gold.text)

@@ -1,6 +1,6 @@
 from collections import defaultdict
 from itertools import islice
-from typing import Callable, Dict, Iterable, Mapping, Optional, Tuple
+from typing import Callable, Dict, Iterable, List, Mapping, Optional, Tuple
 
 import spacy
 from spacy import Language
@@ -223,13 +223,13 @@ class TrainableNer(TrainablePipe):
         """Add a new label to the pipe."""
         raise Exception("Cannot add a new label to the pipe")
 
-    def predict(self, docs: list[Doc]) -> Ints2d:
+    def predict(self, docs: List[Doc]) -> Ints2d:
         """
         Apply the pipeline's model to a batch of docs, without modifying them.
 
         Parameters
         ----------
-        docs: list[Doc]
+        docs: List[Doc]
 
         Returns
         -------
@@ -239,19 +239,19 @@ class TrainableNer(TrainablePipe):
         """
         return self.model.predict((docs, None, True))[1]
 
-    def set_annotations(self, docs: list[Doc], predictions: Ints2d, **kwargs) -> None:
+    def set_annotations(self, docs: List[Doc], predictions: Ints2d, **kwargs) -> None:
         """
         Modify a batch of `Doc` objects, using predicted spans.
 
         Parameters
         ----------
-        docs: list[Doc]
+        docs: List[Doc]
             The documents to update
         predictions:
             Spans predictions, as returned by the model's predict method
         """
         docs = list(docs)
-        new_doc_spans: list[list[Span]] = [[] for _ in docs]
+        new_doc_spans: List[List[Span]] = [[] for _ in docs]
         for doc_idx, label_idx, begin, end in np_ops.asarray(predictions):
             label = self.labels[label_idx]
             new_doc_spans[doc_idx].append(Span(docs[doc_idx], begin, end, label))
@@ -335,7 +335,7 @@ class TrainableNer(TrainablePipe):
         get_examples: Callable[[], Iterable[Example]],
         *,
         nlp: Language = None,
-        labels: Optional[list[str]] = None,
+        labels: Optional[List[str]] = None,
     ):
         """
         Initialize the pipe for training, using a representative set
@@ -408,7 +408,7 @@ class TrainableNer(TrainablePipe):
         self.model.attrs["set_n_labels"](len(self.labels))
         self.model.initialize(X=doc_sample, Y=spans_sample)
 
-    def examples_to_truth(self, examples: list[Example]) -> Ints2d:
+    def examples_to_truth(self, examples: List[Example]) -> Ints2d:
         """
         Converts the spans of the examples into a list
         of (doc_idx, label_idx, begin, end) tuple as a tensor,
@@ -416,7 +416,7 @@ class TrainableNer(TrainablePipe):
 
         Parameters
         ----------
-        examples: list[Example]
+        examples: List[Example]
 
         Returns
         -------

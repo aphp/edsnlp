@@ -1,4 +1,5 @@
-from typing import Any, Iterable, List, OrderedDict, Tuple
+from enum import Enum
+from typing import Any, Callable, Iterable, Optional, OrderedDict
 
 import torch
 from spacy import registry
@@ -16,6 +17,12 @@ from thinc.util import (
 )
 
 from edsnlp.models.torch.crf import IMPOSSIBLE, MultiLabelBIOULDecoder
+
+
+class CRFMode(Enum):
+    independent = "independent"
+    joint = "joint"
+    marginal = "marginal"
 
 
 def repeat(t, n, dim, interleave=True):
@@ -37,12 +44,29 @@ def flatten_dim(t, dim, ndim=1):
 
 
 class NestedNERModule(torch.nn.Module):
-    def __init__(self, input_size=None, n_labels=None, mode="joint"):
+    def __init__(
+        self,
+        input_size: Optional[int] = None,
+        n_labels: Optional[int] = None,
+        mode: CRFMode = CRFMode.joint,
+    ):
+        """
+        Nested NER CRF module
+
+        Parameters
+        ----------
+        input_size: int
+            Size of the input embeddings
+        n_labels: int
+            Number of labels predicted by the module
+        mode: CRFMode
+            Loss mode of the CRF
+        """
         super().__init__()
 
         self.mode = mode
 
-        assert mode in ("independent", "joint", "marginal")
+        assert mode in (CRFMode.independent, CRFMode.joint, CRFMode.marginal)
         self.crf = MultiLabelBIOULDecoder(1, learnable_transitions=False)
         self.n_labels = n_labels
         self.input_size = input_size
@@ -52,27 +76,79 @@ class NestedNERModule(torch.nn.Module):
     def load_state_dict(
         self, state_dict: OrderedDict[str, torch.Tensor], strict: bool = True
     ):
+        """
+        Loads the model inplace from a dumped `state_dict` object
+
+        Parameters
+        ----------
+        state_dict: OrderedDict[str, torch.Tensor]
+        strict: bool
+        """
         self.n_labels = state_dict["classifier.weight"].shape[0] // self.crf.num_tags
         self.input_size = state_dict["classifier.weight"].shape[1]
         self.initialize()
         super().load_state_dict(state_dict, strict)
 
     def set_n_labels(self, n_labels):
+        """
+        Sets the number of labels. To instanciate the linear layer, we need to
+        call the `initialize` method.
+
+        Parameters
+        ----------
+        n_labels: int
+            Number of different labels predicted by this module
+        """
         self.n_labels = n_labels
 
     def initialize(self):
+        """
+        Once the number of labels n_labels are known, this method
+        initializes the torch linear layer.
+        """
         num_tags = self.n_labels * self.crf.num_tags
         self.classifier = torch.nn.Linear(self.input_size, num_tags)
 
     def forward(
         self,
-        embeds,
-        mask,
-        spans=None,
-        additional_outputs=None,
-        is_train=False,
-        is_predict=False,
+        embeds: torch.FloatTensor,
+        mask: torch.BoolTensor,
+        spans: Optional[torch.LongTensor] = None,
+        additional_outputs: dict[str, Any] = None,
+        is_train: bool = False,
+        is_predict: bool = False,
     ):
+        """
+        Apply the nested ner module to the document embeddings to:
+        - compute the loss
+        - predict the spans
+        non exclusively.
+        If spans are predicted, they are assigned to the `additional_outputs`
+        dictionary.
+
+        Parameters
+        ----------
+        embeds: torch.FloatTensor
+            Token embeddings to predict the tags from
+        mask: torch.BoolTensor
+            Mask of the sequences
+        spans: Optional[torch.LongTensor]
+            2d tensor of n_spans * (doc_idx, label_idx, begin, end)
+        additional_outputs: dict[str, Any]
+            Additional outputs that should not / cannot be back-propped through
+            (Thinc treats Pytorch models solely as derivable functions, but the CRF
+            that we employ performs the best tag decoding function with Pytorch)
+            This dict will contain the predicted 2d tensor of spans
+        is_train: bool=False
+            Are we training the model (defaults to True)
+        is_predict: bool=False
+            Are we predicting the model (defaults to False)
+
+        Returns
+        -------
+        Optional[torch.FloatTensor]
+            Optional 0d loss (shape = [1]) to train the model
+        """
         n_samples, n_tokens = embeds.shape[:2]
         logits = self.classifier(embeds)
         crf_logits = flatten_dim(
@@ -93,20 +169,20 @@ class NestedNERModule(torch.nn.Module):
                 else tags,
                 dim=0,
             )
-            if self.mode == "independent":
+            if self.mode == CRFMode.independent:
                 loss = self.crf(
                     crf_logits,
                     crf_mask,
                     crf_target,
                 )
-            elif self.mode == "joint":
+            elif self.mode == CRFMode.joint:
                 loss = (
                     -crf_logits.log_softmax(-1)
                     .masked_fill(~crf_target, IMPOSSIBLE)
                     .logsumexp(-1)[crf_mask]
                     .sum()
                 )
-            elif self.mode == "marginal":
+            elif self.mode == CRFMode.marginal:
                 crf_logits = self.crf.marginal(
                     crf_logits,
                     crf_mask,
@@ -129,7 +205,7 @@ class NestedNERModule(torch.nn.Module):
         return loss
 
 
-def convert_ner_crf_inputs(model, X):
+def xp2torch_for_ner_crf(model, X):
     main = xp2torch(X[0], requires_grad=True)
     rest = convert_recursive(is_xp_array, lambda x: xp2torch(x), X[1:])
 
@@ -141,6 +217,13 @@ def convert_ner_crf_inputs(model, X):
 
 
 def list_to_unsorted_padded():
+    """
+    Make an item padder model that does not sort them.
+    We do not sort the items since:
+    1. we don't need that
+    2. it messes up the indices to keep track of the predictions made by the model
+    """
+
     def forward(model, items, is_train=False):
         res = model.ops.pad(items)
 
@@ -161,12 +244,21 @@ def list_to_unsorted_padded():
 
 @registry.layers("eds.nested_ner_model.v1")
 def create_nested_ner_model(
-    tok2vec: Model[List[Doc], List[Floats2d]],
-    mode: str,
+    tok2vec: Model[list[Doc], list[Floats2d]],
+    mode: CRFMode,
     n_labels: int = None,
-) -> Model[Any, Any]:
+) -> Model[
+    # inputs (docs, gold, is_predict)
+    tuple[Iterable[Doc], Optional[Ints2d], Optional[bool]],
+    # outputs (loss + spans)
+    tuple[Floats1d, Ints2d],
+]:
     padded_tok2vec = chain(tok2vec, list_to_unsorted_padded())
-    pt_model = NestedNERModule(n_labels=n_labels, mode=mode)
+    pt_model = NestedNERModule(
+        input_size=None,  # will be set later during initialization
+        n_labels=n_labels,  # will likely be set later during initialization
+        mode=mode,
+    )
     return Model(
         "pytorch",
         nested_ner_forward,
@@ -184,35 +276,43 @@ def create_nested_ner_model(
 
 def nested_ner_forward(
     model: Model,
-    X: Tuple[Iterable[Doc], Ints2d, bool],
+    X: tuple[Iterable[Doc], Ints2d, bool],
     is_train: bool = False,
-):
+) -> tuple[tuple[Floats1d, Ints2d], Callable[[Floats1d], Any]]:
     """
     Run the stacked CRF pytorch model to train / run a nested NER model
 
     Parameters
     ----------
     model: Model
-    X: Tuple[Iterable[Doc], Ints2d, bool]
+    X: tuple[Iterable[Doc], Ints2d, bool]
     is_train: bool
 
     Returns
     -------
-    Tuple[Tuple[Floats1d, Ints2d], Callable[Floats1d, Any]]
+    tuple[tuple[Floats1d, Ints2d], Callable[Floats1d, Any]]
     """
     [docs, spans, is_predict] = X
-    tok2vec = model.get_ref("tok2vec")
+    tok2vec: Model[list[Doc], list[Floats2d]] = model.get_ref("tok2vec")
     embeds, bp_embeds = tok2vec(docs, is_train=is_train)
-    X = [embeds, spans]
 
+    ##################################################
+    # Prepare the torch nested ner crf module inputs #
+    ##################################################
     additional_outputs = {"spans": None}
-    (torch_embeds, *torch_rest), get_d_embeds = convert_ner_crf_inputs(
+    # Convert input from numpy/cupy to torch
+    (torch_embeds, *torch_rest), get_d_embeds = xp2torch_for_ner_crf(
         model, (embeds, spans)
     )
+    # Prepare token mask from docs' lengths
     torch_mask = (
         torch.arange(embeds.shape[1], device=torch_embeds.device)
         < torch.tensor([len(d) for d in docs], device=torch_embeds.device)[:, None]
     )
+
+    #################
+    # Run the model #
+    #################
     loss_torch, torch_backprop = model.shims[0](
         ArgsKwargs(
             (torch_embeds, torch_mask, *torch_rest),
@@ -224,8 +324,13 @@ def nested_ner_forward(
         ),
         is_train,
     )
+
+    ####################################
+    # Postprocess the module's outputs #
+    ####################################
     loss = torch2xp(loss_torch) if loss_torch is not None else None
     additional_outputs = convert_recursive(is_torch_array, torch2xp, additional_outputs)
+    spans = additional_outputs["spans"]
 
     def backprop(d_loss: Floats1d) -> Any:
         d_loss_torch = ArgsKwargs(
@@ -236,10 +341,27 @@ def nested_ner_forward(
         d_docs = bp_embeds(d_embeds)
         return d_docs
 
-    return (loss, additional_outputs["spans"]), backprop
+    return (loss, spans), backprop
 
 
-def instance_init(model: Model, X: List[Doc] = None, Y: Ints2d = None) -> Model:
+def instance_init(model: Model, X: list[Doc] = None, Y: Ints2d = None) -> Model:
+    """
+    Initializes the model by setting the input size of the model layers and the number
+    of predicted labels
+
+    Parameters
+    ----------
+    model: Model
+        Nested NER thinc model
+    X: list[Doc]
+        list of documents on which we apply the tok2vec layer
+    Y: Ints2d
+        Unused gold spans
+
+    Returns
+    -------
+
+    """
     tok2vec = model.get_ref("tok2vec")
     if X is not None:
         tok2vec.initialize(X)
@@ -247,5 +369,6 @@ def instance_init(model: Model, X: List[Doc] = None, Y: Ints2d = None) -> Model:
     pt_model = model.attrs["pt_model"]
     pt_model.input_size = tok2vec.get_dim("nO")
     pt_model.initialize()
+    model.set_dim("nI", pt_model.input_size)
 
     return model

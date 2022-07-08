@@ -114,13 +114,12 @@ class DataFormat(Enum):
     brat = "brat"
     standoff = "brat"
     spacy = "spacy"
-    auto = "auto"
 
 
 def make_spacy_corpus_config(
     train_data: Union[str, list[Doc]],
-    dev_data: Union[int, float, str, list[Doc]],
-    data_format: DataFormat = DataFormat.auto,
+    dev_data: Union[str, list[Doc], int, float],
+    data_format: Optional[DataFormat],
     nlp: Optional[spacy.Language] = None,
     seed: int = 0,
     reader: str = "spacy.Corpus.v1",
@@ -131,12 +130,24 @@ def make_spacy_corpus_config(
 
     Parameters
     ----------
-    nlp: spacy.Language
     train_data: Union[str, list[Doc]]
-    dev_data: Union[int, float, str, list[Doc]]
-    data_format: DataFormat
+        The training data. Can be:
+            - a list of spacy.Doc
+            - a path to a given dataset
+    dev_data: Union[str, list[Doc], int, float]
+        The development data. Can be:
+            - a list of spacy.Doc
+            - a path to a given dataset
+            - the number of documents to take from the training data
+            - the fraction of documents to take from the training data
+    data_format: Optional[DataFormat]
+        Optional data format to determine how we should load the documents from the disk
+    nlp: Optional[spacy.Language]
+        Optional spacy model to load documents from non-spacy formats (like brat)
     seed: int
+        The seed if we need to shuffle the data when splitting the dataset
     reader: str
+        Which spacy reader to use when loading the data
 
     Returns
     -------
@@ -145,7 +156,7 @@ def make_spacy_corpus_config(
     fix_random_seed(seed)
     train_docs = dev_docs = None
 
-    if data_format == DataFormat.auto:
+    if data_format is None:
         if isinstance(train_data, list):
             assert all(isinstance(doc, Doc) for doc in train_data)
             train_docs = train_data
@@ -173,7 +184,7 @@ def make_spacy_corpus_config(
         dev_docs = list(BratConnector(dev_data).brat2docs(nlp))
     elif data_format == DataFormat.spacy:
         pass
-    elif data_format == DataFormat.auto:
+    elif data_format is None:
         if isinstance(dev_data, list):
             assert all(isinstance(doc, Doc) for doc in dev_data)
             dev_docs = dev_data

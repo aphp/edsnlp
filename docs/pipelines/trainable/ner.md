@@ -42,10 +42,9 @@ Let us define the pipeline and train it:
 from pathlib import Path
 
 import spacy
-from spacy.tokens import DocBin
 
 from edsnlp.connectors.brat import BratConnector
-from edsnlp.utils.training import train
+from edsnlp.utils.training import train, make_spacy_corpus_config
 
 tmp_path = Path("/tmp/test-nested-ner")
 
@@ -54,31 +53,20 @@ nlp = spacy.blank("eds")
 # you can configure it using the `add_pipe(..., config=...)` parameter
 nlp.add_pipe("nested_ner")
 
-# We then convert our dataset to spacy format
-DocBin(
-    docs=BratConnector(
-        "/path/to/the/training/set/brat/files",
-    ).brat2docs(nlp)
-).to_disk(tmp_path / "train.spacy")
-DocBin(
-    docs=BratConnector(
-        "/path/to/the/dev/set/brat/files",
-    ).brat2docs(nlp)
-).to_disk(tmp_path / "dev.spacy")
-
-# And train the model, with additional training configuration
+# Train the model, with additional training configuration
 nlp = train(
     nlp,
     output_path=tmp_path / "model",
-    config={
-        "paths": {
-            "train": str(tmp_path / "train.spacy"),
-            "dev": str(tmp_path / "dev.spacy"),
-        },
-        "training": {
-            "max_steps": 4000,
-        },
-    },
+    config=dict(
+        **make_spacy_corpus_config(
+            "/path/to/the/training/set/brat/files",
+            "/path/to/the/dev/set/brat/files",
+            nlp=nlp,
+        ),
+        training=dict(
+            max_steps=4000,
+        ),
+    ),
 )
 
 # Finally, we can run the pipeline on a new document
@@ -126,4 +114,4 @@ The default model `eds.nested_ner_model.v1` can be configured using the followin
 
 The `eds.nested_ner` pipeline was developed by AP-HP's Data Science team.
 
-The deep learning model was adapted from
+The deep learning model was adapted from Wajsbürt[@wajsburt:tel-03624928]

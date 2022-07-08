@@ -1,18 +1,24 @@
 import os
 import sys
+import tempfile
+from enum import Enum
 from itertools import islice
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple
+from random import shuffle
+from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union
 
+import spacy
 from rich_logger import RichTablePrinter
 from spacy.errors import Errors, Warnings
 from spacy.schemas import ConfigSchemaTraining
+from spacy.tokens import Doc, DocBin
 from spacy.training.loop import train as train_loop
 from spacy.util import get_sourced_components, logger, registry, resolve_dot_names
 from thinc.api import ConfigValidationError, fix_random_seed, set_gpu_allocator
 from thinc.config import Config
 from tqdm import tqdm
 
+from edsnlp.connectors import BratConnector
 from edsnlp.utils.merge_configs import merge_configs
 
 if TYPE_CHECKING:
@@ -23,89 +29,215 @@ __all__ = ["Config", "train", "DEFAULT_TRAIN_CONFIG"]
 DEFAULT_TRAIN_CONFIG = Config().from_str(
     """
 [system]
-gpu_allocator = null
-seed = 0
+    gpu_allocator = null
+    seed = 0
 
 [paths]
-train = null
-dev = null
-raw = null
-init_tok2vec = null
-vectors = null
+    train = null
+    dev = null
+    raw = null
+    init_tok2vec = null
+    vectors = null
 
 [corpora]
+    [corpora.train]
+        @readers = "spacy.Corpus.v1"
+        path = ${paths.train}
+        max_length = 0
+        gold_preproc = false
+        limit = 0
+        augmenter = null
 
-[corpora.train]
-@readers = "spacy.Corpus.v1"
-path = ${paths.train}
-max_length = 0
-gold_preproc = false
-limit = 0
-augmenter = null
-
-[corpora.dev]
-@readers = "spacy.Corpus.v1"
-path = ${paths.dev}
-max_length = 0
-gold_preproc = false
-limit = 0
-augmenter = null
+    [corpora.dev]
+        @readers = "spacy.Corpus.v1"
+        path = ${paths.dev}
+        max_length = 0
+        gold_preproc = false
+        limit = 0
+        augmenter = null
 
 [training]
-train_corpus = "corpora.train"
-dev_corpus = "corpora.dev"
-seed = ${system.seed}
-gpu_allocator = ${system.gpu_allocator}
-dropout = 0.1
-accumulate_gradient = 1
-patience = 10000
-max_epochs = 0
-max_steps = 20000
-eval_frequency = 200
-frozen_components = []
-before_to_disk = null
+    train_corpus = "corpora.train"
+    dev_corpus = "corpora.dev"
+    seed = ${system.seed}
+    gpu_allocator = ${system.gpu_allocator}
+    dropout = 0.1
+    accumulate_gradient = 1
+    patience = 10000
+    max_epochs = 0
+    max_steps = 20000
+    eval_frequency = 200
+    frozen_components = []
+    before_to_disk = null
 
-[training.batcher]
-@batchers = "spacy.batch_by_words.v1"
-discard_oversize = false
-tolerance = 0.2
-get_length = null
+    [training.batcher]
+        @batchers = "spacy.batch_by_words.v1"
+        discard_oversize = false
+        tolerance = 0.2
+        get_length = null
 
-[training.batcher.size]
-@schedules = "compounding.v1"
-start = 100
-stop = 1000
-compound = 1.001
-t = 0.0
+    [training.batcher.size]
+        @schedules = "compounding.v1"
+        start = 100
+        stop = 1000
+        compound = 1.001
+        t = 0.0
 
-[training.logger]
-@loggers = "eds.RichLogger.v1"
-progress_bar = false
+    [training.logger]
+        @loggers = "eds.RichLogger.v1"
+        progress_bar = false
 
-[training.optimizer]
-@optimizers = "Adam.v1"
-beta1 = 0.9
-beta2 = 0.999
-L2_is_weight_decay = true
-L2 = 0.01
-grad_clip = 1.0
-use_averages = false
-eps = 0.00000001
-learn_rate = 0.001
+    [training.optimizer]
+        @optimizers = "Adam.v1"
+        beta1 = 0.9
+        beta2 = 0.999
+        L2_is_weight_decay = true
+        L2 = 0.01
+        grad_clip = 1.0
+        use_averages = false
+        eps = 0.00000001
+        learn_rate = 0.001
 
 [initialize]
-vectors = ${paths.vectors}
-init_tok2vec = ${paths.init_tok2vec}
-vocab_data = null
-lookups = null
-before_init = null
-after_init = null
+    vectors = ${paths.vectors}
+    init_tok2vec = ${paths.init_tok2vec}
+    vocab_data = null
+    lookups = null
+    before_init = null
+    after_init = null
 """,
     interpolate=False,
 )
 
 
-def train(nlp, output_path, config, *, use_gpu: int = -1):
+class DataFormat(Enum):
+    brat = "brat"
+    standoff = "brat"
+    spacy = "spacy"
+    auto = "auto"
+
+
+def make_spacy_corpus_config(
+    train_data: Union[str, list[Doc]],
+    dev_data: Union[int, float, str, list[Doc]],
+    data_format: DataFormat = DataFormat.auto,
+    nlp: Optional[spacy.Language] = None,
+    seed: int = 0,
+    reader: str = "spacy.Corpus.v1",
+):
+    """
+    Helper to create a spacy's corpus config from training and dev data by
+    loading the documents accordingly and exporting the documents using spacy's DocBin.
+
+    Parameters
+    ----------
+    nlp: spacy.Language
+    train_data: Union[str, list[Doc]]
+    dev_data: Union[int, float, str, list[Doc]]
+    data_format: DataFormat
+    seed: int
+    reader: str
+
+    Returns
+    -------
+    Config
+    """
+    fix_random_seed(seed)
+    train_docs = dev_docs = None
+
+    if data_format == DataFormat.auto:
+        if isinstance(train_data, list):
+            assert all(isinstance(doc, Doc) for doc in train_data)
+            train_docs = train_data
+        elif isinstance(train_data, (str, Path)) and train_data.endswith(".spacy"):
+            data_format = DataFormat.spacy
+        else:
+            raise Exception()
+    if data_format == DataFormat.brat:
+        train_docs = list(BratConnector(train_data).brat2docs(nlp))
+    elif data_format == DataFormat.spacy:
+        if isinstance(dev_data, (float, int)):
+            train_docs = DocBin().from_disk(train_data)
+    elif train_docs is None:
+        raise Exception()
+
+    if isinstance(dev_data, (float, int)):
+        if isinstance(dev_data, float):
+            n_dev = int(len(train_docs)) * dev_data
+        else:
+            n_dev = dev_data
+        shuffle(train_docs)
+        dev_docs = train_docs[:n_dev]
+        train_docs = train_docs[n_dev:]
+    elif data_format == DataFormat.brat:
+        dev_docs = list(BratConnector(dev_data).brat2docs(nlp))
+    elif data_format == DataFormat.spacy:
+        pass
+    elif data_format == DataFormat.auto:
+        if isinstance(dev_data, list):
+            assert all(isinstance(doc, Doc) for doc in dev_data)
+            dev_docs = dev_data
+        else:
+            raise Exception()
+    else:
+        raise Exception()
+
+    if data_format != "spacy" or isinstance(dev_data, (float, int)):
+        tmp_path = Path(tempfile.mkdtemp())
+        train_path = tmp_path / "train.spacy"
+        dev_path = tmp_path / "dev.spacy"
+
+        DocBin(docs=train_docs).to_disk(train_path)
+        DocBin(docs=dev_docs).to_disk(dev_path)
+    else:
+        train_path = train_data
+        dev_path = dev_data
+
+    return Config().from_str(
+        f"""
+        [corpora]
+
+        [corpora.train]
+            @readers = {reader}
+            path = {train_path}
+            max_length = 0
+            gold_preproc = false
+            limit = 0
+            augmenter = null
+
+        [corpora.dev]
+            @readers = {reader}
+            path = {dev_path}
+            max_length = 0
+            gold_preproc = false
+            limit = 0
+            augmenter = null
+    """
+    )
+
+
+def train(
+    nlp: spacy.Language,
+    output_path: Union[Path, str],
+    config: Union[Config, dict],
+    use_gpu: int = -1,
+):
+    """
+    Training help to learn weight of trainable components in a pipeline.
+    This function has been adapted from
+    https://github.com/explosion/spaCy/blob/397197e/spacy/cli/train.py#L18
+
+    Parameters
+    ----------
+    nlp: spacy.Language
+        Spacy model to train
+    output_path: Union[Path,str]
+        Path to save the model
+    config: Union[Config,dict]
+        Optional config overrides
+    use_gpu: bool
+        Which gpu to use for training (-1 means CPU)
+    """
     if "components" in config:
         raise ValueError(
             "Cannot update components config after the model has been " "instantiated."
@@ -197,10 +329,28 @@ def train(nlp, output_path, config, *, use_gpu: int = -1):
 
 
 @registry.loggers("eds.RichLogger.v1")
-def console_logger(progress_bar: bool = False):
+def console_logger(
+    progress_bar: bool = False,
+) -> Callable[
+    [spacy.Language],
+    tuple[Callable[[Optional[dict[str, Any]]], None], Callable[[], None]],
+]:
+    """
+    A rich based logger that renders nicely in Jupyter notebooks and console
+
+    Parameters
+    ----------
+    progress_bar: bool
+        Whether to show a training progress bar or not
+
+    Returns
+    -------
+    tuple[Callable[[Optional[dict[str, Any]]], None], Callable[[], None]]]
+    """
+
     def setup_printer(
         nlp: "Language", stdout: IO = sys.stdout, stderr: IO = sys.stderr
-    ) -> Tuple[Callable[[Optional[Dict[str, Any]]], None], Callable[[], None]]:
+    ) -> tuple[Callable[[Optional[dict[str, Any]]], None], Callable[[], None]]:
 
         # ensure that only trainable components are logged
         logged_pipes = [
@@ -232,10 +382,10 @@ def console_logger(progress_bar: bool = False):
         fields["duration"] = {"name": "DURATION"}
         table_printer = RichTablePrinter(fields=fields)
 
-        progress = None
+        progress: Optional[tqdm] = None
         last_seconds = 0
 
-        def log_step(info: Optional[Dict[str, Any]]) -> None:
+        def log_step(info: Optional[dict[str, Any]]) -> None:
             nonlocal progress, last_seconds
 
             if info is None:

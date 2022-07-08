@@ -5,7 +5,7 @@ from enum import Enum
 from itertools import islice
 from pathlib import Path
 from random import shuffle
-from typing import IO, TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import IO, TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
 
 import spacy
 from rich_logger import RichTablePrinter
@@ -117,9 +117,9 @@ class DataFormat(Enum):
 
 
 def make_spacy_corpus_config(
-    train_data: Union[str, list[Doc]],
-    dev_data: Union[str, list[Doc], int, float],
-    data_format: Optional[DataFormat],
+    train_data: Union[str, List[Doc]],
+    dev_data: Union[str, List[Doc], int, float],
+    data_format: Optional[DataFormat] = None,
     nlp: Optional[spacy.Language] = None,
     seed: int = 0,
     reader: str = "spacy.Corpus.v1",
@@ -130,11 +130,11 @@ def make_spacy_corpus_config(
 
     Parameters
     ----------
-    train_data: Union[str, list[Doc]]
+    train_data: Union[str, List[Doc]]
         The training data. Can be:
             - a list of spacy.Doc
             - a path to a given dataset
-    dev_data: Union[str, list[Doc], int, float]
+    dev_data: Union[str, List[Doc], int, float]
         The development data. Can be:
             - a list of spacy.Doc
             - a path to a given dataset
@@ -344,7 +344,7 @@ def console_logger(
     progress_bar: bool = False,
 ) -> Callable[
     [spacy.Language],
-    tuple[Callable[[Optional[dict[str, Any]]], None], Callable[[], None]],
+    Tuple[Callable[[Optional[Dict[str, Any]]], None], Callable[[], None]],
 ]:
     """
     A rich based logger that renders nicely in Jupyter notebooks and console
@@ -356,12 +356,12 @@ def console_logger(
 
     Returns
     -------
-    tuple[Callable[[Optional[dict[str, Any]]], None], Callable[[], None]]]
+    Tuple[Callable[[Optional[Dict[str, Any]]], None], Callable[[], None]]]
     """
 
     def setup_printer(
         nlp: "Language", stdout: IO = sys.stdout, stderr: IO = sys.stderr
-    ) -> tuple[Callable[[Optional[dict[str, Any]]], None], Callable[[], None]]:
+    ) -> Tuple[Callable[[Optional[Dict[str, Any]]], None], Callable[[], None]]:
 
         # ensure that only trainable components are logged
         logged_pipes = [
@@ -396,7 +396,7 @@ def console_logger(
         progress: Optional[tqdm] = None
         last_seconds = 0
 
-        def log_step(info: Optional[dict[str, Any]]) -> None:
+        def log_step(info: Optional[Dict[str, Any]]) -> None:
             nonlocal progress, last_seconds
 
             if info is None:

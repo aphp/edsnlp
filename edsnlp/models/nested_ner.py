@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Callable, Iterable, Optional, OrderedDict
+from typing import Any, Callable, Dict, Iterable, List, Optional, OrderedDict, Tuple
 
 import torch
 from spacy import registry
@@ -114,7 +114,7 @@ class NestedNERModule(torch.nn.Module):
         embeds: torch.FloatTensor,
         mask: torch.BoolTensor,
         spans: Optional[torch.LongTensor] = None,
-        additional_outputs: dict[str, Any] = None,
+        additional_outputs: Dict[str, Any] = None,
         is_train: bool = False,
         is_predict: bool = False,
     ):
@@ -134,7 +134,7 @@ class NestedNERModule(torch.nn.Module):
             Mask of the sequences
         spans: Optional[torch.LongTensor]
             2d tensor of n_spans * (doc_idx, label_idx, begin, end)
-        additional_outputs: dict[str, Any]
+        additional_outputs: Dict[str, Any]
             Additional outputs that should not / cannot be back-propped through
             (Thinc treats Pytorch models solely as derivable functions, but the CRF
             that we employ performs the best tag decoding function with Pytorch)
@@ -244,14 +244,14 @@ def list_to_unsorted_padded():
 
 @registry.layers("eds.nested_ner_model.v1")
 def create_nested_ner_model(
-    tok2vec: Model[list[Doc], list[Floats2d]],
+    tok2vec: Model[List[Doc], List[Floats2d]],
     mode: CRFMode,
     n_labels: int = None,
 ) -> Model[
     # inputs (docs, gold, is_predict)
-    tuple[Iterable[Doc], Optional[Ints2d], Optional[bool]],
+    Tuple[Iterable[Doc], Optional[Ints2d], Optional[bool]],
     # outputs (loss + spans)
-    tuple[Floats1d, Ints2d],
+    Tuple[Floats1d, Ints2d],
 ]:
     padded_tok2vec = chain(tok2vec, list_to_unsorted_padded())
     pt_model = NestedNERModule(
@@ -276,24 +276,24 @@ def create_nested_ner_model(
 
 def nested_ner_forward(
     model: Model,
-    X: tuple[Iterable[Doc], Ints2d, bool],
+    X: Tuple[Iterable[Doc], Ints2d, bool],
     is_train: bool = False,
-) -> tuple[tuple[Floats1d, Ints2d], Callable[[Floats1d], Any]]:
+) -> Tuple[Tuple[Floats1d, Ints2d], Callable[[Floats1d], Any]]:
     """
     Run the stacked CRF pytorch model to train / run a nested NER model
 
     Parameters
     ----------
     model: Model
-    X: tuple[Iterable[Doc], Ints2d, bool]
+    X: Tuple[Iterable[Doc], Ints2d, bool]
     is_train: bool
 
     Returns
     -------
-    tuple[tuple[Floats1d, Ints2d], Callable[Floats1d, Any]]
+    Tuple[Tuple[Floats1d, Ints2d], Callable[Floats1d, Any]]
     """
     [docs, spans, is_predict] = X
-    tok2vec: Model[list[Doc], list[Floats2d]] = model.get_ref("tok2vec")
+    tok2vec: Model[List[Doc], List[Floats2d]] = model.get_ref("tok2vec")
     embeds, bp_embeds = tok2vec(docs, is_train=is_train)
 
     ##################################################
@@ -344,7 +344,7 @@ def nested_ner_forward(
     return (loss, spans), backprop
 
 
-def instance_init(model: Model, X: list[Doc] = None, Y: Ints2d = None) -> Model:
+def instance_init(model: Model, X: List[Doc] = None, Y: Ints2d = None) -> Model:
     """
     Initializes the model by setting the input size of the model layers and the number
     of predicted labels
@@ -353,7 +353,7 @@ def instance_init(model: Model, X: list[Doc] = None, Y: Ints2d = None) -> Model:
     ----------
     model: Model
         Nested NER thinc model
-    X: list[Doc]
+    X: List[Doc]
         list of documents on which we apply the tok2vec layer
     Y: Ints2d
         Unused gold spans

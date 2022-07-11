@@ -1,6 +1,6 @@
+import re
 from typing import Any, Callable, List, Union
 
-import re
 from spacy.language import Language
 
 from edsnlp.pipelines.ner.scores import Score

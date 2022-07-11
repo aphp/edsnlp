@@ -70,7 +70,7 @@ examples = [
 
 @fixture(autouse=True)
 def add_date_pipeline(blank_nlp: Language):
-    blank_nlp.add_pipe("eds.dates", config=dict(detect_periods=True))
+    blank_nlp.add_pipe("eds.dates", config=dict(detect_periods=True, as_ents=True))
 
 
 def test_dates_component(blank_nlp: Language):
@@ -82,6 +82,7 @@ def test_dates_component(blank_nlp: Language):
         doc = blank_nlp(text)
 
         assert len(doc.spans["dates"]) == len(entities)
+        assert len(doc.ents) == len(entities)
 
         for span, entity in zip(doc.spans["dates"], entities):
             assert span.text == text[entity.start_char : entity.end_char]

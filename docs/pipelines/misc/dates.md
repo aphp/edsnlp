@@ -74,6 +74,7 @@ The pipeline can be configured using the following parameters :
 | `false_positive` | Some false positive patterns to exclude          | `None` (use pre-defined patterns) |
 | `detect_periods` | Whether to look for dates around entities only   | `False`                           |
 | `on_ents_only`   | Whether to look for dates around entities only   | `False`                           |
+| `as_ents`        | Whether to save detected dates as entities       | `False`                           |
 | `attr`           | spaCy attribute to match on, eg `NORM` or `TEXT` | `"NORM"`                          |
 
 ## Authors and citation

@@ -1,6 +1,6 @@
 from typing import Any, Callable, Dict, List, Union
 
-from black import re
+import re
 from spacy import registry
 from spacy.language import Language
 from spacy.tokens import Doc, Span

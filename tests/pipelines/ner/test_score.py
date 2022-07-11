@@ -1,5 +1,5 @@
 # noqa: F401
-from black import re
+import re
 
 from edsnlp.pipelines.ner.scores import Score
 

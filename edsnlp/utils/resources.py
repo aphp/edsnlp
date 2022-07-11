@@ -25,7 +25,7 @@ def get_verbs(
         DataFrame containing conjugated verbs.
     """
 
-    conjugated_verbs = pd.read_csv(BASE_DIR / "resources" / "verbs.csv")
+    conjugated_verbs = pd.read_csv(BASE_DIR / "resources" / "verbs.csv.gz")
 
     if not verbs:
         return conjugated_verbs

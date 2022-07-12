@@ -72,6 +72,13 @@ The performances of an extraction pipeline may depend on the population and docu
 We welcome contributions ! Fork the project and propose a pull request.
 Take a look at the [dedicated page](https://aphp.github.io/edsnlp/latest/contributing/) for detail.
 
+## Credits
+
+We would like to thank the following funders:
+
+- Assistance Publique – Hôpitaux de Paris
+- AP-HP Foundation
+
 ## Citation
 
 If you use EDS-NLP, please cite us as below.

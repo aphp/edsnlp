@@ -4,8 +4,8 @@ node_pattern = r"N\s?(?P<node>[0-3o]|x)x?"
 metastasis_pattern = r"M\s?(?P<metastasis>[01o]|x)x?"
 
 version_pattern = (
-    r"((?i)\(?(?P<version>uicc|accj|TNM))"
-    r"\s+([ée]ditions|[ée]d\.?)?\s*"
+    r"\(?(?P<version>uicc|accj|tnm|UICC|ACCJ|TNM)"
+    r"\s+([éeE]ditions|[éeE]d\.?)?\s*"
     r"(?P<version_year>\d{4}|\d{2})\)?"
 )
 

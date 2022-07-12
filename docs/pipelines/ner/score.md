@@ -96,10 +96,10 @@ doc.ents
 
 ent = doc.ents[0]
 ent._.value.dict()
-# {'modifier': {'modifier_string': 'p', 'modifier_int': None},
-#  'tumour': {'tumour_string': 'x', 'tumour_int': None},
-#  'node': {'node_string': None, 'node_int': 1},
-#  'metastasis': {'metastasis_string': None, 'metastasis_int': 1},
+# {'modifier': 'p',
+#  'tumour': 'x',
+#  'node': 1,
+#  'metastasis': 1,
 #  'version': None,
 #  'version_year': None}
 ```

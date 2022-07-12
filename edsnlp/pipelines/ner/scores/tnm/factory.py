@@ -6,7 +6,7 @@ from .tnm import TNM
 
 DEFAULT_CONFIG = dict(
     pattern=None,
-    attr="LOWER",
+    attr="TEXT",
 )
 
 

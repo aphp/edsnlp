@@ -93,9 +93,18 @@ text = "TNM: pTx N1 M1"
 doc = nlp(text)
 doc.ents
 # Out: (pTx N1 M1,)
+
+ent = doc.ents[0]
+ent._.value.dict()
+# {'modifier': 'p',
+#  'tumour': 'x',
+#  'node': 1,
+#  'metastasis': 1,
+#  'version': None,
+#  'version_year': None}
 ```
 
-The TNM score was developed with S. Priou and E. Kempf.
+The TNM score was developed with S. Priou, B. Rance and E. Kempf [@kempf:hal-03519085].
 
 ## Implementing your own score
 
@@ -144,3 +153,5 @@ charlson_config = dict(
     score_normalization="score_normalization.charlson",
 )
 ```
+
+\bibliography

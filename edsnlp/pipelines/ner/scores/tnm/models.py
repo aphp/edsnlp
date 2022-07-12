@@ -123,20 +123,7 @@ class TNM(BaseModel):
         set_keys = set(d.keys())
         for k in set_keys.intersection({"modifier", "tumour", "node", "metastasis"}):
             v = d[k]
-            if isinstance(v, int):
-                d[k] = {
-                    f"{k}_string": None,
-                    f"{k}_int": v,
-                }
-            elif isinstance(v, TnmEnum):
-                d[k] = {
-                    f"{k}_string": v.value,
-                    f"{k}_int": None,
-                }
-            else:
-                d[k] = {
-                    f"{k}_string": None,
-                    f"{k}_int": None,
-                }
+            if isinstance(v, TnmEnum):
+                d[k] = v.value
 
         return d

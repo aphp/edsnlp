@@ -95,7 +95,7 @@ doc.ents
 # Out: (pTx N1 M1,)
 ```
 
-The TNM score was developed with S. Priou and E. Kempf.
+The TNM score was developed with S. Priou, B. Rance and E. Kempf [@kempf:hal-03519085].
 
 ## Implementing your own score
 
@@ -144,3 +144,5 @@ charlson_config = dict(
     score_normalization="score_normalization.charlson",
 )
 ```
+
+\bibliography

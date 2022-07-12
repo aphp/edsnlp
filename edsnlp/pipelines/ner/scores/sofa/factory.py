@@ -1,6 +1,6 @@
+import re
 from typing import Any, Callable, Dict, List, Union
 
-from black import re
 from spacy.language import Language
 
 from edsnlp.pipelines.ner.scores.sofa import Sofa, patterns

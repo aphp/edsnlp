@@ -1,6 +1,6 @@
+import re
 from typing import Any, Dict, List, Union
 
-from black import re
 from spacy.language import Language
 
 from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher

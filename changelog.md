@@ -1,16 +1,18 @@
 # Changelog
 
-## Pending Release
+## v0.6.1 (2022-07-11)
 
 ### Added
 
 - Now possible to provide regex flags when using the RegexMatcher
 - New `ContextualMatcher` pipe, aiming at replacing the `AdvancedRegex` pipe.
+- New `as_ents` parameter for `eds.dates`, to save detected dates as entities
 
 ### Changed
 
 - Faster `eds.sentences` pipeline component with Cython
-- Bump version of PyDantic in `requirements.txt` to 1.8.2 to handle an incompatibility with the ContextualMatcher
+- Bump version of Pydantic in `requirements.txt` to 1.8.2 to handle an incompatibility with the ContextualMatcher
+- Optimise space requirements by using `.csv.gz` compression for verbs
 
 ## v0.6.0 (2022-06-17)
 

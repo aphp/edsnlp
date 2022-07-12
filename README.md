@@ -26,7 +26,7 @@ pip install edsnlp
 We recommend pinning the library version in your projects, or use a strict package manager like [Poetry](https://python-poetry.org/).
 
 ```shell
-pip install edsnlp==0.6.0
+pip install edsnlp==0.6.1
 ```
 
 ### A first pipeline
@@ -71,6 +71,13 @@ The performances of an extraction pipeline may depend on the population and docu
 
 We welcome contributions ! Fork the project and propose a pull request.
 Take a look at the [dedicated page](https://aphp.github.io/edsnlp/latest/contributing/) for detail.
+
+## Credits
+
+We would like to thank the following funders:
+
+- Assistance Publique – Hôpitaux de Paris
+- AP-HP Foundation
 
 ## Citation
 

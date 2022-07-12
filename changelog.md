@@ -1,5 +1,8 @@
 # Changelog
 
+### Changed
+- Update the pipeline score `eds.TNM`. Now it is possible to return a dictionary where the results are whether str or int values. Also change patterns and matching attribute.
+
 ## v0.6.1 (2022-07-11)
 
 ### Added

@@ -34,11 +34,11 @@ class Modifier(TnmEnum):
 class Tumour(TnmEnum):
     unknown = "x"
     in_situ = "is"
-    _0 = "0"
-    _1 = "1"
-    _2 = "2"
-    _3 = "3"
-    _4 = "4"
+    score_0 = "0"
+    score_1 = "1"
+    score_2 = "2"
+    score_3 = "3"
+    score_4 = "4"
     o = "o"
 
 
@@ -52,20 +52,20 @@ class Specification(TnmEnum):
 
 class Node(TnmEnum):
     unknown = "x"
-    _0 = "0"
-    _1 = "1"
-    _2 = "2"
-    _3 = "3"
+    score_0 = "0"
+    score_1 = "1"
+    score_2 = "2"
+    score_3 = "3"
     o = "o"
 
 
 class Metastasis(TnmEnum):
     unknown = "x"
-    _0 = "0"
-    _1 = "1"
+    score_0 = "0"
+    score_1 = "1"
     o = "o"
-    _1x = "1x"
-    _2x = "2x"
+    score_1x = "1x"
+    score_2x = "2x"
     ox = "ox"
 
 

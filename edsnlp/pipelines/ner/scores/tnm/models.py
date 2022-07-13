@@ -18,32 +18,65 @@ class TnmEnum(Enum):
         return self.value
 
 
-class Unknown(TnmEnum):
-    unknown = "x"
-
-
 class Modifier(TnmEnum):
     clinical = "c"
     histopathology = "p"
+    histopathology2 = "P"
     neoadjuvant_therapy = "y"
     recurrent = "r"
     autopsy = "a"
     ultrasonography = "u"
     multifocal = "m"
+    py = "yp"
+    mp = "mp"
 
 
 class Tumour(TnmEnum):
     unknown = "x"
     in_situ = "is"
+    _0 = "0"
+    _1 = "1"
+    _2 = "2"
+    _3 = "3"
+    _4 = "4"
+    o = "o"
+
+
+class Specification(TnmEnum):
+    a = "a"
+    b = "b"
+    c = "c"
+    d = "d"
+    x = "x"
+
+
+class Node(TnmEnum):
+    unknown = "x"
+    _0 = "0"
+    _1 = "1"
+    _2 = "2"
+    _3 = "3"
+    o = "o"
+
+
+class Metastasis(TnmEnum):
+    unknown = "x"
+    _0 = "0"
+    _1 = "1"
+    o = "o"
+    _1x = "1x"
+    _2x = "2x"
+    ox = "ox"
 
 
 class TNM(BaseModel):
 
-    modifier: Optional[Union[int, Modifier]] = None
-    tumour: Optional[Union[int, Tumour]] = None
-    node: Optional[Union[int, Unknown]] = None
-    metastasis: Optional[Union[int, Unknown]] = None
-
+    modifier: Optional[Modifier] = None
+    tumour: Optional[Tumour] = None
+    tumour_specification: Optional[Specification] = None
+    node: Optional[Node] = None
+    node_specification: Optional[Specification] = None
+    metastasis: Optional[Metastasis] = None
     version: Optional[str] = None
     version_year: Optional[int] = None
 
@@ -74,8 +107,14 @@ class TNM(BaseModel):
         if self.tumour is not None:
             norm.append(f"T{self.tumour}")
 
+        if self.tumour_specification is not None:
+            norm.append(f"T{self.tumour_specification}")
+
         if self.node is not None:
             norm.append(f"N{self.node}")
+
+        if self.node_specification is not None:
+            norm.append(f"T{self.node_specification}")
 
         if self.metastasis is not None:
             norm.append(f"M{self.metastasis}")
@@ -121,7 +160,16 @@ class TNM(BaseModel):
             )
         )
         set_keys = set(d.keys())
-        for k in set_keys.intersection({"modifier", "tumour", "node", "metastasis"}):
+        for k in set_keys.intersection(
+            {
+                "modifier",
+                "tumour",
+                "node",
+                "metastasis",
+                "tumour_specification",
+                "node_specification",
+            }
+        ):
             v = d[k]
             if isinstance(v, TnmEnum):
                 d[k] = v.value

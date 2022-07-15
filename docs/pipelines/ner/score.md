@@ -104,7 +104,7 @@ ent._.value.dict()
 #  'version_year': None}
 ```
 
-The TNM score was developed with S. Priou, B. Rance and E. Kempf [@kempf:hal-03519085].
+The TNM score was initially developed with S. Priou, B. Rance and E. Kempf [@kempf:hal-03519085].
 
 ## Implementing your own score
 

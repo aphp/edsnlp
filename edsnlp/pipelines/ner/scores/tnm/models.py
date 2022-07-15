@@ -77,6 +77,7 @@ class TNM(BaseModel):
     node: Optional[Node] = None
     node_specification: Optional[Specification] = None
     metastasis: Optional[Metastasis] = None
+    regional_nodes: Optional[int] = None
     version: Optional[str] = None
     version_year: Optional[int] = None
 
@@ -104,20 +105,19 @@ class TNM(BaseModel):
         if self.modifier is not None:
             norm.append(str(self.modifier))
 
-        if self.tumour is not None:
-            norm.append(f"T{self.tumour}")
+        if (self.tumour is not None) | (self.tumour_specification is not None):
+            norm.append(
+                f"T{str(self.tumour or '')}{str(self.tumour_specification or '')}"
+            )
 
-        if self.tumour_specification is not None:
-            norm.append(f"T{self.tumour_specification}")
-
-        if self.node is not None:
-            norm.append(f"N{self.node}")
-
-        if self.node_specification is not None:
-            norm.append(f"T{self.node_specification}")
+        if (self.node is not None) | (self.node_specification is not None):
+            norm.append(f"N{str(self.node or '')}{str(self.node_specification or '')}")
 
         if self.metastasis is not None:
             norm.append(f"M{self.metastasis}")
+
+        if self.regional_nodes is not None:
+            norm.append(f"R{self.regional_nodes}")
 
         if self.version is not None and self.version_year is not None:
             norm.append(f" ({self.version.upper()} {self.version_year})")

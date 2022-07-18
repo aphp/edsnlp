@@ -9,13 +9,13 @@ default:
 
 create-env:
 	
-	python3 -m venv venv
+	python -m venv venv
 
 install : 
 	. venv/bin/activate
 	pip install -r requirements.txt
 	pip install -r requirements-setup.txt
-	python3 scripts/conjugate_verbs.py
+	python scripts/conjugate_verbs.py
 	pip install -r requirements-dev.txt
 	pip install -r requirements-docs.txt
 	pip install -e .
@@ -28,4 +28,4 @@ documentation:
 
 test:
 	. venv/bin/activate
-	python3 -m pytest
+	python -m pytest

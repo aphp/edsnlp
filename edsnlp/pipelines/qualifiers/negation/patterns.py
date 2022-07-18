@@ -80,6 +80,7 @@ preceding: List[str] = [
     "niant",
     "nie",
     "nié",
+    "non",
     "nullement",
     "pas d",
     "pas de cause de",
@@ -94,7 +95,6 @@ preceding: List[str] = [
     "sans présenter de",
     "sans",
     "symptôme atypique",
-    "non",
 ]
 
 following: List[str] = [

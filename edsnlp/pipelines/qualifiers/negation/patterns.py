@@ -94,6 +94,7 @@ preceding: List[str] = [
     "sans présenter de",
     "sans",
     "symptôme atypique",
+    "non",
 ]
 
 following: List[str] = [

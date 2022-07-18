@@ -9,10 +9,11 @@
 ### Changed
 
 - Add consultation date pattern "CS", and False Positive patterns for dates (namely phone numbers and pagination).
-- Update the pipeline score `eds.TNM`. Now it is possible to return a dictionary where the results are whether str or int values. Also change patterns and matching attribute.
+- Update the pipeline score `eds.TNM`. Now it is possible to return a dictionary where the results are either `str` or `int` values
 
 ### Fixed
 
+- Add new patterns to the negation qualifier
 - Numpy header issues with binary distributed packages
 - Simstring dependency on Windows
 

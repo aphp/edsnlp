@@ -1,8 +1,10 @@
 # Changelog
 
-### Added
-- Add consultation date pattern "CS", and False Positive patterns for dates (namely phone numbers and pagination).
+## Unreleased
+
 ### Changed
+
+- Add consultation date pattern "CS", and False Positive patterns for dates (namely phone numbers and pagination).
 - Update the pipeline score `eds.TNM`. Now it is possible to return a dictionary where the results are whether str or int values. Also change patterns and matching attribute.
 
 ## v0.6.1 (2022-07-11)

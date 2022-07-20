@@ -1,6 +1,7 @@
 """`eds.tnm` pipeline."""
 from typing import Dict, List, Optional, Tuple, Union
 
+from pydantic import ValidationError
 from spacy.language import Language
 from spacy.tokens import Doc, Span
 
@@ -99,8 +100,11 @@ class TNM(BaseComponent):
         """
 
         for span, groupdict in spans:
+            try:
+                span._.value = models.TNM.parse_obj(groupdict)
+            except ValidationError:
+                span._.value = models.TNM.parse_obj({})
 
-            span._.value = models.TNM.parse_obj(groupdict)
             span.kb_id_ = span._.value.norm()
 
         return [span for span, _ in spans]

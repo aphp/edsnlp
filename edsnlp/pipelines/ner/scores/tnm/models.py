@@ -18,32 +18,66 @@ class TnmEnum(Enum):
         return self.value
 
 
-class Unknown(TnmEnum):
-    unknown = "x"
-
-
 class Modifier(TnmEnum):
     clinical = "c"
     histopathology = "p"
+    histopathology2 = "P"
     neoadjuvant_therapy = "y"
     recurrent = "r"
     autopsy = "a"
     ultrasonography = "u"
     multifocal = "m"
+    py = "yp"
+    mp = "mp"
 
 
 class Tumour(TnmEnum):
     unknown = "x"
     in_situ = "is"
+    score_0 = "0"
+    score_1 = "1"
+    score_2 = "2"
+    score_3 = "3"
+    score_4 = "4"
+    o = "o"
+
+
+class Specification(TnmEnum):
+    a = "a"
+    b = "b"
+    c = "c"
+    d = "d"
+    x = "x"
+
+
+class Node(TnmEnum):
+    unknown = "x"
+    score_0 = "0"
+    score_1 = "1"
+    score_2 = "2"
+    score_3 = "3"
+    o = "o"
+
+
+class Metastasis(TnmEnum):
+    unknown = "x"
+    score_0 = "0"
+    score_1 = "1"
+    o = "o"
+    score_1x = "1x"
+    score_2x = "2x"
+    ox = "ox"
 
 
 class TNM(BaseModel):
 
-    modifier: Optional[Union[int, Modifier]] = None
-    tumour: Optional[Union[int, Tumour]] = None
-    node: Optional[Union[int, Unknown]] = None
-    metastasis: Optional[Union[int, Unknown]] = None
-
+    modifier: Optional[Modifier] = None
+    tumour: Optional[Tumour] = None
+    tumour_specification: Optional[Specification] = None
+    node: Optional[Node] = None
+    node_specification: Optional[Specification] = None
+    metastasis: Optional[Metastasis] = None
+    regional_nodes: Optional[int] = None
     version: Optional[str] = None
     version_year: Optional[int] = None
 
@@ -71,14 +105,19 @@ class TNM(BaseModel):
         if self.modifier is not None:
             norm.append(str(self.modifier))
 
-        if self.tumour is not None:
-            norm.append(f"T{self.tumour}")
+        if (self.tumour is not None) | (self.tumour_specification is not None):
+            norm.append(
+                f"T{str(self.tumour or '')}{str(self.tumour_specification or '')}"
+            )
 
-        if self.node is not None:
-            norm.append(f"N{self.node}")
+        if (self.node is not None) | (self.node_specification is not None):
+            norm.append(f"N{str(self.node or '')}{str(self.node_specification or '')}")
 
         if self.metastasis is not None:
             norm.append(f"M{self.metastasis}")
+
+        if self.regional_nodes is not None:
+            norm.append(f"R{self.regional_nodes}")
 
         if self.version is not None and self.version_year is not None:
             norm.append(f" ({self.version.upper()} {self.version_year})")
@@ -121,7 +160,16 @@ class TNM(BaseModel):
             )
         )
         set_keys = set(d.keys())
-        for k in set_keys.intersection({"modifier", "tumour", "node", "metastasis"}):
+        for k in set_keys.intersection(
+            {
+                "modifier",
+                "tumour",
+                "node",
+                "metastasis",
+                "tumour_specification",
+                "node_specification",
+            }
+        ):
             v = d[k]
             if isinstance(v, TnmEnum):
                 d[k] = v.value

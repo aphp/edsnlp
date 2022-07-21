@@ -2,6 +2,7 @@ consultation_mention = [
     "rendez-vous pris",
     r"consultation",
     r"consultation.{1,8}examen",
+    r"\bcs\b",
     "examen clinique",
     r"de compte rendu",
     r"date de l'examen",

@@ -6,7 +6,11 @@ TEXT = """
 Références : AMO/AMO
 Objet : Compte-Rendu de Consultation du 07/10/2018
 Madame BEESLY Pamela, âgée de 45 ans, née le 05/10/1987, a été vue en consultation
-dans le service de NCK CS RHUMATO.
+dans le service de NCK CS RHUMATO. Tel: 01-02-03-04-05
+
+####
+
+CR CS 3-1-2019 1/2
 
 ####
 
@@ -20,18 +24,26 @@ Document signé le 10/02/2020
 
 cons = dict(
     additional_params=dict(),
-    result=[dict(year=2018, month=10, day=7)],
+    result=[
+        dict(year=2018, month=10, day=7),
+        dict(year=2019, month=1, day=3),
+    ],
 )
 
 cons_town = dict(
     additional_params=dict(town_mention=True),
-    result=[dict(year=2018, month=10, day=7), dict(year=2020, month=1, day=24)],
+    result=[
+        dict(year=2018, month=10, day=7),
+        dict(year=2019, month=1, day=3),
+        dict(year=2020, month=1, day=24),
+    ],
 )
 
 cons_town_doc = dict(
     additional_params=dict(town_mention=True, document_date_mention=True),
     result=[
         dict(year=2018, month=10, day=7),
+        dict(year=2019, month=1, day=3),
         dict(year=2020, month=1, day=24),
         dict(year=2020, month=2, day=10),
     ],
@@ -43,20 +55,20 @@ cons_town_doc = dict(
 def test_cons_dates(date_pipeline, example, blank_nlp):
 
     blank_nlp.add_pipe(
-        "normalizer",
+        "eds.normalizer",
         config=dict(lowercase=True, accents=True, quotes=True, pollution=False),
     )
 
-    if date_pipeline:
-        blank_nlp.add_pipe("dates")
-
     blank_nlp.add_pipe(
-        "consultation_dates", config=dict(**example["additional_params"])
+        "eds.consultation_dates", config=dict(**example["additional_params"])
     )
+
+    if date_pipeline:
+        blank_nlp.add_pipe("eds.dates")
 
     doc = blank_nlp(TEXT)
 
-    assert len(doc.spans["dates"]) == 4 or not date_pipeline
+    assert len(doc.spans["dates"]) == 5 or not date_pipeline
 
     assert len(doc.spans["consultation_dates"]) == len(example["result"])
 

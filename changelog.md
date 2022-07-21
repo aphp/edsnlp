@@ -5,6 +5,7 @@
 ### Changed
 
 - Update the pipeline score `eds.TNM`. Now it is possible to return a dictionary where the results are either `str` or `int` values
+- Add consultation date pattern "CS", and False Positive patterns for dates (namely phone numbers and pagination).
 
 ### Fixed
 

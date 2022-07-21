@@ -80,6 +80,7 @@ preceding: List[str] = [
     "niant",
     "nie",
     "nié",
+    "non",
     "nullement",
     "pas d",
     "pas de cause de",

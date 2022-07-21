@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional, Union
 from spacy.language import Language
 
 from edsnlp.pipelines.core.matcher import GenericMatcher
+from edsnlp.pipelines.core.matcher.matcher import GenericTermMatcher
 from edsnlp.utils.deprecation import deprecated_factory
 
 DEFAULT_CONFIG = dict(
@@ -10,8 +11,8 @@ DEFAULT_CONFIG = dict(
     regex=None,
     attr="TEXT",
     ignore_excluded=False,
-    algorithm="exact",
-    algorithm_config={},
+    term_matcher=GenericTermMatcher.exact,
+    term_matcher_config={},
 )
 
 
@@ -31,8 +32,8 @@ def create_component(
     attr: Union[str, Dict[str, str]],
     regex: Optional[Dict[str, Union[str, List[str]]]],
     ignore_excluded: bool,
-    algorithm: str,
-    algorithm_config: Dict[str, Any],
+    term_matcher: GenericTermMatcher,
+    term_matcher_config: Dict[str, Any],
 ):
     assert not (terms is None and regex is None)
 
@@ -47,6 +48,6 @@ def create_component(
         attr=attr,
         regex=regex,
         ignore_excluded=ignore_excluded,
-        algorithm=algorithm,
-        algorithm_config=algorithm_config,
+        term_matcher=term_matcher,
+        term_matcher_config=term_matcher_config,
     )

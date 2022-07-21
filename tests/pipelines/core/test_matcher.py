@@ -1,4 +1,6 @@
+import pytest
 from pytest import fixture
+from thinc.config import ConfigValidationError
 
 from edsnlp.pipelines.core.matcher import GenericMatcher
 
@@ -26,6 +28,40 @@ def matcher_factory(blank_nlp):
         )
 
     return factory
+
+
+def test_matcher_config_typo(blank_nlp):
+    with pytest.raises(ConfigValidationError):
+        blank_nlp.add_pipe(
+            "matcher",
+            config={
+                "terms": {"test": ["test"]},
+                "term_matcher": "exoct",
+            },
+        )
+
+
+def test_exact_matcher_spacy_factory(blank_nlp):
+    blank_nlp.add_pipe(
+        "matcher",
+        config={
+            "terms": {"test": ["test"]},
+            "term_matcher": "exact",
+        },
+    )
+
+
+def test_simstring_matcher_spacy_factory(blank_nlp):
+    blank_nlp.add_pipe(
+        "matcher",
+        config={
+            "terms": {"test": ["test"]},
+            "term_matcher": "simstring",
+            "term_matcher_config": {
+                "measure": "dice",
+            },
+        },
+    )
 
 
 def test_terms(blank_doc, matcher_factory):

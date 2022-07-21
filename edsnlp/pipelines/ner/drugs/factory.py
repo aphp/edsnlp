@@ -2,15 +2,15 @@ from typing import Any, Dict
 
 from spacy.language import Language
 
-from edsnlp.pipelines.core.terminology import TerminologyMatcher
+from edsnlp.pipelines.core.terminology import TerminologyMatcher, TerminologyTermMatcher
 
 from . import patterns
 
 DEFAULT_CONFIG = dict(
     attr="NORM",
     ignore_excluded=False,
-    algorithm="exact",
-    algorithm_config={},
+    term_matcher=TerminologyTermMatcher.exact,
+    term_matcher_config={},
 )
 
 
@@ -24,8 +24,8 @@ def create_component(
     name: str,
     attr: str,
     ignore_excluded: bool,
-    algorithm: str,
-    algorithm_config: Dict[str, Any],
+    term_matcher: TerminologyTermMatcher,
+    term_matcher_config: Dict[str, Any],
 ):
     return TerminologyMatcher(
         nlp,
@@ -34,6 +34,6 @@ def create_component(
         regex=dict(),
         attr=attr,
         ignore_excluded=ignore_excluded,
-        algorithm=algorithm,
-        algorithm_config=algorithm_config,
+        term_matcher=term_matcher,
+        term_matcher_config=term_matcher_config,
     )

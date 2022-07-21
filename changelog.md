@@ -19,8 +19,8 @@
 
 - Now possible to provide regex flags when using the RegexMatcher
 - New `ContextualMatcher` pipe, aiming at replacing the `AdvancedRegex` pipe.
-
 - New `as_ents` parameter for `eds.dates`, to save detected dates as entities
+
 ### Changed
 
 - Faster `eds.sentences` pipeline component with Cython

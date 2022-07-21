@@ -2,10 +2,11 @@ import os
 import pickle
 import tempfile
 from collections import defaultdict
+from enum import Enum
 from functools import lru_cache
 from math import sqrt
 from pathlib import Path
-from typing import Dict, Iterable, List, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import quickumls_simstring.simstring as simstring
 from spacy import Language, Vocab
@@ -15,7 +16,7 @@ from tqdm import tqdm
 from edsnlp.matchers.utils import ATTRIBUTES, get_text
 
 
-class SimstringWriter(object):
+class SimstringWriter:
     def __init__(self, path: Union[str, Path]):
         """
         A context class to write a simstring database
@@ -29,7 +30,7 @@ class SimstringWriter(object):
         self.path = path
 
     def __enter__(self):
-        path = os.path.join(self.path, "umls-terms.simstring")
+        path = os.path.join(self.path, "terms.simstring")
         self.db = simstring.writer(path, 3, False, True)
         return self
 
@@ -40,12 +41,19 @@ class SimstringWriter(object):
         self.db.insert(term)
 
 
+class SimilarityMeasure(str, Enum):
+    jaccard = "jaccard"
+    dice = "dice"
+    overlap = "overlap"
+    cosine = "cosine"
+
+
 class SimstringMatcher:
     def __init__(
         self,
         vocab: Vocab,
-        path=None,
-        measure: str = "dice",
+        path: Optional[Union[Path, str]] = None,
+        measure: SimilarityMeasure = SimilarityMeasure.dice,
         threshold: float = 0.75,
         windows: int = 5,
         ignore_excluded: bool = False,
@@ -59,11 +67,11 @@ class SimstringMatcher:
         ----------
         vocab : Vocab
             spaCy vocabulary to match on.
-        path: Union[str, Path]
+        path: Optional[Union[Path, str]]
             Path where we will store the precomputed patterns
-        measure: str
+        measure: SimilarityMeasure
             Name of the similarity measure.
-            One of ["jaccard", "dice", "overlap", "cosine"]
+            One of [jaccard, dice, overlap, cosine]
         windows: int
             Maximum number of words in a candidate span
         threshold: float
@@ -76,7 +84,12 @@ class SimstringMatcher:
             To match on a custom attribute, prepend the attribute name with `_`.
         """
 
-        assert measure in ("jaccard", "dice", "overlap", "cosine")
+        assert measure in (
+            SimilarityMeasure.jaccard,
+            SimilarityMeasure.dice,
+            SimilarityMeasure.overlap,
+            SimilarityMeasure.cosine,
+        )
 
         self.vocab = vocab
         self.windows = windows
@@ -133,7 +146,7 @@ class SimstringMatcher:
     def load(self):
         if self.ss_reader is None:
             self.ss_reader = simstring.reader(
-                os.path.join(self.path, "umls-terms.simstring")
+                os.path.join(self.path, "terms.simstring")
             )
             self.ss_reader.measure = getattr(simstring, self.measure)
             self.ss_reader.threshold = self.threshold

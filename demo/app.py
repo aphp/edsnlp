@@ -87,9 +87,9 @@ def load_model(
 
     if drugs:
         if fuzzy_drugs:
-            nlp.add_pipe("eds.drugs", config=dict(algorithm="simstring"))
+            nlp.add_pipe("eds.drugs", config=dict(term_matcher="simstring"))
             pipes.append(
-                'nlp.add_pipe("eds.drugs", config=dict(algorithm="simstring"))'
+                'nlp.add_pipe("eds.drugs", config=dict(term_matcher="simstring"))'
             )
         else:
             nlp.add_pipe("eds.drugs")

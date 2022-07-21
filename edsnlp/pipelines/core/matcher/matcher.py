@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from spacy.language import Language
@@ -9,6 +10,11 @@ from edsnlp.matchers.simstring import SimstringMatcher
 from edsnlp.matchers.utils import Patterns
 from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
+
+
+class GenericTermMatcher(str, Enum):
+    exact = "exact"
+    simstring = "simstring"
 
 
 class GenericMatcher(BaseComponent):
@@ -29,6 +35,11 @@ class GenericMatcher(BaseComponent):
     ignore_excluded : bool
         Whether to skip excluded tokens (requires an upstream
         pipeline to mark excluded tokens).
+    term_matcher: GenericTermMatcher
+        The matcher to use for matching phrases ?
+        One of (exact, simstring)
+    term_matcher_config: Dict[str,Any]
+        Parameters of the matcher class
     """
 
     def __init__(
@@ -38,32 +49,32 @@ class GenericMatcher(BaseComponent):
         regex: Optional[Patterns],
         attr: str,
         ignore_excluded: bool,
-        algorithm: str = "exact",
-        algorithm_config: Dict[str, Any] = None,
+        term_matcher: GenericTermMatcher = GenericTermMatcher.exact,
+        term_matcher_config: Dict[str, Any] = None,
     ):
 
         self.nlp = nlp
 
         self.attr = attr
 
-        if algorithm == "exact":
+        if term_matcher == GenericTermMatcher.exact:
             self.phrase_matcher = EDSPhraseMatcher(
                 self.nlp.vocab,
                 attr=attr,
                 ignore_excluded=ignore_excluded,
-                **(algorithm_config or {}),
+                **(term_matcher_config or {}),
             )
-        elif algorithm == "simstring":
+        elif term_matcher == GenericTermMatcher.simstring:
             self.phrase_matcher = SimstringMatcher(
                 self.nlp.vocab,
                 attr=attr,
                 ignore_excluded=ignore_excluded,
-                **(algorithm_config or {}),
+                **(term_matcher_config or {}),
             )
         else:
             raise ValueError(
-                f"Algorithm {repr(algorithm)} does not belong to"
-                f' known algorithms ["exact", "simstring"].'
+                f"Algorithm {repr(term_matcher)} does not belong to"
+                f" known matcher [exact, simstring]."
             )
 
         self.regex_matcher = RegexMatcher(

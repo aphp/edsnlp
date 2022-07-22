@@ -8,8 +8,9 @@ default:
 	@echo "Call a specific subcommand: .venv,install,documentation,test"
 
 .venv:
-	
 	python3 -m venv .venv
+	
+create-env: .venv
 
 install : .venv
 	. .venv/bin/activate

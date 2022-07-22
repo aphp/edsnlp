@@ -2,6 +2,7 @@ from enum import Enum
 from typing import Any, Callable, Dict, Iterable, List, Optional, OrderedDict, Tuple
 
 import torch
+from loguru import logger
 from spacy import registry
 from spacy.tokens import Doc
 from thinc.layers import chain
@@ -169,13 +170,13 @@ class NestedNERModule(torch.nn.Module):
                 else tags,
                 dim=0,
             )
-            if self.mode == CRFMode.independent:
+            if self.mode == CRFMode.joint:
                 loss = self.crf(
                     crf_logits,
                     crf_mask,
                     crf_target,
                 )
-            elif self.mode == CRFMode.joint:
+            elif self.mode == CRFMode.independent:
                 loss = (
                     -crf_logits.log_softmax(-1)
                     .masked_fill(~crf_target, IMPOSSIBLE)
@@ -194,7 +195,11 @@ class NestedNERModule(torch.nn.Module):
                     .sum()
                 )
             if (loss > -IMPOSSIBLE).any():
-                raise
+                logger.warning(
+                    "You likely have an impossible transition in your "
+                    "training data NER tags, skipping this batch."
+                )
+                loss = torch.zeros(1, dtype=torch.float, device=embeds.device)
             loss = loss.sum().unsqueeze(0) / 100.0
         if is_predict:
             pred_tags = self.crf.decode(crf_logits, crf_mask).reshape(

@@ -4,7 +4,7 @@
 - Update the pipeline score `eds.TNM`. Now it is possible to return a dictionary where the results are whether str or int values. Also change patterns and matching attribute.
 
 ### Added
-- Makefile to install,test the application and see the documentation 
+- Makefile to install,test the application and see the documentation
 ## v0.6.1 (2022-07-11)
 
 ### Added

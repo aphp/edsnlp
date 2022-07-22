@@ -1,6 +1,6 @@
 
 .ONESHELL:
-	SHELL:=/bin/bash 
+	SHELL:=/bin/bash
 
 .PHONY: create-env install documentation test
 
@@ -9,7 +9,7 @@ default:
 
 .venv:
 	python -m venv .venv
-	
+
 create-env: .venv
 
 install : .venv
@@ -30,4 +30,3 @@ documentation: .venv
 test: .venv
 	. .venv/bin/activate
 	python -m pytest
-

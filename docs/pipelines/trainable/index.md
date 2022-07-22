@@ -4,19 +4,19 @@ In addition to its rule-based pipeline components, EDS-NLP offers new trainable 
 
 ## Available components :
 
-| Name                  | Description                                                                 |
-| --------------------- | --------------------------------------------------------------------------- |
-| `eds.nested_ner`      | Recognize overlapping or nested entities (replaces spacy's `ner` component) |
+| Name             | Description                                                                 |
+|------------------|-----------------------------------------------------------------------------|
+| `eds.nested_ner` | Recognize overlapping or nested entities (replaces spaCy's `ner` component) |
 
 !!! note "Writing custom models"
 
-    Spacy models can be written with Thinc (Spacy's deep learning library), Tensorflow or Pytorch. As Pytorch is predominant in the NLP research field, we recommend writing models with the latter to facilitate interactions with the NLP community.
+    spaCy models can be written with Thinc (spaCy's deep learning library), Tensorflow or Pytorch. As Pytorch is predominant in the NLP research field, we recommend writing models with the latter to facilitate interactions with the NLP community.
 
 ## Utils
 
 ### Training
 
-In addition to the spacy `train` CLI, EDS-NLP offers a `train` function that can be called in Python directly with an existing spacy pipeline.
+In addition to the spaCy `train` CLI, EDS-NLP offers a `train` function that can be called in Python directly with an existing spaCy pipeline.
 
 ### Logging
 
@@ -31,7 +31,6 @@ Let us define and train a full pipeline :
 from pathlib import Path
 
 import spacy
-from spacy.tokens import DocBin
 
 from edsnlp.connectors.brat import BratConnector
 from edsnlp.utils.training import train, make_spacy_corpus_config
@@ -47,8 +46,8 @@ nlp = train(
     output_path=tmp_path / "model",
     config=dict(
         **make_spacy_corpus_config(
-            "/path/to/the/training/set/brat/files",
-            "/path/to/the/dev/set/brat/files",
+            train_data="/path/to/the/training/set/brat/files",
+            dev_data="/path/to/the/dev/set/brat/files",
             nlp=nlp,
         ),
         training=dict(

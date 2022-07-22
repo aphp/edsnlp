@@ -2,7 +2,7 @@
 .ONESHELL:
 	SHELL:=/bin/bash 
 
-.PHONY: .venv install documentation test
+.PHONY: create-env install documentation test
 
 default:
 	@echo "Call a specific subcommand: create-env,install,documentation,test"

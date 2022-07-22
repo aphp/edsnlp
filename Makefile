@@ -5,7 +5,7 @@
 .PHONY: .venv install documentation test
 
 default:
-	@echo "Call a specific subcommand: .venv,install,documentation,test"
+	@echo "Call a specific subcommand: create-env,install,documentation,test"
 
 .venv:
 	python3 -m venv .venv

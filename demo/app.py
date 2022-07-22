@@ -328,7 +328,7 @@ for ent in doc.ents:
             family="YES" if ent._.family else "NO",
             hypothesis="YES" if ent._.hypothesis else "NO",
             reported_speech="YES" if ent._.reported_speech else "NO",
-        )  #
+        )
 
     try:
         if ent.kb_id_ and not ent._.value:

@@ -163,7 +163,7 @@ class SimstringMatcher:
         else:
             sents = (doc,)
 
-        ents = []
+        ents: List[Tuple[str, int, int, float]] = []
 
         for sent in sents:
             text, offsets = get_text_and_offsets(
@@ -205,27 +205,27 @@ class SimstringMatcher:
             return [(self.vocab.strings[span[0]], span[1], span[2]) for span in results]
 
 
-def similarity(x, y, measure="dice"):
+def similarity(x: str, y: str, measure: SimilarityMeasure = SimilarityMeasure.dice):
 
     x_ngrams = {x[i : i + 3] for i in range(0, len(x) - 3)}
     y_ngrams = {y[i : i + 3] for i in range(0, len(y) - 3)}
 
-    if measure == "jaccard":
+    if measure == SimilarityMeasure.jaccard:
         return len(x_ngrams & y_ngrams) / (len(x_ngrams | y_ngrams))
 
-    if measure == "dice":
+    if measure == SimilarityMeasure.dice:
         return 2 * len(x_ngrams & y_ngrams) / (len(x_ngrams) + len(y_ngrams))
 
-    if measure == "cosine":
+    if measure == SimilarityMeasure.cosine:
         return len(x_ngrams & y_ngrams) / sqrt(len(x_ngrams) * len(y_ngrams))
 
-    if measure == "overlap":
+    if measure == SimilarityMeasure.overlap:
         return len(x_ngrams & y_ngrams)
 
     raise ValueError("Cannot compute similarity {}".format(repr(measure)))
 
 
-def simstring_sort_key(span_data):
+def simstring_sort_key(span_data: Tuple[str, int, int, float]):
     return span_data[3], span_data[2] - span_data[1], -span_data[1]
 
 

@@ -1,13 +1,20 @@
-from typing import List, Optional
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span
 
 from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher
+from edsnlp.matchers.simstring import SimstringMatcher
 from edsnlp.matchers.utils import Patterns
 from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
+
+
+class GenericTermMatcher(str, Enum):
+    exact = "exact"
+    simstring = "simstring"
 
 
 class GenericMatcher(BaseComponent):
@@ -18,8 +25,6 @@ class GenericMatcher(BaseComponent):
     ----------
     nlp : Language
         The spaCy object.
-    label : str
-        Top-level label
     terms : Optional[Patterns]
         A dictionary of terms.
     regex : Optional[Patterns]
@@ -30,6 +35,11 @@ class GenericMatcher(BaseComponent):
     ignore_excluded : bool
         Whether to skip excluded tokens (requires an upstream
         pipeline to mark excluded tokens).
+    term_matcher: GenericTermMatcher
+        The matcher to use for matching phrases ?
+        One of (exact, simstring)
+    term_matcher_config: Dict[str,Any]
+        Parameters of the matcher class
     """
 
     def __init__(
@@ -39,17 +49,34 @@ class GenericMatcher(BaseComponent):
         regex: Optional[Patterns],
         attr: str,
         ignore_excluded: bool,
+        term_matcher: GenericTermMatcher = GenericTermMatcher.exact,
+        term_matcher_config: Dict[str, Any] = None,
     ):
 
         self.nlp = nlp
 
         self.attr = attr
 
-        self.phrase_matcher = EDSPhraseMatcher(
-            self.nlp.vocab,
-            attr=attr,
-            ignore_excluded=ignore_excluded,
-        )
+        if term_matcher == GenericTermMatcher.exact:
+            self.phrase_matcher = EDSPhraseMatcher(
+                self.nlp.vocab,
+                attr=attr,
+                ignore_excluded=ignore_excluded,
+                **(term_matcher_config or {}),
+            )
+        elif term_matcher == GenericTermMatcher.simstring:
+            self.phrase_matcher = SimstringMatcher(
+                self.nlp.vocab,
+                attr=attr,
+                ignore_excluded=ignore_excluded,
+                **(term_matcher_config or {}),
+            )
+        else:
+            raise ValueError(
+                f"Algorithm {repr(term_matcher)} does not belong to"
+                f" known matcher [exact, simstring]."
+            )
+
         self.regex_matcher = RegexMatcher(
             attr=attr,
             ignore_excluded=ignore_excluded,

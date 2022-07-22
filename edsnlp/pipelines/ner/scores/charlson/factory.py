@@ -18,8 +18,17 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@deprecated_factory("charlson", "eds.charlson", default_config=DEFAULT_CONFIG)
-@Language.factory("eds.charlson", default_config=DEFAULT_CONFIG)
+@deprecated_factory(
+    "charlson",
+    "eds.charlson",
+    default_config=DEFAULT_CONFIG,
+    assigns=["doc.ents", "doc.spans"],
+)
+@Language.factory(
+    "eds.charlson",
+    default_config=DEFAULT_CONFIG,
+    assigns=["doc.ents", "doc.spans"],
+)
 def create_component(
     nlp: Language,
     name: str,

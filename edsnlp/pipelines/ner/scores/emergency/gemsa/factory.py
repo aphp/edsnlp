@@ -19,9 +19,16 @@ DEFAULT_CONFIG = dict(
 
 
 @deprecated_factory(
-    "emergency.gemsa", "eds.emergency.gemsa", default_config=DEFAULT_CONFIG
+    "emergency.gemsa",
+    "eds.emergency.gemsa",
+    default_config=DEFAULT_CONFIG,
+    assigns=["doc.ents", "doc.spans"],
 )
-@Language.factory("eds.emergency.gemsa", default_config=DEFAULT_CONFIG)
+@Language.factory(
+    "eds.emergency.gemsa",
+    default_config=DEFAULT_CONFIG,
+    assigns=["doc.ents", "doc.spans"],
+)
 def create_component(
     nlp: Language,
     name: str,

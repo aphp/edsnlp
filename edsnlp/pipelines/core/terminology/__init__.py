@@ -1,1 +1,1 @@
-from .terminology import TerminologyMatcher
+from .terminology import TerminologyMatcher, TerminologyTermMatcher

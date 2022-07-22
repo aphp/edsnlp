@@ -18,8 +18,10 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@deprecated_factory("dates", "eds.dates", default_config=DEFAULT_CONFIG)
-@Language.factory("eds.dates", default_config=DEFAULT_CONFIG)
+@deprecated_factory(
+    "dates", "eds.dates", default_config=DEFAULT_CONFIG, assigns=["doc.spans"]
+)
+@Language.factory("eds.dates", default_config=DEFAULT_CONFIG, assigns=["doc.spans"])
 def create_component(
     nlp: Language,
     name: str,

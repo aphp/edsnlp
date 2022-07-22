@@ -1,8 +1,9 @@
 import spacy
-from pytest import fixture
+from pytest import fixture, mark
 from spacy.tokens import Span
 from spacy.training import Example
 
+from edsnlp.pipelines.trainable.nested_ner import NESTED_NER_DEFAULTS
 from edsnlp.utils.training import make_spacy_corpus_config, train
 
 
@@ -22,13 +23,25 @@ def gold(blank_nlp):
     return doc
 
 
-def test_nested_ner_training(blank_nlp, gold):
+@mark.parametrize("crf_mode", ["marginal", "independent", "joint"])
+def test_nested_ner_training(blank_nlp, gold, tmp_path, crf_mode):
+    tmp_path.mkdir(parents=True, exist_ok=True)
+
     nlp = spacy.blank("eds")
-    nlp.add_pipe("nested_ner")
+    nlp.add_pipe(
+        "nested_ner",
+        config={
+            **NESTED_NER_DEFAULTS,
+            "model": {
+                **NESTED_NER_DEFAULTS["model"],
+                "mode": crf_mode,
+            },
+        },
+    )
 
     train(
         nlp,
-        output_path="/tmp/test-train-edsnlp/",
+        output_path=tmp_path,
         config=dict(
             **make_spacy_corpus_config(train_data=[gold], dev_data=[gold]),
             training=dict(max_steps=10, eval_frequency=5),
@@ -42,3 +55,5 @@ def test_nested_ner_training(blank_nlp, gold):
     assert len(pred.ents) == 1
     assert len(pred.spans["event"]) == 1
     assert len(pred.spans["criteria"]) == 1
+
+    spacy.load(tmp_path / "model-last")

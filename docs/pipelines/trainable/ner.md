@@ -1,16 +1,16 @@
 # Nested Named Entity Recognition
 
-The default spacy Named Entity Recognizer (NER) pipeline only allows flat entity
+The default spaCy Named Entity Recognizer (NER) pipeline only allows flat entity
 recognition, meaning that overlapping and nested entities cannot be extracted.
 
-The other spacy component `SpanCategorizer` only supports assigning to a specific span
+The other spaCy component `SpanCategorizer` only supports assigning to a specific span
 group and both components are not well suited for extracting entities with ill-defined
 boundaries (this can occur if your training data contains difficult and long entities).
 
 We propose the new `eds.ner` component to extract almost any named entity:
 
-- flat entities like spacy's `EntityRecognizer` overlapping entities
-- overlapping entities of different labels (much like spacy's `SpanCategorizer`)
+- flat entities like spaCy's `EntityRecognizer` overlapping entities
+- overlapping entities of different labels (much like spaCy's `SpanCategorizer`)
 - entities will ill-defined boundaries
 
 However, the model cannot currently extract entities that are nested inside larger entities

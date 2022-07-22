@@ -111,6 +111,12 @@ This example is complete, it should run as-is. Check out the [spaCy 101 page](tu
     | `eds.cim10`              | A CIM10 terminology matcher |
     | `eds.drugs`              | A Drug mentions extractor   |
 
+=== "Trainable"
+
+    | Pipeline               | Description                                     |
+    | ---------------------- | ----------------------------------------------- |
+    | `eds.nested-ner`       | Nested and overlapping named entity recogntion  |
+
 ## Disclaimer
 
 The performances of an extraction pipeline may depend on the population and documents that are considered.

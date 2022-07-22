@@ -2,30 +2,30 @@
 .ONESHELL:
 	SHELL:=/bin/bash 
 
-.PHONY: create-env install documentation test
+.PHONY: .venv install documentation test
 
 default:
-	@echo "Call a specific subcommand: create-env,install,documentation,test"
+	@echo "Call a specific subcommand: .venv,install,documentation,test"
 
-create-env:
+.venv:
 	
-	python -m venv venv
+	python3 -m venv .venv
 
 install : 
-	. venv/bin/activate
+	. .venv/bin/activate
 	pip install -r requirements.txt
 	pip install -r requirements-setup.txt
-	python scripts/conjugate_verbs.py
+	python3 scripts/conjugate_verbs.py
 	pip install -r requirements-dev.txt
 	pip install -r requirements-docs.txt
 	pip install -e .
 	pre-commit install
 
-documentation: 
-	. venv/bin/activate
+documentation: .venv
+	. .venv/bin/activate
 	pip install -r requirements-docs.txt
 	mkdocs serve
 
-test:
-	. venv/bin/activate
-	python -m pytest
+test: .venv
+	. .venv/bin/activate
+	python3 -m pytest

@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - v*.*.*
+      - build-*
 
 jobs:
   build_wheels:
@@ -22,6 +23,8 @@ jobs:
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.4.0
+        env:
+          PIP_CONSTRAINT: build-constraints.txt
 
   build_sdist:
     name: Build source distribution

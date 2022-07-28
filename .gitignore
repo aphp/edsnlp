@@ -55,6 +55,7 @@ _build/
 *.ann
 
 !requirements*.txt
+!build-constraints.txt
 
 # Editors
 .idea

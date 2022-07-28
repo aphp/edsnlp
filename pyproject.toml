@@ -3,7 +3,7 @@ requires = [
     "setuptools",
     "cython>=0.25,<3.0",
     "spacy>=3.2<4.0",
-    "numpy>=1.21",
+    "numpy>=1.17.3",
 ]
 build-backend = "setuptools.build_meta"
 

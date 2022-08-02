@@ -13,6 +13,7 @@
 
 ### Fixed
 
+- Numpy header issues with binary distributed packages
 - Simstring dependency on Windows
 
 ### Added

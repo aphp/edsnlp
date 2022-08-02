@@ -1,7 +1,7 @@
 decorator
 loguru
-numpy>=1.21
-pandas>=1.1
+numpy>=1.15.0
+pandas
 pendulum
 pydantic>=1.8.2,<1.10.0
 pysimstring>=1.2.1

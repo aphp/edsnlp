@@ -1,10 +1,11 @@
 # Changelog
 
-## Unreleased
+## v0.6.2 (2022-08-02)
 
 ### Added
 
 - New `SimstringMatcher` matcher to perform fuzzy term matching, and `algorithm` parameter in terminology components and `eds.matcher` component
+- Makefile to install,test the application and see the documentation
 
 ### Changed
 
@@ -17,8 +18,6 @@
 - Numpy header issues with binary distributed packages
 - Simstring dependency on Windows
 
-### Added
-- Makefile to install,test the application and see the documentation
 ## v0.6.1 (2022-07-11)
 
 ### Added

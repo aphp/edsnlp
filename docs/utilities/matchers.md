@@ -74,7 +74,7 @@ The `SimstringMatcher` performs fuzzy term matching by comparing spans of text w
 similarity metric. It is especially useful to handle spelling variations like
 `paracetomol` (instead of `paracetamol`).
 
-The [`simstring`](https://github.com/Georgetown-IR-Lab/simstring/tree/master/quickumls_simstring) algorithm compares two strings by enumerating their char trigrams and
+The [`simstring`](www.chokkan.org/software/simstring/) algorithm compares two strings by enumerating their char trigrams and
 measuring the overlap between the two sets. In the previous example:
 - `paracetomol` becomes `##p #pa par ara rac ace cet eto tom omo mol ol# l##`
 - `paracetamol` becomes `##p #pa par ara rac ace cet eta tam amo mol ol# l##`

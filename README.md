@@ -1,7 +1,7 @@
 ![Tests](https://img.shields.io/github/workflow/status/aphp/edsnlp/Tests%20and%20Linting?label=tests&style=flat-square)
 [![Documentation](https://img.shields.io/github/workflow/status/aphp/edsnlp/Documentation?label=docs&style=flat-square)](https://aphp.github.io/edsnlp/latest/)
 [![PyPI](https://img.shields.io/pypi/v/edsnlp?color=blue&style=flat-square)](https://pypi.org/project/edsnlp/)
-[![Demo](https://img.shields.io/badge/demo%20%F0%9F%9A%80-streamit-grean?style=flat-square)](https://aphp-edsnlp-demoapp-863wcd.streamlitapp.com/)
+[![Demo](https://img.shields.io/badge/demo%20%F0%9F%9A%80-streamit-grean?style=flat-square)](https://aphp.github.io/edsnlp/demo/)
 [![Codecov](https://img.shields.io/codecov/c/github/aphp/edsnlp?logo=codecov&style=flat-square)](https://codecov.io/gh/aphp/edsnlp)
 [![DOI](https://zenodo.org/badge/467585436.svg)](https://zenodo.org/badge/latestdoi/467585436)
 
@@ -9,7 +9,7 @@
 
 EDS-NLP provides a set of spaCy components that are used to extract information from clinical notes written in French.
 
-Check out the interactive [demo](https://aphp-edsnlp-demoapp-863wcd.streamlitapp.com/)!
+Check out the interactive [demo](https://aphp.github.io/edsnlp/demo/)!
 
 If it's your first time with spaCy, we recommend you familiarise yourself with some of their key concepts by looking at the "[spaCy 101](https://aphp.github.io/edsnlp/latest/tutorials/spacy101/)" page in the documentation.
 

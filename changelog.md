@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Change links to streamlit demo
+
 ## v0.6.2 (2022-08-02)
 
 ### Added

@@ -34,7 +34,7 @@ theme:
 
 nav:
   - index.md
-  - Demo: https://aphp-edsnlp-demoapp-863wcd.streamlitapp.com/" target="_blank
+  - Demo: https://aphp.github.io/edsnlp/demo" target="_blank
   - Tutorials:
     - tutorials/index.md
     - tutorials/spacy101.md

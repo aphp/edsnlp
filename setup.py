@@ -92,7 +92,7 @@ setup(
     url="https://github.com/aphp/edsnlp",
     project_urls={
         "Documentation": "https://aphp.github.io/edsnlp",
-        "Demo": "https://aphp.github.io/edsnlp/demo",
+        "Demo": "https://aphp-edsnlp-demoapp-863wcd.streamlitapp.com/",
         "Bug Tracker": "https://github.com/aphp/edsnlp/issues",
     },
     long_description=long_description,

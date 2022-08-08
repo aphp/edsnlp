@@ -15,6 +15,15 @@ sections_text = (
     "Pas d'anomalie détectée."
 )
 
+empty_sections_text = """
+Antécédents :
+Conclusion :
+<ent section=conclusion>Patient</ent> va mieux
+
+Au total:
+sortie du patient
+"""
+
 
 def test_section_detection(doc):
     assert doc.spans["sections"]
@@ -60,6 +69,32 @@ def test_sections(blank_nlp, sections_factory):
 
         for modifier in entity.modifiers:
 
+            assert (
+                getattr(ent._, modifier.key) == modifier.value
+            ), f"{modifier.key} labels don't match."
+
+
+def test_empty_sections(blank_nlp, sections_factory):
+
+    blank_nlp.add_pipe("normalizer")
+
+    sections = sections_factory()
+
+    text, entities = parse_example(example=empty_sections_text)
+
+    doc = blank_nlp(text)
+    doc.ents = [
+        doc.char_span(ent.start_char, ent.end_char, label="ent") for ent in entities
+    ]
+
+    doc = sections(doc)
+
+    for section in doc.spans["sections"]:
+        for ent in section.ents:
+            ent._.section = section.label_
+
+    for entity, ent in zip(entities, doc.ents):
+        for modifier in entity.modifiers:
             assert (
                 getattr(ent._, modifier.key) == modifier.value
             ), f"{modifier.key} labels don't match."

@@ -68,7 +68,7 @@ text = "CRU du 10/09/2021\n" "Motif :\n" "Patient admis pour suspicion de COVID"
 doc = nlp(text)
 
 doc.spans["section_titles"]
-# Out: [Motif :]
+# Out: [Motif]
 ```
 
 ## Configuration

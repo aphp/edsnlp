@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Prevent section titles from capturing surrounding tokens, causing overlaps (#113)
+
 ## v0.6.2 (2022-08-02)
 
 ### Added

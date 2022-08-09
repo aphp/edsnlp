@@ -2,17 +2,28 @@
 
 ## Unreleased
 
+### Fixed
+
+- Prevent section titles from capturing surrounding tokens, causing overlaps (#113)
+
+## v0.6.2 (2022-08-02)
+
 ### Added
 
 - New `SimstringMatcher` matcher to perform fuzzy term matching, and `algorithm` parameter in terminology components and `eds.matcher` component
+- Makefile to install,test the application and see the documentation
 
 ### Changed
 
 - Add consultation date pattern "CS", and False Positive patterns for dates (namely phone numbers and pagination).
-- Update the pipeline score `eds.TNM`. Now it is possible to return a dictionary where the results are whether str or int values. Also change patterns and matching attribute.
+- Update the pipeline score `eds.TNM`. Now it is possible to return a dictionary where the results are either `str` or `int` values
 
-### Added
-- Makefile to install,test the application and see the documentation
+### Fixed
+
+- Add new patterns to the negation qualifier
+- Numpy header issues with binary distributed packages
+- Simstring dependency on Windows
+
 ## v0.6.1 (2022-07-11)
 
 ### Added

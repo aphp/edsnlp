@@ -79,7 +79,9 @@ class Sections(GenericMatcher):
         self.add_patterns = add_patterns
         if add_patterns:
             for k, v in sections.items():
-                sections[k] = [r"\n[^\n]{0,5}" + ent + r"[^\n]{0,5}\n" for ent in v]
+                sections[k] = [
+                    r"(?<=\n[^\n]{0,5})" + ent + r"(?=[^\n]{0,5}\n)" for ent in v
+                ]
 
         super().__init__(
             nlp,
@@ -119,13 +121,6 @@ class Sections(GenericMatcher):
             spaCy Doc object, annotated for sections
         """
         titles = filter_spans(self.process(doc))
-
-        if self.add_patterns:
-            # Remove preceding newline
-            titles = [
-                Span(doc, title.start + 1, title.end - 1, label=title.label_)
-                for title in titles
-            ]
 
         sections = []
 

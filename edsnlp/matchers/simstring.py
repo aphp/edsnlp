@@ -8,7 +8,7 @@ from math import sqrt
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple, Union
 
-import quickumls_simstring.simstring as simstring
+import pysimstring.simstring as simstring
 from spacy import Language, Vocab
 from spacy.tokens import Doc, Span
 from tqdm import tqdm

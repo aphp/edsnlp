@@ -20,6 +20,11 @@ Detected sections are :
 - `motif`
 - `prescriptions`
 - `traitements sortie`
+- `evolution`
+- `modalites sortie`
+- `vaccinations`
+- `introduction_CR`
+
 
 <!--
   | Section                       | Description |
@@ -41,11 +46,19 @@ Detected sections are :
   | `actes`                       |             |
   | `motif`                       |             |
   | `prescriptions`               |             |
-  | `traitements sortie`          |             | -->
+  | `traitements sortie`          |             |
+  | `evolution`                   |             |
+  | `modalites sortie`            |             |
+  | `vaccinations`                |             |
+  | `introduction_CR`             |             | -->
 
 <!-- ![Section extraction](/resources/sections.svg){ align=right width="35%"} -->
 
 The pipeline extracts section title. A "section" is then defined as the span of text between two titles.
+
+Remarks :
+- section `introduction_CR` corresponds to the span of text between the header "COMPTE RENDU D'HOSPITALISATION" (usualy denoting the begining of the document) and the title of the following detected section
+- this pipeline works well for hospitalization summaries (CRH), but not necessarily for all types of documents (in particular for emergency or scan summaries CR-IMAGERIE)
 
 !!! warning "Use at your own risks"
 

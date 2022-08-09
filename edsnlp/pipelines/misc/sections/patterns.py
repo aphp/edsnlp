@@ -95,6 +95,10 @@ prescriptions = [r"prescriptions de sortie", r"prescriptions medicales de sortie
 
 traitements_sortie = [r"traitement de sortie"]
 
+evolution = [r"evolution", r"evolution et examen clinique aux lits portes :"]
+
+modalites_sortie = [r"modalites de sortie"]
+
 sections = {
     r"allergies": allergies,
     r"antécédents": antecedents,
@@ -114,4 +118,6 @@ sections = {
     r"motif": motif,
     r"prescriptions": prescriptions,
     r"traitements sortie": traitements_sortie,
+    r"evolution": evolution,
+    r"modalites sortie": modalites_sortie,
 }

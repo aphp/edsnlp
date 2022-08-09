@@ -64,8 +64,10 @@ examens_complementaires = [
     r"examen(s) complementaire(s)",
     r"examens complementaires",
     r"examens complementaires a l'entree",
+    r"examens complementaires realises a l'entree",
     r"examens complementaires realises pendant le sejour",
     r"examens para-cliniques",
+    r"imagerie post-operatoire",
 ]
 
 facteurs_de_risques = [r"facteurs de risque", r"facteurs de risques"]
@@ -80,6 +82,8 @@ histoire_de_la_maladie = [
     r"rappel clinique",
     r"resume",
     r"resume clinique",
+    r"resume clinique - histoire de la maladie",
+    r"antecedents et histoire de la maladie",
 ]
 
 actes = [r"intervention"]
@@ -97,7 +101,14 @@ traitements_sortie = [r"traitement de sortie"]
 
 evolution = [r"evolution", r"evolution et examen clinique aux lits portes :"]
 
-modalites_sortie = [r"modalites de sortie"]
+modalites_sortie = [r"modalites de sortie", r"devenir du patient"]
+
+vaccinations = [r"vaccinations", r"vaccination"]
+
+introduction_CR = [
+    r"compte rendu d'hospitalisation du \d{2}/\d{2}/\d{4} au \d{2}/\d{2}/\d{4}",
+    r"compte rendu d'hospitalisation .{0,25}",
+]
 
 sections = {
     r"allergies": allergies,
@@ -120,4 +131,6 @@ sections = {
     r"traitements sortie": traitements_sortie,
     r"evolution": evolution,
     r"modalites sortie": modalites_sortie,
+    r"vaccinations": vaccinations,
+    r"introduction_CR": introduction_CR,
 }

@@ -50,7 +50,7 @@ Detected sections are :
   | `evolution`                   |             |
   | `modalites sortie`            |             |
   | `vaccinations`                |             |
-  | `introduction_CR`             |             | -->
+  | `introduction`             |             | -->
 
 <!-- ![Section extraction](/resources/sections.svg){ align=right width="35%"} -->
 

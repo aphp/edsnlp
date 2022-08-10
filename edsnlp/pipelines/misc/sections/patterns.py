@@ -105,7 +105,7 @@ modalites_sortie = [r"modalites de sortie", r"devenir du patient"]
 
 vaccinations = [r"vaccinations", r"vaccination"]
 
-introduction_CR = [
+introduction = [
     r"compte rendu d'hospitalisation du \d{2}/\d{2}/\d{4} au \d{2}/\d{2}/\d{4}",
     r"compte rendu d'hospitalisation .{0,25}",
 ]

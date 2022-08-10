@@ -132,5 +132,5 @@ sections = {
     r"evolution": evolution,
     r"modalites sortie": modalites_sortie,
     r"vaccinations": vaccinations,
-    r"introduction_CR": introduction_CR,
+    r"introduction": introduction,
 }

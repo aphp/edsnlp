@@ -48,7 +48,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 architectures = [
-    "eds.nested_ner_model.v1 = edsnlp.models.nested_ner:create_nested_ner_model",
+    "eds.stack_crf_ner_model.v1 = edsnlp.models.stack_crf_ner:create_model",
 ]
 
 factories = [

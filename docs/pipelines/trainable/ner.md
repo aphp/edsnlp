@@ -59,9 +59,10 @@ nlp = train(
     output_path=tmp_path / "model",
     config=dict(
         **make_spacy_corpus_config(
-            "/path/to/the/training/set/brat/files",
-            "/path/to/the/dev/set/brat/files",
+            train_data="/path/to/the/training/set/brat/files",
+            dev_data="/path/to/the/dev/set/brat/files",
             nlp=nlp,
+            data_format="brat",
         ),
         training=dict(
             max_steps=4000,
@@ -70,7 +71,6 @@ nlp = train(
 )
 
 # Finally, we can run the pipeline on a new document
-
 doc = nlp("Arret du folfox si inefficace")
 doc.spans["drug"]
 # Out: [folfox]
@@ -82,10 +82,6 @@ doc.spans["criteria"]
 predicted_docs = BratConnector("/path/to/the/new/files", run_pipe=True).brat2docs(nlp)
 BratConnector("/path/to/predictions").docs2brat(predicted_docs)
 ```
-
-## Figures
-
-Here are some numbers
 
 ## Configuration
 
@@ -115,3 +111,5 @@ The default model `eds.nested_ner_model.v1` can be configured using the followin
 The `eds.nested_ner` pipeline was developed by AP-HP's Data Science team.
 
 The deep learning model was adapted from Wajsbürt[@wajsburt:tel-03624928]
+
+\bibliography

@@ -65,3 +65,6 @@ _build/
 
 # Environment
 .venv
+
+# Test resources
+!tests/resources/**/*

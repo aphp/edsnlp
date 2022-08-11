@@ -25,7 +25,7 @@ NUM_INITIALIZATION_EXAMPLES = 1000
 
 nested_ner_default_config = """
 [model]
-    @architectures = "eds.nested_ner_model.v1"
+    @architectures = "eds.stack_crf_ner_model.v1"
     mode = "joint"
 
     [model.tok2vec]
@@ -223,7 +223,7 @@ class TrainableNer(TrainablePipe):
         """Add a new label to the pipe."""
         raise Exception("Cannot add a new label to the pipe")
 
-    def predict(self, docs: List[Doc]) -> Ints2d:
+    def predict(self, docs: List[Doc]) -> Dict[str, Ints2d]:
         """
         Apply the pipeline's model to a batch of docs, without modifying them.
 
@@ -239,7 +239,9 @@ class TrainableNer(TrainablePipe):
         """
         return self.model.predict((docs, None, True))[1]
 
-    def set_annotations(self, docs: List[Doc], predictions: Ints2d, **kwargs) -> None:
+    def set_annotations(
+        self, docs: List[Doc], predictions: Dict[str, Ints2d], **kwargs
+    ) -> None:
         """
         Modify a batch of `Doc` objects, using predicted spans.
 
@@ -252,7 +254,7 @@ class TrainableNer(TrainablePipe):
         """
         docs = list(docs)
         new_doc_spans: List[List[Span]] = [[] for _ in docs]
-        for doc_idx, label_idx, begin, end in np_ops.asarray(predictions):
+        for doc_idx, label_idx, begin, end in np_ops.asarray(predictions.get("spans")):
             label = self.labels[label_idx]
             new_doc_spans[doc_idx].append(Span(docs[doc_idx], begin, end, label))
 

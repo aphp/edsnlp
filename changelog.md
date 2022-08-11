@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- New nested NER trainable `nested_ner` pipeline component
+
 ### Fixed
 
 - Prevent section titles from capturing surrounding tokens, causing overlaps (#113)
@@ -29,7 +33,6 @@
 
 ### Added
 
-- New nested NER trainable `nested_ner` pipeline component
 - Now possible to provide regex flags when using the RegexMatcher
 - New `ContextualMatcher` pipe, aiming at replacing the `AdvancedRegex` pipe.
 - New `as_ents` parameter for `eds.dates`, to save detected dates as entities

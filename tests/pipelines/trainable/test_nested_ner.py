@@ -44,7 +44,10 @@ def test_nested_ner_training(blank_nlp, gold, tmp_path, crf_mode):
         output_path=tmp_path,
         config=dict(
             **make_spacy_corpus_config(train_data=[gold], dev_data=[gold]),
-            training=dict(max_steps=10, eval_frequency=5),
+            **{
+                "training.max_steps": 10,
+                "training.eval_frequency": 5,
+            },
         ),
     )
 

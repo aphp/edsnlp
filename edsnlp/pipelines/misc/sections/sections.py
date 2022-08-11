@@ -78,13 +78,12 @@ class Sections(GenericMatcher):
 
         self.add_patterns = add_patterns
         if add_patterns:
+
             for k, v in sections.items():
-                if k != "introduction_CR":
-                    sections[k] = [
-                        r"(?<=\n[^\n]{0,5})" + ent + r"(?=[^\n]{0,5}\n)" for ent in v
-                    ]
-                else:
-                    sections[k] = [ent + r"(?=[^\n]{0,5}\n)" for ent in v]
+
+                sections[k] = [
+                    r"(?<=(?:\n|^)[^\n]{0,5})" + ent + r"(?=[^\n]{0,5}\n)" for ent in v
+                ]
 
         super().__init__(
             nlp,

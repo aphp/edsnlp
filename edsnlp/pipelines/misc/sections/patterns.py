@@ -105,7 +105,7 @@ modalites_sortie = [r"modalites de sortie", r"devenir du patient"]
 
 vaccinations = [r"vaccinations", r"vaccination"]
 
-introduction_CR = [
+introduction = [
     r"compte.?rendu d'hospitalisation.{0,30}",
 ]
 
@@ -131,5 +131,5 @@ sections = {
     r"evolution": evolution,
     r"modalites sortie": modalites_sortie,
     r"vaccinations": vaccinations,
-    r"introduction_CR": introduction_CR,
+    r"introduction": introduction,
 }

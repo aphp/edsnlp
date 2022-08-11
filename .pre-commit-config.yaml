@@ -5,6 +5,11 @@ repos:
     rev: v3.2.0
     hooks:
       - id: trailing-whitespace
+        exclude: |
+            (?x)^(
+                tests/resources/.*|
+                edsnlp/resources/.*
+            )$
       - id: no-commit-to-branch
       - id: end-of-file-fixer
       - id: check-yaml

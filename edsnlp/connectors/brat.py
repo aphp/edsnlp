@@ -2,7 +2,8 @@ import glob
 import os
 import re
 from collections import defaultdict
-from typing import Dict, List, Tuple
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Union
 
 import pandas as pd
 from joblib import Parallel, delayed
@@ -18,6 +19,11 @@ REGEX_RELATION = re.compile(r"^(R\d+)\t([^\s]+) Arg1:([^\s]+) Arg2:([^\s]+)")
 REGEX_ATTRIBUTE = re.compile(r"^([AM]\d+)\t(.+)$")
 REGEX_EVENT = re.compile(r"^(E\d+)\t(.+)$")
 REGEX_EVENT_PART = re.compile(r"([^\s]+):([TE]\d+)")
+
+
+class BratParsingError(ValueError):
+    def __init__(self, ann_file, line):
+        super().__init__(f"File {ann_file}, unrecognized Brat line {line}")
 
 
 def load_from_brat(path: str, merge_spaced_fragments: bool = True) -> Dict:
@@ -67,9 +73,7 @@ def load_from_brat(path: str, merge_spaced_fragments: bool = True) -> Dict:
                     if line.startswith("T"):
                         match = REGEX_ENTITY.match(line)
                         if match is None:
-                            raise ValueError(
-                                f"File {ann_file}, unrecognized Brat line {line}"
-                            )
+                            raise BratParsingError(ann_file, line)
                         ann_id = match.group(1)
                         entity = match.group(2)
                         span = match.group(3)
@@ -115,9 +119,7 @@ def load_from_brat(path: str, merge_spaced_fragments: bool = True) -> Dict:
                     elif line.startswith("A") or line.startswith("M"):
                         match = REGEX_ATTRIBUTE.match(line)
                         if match is None:
-                            raise ValueError(
-                                f"File {ann_file}, unrecognized Brat line {line}"
-                            )
+                            raise BratParsingError(ann_file, line)
                         ann_id = match.group(1)
                         parts = match.group(2).split(" ")
                         if len(parts) >= 3:
@@ -126,9 +128,7 @@ def load_from_brat(path: str, merge_spaced_fragments: bool = True) -> Dict:
                             entity, entity_id = parts
                             value = None
                         else:
-                            raise ValueError(
-                                f"File {ann_file}, unrecognized Brat line {line}"
-                            )
+                            raise BratParsingError(ann_file, line)
                         (
                             entities[entity_id]
                             if entity_id.startswith("T")
@@ -143,9 +143,7 @@ def load_from_brat(path: str, merge_spaced_fragments: bool = True) -> Dict:
                     elif line.startswith("R"):
                         match = REGEX_RELATION.match(line)
                         if match is None:
-                            raise ValueError(
-                                f"File {ann_file}, unrecognized Brat line {line}"
-                            )
+                            raise BratParsingError(ann_file, line)
                         ann_id = match.group(1)
                         ann_name = match.group(2)
                         arg1 = match.group(3)
@@ -161,9 +159,7 @@ def load_from_brat(path: str, merge_spaced_fragments: bool = True) -> Dict:
                     elif line.startswith("E"):
                         match = REGEX_EVENT.match(line)
                         if match is None:
-                            raise ValueError(
-                                f"File {ann_file}, unrecognized Brat line {line}"
-                            )
+                            raise BratParsingError(ann_file, line)
                         ann_id = match.group(1)
                         arguments_txt = match.group(2)
                         arguments = []
@@ -182,9 +178,7 @@ def load_from_brat(path: str, merge_spaced_fragments: bool = True) -> Dict:
                     elif line.startswith("#"):
                         match = REGEX_NOTE.match(line)
                         if match is None:
-                            raise ValueError(
-                                f"File {ann_file}, unrecognized Brat line {line}"
-                            )
+                            raise BratParsingError(ann_file, line)
                         ann_id = match.group(1)
                         entity_id = match.group(2)
                         comment = match.group(3)
@@ -249,36 +243,26 @@ def export_to_brat(doc, txt_filename, overwrite_txt=False, overwrite_ann=False):
                     )
                     if "attributes" in entity:
                         for i, attribute in enumerate(entity["attributes"]):
-                            if "value" in attribute and attribute["value"] is not None:
-                                print(
-                                    "A{}\t{} {} {}".format(
-                                        attribute_idx,
-                                        str(attribute["label"]),
-                                        brat_entity_id,
-                                        attribute["value"],
-                                    ),
-                                    file=f,
-                                )
-                            else:
-                                print(
-                                    "A{}\t{} {}".format(
-                                        attribute_idx,
-                                        str(attribute["label"]),
-                                        brat_entity_id,
-                                    ),
-                                    file=f,
-                                )
+                            print(
+                                "A{}\t{} {} {}".format(
+                                    attribute_idx,
+                                    str(attribute["label"]),
+                                    brat_entity_id,
+                                    attribute["value"],
+                                ),
+                                file=f,
+                            )
                             attribute_idx += 1
-            if "relations" in doc:
-                for i, relation in enumerate(doc["relations"]):
-                    entity_from = entities_ids[relation["from_entity_id"]]
-                    entity_to = entities_ids[relation["to_entity_id"]]
-                    print(
-                        "R{}\t{} Arg1:{} Arg2:{}\t".format(
-                            i + 1, str(relation["label"]), entity_from, entity_to
-                        ),
-                        file=f,
-                    )
+            # if "relations" in doc:
+            #     for i, relation in enumerate(doc["relations"]):
+            #         entity_from = entities_ids[relation["from_entity_id"]]
+            #         entity_to = entities_ids[relation["to_entity_id"]]
+            #         print(
+            #             "R{}\t{} Arg1:{} Arg2:{}\t".format(
+            #                 i + 1, str(relation["label"]), entity_from, entity_to
+            #             ),
+            #             file=f,
+            #         )
 
 
 class BratConnector(object):
@@ -287,16 +271,34 @@ class BratConnector(object):
 
     Parameters
     ----------
-    directory : str
+    directory : Union[str, Path]
         Directory containing the BRAT files.
     n_jobs : int, optional
         Number of jobs for multiprocessing, by default 1
     """
 
-    def __init__(self, directory: str, n_jobs: int = 1, run_pipe=False):
-        self.directory = directory
+    def __init__(
+        self,
+        directory: Union[str, Path],
+        n_jobs: int = 1,
+        run_pipe: bool = False,
+        attributes: Optional[Union[List[str], Tuple[str], Dict[str, str]]] = None,
+        span_groups: Optional[Union[List[str], Tuple[str]]] = None,
+    ):
+        self.directory: Path = Path(directory)
         self.n_jobs = n_jobs
         self.run_pipe = run_pipe
+        if attributes is None:
+            self.attr_map = None
+        elif isinstance(attributes, (tuple, list)):
+            self.attr_map = {k: k for k in attributes}
+        elif isinstance(attributes, dict):
+            self.attr_map = attributes
+        else:
+            raise TypeError(
+                "`attributes` should be a list, tuple or mapping of strings"
+            )
+        self.span_groups = None if span_groups is None else tuple(span_groups)
 
     def full_path(self, filename: str) -> str:
         return os.path.join(self.directory, filename)
@@ -315,19 +317,26 @@ class BratConnector(object):
         docs:
             List of spaCy documents, with annotations in the `ents` attribute.
         """
-
-        files = os.listdir(self.directory)
-        filenames = [f for f in files if f.endswith(".txt")]
+        filenames = list(
+            glob.iglob(str(self.directory / "**" / "*.txt"), recursive=True)
+        )
 
         assert filenames, f"BRAT directory {self.directory} is empty!"
         logger.info(
             f"The BRAT directory contains {len(filenames)} annotated documents."
         )
 
+        def load_and_rename(filename):
+            res = load_from_brat(filename)
+            res["note_id"] = str(Path(filename).relative_to(self.directory)).rsplit(
+                ".", 1
+            )[0]
+            return res
+
         iterator = tqdm(filenames, ascii=True, ncols=100, desc="Annotation extraction")
         with iterator:
             annotations = Parallel(n_jobs=self.n_jobs)(
-                delayed(load_from_brat)(self.full_path(filename))
+                delayed(load_and_rename)(self.full_path(filename))
                 for filename in filenames
             )
 
@@ -372,10 +381,17 @@ class BratConnector(object):
             spans = []
             span_groups = defaultdict(lambda: [])
 
+            if self.attr_map is not None:
+                for dst in self.attr_map.values():
+                    if not Span.has_extension(dst):
+                        Span.set_extension(dst, default=None)
+
             for ent in doc_annotations["entities"]:
-                for a in ent["attributes"]:
-                    if not Span.has_extension(a["label"]):
-                        Span.set_extension(a["label"], default=None)
+                if self.attr_map is None:
+                    for a in ent["attributes"]:
+                        if not Span.has_extension(a["label"]):
+                            Span.set_extension(a["label"], default=None)
+
                 for fragment in ent["fragments"]:
                     span = doc.char_span(
                         fragment["begin"],
@@ -384,9 +400,17 @@ class BratConnector(object):
                         alignment_mode="expand",
                     )
                     for a in ent["attributes"]:
-                        span._.set(a["label"], a["value"] if a is not None else True)
+                        if self.attr_map is None or a["label"] in self.attr_map:
+                            new_name = (
+                                a["label"]
+                                if self.attr_map is None
+                                else self.attr_map[a["label"]]
+                            )
+                            span._.set(new_name, a["value"] if a is not None else True)
                     spans.append(span)
-                    span_groups[ent["label"]].append(span)
+
+                    if self.span_groups is None or ent["label"] in self.span_groups:
+                        span_groups[ent["label"]].append(span)
 
             doc.ents = filter_spans(spans)
             for group_name, group in span_groups.items():
@@ -407,6 +431,11 @@ class BratConnector(object):
         """
         filename = str(doc._.note_id)
 
+        if self.attr_map is None:
+            rattr_map = {}
+        else:
+            rattr_map = {v: k for k, v in self.attr_map.items()}
+
         annotations = {
             "entities": [
                 {
@@ -417,9 +446,26 @@ class BratConnector(object):
                             "end": ent.end_char,
                         }
                     ],
+                    "attributes": [
+                        {"label": rattr_map[a], "value": getattr(ent._, a)}
+                        for a in rattr_map
+                        if getattr(ent._, a) is not None
+                    ],
                     "label": ent.label_,
                 }
-                for i, ent in enumerate(doc.ents)
+                for i, ent in enumerate(
+                    sorted(
+                        {
+                            *doc.ents,
+                            *(
+                                span
+                                for name in doc.spans
+                                if self.span_groups is None or name in self.span_groups
+                                for span in doc.spans[name]
+                            ),
+                        }
+                    )
+                )
             ],
             "text": doc.text,
         }

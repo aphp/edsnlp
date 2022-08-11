@@ -1,6 +1,6 @@
 # Trainable components overview
 
-In addition to its rule-based pipeline components, EDS-NLP offers new trainable pipelines to fit and run machine learning models for classic information extraction tasks.
+In addition to its rule-based pipeline components, EDS-NLP offers new trainable pipelines to fit and run machine learning models for classic biomedical information extraction tasks.
 
 ## Available components :
 
@@ -11,6 +11,7 @@ In addition to its rule-based pipeline components, EDS-NLP offers new trainable 
 !!! note "Writing custom models"
 
     spaCy models can be written with Thinc (spaCy's deep learning library), Tensorflow or Pytorch. As Pytorch is predominant in the NLP research field, we recommend writing models with the latter to facilitate interactions with the NLP community.
+    To this end, we have written some Pytorch wrapping utilities like [wrap_pytorch_model][edsnlp.models.pytorch_wrapper.wrap_pytorch_model] to allow loss and predictions to be computed directly in the Pytorch module.
 
 ## Utils
 
@@ -18,9 +19,9 @@ In addition to its rule-based pipeline components, EDS-NLP offers new trainable 
 
 In addition to the spaCy `train` CLI, EDS-NLP offers a `train` function that can be called in Python directly with an existing spaCy pipeline.
 
-### Logging
+!!! warning "Experimental"
 
-EDS-NLP also offers a pretty table logger `eds.RichLogger.v1` built on rich which acts as a replacement for `spacy.ConsoleLogger.v1`.
+    This training API is an experimental feature of edsnlp and could change at any time.
 
 ## Usage
 
@@ -49,6 +50,7 @@ nlp = train(
             train_data="/path/to/the/training/set/brat/files",
             dev_data="/path/to/the/dev/set/brat/files",
             nlp=nlp,
+            data_format="brat",
         ),
         training=dict(
             max_steps=4000,

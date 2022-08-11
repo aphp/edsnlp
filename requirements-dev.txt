@@ -8,4 +8,4 @@ pyspark
 pytest
 pytest-cov
 pytest-html
-rich-logger
+torch

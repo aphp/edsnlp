@@ -5,6 +5,8 @@
 ### Added
 
 - New nested NER trainable `nested_ner` pipeline component
+- Support for nested entities and attributes in BratDataConnector
+- Pytorch wrappers and experimental training utils
 
 ### Fixed
 

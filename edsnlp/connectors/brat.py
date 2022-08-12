@@ -3,7 +3,7 @@ import os
 import re
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import pandas as pd
 from joblib import Parallel, delayed
@@ -275,19 +275,25 @@ class BratConnector(object):
         Directory containing the BRAT files.
     n_jobs : int, optional
         Number of jobs for multiprocessing, by default 1
+    attributes: Optional[Union[Sequence[str], Mapping[str, str]]]
+        Mapping from BRAT attributes to spaCy Span extensions.
+        Extensions / attributes that are not in the mapping are not imported or exported
+        If left to None, the mapping is filled with all BRAT attributes.
+    span_groups: Optional[Sequence[str]]
+        Additional span groups to look for entities in spaCy documents when exporting.
+        Missing label (resp. span group) names are not imported (resp. exported)
+        If left to None, the sequence is filled with all BRAT entity labels.
     """
 
     def __init__(
         self,
         directory: Union[str, Path],
         n_jobs: int = 1,
-        run_pipe: bool = False,
-        attributes: Optional[Union[List[str], Tuple[str], Dict[str, str]]] = None,
-        span_groups: Optional[Union[List[str], Tuple[str]]] = None,
+        attributes: Optional[Union[Sequence[str], Mapping[str, str]]] = None,
+        span_groups: Optional[Sequence[str]] = None,
     ):
         self.directory: Path = Path(directory)
         self.n_jobs = n_jobs
-        self.run_pipe = run_pipe
         if attributes is None:
             self.attr_map = None
         elif isinstance(attributes, (tuple, list)):
@@ -342,14 +348,17 @@ class BratConnector(object):
 
         return annotations
 
-    def brat2docs(self, nlp: Language) -> List[Doc]:
+    def brat2docs(self, nlp: Language, run_pipe=False) -> List[Doc]:
         """
         Transforms a BRAT folder to a list of spaCy documents.
 
         Parameters
         ----------
-        nlp:
+        nlp: Language
             A spaCy pipeline.
+        run_pipe: bool
+            Should the full spaCy pipeline be run on the documents, or just the
+            tokenization (defaults to False ie only tokenization)
 
         Returns
         -------
@@ -363,7 +372,7 @@ class BratConnector(object):
 
         docs = []
 
-        if self.run_pipe:
+        if run_pipe:
             gold_docs = nlp.pipe(texts, batch_size=50, n_process=self.n_jobs)
         else:
             gold_docs = (nlp.make_doc(t) for t in texts)
@@ -386,11 +395,13 @@ class BratConnector(object):
                     if not Span.has_extension(dst):
                         Span.set_extension(dst, default=None)
 
+            encountered_attributes = set()
             for ent in doc_annotations["entities"]:
                 if self.attr_map is None:
                     for a in ent["attributes"]:
                         if not Span.has_extension(a["label"]):
                             Span.set_extension(a["label"], default=None)
+                        encountered_attributes.add(a["label"])
 
                 for fragment in ent["fragments"]:
                     span = doc.char_span(
@@ -411,6 +422,12 @@ class BratConnector(object):
 
                     if self.span_groups is None or ent["label"] in self.span_groups:
                         span_groups[ent["label"]].append(span)
+
+            if self.attr_map is None:
+                self.attr_map = {k: k for k in encountered_attributes}
+
+            if self.span_groups is None:
+                self.span_groups = sorted(span_groups.keys())
 
             doc.ents = filter_spans(spans)
             for group_name, group in span_groups.items():

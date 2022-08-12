@@ -78,9 +78,11 @@ class Sections(GenericMatcher):
 
         self.add_patterns = add_patterns
         if add_patterns:
+
             for k, v in sections.items():
+
                 sections[k] = [
-                    r"(?<=\n[^\n]{0,5})" + ent + r"(?=[^\n]{0,5}\n)" for ent in v
+                    r"(?<=(?:\n|^)[^\n]{0,5})" + ent + r"(?=[^\n]{0,5}\n)" for ent in v
                 ]
 
         super().__init__(

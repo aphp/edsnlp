@@ -5,6 +5,7 @@
 ### Fixed
 
 - Prevent section titles from capturing surrounding tokens, causing overlaps (#113)
+- Enhance existing patterns for section detection and add patterns for previously ignored sections (introduction, evolution, modalites de sortie, vaccination) .
 
 ## v0.6.2 (2022-08-02)
 

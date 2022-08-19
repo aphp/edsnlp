@@ -8,6 +8,7 @@ from thinc.shims import PyTorchShim
 from thinc.types import ArgsKwargs, Floats1d, Floats2d, Ints2d
 from thinc.util import (
     convert_recursive,
+    get_torch_default_device,
     is_torch_array,
     is_xp_array,
     torch2xp,
@@ -253,6 +254,7 @@ def instance_init(model: Model, X: List[Doc] = None, Y: Ints2d = None) -> Model:
     pt_model = model.attrs["pt_model"]
     pt_model.cfg["input_size"] = encoder.get_dim("nO")
     pt_model.initialize()
+    pt_model.to(get_torch_default_device())
     model.set_dim("nI", pt_model.input_size)
 
     return model

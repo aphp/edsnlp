@@ -46,7 +46,7 @@ def create_component(
     termination: Optional[List[str]],
     use_sections: bool,
     attr: str,
-    explain: str,
+    explain: bool,
     on_ents_only: bool,
 ):
     return History(

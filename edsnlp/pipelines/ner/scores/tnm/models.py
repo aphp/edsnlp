@@ -77,7 +77,7 @@ class TNM(BaseModel):
     node: Optional[Node] = None
     node_specification: Optional[Specification] = None
     metastasis: Optional[Metastasis] = None
-    regional_nodes: Optional[int] = None
+    resection_completeness: Optional[int] = None
     version: Optional[str] = None
     version_year: Optional[int] = None
 
@@ -116,8 +116,8 @@ class TNM(BaseModel):
         if self.metastasis is not None:
             norm.append(f"M{self.metastasis}")
 
-        if self.regional_nodes is not None:
-            norm.append(f"R{self.regional_nodes}")
+        if self.resection_completeness is not None:
+            norm.append(f"R{self.resection_completeness}")
 
         if self.version is not None and self.version_year is not None:
             norm.append(f" ({self.version.upper()} {self.version_year})")

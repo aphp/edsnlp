@@ -2,7 +2,7 @@ modifier_pattern = r"(?P<modifier>[cpPyraum]p?)"
 tumour_pattern = r"T\s?(?P<tumour>([0-4o]|is))?(?P<tumour_specification>[abcdx])?"
 node_pattern = r"N\s?(?P<node>[0-3o]|x)(?P<node_specification>[abcdx])?"
 metastasis_pattern = r"M\s?(?P<metastasis>([01o]|x))x?"
-regional_nodes_pattern = r"R\s?(?P<regional_nodes>[012])"
+resection_completeness = r"R\s?(?P<resection_completeness>[012])"
 
 
 version_pattern = (
@@ -17,5 +17,6 @@ tnm_pattern = f"(?<={version_pattern}{spacer})?"
 tnm_pattern += modifier_pattern + r"\s*" + f"({tumour_pattern})"
 tnm_pattern += r"\s*" + f"({node_pattern})?"
 tnm_pattern += r"\s*" + f"({metastasis_pattern})?"
-tnm_pattern += r"\s*" + f"({regional_nodes_pattern})?"
+tnm_pattern += r"\s*" + f"({resection_completeness})?"
 tnm_pattern += f"({spacer}{version_pattern})?"
+tnm_pattern = r"\b" + tnm_pattern + r"\b"

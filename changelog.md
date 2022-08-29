@@ -1,7 +1,36 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- New nested NER trainable `nested_ner` pipeline component
+- Support for nested entities and attributes in BratDataConnector
+- Pytorch wrappers and experimental training utils
+
+### Fixed
+
+- Prevent section titles from capturing surrounding tokens, causing overlaps (#113)
+- Enhance existing patterns for section detection and add patterns for previously ignored sections (introduction, evolution, modalites de sortie, vaccination) .
+- Fix explain mode, which was always triggered, in `eds.history` factory.
+
+## v0.6.2 (2022-08-02)
+
+### Added
+
+- New `SimstringMatcher` matcher to perform fuzzy term matching, and `algorithm` parameter in terminology components and `eds.matcher` component
+- Makefile to install,test the application and see the documentation
+
 ### Changed
-- Update the pipeline score `eds.TNM`. Now it is possible to return a dictionary where the results are whether str or int values. Also change patterns and matching attribute.
+
+- Add consultation date pattern "CS", and False Positive patterns for dates (namely phone numbers and pagination).
+- Update the pipeline score `eds.TNM`. Now it is possible to return a dictionary where the results are either `str` or `int` values
+
+### Fixed
+
+- Add new patterns to the negation qualifier
+- Numpy header issues with binary distributed packages
+- Simstring dependency on Windows
 
 ## v0.6.1 (2022-07-11)
 

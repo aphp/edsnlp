@@ -16,10 +16,29 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@deprecated_factory("antecedents", "eds.history", default_config=DEFAULT_CONFIG)
-@deprecated_factory("eds.antecedents", "eds.history", default_config=DEFAULT_CONFIG)
-@deprecated_factory("history", "eds.history", default_config=DEFAULT_CONFIG)
-@Language.factory("eds.history", default_config=DEFAULT_CONFIG)
+@deprecated_factory(
+    "antecedents",
+    "eds.history",
+    default_config=DEFAULT_CONFIG,
+    assigns=["span._.history"],
+)
+@deprecated_factory(
+    "eds.antecedents",
+    "eds.history",
+    default_config=DEFAULT_CONFIG,
+    assigns=["span._.history"],
+)
+@deprecated_factory(
+    "history",
+    "eds.history",
+    default_config=DEFAULT_CONFIG,
+    assigns=["span._.history"],
+)
+@Language.factory(
+    "eds.history",
+    default_config=DEFAULT_CONFIG,
+    assigns=["span._.history"],
+)
 def create_component(
     nlp: Language,
     name: str,
@@ -27,7 +46,7 @@ def create_component(
     termination: Optional[List[str]],
     use_sections: bool,
     attr: str,
-    explain: str,
+    explain: bool,
     on_ents_only: bool,
 ):
     return History(

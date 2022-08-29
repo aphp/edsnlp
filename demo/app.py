@@ -6,6 +6,8 @@ import streamlit as st
 from spacy import displacy
 from spacy.tokens import Span
 
+from edsnlp.utils.filter import filter_spans
+
 DEFAULT_TEXT = """\
 Motif :
 Le patient est admis le 29 août pour des difficultés respiratoires.
@@ -21,7 +23,7 @@ A noter deux petits kystes bénins de 1 et 2cm biopsiés en 2005.
 Priorité: 2 (établie par l'IAO à l'entrée)
 
 Conclusion
-Possible infection au coronavirus. Prescription de paracétamol pour la fièvre.\
+Possible infection au coronavirus. Prescription de paracétomol pour la fièvre.\
 """
 
 REGEX = """
@@ -65,6 +67,7 @@ doc.ents
 @st.cache(allow_output_mutation=True)
 def load_model(
     drugs: bool,
+    fuzzy_drugs: bool,
     cim10: bool,
     covid: bool,
     dates: bool,
@@ -83,8 +86,14 @@ def load_model(
     nlp.add_pipe("eds.sentences")
 
     if drugs:
-        nlp.add_pipe("eds.drugs")
-        pipes.append('nlp.add_pipe("eds.drugs")')
+        if fuzzy_drugs:
+            nlp.add_pipe("eds.drugs", config=dict(term_matcher="simstring"))
+            pipes.append(
+                'nlp.add_pipe("eds.drugs", config=dict(term_matcher="simstring"))'
+            )
+        else:
+            nlp.add_pipe("eds.drugs")
+            pipes.append('nlp.add_pipe("eds.drugs")')
 
     if cim10:
         nlp.add_pipe("eds.cim10")
@@ -168,21 +177,25 @@ st.sidebar.markdown(
 )
 
 st.sidebar.header("Custom RegEx")
-custom_regex = st.sidebar.text_input(
+st_custom_regex = st.sidebar.text_input(
     "Regular Expression:",
     r"asthmatique|difficult[ée]s?\srespiratoires?",
 )
 st.sidebar.markdown("The RegEx you defined above is detected under the `custom` label.")
 
 st.sidebar.subheader("Pipeline Components")
-cim10 = st.sidebar.checkbox("CIM10 (loading can be slow)", value=False)
-drugs = st.sidebar.checkbox("Drugs", value=True)
-covid = st.sidebar.checkbox("COVID", value=True)
-dates = st.sidebar.checkbox("Dates", value=True)
-measurements = st.sidebar.checkbox("Measurements", value=True)
-priority = st.sidebar.checkbox("Emergency Priority Score", value=True)
-charlson = st.sidebar.checkbox("Charlson Score", value=True)
-sofa = st.sidebar.checkbox("SOFA Score", value=True)
+st_cim10 = st.sidebar.checkbox("CIM10 (loading can be slow)", value=False)
+st_drugs_container = st.sidebar.columns([1, 2])
+st_drugs = st_drugs_container[0].checkbox("Drugs", value=True)
+st_fuzzy_drugs = st_drugs_container[1].checkbox(
+    "Fuzzy drugs search", value=True, disabled=not st_drugs
+)
+st_covid = st.sidebar.checkbox("COVID", value=True)
+st_dates = st.sidebar.checkbox("Dates", value=True)
+st_measurements = st.sidebar.checkbox("Measurements", value=True)
+st_priority = st.sidebar.checkbox("Emergency Priority Score", value=True)
+st_charlson = st.sidebar.checkbox("Charlson Score", value=True)
+st_sofa = st.sidebar.checkbox("SOFA Score", value=True)
 st.sidebar.markdown(
     "These are just a few of the pipelines provided out-of-the-box by EDS-NLP. "
     "See the [documentation](https://aphp.github.io/edsnlp/latest/pipelines/) "
@@ -192,15 +205,16 @@ st.sidebar.markdown(
 model_load_state = st.info("Loading model...")
 
 nlp, pipes, regex = load_model(
-    drugs=drugs,
-    cim10=cim10,
-    covid=covid,
-    dates=dates,
-    measurements=measurements,
-    charlson=charlson,
-    sofa=sofa,
-    priority=priority,
-    custom_regex=custom_regex,
+    drugs=st_drugs,
+    fuzzy_drugs=st_fuzzy_drugs,
+    cim10=st_cim10,
+    covid=st_covid,
+    dates=st_dates,
+    measurements=st_measurements,
+    charlson=st_charlson,
+    sofa=st_sofa,
+    priority=st_priority,
+    custom_regex=st_custom_regex,
 )
 
 model_load_state.empty()
@@ -238,7 +252,7 @@ for measure in doc.spans.get("measurements", []):
     ents.append(span)
 
 
-doc.ents = ents
+doc.ents = list(filter_spans(ents))
 
 category20 = [
     "#1f77b4",
@@ -317,7 +331,10 @@ for ent in doc.ents:
         )
 
     try:
-        d["normalized_value"] = str(ent._.value)
+        if ent.kb_id_ and not ent._.value:
+            d["normalized_value"] = ent.kb_id_
+        else:
+            d["normalized_value"] = str(ent._.value)
     except TypeError:
         d["normalized_value"] = ""
 

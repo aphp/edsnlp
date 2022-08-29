@@ -1,6 +1,6 @@
 # Word embeddings
 
-EDS-NLP proposes rule-based components exclusively. However, that does not prohibit you from exploiting spaCy's machine learning capabilities!
+The only ready-to-use components in EDS-NLP are rule-based components. However, that does not prohibit you from exploiting spaCy's machine learning capabilities!
 You can mix and match machine learning pipelines, trainable or not, with EDS-NLP rule-based components.
 
 In this tutorial, we will explore how you can use **static word vectors** trained with [Gensim](https://radimrehurek.com/gensim/) within spaCy.

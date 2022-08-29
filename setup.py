@@ -47,6 +47,10 @@ ext_modules = cythonize(ext_modules, compiler_directives=COMPILER_DIRECTIVES)
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+architectures = [
+    "eds.stack_crf_ner_model.v1 = edsnlp.models.stack_crf_ner:create_model",
+]
+
 factories = [
     "matcher = edsnlp.components:matcher",
     "terminology = edsnlp.components:terminology",
@@ -78,6 +82,16 @@ factories = [
     "context = edsnlp.components:context",
     "measurements = edsnlp.components:measurements",
     "drugs = edsnlp.components:drugs",
+    "nested_ner = edsnlp.components:nested_ner",
+]
+
+scorers = [
+    "eds.nested_ner_scorer.v1 = "
+    "edsnlp.pipelines.trainable.nested_ner:make_nested_ner_scorer",
+]
+
+loggers = [
+    "eds.RichLogger.v1 = edsnlp.utils.training:console_logger",
 ]
 
 setup(
@@ -110,7 +124,10 @@ setup(
         "": ["*.pyx", "*.pxd", "*.pxi"],
     },
     entry_points={
+        "spacy_architectures": architectures,
         "spacy_factories": factories,
         "spacy_languages": ["eds = edsnlp.language:EDSLanguage"],
+        "spacy_scorers": scorers,
+        "spacy_loggers": loggers,
     },
 )

@@ -1,8 +1,9 @@
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from spacy.language import Language
 
 from edsnlp.pipelines.core.matcher import GenericMatcher
+from edsnlp.pipelines.core.matcher.matcher import GenericTermMatcher
 from edsnlp.utils.deprecation import deprecated_factory
 
 DEFAULT_CONFIG = dict(
@@ -10,11 +11,20 @@ DEFAULT_CONFIG = dict(
     regex=None,
     attr="TEXT",
     ignore_excluded=False,
+    term_matcher=GenericTermMatcher.exact,
+    term_matcher_config={},
 )
 
 
-@deprecated_factory("matcher", "eds.matcher", default_config=DEFAULT_CONFIG)
-@Language.factory("eds.matcher", default_config=DEFAULT_CONFIG)
+@deprecated_factory(
+    "matcher",
+    "eds.matcher",
+    default_config=DEFAULT_CONFIG,
+    assigns=["doc.ents", "doc.spans"],
+)
+@Language.factory(
+    "eds.matcher", default_config=DEFAULT_CONFIG, assigns=["doc.ents", "doc.spans"]
+)
 def create_component(
     nlp: Language,
     name: str,
@@ -22,6 +32,8 @@ def create_component(
     attr: Union[str, Dict[str, str]],
     regex: Optional[Dict[str, Union[str, List[str]]]],
     ignore_excluded: bool,
+    term_matcher: GenericTermMatcher,
+    term_matcher_config: Dict[str, Any],
 ):
     assert not (terms is None and regex is None)
 
@@ -36,4 +48,6 @@ def create_component(
         attr=attr,
         regex=regex,
         ignore_excluded=ignore_excluded,
+        term_matcher=term_matcher,
+        term_matcher_config=term_matcher_config,
     )

@@ -4,7 +4,6 @@ node_pattern = r"N\s?(?P<node>[0-3o]|x)(?P<node_specification>[abcdx])?"
 metastasis_pattern = r"M\s?(?P<metastasis>([01o]|x))x?"
 resection_completeness = r"R\s?(?P<resection_completeness>[012])"
 
-
 version_pattern = (
     r"\(?(?P<version>uicc|accj|tnm|UICC|ACCJ|TNM)"
     r"\s+([éeE]ditions|[éeE]d\.?)?\s*"

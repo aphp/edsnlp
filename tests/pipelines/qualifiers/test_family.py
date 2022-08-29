@@ -23,6 +23,7 @@ examples: List[str] = [
         "Antécédent familiaux de diabète mais pas "
         "<ent family_=PATIENT>détecté</ent> jusqu'ici."
     ),
+    "mère : <ent family=True>diabète de type II</ent>",
 ]
 
 

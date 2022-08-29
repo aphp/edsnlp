@@ -23,7 +23,7 @@ color:green Successfully installed!
 We recommend pinning the library version in your projects, or use a strict package manager like [Poetry](https://python-poetry.org/).
 
 ```
-pip install edsnlp==0.6.1
+pip install edsnlp==0.6.2
 ```
 
 ### A first pipeline
@@ -110,6 +110,12 @@ This example is complete, it should run as-is. Check out the [spaCy 101 page](tu
     | `eds.TNM`                | A TNM score extractor       |
     | `eds.cim10`              | A CIM10 terminology matcher |
     | `eds.drugs`              | A Drug mentions extractor   |
+
+=== "Trainable"
+
+    | Pipeline               | Description                                     |
+    | ---------------------- | ----------------------------------------------- |
+    | `eds.nested-ner`       | Nested and overlapping named entity recogntion  |
 
 ## Disclaimer
 

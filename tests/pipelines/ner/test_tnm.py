@@ -7,6 +7,7 @@ examples = [
     "TNM: <ent norm='aTxN1M0 (UICC 1968)'>aTxN1M0 (UICC 68)</ent>",
     "TNM: <ent norm=aTxN1R2>aTxN1 R2</ent>",
     "TNM: <ent norm='pT2cN0R0 (TNM 2010)'>pT2c N0 R0 (TNM 2010)</ent>",
+    "TNM: <ent norm=aTxN1M0>aTx / N1 / M0</ent>",
 ]
 
 

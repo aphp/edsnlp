@@ -7,6 +7,7 @@
 - New nested NER trainable `nested_ner` pipeline component
 - Support for nested entities and attributes in BratDataConnector
 - Pytorch wrappers and experimental training utils
+- Add new cases for separator pattern when components of the TNM score are separated by a forward slash
 
 ### Fixed
 

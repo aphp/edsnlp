@@ -7,6 +7,7 @@
 - New nested NER trainable `nested_ner` pipeline component
 - Support for nested entities and attributes in BratDataConnector
 - Pytorch wrappers and experimental training utils
+- Add attribute `section` to entities
 - Add new cases for separator pattern when components of the TNM score are separated by a forward slash
 
 ### Fixed
@@ -15,6 +16,7 @@
 - Enhance existing patterns for section detection and add patterns for previously ignored sections (introduction, evolution, modalites de sortie, vaccination) .
 - Fix explain mode, which was always triggered, in `eds.history` factory.
 - Rename R component of score TNM as "resection_completeness"
+- Fix test in `eds.sections`. Previously, no check was done
 
 ## v0.6.2 (2022-08-02)
 

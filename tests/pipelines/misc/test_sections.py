@@ -61,7 +61,9 @@ def test_sections(blank_nlp, sections_factory):
     text, entities = parse_example(example=sections_text)
 
     doc = blank_nlp(text)
-    doc.ents = [doc.char_span(ent.start_char, ent.end_char) for ent in entities]
+    doc.ents = [
+        doc.char_span(ent.start_char, ent.end_char, "generic") for ent in entities
+    ]
 
     doc = sections(doc)
 

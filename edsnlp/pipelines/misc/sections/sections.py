@@ -107,6 +107,12 @@ class Sections(GenericMatcher):
         if not Span.has_extension("section"):
             Span.set_extension("section", default=None)
 
+    @staticmethod
+    def tag_ents(sections: List[Span]):
+        for section in sections:
+            for e in section.ents:
+                e._.section = section.label_
+
     # noinspection PyProtectedMember
     def __call__(self, doc: Doc) -> Doc:
         """
@@ -140,4 +146,5 @@ class Sections(GenericMatcher):
         doc.spans["sections"] = sections
         doc.spans["section_titles"] = titles
 
+        self.tag_ents(sections)
         return doc

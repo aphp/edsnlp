@@ -1,56 +1,48 @@
 """`eds.adicap` pipeline"""
 
-from typing import List
 
-from spacy.tokens import Doc, Span
+from spacy.tokens import Doc
 
-from edsnlp.matchers.regex import RegexMatcher
-from edsnlp.pipelines.base import BaseComponent
+from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
 from edsnlp.utils.filter import filter_spans
 
 from . import patterns
 
 
-class Adicap(BaseComponent):
-    def __init__(self, nlp, pattern, attr):
+class Adicap(ContextualMatcher):
+    def __init__(self, nlp, pattern, attr, prefix, window):
 
         self.nlp = nlp
-
         if pattern is None:
-            pattern = patterns.adicap_pattern
+            pattern = patterns.base_code
 
-        if isinstance(pattern, str):
-            pattern = [pattern]
+        if prefix is None:
+            prefix = patterns.adicap_prefix
 
-        self.regex_matcher = RegexMatcher(attr=attr, alignment_mode="strict")
-        self.regex_matcher.add("adicap", pattern)
-
-        self.set_extensions()
-
-    def process(self, doc: Doc) -> List[Span]:
-        """
-        Find ADICAP mentions in doc.
-
-        Parameters
-        ----------
-        doc:
-            spaCy Doc object
-
-        Returns
-        -------
-        spans:
-            list of ADICAP spans
-        """
-
-        spans = self.regex_matcher(
-            doc,
-            as_spans=True,
-            return_groupdict=False,
+        adicap_pattern = dict(
+            source="adicap",
+            regex=pattern,
+            regex_attr=attr,
+            assign=[
+                dict(
+                    name="type_code",
+                    regex=prefix,
+                    window=window,
+                    expand_entity=False,
+                ),
+            ],
         )
 
-        spans = filter_spans(spans)
-
-        return spans
+        super().__init__(
+            nlp=nlp,
+            name="adicap",
+            attr=attr,
+            patterns=adicap_pattern,
+            ignore_excluded=False,
+            regex_flags=0,
+            alignment_mode="strict",
+            assign_as_span=True,
+        )
 
     def __call__(self, doc: Doc) -> Doc:
         """
@@ -69,11 +61,20 @@ class Adicap(BaseComponent):
         spans = self.process(doc)
         spans = filter_spans(spans)
 
-        # spans = self.parse(spans)
+        valid_spans = []
+        for span in spans:
+            if span._.assigned:
+                valid_spans.append(span)
+                span._.assigned = None
 
-        doc.spans["adicap"] = spans
+        # TODO Decode
+        # valid_spans = self.decode(valid_spans)
 
-        ents, discarded = filter_spans(list(doc.ents) + spans, return_discarded=True)
+        doc.spans["adicap"] = valid_spans
+
+        ents, discarded = filter_spans(
+            list(doc.ents) + valid_spans, return_discarded=True
+        )
 
         doc.ents = ents
 

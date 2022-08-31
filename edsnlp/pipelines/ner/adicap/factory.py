@@ -4,10 +4,7 @@ from spacy.language import Language
 
 from .adicap import Adicap
 
-DEFAULT_CONFIG = dict(
-    pattern=None,
-    attr="TEXT",
-)
+DEFAULT_CONFIG = dict(pattern=None, prefix=None, attr="TEXT", window=-500)
 
 
 @Language.factory(
@@ -19,10 +16,8 @@ def create_component(
     nlp: Language,
     name: str,
     pattern: Optional[Union[List[str], str]],
+    prefix: Optional[Union[List[str], str]],
+    window: int,
     attr: str,
 ):
-    return Adicap(
-        nlp,
-        pattern=pattern,
-        attr=attr,
-    )
+    return Adicap(nlp, pattern=pattern, attr=attr, prefix=prefix, window=window)

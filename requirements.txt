@@ -1,5 +1,4 @@
 decorator
-gzip
 loguru
 numpy>=1.15.0
 pandas

@@ -1,12 +1,13 @@
 """`eds.adicap` pipeline"""
 
 
-from spacy.tokens import Doc
+from spacy.tokens import Doc, Span
 
 from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
 from edsnlp.utils.filter import filter_spans
 
 from . import patterns
+from .decoder import AdicapDecoder
 
 
 class Adicap(ContextualMatcher):
@@ -44,6 +45,11 @@ class Adicap(ContextualMatcher):
             assign_as_span=True,
         )
 
+        self.decoder = AdicapDecoder()
+
+        if not Span.has_extension("adicap"):
+            Span.set_extension("adicap", default=None)
+
     def __call__(self, doc: Doc) -> Doc:
         """
         Tags ADICAP mentions.
@@ -66,9 +72,7 @@ class Adicap(ContextualMatcher):
             if span._.assigned:
                 valid_spans.append(span)
                 span._.assigned = None
-
-        # TODO Decode
-        # valid_spans = self.decode(valid_spans)
+                span._.adicap = self.decoder.decode_adicap(span.text)
 
         doc.spans["adicap"] = valid_spans
 

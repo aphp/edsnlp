@@ -38,3 +38,16 @@ def get_verbs(
         assert len(verbs) == selected_verbs.verb.nunique(), "Some verbs are missing !"
 
     return selected_verbs
+
+
+def get_adicap_data():
+    """
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with ADICAP raw data
+    """
+    df = pd.read_excel(
+        BASE_DIR / "resources" / "CGTS_SEM_ADICAP.xlsx", sheet_name="rawdatas", header=0
+    )
+    return df

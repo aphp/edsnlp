@@ -45,6 +45,7 @@ EDS-NLP provides easy-to-use spaCy components.
     | `eds.TNM`                | A TNM score extractor       |
     | `eds.cim10`              | A CIM10 terminology matcher |
     | `eds.drugs`              | A Drug mentions extractor   |
+    | `eds.adicap`             | A ADICAP codes extractor    |
 
 You can add them to your spaCy pipeline by simply calling `add_pipe`, for instance:
 

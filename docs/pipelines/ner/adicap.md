@@ -34,7 +34,7 @@ For further details about the ADICAP code follow this [link](https://smt.esante.
 import spacy
 
 nlp = spacy.blank("eds")
-nlp.add_pipe("sentencizer")
+nlp.add_pipe("eds.sentences")
 nlp.add_pipe("eds.adicap")
 
 text = """"

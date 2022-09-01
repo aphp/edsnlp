@@ -36,3 +36,4 @@ def test_scores(blank_nlp):
             for expected, ent in zip(expected_entities, doc.ents):
                 text = expected.modifiers[0].value
                 assert text == ent.text
+                assert len(ent._.adicap.keys()) > 0

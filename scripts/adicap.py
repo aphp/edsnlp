@@ -1,7 +1,8 @@
 """
 Process ADICAP codes
+Thésaurus de la codification ADICAP - Index raisonné des lésions
+source : https://smt.esante.gouv.fr/terminologie-adicap/
 
-Source:
 """
 
 import gzip

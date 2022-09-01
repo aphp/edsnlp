@@ -110,6 +110,7 @@ This example is complete, it should run as-is. Check out the [spaCy 101 page](tu
     | `eds.TNM`                | A TNM score extractor       |
     | `eds.cim10`              | A CIM10 terminology matcher |
     | `eds.drugs`              | A Drug mentions extractor   |
+    | `eds.adicap`             | A ADICAP codes extractor    |
 
 === "Trainable"
 

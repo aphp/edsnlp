@@ -17,7 +17,7 @@ These characters represent the following attributes:
 | --------------------- | -------------------------------- | --------------------- |
 | Sampling mode         | Mode de prelevement              | sampling_mode         |
 | Technic               | Type de technique                | technic               |
-| Organ and regions     | Appareils, organes et regions    | organ                 |
+| Organ and regions     | Appareils, organes et régions    | organ                 |
 | Non tumoral pathology | Pathologie générale non tumorale | non_tumoral_pathology |
 | Tumoral pathology     | Pathologie tumorale              | tumoral_pathology     |
 | Behaviour type        | Type de comportement             | behaviour_type        |

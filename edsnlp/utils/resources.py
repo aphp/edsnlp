@@ -1,3 +1,5 @@
+import gzip
+import json
 from typing import List, Optional
 
 import pandas as pd
@@ -40,14 +42,14 @@ def get_verbs(
     return selected_verbs
 
 
-def get_adicap_data():
+def get_adicap_dict():
     """
     Returns
     -------
-    pd.DataFrame
-        DataFrame with ADICAP raw data
+    Dict
     """
-    df = pd.read_excel(
-        BASE_DIR / "resources" / "CGTS_SEM_ADICAP.xlsx", sheet_name="rawdatas", header=0
-    )
-    return df
+
+    with gzip.open(BASE_DIR / "resources" / "adicap.json.gz", "r") as fin:
+        decode_dict = json.loads(fin.read().decode("utf-8"))
+
+    return decode_dict

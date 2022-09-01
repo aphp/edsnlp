@@ -1,37 +1,11 @@
-from typing import List
-
-from edsnlp.utils.resources import get_adicap_data
+from edsnlp.utils.resources import get_adicap_dict
 
 
 class AdicapDecoder:
     def __init__(
         self,
-        dict_keys: List[str] = ["D1", "D2", "D3", "D4", "D5"],
     ):
-        self.dict_keys = dict_keys
-        self.df = get_adicap_data()
-
-        self.get_decode_dict()
-
-    def parse_each_dict(self, dictionaryCode: str):
-        d_spec = self.df.query(f"dictionaryCode=='{dictionaryCode}'")
-
-        decode_d_spec = {}
-
-        for code, label in d_spec[["code", "label"]].values:
-            decode_d_spec[code] = label
-
-        d_value = decode_d_spec.pop(dictionaryCode)
-
-        return dict(label=d_value, codes=decode_d_spec)
-
-    def get_decode_dict(self):
-        decode_dict = {}
-        for key in self.dict_keys:
-
-            decode_dict[key] = self.parse_each_dict(dictionaryCode=key)
-
-        self.decode_dict = decode_dict
+        self.decode_dict = get_adicap_dict()
 
     def decode_adicap(self, code: str):
         exploded = list(code)

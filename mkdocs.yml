@@ -36,62 +36,64 @@ nav:
   - index.md
   - Demo: https://aphp.github.io/edsnlp/demo" target="_blank
   - Tutorials:
-    - tutorials/index.md
-    - tutorials/spacy101.md
-    - tutorials/matching-a-terminology.md
-    - tutorials/qualifying-entities.md
-    - tutorials/detecting-dates.md
-    - tutorials/multiple-texts.md
-    - tutorials/endlines.md
-    - tutorials/reason.md
+      - tutorials/index.md
+      - tutorials/spacy101.md
+      - tutorials/matching-a-terminology.md
+      - tutorials/qualifying-entities.md
+      - tutorials/detecting-dates.md
+      - tutorials/multiple-texts.md
+      - tutorials/endlines.md
+      - tutorials/reason.md
   - Advanced tutorials:
-    - advanced-tutorials/index.md
-    - advanced-tutorials/word-vectors.md
-    - advanced-tutorials/fastapi.md
-    - Creating a pipeline: https://spacy.io/usage/processing-pipelines#custom-components" target="_blank
+      - advanced-tutorials/index.md
+      - advanced-tutorials/word-vectors.md
+      - advanced-tutorials/fastapi.md
+      - Creating a pipeline: https://spacy.io/usage/processing-pipelines#custom-components" target="_blank
   - Pipelines:
-    - pipelines/index.md
-    - pipelines/architecture.md
-    - Core Pipelines:
-      - pipelines/core/index.md
-      - pipelines/core/matcher.md
-      - pipelines/core/contextual-matcher.md
-      - pipelines/core/terminology.md
-      - pipelines/core/normalisation.md
-      - pipelines/core/endlines.md
-      - pipelines/core/sentences.md
-    - Qualifiers:
-      - pipelines/qualifiers/index.md
-      - pipelines/qualifiers/negation.md
-      - pipelines/qualifiers/family.md
-      - pipelines/qualifiers/hypothesis.md
-      - pipelines/qualifiers/reported-speech.md
-      - pipelines/qualifiers/history.md
-    - Miscellaneous:
-      - pipelines/misc/index.md
-      - pipelines/misc/dates.md
-      - pipelines/misc/measurements.md
-      - pipelines/misc/consultation-dates.md
-      - pipelines/misc/sections.md
-      - pipelines/misc/reason.md
-    - Named Entity Recognition:
-      - pipelines/ner/index.md
-      - pipelines/ner/score.md
-      - pipelines/ner/covid.md
-      - pipelines/ner/drugs.md
-    - Trainable components:
-      - pipelines/trainable/index.md
-      - pipelines/trainable/ner.md
+      - pipelines/index.md
+      - pipelines/architecture.md
+      - Core Pipelines:
+          - pipelines/core/index.md
+          - pipelines/core/matcher.md
+          - pipelines/core/contextual-matcher.md
+          - pipelines/core/terminology.md
+          - pipelines/core/normalisation.md
+          - pipelines/core/endlines.md
+          - pipelines/core/sentences.md
+      - Qualifiers:
+          - pipelines/qualifiers/index.md
+          - pipelines/qualifiers/negation.md
+          - pipelines/qualifiers/family.md
+          - pipelines/qualifiers/hypothesis.md
+          - pipelines/qualifiers/reported-speech.md
+          - pipelines/qualifiers/history.md
+      - Miscellaneous:
+          - pipelines/misc/index.md
+          - pipelines/misc/dates.md
+          - pipelines/misc/measurements.md
+          - pipelines/misc/consultation-dates.md
+          - pipelines/misc/sections.md
+          - pipelines/misc/reason.md
+      - Named Entity Recognition:
+          - pipelines/ner/index.md
+          - pipelines/ner/score.md
+          - pipelines/ner/covid.md
+          - pipelines/ner/drugs.md
+          - pipelines/ner/adicap.md
+          - pipelines/ner/cim10.md
+      - Trainable components:
+          - pipelines/trainable/index.md
+          - pipelines/trainable/ner.md
   - languages.md
   - Connectors:
-    - utilities/connectors/index.md
-    - utilities/connectors/brat.md
-    - utilities/connectors/omop.md
+      - utilities/connectors/index.md
+      - utilities/connectors/brat.md
+      - utilities/connectors/omop.md
   - Utilities:
-    - utilities/tests/index.md
-    - utilities/tests/blocs.md
-    - utilities/tests/examples.md
-    - utilities/matchers.md
+      - utilities/tests/index.md
+      - utilities/tests/blocs.md
+      - utilities/tests/examples.md
+      - utilities/matchers.md
   - Code Reference: reference/
   - contributing.md
   - changelog.md

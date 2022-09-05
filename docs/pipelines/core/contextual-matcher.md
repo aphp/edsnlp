@@ -219,7 +219,7 @@ The pipeline can be configured using the following parameters :
 
 | Parameter          | Explanation                                                                                                              | Default              |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------ | -------------------- |
-| `patterns`         | Dictionary or List of dictionaries. See below                                                                            |                      |
+| `patterns`         | Dictionary or list of dictionaries. See below                                                                            |                      |
 | `assign_as_span`   | Whether to store eventual extractions defined via the `assign` key as Spans or as string                                 | False                |
 | `attr`             | spaCy attribute to match on (eg `NORM`, `LOWER`)                                                                         | `"TEXT"`             |
 | `ignore_excluded`  | Whether to skip excluded tokens during matching                                                                          | `False`              |

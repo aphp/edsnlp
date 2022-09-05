@@ -4,7 +4,7 @@ from spacy.language import Language
 
 from .adicap import Adicap
 
-DEFAULT_CONFIG = dict(pattern=None, prefix=None, attr="TEXT", window=-500)
+DEFAULT_CONFIG = dict(pattern=None, prefix=None, attr="TEXT", window=500)
 
 
 @Language.factory(

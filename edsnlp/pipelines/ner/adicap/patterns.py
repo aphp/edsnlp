@@ -13,5 +13,15 @@ d5_8_v4 = r"0[A-Z][0-9]{2}"
 
 adicap_prefix = r"(?i)(codification|adicap)"
 base_code = (
-    d1_4 + r"(" + d5_8_v1 + r"|" + d5_8_v2 + r"|" + d5_8_v3 + r"|" + d5_8_v4 + r")"
+    r"("
+    + d1_4
+    + r"(?:"
+    + d5_8_v1
+    + r"|"
+    + d5_8_v2
+    + r"|"
+    + d5_8_v3
+    + r"|"
+    + d5_8_v4
+    + r"))"
 )

@@ -4,7 +4,7 @@ import spacy
 
 regex = [r"\bgemsa\b"]
 
-after_extract = r"gemsa.*?[\n\W]*?(\d+)"
+value_extract = r"^.*?[\n\W]*?(\d+)"
 
 score_normalization_str = "score_normalization.gemsa"
 

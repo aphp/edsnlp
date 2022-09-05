@@ -294,7 +294,7 @@ A patterr is a nested dictionary with the following keys:
 
     === "`reduce_mode`"
 
-        Set how multiple assign matches are handled. See [this paragraph][the-reduce_mode-parameter]
+        Set how multiple assign matches are handled. See the documentation of the [`reduce_mode` parameter][the-reduce_mode-parameter]
 
 ### A full pattern dictionary example
 

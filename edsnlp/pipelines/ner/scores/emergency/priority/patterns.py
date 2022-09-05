@@ -4,7 +4,7 @@ import spacy
 
 regex = [r"\bpriorite\b"]
 
-after_extract = r"priorite.*?[\n\W]*?(\d+)"
+value_extract = r"^.*?[\n\W]*?(\d+)"
 
 score_normalization_str = "score_normalization.priority"
 

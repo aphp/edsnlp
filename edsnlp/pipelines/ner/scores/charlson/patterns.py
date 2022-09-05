@@ -4,7 +4,7 @@ import spacy
 
 regex = [r"charlson"]
 
-after_extract = r"charlson.*?[\n\W]*?(\d+)"
+value_extract = r"^.*?[\n\W]*?(\d+)"
 
 score_normalization_str = "score_normalization.charlson"
 

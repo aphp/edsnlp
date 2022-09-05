@@ -4,7 +4,6 @@ from typing import Any, Callable, Dict, List, Union
 from spacy.language import Language
 from spacy.tokens import Span
 
-from edsnlp.matchers.utils import get_text
 from edsnlp.pipelines.ner.scores import Score
 
 
@@ -28,7 +27,7 @@ class Sofa(Score):
     value_regex : str
         Regex to extract the score value
     score_normalization : Callable[[Union[str,None]], Any]
-        Function that takes the "raw" value extracted from the `after_extract` regex,
+        Function that takes the "raw" value extracted from the `value_extract` regex,
         and should return
         - None if no score could be extracted
         - The desired score value else
@@ -43,7 +42,7 @@ class Sofa(Score):
         score_name: str,
         regex: List[str],
         attr: str,
-        after_extract: List[Dict[str, str]],
+        value_extract: List[Dict[str, str]],
         score_normalization: Union[str, Callable[[Union[str, None]], Any]],
         window: int,
         flags: Union[re.RegexFlag, int],
@@ -54,7 +53,7 @@ class Sofa(Score):
             nlp,
             score_name=score_name,
             regex=regex,
-            after_extract=after_extract,
+            value_extract=value_extract,
             score_normalization=score_normalization,
             attr=attr,
             window=window,
@@ -86,35 +85,24 @@ class Sofa(Score):
             List of spaCy's spans, with, if found, an added `score_value` extension
         """
 
-        to_keep_ents = []
-
         for ent in ents:
             assigned = ent._.assigned
             if not assigned:
                 continue
             if assigned.get("method_max") is not None:
                 method = "Maximum"
-                value = assigned["method_max"]
             elif assigned.get("method_24h") is not None:
                 method = "24H"
-                value = assigned["method_24h"]
             elif assigned.get("method_adm") is not None:
                 method = "A l'admission"
-                value = assigned["method_adm"]
             else:
                 method = "Non précisée"
-                value = assigned["no_method"]
-            text_value = get_text(
-                value,
-                self.attr,
-                self.ignore_excluded,
-            )
-            normalized_value = self.score_normalization(text_value)
+
+            normalized_value = self.score_normalization(assigned["value"])
 
             if normalized_value is not None:
-                value._.score_name = self.score_name
-                value._.score_value = int(normalized_value)
-                value._.score_method = method
-                to_keep_ents.append(value)
+                ent._.score_name = self.score_name
+                ent._.score_value = int(normalized_value)
+                ent._.score_method = method
 
-        return to_keep_ents
+                yield ent

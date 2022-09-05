@@ -4,7 +4,7 @@ import spacy
 
 regex = [r"\bccmu\b"]
 
-after_extract = r"ccmu.*?[\n\W]*?(\d+)"
+value_extract = r"^.*?[\n\W]*?(\d+)"
 
 score_normalization_str = "score_normalization.ccmu"
 

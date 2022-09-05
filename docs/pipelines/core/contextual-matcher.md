@@ -84,7 +84,7 @@ cancer = dict(
             regex=metastase,
             window=10,
             replace_entity=False,
-            reduce_mode="keep_fast",
+            reduce_mode="keep_last",
         ),
     ]
 )

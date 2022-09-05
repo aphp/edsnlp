@@ -111,7 +111,7 @@ def score_normalization(extracted_score):
 charlson_config = dict(
     score_name = 'charlson',
     regex = [r'charlson'],
-    after_extract = r"(\d+)",
+    value_extract = r"(\d+)",
     score_normalization = "score_normalization.charlson"
 )
 

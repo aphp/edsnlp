@@ -115,6 +115,7 @@ extra_javascript:
 
 plugins:
   - search
+  - autorefs
   - bibtex:
       bib_file: "docs/references.bib"
   - gen-files:

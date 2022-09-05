@@ -23,7 +23,7 @@ text = "Charlson à l'admission: 7.\n" "Charlson: \n" "OMS: \n"
 
 doc = nlp(text)
 doc.ents
-# Out: (7,)
+# Out: (Charlson à l'admission: 7,)
 ```
 
 We can see that only one occurrence was extracted. The second mention of Charlson in the text
@@ -57,7 +57,7 @@ text = "SOFA (à 24H) : 12.\n" "OMS: \n"
 
 doc = nlp(text)
 doc.ents
-# Out: (12,)
+# Out: (SOFA (à 24H) : 12.,)
 ```
 
 Each extraction exposes 3 extensions:
@@ -97,9 +97,12 @@ doc.ents
 ent = doc.ents[0]
 ent._.value.dict()
 # {'modifier': 'p',
-#  'tumour': 'x',
-#  'node': 1,
-#  'metastasis': 1,
+#  'tumour': None,
+#  'tumour_specification': 'x',
+#  'node': '1',
+#  'node_specification': None,
+#  'metastasis': '1',
+#  'resection_completeness': None,
 #  'version': None,
 #  'version_year': None}
 ```
@@ -113,7 +116,7 @@ The configuration consists of 4 items:
 
 - `score_name`: The name of the score
 - `regex`: A list of regular expression to detect the score's mention
-- `after_extract`: A regular expression to extract the score's value after the score's mention
+- `value_extract`: A regular expression to extract the score's value in the context of the score's mention
 - `score_normalization`: A function name used to normalise the score's _raw_ value
 
 !!! note
@@ -149,7 +152,7 @@ def score_normalization(extracted_score):
 charlson_config = dict(
     score_name="charlson",
     regex=[r"charlson"],
-    after_extract=r"charlson.*[\n\W]*(\d+)",
+    value_extract=r"charlson.*[\n\W]*(\d+)",
     score_normalization="score_normalization.charlson",
 )
 ```

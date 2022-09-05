@@ -76,13 +76,15 @@ cancer = dict(
             name="stage",
             regex=stage,
             window=(-10,10),
-            expand_entity=False,
+            replace_entity=True,
+            reduce_mode=None,
         ),
         dict(
             name="metastase",
             regex=metastase,
             window=10,
-            expand_entity=True,
+            replace_entity=False,
+            reduce_mode="keep_fast",
         ),
     ]
 )
@@ -109,6 +111,36 @@ In this case, the configuration can be concatenated in a list:
 ```python3
 patterns = [cancer, lymphome]
 ```
+
+## Available parameters for more flexibility
+
+3 main parameters can be used to refine how entities will be formed
+
+### The `include_assigned` parameter
+
+Following the previous example, you might want your extracted entities to **include**, if found, the cancer stage and the metastasis status. This can be achieved by setting `include_assigned=True` in the pipe configuration.
+
+For instance, from the sentence "Le patient a un cancer au stade 3", the extracted entity will be:
+
+- "cancer" if `include_assigned=True`
+- "cancer au stade 3" if `include_assigned=True`
+
+### The `reduce_mode` parameter
+
+It might happend that an assign matches multiple times: For instance, in the (non-sensical) sentence "Le patient a un cancer au stade 3 et au stade 4", both "stade 3" and "stade 4" will be matched by the `stage` assign key. Depending on your use case, you may want to keep all extractions, or only a signle one.
+
+- If `reduce_mode=None` (default), all extractions are kept in a list
+- If `reduce_mode="keep_first"`, only the extraction closest to the main matched entity will be kept (in this case, it would be "stade 3" since it is the closest to "cancer")
+- If `reduce_mode=="keep_last"`, only the furthest extraction is kept.
+
+### The `replace_entity` parameter
+
+This parameter can be se to `True` **only for a single assign key per dictionary**. This limitation comes from the purpose of this parameter: If set to `True`, the corresponding `assign` key will be returned as the entity, instead of the match itself. For clarity, let's take the same sentence "Le patient a un cancer au stade 3" as an example:
+
+- if `replace_entity=True` in the `stage` assign key, then the extracted entity will be "stade 3" instead of "cancer"
+- if `replace_entity=False` for every assign key, the returned entity will be, as expected, "cancer"
+
+**Please notice** that with `replace_entity` set to True, if the correponding assign key matches nothing, the entity will be discarded.
 
 
 ## Usage
@@ -185,13 +217,14 @@ Let us see what we can get from this pipeline with a few examples
 
 The pipeline can be configured using the following parameters :
 
-| Parameter         | Explanation                                                                                                              | Default              |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------ | -------------------- |
-| `patterns`        | Dictionary or List of dictionaries. See below                                                                            |                      |
-| `assign_as_span`  | Whether to store eventual extractions defined via the `assign` key as Spans or as string                                 | False                |
-| `attr`            | spaCy attribute to match on (eg `NORM`, `LOWER`)                                                                         | `"TEXT"`             |
-| `ignore_excluded` | Whether to skip excluded tokens during matching                                                                          | `False`              |
-| `regex_flags`     | RegExp flags to use when matching, filtering and assigning (See [here](https://docs.python.org/3/library/re.html#flags)) | 0 (use default flag) |
+| Parameter          | Explanation                                                                                                              | Default              |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------ | -------------------- |
+| `patterns`         | Dictionary or List of dictionaries. See below                                                                            |                      |
+| `assign_as_span`   | Whether to store eventual extractions defined via the `assign` key as Spans or as string                                 | False                |
+| `attr`             | spaCy attribute to match on (eg `NORM`, `LOWER`)                                                                         | `"TEXT"`             |
+| `ignore_excluded`  | Whether to skip excluded tokens during matching                                                                          | `False`              |
+| `include_assigned` | Whether to include (eventuals) assign matches to the final entity                                                        | `False`              |
+| `regex_flags`      | RegExp flags to use when matching, filtering and assigning (See [here](https://docs.python.org/3/library/re.html#flags)) | 0 (use default flag) |
 
 However, most of the configuration is provided in the `patterns` key, as a **pattern dictionary** or a **list of pattern dictionaries**
 
@@ -255,10 +288,13 @@ A patterr is a nested dictionary with the following keys:
 
         A dictionary where keys are labels and values are **Regexes with a single capturing group**
 
-    === "`expand_entity`"
+    === "`replace_entity`"
 
-        If set to `True`, the initial entity's span will be expanded to the furthest match from the `regex` dictionary
+        If set to `True`, the match from the corresponding assign key will be used as entity, instead of the main match. See [this paragraph][the-replace_entity-parameter]
 
+    === "`reduce_mode`"
+
+        Set how multiple assign matches are handled. See [this paragraph][the-reduce_mode-parameter]
 
 ### A full pattern dictionary example
 

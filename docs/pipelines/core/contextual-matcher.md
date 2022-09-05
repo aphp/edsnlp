@@ -122,7 +122,7 @@ Following the previous example, you might want your extracted entities to **incl
 
 For instance, from the sentence "Le patient a un cancer au stade 3", the extracted entity will be:
 
-- "cancer" if `include_assigned=True`
+- "cancer" if `include_assigned=False`
 - "cancer au stade 3" if `include_assigned=True`
 
 ### The `reduce_mode` parameter

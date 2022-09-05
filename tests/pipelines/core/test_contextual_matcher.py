@@ -1,15 +1,163 @@
+import pytest
+
 from edsnlp.processing.helpers import rgetattr
 from edsnlp.utils.examples import parse_example
 
-example = """
-Un <ent label_='Cancer' _.source='Cancer Solide' _.assigned={'metastase': 'metastase'}>Cancer</ent> métastasé de stade IV.
-On a également un <ent label_='Cancer' _.source='Cancer Solide'>mélanome</ent> malin.
-Aussi, un autre mélanome plutôt bénin.
-Enfin, on remarque un <ent label_='Cancer' _.source='Lymphome' _.assigned={'stage': '3'}>lymphome de stade 3</ent>.
-"""  # noqa: E501
+EXAMPLES = [
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '3', 'metastase': ['metastase']}>cancer métastasé au stade 3</ent> voire au <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '4', 'metastase': ['metastase']}>stade 4</ent>.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '3', 'metastase': 'metastase'}>cancer métastasé au stade 3</ent> voire au <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '4', 'metastase': 'metastase'}>stade 4</ent>.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '3', 'metastase': 'metastase'}>cancer métastasé au stade 3</ent> voire au <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '4', 'metastase': 'metastase'}>stade 4</ent>.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '3', 'metastase': ['metastase']}>cancer métastasé au stade 3</ent> voire au stade 4.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '3', 'metastase': 'metastase'}>cancer métastasé au stade 3</ent> voire au stade 4.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '3', 'metastase': 'metastase'}>cancer métastasé au stade 3</ent> voire au stade 4.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '4', 'metastase': ['metastase']}>cancer métastasé au stade 3 voire au stade 4</ent>.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '4', 'metastase': 'metastase'}>cancer métastasé au stade 3 voire au stade 4</ent>.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '4', 'metastase': 'metastase'}>cancer métastasé au stade 3 voire au stade 4</ent>.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': ['3', '4'], 'metastase': ['metastase']}>cancer métastasé au stade 3 voire au stade 4</ent>.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': ['3', '4'], 'metastase': 'metastase'}>cancer métastasé au stade 3 voire au stade 4</ent>.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': ['3', '4'], 'metastase': 'metastase'}>cancer métastasé au stade 3 voire au stade 4</ent>.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '3', 'metastase': ['metastase']}>cancer métastasé au stade 3</ent> voire au stade 4.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '3', 'metastase': 'metastase'}>cancer métastasé au stade 3</ent> voire au stade 4.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '3', 'metastase': 'metastase'}>cancer métastasé au stade 3</ent> voire au stade 4.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '4', 'metastase': ['metastase']}>cancer métastasé au stade 3 voire au stade 4</ent>.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '4', 'metastase': 'metastase'}>cancer métastasé au stade 3 voire au stade 4</ent>.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '4', 'metastase': 'metastase'}>cancer métastasé au stade 3 voire au stade 4</ent>.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un cancer métastasé au <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '3', 'metastase': ['metastase']}>stade 3</ent> voire au <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '4', 'metastase': ['metastase']}>stade 4</ent>.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un cancer métastasé au <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '3', 'metastase': 'metastase'}>stade 3</ent> voire au <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '4', 'metastase': 'metastase'}>stade 4</ent>.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un cancer métastasé au <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '3', 'metastase': 'metastase'}>stade 3</ent> voire au <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '4', 'metastase': 'metastase'}>stade 4</ent>.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un cancer métastasé au <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '3', 'metastase': ['metastase']}>stade 3</ent> voire au stade 4.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un cancer métastasé au <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '3', 'metastase': 'metastase'}>stade 3</ent> voire au stade 4.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un cancer métastasé au <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '3', 'metastase': 'metastase'}>stade 3</ent> voire au stade 4.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un cancer métastasé au stade 3 voire au <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '4', 'metastase': ['metastase']}>stade 4</ent>.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un cancer métastasé au stade 3 voire au <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '4', 'metastase': 'metastase'}>stade 4</ent>.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un cancer métastasé au stade 3 voire au <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '4', 'metastase': 'metastase'}>stade 4</ent>.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': ['3', '4'], 'metastase': ['metastase']}>cancer </ent>métastasé au stade 3 voire au stade 4.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': ['3', '4'], 'metastase': 'metastase'}>cancer </ent>métastasé au stade 3 voire au stade 4.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': ['3', '4'], 'metastase': 'metastase'}>cancer </ent>métastasé au stade 3 voire au stade 4.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '3', 'metastase': ['metastase']}>cancer </ent>métastasé au stade 3 voire au stade 4.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '3', 'metastase': 'metastase'}>cancer </ent>métastasé au stade 3 voire au stade 4.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '3', 'metastase': 'metastase'}>cancer </ent>métastasé au stade 3 voire au stade 4.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '4', 'metastase': ['metastase']}>cancer </ent>métastasé au stade 3 voire au stade 4.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '4', 'metastase': 'metastase'}>cancer </ent>métastasé au stade 3 voire au stade 4.
+    """,  # noqa: E501
+    """
+    Le patient présente une métastasis sur un <ent label_='Cancer' _.source='Solide' _.assigned={'stage': '4', 'metastase': 'metastase'}>cancer </ent>métastasé au stade 3 voire au stade 4.
+    """,  # noqa: E501
+]
+
+ALL_PARAMS = [
+    (True, True, None, None),
+    (True, True, None, "keep_first"),
+    (True, True, None, "keep_last"),
+    (True, True, "keep_first", None),
+    (True, True, "keep_first", "keep_first"),
+    (True, True, "keep_first", "keep_last"),
+    (True, True, "keep_last", None),
+    (True, True, "keep_last", "keep_first"),
+    (True, True, "keep_last", "keep_last"),
+    (True, False, None, None),
+    (True, False, None, "keep_first"),
+    (True, False, None, "keep_last"),
+    (True, False, "keep_first", None),
+    (True, False, "keep_first", "keep_first"),
+    (True, False, "keep_first", "keep_last"),
+    (True, False, "keep_last", None),
+    (True, False, "keep_last", "keep_first"),
+    (True, False, "keep_last", "keep_last"),
+    (False, True, None, None),
+    (False, True, None, "keep_first"),
+    (False, True, None, "keep_last"),
+    (False, True, "keep_first", None),
+    (False, True, "keep_first", "keep_first"),
+    (False, True, "keep_first", "keep_last"),
+    (False, True, "keep_last", None),
+    (False, True, "keep_last", "keep_first"),
+    (False, True, "keep_last", "keep_last"),
+    (False, False, None, None),
+    (False, False, None, "keep_first"),
+    (False, False, None, "keep_last"),
+    (False, False, "keep_first", None),
+    (False, False, "keep_first", "keep_first"),
+    (False, False, "keep_first", "keep_last"),
+    (False, False, "keep_last", None),
+    (False, False, "keep_last", "keep_first"),
+    (False, False, "keep_last", "keep_last"),
+]
 
 
-def test_contextual(blank_nlp):
+@pytest.mark.parametrize("params,example", list(zip(ALL_PARAMS, EXAMPLES)))
+def test_contextual(blank_nlp, params, example):
+
+    include_assigned, replace_entity, reduce_mode_stage, reduce_mode_metastase = params
 
     blank_nlp.add_pipe(
         "normalizer",
@@ -29,7 +177,7 @@ def test_contextual(blank_nlp):
     stage = "stade (I{1,3}V?|[1234])"
     metastase = "(metasta)"
     cancer = dict(
-        source="Cancer Solide",
+        source="Solide",
         regex=regex,
         terms=terms,
         regex_attr="NORM",
@@ -42,13 +190,14 @@ def test_contextual(blank_nlp):
                 name="stage",
                 regex=stage,
                 window=(-10, 10),
-                expand_entity=False,
+                replace_entity=replace_entity,
+                reduce_mode=reduce_mode_stage,
             ),
             dict(
                 name="metastase",
                 regex=metastase,
                 window=10,
-                expand_entity=False,
+                reduce_mode=reduce_mode_metastase,
             ),
         ],
     )
@@ -64,6 +213,7 @@ def test_contextual(blank_nlp):
         name="Cancer",
         config=dict(
             patterns=patterns,
+            include_assigned=include_assigned,
         ),
     )
 
@@ -71,7 +221,7 @@ def test_contextual(blank_nlp):
 
     doc = blank_nlp(text)
 
-    assert len(doc.ents) == 3
+    assert len(doc.ents) == len(entities)
 
     for entity, ent in zip(entities, doc.ents):
 

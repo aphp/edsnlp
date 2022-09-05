@@ -127,7 +127,7 @@ For instance, from the sentence "Le patient a un cancer au stade 3", the extract
 
 ### The `reduce_mode` parameter
 
-It might happend that an assign matches multiple times: For instance, in the (non-sensical) sentence "Le patient a un cancer au stade 3 et au stade 4", both "stade 3" and "stade 4" will be matched by the `stage` assign key. Depending on your use case, you may want to keep all extractions, or only a signle one.
+It may happen that an assignment matches more than once. For instance, in the (nonsensical) sentence "Le patient a un cancer au stade 3 et au stade 4", both "stade 3" and "stade 4" will be matched by the `stage` assign key. Depending on your use case, you may want to keep all the extractions, or just one.
 
 - If `reduce_mode=None` (default), all extractions are kept in a list
 - If `reduce_mode="keep_first"`, only the extraction closest to the main matched entity will be kept (in this case, it would be "stade 3" since it is the closest to "cancer")

@@ -29,6 +29,63 @@ def normalize_window(cls, v):
     return v
 
 
+class AssignDict(dict):
+    """
+    Custom dictionary that overrides the __setitem__ method
+    depending on the reduce_mode
+    """
+
+    def __init__(self, reduce_mode: dict):
+        super().__init__()
+        self.reduce_mode = reduce_mode
+        self._setitem_ = self.__setitem_options__()
+
+    def __missing__(self, key):
+        return (
+            {
+                "span": [],
+                "value_span": [],
+                "value_text": [],
+            }
+            if self.reduce_mode[key] is None
+            else {}
+        )
+
+    def __setitem__(self, key, value):
+        self._setitem_[self.reduce_mode[key]](key, value)
+
+    def __setitem_options__(self):
+        def keep_list(key, value):
+            old_values = self.__getitem__(key)
+            value["span"] = old_values["span"] + [value["span"]]
+            value["value_span"] = old_values["value_span"] + [value["value_span"]]
+            value["value_text"] = old_values["value_text"] + [value["value_text"]]
+
+            dict.__setitem__(self, key, value)
+
+        def keep_first(key, value):
+            old_values = self.__getitem__(key)
+            if (
+                old_values.get("span") is None
+                or value["span"].start <= old_values["span"].start
+            ):
+                dict.__setitem__(self, key, value)
+
+        def keep_last(key, value):
+            old_values = self.__getitem__(key)
+            if (
+                old_values.get("span") is None
+                or value["span"].start >= old_values["span"].start
+            ):
+                dict.__setitem__(self, key, value)
+
+        return {
+            None: keep_list,
+            "keep_first": keep_first,
+            "keep_last": keep_last,
+        }
+
+
 class SingleExcludeModel(BaseModel):
     regex: ListOrStr = []
     window: Window
@@ -62,7 +119,8 @@ class SingleAssignModel(BaseModel):
     regex: str
     window: Window
     regex_flags: Optional[Flags] = None
-    expand_entity: bool = False
+    replace_entity: bool = False
+    reduce_mode: Optional[str] = None
 
     @validator("regex")
     def check_single_regex_group(cls, pat):
@@ -99,6 +157,14 @@ class AssignModel(BaseModel, extra=Extra.forbid):
         assert len(names) == len(set(names)), "Each `name` field should be unique"
         return v
 
+    @validator("__root__")
+    def replace_uniqueness(cls, v):
+        replace = [item for item in v if item.replace_entity]
+        assert (
+            len(replace) <= 1
+        ), "Only 1 assign element can be set with `replace_entity=True`"
+        return v
+
 
 class SingleConfig(BaseModel, extra=Extra.forbid):
 
@@ -122,4 +188,10 @@ class FullConfig(BaseModel, extra=Extra.forbid):
     def pattern_to_list(cls, v):
         if not isinstance(v, list):
             return [v]
+        return v
+
+    @validator("__root__", pre=True)
+    def source_uniqueness(cls, v):
+        sources = [item["source"] for item in v]
+        assert len(sources) == len(set(sources)), "Each `source` field should be unique"
         return v

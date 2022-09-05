@@ -12,6 +12,7 @@ DEFAULT_CONFIG = dict(
     regex_flags=0,
     alignment_mode="expand",
     assign_as_span=False,
+    include_assigned=False,
 )
 
 
@@ -28,6 +29,7 @@ def create_component(
     attr: str,
     ignore_excluded: bool,
     regex_flags: Union[re.RegexFlag, int],
+    include_assigned: bool,
 ):
 
     return ContextualMatcher(
@@ -39,4 +41,5 @@ def create_component(
         attr=attr,
         ignore_excluded=ignore_excluded,
         regex_flags=regex_flags,
+        include_assigned=include_assigned,
     )

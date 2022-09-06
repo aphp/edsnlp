@@ -49,8 +49,8 @@ class TNM(BaseComponent):
 
         self.set_extensions()
 
-    @staticmethod
-    def set_extensions() -> None:
+    @classmethod
+    def set_extensions(cls) -> None:
         """
         Set extensions for the dates pipeline.
         """

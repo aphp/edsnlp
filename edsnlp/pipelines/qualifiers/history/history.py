@@ -83,8 +83,8 @@ class History(Qualifier):
                 "Skipping that step."
             )
 
-    @staticmethod
-    def set_extensions() -> None:
+    @classmethod
+    def set_extensions(cls) -> None:
 
         if not Token.has_extension("history"):
             Token.set_extension("history", default=False)

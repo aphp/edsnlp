@@ -94,8 +94,8 @@ class ReportedSpeech(Qualifier):
 
         self.set_extensions()
 
-    @staticmethod
-    def set_extensions() -> None:
+    @classmethod
+    def set_extensions(cls) -> None:
 
         if not Token.has_extension("reported_speech"):
             Token.set_extension("reported_speech", default=False)

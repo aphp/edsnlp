@@ -104,8 +104,8 @@ class Hypothesis(Qualifier):
         self.within_ents = within_ents
         self.set_extensions()
 
-    @staticmethod
-    def set_extensions() -> None:
+    @classmethod
+    def set_extensions(cls) -> None:
         if not Token.has_extension("hypothesis"):
             Token.set_extension("hypothesis", default=False)
 

@@ -97,8 +97,8 @@ class Score(ContextualMatcher):
 
         self.set_extensions()
 
-    @staticmethod
-    def set_extensions() -> None:
+    @classmethod
+    def set_extensions(cls) -> None:
         super(Score, Score).set_extensions()
         if not Span.has_extension("score_name"):
             Span.set_extension("score_name", default=None)

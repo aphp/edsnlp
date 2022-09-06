@@ -79,8 +79,8 @@ class EndLines(GenericMatcher):
                 "type(`end_lines_model`) should be one of {None, str, EndLinesModel}"
             )
 
-    @staticmethod
-    def _spacy_compute_a3a4(token: Token) -> str:
+    @classmethod
+    def _spacy_compute_a3a4(cls, token: Token) -> str:
         """Function to compute A3 and A4
 
         Parameters
@@ -119,8 +119,8 @@ class EndLines(GenericMatcher):
         else:
             return "OTHER"
 
-    @staticmethod
-    def _compute_length(doc: Doc, start: int, end: int) -> int:
+    @classmethod
+    def _compute_length(cls, doc: Doc, start: int, end: int) -> int:
         """Compute length without spaces
 
         Parameters

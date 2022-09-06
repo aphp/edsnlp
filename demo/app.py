@@ -22,6 +22,8 @@ A noter deux petits kystes bénins de 1 et 2cm biopsiés en 2005.
 
 Priorité: 2 (établie par l'IAO à l'entrée)
 
+adicaps ABCD0A12 et ABCD0A13
+
 Conclusion
 Possible infection au coronavirus. Prescription de paracétomol pour la fièvre.\
 """
@@ -76,6 +78,7 @@ def load_model(
     sofa: bool,
     priority: bool,
     custom_regex: str,
+    adicap: bool,
 ):
 
     pipes = []
@@ -122,6 +125,10 @@ def load_model(
     if priority:
         nlp.add_pipe("eds.emergency.priority")
         pipes.append('nlp.add_pipe("eds.emergency.priority")')
+
+    if adicap:
+        nlp.add_pipe("eds.adicap")
+        pipes.append('nlp.add_pipe("eds.adicap")')
 
     if pipes:
         pipes.insert(0, "# Entity extraction pipelines")
@@ -196,6 +203,7 @@ st_measurements = st.sidebar.checkbox("Measurements", value=True)
 st_priority = st.sidebar.checkbox("Emergency Priority Score", value=True)
 st_charlson = st.sidebar.checkbox("Charlson Score", value=True)
 st_sofa = st.sidebar.checkbox("SOFA Score", value=True)
+st_adicap = st.sidebar.checkbox("ADICAP Code", value=True)
 st.sidebar.markdown(
     "These are just a few of the pipelines provided out-of-the-box by EDS-NLP. "
     "See the [documentation](https://aphp.github.io/edsnlp/latest/pipelines/) "
@@ -213,6 +221,7 @@ nlp, pipes, regex = load_model(
     measurements=st_measurements,
     charlson=st_charlson,
     sofa=st_sofa,
+    adicap=st_adicap,
     priority=st_priority,
     custom_regex=st_custom_regex,
 )

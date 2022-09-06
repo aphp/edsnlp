@@ -191,6 +191,202 @@ class ContextualMatcher(BaseComponent):
         if not Span.has_extension("source"):
             Span.set_extension("source", default=None)
 
+    def filter_one(self, span: Span) -> Span:
+        """
+        Filter extracted entity based on the "exclusion filter" mentionned
+        in the configuration
+
+        Parameters
+        ----------
+        span : Span
+            Span to filter
+
+        Returns
+        -------
+        Optional[Span]
+            None if the span was filtered, the span else
+        """
+        source = span.label_
+        to_keep = True
+        for matcher in self.exclude_matchers[source]:
+
+            window = matcher["window"]
+            snippet = get_window(
+                doclike=span,
+                window=window,
+            )
+
+            if (
+                next(
+                    matcher["matcher"](snippet, as_spans=True),
+                    None,
+                )
+                is not None
+            ):
+                to_keep = False
+                logger.trace(f"Entity {span} was filtered out")
+                break
+
+        if to_keep:
+            return span
+
+    def assign_one(self, span: Span) -> Span:
+        """
+        Get additional information in the context
+        of each entity. This function will populate two custom attributes:
+
+        - `ent._.source`
+        - `ent._.assigned`, a dictionary with all retrieved information
+
+        Parameters
+        ----------
+        span : Span
+            Span to enrich
+
+        Returns
+        -------
+        Span
+            Span with additional information
+        """
+
+        if span is None:
+            yield from []
+            return
+
+        source = span.label_
+        assigned_dict = models.AssignDict(reduce_mode=self.reduce_mode[source])
+        replace_key = None
+
+        for matcher in self.assign_matchers[source]:
+
+            attr = self.patterns[source].regex_attr or matcher["matcher"].default_attr
+            window = matcher["window"]
+            replace_entity = matcher["replace_entity"]  # Boolean
+
+            snippet = get_window(
+                doclike=span,
+                window=window,
+            )
+
+            # Getting the matches
+            assigned_list = list(matcher["matcher"].match(snippet))
+
+            assigned_list = [
+                (span, span)
+                if not match.groups()
+                else (
+                    span,
+                    create_span(
+                        doclike=snippet,
+                        start_char=match.start(0),
+                        end_char=match.end(0),
+                        key=matcher["matcher"].regex[0][0],
+                        attr=matcher["matcher"].regex[0][2],
+                        alignment_mode=matcher["matcher"].regex[0][4],
+                        ignore_excluded=matcher["matcher"].regex[0][3],
+                    ),
+                )
+                for (span, match) in assigned_list
+            ]
+
+            # assigned_list now contains tuples with
+            # - the first element being the span extracted from the group
+            # - the second element being the full match
+
+            if not assigned_list:  # No match was found
+                continue
+
+            for assigned in assigned_list:
+                if assigned is None:
+                    continue
+                if replace_entity:
+                    replace_key = assigned[1].label_
+
+                # Using he overrid `__setitem__` method from AssignDict here:
+                assigned_dict[assigned[1].label_] = {
+                    "span": assigned[1],  # Full span
+                    "value_span": assigned[0],  # Span of the group
+                    "value_text": get_text(
+                        assigned[0],
+                        attr=attr,
+                        ignore_excluded=self.ignore_excluded,
+                    ),  # Text of the group
+                }
+                logger.trace(f"Assign key {matcher['name']} matched on entity {span}")
+        if replace_key is None and self.replace_key[source] is not None:
+            # There should have been a replacement, but none was found
+            # So we discard the entity
+            yield from []
+            return
+
+        # Entity replacement
+        if replace_key is not None:
+            replacables = assigned_dict[replace_key]["span"]
+            kept_ents = (
+                replacables if isinstance(replacables, list) else [replacables]
+            ).copy()
+
+            if self.include_assigned:
+                # We look for the closest
+                closest = min(
+                    kept_ents,
+                    key=lambda e: abs(e.start - span.start),
+                )
+                kept_ents.remove(closest)
+
+                expandables = flatten(
+                    [a["span"] for k, a in assigned_dict.items() if k != replace_key]
+                ) + [span, closest]
+
+                closest = Span(
+                    span.doc,
+                    min(expandables, key=attrgetter("start")).start,
+                    max(expandables, key=attrgetter("end")).end,
+                    span.label_,
+                )
+
+                kept_ents.append(closest)
+                kept_ents.sort(key=attrgetter("start"))
+
+            for replaced in kept_ents:
+                # Propagating attributes from the anchor
+                replaced._.source = source
+                replaced.label_ = self.name
+
+        else:
+
+            # Entity expansion
+            expandables = flatten([a["span"] for a in assigned_dict.values()])
+
+            if self.include_assigned and expandables:
+
+                span = Span(
+                    span.doc,
+                    min(expandables + [span], key=attrgetter("start")).start,
+                    max(expandables + [span], key=attrgetter("end")).end,
+                    span.label_,
+                )
+
+            span._.source = source
+            span.label_ = self.name
+            kept_ents = [span]
+
+        key = "value_span" if self.assign_as_span else "value_text"
+
+        for idx, e in enumerate(kept_ents):
+            e._.assigned = {
+                k: v[key][idx]
+                if ((k == replace_key) and self.reduce_mode[source][k] is None)
+                else v[key]
+                for k, v in assigned_dict.items()
+            }
+
+        yield from kept_ents
+
+    def process_one(self, span):
+        filtered = self.filter_one(span)
+        yield from self.assign_one(filtered)
+
     def process(self, doc: Doc) -> List[Span]:
         """
         Process the document, looking for named entities.
@@ -210,212 +406,8 @@ class ContextualMatcher(BaseComponent):
         regex_matches = self.regex_matcher(doc, as_spans=True)
 
         spans = (*matches, *regex_matches)
-        spans = self.filter(spans)
-        spans = self.assign(spans)
-        return spans
-
-    def filter(self, spans: List[Span]) -> List[Span]:
-        """
-        Filter extracted entities based on the "exclusion filter" mentionned
-        in the configuration
-
-        Parameters
-        ----------
-        spans : List[Span]
-            Spans to filter
-
-        Yields
-        ------
-        Iterator[List[Span]]
-            All spans that passed the filtering step
-        """
-
-        for ent in spans:
-            source = ent.label_
-            to_keep = True
-            for matcher in self.exclude_matchers[source]:
-
-                window = matcher["window"]
-                snippet = get_window(
-                    doclike=ent,
-                    window=window,
-                )
-
-                if (
-                    next(
-                        matcher["matcher"](snippet, as_spans=True),
-                        None,
-                    )
-                    is not None
-                ):
-                    to_keep = False
-                    logger.trace(f"Entity {ent} was filtered out")
-                    break
-
-            if to_keep:
-                yield ent
-
-    def assign(self, spans: List[Span]) -> List[Span]:
-        """
-        Get additional information in the context
-        of each entity. This function will populate two custom attributes:
-
-        - `ent._.source`
-        - `ent._.assigned`, a dictionary with all retrieved informations
-
-        Parameters
-        ----------
-        spans : List[Span]
-            Spans to enrich
-
-        Parameters
-        ----------
-        spans : List[Span]
-            Spans to filter
-
-        Yields
-        ------
-        Iterator[List[Span]]
-            All spans with additional informations
-        """
-        for ent in spans:
-
-            source = ent.label_
-            assigned_dict = models.AssignDict(reduce_mode=self.reduce_mode[source])
-            replace_key = None
-
-            for matcher in self.assign_matchers[source]:
-
-                attr = (
-                    self.patterns[source].regex_attr or matcher["matcher"].default_attr
-                )
-                window = matcher["window"]
-                replace_entity = matcher["replace_entity"]  # Boolean
-
-                snippet = get_window(
-                    doclike=ent,
-                    window=window,
-                )
-
-                # Getting the matches
-                assigned_list = list(matcher["matcher"].match(snippet))
-
-                assigned_list = [
-                    (span, span)
-                    if not match.groups()
-                    else (
-                        span,
-                        create_span(
-                            doclike=snippet,
-                            start_char=match.start(0),
-                            end_char=match.end(0),
-                            key=matcher["matcher"].regex[0][0],
-                            attr=matcher["matcher"].regex[0][2],
-                            alignment_mode=matcher["matcher"].regex[0][4],
-                            ignore_excluded=matcher["matcher"].regex[0][3],
-                        ),
-                    )
-                    for (span, match) in assigned_list
-                ]
-
-                # assigned_list now contains tuples with
-                # - the first element being the span extracted from the group
-                # - the second element being the full match
-
-                if not assigned_list:  # No match was found
-                    continue
-
-                for assigned in assigned_list:
-                    if assigned is None:
-                        continue
-                    if replace_entity:
-                        replace_key = assigned[1].label_
-
-                    # Using he overrid `__setitem__` method from AssignDict here:
-                    assigned_dict[assigned[1].label_] = {
-                        "span": assigned[1],  # Full span
-                        "value_span": assigned[0],  # Span of the group
-                        "value_text": get_text(
-                            assigned[0],
-                            attr=attr,
-                            ignore_excluded=self.ignore_excluded,
-                        ),  # Text of the group
-                    }
-                    logger.trace(
-                        f"Assign key {matcher['name']} matched on entity {ent}"
-                    )
-            if replace_key is None and self.replace_key[source] is not None:
-                # There should have been a replacement, but none was found
-                # So we discard the entity
-                continue
-
-            # Entity replacement
-            if replace_key is not None:
-                replacables = assigned_dict[replace_key]["span"]
-                kept_ents = (
-                    replacables if isinstance(replacables, list) else [replacables]
-                ).copy()
-
-                if self.include_assigned:
-                    # We look for the closest
-                    closest = min(
-                        kept_ents,
-                        key=lambda e: abs(e.start - ent.start),
-                    )
-                    kept_ents.remove(closest)
-
-                    expandables = flatten(
-                        [
-                            a["span"]
-                            for k, a in assigned_dict.items()
-                            if k != replace_key
-                        ]
-                    ) + [ent, closest]
-
-                    closest = Span(
-                        ent.doc,
-                        min(expandables, key=attrgetter("start")).start,
-                        max(expandables, key=attrgetter("end")).end,
-                        ent.label_,
-                    )
-
-                    kept_ents.append(closest)
-                    kept_ents.sort(key=attrgetter("start"))
-
-                for replaced in kept_ents:
-                    # Propagating attributes from the anchor
-                    replaced._.source = source
-                    replaced.label_ = self.name
-
-            else:
-
-                # Entity expansion
-                expandables = flatten([a["span"] for a in assigned_dict.values()])
-
-                if self.include_assigned and expandables:
-
-                    ent = Span(
-                        ent.doc,
-                        min(expandables + [ent], key=attrgetter("start")).start,
-                        max(expandables + [ent], key=attrgetter("end")).end,
-                        ent.label_,
-                    )
-
-                ent._.source = source
-                ent.label_ = self.name
-                kept_ents = [ent]
-
-            key = "value_span" if self.assign_as_span else "value_text"
-
-            for idx, e in enumerate(kept_ents):
-                e._.assigned = {
-                    k: v[key][idx]
-                    if ((k == replace_key) and self.reduce_mode[source][k] is None)
-                    else v[key]
-                    for k, v in assigned_dict.items()
-                }
-
-                yield e
+        for span in spans:
+            yield from self.process_one(span)
 
     def __call__(self, doc: Doc) -> Doc:
         """

@@ -1,5 +1,6 @@
 import gzip
 import json
+from functools import lru_cache
 from typing import List, Optional
 
 import pandas as pd
@@ -42,6 +43,7 @@ def get_verbs(
     return selected_verbs
 
 
+@lru_cache()
 def get_adicap_dict():
     """
     Returns

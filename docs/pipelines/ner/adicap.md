@@ -13,8 +13,8 @@ These characters represent the following attributes:
 
 
 
-| Attribute [en]        | Attribute [fr]                   | Key                   |
-| --------------------- | -------------------------------- | --------------------- |
+| Field [en]            | Field [fr]                       | Attribute             |
+|-----------------------|----------------------------------|-----------------------|
 | Sampling mode         | Mode de prelevement              | sampling_mode         |
 | Technic               | Type de technique                | technic               |
 | Organ and regions     | Appareils, organes et régions    | organ                 |
@@ -76,7 +76,7 @@ ent = doc.ents[0]
 ent.label_
 # Out: adicap
 
-ent._.adicap
+ent._.adicap.dict()
 # Out: {'code': 'BHGS0040',
 #  'sampling_mode': 'BIOPSIE CHIRURGICALE',
 #  'technic': 'HISTOLOGIE ET CYTOLOGIE PAR INCLUSION',
@@ -90,10 +90,10 @@ ent._.adicap
 
 The pipeline can be configured using the following parameters :
 
-| Parameter   | Description                                                                            | Default                        |
-|-------------|----------------------------------------------------------------------------------------|--------------------------------|
-| `window`    | Number of tokens to look for prefix. It will never go further the start of the sentence| -500                           |
-| `prefix`    | The prefix to look before the ADICAP pattern                                           | `r"(?i)(codification|adicap)"` |
+| Parameter | Description                                                                             | Default              |
+|-----------|-----------------------------------------------------------------------------------------|----------------------|
+| `window`  | Number of tokens to look for prefix. It will never go further the start of the sentence | -500                 |
+| `prefix`  | The prefix to look before the ADICAP pattern                                            | `r"(?i)(codification |adicap)"` |
 
 
 ## Authors and citation

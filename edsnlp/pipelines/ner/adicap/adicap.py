@@ -5,9 +5,10 @@ from spacy.tokens import Doc, Span
 
 from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
 from edsnlp.utils.filter import filter_spans
+from edsnlp.utils.resources import get_adicap_dict
 
 from . import patterns
-from .decoder import AdicapDecoder
+from .models import AdicapCode
 
 
 class Adicap(ContextualMatcher):
@@ -47,7 +48,7 @@ class Adicap(ContextualMatcher):
             assign_as_span=False,
         )
 
-        self.decoder = AdicapDecoder()
+        self.decode_dict = get_adicap_dict()
 
         self.set_extensions()
 
@@ -56,6 +57,24 @@ class Adicap(ContextualMatcher):
         super().set_extensions()
         if not Span.has_extension("adicap"):
             Span.set_extension("adicap", default=None)
+        if not Span.has_extension("value"):
+            Span.set_extension("value", default=None)
+
+    def decode(self, code):
+        exploded = list(code)
+        return AdicapCode(
+            code=code,
+            sampling_mode=self.decode_dict["D1"]["codes"].get(exploded[0]),
+            technic=self.decode_dict["D2"]["codes"].get(exploded[1]),
+            organ=self.decode_dict["D3"]["codes"].get("".join(exploded[2:4])),
+            non_tumoral_pathology=self.decode_dict["D4"]["codes"].get(
+                "".join(exploded[4:8])
+            ),
+            tumoral_pathology=self.decode_dict["D5"]["codes"].get(
+                "".join(exploded[4:8])
+            ),
+            behaviour_type=self.decode_dict["D5"]["codes"].get(exploded[5]),
+        )
 
     def __call__(self, doc: Doc) -> Doc:
         """
@@ -75,8 +94,9 @@ class Adicap(ContextualMatcher):
         spans = filter_spans(spans)
 
         for span in spans:
+            span._.adicap = self.decode(span._.assigned["code"])
+            span._.value = span._.adicap
             span._.assigned = None
-            span._.adicap = self.decoder.decode_adicap(span.text)
 
         doc.spans["adicap"] = spans
 

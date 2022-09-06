@@ -121,7 +121,12 @@ setup(
         distributed=["pyspark"],
     ),
     package_data={
-        "edsnlp": ["resources/*.csv", "resources/*.json", "resources/*.csv.gz"],
+        "edsnlp": [
+            "resources/*.csv",
+            "resources/*.json",
+            "resources/*.csv.gz",
+            "resources/*.json.gz",
+        ],
         "": ["*.pyx", "*.pxd", "*.pxi"],
     },
     entry_points={

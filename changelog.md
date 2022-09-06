@@ -19,6 +19,7 @@
 - Fix explain mode, which was always triggered, in `eds.history` factory.
 - Rename R component of score TNM as "resection_completeness"
 - Fix test in `eds.sections`. Previously, no check was done
+- Remove SOFA scores spurious span suffixes
 
 ## v0.6.2 (2022-08-02)
 

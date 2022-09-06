@@ -24,7 +24,7 @@ value_extract = [
     ),
     dict(
         name="value",
-        regex=r"^.*?[\n\W]*?(\d+)[^h\d]",
+        regex=r"^.*?[\n\W]*?(\d+)(?![h0-9])",
     ),
 ]
 

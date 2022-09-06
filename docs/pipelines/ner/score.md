@@ -57,7 +57,7 @@ text = "SOFA (à 24H) : 12.\n" "OMS: \n"
 
 doc = nlp(text)
 doc.ents
-# Out: (SOFA (à 24H) : 12.,)
+# Out: (SOFA (à 24H) : 12,)
 ```
 
 Each extraction exposes 3 extensions:

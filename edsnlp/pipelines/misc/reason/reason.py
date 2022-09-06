@@ -68,8 +68,8 @@ class Reason(GenericMatcher):
 
         self.set_extensions()
 
-    @staticmethod
-    def set_extensions() -> None:
+    @classmethod
+    def set_extensions(cls) -> None:
 
         if not Span.has_extension("ents_reason"):
             Span.set_extension("ents_reason", default=None)

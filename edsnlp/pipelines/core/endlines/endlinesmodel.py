@@ -569,8 +569,8 @@ class EndLinesModel:
         S_enc = encoder.transform(_S)
         return S_enc
 
-    @staticmethod
-    def _retrieve_lines(dfg: DataFrameGroupBy) -> DataFrameGroupBy:
+    @classmethod
+    def _retrieve_lines(cls, dfg: DataFrameGroupBy) -> DataFrameGroupBy:
         """Function to give a sentence_id to each token.
 
         Parameters
@@ -587,8 +587,8 @@ class EndLinesModel:
         dfg["SENTENCE_ID"] = dfg["SENTENCE_ID"].fillna(method="bfill")
         return dfg
 
-    @staticmethod
-    def _create_vocabulary(x: iterable) -> dict:
+    @classmethod
+    def _create_vocabulary(cls, x: iterable) -> dict:
         """Function to create a vocabulary for attributes in the training set.
 
         Parameters
@@ -606,8 +606,8 @@ class EndLinesModel:
 
         return v
 
-    @staticmethod
-    def _compute_B(df: pd.DataFrame) -> pd.DataFrame:
+    @classmethod
+    def _compute_B(cls, df: pd.DataFrame) -> pd.DataFrame:
         """Function to compute B1 and B2
 
         Parameters
@@ -644,9 +644,9 @@ class EndLinesModel:
 
         return df2
 
-    @staticmethod
+    @classmethod
     def _shift_col(
-        df: pd.DataFrame, col: str, new_col: str, direction="backward", fill=None
+        cls, df: pd.DataFrame, col: str, new_col: str, direction="backward", fill=None
     ) -> pd.DataFrame:
         """Shifts a column one position into backward / forward direction.
 
@@ -683,8 +683,8 @@ class EndLinesModel:
         df.loc[different_doc_id, new_col] = fill
         return df
 
-    @staticmethod
-    def _get_attributes(doc: Doc, i=0):
+    @classmethod
+    def _get_attributes(cls, doc: Doc, i=0):
         """Function to get the attributes of tokens of a spacy doc in a pd.DataFrame format.
 
         Parameters
@@ -729,8 +729,8 @@ class EndLinesModel:
         attributes_df[boolean_attr] = attributes_df[boolean_attr].astype("boolean")
         return attributes_df
 
-    @staticmethod
-    def _get_string(_id: int, string_store: StringStore) -> str:
+    @classmethod
+    def _get_string(cls, _id: int, string_store: StringStore) -> str:
         """Returns the string corresponding to the token_id
 
         Parameters
@@ -747,8 +747,8 @@ class EndLinesModel:
         """
         return string_store[_id]
 
-    @staticmethod
-    def _fit_one_hot_encoder(X: np.ndarray) -> OneHotEncoder:
+    @classmethod
+    def _fit_one_hot_encoder(cls, X: np.ndarray) -> OneHotEncoder:
         """Fit a one hot encoder.
 
         Parameters

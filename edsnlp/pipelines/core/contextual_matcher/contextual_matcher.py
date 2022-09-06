@@ -184,8 +184,8 @@ class ContextualMatcher(BaseComponent):
 
         self.set_extensions()
 
-    @staticmethod
-    def set_extensions() -> None:
+    @classmethod
+    def set_extensions(cls) -> None:
         if not Span.has_extension("assigned"):
             Span.set_extension("assigned", default=dict())
         if not Span.has_extension("source"):

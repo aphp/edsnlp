@@ -49,6 +49,11 @@ class Adicap(ContextualMatcher):
 
         self.decoder = AdicapDecoder()
 
+        self.set_extensions()
+
+    @classmethod
+    def set_extensions(cls) -> None:
+        super().set_extensions()
         if not Span.has_extension("adicap"):
             Span.set_extension("adicap", default=None)
 

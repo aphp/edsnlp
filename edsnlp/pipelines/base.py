@@ -19,8 +19,8 @@ class BaseComponent(object):
 
         self.set_extensions()
 
-    @staticmethod
-    def set_extensions() -> None:
+    @classmethod
+    def set_extensions(cls) -> None:
         """
         Set `Doc`, `Span` and `Token` extensions.
         """

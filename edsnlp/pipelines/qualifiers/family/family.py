@@ -82,8 +82,8 @@ class FamilyContext(Qualifier):
                 "Skipping that step."
             )
 
-    @staticmethod
-    def set_extensions() -> None:
+    @classmethod
+    def set_extensions(cls) -> None:
         if not Token.has_extension("family"):
             Token.set_extension("family", default=False)
 

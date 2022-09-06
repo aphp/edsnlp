@@ -287,8 +287,8 @@ class MeasurementsMatcher:
 
         self.set_extensions()
 
-    @staticmethod
-    def set_extensions() -> None:
+    @classmethod
+    def set_extensions(cls) -> None:
         """
         Set extensions for the measurements pipeline.
         """
@@ -348,8 +348,9 @@ class MeasurementsMatcher:
 
         return units
 
-    @staticmethod
+    @classmethod
     def make_pseudo_sentence(
+        cls,
         doc: Doc,
         matches: List[Tuple[Span, bool]],
         pseudo_mapping: Dict[int, str],
@@ -604,8 +605,8 @@ class MeasurementsMatcher:
 
         return measurements
 
-    @staticmethod
-    def merge_adjacent_measurements(measurements: List[Span]) -> List[Span]:
+    @classmethod
+    def merge_adjacent_measurements(cls, measurements: List[Span]) -> List[Span]:
         """
         Aggregates extracted measurements together when they are adjacent to handle
         cases like

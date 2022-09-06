@@ -98,8 +98,8 @@ class Sections(GenericMatcher):
         if not nlp.has_pipe("normalizer") and not not nlp.has_pipe("eds.normalizer"):
             logger.warning("You should add pipe `eds.normalizer`")
 
-    @staticmethod
-    def set_extensions():
+    @classmethod
+    def set_extensions(cls):
 
         if not Span.has_extension("section_title"):
             Span.set_extension("section_title", default=None)
@@ -107,8 +107,8 @@ class Sections(GenericMatcher):
         if not Span.has_extension("section"):
             Span.set_extension("section", default=None)
 
-    @staticmethod
-    def tag_ents(sections: List[Span]):
+    @classmethod
+    def tag_ents(cls, sections: List[Span]):
         for section in sections:
             for e in section.ents:
                 e._.section = section.label_

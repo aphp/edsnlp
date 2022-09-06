@@ -211,8 +211,8 @@ class RegexMatcher(object):
 
         self.set_extensions()
 
-    @staticmethod
-    def set_extensions():
+    @classmethod
+    def set_extensions(cls):
         if not Span.has_extension("normalized_variant"):
             Span.set_extension("normalized_variant", getter=get_normalized_variant)
 

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.7.0 (2022-09-06)
 
 ### Added
 
@@ -10,14 +10,16 @@
 - Add attribute `section` to entities
 - Add new cases for separator pattern when components of the TNM score are separated by a forward slash
 - Add NER `eds.adicap` pipeline to identify ADICAP codes
+
+### Changed
 - Update of the `ContextualMatcher` (and all pipelines depending on it), rendering it more flexible to use
+- Rename R component of score TNM as "resection_completeness"
 
 ### Fixed
 
 - Prevent section titles from capturing surrounding tokens, causing overlaps (#113)
 - Enhance existing patterns for section detection and add patterns for previously ignored sections (introduction, evolution, modalites de sortie, vaccination) .
 - Fix explain mode, which was always triggered, in `eds.history` factory.
-- Rename R component of score TNM as "resection_completeness"
 - Fix test in `eds.sections`. Previously, no check was done
 - Remove SOFA scores spurious span suffixes
 

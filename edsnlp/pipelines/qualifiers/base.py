@@ -1,4 +1,5 @@
 from itertools import chain
+from operator import attrgetter
 from typing import Dict, List, Optional, Set, Union
 
 from loguru import logger
@@ -108,6 +109,18 @@ class Qualifier(BaseComponent):
         terms.update(kwargs)
 
         return terms
+
+    def get_spans(self, doc: Doc):
+        """
+        Returns spans of interest depending on the `on_ents_only` value
+        """
+        ents = list(doc.ents) + list(doc.spans.get("discarded", []))
+
+        if isinstance(self.on_ents_only, set):
+            for spankey in self.on_ents_only & set(doc.spans.keys()):
+                ents.extend(doc.spans.get(spankey, []))
+
+        return sorted(list(set(ents)), key=(attrgetter("start", "end")))
 
     def get_matches(self, doc: Doc) -> List[Span]:
         """

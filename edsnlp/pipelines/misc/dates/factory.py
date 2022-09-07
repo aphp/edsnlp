@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import List, Optional, Set, Union
 
 from spacy.language import Language
 
@@ -29,7 +29,7 @@ def create_component(
     relative: Optional[List[str]],
     duration: Optional[List[str]],
     false_positive: Optional[List[str]],
-    on_ents_only: Union[bool, str, List[str]],
+    on_ents_only: Union[bool, str, List[str], Set[str]],
     detect_periods: bool,
     as_ents: bool,
     attr: str,

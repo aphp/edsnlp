@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Set, Union
 
 from spacy.language import Language
 
@@ -44,7 +44,7 @@ def create_component(
     following: Optional[List[str]],
     quotation: Optional[List[str]],
     verbs: Optional[List[str]],
-    on_ents_only: bool,
+    on_ents_only: Union[bool, str, List[str], Set[str]],
     within_ents: bool,
     explain: bool,
 ):

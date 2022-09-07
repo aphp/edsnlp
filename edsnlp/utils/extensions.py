@@ -1,6 +1,5 @@
-from typing import Any, List
-
 import functools
+from typing import Any, List
 
 
 def rgetattr(obj: Any, attr: str, *args: List[Any]) -> Any:

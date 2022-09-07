@@ -47,9 +47,13 @@ class Negation(Qualifier):
         List of termination terms.
     verbs : Optional[List[str]]
         List of negation verbs.
-    on_ents_only : bool
+    on_ents_only : Union[bool, str, List[str], Set[str]]
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.
+
+        - If True, will look in all ents located in `doc.ents` only
+        - If an iterable of string is passed, will additionally look in `doc.spans[key]`
+        for each key in the iterable
     within_ents : bool
         Whether to consider cues within entities.
     explain : bool
@@ -226,7 +230,8 @@ class Negation(Qualifier):
         terminations = get_spans(matches, "termination")
         boundaries = self._boundaries(doc, terminations)
 
-        entities = list(doc.ents) + list(doc.spans.get("discarded", []))
+        entities = list(self.get_spans(doc))
+
         ents = None
 
         # Removes duplicate matches and pseudo-expressions in one statement

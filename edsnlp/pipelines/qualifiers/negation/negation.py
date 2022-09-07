@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Set, Union
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
@@ -77,7 +77,7 @@ class Negation(Qualifier):
         following: Optional[List[str]],
         termination: Optional[List[str]],
         verbs: Optional[List[str]],
-        on_ents_only: bool,
+        on_ents_only: Union[bool, str, List[str], Set[str]],
         within_ents: bool,
         explain: bool,
     ):
@@ -230,12 +230,11 @@ class Negation(Qualifier):
         terminations = get_spans(matches, "termination")
         boundaries = self._boundaries(doc, terminations)
 
-        entities = list(self.get_spans(doc))
-
-        ents = None
-
         # Removes duplicate matches and pseudo-expressions in one statement
         matches = filter_spans(matches, label_to_remove="pseudo")
+
+        entities = list(self.get_spans(doc))
+        ents = None
 
         for start, end in boundaries:
 

@@ -1,3 +1,4 @@
+from operator import attrgetter
 from typing import List, Optional, Tuple
 
 from spacy.tokens import Doc, Span
@@ -25,6 +26,23 @@ class BaseComponent(object):
         Set `Doc`, `Span` and `Token` extensions.
         """
         pass
+
+    def get_spans(self, doc: Doc):
+        """
+        Returns sorted spans of interest depending on the eventual `on_ents_only` value.
+        Includes `doc.ents` by default, and adds eventual SpanGroups.
+        """
+        ents = list(doc.ents) + list(doc.spans.get("discarded", []))
+
+        on_ents_only = getattr(self, "on_ents_only", None)
+
+        if isinstance(on_ents_only, str):
+            on_ents_only = [on_ents_only]
+        if isinstance(on_ents_only, (set, list)):
+            for spankey in set(on_ents_only) & set(doc.spans.keys()):
+                ents.extend(doc.spans.get(spankey, []))
+
+        return sorted(list(set(ents)), key=(attrgetter("start", "end")))
 
     def _boundaries(
         self, doc: Doc, terminations: Optional[List[Span]] = None

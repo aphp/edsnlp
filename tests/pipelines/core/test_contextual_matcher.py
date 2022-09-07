@@ -1,7 +1,7 @@
 import pytest
 
-from edsnlp.processing.helpers import rgetattr
 from edsnlp.utils.examples import parse_example
+from edsnlp.utils.extensions import rgetattr
 
 EXAMPLES = [
     """

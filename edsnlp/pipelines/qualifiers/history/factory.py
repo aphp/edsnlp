@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Set, Union
 
 from spacy.language import Language
 
@@ -47,7 +47,7 @@ def create_component(
     use_sections: bool,
     attr: str,
     explain: bool,
-    on_ents_only: bool,
+    on_ents_only: Union[bool, str, List[str], Set[str]],
 ):
     return History(
         nlp,

@@ -63,7 +63,7 @@ class Dates(BaseComponent):
         relative: Optional[List[str]],
         duration: Optional[List[str]],
         false_positive: Optional[List[str]],
-        on_ents_only: Union[bool, List[str]],
+        on_ents_only: Union[bool, str, List[str]],
         detect_periods: bool,
         as_ents: bool,
         attr: str,

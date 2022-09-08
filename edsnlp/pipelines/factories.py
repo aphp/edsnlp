@@ -17,7 +17,44 @@ from .misc.reason.factory import create_component as reason
 from .misc.sections.factory import create_component as sections
 from .ner.adicap.factory import create_component as adicap
 from .ner.cim10.factory import create_component as cim10
+from .ner.comorbidities.adrenal_insufficiency.factory import (
+    create_component as adrenal_insufficiency,
+)
+from .ner.comorbidities.AIDS.factory import create_component as AIDS
+from .ner.comorbidities.alcohol.factory import create_component as alcohol
+from .ner.comorbidities.atrial_fibrillation.factory import (
+    create_component as atrial_fibrillation,
+)
+from .ner.comorbidities.cerebrovascular_accident.factory import (
+    create_component as cerebrovascular_accident,
+)
+from .ner.comorbidities.CKD.factory import create_component as CKD
+from .ner.comorbidities.congestive_heart_failure.factory import (
+    create_component as congestive_heart_failure,
+)
+from .ner.comorbidities.connective_tissue_disease.factory import (
+    create_component as connective_tissue_disease,
+)
+from .ner.comorbidities.COPD.factory import create_component as COPD
+from .ner.comorbidities.dementia.factory import create_component as dementia
 from .ner.comorbidities.diabetes.factory import create_component as diabetes
+from .ner.comorbidities.hemiplegia.factory import create_component as hemiplegia
+from .ner.comorbidities.hypertension.factory import create_component as hypertension
+from .ner.comorbidities.leukemia.factory import create_component as leukemia
+from .ner.comorbidities.liver_disease.factory import create_component as liver_disease
+from .ner.comorbidities.lymphoma.factory import create_component as lymphoma
+from .ner.comorbidities.myasthenia.factory import create_component as myasthenia
+from .ner.comorbidities.myocardial_infarction.factory import (
+    create_component as myocardial_infarction,
+)
+from .ner.comorbidities.peptic_ulcer_disease.factory import (
+    create_component as peptic_ulcer_disease,
+)
+from .ner.comorbidities.peripheral_vascular_disease.factory import (
+    create_component as peripheral_vascular_disease,
+)
+from .ner.comorbidities.solid_tumor.factory import create_component as solid_tumor
+from .ner.comorbidities.tobacco.factory import create_component as tobacco
 from .ner.covid.factory import create_component as covid
 from .ner.drugs.factory import create_component as drugs
 from .ner.scores.charlson.factory import create_component as charlson

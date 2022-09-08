@@ -11,7 +11,23 @@ information = (
 # Example : NBNbWbWbNbWbNBNbNbWbWbNBNbWbNbNbWbNBNbW...
 bars = r"(?i)([nbw]|_|-|=){5,}"
 
+# Biology tables: Prone to false positive with disease names
+biology = r"(\b.*[|¦].*\n)+"
+
+# Leftside note with doctor names
+doctors = r"(?mi)(^((dr)|(pr)).*)+"
+
+# Mails or websites
+web = r"(www\.\S*)|(\S*@\S*)"
+
+# Subsection with ICD-10 Codes
+coding = r".*?[a-zA-Z]\d{2,4}.*?(\n|[a-zA-Z]\d{2,4})"
+
 pollution = dict(
     information=information,
     bars=bars,
+    biology=biology,
+    doctors=doctors,
+    web=web,
+    coding=coding,
 )

@@ -49,11 +49,11 @@ def create_component(
         quotes = registry.get("factories", "eds.quotes")(nlp, "eds.quotes", **config)
 
     if pollution:
-        config = dict(**pollution_config)
+        config = dict(**pollution_config["pollution"])
         if isinstance(pollution, dict):
             config.update(pollution)
         pollution = registry.get("factories", "eds.pollution")(
-            nlp, "eds.pollution", **config
+            nlp, "eds.pollution", pollution=config
         )
 
     normalizer = Normalizer(

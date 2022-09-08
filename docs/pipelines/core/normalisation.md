@@ -191,6 +191,33 @@ The two are independent: a matcher can use the `NORM` attribute but keep exclude
 
 ![Pollution alignment](./resources/alignment.svg)
 
+#### Types of pollution
+
+Pollution can come in various forms  in clinical texts. We provide a small set of possible pollution, from which you can pick whichever you want to activate.
+
+For instance, if you want to consider biology tables as pollution, you can instantiate the `normalizer` pipeline as follows:
+
+```python
+nlp.add_pipe(
+    "eds.normalizer",
+    config=dict(
+        pollution=dict(
+            biology=True,
+        ),
+    ),
+)
+```
+
+| Type          | Description                                                                                                               | Example                                                                                                    | Included by default |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------- |
+| `information` | Footnote present in a lot of notes, providing information to the patient about the use of its data                        | "L'AP-HP collecte vos données administratives à des fins ..."                                              | `True`              |
+| `bars`        | Barcodes wrongly parsed as text                                                                                           | "...NBNbWbWbNbWbNBNbNbWbW..."                                                                              | `True`              |
+| `biology`     | Parsed biology results table. It often contains disease names that often leads to *false positives* with NER pipelines.   | "...¦UI/L ¦20 ¦ ¦ ¦20-70 Polyarthrite rhumatoïde Facteur rhumatoide ¦UI/mL ¦ ¦<10 ¦ ¦ ¦ ¦0-14..."          | `False`             |
+| `doctors`     | List of doctor names and specialities, often found in left-side note margins. Also source of potential *false positives*. | "... Dr ABC - Diabète/Endocrino ..."                                                                       | `True`              |
+| `web`         | Webpages URL and email adresses. Also source of potential *false positives*.                                              | "... www.vascularites.fr ..."                                                                              | `True`              |
+| `coding`      | Subsection containing ICD-10 codes along with their description. Also source of potential *false positives*.              | "... (2) E112 + Oeil (2) E113 + Neuro (2) E114 Démence (2) F03 MA (2) F001+G301 DCL G22+G301 Vasc (2) ..." | `False`             |
+
+
 ## Authors and citation
 
 The `eds.normalizer` pipeline was developed by AP-HP's Data Science team.

@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, Optional
 
 from spacy.language import Language
 
@@ -7,7 +7,14 @@ from edsnlp.utils.deprecation import deprecated_factory
 from . import Pollution
 
 DEFAULT_CONFIG = dict(
-    pollution=None,
+    pollution=dict(
+        information=True,
+        bars=True,
+        biology=False,
+        doctors=True,
+        web=True,
+        coding=False,
+    ),
 )
 
 
@@ -18,7 +25,7 @@ DEFAULT_CONFIG = dict(
 def create_component(
     nlp: Language,
     name: str,
-    pollution: Optional[Dict[str, Union[str, List[str]]]],
+    pollution: Optional[Dict[str, bool]],
 ):
     return Pollution(
         nlp,

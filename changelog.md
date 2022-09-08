@@ -10,7 +10,7 @@
 - Add attribute `section` to entities
 - Add new cases for separator pattern when components of the TNM score are separated by a forward slash
 - Add NER `eds.adicap` pipeline to identify ADICAP codes
-- Add pattenrs to `pollution` pipeline and simplifies activate/deactivate of specific patterns
+- Add patterns to `pollution` pipeline and simplifies activate/deactivate of specific patterns
 
 ### Changed
 - Update of the `ContextualMatcher` (and all pipelines depending on it), rendering it more flexible to use

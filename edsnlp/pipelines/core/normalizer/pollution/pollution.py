@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span
@@ -34,7 +34,7 @@ class Pollution(BaseComponent):
     def __init__(
         self,
         nlp: Language,
-        pollution: Optional[Dict[str, bool]],
+        pollution: Optional[Dict[str, Union[bool, str, List[str]]]],
     ):
 
         self.nlp = nlp
@@ -42,13 +42,17 @@ class Pollution(BaseComponent):
 
         if pollution is None:
             pollution = {k: True for k in patterns.pollution.keys()}
+        self.pollution = dict()
 
-        self.pollution = {
-            k: [patterns.pollution[k]]
-            for k, to_include in pollution.items()
-            if to_include
-        }
+        for k, v in pollution.items():
+            if v is True:
+                self.pollution[k] = [patterns.pollution[k]]
+            elif isinstance(v, str):
+                self.pollution[k] = [v]
+            elif isinstance(v, list):
+                self.pollution[k] = v
 
+        print(self.pollution)
         self.regex_matcher = RegexMatcher()
         self.build_patterns()
 

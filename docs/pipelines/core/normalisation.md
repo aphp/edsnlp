@@ -217,6 +217,21 @@ nlp.add_pipe(
 | `web`         | Webpages URL and email adresses. Also source of potential *false positives*.                                              | "... www.vascularites.fr ..."                                                                              | `True`              |
 | `coding`      | Subsection containing ICD-10 codes along with their description. Also source of potential *false positives*.              | "... (2) E112 + Oeil (2) E113 + Neuro (2) E114 Démence (2) F03 MA (2) F001+G301 DCL G22+G301 Vasc (2) ..." | `False`             |
 
+#### Custom pollution
+
+If you want to exclude specific patterns, you can provide them as a RegEx (or a list of Regexes).
+For instance, to consider text between "AAA" and "ZZZ" as pollution you might use:
+
+```python
+nlp.add_pipe(
+    "eds.normalizer",
+    config=dict(
+        pollution=dict(
+            custom_pollution=r"AAA.*ZZZ",
+        ),
+    ),
+)
+```
 
 ## Authors and citation
 

@@ -5,7 +5,7 @@ The `eds.cim10` pipeline component matches the CIM10 (French-language ICD) termi
 !!! warning "Very low recall"
 
     When using the `exact' matching mode, this component has a very poor recall performance.
-    You can use the `simstring` mode to retrieve approximate matches, albeit at the cost of a significantly higher computation time.
+    We can use the `simstring` mode to retrieve approximate matches, albeit at the cost of a significantly higher computation time.
 
 ## Usage
 

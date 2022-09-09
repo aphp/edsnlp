@@ -198,6 +198,7 @@ Pollution can come in various forms  in clinical texts. We provide a small set o
 For instance, if you want to consider biology tables as pollution, you can instantiate the `normalizer` pipeline as follows:
 
 ```python
+nlp = spacy.blank("fr")
 nlp.add_pipe(
     "eds.normalizer",
     config=dict(
@@ -223,6 +224,7 @@ If you want to exclude specific patterns, you can provide them as a RegEx (or a 
 For instance, to consider text between "AAA" and "ZZZ" as pollution you might use:
 
 ```python
+nlp = spacy.blank("fr")
 nlp.add_pipe(
     "eds.normalizer",
     config=dict(

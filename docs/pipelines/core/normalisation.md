@@ -193,9 +193,9 @@ The two are independent: a matcher can use the `NORM` attribute but keep exclude
 
 #### Types of pollution
 
-Pollution can come in various forms  in clinical texts. We provide a small set of possible pollution, from which you can pick whichever you want to activate.
+Pollution can come in various forms in clinical texts. We provide a small set of possible pollutions patterns that can be enabled or disabled as needed.
 
-For instance, if you want to consider biology tables as pollution, you can instantiate the `normalizer` pipeline as follows:
+For instance, if we consider biology tables as pollution, we only need to instantiate the `normalizer` pipe as follows:
 
 ```python
 nlp = spacy.blank("fr")

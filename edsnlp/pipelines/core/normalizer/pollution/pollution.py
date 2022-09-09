@@ -52,7 +52,6 @@ class Pollution(BaseComponent):
             elif isinstance(v, list):
                 self.pollution[k] = v
 
-        print(self.pollution)
         self.regex_matcher = RegexMatcher()
         self.build_patterns()
 

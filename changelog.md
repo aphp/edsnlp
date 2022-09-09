@@ -13,6 +13,7 @@
 - Add patterns to `pollution` pipeline and simplifies activating or deactivating specific patterns
 
 ### Changed
+- Simplified the configuration scheme of the `pollution` pipeline
 - Update of the `ContextualMatcher` (and all pipelines depending on it), rendering it more flexible to use
 - Rename R component of score TNM as "resection_completeness"
 

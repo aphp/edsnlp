@@ -4,8 +4,8 @@ The `eds.cim10` pipeline component matches the CIM10 (French-language ICD) termi
 
 !!! warning "Very low recall"
 
-    This component uses exact match on CIM10 labels, which leads to extremely low performances.
-    It is intended as a simplistic baseline.
+    When using the `exact' matching mode, this component has a very poor recall performance.
+    We can use the `simstring` mode to retrieve approximate matches, albeit at the cost of a significantly higher computation time.
 
 ## Usage
 
@@ -37,8 +37,8 @@ The pipeline can be configured using the following parameters :
 
 | Parameter             | Description                                                    | Default   |
 |-----------------------|----------------------------------------------------------------|-----------|
-| `term_matcher`        | Which algorithm should we use : `exact` or `simstring`         | `"LOWER"` |
-| `term_matcher_config` | Config of the algorithm (`SimstringMatcher`'s for `simstring`) | `"LOWER"` |
+| `term_matcher`        | Which algorithm should we use : `exact` or `simstring`         | `"exact"` |
+| `term_matcher_config` | Config of the algorithm (`SimstringMatcher`'s for `simstring`) | `{}` |
 | `attr`                | spaCy attribute to match on (eg `NORM`, `TEXT`, `LOWER`)       | `"LOWER"` |
 | `ignore_excluded`     | Whether to ignore excluded tokens for matching                 | `False`   |
 

@@ -24,6 +24,8 @@ family: List[str] = [
     "fiancé",
     "fiancée",
     "fils",
+    "fille",
+    "filles",
     "frère",
     "frères",
     "grand-mère",
@@ -42,4 +44,6 @@ family: List[str] = [
     "sœurs",
     "soeurs",
     "tante",
+    "neveu",
+    "nièce",
 ]

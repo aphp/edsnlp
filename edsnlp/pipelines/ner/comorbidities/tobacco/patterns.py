@@ -1,79 +1,43 @@
-main_pattern = dict(
-    source="main",
+PA = r"(?:\bpa\b|paquets?.?annee)"
+QUANTITY = r"(?P<quantity>[\d]{1,3})"
+
+default_patterns = dict(
+    source="tobacco",
     regex=[
-        r"\bds?n?id\b",
-        r"\bdiabet[^o]",
+        r"tabagi",
+        r"tabac",
+        r"\bfume\b",
+        r"\bfumeu",
+        r"\bpipes?\b",
     ],
     exclude=dict(
         regex=[
-            "insipide",
-            "nephrogenique",
-            "aigu",
-            r"\bdr\b",  # Dr. ...
-            "endocrino",  # Section title
-            "cortico",
-            "soins aux pieds",  # Section title
-            "nutrition",  # Section title
-            r"\s?:\n+\W+(?!oui|non|\W)",  # General pattern for section title
+            "occasion",
+            "moder",
+            "quelqu",
+            "festi",
+            "rare",
+            "sujet",  # Example : Chez le sujet fumeur ... generic sentences
         ],
-        window=(-5, 5),
+        window=(-3, 5),
     ),
     regex_attr="NORM",
     assign=[
         dict(
-            name="complicated_before",
-            regex="("
-            + r"|".join(
-                [
-                    r"nephropat",
-                    r"neuropat",
-                    r"retinopat",
-                    r"glomerulopathi",
-                    r"neuroangiopathi",
-                ]
-            )
-            + ")",
-            window=-3,
+            name="stopped",
+            regex=r"(?<!non )(?<!pas )(\bex\b|sevr|arret|stop|ancien)",
+            window=(-3, 7),
         ),
         dict(
-            name="complicated_after",
-            regex="("
-            + r"|".join(
-                [
-                    r"(?<!sans )compli",
-                    r"(?<!a)symptomatique",
-                ]
-            )
-            + ")",
-            window=7,
-        ),
-        dict(
-            name="type",
-            regex=r"type.(i|ii|1|2)",
+            name="zero_after",
+            regex=r"^[a-z]*\s*:?[\s-]*(0|oui|non(?! sevr))",
             window=6,
         ),
         dict(
-            name="insulin",
-            regex=r"insulino.?(dep|req)",
-            window=6,
+            name="PA",
+            regex=rf"{QUANTITY}.{{0,10}}{PA}|{PA}.{{0,10}}{QUANTITY}",
+            window=(-10, 10),
+            reduce_mode="keep_first",
         ),
     ],
 )
-
-complicated_pattern = dict(
-    source="complicated",
-    regex=[
-        r"mal perforant plantaire",
-        r"pieds? diabeti",
-    ],
-    exclude=dict(
-        regex="soins aux",  # Section title
-        window=-2,
-    ),
-    regex_attr="NORM",
-)
-
-default_patterns = [
-    main_pattern,
-    complicated_pattern,
-]

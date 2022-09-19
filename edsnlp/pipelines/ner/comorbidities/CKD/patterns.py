@@ -1,79 +1,106 @@
 main_pattern = dict(
     source="main",
     regex=[
-        r"\bds?n?id\b",
-        r"\bdiabet[^o]",
+        r"glomerulonephrite",
+        r"insuffisance.{1,7}rein",
+        r"(?<!pyelo)nephrite.{1,10}chronique",
+        r"nephropathie",
+        r"glomerulopathie",
+        r"\bGNIgA",
+        r"syndrome nephrotique",
+        r"nephroangiosclerose",
+        r"mal de bright",
+        r"(maladie|syndrome).{1,7}berger",
+        r"(maladie|syndrome).{1,7}bright",
+        r"rachitisme renal",
+        r"sydrome.{1,5}alport",
+        r"good.?pasture",
+        r"siadh",
     ],
     exclude=dict(
         regex=[
-            "insipide",
-            "nephrogenique",
             "aigu",
-            r"\bdr\b",  # Dr. ...
-            "endocrino",  # Section title
-            "cortico",
-            "soins aux pieds",  # Section title
-            "nutrition",  # Section title
-            r"\s?:\n+\W+(?!oui|non|\W)",  # General pattern for section title
         ],
-        window=(-5, 5),
+        window=4,
     ),
+    regex_attr="NORM",
+)
+
+transplantation = dict(
+    source="transplantation",
+    regex=[
+        r"transplant.{1,15}(rein|renal)",
+        r"greff.{1,10}(rein|renal)",
+    ],
+    regex_attr="NORM",
+)
+
+dialysis = dict(
+    source="dialysis",
+    regex=[
+        r"\beer\b",
+        r"epuration extra.*renale",
+        r"dialyse",
+    ],
     regex_attr="NORM",
     assign=[
         dict(
-            name="complicated_before",
-            regex="("
+            name="chronic",
+            regex=r"("
             + r"|".join(
                 [
-                    r"nephropat",
-                    r"neuropat",
-                    r"retinopat",
-                    r"glomerulopathi",
-                    r"neuroangiopathi",
+                    "long",
+                    "chronique",
+                    "peritoneal",
+                    "depuis",
+                    "intermitten",
+                    "quotidien",
+                    "hebdo",
+                    "seances",
+                    "programme",
                 ]
             )
-            + ")",
-            window=-3,
-        ),
-        dict(
-            name="complicated_after",
-            regex="("
-            + r"|".join(
-                [
-                    r"(?<!sans )compli",
-                    r"(?<!a)symptomatique",
-                ]
-            )
-            + ")",
-            window=7,
-        ),
-        dict(
-            name="type",
-            regex=r"type.(i|ii|1|2)",
-            window=6,
-        ),
-        dict(
-            name="insulin",
-            regex=r"insulino.?(dep|req)",
-            window=6,
+            + r")",
+            window=5,
         ),
     ],
 )
 
-complicated_pattern = dict(
-    source="complicated",
+general = dict(
+    source="general",
     regex=[
-        r"mal perforant plantaire",
-        r"pieds? diabeti",
+        r"insuffisance.{1,7}\b(rein|rena)",
+        r"maladies? renales?.{1,10}",
     ],
-    exclude=dict(
-        regex="soins aux",  # Section title
-        window=-2,
-    ),
     regex_attr="NORM",
+    assign=[
+        dict(
+            name="class",
+            regex=r"\b(III|IV|V|3|4|5)\b",
+            window=5,
+        ),
+        dict(
+            name="status",
+            regex=r"\b(moder|sever|terminal|pre.greffe|post.greffe)\b",
+            window=5,
+        ),
+    ],
+)
+
+acronym = dict(
+    source="acronym",
+    regex=[
+        r"\bDPCA\b",
+        r"\bIRC\b",
+        r"\bGNMP\b",
+    ],
+    regex_attr="TEXT",
 )
 
 default_patterns = [
     main_pattern,
-    complicated_pattern,
+    transplantation,
+    dialysis,
+    general,
+    acronym,
 ]

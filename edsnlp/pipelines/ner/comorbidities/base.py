@@ -1,14 +1,13 @@
 """`eds.comorbidities.diabetes` pipeline"""
-from typing import Generator
-
 from operator import itemgetter
+from typing import Generator
 
 from spacy.tokens import Doc, Span
 
 from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
 from edsnlp.pipelines.qualifiers.base import get_qualifier_extensions
-from edsnlp.utils.filter import filter_spans
 from edsnlp.utils.extensions import rgetattr
+from edsnlp.utils.filter import filter_spans
 
 
 class Comorbidity(ContextualMatcher):

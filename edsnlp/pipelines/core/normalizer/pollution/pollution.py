@@ -46,13 +46,13 @@ class Pollution(BaseComponent):
 
         for k, v in pollution.items():
             if v is True:
-                self.pollution[k] = [patterns.pollution[k]]
+                pattern = patterns.pollution[k]
+                self.pollution[k] = pattern if isinstance(pattern, list) else [pattern]
             elif isinstance(v, str):
                 self.pollution[k] = [v]
             elif isinstance(v, list):
                 self.pollution[k] = v
 
-        print(self.pollution)
         self.regex_matcher = RegexMatcher()
         self.build_patterns()
 

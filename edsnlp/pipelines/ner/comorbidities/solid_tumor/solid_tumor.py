@@ -4,7 +4,7 @@ from typing import Generator
 from spacy.tokens import Doc, Span
 
 from edsnlp.pipelines.ner.comorbidities.base import Comorbidity
-from edsnlp.utils.filter import filter_spans
+from edsnlp.utils.numbers import parse_digit
 
 from .patterns import default_patterns
 
@@ -25,10 +25,19 @@ class SolidTumor(Comorbidity):
     def postprocess(self, doc: Doc, spans: Generator[Span, None, None]):
         for span in spans:
 
-            if span._.source == "complicated":
+            if span._.source == "metastasis_pattern":
                 span._.status = 2
 
-            elif any([k.startswith("complicated") for k in span._.assigned.keys()]):
+            elif "metastasis" in span._.assigned.keys():
                 span._.status = 2
+
+            elif "stage" in span._.assigned.keys():
+                stage = parse_digit(
+                    span._.assigned["stage"],
+                    atttr="NORM",
+                    ignore_excluded=True,
+                )
+                if stage == 4:
+                    span._.status = 2
 
             yield span

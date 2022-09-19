@@ -1,79 +1,59 @@
+TO_EXCLUDE = r"(\bacc\b)|anti.?coag|anti.?corps|buschke"
+
 main_pattern = dict(
     source="main",
     regex=[
-        r"\bds?n?id\b",
-        r"\bdiabet[^o]",
+        r"arthrites? juveniles? idiopa",
+        r"myosite",
+        r"myopathie.{1,5}inflammatoire",
+        r"lupus",
+        r"lupique",
+        r"polyarthrite chronique evol",
+        r"polymyosie",
+        r"polyarthrites? (rhizo|rhuma)",
+        r"sclerodermie",
+        r"connectivite",
+        r"sarcoidose",
     ],
     exclude=dict(
-        regex=[
-            "insipide",
-            "nephrogenique",
-            "aigu",
-            r"\bdr\b",  # Dr. ...
-            "endocrino",  # Section title
-            "cortico",
-            "soins aux pieds",  # Section title
-            "nutrition",  # Section title
-            r"\s?:\n+\W+(?!oui|non|\W)",  # General pattern for section title
-        ],
-        window=(-5, 5),
+        regex=[TO_EXCLUDE],
+        window=(-7, 7),
     ),
     regex_attr="NORM",
-    assign=[
-        dict(
-            name="complicated_before",
-            regex="("
-            + r"|".join(
-                [
-                    r"nephropat",
-                    r"neuropat",
-                    r"retinopat",
-                    r"glomerulopathi",
-                    r"neuroangiopathi",
-                ]
-            )
-            + ")",
-            window=-3,
-        ),
-        dict(
-            name="complicated_after",
-            regex="("
-            + r"|".join(
-                [
-                    r"(?<!sans )compli",
-                    r"(?<!a)symptomatique",
-                ]
-            )
-            + ")",
-            window=7,
-        ),
-        dict(
-            name="type",
-            regex=r"type.(i|ii|1|2)",
-            window=6,
-        ),
-        dict(
-            name="insulin",
-            regex=r"insulino.?(dep|req)",
-            window=6,
-        ),
-    ],
 )
 
-complicated_pattern = dict(
+acronym = dict(
     source="complicated",
     regex=[
-        r"mal perforant plantaire",
-        r"pieds? diabeti",
+        r"\bAJI\b",
+        r"\bLED\b",
+        r"\bPCE\b",
+        r"\bCREST\b",
+        r"\bPPR\b",
+        r"\bMICI\b",
+        r"\bMNAI\b",
     ],
-    exclude=dict(
-        regex="soins aux",  # Section title
-        window=-2,
-    ),
+    regex_attr="TEXT",
+)
+
+named_disease = dict(
+    source="named_disease",
+    regex=[
+        r"libman.?lack",
+        r"\bstill",
+        r"felty",
+        r"forestier.?certon",
+        r"gou(g|j)erot",
+        r"raynaud",
+        r"thibierge.?weiss",
+        r"sjogren",
+        r"gou(g|j)erot.+sjogren",
+    ],
     regex_attr="NORM",
 )
 
 default_patterns = [
     main_pattern,
-    complicated_pattern,
+    acronym,
+    named_disease,
 ]

@@ -1,79 +1,50 @@
+from ..terms import ASYMPTOMATIC
+
 main_pattern = dict(
     source="main",
     regex=[
-        r"\bds?n?id\b",
-        r"\bdiabet[^o]",
+        r"defaillance.{1,10}cardi",
+        r"(œ|oe)deme.{1,10}pulmon",
+        r"(œ|oe)deme.{1,10}poumon",
+        r"decompensation.{1,10}card",
+        r"chocs?\s(septi.{1,10}|cardio)",
+        r"greffe.{1,10}c(œ|oe)ur",
+        r"greffe.{1,10}cardia",
+        r"transplantation.{1,10}c(œ|oe)ur",
+        r"transplantation.{1,10}cardia",
+        r"arret.{1,10}cardi",
+        r"c(œ|oe)ur pulmo",
+        r"foie card",
     ],
-    exclude=dict(
-        regex=[
-            "insipide",
-            "nephrogenique",
-            "aigu",
-            r"\bdr\b",  # Dr. ...
-            "endocrino",  # Section title
-            "cortico",
-            "soins aux pieds",  # Section title
-            "nutrition",  # Section title
-            r"\s?:\n+\W+(?!oui|non|\W)",  # General pattern for section title
-        ],
-        window=(-5, 5),
-    ),
     regex_attr="NORM",
-    assign=[
-        dict(
-            name="complicated_before",
-            regex="("
-            + r"|".join(
-                [
-                    r"nephropat",
-                    r"neuropat",
-                    r"retinopat",
-                    r"glomerulopathi",
-                    r"neuroangiopathi",
-                ]
-            )
-            + ")",
-            window=-3,
-        ),
-        dict(
-            name="complicated_after",
-            regex="("
-            + r"|".join(
-                [
-                    r"(?<!sans )compli",
-                    r"(?<!a)symptomatique",
-                ]
-            )
-            + ")",
-            window=7,
-        ),
-        dict(
-            name="type",
-            regex=r"type.(i|ii|1|2)",
-            window=6,
-        ),
-        dict(
-            name="insulin",
-            regex=r"insulino.?(dep|req)",
-            window=6,
-        ),
-    ],
 )
 
-complicated_pattern = dict(
-    source="complicated",
+symptomatic = dict(
+    source="symptomatic",
     regex=[
-        r"mal perforant plantaire",
-        r"pieds? diabeti",
+        r"cardiopathi",
+        r"cardiomyopathi",
+        r"insuffisance.{1,10}(cardi|diasto|ventri)",
+        r"d(i|y)sfonction.{1,15}(ventricul|\bvg|cardiaque)",
     ],
-    exclude=dict(
-        regex="soins aux",  # Section title
-        window=-2,
-    ),
     regex_attr="NORM",
+    exclude=dict(
+        regex=ASYMPTOMATIC + ["ischemi"],  # Exclusion of ischemic events
+        window=5,
+    ),
+)
+
+acronym = dict(
+    source="acronym",
+    regex=[
+        r"\bOAP\b",
+        r"\bCMH\b",
+    ],
+    regex_attr="TEXT",
 )
 
 default_patterns = [
     main_pattern,
-    complicated_pattern,
+    symptomatic,
+    acronym,
 ]

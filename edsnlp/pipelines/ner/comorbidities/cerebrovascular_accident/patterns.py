@@ -1,79 +1,98 @@
-main_pattern = dict(
-    source="main",
+import re
+
+from edsnlp.utils.resources import get_AVC_care_site_prefixes
+
+from ..terms import BRAIN
+
+AVC_CARE_SITES_REGEX = [
+    r"\b" + re.escape(cs.strip()) + r"\b" for cs in get_AVC_care_site_prefixes()
+] + [
+    r"h[oô]p",
+    r"rcp",
+    r"service",
+    r"sau",
+    r"ap.?hp",
+    r"urg",
+    r"avc [a-z]\.\.",
+    r"finess",
+    r"siret",
+    r"[àa] AVC",
+]
+
+avc = dict(
+    source="avc",
     regex=[
-        r"\bds?n?id\b",
-        r"\bdiabet[^o]",
+        r"\bAVC\b",
     ],
     exclude=dict(
-        regex=[
-            "insipide",
-            "nephrogenique",
-            "aigu",
-            r"\bdr\b",  # Dr. ...
-            "endocrino",  # Section title
-            "cortico",
-            "soins aux pieds",  # Section title
-            "nutrition",  # Section title
-            r"\s?:\n+\W+(?!oui|non|\W)",  # General pattern for section title
-        ],
+        regex=AVC_CARE_SITES_REGEX,
         window=(-5, 5),
+        regex_flags=re.S | re.I,
     ),
+    regex_attr="TEXT",
+)
+
+with_localization = dict(
+    source="with_localization",
+    regex=[
+        r"(hemorr?agie|hematome)",
+        r"infarctus",
+        r"occlusion",
+        r"saignements",
+        r"thrombo(se|phlebite)",
+        r"embol.{1,10}",
+        r"vascularite",
+    ],
     regex_attr="NORM",
     assign=[
         dict(
-            name="complicated_before",
-            regex="("
-            + r"|".join(
-                [
-                    r"nephropat",
-                    r"neuropat",
-                    r"retinopat",
-                    r"glomerulopathi",
-                    r"neuroangiopathi",
-                ]
-            )
-            + ")",
-            window=-3,
-        ),
-        dict(
-            name="complicated_after",
-            regex="("
-            + r"|".join(
-                [
-                    r"(?<!sans )compli",
-                    r"(?<!a)symptomatique",
-                ]
-            )
-            + ")",
-            window=7,
-        ),
-        dict(
-            name="type",
-            regex=r"type.(i|ii|1|2)",
-            window=6,
-        ),
-        dict(
-            name="insulin",
-            regex=r"insulino.?(dep|req)",
-            window=6,
+            name="brain_localized",
+            regex="(" + r"|".join(BRAIN) + ")",
+            window=8,
         ),
     ],
 )
 
-complicated_pattern = dict(
-    source="complicated",
+general = dict(
+    source="general",
     regex=[
-        r"mal perforant plantaire",
-        r"pieds? diabeti",
+        r"accidents? vasculaires? cereb",
+        r"accidents? vasculaires? ischemi",
+        r"accidents? ischemi",
+        r"moya.?moya",
+        r"occlusion.{1,5}(artere|veine).{1,20}retine",
+        r"vasculopathies?cerebrales?ischemique",
+        r"maladies? des petites arteres",
+        r"maladies? des petits vaisseaux",
     ],
-    exclude=dict(
-        regex="soins aux",  # Section title
-        window=-2,
-    ),
     regex_attr="NORM",
 )
 
+acronym = dict(
+    source="acronym",
+    regex=[
+        r"\bAIC\b",
+        r"\bOACR\b",
+        r"\bOVCR\b",
+    ],
+    regex_attr="TEXT",
+)
+
+AIT = dict(
+    source="AIT",
+    regex=[
+        r"\bAIC\b",
+        r"\bOACR\b",
+        r"\bOVCR\b",
+        r"\bAIT\b",
+    ],
+    regex_attr="TEXT",
+)
+
 default_patterns = [
-    main_pattern,
-    complicated_pattern,
+    avc,
+    with_localization,
+    general,
+    acronym,
+    AIT,
 ]

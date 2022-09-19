@@ -1,79 +1,33 @@
 main_pattern = dict(
     source="main",
     regex=[
-        r"\bds?n?id\b",
-        r"\bdiabet[^o]",
+        r"hemiplegi",
+        r"tetraplegi",
+        r"quadriplegi",
+        r"paraplegi",
+        r"neuropathie.{1,25}motrice.{1,30}type [5V]",
+        r"charcot.?marie.?tooth",
+        r"locked.?in",
+        r"syndrome.{1,5}(enfermement|verrouillage)|(desafferen)",
+        r"paralysie.{1,10}hemicorps",
+        r"paralysie.{1,10}jambe",
+        r"paralysie.{1,10}membre",
+        r"paralysie.{1,10}cote du corps",
+        r"paralysie cerebrale spastique",
     ],
-    exclude=dict(
-        regex=[
-            "insipide",
-            "nephrogenique",
-            "aigu",
-            r"\bdr\b",  # Dr. ...
-            "endocrino",  # Section title
-            "cortico",
-            "soins aux pieds",  # Section title
-            "nutrition",  # Section title
-            r"\s?:\n+\W+(?!oui|non|\W)",  # General pattern for section title
-        ],
-        window=(-5, 5),
-    ),
     regex_attr="NORM",
-    assign=[
-        dict(
-            name="complicated_before",
-            regex="("
-            + r"|".join(
-                [
-                    r"nephropat",
-                    r"neuropat",
-                    r"retinopat",
-                    r"glomerulopathi",
-                    r"neuroangiopathi",
-                ]
-            )
-            + ")",
-            window=-3,
-        ),
-        dict(
-            name="complicated_after",
-            regex="("
-            + r"|".join(
-                [
-                    r"(?<!sans )compli",
-                    r"(?<!a)symptomatique",
-                ]
-            )
-            + ")",
-            window=7,
-        ),
-        dict(
-            name="type",
-            regex=r"type.(i|ii|1|2)",
-            window=6,
-        ),
-        dict(
-            name="insulin",
-            regex=r"insulino.?(dep|req)",
-            window=6,
-        ),
-    ],
 )
 
-complicated_pattern = dict(
-    source="complicated",
+acronym = dict(
+    source="acronym",
     regex=[
-        r"mal perforant plantaire",
-        r"pieds? diabeti",
+        r"\bLIS\b",
+        r"\bNMSH\b",
     ],
-    exclude=dict(
-        regex="soins aux",  # Section title
-        window=-2,
-    ),
-    regex_attr="NORM",
+    regex_attr="TEXT",
 )
 
 default_patterns = [
     main_pattern,
-    complicated_pattern,
+    acronym,
 ]

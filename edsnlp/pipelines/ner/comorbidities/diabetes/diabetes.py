@@ -4,7 +4,6 @@ from typing import Generator
 from spacy.tokens import Doc, Span
 
 from edsnlp.pipelines.ner.comorbidities.base import Comorbidity
-from edsnlp.utils.filter import filter_spans
 
 from .patterns import default_patterns
 

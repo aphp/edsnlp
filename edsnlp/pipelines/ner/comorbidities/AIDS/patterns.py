@@ -1,79 +1,43 @@
-main_pattern = dict(
-    source="main",
+aids = dict(
+    source="aids",
     regex=[
-        r"\bds?n?id\b",
-        r"\bdiabet[^o]",
+        r"(vih.{1,5}stade.{1,5})?\bsida\b",
     ],
-    exclude=dict(
-        regex=[
-            "insipide",
-            "nephrogenique",
-            "aigu",
-            r"\bdr\b",  # Dr. ...
-            "endocrino",  # Section title
-            "cortico",
-            "soins aux pieds",  # Section title
-            "nutrition",  # Section title
-            r"\s?:\n+\W+(?!oui|non|\W)",  # General pattern for section title
-        ],
-        window=(-5, 5),
-    ),
     regex_attr="NORM",
-    assign=[
-        dict(
-            name="complicated_before",
-            regex="("
-            + r"|".join(
-                [
-                    r"nephropat",
-                    r"neuropat",
-                    r"retinopat",
-                    r"glomerulopathi",
-                    r"neuroangiopathi",
-                ]
-            )
-            + ")",
-            window=-3,
-        ),
-        dict(
-            name="complicated_after",
-            regex="("
-            + r"|".join(
-                [
-                    r"(?<!sans )compli",
-                    r"(?<!a)symptomatique",
-                ]
-            )
-            + ")",
-            window=7,
-        ),
-        dict(
-            name="type",
-            regex=r"type.(i|ii|1|2)",
-            window=6,
-        ),
-        dict(
-            name="insulin",
-            regex=r"insulino.?(dep|req)",
-            window=6,
-        ),
-    ],
 )
 
-complicated_pattern = dict(
-    source="complicated",
+hiv = dict(
+    source="hiv",
     regex=[
-        r"mal perforant plantaire",
-        r"pieds? diabeti",
+        r"\bhiv\b",
+        r"\bvih\b",
     ],
-    exclude=dict(
-        regex="soins aux",  # Section title
-        window=-2,
+    assign=dict(
+        name="opportunist",
+        regex=r"("
+        + r"|".join(
+            [
+                r"kapo[sz]i",
+                r"toxoplasmose",
+                r"\bmet\b",
+                r"meningo.?encephalite toxo",
+                r"pneumocystose",
+                r"\bpep\b",
+                r"pneumocystis",
+                r"cryptococcose",
+                r"cytomégalovirus",
+                r"\bcmv\b",
+                r"myobact",
+                r"opportunist",
+            ]
+        )
+        + ")",
+        window=(-8, 8),
     ),
     regex_attr="NORM",
 )
 
 default_patterns = [
-    main_pattern,
-    complicated_pattern,
+    aids,
+    hiv,
 ]

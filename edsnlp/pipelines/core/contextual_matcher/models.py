@@ -1,6 +1,7 @@
 import re
 from typing import List, Optional, Tuple, Union
 
+import regex
 from pydantic import BaseModel, Extra, validator
 
 from edsnlp.matchers.utils import ListOrStr
@@ -124,7 +125,9 @@ class SingleAssignModel(BaseModel):
 
     @validator("regex")
     def check_single_regex_group(cls, pat):
-        compiled_pat = re.compile(pat)
+        compiled_pat = regex.compile(
+            pat
+        )  # Using regex to allow multiple fgroups with same name
         n_groups = compiled_pat.groups
         assert n_groups == 1, (
             "The pattern {pat} should have only one" "capturing group, not {n_groups}"

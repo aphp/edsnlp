@@ -1,79 +1,102 @@
-main_pattern = dict(
-    source="main",
+from ..terms import BRAIN, HEART
+
+acronym = dict(
+    source="acronym",
     regex=[
-        r"\bds?n?id\b",
-        r"\bdiabet[^o]",
+        r"\bAOMI\b",
+        r"\bACOM\b",
+        r"\bTAO\b",
+        r"\bSAPL\b",
+        r"\bOACR\b",
+        r"\bOVCR\b",
+        r"\bSCS\b",
+        r"\bTVP\b",
+        r"\bCAPS\b",
+        r"\bMTEV\b",
+        r"\bPTT\b",
+        r"\bMAT\b",
+        r"\bSHU\b",
     ],
-    exclude=dict(
-        regex=[
-            "insipide",
-            "nephrogenique",
-            "aigu",
-            r"\bdr\b",  # Dr. ...
-            "endocrino",  # Section title
-            "cortico",
-            "soins aux pieds",  # Section title
-            "nutrition",  # Section title
-            r"\s?:\n+\W+(?!oui|non|\W)",  # General pattern for section title
-        ],
-        window=(-5, 5),
-    ),
-    regex_attr="NORM",
-    assign=[
-        dict(
-            name="complicated_before",
-            regex="("
-            + r"|".join(
-                [
-                    r"nephropat",
-                    r"neuropat",
-                    r"retinopat",
-                    r"glomerulopathi",
-                    r"neuroangiopathi",
-                ]
-            )
-            + ")",
-            window=-3,
-        ),
-        dict(
-            name="complicated_after",
-            regex="("
-            + r"|".join(
-                [
-                    r"(?<!sans )compli",
-                    r"(?<!a)symptomatique",
-                ]
-            )
-            + ")",
-            window=7,
-        ),
-        dict(
-            name="type",
-            regex=r"type.(i|ii|1|2)",
-            window=6,
-        ),
-        dict(
-            name="insulin",
-            regex=r"insulino.?(dep|req)",
-            window=6,
-        ),
-    ],
+    regex_attr="TEXT",
 )
 
-complicated_pattern = dict(
-    source="complicated",
+other = dict(
+    source="other",
     regex=[
-        r"mal perforant plantaire",
-        r"pieds? diabeti",
+        r"\bbuerger",
+        r"takayasu",
+        r"\bhorton",
+        r"wegener",
+        r"churg.{1,10}strauss",
+        r"\bsneddon",
+        r"budd.chiari",
+        r"infarctus.{1,5}(renal|splenique|polaire)",
     ],
-    exclude=dict(
-        regex="soins aux",  # Section title
-        window=-2,
-    ),
+    regex_attr="NORM",
+)
+
+with_localization = dict(
+    source="with_localization",
+    regex=[
+        r"angiopathie",
+        r"arteriopathies? obliterante",
+        r"gangren",
+        r"claudication",
+        r"dissection.{1,10}(aort|arter)",
+        r"tromboangeit",
+        r"tromboarterit",
+        r"pontages? arteriel",
+        r"arterite",
+        r"(ischemie|infarctus).{1,10}mesenterique",
+        r"endarteriectomie",
+        r"vascularite",
+        r"granulomatose.{1,10}polyangeite",
+        r"occlusion.{1,10}(artere|veine).{1,20}retine",
+        r"syndrome.{1,20}anti.?phospho",
+        r"occlusion.{1,10}terminaisons? carotid",
+        r"embolies? pulmo",
+        r"cryoglobulinemie",
+        r"colites? ischemi",
+        r"embole.{1,10}cholesterol",
+        r"purpura.?thrombopenique.?idiopa",
+        r"micro.?angiopathie.?thrombotique",
+        r"syndrome.?hemolytique.{1,8}uremique",
+    ],
+    exclude=[
+        dict(
+            regex=BRAIN + HEART,
+            window=8,
+        ),
+    ],
+    regex_attr="NORM",
+)
+
+thrombosis = dict(
+    source="thrombosis",
+    regex=[
+        r"thrombos",
+        r"thrombi[^n]",
+        r"thrombus",
+    ],
+    exclude=[
+        dict(
+            regex=BRAIN + HEART + ["superficiel"],
+            window=4,
+        ),
+        dict(
+            regex=[
+                "pre",
+                "anti",
+            ],
+            window=-4,
+        ),
+    ],
     regex_attr="NORM",
 )
 
 default_patterns = [
-    main_pattern,
-    complicated_pattern,
+    acronym,
+    other,
+    with_localization,
+    thrombosis,
 ]

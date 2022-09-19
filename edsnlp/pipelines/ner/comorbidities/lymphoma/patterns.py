@@ -1,79 +1,64 @@
 main_pattern = dict(
     source="main",
     regex=[
-        r"\bds?n?id\b",
-        r"\bdiabet[^o]",
+        r"lymphom(?:.{1,10}hodgkin)",
+        r"lymphangio",
+        r"sezary",
+        r"burkitt",
+        r"kaposi",
+        r"hodgkin",
+        r"amylose",
+        r"plasm[ao]cytome",
+        r"lympho.{1,3}sarcome",
+        r"lymphoprolif",
+        r"hemopathie.{1,10}lymphoide",
+        r"macroglobulinemie",
+        r"immunocytome",
+        r"maladie des chaine",
+        r"histiocytose.{1,5}(maligne|langerhans)",
+        r"waldenstrom",
+        r"mycos.{1,10}fongoide",
+        r"myelome",
+        r"maladie.{1,5}immunoproliferative.{1,5}maligne",
+        r"leucemie.{1,10}plasmocyte",
+    ],
+    regex_attr="NORM",
+)
+
+acronym = dict(
+    source="acronym",
+    regex=[
+        r"\bLNH\b",
+        r"\bLH\b",
+        r"\bEATL\b",
+        r"\bLAGC\b",
+        r"\bLDGCB\b",
+    ],
+    regex_attr="TEXT",
+)
+
+
+gammapathy = dict(
+    source="gammapathy",
+    regex=[
+        r"gammapathie monoclonale",
     ],
     exclude=dict(
         regex=[
-            "insipide",
-            "nephrogenique",
-            "aigu",
-            r"\bdr\b",  # Dr. ...
-            "endocrino",  # Section title
-            "cortico",
-            "soins aux pieds",  # Section title
-            "nutrition",  # Section title
-            r"\s?:\n+\W+(?!oui|non|\W)",  # General pattern for section title
+            "benin",
+            "benign",
+            "signification indéter",
+            "NMSI",
+            "MGUS",
         ],
-        window=(-5, 5),
+        window=(0, 5),
     ),
     regex_attr="NORM",
-    assign=[
-        dict(
-            name="complicated_before",
-            regex="("
-            + r"|".join(
-                [
-                    r"nephropat",
-                    r"neuropat",
-                    r"retinopat",
-                    r"glomerulopathi",
-                    r"neuroangiopathi",
-                ]
-            )
-            + ")",
-            window=-3,
-        ),
-        dict(
-            name="complicated_after",
-            regex="("
-            + r"|".join(
-                [
-                    r"(?<!sans )compli",
-                    r"(?<!a)symptomatique",
-                ]
-            )
-            + ")",
-            window=7,
-        ),
-        dict(
-            name="type",
-            regex=r"type.(i|ii|1|2)",
-            window=6,
-        ),
-        dict(
-            name="insulin",
-            regex=r"insulino.?(dep|req)",
-            window=6,
-        ),
-    ],
 )
 
-complicated_pattern = dict(
-    source="complicated",
-    regex=[
-        r"mal perforant plantaire",
-        r"pieds? diabeti",
-    ],
-    exclude=dict(
-        regex="soins aux",  # Section title
-        window=-2,
-    ),
-    regex_attr="NORM",
-)
 
 default_patterns = [
     main_pattern,
-    complicated_pattern,
+    acronym,
+    gammapathy,
 ]

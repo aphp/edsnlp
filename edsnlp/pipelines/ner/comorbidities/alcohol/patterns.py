@@ -9,29 +9,22 @@ default_patterns = dict(
         regex=[
             "occasion",
             "moder",
+            "quelqu",
+            "festi",
+            "rare",
         ],
         window=(0, 5),
     ),
     regex_attr="NORM",
     assign=[
         dict(
-            name="verres",
-            regex=r"(\d+[\.,-]?\d*)\s*verre [^\\d,;:]*$'",
-            window=(-3, 5),
-        ),
-        dict(
-            name="grammes",
-            regex=r"(\d+[\.,-]?\d*)\s*(?:g|grammes?)\s*(?:/|par)\s*j",
-            window=(-3, 5),
-        ),
-        dict(
-            name="sevrage",
+            name="stopped",
             regex=r"(?<!non )(?<!pas )(sevr|arret|stop|ancien)",
             window=(-5, 5),
         ),
         dict(
             name="zero_after",
-            regex=r"^[a-z]*\s*:?\s*(0|oui|non(?! sevr))",
+            regex=r"^[a-z]*\s*:?[\s-]*(0|oui|non(?! sevr))",
             window=6,
         ),
     ],

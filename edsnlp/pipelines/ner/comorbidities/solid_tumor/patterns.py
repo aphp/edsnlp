@@ -1,79 +1,80 @@
+BENINE = r"benign|benin|(grade.?\b[i1]\b)"
+STAGE = r"stade ([^\s]*)"
+
 main_pattern = dict(
     source="main",
     regex=[
-        r"\bds?n?id\b",
-        r"\bdiabet[^o]",
+        r"carcinome(?!.{0,10}in.?situ)",
+        r"seminome",
+        r"(?<!lympho)(?<!lympho-)sarcome",
+        r"blastome",
+        r"cancer([^o]|\s|\b)",
+        r"adamantinome",
+        r"chordome",
+        r"craniopharyngiome",
+        r"melanome",
+        r"neoplas",
+        r"linite",
+        r"melanome",
+        r"mesoteliome",
+        r"mesotheliome",
+        r"seminome",
+        r"myxome",
+        r"paragangliome",
+        r"craniopharyngiome",
+        r"k .{0,5}(prostate|sein)",
+        r"pancoast.?tobias",
+        r"syndrome.{1,10}lynch",
+        r"li.?fraumeni",
+        r"paraneoplasiqu",
+        r"germinome",
+        r"adeno[\s-]?k",
+        r"thymome",
+        r"\bnut\b",
+        r"\bgist\b",
+        r"\bchc\b",
+        r"\badk\b",
+        r"tumeur",
+        r"carcinoid",
+        r"histiocytome",
+        r"ependymome",
     ],
     exclude=dict(
-        regex=[
-            "insipide",
-            "nephrogenique",
-            "aigu",
-            r"\bdr\b",  # Dr. ...
-            "endocrino",  # Section title
-            "cortico",
-            "soins aux pieds",  # Section title
-            "nutrition",  # Section title
-            r"\s?:\n+\W+(?!oui|non|\W)",  # General pattern for section title
-        ],
-        window=(-5, 5),
+        regex=BENINE,
+        window=(0, 5),
     ),
     regex_attr="NORM",
     assign=[
         dict(
-            name="complicated_before",
-            regex="("
-            + r"|".join(
-                [
-                    r"nephropat",
-                    r"neuropat",
-                    r"retinopat",
-                    r"glomerulopathi",
-                    r"neuroangiopathi",
-                ]
-            )
-            + ")",
-            window=-3,
+            name="metastasis",
+            regex=r"(metasta|multinodul)",
+            window=(-3, 7),
+            reduce_mode="keep_last",
         ),
         dict(
-            name="complicated_after",
-            regex="("
-            + r"|".join(
-                [
-                    r"(?<!sans )compli",
-                    r"(?<!a)symptomatique",
-                ]
-            )
-            + ")",
+            name="stage",
+            regex=STAGE,
             window=7,
-        ),
-        dict(
-            name="type",
-            regex=r"type.(i|ii|1|2)",
-            window=6,
-        ),
-        dict(
-            name="insulin",
-            regex=r"insulino.?(dep|req)",
-            window=6,
+            reduce_mode="keep_last",
         ),
     ],
 )
 
-complicated_pattern = dict(
-    source="complicated",
+metastasis_pattern = dict(
+    source="metastasis",
     regex=[
-        r"mal perforant plantaire",
-        r"pieds? diabeti",
+        r"cellules tumorales circulantes",
+        r"metasta",
+        r"multinodul",
+        r"carcinose",
+        r"ruptures? corticale",
+        r"envahissement.{0,15}parties\smolle",
+        r"(localisation|lesion)s? .{0,20}second",
     ],
-    exclude=dict(
-        regex="soins aux",  # Section title
-        window=-2,
-    ),
     regex_attr="NORM",
 )
 
 default_patterns = [
     main_pattern,
-    complicated_pattern,
+    metastasis_pattern,
 ]

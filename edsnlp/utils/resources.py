@@ -55,3 +55,10 @@ def get_adicap_dict():
         decode_dict = json.loads(fin.read().decode("utf-8"))
 
     return decode_dict
+
+
+@lru_cache()
+def get_AVC_care_site_prefixes():
+    df = pd.read_csv(BASE_DIR / "resources" / "AVC.csv.gz")
+    df["prefix"] = df.care_site_name.str.split(" ").str[:2].str.join(" ")
+    return set(df.prefix.to_list())

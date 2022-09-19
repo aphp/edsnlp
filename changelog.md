@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Add nephew, niece and daughter to family qualifier patterns
+
 ## v0.7.0 (2022-09-06)
 
 ### Added
@@ -24,7 +30,6 @@
 - Fix explain mode, which was always triggered, in `eds.history` factory.
 - Fix test in `eds.sections`. Previously, no check was done
 - Remove SOFA scores spurious span suffixes
-- Add nephew, niece and daughter to family qualifier patterns
 
 ## v0.6.2 (2022-08-02)
 

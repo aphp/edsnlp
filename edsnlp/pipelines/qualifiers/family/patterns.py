@@ -45,5 +45,7 @@ family: List[str] = [
     "soeurs",
     "tante",
     "neveu",
+    "neveux",
     "nièce",
+    "nièces",
 ]

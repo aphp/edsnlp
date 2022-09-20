@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 class AdicapCode(BaseModel):
     code: str
-    sampling_code: Optional[str]
+    sampling_mode: Optional[str]
     technic: Optional[str]
     organ: Optional[str]
     non_tumoral_pathology: Optional[str]

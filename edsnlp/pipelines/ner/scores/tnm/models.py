@@ -1,4 +1,5 @@
 from enum import Enum
+from sys import prefix
 from typing import TYPE_CHECKING, Optional, Union
 
 from pydantic import BaseModel, validator
@@ -18,7 +19,7 @@ class TnmEnum(Enum):
         return self.value
 
 
-class Modifier(TnmEnum):
+class Prefix(TnmEnum):
     clinical = "c"
     histopathology = "p"
     histopathology2 = "P"
@@ -47,6 +48,7 @@ class Specification(TnmEnum):
     b = "b"
     c = "c"
     d = "d"
+    mi = "mi"
     x = "x"
 
 
@@ -71,11 +73,13 @@ class Metastasis(TnmEnum):
 
 class TNM(BaseModel):
 
-    modifier: Optional[Modifier] = None
+    prefix: Optional[Prefix] = None
     tumour: Optional[Tumour] = None
     tumour_specification: Optional[Specification] = None
+    tumour_suffix: Optional[str] = None
     node: Optional[Node] = None
     node_specification: Optional[Specification] = None
+    node_suffix: Optional[str] = None
     metastasis: Optional[Metastasis] = None
     resection_completeness: Optional[int] = None
     version: Optional[str] = None
@@ -102,16 +106,26 @@ class TNM(BaseModel):
     def norm(self) -> str:
         norm = []
 
-        if self.modifier is not None:
-            norm.append(str(self.modifier))
+        if self.prefix is not None:
+            norm.append(str(self.prefix))
 
-        if (self.tumour is not None) | (self.tumour_specification is not None):
+        if (
+            (self.tumour is not None)
+            | (self.tumour_specification is not None)
+            | (self.tumour_suffix is not None)
+        ):
             norm.append(
-                f"T{str(self.tumour or '')}{str(self.tumour_specification or '')}"
+                f"T{str(self.tumour or '')}{str(self.tumour_specification or '')}{str(self.tumour_suffix or '')}"
             )
 
-        if (self.node is not None) | (self.node_specification is not None):
-            norm.append(f"N{str(self.node or '')}{str(self.node_specification or '')}")
+        if (
+            (self.node is not None)
+            | (self.node_specification is not None)
+            | (self.node_suffix is not None)
+        ):
+            norm.append(
+                f"N{str(self.node or '')}{str(self.node_specification or '')}{str(self.node_suffix or '')}"
+            )
 
         if self.metastasis is not None:
             norm.append(f"M{self.metastasis}")
@@ -162,12 +176,14 @@ class TNM(BaseModel):
         set_keys = set(d.keys())
         for k in set_keys.intersection(
             {
-                "modifier",
+                "prefix",
                 "tumour",
                 "node",
                 "metastasis",
                 "tumour_specification",
                 "node_specification",
+                "tumour_suffix",
+                "node_suffix",
             }
         ):
             v = d[k]

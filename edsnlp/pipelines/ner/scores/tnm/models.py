@@ -113,24 +113,18 @@ class TNM(BaseModel):
             | (self.tumour_specification is not None)
             | (self.tumour_suffix is not None)
         ):
-            norm.append(
-                f"""T{str(self.tumour or '')}
-                {str(self.tumour_specification or '')}
-                {str(self.tumour_suffix or '')}
-                """
-            )
+            norm.append(f"T{str(self.tumour or '')}")
+            norm.append(f"{str(self.tumour_specification or '')}")
+            norm.append(f"{str(self.tumour_suffix or '')}")
 
         if (
             (self.node is not None)
             | (self.node_specification is not None)
             | (self.node_suffix is not None)
         ):
-            norm.append(
-                f"""N{str(self.node or '')}
-                {str(self.node_specification or '')}
-                {str(self.node_suffix or '')}
-                """
-            )
+            norm.append(f"N{str(self.node or '')}")
+            norm.append(f"{str(self.node_specification or '')}")
+            norm.append(f"{str(self.node_suffix or '')}")
 
         if self.metastasis is not None:
             norm.append(f"M{self.metastasis}")

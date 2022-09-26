@@ -1,5 +1,4 @@
 from enum import Enum
-from sys import prefix
 from typing import TYPE_CHECKING, Optional, Union
 
 from pydantic import BaseModel, validator
@@ -115,7 +114,10 @@ class TNM(BaseModel):
             | (self.tumour_suffix is not None)
         ):
             norm.append(
-                f"T{str(self.tumour or '')}{str(self.tumour_specification or '')}{str(self.tumour_suffix or '')}"
+                f"""T{str(self.tumour or '')}
+                {str(self.tumour_specification or '')}
+                {str(self.tumour_suffix or '')}
+                """
             )
 
         if (
@@ -124,7 +126,10 @@ class TNM(BaseModel):
             | (self.node_suffix is not None)
         ):
             norm.append(
-                f"N{str(self.node or '')}{str(self.node_specification or '')}{str(self.node_suffix or '')}"
+                f"""N{str(self.node or '')}
+                {str(self.node_specification or '')}
+                {str(self.node_suffix or '')}
+                """
             )
 
         if self.metastasis is not None:

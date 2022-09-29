@@ -16,8 +16,8 @@ expected_outputs = [
         "technic": "HISTOLOGIE ET CYTOLOGIE PAR INCLUSION",
         "organ": "SYSTEME NERVEUX PERIPHERIQUE",
         "pathology": "PATHOLOGIE GÉNÉRALE NON TUMORALE",
-        "pathology_type": 
-        """THROMBOCYTOPENIE - HYPOPLASIE ACQUISE MEGACARYOCYTAIRE ET PLAQUETTAIRE (SAI)""",
+        "pathology_type": ("THROMBOCYTOPENIE - HYPOPLASIE ACQUISE "
+        "MEGACARYOCYTAIRE ET PLAQUETTAIRE (SAI)"),
         "behaviour_type": "CARACTERES GENERAUX",
     },
     {
@@ -26,10 +26,10 @@ expected_outputs = [
         "technic": "COLORATION SPECIALE - HISTO ET CYTOCHIMIE",
         "organ": "SEIN (ÉGALEMENT UTILISÉ CHEZ L'HOMME)",
         "pathology": "PATHOLOGIE GÉNÉRALE NON TUMORALE",
-        "pathology_type": 
-        """INFLAMMATION SUBAIGUE ET CHRONIQUE LEGERE TOXIQUE (ALCOOL, ETC)""",
-        "behaviour_type": 
-        """MODIFICATION DE VOLUME, DYSTROPHIE, KYSTE, METAPLASIE ET DYSPLASIE ACQUISE""",
+        "pathology_type": ("INFLAMMATION SUBAIGUE ET CHRONIQUE "
+        "LEGERE TOXIQUE (ALCOOL, ETC)"),
+        "behaviour_type":("MODIFICATION DE VOLUME, DYSTROPHIE, "
+        "KYSTE, METAPLASIE ET DYSPLASIE ACQUISE"),
     },
     {
         "code": "CSBG0120",
@@ -73,8 +73,8 @@ expected_outputs = [
         "technic": "COLORATION SPECIALE - HISTO ET CYTOCHIMIE",
         "organ": "SEIN (ÉGALEMENT UTILISÉ CHEZ L'HOMME)",
         "pathology": "CYTOPATHOLOGIE",
-        "pathology_type": 
-        """CELLULES GLANDULAIRES ATYPIQUES EN FAVEUR D'UNE NATURE NEOPLASIQUE - SAI""",
+        "pathology_type": ("CELLULES GLANDULAIRES ATYPIQUES "
+        "EN FAVEUR D'UNE NATURE NEOPLASIQUE - SAI"),
         "behaviour_type": "MATERIEL DE SIGNIFICATION INDETERMINEE",
     },
 ]

@@ -23,6 +23,9 @@ web = r"(www\.\S*)|(\S*@\S*)"
 # Subsection with ICD-10 Codes
 coding = r".*?[a-zA-Z]\d{2,4}.*?(\n|[a-zA-Z]\d{2,4})"
 
+# New page
+new_page = r"(?i)\d\/\d\s?pat.*ipp.*"
+
 pollution = dict(
     information=information,
     bars=bars,
@@ -30,4 +33,5 @@ pollution = dict(
     doctors=doctors,
     web=web,
     coding=coding,
+    new_page=new_page,
 )

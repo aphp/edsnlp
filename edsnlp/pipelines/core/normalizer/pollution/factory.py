@@ -14,7 +14,7 @@ DEFAULT_CONFIG = dict(
         doctors=True,
         web=True,
         coding=False,
-        new_page=True,
+        footer=True,
     ),
 )
 

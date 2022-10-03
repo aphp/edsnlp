@@ -6,6 +6,9 @@
 
 - Add nephew, niece and daughter to family qualifier patterns
 
+### Added
+- Add new pattern (footer) to pipeline normalisation (pollution)
+
 ## v0.7.0 (2022-09-06)
 
 ### Added

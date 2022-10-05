@@ -1,4 +1,4 @@
-PA = r"(?:\bpa\b|paquets?.?annee)"
+PA = r"(?:\bp/?a\b|paquets?.?annee)"
 QUANTITY = r"(?P<quantity>[\d]{1,3})"
 
 default_patterns = dict(
@@ -17,6 +17,7 @@ default_patterns = dict(
             "quelqu",
             "festi",
             "rare",
+            "passif",
             "sujet",  # Example : Chez le sujet fumeur ... generic sentences
         ],
         window=(-3, 5),
@@ -26,7 +27,7 @@ default_patterns = dict(
         dict(
             name="stopped",
             regex=r"(?<!non )(?<!pas )(\bex\b|sevr|arret|stop|ancien)",
-            window=(-3, 7),
+            window=(-3, 15),
         ),
         dict(
             name="zero_after",

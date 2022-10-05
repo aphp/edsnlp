@@ -3,6 +3,7 @@ main_pattern = dict(
     regex=[
         r"leucemie",
         r"myeloproliferatif",
+        r"m[yi]eloprolifer",
     ],
     exclude=dict(
         regex=[
@@ -32,6 +33,10 @@ acronym = dict(
         r"LA my[éèe]lomonocytaire",
     ],
     regex_attr="TEXT",
+    exclude=dict(
+        regex="anti",
+        window=-20,
+    ),
 )
 
 other = dict(

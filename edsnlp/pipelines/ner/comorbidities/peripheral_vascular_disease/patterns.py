@@ -1,4 +1,4 @@
-from ..terms import BRAIN, HEART
+from ..terms import BRAIN, HEART, ASYMPTOMATIC
 
 acronym = dict(
     source="acronym",
@@ -45,7 +45,7 @@ with_localization = dict(
         r"dissection.{1,10}(aort|arter)",
         r"tromboangeit",
         r"tromboarterit",
-        r"pontages? arteriel",
+        r"pontage.{1,10}(fem|pop)?",
         r"arterite",
         r"(ischemie|infarctus).{1,10}mesenterique",
         r"endarteriectomie",
@@ -75,12 +75,13 @@ thrombosis = dict(
     source="thrombosis",
     regex=[
         r"thrombos",
+        r"thrombol",
         r"thrombi[^n]",
         r"thrombus",
     ],
     exclude=[
         dict(
-            regex=BRAIN + HEART + ["superficiel"],
+            regex=BRAIN + HEART + ["superficiel", "iv", "intra.?vein"],
             window=4,
         ),
         dict(

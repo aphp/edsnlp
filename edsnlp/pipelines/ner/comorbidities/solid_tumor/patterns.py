@@ -13,7 +13,7 @@ main_pattern = dict(
         r"chordome",
         r"craniopharyngiome",
         r"melanome",
-        r"neoplas",
+        r"neoplas(?!tine)",
         r"linite",
         r"melanome",
         r"mesoteliome",

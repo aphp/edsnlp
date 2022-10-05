@@ -2,7 +2,6 @@ main_pattern = dict(
     source="main",
     regex=[
         r"glomerulonephrite",
-        r"insuffisance.{1,7}rein",
         r"(?<!pyelo)nephrite.{1,10}chronique",
         r"nephropathie",
         r"glomerulopathie",
@@ -71,18 +70,25 @@ general = dict(
     regex=[
         r"insuffisance.{1,7}\b(rein|rena)",
         r"maladies? renales?.{1,10}",
+        r"\birc\b",
     ],
     regex_attr="NORM",
     assign=[
         dict(
             name="class",
-            regex=r"\b(III|IV|V|3|4|5)\b",
-            window=5,
+            regex=r"\b(iii|iv|v|3|4|5)",
+            window=7,
         ),
         dict(
             name="status",
             regex=r"\b(moder|sever|terminal|pre.greffe|post.greffe)\b",
-            window=5,
+            window=7,
+        ),
+        dict(
+            name="dfg",
+            regex=r"dfg.*?(\d+[\.,]?\d+)",
+            window=20,
+            reduce_mode="keep_first",
         ),
     ],
 )
@@ -91,7 +97,6 @@ acronym = dict(
     source="acronym",
     regex=[
         r"\bDPCA\b",
-        r"\bIRC\b",
         r"\bGNMP\b",
     ],
     regex_attr="TEXT",

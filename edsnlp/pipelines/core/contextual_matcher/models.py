@@ -90,6 +90,7 @@ class AssignDict(dict):
 class SingleExcludeModel(BaseModel):
     regex: ListOrStr = []
     window: Window
+    limit_to_sentence: Optional[bool] = True
     regex_flags: Optional[Flags] = None
 
     @validator("regex")
@@ -119,6 +120,7 @@ class SingleAssignModel(BaseModel):
     name: str
     regex: str
     window: Window
+    limit_to_sentence: Optional[bool] = True
     regex_flags: Optional[Flags] = None
     replace_entity: bool = False
     reduce_mode: Optional[str] = None

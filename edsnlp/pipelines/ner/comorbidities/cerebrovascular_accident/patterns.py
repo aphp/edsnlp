@@ -64,6 +64,7 @@ general = dict(
         r"vasculopathies?cerebrales?ischemique",
         r"maladies? des petites arteres",
         r"maladies? des petits vaisseaux",
+        r"thrombolyse.{1,10}(iv|intra.?vein)",
     ],
     regex_attr="NORM",
 )

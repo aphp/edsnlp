@@ -3,6 +3,8 @@ main_pattern = dict(
     regex=[
         r"\bds?n?id\b",
         r"\bdiabet[^o]",
+        r"\bdb\b",
+        r"\bdt.?[12]",
     ],
     exclude=dict(
         regex=[
@@ -11,7 +13,7 @@ main_pattern = dict(
             "aigu",
             r"\bdr\b",  # Dr. ...
             "endocrino",  # Section title
-            "cortico",
+            r"\bctc\b",
             "soins aux pieds",  # Section title
             "nutrition",  # Section title
             r"\s?:\n+\W+(?!oui|non|\W)",  # General pattern for section title
@@ -29,7 +31,9 @@ main_pattern = dict(
                     r"neuropat",
                     r"retinopat",
                     r"glomerulopathi",
+                    r"glomeruloscleros",
                     r"neuroangiopathi",
+                    r"origine",
                 ]
             )
             + ")",
@@ -42,6 +46,12 @@ main_pattern = dict(
                 [
                     r"(?<!sans )compli",
                     r"(?<!a)symptomatique",
+                    r"nephropat",
+                    r"neuropat",
+                    r"retinopat",
+                    r"glomerulopathi",
+                    r"glomeruloscleros",
+                    r"neuroangiopathi",
                 ]
             )
             + ")",
@@ -55,6 +65,11 @@ main_pattern = dict(
         dict(
             name="insulin",
             regex=r"insulino.?(dep|req)",
+            window=6,
+        ),
+        dict(
+            name="cortico",
+            regex=r"(cortico(?:.?induit)?)",
             window=6,
         ),
     ],

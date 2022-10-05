@@ -20,15 +20,22 @@ from . import models
 
 @lru_cache(64)
 def get_window(
-    doclike: Union[Doc, Span],
-    window: Tuple[int, int],
+    doclike: Union[Doc, Span], window: Tuple[int, int], limit_to_sentence: bool
 ):
 
-    return doclike.doc[
-        max(doclike.start + window[0], doclike.sent.start) : min(
-            doclike.end + window[1], doclike.sent.end
-        )
-    ]
+    start = (
+        doclike.start + window[0]
+        if not limit_to_sentence
+        else max(doclike.start + window[0], doclike.sent.start)
+    )
+
+    end = (
+        doclike.end + window[1]
+        if not limit_to_sentence
+        else min(doclike.end + window[1], doclike.sent.end)
+    )
+
+    return doclike.doc[start:end]
 
 
 class ContextualMatcher(BaseComponent):
@@ -141,6 +148,7 @@ class ContextualMatcher(BaseComponent):
                     dict(
                         matcher=exclude_matcher,
                         window=exclude["window"],
+                        limit_to_sentence=exclude["limit_to_sentence"],
                     )
                 )
 
@@ -165,6 +173,7 @@ class ContextualMatcher(BaseComponent):
                         name=assign["name"],
                         matcher=assign_matcher,
                         window=assign["window"],
+                        limit_to_sentence=assign["limit_to_sentence"],
                         replace_entity=assign["replace_entity"],
                         reduce_mode=assign["reduce_mode"],
                     )
@@ -211,9 +220,11 @@ class ContextualMatcher(BaseComponent):
         for matcher in self.exclude_matchers[source]:
 
             window = matcher["window"]
+            limit_to_sentence = matcher["limit_to_sentence"]
             snippet = get_window(
                 doclike=span,
                 window=window,
+                limit_to_sentence=limit_to_sentence,
             )
 
             if (
@@ -261,11 +272,13 @@ class ContextualMatcher(BaseComponent):
 
             attr = self.patterns[source].regex_attr or matcher["matcher"].default_attr
             window = matcher["window"]
+            limit_to_sentence = matcher["limit_to_sentence"]
             replace_entity = matcher["replace_entity"]  # Boolean
 
             snippet = get_window(
                 doclike=span,
                 window=window,
+                limit_to_sentence=limit_to_sentence,
             )
 
             # Getting the matches

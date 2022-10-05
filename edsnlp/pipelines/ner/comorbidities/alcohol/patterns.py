@@ -5,16 +5,23 @@ default_patterns = dict(
         r"\bethyl",
         r"(?<!25-)\boh\b",
     ],
-    exclude=dict(
-        regex=[
-            "occasion",
-            "moder",
-            "quelqu",
-            "festi",
-            "rare",
-        ],
-        window=(0, 5),
-    ),
+    exclude=[
+        dict(
+            regex=[
+                "occasion",
+                "moder",
+                "quelqu",
+                "festi",
+                "rare",
+                "libre",  # OH-libres
+            ],
+            window=(0, 5),
+        ),
+        dict(
+            regex="pansement",
+            window=-3,
+        ),
+    ],
     regex_attr="NORM",
     assign=[
         dict(

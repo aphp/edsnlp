@@ -60,5 +60,5 @@ gammapathy = dict(
 default_patterns = [
     main_pattern,
     acronym,
-    gammapathy,
+    # gammapathy,
 ]

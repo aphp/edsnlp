@@ -4,6 +4,7 @@ from typing import Generator
 from spacy.tokens import Doc, Span
 
 from edsnlp.pipelines.ner.comorbidities.base import Comorbidity
+from edsnlp.matchers.utils import get_text
 
 from .patterns import default_patterns
 
@@ -29,5 +30,11 @@ class Diabetes(Comorbidity):
 
             elif any([k.startswith("complicated") for k in span._.assigned.keys()]):
                 span._.status = 2
+
+            elif (
+                get_text(span, "NORM", ignore_excluded=True) == "db"
+            ) and not span._.assigned:
+                # Huge chance of FP
+                continue
 
             yield span

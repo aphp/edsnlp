@@ -25,6 +25,9 @@ class SolidTumor(Comorbidity):
     def postprocess(self, doc: Doc, spans: Generator[Span, None, None]):
         for span in spans:
 
+            if all(tok.is_upper for tok in span):
+                # Huge change of FP / Title section
+                continue
             if span._.source == "metastasis_pattern":
                 span._.status = 2
 

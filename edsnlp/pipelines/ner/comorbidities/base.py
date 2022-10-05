@@ -11,7 +11,7 @@ from edsnlp.utils.filter import filter_spans
 
 
 class Comorbidity(ContextualMatcher):
-    def __init__(self, nlp, name, patterns):
+    def __init__(self, nlp, name, patterns, include_assigned=True):
 
         self.nlp = nlp
 
@@ -24,7 +24,7 @@ class Comorbidity(ContextualMatcher):
             regex_flags=0,
             alignment_mode="expand",
             assign_as_span=True,
-            include_assigned=True,
+            include_assigned=include_assigned,
         )
 
         if not Span.has_extension("status"):

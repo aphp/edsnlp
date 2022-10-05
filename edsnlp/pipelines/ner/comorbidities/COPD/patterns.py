@@ -45,6 +45,11 @@ oxygen = dict(
             regex=r"(long.{1,10}(?:cour|dure)|chroni)",
             window=6,
         ),
+        dict(
+            name="long_bis",
+            regex=r"(persist|major|minor)",
+            window=-6,
+        ),
     ],
 )
 

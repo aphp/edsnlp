@@ -21,7 +21,20 @@ acronym = dict(
     regex_attr="TEXT",
 )
 
+generic = dict(
+    source="generic",
+    regex=r"ulcere",
+    regex_attr="NORM",
+    assign=dict(
+        name="is_peptic",
+        regex=r"\b(gastr|digest)",
+        window=(-20, 20),
+        limit_to_sentence=False,
+    ),
+)
+
 default_patterns = [
     main_pattern,
     acronym,
+    generic,
 ]

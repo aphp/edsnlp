@@ -8,8 +8,8 @@ class AdicapCode(BaseModel):
     sampling_mode: Optional[str]
     technic: Optional[str]
     organ: Optional[str]
-    non_tumoral_pathology: Optional[str]
-    tumoral_pathology: Optional[str]
+    pathology: Optional[str]
+    pathology_type: Optional[str]
     behaviour_type: Optional[str]
 
     def norm(self) -> str:

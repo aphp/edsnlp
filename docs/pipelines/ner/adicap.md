@@ -18,11 +18,14 @@ These characters represent the following attributes:
 | Sampling mode         | Mode de prelevement              | sampling_mode         |
 | Technic               | Type de technique                | technic               |
 | Organ and regions     | Appareils, organes et régions    | organ                 |
-| Non tumoral pathology | Pathologie générale non tumorale | non_tumoral_pathology |
-| Tumoral pathology     | Pathologie tumorale              | tumoral_pathology     |
+| Pathology             | Pathologie générale              | pathology             |
+| Pathology type        | Type de la pathologie            | pathology_type        |
 | Behaviour type        | Type de comportement             | behaviour_type        |
 
 
+The pathology field takes 4 different values corresponding to the 4 possible interpretations of the ADICAP code, which are : "PATHOLOGIE GÉNÉRALE NON TUMORALE", "PATHOLOGIE TUMORALE", "PATHOLOGIE PARTICULIERE DES ORGANES" and "CYTOPATHOLOGIE".
+
+Depending on the pathology value the behaviour type meaning changes, when the pathology is tumoral then it describes the malignancy of the tumor.
 
 For further details about the ADICAP code follow this [link](https://smt.esante.gouv.fr/wp-json/ans/terminologies/document?terminologyId=terminologie-adicap&fileName=cgts_sem_adicap_fiche-detaillee.pdf).
 
@@ -78,12 +81,12 @@ ent.label_
 
 ent._.adicap.dict()
 # Out: {'code': 'BHGS0040',
-#  'sampling_mode': 'BIOPSIE CHIRURGICALE',
-#  'technic': 'HISTOLOGIE ET CYTOLOGIE PAR INCLUSION',
-#  'organ': "SEIN (ÉGALEMENT UTILISÉ CHEZ L'HOMME)",
-#  'non_tumoral_pathology': 'ETAT SUBNORMAL - LESION MINEURE',
-#  'tumoral_pathology': None,
-#  'behaviour_type': 'BÉNIN'}
+# 'sampling_mode': 'BIOPSIE CHIRURGICALE',
+# 'technic': 'HISTOLOGIE ET CYTOLOGIE PAR INCLUSION',
+# 'organ': "SEIN (ÉGALEMENT UTILISÉ CHEZ L'HOMME)",
+# 'pathology': 'PATHOLOGIE GÉNÉRALE NON TUMORALE',
+# 'pathology_type': 'ETAT SUBNORMAL - LESION MINEURE',
+# 'behaviour_type': 'CARACTERES GENERAUX'}
 ```
 
 ## Configuration

@@ -15,18 +15,19 @@ import typer
 
 def parse_each_dict(df, dictionaryCode: str):
     d_spec = df.query(f"dictionaryCode=='{dictionaryCode}'")
+    d_spec.fillna("", inplace=True)
 
     decode_d_spec = {}
 
-    for code, label in d_spec[["code", "label"]].values:
-        decode_d_spec[code] = label
+    for code, label, anatomyCode in d_spec[["code", "label", "anatomyCode"]].values:
+        decode_d_spec[str(anatomyCode) + str(code)] = label
 
     d_value = decode_d_spec.pop(dictionaryCode)
 
     return dict(label=d_value, codes=decode_d_spec)
 
 
-def get_decode_dict(df, dict_keys=["D1", "D2", "D3", "D4", "D5"]):
+def get_decode_dict(df, dict_keys=["D1", "D2", "D3", "D4", "D5", "D6", "D7"]):
     decode_dict = {}
     for key in dict_keys:
 

@@ -62,19 +62,28 @@ class Adicap(ContextualMatcher):
 
     def decode(self, code):
         exploded = list(code)
-        return AdicapCode(
+        adicap = AdicapCode(
             code=code,
             sampling_mode=self.decode_dict["D1"]["codes"].get(exploded[0]),
             technic=self.decode_dict["D2"]["codes"].get(exploded[1]),
             organ=self.decode_dict["D3"]["codes"].get("".join(exploded[2:4])),
-            non_tumoral_pathology=self.decode_dict["D4"]["codes"].get(
-                "".join(exploded[4:8])
-            ),
-            tumoral_pathology=self.decode_dict["D5"]["codes"].get(
-                "".join(exploded[4:8])
-            ),
-            behaviour_type=self.decode_dict["D5"]["codes"].get(exploded[5]),
         )
+
+        for d in ["D4", "D5", "D6", "D7"]:
+            adicap_short = self.decode_dict[d]["codes"].get("".join(exploded[4:8]))
+            adicap_long = self.decode_dict[d]["codes"].get("".join(exploded[2:8]))
+
+            if (adicap_short is not None) | (adicap_long is not None):
+                adicap.pathology = self.decode_dict[d]["label"]
+                adicap.behaviour_type = self.decode_dict[d]["codes"].get(exploded[5])
+
+                if adicap_short is not None:
+                    adicap.pathology_type = adicap_short
+
+                else:
+                    adicap.pathology_type = adicap_long
+
+        return adicap
 
     def __call__(self, doc: Doc) -> Doc:
         """

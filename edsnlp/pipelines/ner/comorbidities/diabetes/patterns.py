@@ -4,7 +4,7 @@ main_pattern = dict(
         r"\bds?n?id\b",
         r"\bdiabet[^o]",
         r"\bdb\b",
-        r"\bdt.?[12]",
+        r"\bdt.?(i|ii|1|2)\b",
     ],
     exclude=dict(
         regex=[
@@ -13,7 +13,6 @@ main_pattern = dict(
             "aigu",
             r"\bdr\b",  # Dr. ...
             "endocrino",  # Section title
-            r"\bctc\b",
             "soins aux pieds",  # Section title
             "nutrition",  # Section title
             r"\s?:\n+\W+(?!oui|non|\W)",  # General pattern for section title
@@ -69,7 +68,7 @@ main_pattern = dict(
         ),
         dict(
             name="cortico",
-            regex=r"(cortico(?:.?induit)?)",
+            regex=r"(bctc\b|cortico(?:.?induit)?)",
             window=6,
         ),
     ],

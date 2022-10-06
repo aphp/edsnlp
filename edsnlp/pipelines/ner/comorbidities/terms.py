@@ -1,7 +1,7 @@
 HEART = [
     r"card",
-    r"corona[ir]",
-    r"coronaire",
+    r"coronari",
+    r"coronair",
     r"\bcd\b",
     r"interventriculaires? anterieur",
     r"\biva\b",

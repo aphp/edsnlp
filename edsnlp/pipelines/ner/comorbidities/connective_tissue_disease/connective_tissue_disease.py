@@ -1,5 +1,7 @@
 """`eds.comorbidities.connective_tissue_disease` pipeline"""
+from typing import Generator
 
+from spacy.tokens import Doc, Span
 
 from edsnlp.pipelines.ner.comorbidities.base import Comorbidity
 
@@ -18,3 +20,12 @@ class ConnectiveTissueDisease(Comorbidity):
             name="connective_tissue_disease",
             patterns=patterns,
         )
+
+    def postprocess(self, doc: Doc, spans: Generator[Span, None, None]):
+        for span in spans:
+
+            if span._.source == "lupus" and all(tok.is_upper for tok in span):
+                # Huge change of FP / Title section
+                continue
+
+            yield span

@@ -1,4 +1,5 @@
 """`eds.comorbidities.diabetes` pipeline"""
+from curses.ascii import isupper
 from operator import itemgetter
 from typing import Generator
 
@@ -7,11 +8,19 @@ from spacy.tokens import Doc, Span, Token
 from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
 from edsnlp.pipelines.qualifiers.base import get_qualifier_extensions
 from edsnlp.utils.extensions import rgetattr
-from edsnlp.utils.filter import filter_spans
+from edsnlp.utils.filter import filter_spans, sent_is_title
 
 
 class Comorbidity(ContextualMatcher):
-    def __init__(self, nlp, name, patterns, include_assigned=True):
+    def __init__(
+        self,
+        nlp,
+        name,
+        patterns,
+        include_assigned=True,
+        titles_as_hypothesis=True,
+        aggregate_per_document=True,
+    ):
 
         self.nlp = nlp
 
@@ -28,6 +37,8 @@ class Comorbidity(ContextualMatcher):
         )
 
         self.set_extensions()
+        self.titles_as_hypothesis = titles_as_hypothesis
+        self.aggregate_per_document = aggregate_per_document
 
     @classmethod
     def set_extensions(cl) -> None:
@@ -60,10 +71,14 @@ class Comorbidity(ContextualMatcher):
             annotated spaCy Doc object
         """
         spans = self.postprocess(doc, self.process(doc))
-        spans = filter_spans(spans)
-        doc.spans[self.name] = spans
+        if self.titles_as_hypothesis:
+            spans = self.set_titles_as_hypothesis(spans)
+        # spans = filter_spans(spans)
 
-        self.aggregate(doc)
+        doc.spans[self.name] = list(spans)
+
+        if self.aggregate_per_document:
+            self.aggregate(doc)
 
         return doc
 
@@ -99,3 +114,24 @@ class Comorbidity(ContextualMatcher):
         doc._.comorbidities[self.name] = status
 
         return doc
+
+    def set_titles_as_hypothesis(self, spans: Generator[Span, None, None]):
+        """
+        Method determine if an entity is in a
+        - Title
+        - Sidenote / Footnote
+        - Information paragraph
+
+        We simply check if more than half of the tokens
+        in the sentence starts with an uppercase
+
+        Parameters
+        ----------
+        ent : Span
+            An entity
+        """
+
+        for ent in spans:
+            if sent_is_title(ent.sent):
+                ent._.hypothesis = True
+            yield ent

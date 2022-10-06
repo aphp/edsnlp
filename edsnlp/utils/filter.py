@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Any, Callable, Iterable, List, Optional, Tuple, Union
 
 from spacy.tokens import Span
@@ -205,3 +206,34 @@ def get_spans(spans: List[Span], label: Union[int, str]) -> List[Span]:
         return [span for span in spans if span.label == label]
     else:
         return [span for span in spans if span.label_ == label]
+
+
+@lru_cache(maxsize=50)
+def sent_is_title(sent: Span) -> bool:
+    """
+    Check if a sentence is likely to be a 'Title'
+    by checking each token's case.
+    Used proxy: more than 50% of non-stopword tokens
+    are Title/Uppercase --> Then it is a title
+
+    Parameters
+    ----------
+    sent : Span
+        A SpaCy sentence
+
+    Returns
+    -------
+    bool
+        Whether the sentence is a title
+    """
+    ents = [ent for ent in sent if (ent.is_alpha and not ent.is_stop)]
+    if len(ents) < 3:
+        # Too few words to use this method
+        return False
+    half = len(ents) // 2
+    count = 0
+    for ent in ents:
+        count += ent.is_title or ent.is_upper
+        if count >= half:
+            return True
+    return False

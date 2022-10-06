@@ -22,6 +22,19 @@ main_pattern = dict(
     regex_attr="NORM",
 )
 
+main_pattern = dict(
+    source="lupus",
+    regex=[
+        r"\blupus",
+        r"lupique",
+    ],
+    exclude=dict(
+        regex=[TO_EXCLUDE],
+        window=(-7, 7),
+    ),
+    regex_attr="NORM",
+)
+
 acronym = dict(
     source="complicated",
     regex=[

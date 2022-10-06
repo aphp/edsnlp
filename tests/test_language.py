@@ -41,3 +41,29 @@ On se donne rendez-vous pour le 23/11/1967.
 def test_eds_lex_attrs_capitals(word):
     assert like_num(word)
     assert like_num(word.upper())
+
+
+def test_eds_tokenizer_whitespace():
+    nlp = spacy.blank("eds")
+    tokenized = [(w.text, w.whitespace_) for w in nlp("Lorem\xA0Ipsum\tDolor Sit Amet")]
+    assert tokenized == [
+        ("Lorem", " "),
+        ("Ipsum", ""),
+        ("\t", ""),
+        ("Dolor", " "),
+        ("Sit", " "),
+        ("Amet", ""),
+    ]
+
+
+def test_eds_tokenizer_numbers():
+    nlp = spacy.blank("eds")
+    tokenized = [(w.text, w.whitespace_) for w in nlp("Il fait 5.3/5.4mm")]
+    assert tokenized == [
+        ("Il", " "),
+        ("fait", " "),
+        ("5.3", ""),
+        ("/", ""),
+        ("5.4", ""),
+        ("mm", ""),
+    ]

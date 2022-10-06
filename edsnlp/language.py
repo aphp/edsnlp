@@ -58,10 +58,10 @@ class EDSTokenizer(DummyTokenizer):
         """
         self.vocab = vocab
         punct = "[:punct:]" + "\"'ˊ＂〃ײ᳓″״‶˶ʺ“”˝"
-        num_like = r"[\d]+"
-        default = rf"[^\d{punct}'\n ]+(?:['ˊ](?=[[:alpha:]]))?"
+        num_like = r"\d+(?:[.,]\d+)?"
+        default = rf"[^\d{punct}'\n[[:space:]]+(?:['ˊ](?=[[:alpha:]]))?"
         self.word_regex = regex.compile(
-            rf"({num_like}|[{punct}]|\n|[ ]+|{default})([ ])?"
+            rf"({num_like}|[{punct}]|[\n\r\t]|[^\S\r\n\t]+|{default})([^\S\r\n\t])?"
         )
 
     def __call__(self, text: str) -> Doc:

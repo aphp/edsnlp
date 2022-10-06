@@ -229,11 +229,14 @@ def sent_is_title(sent: Span) -> bool:
     ents = [ent for ent in sent if (ent.is_alpha and not ent.is_stop)]
     if len(ents) < 3:
         # Too few words to use this method
-        return False
+        # return False
+        pass
     half = len(ents) // 2
     count = 0
-    for ent in ents:
+    for i, ent in enumerate(ents):
+        if i == 0:
+            continue
         count += ent.is_title or ent.is_upper
-        if count >= half:
-            return True
-    return False
+        # if count >= half:
+        #     return True
+    return count / len(ents)

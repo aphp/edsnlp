@@ -3,7 +3,7 @@ default_patterns = dict(
     regex=[
         r"\balco[ol]",
         r"\bethyl",
-        r"(?<!25-)\boh\b",
+        r"(?<!25.?)\boh\b",
     ],
     exclude=[
         dict(

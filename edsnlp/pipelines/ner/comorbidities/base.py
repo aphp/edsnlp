@@ -2,7 +2,7 @@
 from operator import itemgetter
 from typing import Generator
 
-from spacy.tokens import Doc, Span
+from spacy.tokens import Doc, Span, Token
 
 from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
 from edsnlp.pipelines.qualifiers.base import get_qualifier_extensions
@@ -27,10 +27,23 @@ class Comorbidity(ContextualMatcher):
             include_assigned=include_assigned,
         )
 
+        self.set_extensions()
+
+    @classmethod
+    def set_extensions(cl) -> None:
+
+        super().set_extensions()
+
         if not Span.has_extension("status"):
             Span.set_extension("status", default=1)
         if not Doc.has_extension("comorbidities"):
             Doc.set_extension("comorbidities", default={})
+
+        for qualifier in ["negation", "family", "hypothesis"]:
+            if not Token.has_extension(qualifier):
+                Token.set_extension(qualifier, default=False)
+            if not Span.has_extension(qualifier):
+                Span.set_extension(qualifier, default=False)
 
     def __call__(self, doc: Doc) -> Doc:
         """

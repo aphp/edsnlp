@@ -217,7 +217,7 @@ def sent_is_title(sent: Span, neighbours: bool = False):
             )
             count += add_count
             n_ents += add_n_ents
-    if n_ents == 0:
+    if n_ents <= 0:
         return 0
     return count / n_ents
 
@@ -256,7 +256,7 @@ def unique_sent_is_title(sent: Optional[Span]) -> bool:
         count += ent.is_title or ent.is_upper
         # if count >= half:
         #     return True
-    return count, len(ents)
+    return count, len(ents) - 1  # -1 to exclude first word of sentence
 
 
 def get_next_sentence(span: Span, forward: bool = True):

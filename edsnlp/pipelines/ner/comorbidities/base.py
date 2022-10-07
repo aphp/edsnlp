@@ -18,7 +18,7 @@ class Comorbidity(ContextualMatcher):
         name,
         patterns,
         include_assigned=True,
-        titles_as_hypothesis=True,
+        titles_as_hypothesis_threshold=0.9,
         aggregate_per_document=True,
     ):
 
@@ -37,7 +37,7 @@ class Comorbidity(ContextualMatcher):
         )
 
         self.set_extensions()
-        self.titles_as_hypothesis = titles_as_hypothesis
+        self.titles_as_hypothesis_threshold = titles_as_hypothesis_threshold
         self.aggregate_per_document = aggregate_per_document
 
     @classmethod
@@ -73,7 +73,7 @@ class Comorbidity(ContextualMatcher):
             annotated spaCy Doc object
         """
         spans = self.postprocess(doc, self.process(doc))
-        if self.titles_as_hypothesis:
+        if self.titles_as_hypothesis_threshold is not None:
             spans = self.set_titles_as_hypothesis(spans)
         spans = filter_spans(spans)
 
@@ -134,5 +134,7 @@ class Comorbidity(ContextualMatcher):
         """
 
         for ent in spans:
-            ent._.title_ratio = sent_is_title(ent.sent)
+            title_ratio = sent_is_title(ent.sent)
+            if title_ratio >= self.titles_as_hypothesis_threshold:
+                ent._.hypothesis = True
             yield ent

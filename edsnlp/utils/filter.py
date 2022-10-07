@@ -208,7 +208,7 @@ def get_spans(spans: List[Span], label: Union[int, str]) -> List[Span]:
         return [span for span in spans if span.label_ == label]
 
 
-def sent_is_title(sent: Span, neighbours: bool = True):
+def sent_is_title(sent: Span, neighbours: bool = False):
     count, n_ents = unique_sent_is_title(sent)
     if neighbours:
         for direction in {True, False}:

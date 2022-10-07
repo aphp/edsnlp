@@ -217,6 +217,8 @@ def sent_is_title(sent: Span, neighbours: bool = False):
             )
             count += add_count
             n_ents += add_n_ents
+    if n_ents == 0:
+        return 0
     return count / n_ents
 
 

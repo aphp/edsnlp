@@ -49,8 +49,8 @@ class Comorbidity(ContextualMatcher):
             Span.set_extension("status", default=1)
         if not Doc.has_extension("comorbidities"):
             Doc.set_extension("comorbidities", default={})
-        if not Span.has_extension("title_ratio"):
-            Span.set_extension("title_ratio", default=9)
+        # if not Span.has_extension("title_ratio"):
+        #     Span.set_extension("title_ratio", default=9)
 
         for qualifier in ["negation", "family", "hypothesis"]:
             if not Token.has_extension(qualifier):

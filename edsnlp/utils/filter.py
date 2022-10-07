@@ -217,7 +217,7 @@ def sent_is_title(sent: Span, neighbours: bool = False):
             )
             count += add_count
             n_ents += add_n_ents
-    if n_ents <= 0:
+    if n_ents <= 3:  # Too small sentence
         return 0
     return count / n_ents
 
@@ -244,18 +244,11 @@ def unique_sent_is_title(sent: Optional[Span]) -> bool:
     if sent is None:
         return 0, 0
     ents = [ent for ent in sent if (ent.is_alpha and not ent.is_stop)]
-    if len(ents) < 3:
-        # Too few words to use this method
-        # return False
-        pass
-    half = len(ents) // 2
     count = 0
     for i, ent in enumerate(ents):
         if i == 0:
             continue
         count += ent.is_title or ent.is_upper
-        # if count >= half:
-        #     return True
     return count, len(ents) - 1  # -1 to exclude first word of sentence
 
 

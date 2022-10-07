@@ -265,4 +265,4 @@ def get_next_sentence(span: Span, forward: bool = True):
     else:
         if span.end == len(span.doc):
             return None
-        return span[-1].nbor(1).end
+        return span[-1].nbor(1).sent

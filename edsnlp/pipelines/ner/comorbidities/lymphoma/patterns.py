@@ -35,6 +35,10 @@ acronym = dict(
         r"\bLDGCB\b",
     ],
     regex_attr="TEXT",
+    exclude=dict(
+        regex=["/L", "/mL"],
+        window=10,
+    ),
 )
 
 

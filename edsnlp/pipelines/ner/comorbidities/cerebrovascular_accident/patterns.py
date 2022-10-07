@@ -13,23 +13,29 @@ AVC_CARE_SITES_REGEX = [
     r"sau",
     r"ap.?hp",
     r"urg",
-    r"avc [a-z]\.\.",
     r"finess",
     r"siret",
-    r"[àa] AVC",
+    r"[àa] avc",
+    r"consult",
 ]
 
 avc = dict(
     source="avc",
     regex=[
-        r"\bAVC\b",
+        r"\bavc\b",
     ],
-    exclude=dict(
-        regex=AVC_CARE_SITES_REGEX,
-        window=(-5, 5),
-        regex_flags=re.S | re.I,
-    ),
-    regex_attr="TEXT",
+    exclude=[
+        dict(
+            regex=AVC_CARE_SITES_REGEX,
+            window=(-5, 5),
+            regex_flags=re.S | re.I,
+        ),
+        dict(
+            regex=r"[a-z]\.",
+            window=2,
+        ),
+    ],
+    regex_attr="NORM",
 )
 
 with_localization = dict(

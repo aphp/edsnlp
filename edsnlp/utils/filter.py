@@ -208,8 +208,20 @@ def get_spans(spans: List[Span], label: Union[int, str]) -> List[Span]:
         return [span for span in spans if span.label_ == label]
 
 
+def sent_is_title(sent: Span, neighbours: bool = True):
+    count, n_ents = unique_sent_is_title(sent)
+    if neighbours:
+        for direction in {True, False}:
+            add_count, add_n_ents = unique_sent_is_title(
+                get_next_sentence(sent, forward=direction)
+            )
+            count += add_count
+            n_ents += add_n_ents
+    return count / n_ents
+
+
 @lru_cache(maxsize=50)
-def sent_is_title(sent: Span) -> bool:
+def unique_sent_is_title(sent: Optional[Span]) -> bool:
     """
     Check if a sentence is likely to be a 'Title'
     by checking each token's case.
@@ -226,6 +238,9 @@ def sent_is_title(sent: Span) -> bool:
     bool
         Whether the sentence is a title
     """
+
+    if sent is None:
+        return 0, 0
     ents = [ent for ent in sent if (ent.is_alpha and not ent.is_stop)]
     if len(ents) < 3:
         # Too few words to use this method
@@ -239,4 +254,15 @@ def sent_is_title(sent: Span) -> bool:
         count += ent.is_title or ent.is_upper
         # if count >= half:
         #     return True
-    return count / len(ents)
+    return count, len(ents)
+
+
+def get_next_sentence(span: Span, forward: bool = True):
+    if forward:
+        if span.start == 0:
+            return None
+        return span[0].nbor(-1).sent
+    else:
+        if span.end == len(span.doc):
+            return None
+        return span[-1].nbor(1).end

@@ -75,9 +75,9 @@ class Comorbidity(ContextualMatcher):
         spans = self.postprocess(doc, self.process(doc))
         if self.titles_as_hypothesis:
             spans = self.set_titles_as_hypothesis(spans)
-        # spans = filter_spans(spans)
+        spans = filter_spans(spans)
 
-        doc.spans[self.name] = list(spans)
+        doc.spans[self.name] = spans
 
         if self.aggregate_per_document:
             self.aggregate(doc)

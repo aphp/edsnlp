@@ -66,6 +66,7 @@ examples = [
     "Il est venu en <ent norm='????-08-??' month=8>août</ent>.",
     "Il est venu <ent norm='~0 day' day=0 direction=CURRENT>ce jour</ent>.",
     "CS le <ent norm='2017-01-11' day=11 month=1 year=2017>11-01-2017</ent> 1/3",
+    "Vu le <ent norm='2017-01-11' day=11 month=1 year=2017>11 janvier\n2017</ent> .",
 ]
 
 

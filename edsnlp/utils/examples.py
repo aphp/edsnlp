@@ -33,11 +33,12 @@ class Entity(BaseModel):
     modifiers: List[Modifier]
 
 
-entity_pattern = re.compile(r"(<ent[^<>]*>[^<>]+</ent>)")
-text_pattern = re.compile(r"<ent.*>(.+)</ent>")
-modifiers_pattern = re.compile((r"<ent\s?(.*)>.+</ent>"))
+entity_pattern = re.compile(r"(<ent[^<>]*>[^<>]+</ent>)", flags=re.DOTALL)
+text_pattern = re.compile(r"<ent.*>(.+)</ent>", flags=re.DOTALL)
+modifiers_pattern = re.compile(r"<ent\s?(.*)>.+</ent>", flags=re.DOTALL)
 single_modifiers_pattern = regex.compile(
-    (r"(?P<key>[^\s]+?)=((?P<value>{.*?})|(?P<value>[^\s']+)|'(?P<value>.+?)')")
+    r"(?P<key>[^\s]+?)=((?P<value>{.*?})|(?P<value>[^\s']+)|'(?P<value>.+?)')",
+    flags=regex.DOTALL,
 )
 
 

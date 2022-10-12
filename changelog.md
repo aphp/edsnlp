@@ -6,6 +6,7 @@
 
 - Add nephew, niece and daughter to family qualifier patterns
 - EDSTokenizer (`spacy.blank('eds')`) now recognizes non-breaking whitespaces as spaces and does not split float numbers
+- `eds.dates` pipeline now allows new lines as space separators in dates
 
 ## v0.7.0 (2022-09-06)
 

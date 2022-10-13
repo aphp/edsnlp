@@ -1,15 +1,15 @@
 # Changelog
 
-## Unreleased
+## v0.7.1 (2022-10-13)
+
+### Added
+- Add new pattern (footer) to pipeline normalisation (pollution)
 
 ### Fixed
 
 - Add nephew, niece and daughter to family qualifier patterns
 - EDSTokenizer (`spacy.blank('eds')`) now recognizes non-breaking whitespaces as spaces and does not split float numbers
 - `eds.dates` pipeline now allows new lines as space separators in dates
-
-### Added
-- Add new pattern (footer) to pipeline normalisation (pollution)
 
 ## v0.7.0 (2022-09-06)
 

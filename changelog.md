@@ -6,7 +6,7 @@
 - New pop up when you click on the copy icon in the termynal.
 ### Fixed
 
-- Remove the warning in the ``eds.sections`` when ``eds.noramalizer`` is in the pipe.
+- Remove the warning in the ``eds.sections`` when ``eds.normalizer`` is in the pipe.
 
 ## v0.7.1 (2022-10-13)
 

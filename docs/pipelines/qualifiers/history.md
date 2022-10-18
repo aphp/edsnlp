@@ -43,16 +43,17 @@ nlp.add_pipe(
 )
 nlp.add_pipe(
     "eds.history",
-    use_sections=True,
-    use_dates=True,
-    history_limit=timedelta(14),
+    config=dict(
+        use_sections=True,
+        use_dates=True,
+    ),
 )
 
 text = (
     "Le patient est admis le 23 août 2021 pour une douleur au bras. "
     "Il a des antécédents de malaises."
     "ANTÉCÉDENTS : "
-    "- le patient a déjà eu des malaises."
+    "- le patient a déjà eu des malaises. "
     "- le patient a eu une douleur à la jambe il y a 10 jours"
 )
 

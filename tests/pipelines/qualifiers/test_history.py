@@ -1,75 +1,79 @@
-from typing import List
+from datetime import datetime, timedelta
 
-from pytest import fixture, mark
+import spacy
+from pytest import mark
 
 from edsnlp.pipelines.qualifiers.history import History
-from edsnlp.utils.examples import parse_example
+from edsnlp.pipelines.qualifiers.history.patterns import history
 
-examples: List[str] = [
-    "Antécédents d'<ent history_=ATCD>AVC</ent>.",
-    "atcd <ent history_=ATCD>chirurgicaux</ent> : aucun.",
-    "Le patient est <ent history_=CURRENT>fumeur</ent>.",
-    # Les sections ne sont pas utilisées par défaut
-    (
-        "\nv Antecedents :\n- <ent history_=CURRENT>appendicite</ent>\n"
-        "v Motif :\n<ent history_=CURRENT>malaise</ent>"
-    ),
-]
+text = """COMPTE RENDU D'HOSPITALISATION du 11/07/2018 au 12/07/2018
 
+MOTIF D'HOSPITALISATION
+Monsieur Dupont Jean Michel, de sexe masculin, âgée de 39 ans,
+née le 23/11/1978, est admis pour une toux.
+Il a été hospitalisé du 11/08/2019 au 17/08/2019,
+avec un antécédent d'asthme il y a 25 jours.
 
-@fixture
-def history_factory(blank_nlp):
-
-    default_config = dict(
-        history=None,
-        termination=None,
-        use_sections=False,
-        attr="LOWER",
-        explain=True,
-    )
-
-    def factory(on_ents_only, **kwargs):
-
-        config = dict(**default_config)
-        config.update(kwargs)
-
-        return History(
-            nlp=blank_nlp,
-            on_ents_only=on_ents_only,
-            **config,
-        )
-
-    return factory
+ANTÉCÉDENTS
+Antécédents médicaux :
+Premier épisode: il a été hospitalisé pour asthme cette semaine-ci,
+il y a 3 jours, le 13 août 2020."""
 
 
 @mark.parametrize("use_sections", [True, False])
+@mark.parametrize("use_dates", [True, False])
 @mark.parametrize("on_ents_only", [True, False])
-def test_history(blank_nlp, history_factory, on_ents_only, use_sections):
+@mark.parametrize("exclude_birthdate", [True, False])
+def test_history(lang, use_sections, use_dates, exclude_birthdate, on_ents_only):
+    nlp = spacy.blank(lang)
+    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe("eds.normalizer")
+    nlp.add_pipe(
+        "eds.matcher",
+        config=dict(
+            terms=dict(
+                respiratoire=[
+                    "asthmatique",
+                    "asthme",
+                    "toux",
+                ]
+            )
+        ),
+    )
+    nlp.add_pipe(
+        "eds.history", config=dict(use_sections=use_sections, use_dates=use_dates)
+    )
+    doc = nlp(text)
+    nlp.remove_pipe("eds.history")
+    nlp.add_pipe("eds.sections")
+    nlp.add_pipe("eds.dates")
+    doc = nlp(text)
+    doc._.note_datetime = datetime(2020, 8, 11)
+    doc._.birth_datetime = datetime(1978, 11, 23)
 
-    history = history_factory(on_ents_only, use_sections=use_sections)
+    history_nlp = History(
+        nlp=nlp,
+        attr="NORM",
+        history=history,
+        termination=[],
+        use_sections=use_sections,
+        use_dates=use_dates,
+        exclude_birthdate=exclude_birthdate,
+        history_limit=timedelta(15),
+        explain=True,
+        on_ents_only=on_ents_only,
+    )
+    doc = history_nlp(doc)
 
-    for example in examples:
-        text, entities = parse_example(example=example)
+    if use_dates:
+        assert doc.ents[0]._.history is not exclude_birthdate
+        if not exclude_birthdate:
+            assert doc.ents[0]._.history_cues[0].text == "23/11/1978"
 
-        doc = blank_nlp(text)
-        doc.ents = [
-            doc.char_span(ent.start_char, ent.end_char, label="ent") for ent in entities
-        ]
+    assert doc.ents[1]._.history and doc.ents[1]._.history_cues[0].label_ == "history"
 
-        doc = history(doc)
-
-        for entity, ent in zip(entities, doc.ents):
-
-            for modifier in entity.modifiers:
-
-                assert bool(ent._.history_cues) == (modifier.value in {"ATCD", True})
-
-                assert (
-                    getattr(ent._, modifier.key) == modifier.value
-                ), f"{modifier.key} labels don't match."
-
-                if not on_ents_only:
-                    for token in ent:
-                        assert (
-                            getattr(token._, modifier.key) == modifier.value
-                        ), f"{modifier.key} labels don't match."
+    if use_sections:
+        assert doc.ents[2]._.history is not use_dates
+        assert doc.ents[2]._.history_cues[0].label_ == "ATCD"
+        if use_dates:
+            assert doc.ents[2]._.recent_cues[0].label_ == "relative_date"

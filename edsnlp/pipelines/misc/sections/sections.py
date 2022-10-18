@@ -95,7 +95,7 @@ class Sections(GenericMatcher):
 
         self.set_extensions()
 
-        if not nlp.has_pipe("normalizer") and not not nlp.has_pipe("eds.normalizer"):
+        if not nlp.has_pipe("normalizer") and not nlp.has_pipe("eds.normalizer"):
             logger.warning("You should add pipe `eds.normalizer`")
 
     @classmethod

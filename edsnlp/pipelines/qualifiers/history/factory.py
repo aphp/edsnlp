@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import List, Optional
 
 from spacy.language import Language
@@ -11,6 +12,9 @@ DEFAULT_CONFIG = dict(
     history=patterns.history,
     termination=termination,
     use_sections=False,
+    use_dates=False,
+    history_limit=timedelta(14),
+    exclude_birthdate=True,
     explain=False,
     on_ents_only=True,
 )
@@ -45,6 +49,9 @@ def create_component(
     history: Optional[List[str]],
     termination: Optional[List[str]],
     use_sections: bool,
+    use_dates: bool,
+    history_limit: timedelta,
+    exclude_birthdate: bool,
     attr: str,
     explain: bool,
     on_ents_only: bool,
@@ -55,6 +62,9 @@ def create_component(
         history=history,
         termination=termination,
         use_sections=use_sections,
+        use_dates=use_dates,
+        history_limit=history_limit,
+        exclude_birthdate=exclude_birthdate,
         explain=explain,
         on_ents_only=on_ents_only,
     )

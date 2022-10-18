@@ -36,11 +36,11 @@ class Termynal {
         this.originalStartDelay = this.startDelay = options.startDelay
             || parseFloat(this.container.getAttribute(`${this.pfx}-startDelay`)) || 600;
         this.originalTypeDelay = this.typeDelay = options.typeDelay
-            || parseFloat(this.container.getAttribute(`${this.pfx}-typeDelay`)) || 90;
+            || parseFloat(this.container.getAttribute(`${this.pfx}-typeDelay`)) || 50;
         this.originalLineDelay = this.lineDelay = options.lineDelay
             || parseFloat(this.container.getAttribute(`${this.pfx}-lineDelay`)) || 500;
         this.progressLength = options.progressLength
-            || parseFloat(this.container.getAttribute(`${this.pfx}-progressLength`)) || 20;
+            || parseFloat(this.container.getAttribute(`${this.pfx}-progressLength`)) || 40;
         this.progressChar = options.progressChar
             || this.container.getAttribute(`${this.pfx}-progressChar`) || '█';
         this.progressPercent = options.progressPercent
@@ -93,6 +93,7 @@ class Termynal {
         this.start();
     }
 
+
     /**
      * Start the animation and rener the lines depending on their data attributes.
      */
@@ -137,16 +138,20 @@ class Termynal {
             this.container.innerHTML = ''
             this.init()
         }
+        restart.href = '#'
         restart.setAttribute('data-terminal-control', '')
         restart.innerHTML = "restart ↻"
         return restart
     }
 
     generateCopy() {
-        let copy = document.createElement('button')
+        var dialog = document.getElementsByClassName('md-dialog')[0]
+        var dialog_text = document.getElementsByClassName('md-dialog__inner md-typeset')[0]
+        const copy = document.createElement('a')
         copy.classList.add("md-clipboard")
         copy.classList.add("md-icon")
         copy.onclick = (e) => {
+            e.preventDefault()
             var command = ''
             for (let line of this.lines) {
                 if (line.getAttribute("data-ty") == 'input') {
@@ -154,6 +159,12 @@ class Termynal {
                 }
             }
             navigator.clipboard.writeText(command)
+            dialog.setAttribute('data-md-state', 'open');
+            dialog_text.innerText = 'Copied to clipboard';
+
+            setTimeout(function () {
+                dialog.removeAttribute('data-md-state');
+            }, 2000);
         }
         copy.setAttribute('data-terminal-copy', '')
         return copy
@@ -167,6 +178,7 @@ class Termynal {
             this.typeDelay = 0
             this.startDelay = 0
         }
+        finish.href = '#'
         finish.setAttribute('data-terminal-control', '')
         finish.innerHTML = "fast →"
         this.finishElement = finish
@@ -220,7 +232,7 @@ class Termynal {
         this.container.appendChild(line);
 
         for (let i = 1; i < chars.length + 1; i++) {
-            await this._wait(this.typeDelay);
+            await this._wait(this.typeDelay) / 4;
             const percent = Math.round(i / chars.length * 100);
             line.textContent = `${chars.slice(0, i)} ${percent}%`;
             if (percent > progressPercent) {
@@ -287,16 +299,6 @@ if (document.currentScript.hasAttribute('data-termynal-container')) {
         .forEach(container => new Termynal(container))
 }
 
-/**
-* HTML API: If current script has container(s) specified, initialise Termynal.
-*/
-if (document.currentScript.hasAttribute('data-termynal-container')) {
-    const containers = document.currentScript.getAttribute('data-termynal-container');
-    containers.split('|')
-        .forEach(container => new Termynal(container))
-}
-
-
 document.querySelectorAll(".use-termynal").forEach(node => {
     node.style.display = "block";
     new Termynal(node, {
@@ -305,7 +307,8 @@ document.querySelectorAll(".use-termynal").forEach(node => {
 });
 const progressLiteralStart = "---> 100%";
 const promptLiteralStart = "$ ";
-const customPromptLiteralStart = "# ";
+const customPromptLiteralStart = "$* ";
+const commentPromptLiteralStart = "# ";
 const colorOutputLiteralStart = "color:";
 const termynalActivateClass = "termy";
 let termynals = [];
@@ -355,22 +358,19 @@ function createTermynals() {
                         type: "input",
                         value: value
                     });
-                } else if (line.startsWith("// ")) {
+                } else if (line.startsWith(commentPromptLiteralStart)) {
                     saveBuffer();
-                    const value = "💬 " + line.replace("// ", "").trimEnd();
+                    const value = "💬 " + line.replace(commentPromptLiteralStart, "").trimEnd();
+                    const color_value = "<span style=' color: grey;'>" + value + "</span>"
                     useLines.push({
-                        value: value,
+                        value: color_value,
                         class: "termynal-comment",
                         delay: 0
                     });
                 } else if (line.startsWith(customPromptLiteralStart)) {
                     saveBuffer();
-                    const promptStart = line.indexOf(promptLiteralStart);
-                    if (promptStart === -1) {
-                        console.error("Custom prompt found but no end delimiter", line)
-                    }
-                    const prompt = line.slice(0, promptStart).replace(customPromptLiteralStart, "")
-                    let value = line.slice(promptStart + promptLiteralStart.length);
+                    const prompt = line.slice(3, line.indexOf(' ', 3))
+                    let value = line.slice(line.indexOf(' ', 3)).trimEnd();
                     useLines.push({
                         type: "input",
                         value: value,

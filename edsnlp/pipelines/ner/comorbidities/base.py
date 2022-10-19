@@ -134,7 +134,7 @@ class Comorbidity(ContextualMatcher):
         """
 
         for ent in spans:
-            title_ratio = sent_is_title(ent.sent)
+            title_ratio = sent_is_title(ent.sent, neighbours=True)
             if title_ratio >= self.titles_as_hypothesis_threshold:
                 ent._.hypothesis = True
             yield ent

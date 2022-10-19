@@ -15,7 +15,7 @@ bars = r"(?i)([nbw]|_|-|=){5,}"
 biology = r"(\b.*[|¦].*\n)+"
 
 # Leftside note with doctor names
-doctors = r"(?mi)(^((dr)|(pr)).*)+"
+doctors = r"(?mi)(^((dr)|(pr))(\.|\s|of).*)+"
 
 # Mails or websites
 web = r"(www\.\S*)|(\S*@\S*)"

@@ -5,11 +5,12 @@
 ### Added
 
 - Improve the `eds.history` component by taking into account the date extracted from `eds.dates` component.
-- New pop up when you click on the copy icon in the termynal.
+- New pop up when you click on the copy icon in the termynal widget (docs).
 
 ### Fixed
 
 - Remove the warning in the ``eds.sections`` when ``eds.normalizer`` is in the pipe.
+- Fix filter_spans for strictly nested entities
 
 ## v0.7.1 (2022-10-13)
 

@@ -109,11 +109,12 @@ def filter_spans(
     for span in sorted_spans:
         s = span if isinstance(span, Span) else span[0]
         # Check for end - 1 here because boundaries are inclusive
-        if s.start not in seen_tokens and s.end - 1 not in seen_tokens:
+        token_range = set(range(s.start, s.end))
+        if token_range.isdisjoint(seen_tokens):
             if label_to_remove is None or s.label_ != label_to_remove:
                 result.append(span)
             if label_to_remove is None or s.label_ == label_to_remove:
-                seen_tokens.update(range(s.start, s.end))
+                seen_tokens.update(token_range)
         elif label_to_remove is None or s.label_ != label_to_remove:
             discarded.append(span)
 

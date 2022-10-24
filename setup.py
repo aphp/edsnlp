@@ -84,6 +84,7 @@ factories = [
     "drugs = edsnlp.components:drugs",
     "nested_ner = edsnlp.components:nested_ner",
     "adicap = edsnlp.components:adicap",
+    "umls = edsnlp.components:umls",
 ]
 
 scorers = [

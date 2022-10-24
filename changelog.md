@@ -6,6 +6,7 @@
 
 - Add nephew, niece and daughter to family qualifier patterns
 - EDSTokenizer (`spacy.blank('eds')`) now recognizes non-breaking whitespaces as spaces and does not split float numbers
+- Add UMLS terminology matcher `eds.umls`
 
 ## v0.7.0 (2022-09-06)
 

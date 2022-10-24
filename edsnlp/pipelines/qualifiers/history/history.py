@@ -1,5 +1,7 @@
+from datetime import timedelta
 from typing import List, Optional
 
+import pendulum
 from loguru import logger
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
@@ -10,7 +12,7 @@ from edsnlp.utils.deprecation import deprecated_getter_factory
 from edsnlp.utils.filter import consume_spans, filter_spans, get_spans
 from edsnlp.utils.inclusion import check_inclusion
 
-from .patterns import history
+from .patterns import history, sections_history
 
 
 class History(Qualifier):
@@ -29,6 +31,13 @@ class History(Qualifier):
         List of syntagme termination terms.
     use_sections : bool
         Whether to use section pipeline to detect medical history section.
+    use_dates : bool
+        Whether to use dates pipeline to detect if the event occurs
+         a long time before the document date.
+    history_limit : timedelta
+        The time after which the event is considered as history.
+    exclude_birthdate : bool
+        Whether to exclude the birth date from history dates.
     attr : str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
@@ -37,7 +46,7 @@ class History(Qualifier):
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.
     regex : Optional[Dict[str, Union[List[str], str]]]
-        A dictionnary of regex patterns.
+        A dictionary of regex patterns.
     explain : bool
         Whether to keep track of cues for each entity.
     """
@@ -54,6 +63,9 @@ class History(Qualifier):
         history: Optional[List[str]],
         termination: Optional[List[str]],
         use_sections: bool,
+        use_dates: bool,
+        history_limit: timedelta,
+        exclude_birthdate: bool,
         explain: bool,
         on_ents_only: bool,
     ):
@@ -73,6 +85,9 @@ class History(Qualifier):
 
         self.set_extensions()
 
+        self.history_limit = history_limit
+        self.exclude_birthdate = exclude_birthdate
+
         self.sections = use_sections and (
             "eds.sections" in nlp.pipe_names or "sections" in nlp.pipe_names
         )
@@ -82,6 +97,32 @@ class History(Qualifier):
                 "provided by the `section` pipeline, but it was not set. "
                 "Skipping that step."
             )
+
+        self.dates = use_dates and (
+            "eds.dates" in nlp.pipe_names or "dates" in nlp.pipe_names
+        )
+        if use_dates:
+            if not self.dates:
+                logger.warning(
+                    "You have requested that the pipeline use dates "
+                    "provided by the `dates` pipeline, but it was not set. "
+                    "Skipping that step."
+                )
+            elif exclude_birthdate:
+                logger.info(
+                    "You have requested that the pipeline use date "
+                    "and exclude birth dates. "
+                    "To make the most of this feature, "
+                    "make sur you provide the `birth_datetime` "
+                    "context and `note_datetime` context. "
+                )
+            else:
+                logger.info(
+                    "You have requested that the pipeline use date "
+                    "To make the most of this feature, "
+                    "make sure you provide the `note_datetime` "
+                    "context. "
+                )
 
     @classmethod
     def set_extensions(cls) -> None:
@@ -151,9 +192,13 @@ class History(Qualifier):
                 "antecedent_",
                 getter=deprecated_getter_factory("antecedent_", "history_"),
             )
-
+        # Store history mentions responsible for the history entity's character
         if not Span.has_extension("history_cues"):
             Span.set_extension("history_cues", default=[])
+
+        # Store recent mentions responsible for the non-antecedent entity's character
+        if not Span.has_extension("recent_cues"):
+            Span.set_extension("recent_cues", default=[])
 
         if not Span.has_extension("antecedents_cues"):
             Span.set_extension(
@@ -182,6 +227,24 @@ class History(Qualifier):
             spaCy Doc object, annotated for history
         """
 
+        try:
+            note_datetime = pendulum.instance(doc._.note_datetime)
+            note_datetime = note_datetime.set(tz="Europe/Paris")
+        except ValueError:
+            logger.debug(
+                "Note date time must be datetime objects. Skkipping absolut value"
+            )
+            note_datetime = None
+
+        try:
+            birth_datetime = pendulum.instance(doc._.birth_datetime)
+            birth_datetime = birth_datetime.set(tz="Europe/Paris")
+        except ValueError:
+            logger.debug(
+                "Birth date time must be datetime objects. Skkipping exclude birth date"
+            )
+            birth_datetime = None
+
         matches = self.get_matches(doc)
 
         terminations = get_spans(matches, "termination")
@@ -192,15 +255,70 @@ class History(Qualifier):
 
         entities = list(doc.ents) + list(doc.spans.get("discarded", []))
         ents = None
+        sub_sections = None
+        sub_recent_dates = None
 
         sections = []
-
         if self.sections:
             sections = [
                 Span(doc, section.start, section.end, label="ATCD")
                 for section in doc.spans["sections"]
-                if section.label_ == "antécédents"
+                if section.label_ in sections_history
             ]
+
+        history_dates = []
+        recent_dates = []
+        if self.dates:
+            for date in doc.spans["dates"]:
+                if date.label_ == "relative":
+                    if date._.date.direction.value == "CURRENT":
+                        if (
+                            (
+                                date._.date.year == 0
+                                and self.history_limit >= timedelta(365)
+                            )
+                            or (
+                                date._.date.month == 0
+                                and self.history_limit >= timedelta(30)
+                            )
+                            or (
+                                date._.date.week == 0
+                                and self.history_limit >= timedelta(7)
+                            )
+                            or (date._.date.day == 0)
+                        ):
+                            recent_dates.append(
+                                Span(doc, date.start, date.end, label="relative_date")
+                            )
+                    elif date._.date.direction.value == "PAST":
+                        if -date._.date.to_datetime() >= self.history_limit:
+                            history_dates.append(
+                                Span(doc, date.start, date.end, label="relative_date")
+                            )
+                        else:
+                            recent_dates.append(
+                                Span(doc, date.start, date.end, label="relative_date")
+                            )
+                elif date.label_ == "absolute" and doc._.note_datetime:
+                    absolute_date = date._.date.to_datetime(
+                        note_datetime=note_datetime,
+                        infer_from_context=True,
+                        tz="Europe/Paris",
+                        default_day=15,
+                    )
+                    if absolute_date:
+                        if note_datetime.diff(absolute_date) < self.history_limit:
+                            recent_dates.append(
+                                Span(doc, date.start, date.end, label="absolute_date")
+                            )
+                        elif not (
+                            self.exclude_birthdate
+                            and birth_datetime
+                            and absolute_date == birth_datetime
+                        ):
+                            history_dates.append(
+                                Span(doc, date.start, date.end, label="absolute_date")
+                            )
 
         for start, end in boundaries:
             ents, entities = consume_spans(
@@ -213,15 +331,27 @@ class History(Qualifier):
                 matches, lambda s: start <= s.start < end
             )
 
-            sub_sections, sections = consume_spans(sections, lambda s: doc[start] in s)
-
+            sub_sections, sections = consume_spans(
+                sections, lambda s: s.start < end <= s.end, sub_sections
+            )
+            sub_recent_dates, recent_dates = consume_spans(
+                recent_dates,
+                filter=lambda s: check_inclusion(s, start, end),
+            )
+            sub_history_dates, history_dates = consume_spans(
+                history_dates,
+                filter=lambda s: check_inclusion(s, start, end),
+            )
             if self.on_ents_only and not ents:
                 continue
 
-            cues = get_spans(sub_matches, "history")
-            cues += sub_sections
+            history_cues = get_spans(sub_matches, "history")
+            history_cues += sub_sections
+            history_cues += sub_history_dates
 
-            history = bool(cues)
+            recent_cues = sub_recent_dates
+
+            history = bool(history_cues) and not bool(recent_cues)
 
             if not self.on_ents_only:
                 for token in doc[start:end]:
@@ -231,7 +361,8 @@ class History(Qualifier):
                 ent._.history = ent._.history or history
 
                 if self.explain:
-                    ent._.history_cues += cues
+                    ent._.history_cues += history_cues
+                    ent._.recent_cues += recent_cues
 
                 if not self.on_ents_only and ent._.history:
                     for token in ent:

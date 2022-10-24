@@ -2,11 +2,25 @@
 
 ## Unreleased
 
+### Added
+- Improve the `eds.history` component by taking into account the date extracted from `eds.dates` component.
+- New pop up when you click on the copy icon in the termynal.
+
+### Fixed
+
+- Remove the warning in the ``eds.sections`` when ``eds.normalizer`` is in the pipe.
+
+## v0.7.1 (2022-10-13)
+
+### Added
+- Add new pattern (footer) to pipeline normalisation (pollution)
+
 ### Fixed
 
 - Add nephew, niece and daughter to family qualifier patterns
 - EDSTokenizer (`spacy.blank('eds')`) now recognizes non-breaking whitespaces as spaces and does not split float numbers
 - Add UMLS terminology matcher `eds.umls`
+- `eds.dates` pipeline now allows new lines as space separators in dates
 
 ## v0.7.0 (2022-09-06)
 

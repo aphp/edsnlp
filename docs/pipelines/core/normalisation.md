@@ -217,6 +217,7 @@ nlp.add_pipe(
 | `doctors`     | List of doctor names and specialities, often found in left-side note margins. Also source of potential *false positives*. | "... Dr ABC - Diabète/Endocrino ..."                                                                       | `True`              |
 | `web`         | Webpages URL and email adresses. Also source of potential *false positives*.                                              | "... www.vascularites.fr ..."                                                                              | `True`              |
 | `coding`      | Subsection containing ICD-10 codes along with their description. Also source of potential *false positives*.              | "... (2) E112 + Oeil (2) E113 + Neuro (2) E114 Démence (2) F03 MA (2) F001+G301 DCL G22+G301 Vasc (2) ..." | `False`             |
+`footer`| Footer of new page| "2/2Pat : NOM Prenom le 2020/01/01 IPP 12345678 Intitulé RCP : Urologie HMN le <date>"| `True`
 
 #### Custom pollution
 

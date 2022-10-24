@@ -15,13 +15,16 @@ bars = r"(?i)([nbw]|_|-|=){5,}"
 biology = r"(\b.*[|¦].*\n)+"
 
 # Leftside note with doctor names
-doctors = r"(?mi)(^((dr)|(pr)).*)+"
+doctors = r"(?mi)(^((dr)|(pr))(\.|\s|of).*)+"
 
 # Mails or websites
 web = r"(www\.\S*)|(\S*@\S*)"
 
 # Subsection with ICD-10 Codes
 coding = r".*?[a-zA-Z]\d{2,4}.*?(\n|[a-zA-Z]\d{2,4})"
+
+# New page
+footer = r"(?i)^\d\/\d\s?pat.*ipp.*"
 
 pollution = dict(
     information=information,
@@ -30,4 +33,5 @@ pollution = dict(
     doctors=doctors,
     web=web,
     coding=coding,
+    footer=footer,
 )

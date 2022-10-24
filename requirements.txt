@@ -10,4 +10,4 @@ scikit-learn>=1.0.0
 spacy>=3.1,<3.4.2
 thinc>=8.0.14
 tqdm
-umls-downloader
+umls-downloader==0.1.1

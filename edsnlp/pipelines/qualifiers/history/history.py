@@ -120,7 +120,7 @@ class History(Qualifier):
                 logger.info(
                     "You have requested that the pipeline use date "
                     "To make the most of this feature, "
-                    "make sur you provide the `note_datetime` "
+                    "make sure you provide the `note_datetime` "
                     "context. "
                 )
 

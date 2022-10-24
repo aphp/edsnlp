@@ -112,7 +112,7 @@ class History(Qualifier):
                 logger.info(
                     "You have requested that the pipeline use date "
                     "and exclude birth dates. "
-                    "To take the most of the feature, "
+                    "To make the most of this feature, "
                     "make sur you provide the `birth_datetime` "
                     "context and `note_datetime` context. "
                 )

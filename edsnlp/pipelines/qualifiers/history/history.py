@@ -192,10 +192,11 @@ class History(Qualifier):
                 "antecedent_",
                 getter=deprecated_getter_factory("antecedent_", "history_"),
             )
-
+        # Store history mentions responsible for the history entity's character
         if not Span.has_extension("history_cues"):
             Span.set_extension("history_cues", default=[])
 
+        # Store recent mentions responsible for the non-antecedent entity's character
         if not Span.has_extension("recent_cues"):
             Span.set_extension("recent_cues", default=[])
 

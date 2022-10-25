@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import pytest
 import pytz
 import spacy
 from pytest import fixture
@@ -202,6 +203,33 @@ def test_periods(blank_nlp: Language):
 
         for span, entity in zip(doc.spans["periods"], entities):
             assert span.text == text[entity.start_char : entity.end_char]
+
+
+@pytest.mark.parametrize("with_time", [False, True])
+def test_time(with_time: bool):
+    nlp = spacy.blank("eds")
+    nlp.add_pipe("eds.dates", config={"detect_time": with_time})
+
+    if with_time:
+        time_examples = [
+            "Vu le <ent norm='2012-01-11 11h34m'>11/01/2012 à 11h34</ent> pour radio.",
+        ]
+    else:
+        time_examples = [
+            "Vu le <ent norm='2012-01-11'>11/01/2012</ent> à 11h34 pour radio.",
+        ]
+
+    for example in time_examples:
+        text, entities = parse_example(example)
+
+        doc = nlp(text)
+
+        assert len(doc.spans["dates"]) == len(entities)
+
+        for span, entity in zip(doc.spans["dates"], entities):
+            assert span.text == text[entity.start_char : entity.end_char]
+            norm = next(m.value for m in entity.modifiers if m.key == "norm")
+            assert span._.date.norm() == norm
 
 
 def test_false_positives(blank_nlp: Language):

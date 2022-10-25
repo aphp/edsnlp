@@ -25,6 +25,12 @@ PRIORITE: <ent score_name=emergency.priority score_value=2>2</ent>: 2 - Urgence 
 GEMSA: (<ent score_name=emergency.gemsa score_value=2>2</ent>) Patient non convoque sortant apres consultation
 CCMU: Etat clinique jugé stable avec actes diag ou thérapeutiques ( <ent score_name=emergency.ccmu score_value=2>2</ent> )
 
+
+CONCLUSION
+
+La patiente est atteinte d'un carcinome mammaire infiltrant de type non spécifique, de grade 2 de malignité selon Elston et Ellis
+<ent score_name=eds.elston-ellis score_value=2>(architecture : 3 + noyaux : 3 + mitoses : 1)</ent>.
+
 """  # noqa: E501
 
 
@@ -55,6 +61,7 @@ def test_scores(blank_nlp):
 
     blank_nlp.add_pipe("charlson")
     blank_nlp.add_pipe("SOFA")
+    blank_nlp.add_pipe("eds.elston-ellis")
     blank_nlp.add_pipe("emergency.priority")
     blank_nlp.add_pipe("emergency.ccmu")
     blank_nlp.add_pipe("emergency.gemsa")

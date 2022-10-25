@@ -364,6 +364,60 @@ class RegexMatcher(object):
 
                     yield span, match
 
+    def match_with_groupdict_as_spans(
+        self,
+        doclike: Union[Doc, Span],
+    ) -> Tuple[Span, Dict[str, Span]]:
+        """
+        Iterates on the matches.
+
+        Parameters
+        ----------
+        doclike:
+            spaCy Doc or Span object to match on.
+
+        Yields
+        -------
+        span:
+            A match.
+        """
+
+        for key, patterns, attr, ignore_excluded, alignment_mode in self.regex:
+            text = get_text(doclike, attr, ignore_excluded)
+
+            for pattern in patterns:
+                for match in pattern.finditer(text):
+                    logger.trace(f"Matched a regex from {key}: {repr(match.group())}")
+
+                    start_char, end_char = span_from_match(
+                        match=match,
+                        span_from_group=self.span_from_group,
+                    )
+
+                    span = create_span(
+                        doclike=doclike,
+                        start_char=start_char,
+                        end_char=end_char,
+                        key=key,
+                        attr=attr,
+                        alignment_mode=alignment_mode,
+                        ignore_excluded=ignore_excluded,
+                    )
+                    group_spans = {}
+                    for group_key, group_string in match.groupdict().items():
+                        if group_string:
+                            group_spans[group_key] = create_span(
+                                doclike=doclike,
+                                start_char=match.start(group_key),
+                                end_char=match.end(group_key),
+                                key=group_key,
+                                attr=attr,
+                                alignment_mode=alignment_mode,
+                                ignore_excluded=ignore_excluded,
+                            )
+
+                    yield span, group_spans
+
     def __call__(
         self,
         doclike: Union[Doc, Span],

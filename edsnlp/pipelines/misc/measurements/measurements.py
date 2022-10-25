@@ -268,9 +268,13 @@ class MeasurementsMatcher:
             self.unit_part_label_hashes.add(nlp.vocab.strings[unit_name])
 
         self.unit_part_label_hashes.add(nlp.vocab.strings["per"])
-        self.term_matcher.build_patterns(nlp, {"per": unit_divisors})
-
-        self.term_matcher.add("stopword", list(nlp.pipe(stopwords)))
+        self.term_matcher.build_patterns(
+            nlp,
+            {
+                "per": unit_divisors,
+                "stopword": stopwords,
+            },
+        )
 
         # MEASURES
         for name, measure_config in measurements.items():
@@ -279,8 +283,11 @@ class MeasurementsMatcher:
             if "unitless_patterns" in measure_config:
                 for pattern in measure_config["unitless_patterns"]:
                     pattern_name = f"unitless_{len(self.unitless_patterns)}"
-                    self.term_matcher.add(
-                        pattern_name, list(nlp.pipe(pattern["terms"]))
+                    self.term_matcher.build_patterns(
+                        nlp,
+                        terms={
+                            pattern_name: pattern["terms"],
+                        },
                     )
                     self.unitless_label_hashes.add(nlp.vocab.strings[pattern_name])
                     self.unitless_patterns[pattern_name] = {"name": name, **pattern}

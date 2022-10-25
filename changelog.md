@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+
 - Improve the `eds.history` component by taking into account the date extracted from `eds.dates` component.
 - New pop up when you click on the copy icon in the termynal.
 
@@ -13,7 +14,13 @@
 ## v0.7.1 (2022-10-13)
 
 ### Added
-- Add new pattern (footer) to pipeline normalisation (pollution)
+
+- Add new patterns (footer, web entities, biology tables, coding sections) to pipeline normalisation (pollution)
+
+## Changed
+
+- Improved TNM detection algorithm
+- Account for more modifiers in ADICAP codes detection
 
 ### Fixed
 

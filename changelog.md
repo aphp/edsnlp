@@ -11,6 +11,11 @@
 - Improve patterns in the `eds.pollution` component to account for multiline footers
 - Add `QuickExample` object to quickly try a pipeline.
 - Add UMLS terminology matcher `eds.umls`
+- New `RegexMatcher` method to create spans from groupdicts
+
+### Changed
+
+- Improve date detection by removing false positives
 
 ### Fixed
 

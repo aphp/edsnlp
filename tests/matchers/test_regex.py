@@ -218,3 +218,15 @@ def test_wrong_extraction(
 
     clean = get_text(doc.ents[0], attr="NORM", ignore_excluded=True)
     assert clean == "transplantation cardiaque"
+
+
+def test_groupdict_as_spans(doc):
+    matcher = RegexMatcher()
+
+    matcher.add("test", [r"patient(?i:(?=.*(?P<cause>douleurs))?)"])
+
+    [(span0, gd0), (span1, gd1)] = list(matcher.match_with_groupdict_as_spans(doc))
+    assert span0.text == "patient"
+    assert span1.text == "patient"
+    assert len(gd0) == 1 and gd0["cause"].text == "douleurs"
+    assert len(gd1) == 0

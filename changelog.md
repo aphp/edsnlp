@@ -12,6 +12,7 @@
 - Add `QuickExample` object to quickly try a pipeline.
 - Add UMLS terminology matcher `eds.umls`
 - New `RegexMatcher` method to create spans from groupdicts
+- New `eds.dates` option to disable time detection
 
 ### Changed
 
@@ -46,7 +47,7 @@
 
 - Add new patterns (footer, web entities, biology tables, coding sections) to pipeline normalisation (pollution)
 
-## Changed
+### Changed
 
 - Improved TNM detection algorithm
 - Account for more modifiers in ADICAP codes detection

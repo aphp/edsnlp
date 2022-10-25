@@ -7,7 +7,9 @@ from .atomic.delimiters import (
     ante_num_pattern,
     delimiters,
     post_num_pattern,
+    post_num_with_letter_pattern,
     raw_delimiter_with_spaces_pattern,
+    raw_delimiters,
 )
 from .atomic.modes import mode_pattern
 from .atomic.months import (
@@ -53,20 +55,30 @@ for time in [True, False]:
         + (time_pattern if time else "")
         + post_num_pattern
         for day in [ante_num_pattern + numeric_day_pattern, letter_day_pattern]
-        for month in [numeric_month_pattern + post_num_pattern, letter_month_pattern]
+        for month in [letter_month_pattern]
     ]
+    no_year_pattern.extend(
+        [
+            ante_num_pattern
+            + numeric_day_pattern
+            + d
+            + numeric_month_pattern
+            + post_num_pattern
+            for d in raw_delimiters
+        ]
+    )
     pattern.extend(no_year_pattern)
 
     no_day_pattern = [
         letter_month_pattern
         + raw_delimiter_with_spaces_pattern
         + year_pattern
-        + post_num_pattern,
+        + post_num_with_letter_pattern,
         ante_num_pattern
         + lz_numeric_month_pattern
-        + raw_delimiter_with_spaces_pattern
+        + "/"
         + year_pattern
-        + post_num_pattern,
+        + post_num_with_letter_pattern,
     ]
     pattern.extend(no_day_pattern)
 

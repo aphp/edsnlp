@@ -231,23 +231,27 @@ class History(Qualifier):
             spaCy Doc object, annotated for history
         """
 
-        try:
-            note_datetime = pendulum.instance(doc._.note_datetime)
-            note_datetime = note_datetime.set(tz="Europe/Paris")
-        except ValueError:
-            logger.debug(
-                "Note date time must be datetime objects. Skkipping absolute value"
-            )
-            note_datetime = None
+        if doc._.note_datetime is not None:
+            try:
+                note_datetime = pendulum.instance(doc._.note_datetime)
+                note_datetime = note_datetime.set(tz="Europe/Paris")
+            except ValueError:
+                logger.debug(
+                    "note_datetime must be a datetime objects. "
+                    "Skipping history qualification from note_datetime."
+                )
+                note_datetime = None
 
-        try:
-            birth_datetime = pendulum.instance(doc._.birth_datetime)
-            birth_datetime = birth_datetime.set(tz="Europe/Paris")
-        except ValueError:
-            logger.debug(
-                "Birth date time must be datetime objects. Skkipping exclude birth date"
-            )
-            birth_datetime = None
+        if doc._.birth_datetime is not None:
+            try:
+                birth_datetime = pendulum.instance(doc._.birth_datetime)
+                birth_datetime = birth_datetime.set(tz="Europe/Paris")
+            except ValueError:
+                logger.debug(
+                    "birth_datetime must be a datetime objects. "
+                    "Skipping history qualification from birth date."
+                )
+                birth_datetime = None
 
         matches = self.get_matches(doc)
 

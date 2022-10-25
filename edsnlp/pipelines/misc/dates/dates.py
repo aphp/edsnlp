@@ -65,6 +65,7 @@ class Dates(BaseComponent):
         false_positive: Optional[List[str]],
         on_ents_only: Union[bool, List[str]],
         detect_periods: bool,
+        detect_time: bool,
         as_ents: bool,
         attr: str,
     ):
@@ -72,7 +73,10 @@ class Dates(BaseComponent):
         self.nlp = nlp
 
         if absolute is None:
-            absolute = patterns.absolute_pattern
+            if detect_time:
+                absolute = patterns.absolute_pattern_with_time
+            else:
+                absolute = patterns.absolute_pattern
         if relative is None:
             relative = patterns.relative_pattern
         if duration is None:

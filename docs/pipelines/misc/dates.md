@@ -67,12 +67,13 @@ The `eds.dates` pipeline declares one [spaCy extension](https://spacy.io/usage/p
 The pipeline can be configured using the following parameters :
 
 | Parameter        | Explanation                                      | Default                           |
-| ---------------- | ------------------------------------------------ | --------------------------------- |
+|------------------|--------------------------------------------------|-----------------------------------|
 | `absolute`       | Absolute date patterns, eg `le 5 août 2020`      | `None` (use pre-defined patterns) |
 | `relative`       | Relative date patterns, eg `hier`)               | `None` (use pre-defined patterns) |
 | `durations`      | Duration patterns, eg `pendant trois mois`)      | `None` (use pre-defined patterns) |
 | `false_positive` | Some false positive patterns to exclude          | `None` (use pre-defined patterns) |
-| `detect_periods` | Whether to look for dates around entities only   | `False`                           |
+| `detect_periods` | Whether to look for periods                      | `False`                           |
+| `detect_time`    | Whether to look for time around dates            | `True`                            |
 | `on_ents_only`   | Whether to look for dates around entities only   | `False`                           |
 | `as_ents`        | Whether to save detected dates as entities       | `False`                           |
 | `attr`           | spaCy attribute to match on, eg `NORM` or `TEXT` | `"NORM"`                          |

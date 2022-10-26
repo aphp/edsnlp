@@ -32,6 +32,7 @@
 - Remove the warning in the ``eds.sections`` when ``eds.normalizer`` is in the pipe.
 - Fix filter_spans for strictly nested entities
 - Fill eds.remove-lowercase "assign" metadata to run the pipeline during EDSPhraseMatcher preprocessing
+- Allow back spaCy components whose name contains a dot (forbidden since spaCy v3.4.2) for backward compatibility.
 
 ## v0.7.1 (2022-10-13)
 

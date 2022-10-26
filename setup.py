@@ -91,10 +91,6 @@ scorers = [
     "edsnlp.pipelines.trainable.nested_ner:make_nested_ner_scorer",
 ]
 
-loggers = [
-    "eds.RichLogger.v1 = edsnlp.utils.training:console_logger",
-]
-
 setup(
     name="edsnlp",
     version=get_version("edsnlp/__init__.py"),
@@ -134,6 +130,5 @@ setup(
         "spacy_factories": factories,
         "spacy_languages": ["eds = edsnlp.language:EDSLanguage"],
         "spacy_scorers": scorers,
-        "spacy_loggers": loggers,
     },
 )

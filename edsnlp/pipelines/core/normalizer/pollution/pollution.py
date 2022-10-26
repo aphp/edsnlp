@@ -1,3 +1,4 @@
+import re
 from typing import Dict, List, Optional, Union
 
 from spacy.language import Language
@@ -52,7 +53,7 @@ class Pollution(BaseComponent):
             elif isinstance(v, list):
                 self.pollution[k] = v
 
-        self.regex_matcher = RegexMatcher()
+        self.regex_matcher = RegexMatcher(flags=re.MULTILINE)
         self.build_patterns()
 
     def build_patterns(self) -> None:

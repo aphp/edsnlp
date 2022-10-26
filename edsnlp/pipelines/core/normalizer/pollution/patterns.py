@@ -24,7 +24,7 @@ web = r"(www\.\S*)|(\S*@\S*)"
 coding = r".*?[a-zA-Z]\d{2,4}.*?(\n|[a-zA-Z]\d{2,4})"
 
 # New page
-footer = r"(?i)^\d\/\d\s?pat.*ipp.*"
+footer = r"(?i)^\d\/\d\s?pat.*ipp.*\n?"
 
 pollution = dict(
     information=information,

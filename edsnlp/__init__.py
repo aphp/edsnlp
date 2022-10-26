@@ -2,6 +2,7 @@
 EDS-NLP
 """
 
+from . import patch_spacy_dot_components  # isort: skip
 from pathlib import Path
 
 from . import extensions

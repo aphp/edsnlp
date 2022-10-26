@@ -88,9 +88,14 @@ def test_normalization_pollution(nlp_factory, text):
 
     assert norm == "L'aïeul ʺnˊest pas malade”, écrit-il. Fièvre jaune."
 
-    text2 = "2/2Pat : <NOM> <Prenom> le <date> IPP <ipp> Intitulé RCP"
+    text2 = "Le jour de \n"
+    text2 += "2/2Pat : <NOM> <Prenom> le <date> IPP <ipp> Intitulé RCP"
     text2 += " : Urologie HMN le <date>\nRéunion de Concertation"
     text2 += " Pluridisciplinaire\nHôpital Henri Mondor"
     doc = nlp(text2)
     norm = get_text(doc, attr="NORM", ignore_excluded=True)
-    assert norm == "\nRéunion de Concertation Pluridisciplinaire\nHôpital Henri Mondor"
+    assert (
+        norm
+        == "Le jour de \nRéunion de Concertation "
+        + "Pluridisciplinaire\nHôpital Henri Mondor"
+    )

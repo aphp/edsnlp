@@ -7,6 +7,7 @@
 - Improve the `eds.history` component by taking into account the date extracted from `eds.dates` component.
 - New pop up when you click on the copy icon in the termynal widget (docs).
 - Add NER `eds.elston-ellis` pipeline to identify Elston Ellis scores
+- Add flags=re.MULTILINE to `eds.pollution` and change pattern of footer
 
 ### Fixed
 

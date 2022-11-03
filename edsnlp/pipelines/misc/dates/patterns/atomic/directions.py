@@ -1,7 +1,7 @@
 from edsnlp.utils.regex import make_pattern
 
 preceding_directions = [
-    r"(?P<direction_PAST>depuis|depuis\s+le|il\s+y\s+a)",
+    r"(?P<direction_PAST>depuis|depuis\s+le|il\s+y\s+a|à)",
     r"(?P<direction_FUTURE>dans)",
 ]
 

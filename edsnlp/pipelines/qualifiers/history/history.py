@@ -10,7 +10,7 @@ from edsnlp.pipelines.qualifiers.base import Qualifier
 from edsnlp.pipelines.terminations import termination
 from edsnlp.utils.deprecation import deprecated_getter_factory
 from edsnlp.utils.filter import consume_spans, filter_spans, get_spans
-from edsnlp.utils.inclusion import check_inclusion
+from edsnlp.utils.inclusion import check_inclusion, check_sent_inclusion
 
 from .patterns import history, sections_history
 
@@ -34,10 +34,12 @@ class History(Qualifier):
     use_dates : bool
         Whether to use dates pipeline to detect if the event occurs
          a long time before the document date.
-    history_limit : timedelta
-        The time after which the event is considered as history.
+    history_limit : int
+        The number of days after which the event is considered as history.
     exclude_birthdate : bool
         Whether to exclude the birth date from history dates.
+    closest_dates_only : bool
+        Whether to include the closest dates only.
     attr : str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
@@ -64,7 +66,8 @@ class History(Qualifier):
         termination: Optional[List[str]],
         use_sections: bool,
         use_dates: bool,
-        history_limit: timedelta,
+        history_limit: int,
+        closest_dates_only: bool,
         exclude_birthdate: bool,
         explain: bool,
         on_ents_only: bool,
@@ -85,8 +88,9 @@ class History(Qualifier):
 
         self.set_extensions()
 
-        self.history_limit = history_limit
+        self.history_limit = timedelta(history_limit)
         self.exclude_birthdate = exclude_birthdate
+        self.closest_dates_only = closest_dates_only
 
         self.sections = use_sections and (
             "eds.sections" in nlp.pipe_names or "sections" in nlp.pipe_names
@@ -232,7 +236,7 @@ class History(Qualifier):
             note_datetime = note_datetime.set(tz="Europe/Paris")
         except ValueError:
             logger.debug(
-                "Note date time must be datetime objects. Skkipping absolut value"
+                "Note date time must be datetime objects. Skkipping absolute value"
             )
             note_datetime = None
 
@@ -257,6 +261,7 @@ class History(Qualifier):
         ents = None
         sub_sections = None
         sub_recent_dates = None
+        sub_history_dates = None
 
         sections = []
         if self.sections:
@@ -300,12 +305,22 @@ class History(Qualifier):
                                 Span(doc, date.start, date.end, label="relative_date")
                             )
                 elif date.label_ == "absolute" and doc._.note_datetime:
-                    absolute_date = date._.date.to_datetime(
-                        note_datetime=note_datetime,
-                        infer_from_context=True,
-                        tz="Europe/Paris",
-                        default_day=15,
-                    )
+                    try:
+                        absolute_date = date._.date.to_datetime(
+                            note_datetime=note_datetime,
+                            infer_from_context=True,
+                            tz="Europe/Paris",
+                            default_day=15,
+                        )
+                    except ValueError as e:
+                        absolute_date = None
+                        logger.warning(
+                            "In doc {}, the following date {} raises this error: {}. "
+                            "Skipping this date.",
+                            doc._.note_id,
+                            date._.date,
+                            e,
+                        )
                     if absolute_date:
                         if note_datetime.diff(absolute_date) < self.history_limit:
                             recent_dates.append(
@@ -331,25 +346,106 @@ class History(Qualifier):
                 matches, lambda s: start <= s.start < end
             )
 
-            sub_sections, sections = consume_spans(
-                sections, lambda s: s.start < end <= s.end, sub_sections
-            )
-            sub_recent_dates, recent_dates = consume_spans(
-                recent_dates,
-                filter=lambda s: check_inclusion(s, start, end),
-            )
-            sub_history_dates, history_dates = consume_spans(
-                history_dates,
-                filter=lambda s: check_inclusion(s, start, end),
-            )
+            if self.sections:
+                sub_sections, sections = consume_spans(
+                    sections, lambda s: s.start < end <= s.end, sub_sections
+                )
+            if self.dates:
+                sub_recent_dates, recent_dates = consume_spans(
+                    recent_dates,
+                    lambda s: check_sent_inclusion(s, start, end),
+                    sub_recent_dates,
+                )
+                sub_history_dates, history_dates = consume_spans(
+                    history_dates,
+                    lambda s: check_sent_inclusion(s, start, end),
+                    sub_history_dates,
+                )
+
+                # Filter dates inside the boundaries only
+                if self.closest_dates_only:
+                    close_recent_dates = []
+                    close_history_dates = []
+                    if sub_recent_dates:
+                        close_recent_dates = [
+                            recent_date
+                            for recent_date in sub_recent_dates
+                            if check_inclusion(recent_date, start, end)
+                        ]
+                        if sub_history_dates:
+                            close_history_dates = [
+                                history_date
+                                for history_date in sub_history_dates
+                                if check_inclusion(history_date, start, end)
+                            ]
+                            # If no date inside the boundaries, get the closest
+                            if not close_recent_dates and not close_history_dates:
+                                min_distance_recent_date = min(
+                                    [
+                                        abs(sub_recent_date.start - start)
+                                        for sub_recent_date in sub_recent_dates
+                                    ]
+                                )
+                                min_distance_history_date = min(
+                                    [
+                                        abs(sub_history_date.start - start)
+                                        for sub_history_date in sub_history_dates
+                                    ]
+                                )
+                                if min_distance_recent_date < min_distance_history_date:
+                                    close_recent_dates = [
+                                        min(
+                                            sub_recent_dates,
+                                            key=lambda x: abs(x.start - start),
+                                        )
+                                    ]
+                                else:
+                                    close_history_dates = [
+                                        min(
+                                            sub_history_dates,
+                                            key=lambda x: abs(x.start - start),
+                                        )
+                                    ]
+                        elif not close_recent_dates:
+                            close_recent_dates = [
+                                min(
+                                    sub_recent_dates,
+                                    key=lambda x: abs(x.start - start),
+                                )
+                            ]
+                    elif sub_history_dates:
+                        close_history_dates = [
+                            history_date
+                            for history_date in sub_history_dates
+                            if check_inclusion(history_date, start, end)
+                        ]
+                        # If no date inside the boundaries, get the closest
+                        if not close_history_dates:
+                            close_history_dates = [
+                                min(
+                                    sub_history_dates,
+                                    key=lambda x: abs(x.start - start),
+                                )
+                            ]
+
             if self.on_ents_only and not ents:
                 continue
 
             history_cues = get_spans(sub_matches, "history")
-            history_cues += sub_sections
-            history_cues += sub_history_dates
+            recent_cues = []
 
-            recent_cues = sub_recent_dates
+            if self.sections:
+                history_cues.extend(sub_sections)
+
+            if self.dates:
+                history_cues.extend(
+                    close_history_dates
+                    if self.closest_dates_only
+                    else sub_history_dates
+                )
+                recent_cues.extend(
+                    close_recent_dates if self.closest_dates_only else sub_recent_dates
+                )
 
             history = bool(history_cues) and not bool(recent_cues)
 

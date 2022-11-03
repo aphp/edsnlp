@@ -1,15 +1,16 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import spacy
 from pytest import mark
 
 from edsnlp.pipelines.qualifiers.history import History
 from edsnlp.pipelines.qualifiers.history.patterns import history
+from edsnlp.pipelines.terminations import termination
 
 text = """COMPTE RENDU D'HOSPITALISATION du 11/07/2018 au 12/07/2018
 
 MOTIF D'HOSPITALISATION
-Monsieur Dupont Jean Michel, de sexe masculin, âgée de 39 ans,
+Monsieur Dupont 30\n2 Jean Michel, de sexe masculin, âgée de 39 ans,
 née le 23/11/1978, est admis pour une toux.
 Il a été hospitalisé du 11/08/2019 au 17/08/2019,
 avec un antécédent d'asthme il y a 25 jours.
@@ -17,7 +18,9 @@ avec un antécédent d'asthme il y a 25 jours.
 ANTÉCÉDENTS
 Antécédents médicaux :
 Premier épisode: il a été hospitalisé pour asthme cette semaine-ci,
-il y a 3 jours, le 13 août 2020."""
+il y a 3 jours, le 13 août 2020.
+Hier, le patient est venu pour une toux dont les symptômes,
+seraient apparus il y a 2 mois."""
 
 
 @mark.parametrize("use_sections", [True, False])
@@ -55,11 +58,12 @@ def test_history(lang, use_sections, use_dates, exclude_birthdate, on_ents_only)
         nlp=nlp,
         attr="NORM",
         history=history,
-        termination=[],
+        termination=termination,
         use_sections=use_sections,
         use_dates=use_dates,
         exclude_birthdate=exclude_birthdate,
-        history_limit=timedelta(15),
+        closest_dates_only=True,
+        history_limit=15,
         explain=True,
         on_ents_only=on_ents_only,
     )

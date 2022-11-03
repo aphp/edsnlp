@@ -127,7 +127,7 @@ class SingleAssignModel(BaseModel):
         compiled_pat = re.compile(pat)
         n_groups = compiled_pat.groups
         assert n_groups == 1, (
-            "The pattern {pat} should have only one" "capturing group, not {n_groups}"
+            "The pattern {pat} should have only one capturing group, not {n_groups}"
         ).format(
             pat=pat,
             n_groups=n_groups,

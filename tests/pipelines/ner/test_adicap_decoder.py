@@ -29,7 +29,7 @@ expected_outputs = [
         "organ": "SEIN (ÉGALEMENT UTILISÉ CHEZ L'HOMME)",
         "pathology": "PATHOLOGIE GÉNÉRALE NON TUMORALE",
         "pathology_type": (
-            "INFLAMMATION SUBAIGUE ET CHRONIQUE " "LEGERE TOXIQUE (ALCOOL, ETC)"
+            "INFLAMMATION SUBAIGUE ET CHRONIQUE LEGERE TOXIQUE (ALCOOL, ETC)"
         ),
         "behaviour_type": (
             "MODIFICATION DE VOLUME, DYSTROPHIE, "

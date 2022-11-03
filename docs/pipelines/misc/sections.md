@@ -50,7 +50,7 @@ Detected sections are :
   | `evolution`                   |             |
   | `modalites sortie`            |             |
   | `vaccinations`                |             |
-  | `introduction`                |             | -->
+  | `introduction`                |             | --> |
 
 <!-- ![Section extraction](/resources/sections.svg){ align=right width="35%"} -->
 
@@ -91,7 +91,7 @@ The pipeline can be configured using the following parameters :
 | Parameter         | Explanation                                      | Default                           |
 | ----------------- | ------------------------------------------------ | --------------------------------- |
 | `sections`        | Sections patterns                                | `None` (use pre-defined patterns) |
-| `add_patterns`    | Whether add endlines patterns                    | `False`                           |
+| `add_patterns`    | Whether add endlines patterns                    | `True`                            |
 | `attr`            | spaCy attribute to match on, eg `NORM` or `TEXT` | `"NORM"`                          |
 | `ignore_excluded` | Whether to ignore excluded tokens                | `True`                            |
 

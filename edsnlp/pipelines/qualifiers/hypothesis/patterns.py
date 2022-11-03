@@ -63,7 +63,6 @@ preceding: List[str] = [
     "recherche de",
     "recherche des",
     "risque",
-    "sauf si",
     "selon",
     "si",
     "s'il",

@@ -92,10 +92,19 @@ def test_normalization_pollution(nlp_factory, text):
     text2 += "2/2Pat : <NOM> <Prenom> le <date> IPP <ipp> Intitulé RCP"
     text2 += " : Urologie HMN le <date>\nRéunion de Concertation"
     text2 += " Pluridisciplinaire\nHôpital Henri Mondor"
-    doc = nlp(text2)
-    norm = get_text(doc, attr="NORM", ignore_excluded=True)
-    assert (
-        norm
-        == "Le jour de \nRéunion de Concertation "
-        + "Pluridisciplinaire\nHôpital Henri Mondor"
+    text2_expected = (
+        "Le jour de \nRéunion de Concertation Pluridisciplinaire\nHôpital Henri Mondor"
     )
+
+    text3 = "Le jour de \n"
+    text3 += "3/5CRH service ABC HC SOINS INTENSIFS CARDIOLOGIE - CARDIOLOGIE-2EME"
+    text3 += " ETAGE-B    Pat.: Prenom NOM | M | 13/10/1789 | 8012345678 | xxxxxxxx \n"
+    text3 += "consultation"
+    text3_expected = "Le jour de \nconsultation"
+
+    examples = [(text2, text2_expected), (text3, text3_expected)]
+
+    for example, expected in examples:
+        doc = nlp(example)
+        norm = get_text(doc, attr="NORM", ignore_excluded=True)
+        assert norm == expected

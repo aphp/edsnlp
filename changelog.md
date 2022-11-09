@@ -1,5 +1,8 @@
 # Changelog
 
+### Added
+- Improve pattern of footer in `eds.pollution` pipeline
+
 ## v0.7.2 (2022-10-26)
 
 ### Added

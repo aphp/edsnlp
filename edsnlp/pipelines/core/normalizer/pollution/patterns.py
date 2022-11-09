@@ -24,7 +24,11 @@ web = r"(www\.\S*)|(\S*@\S*)"
 coding = r".*?[a-zA-Z]\d{2,4}.*?(\n|[a-zA-Z]\d{2,4})"
 
 # New page
-footer = r"(?i)^\d\/\d\s?pat.*ipp.*\n?"
+date = r"\b\d\d/\d\d/\d\d\d\d\b"
+ipp = r"80\d{8}"
+page = r"((^\d\/\d\s?)|(^\d\d?\/\d\d\?))"
+footer = rf"(?i)({page}.*\n?pat.*(ipp)?.*\n?(courrier valid.*)?)"
+footer += rf"|(.*{date}.*{ipp}.*)|(imprim.\sle\s{date}.*\d/\d.*\n?pat.*{date})"
 
 pollution = dict(
     information=information,

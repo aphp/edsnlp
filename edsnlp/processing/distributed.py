@@ -235,7 +235,7 @@ def custom_pipe(
     Parameters
     ----------
     note : DataFrame
-        A Pyspark or Koalas DataFrame with a `note_id` and `note_text` column
+        A Pyspark or Koalas DataFrame with a `note_text` column
     nlp : Language
         A spaCy pipe
     results_extractor : Callable[[Doc], List[Dict[str, Any]]]
@@ -261,6 +261,9 @@ def custom_pipe(
 
     if context:
         check_spacy_version_for_context()
+
+    if ("note_id" not in context) and ("note_id" in dtypes.keys()):
+        context.append("note_id")
 
     spark = SparkSession.builder.enableHiveSupport().getOrCreate()
     sc = spark.sparkContext
@@ -307,6 +310,10 @@ def custom_pipe(
     )
 
     note_nlp = note_nlp.withColumn("matches", F.explode(note_nlp.matches))
-    note_nlp = note_nlp.select("note_id", "matches.*")
+
+    if ("note_id" not in dtypes.keys()) and ("note_id" in note_nlp.columns):
+        note_nlp = note_nlp.select("note_id", "matches.*")
+    else:
+        note_nlp = note_nlp.select("matches.*")
 
     return note_nlp

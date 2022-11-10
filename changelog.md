@@ -1,4 +1,6 @@
 # Changelog
+### Added
+- Harmonize processing utils (distributed custom_pipe) to have the same API for Pandas and Pyspark
 
 ## v0.7.2 (2022-10-26)
 

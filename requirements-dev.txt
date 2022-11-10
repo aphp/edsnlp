@@ -8,4 +8,4 @@ pyspark
 pytest
 pytest-cov
 pytest-html
-torch
+torch<1.13.0

@@ -210,11 +210,11 @@ data = data[["note_id"]].join(pd.json_normalize(data.entities))
 
 The result on the first note:
 
-| note_id | start | end | label      | lexical_variant   | negation | hypothesis | family | key   |
-| ------: | ----: | --: | :--------- | :---------------- | -------: | ---------: | -----: | :---- |
-|       0 |     0 |   7 | patient    | Patient           |        0 |          0 |      0 | ents  |
-|       0 |   114 | 121 | patient    | patient           |        0 |          0 |      1 | ents  |
-|       0 |    17 |  34 | 2021-09-25 | 25 septembre 2021 |      nan |        nan |    nan | dates |
+| note_id | start |  end | label      | lexical_variant   | negation | hypothesis | family | key   |
+| ------: | ----: | ---: | :--------- | :---------------- | -------: | ---------: | -----: | :---- |
+|       0 |     0 |    7 | patient    | Patient           |        0 |          0 |      0 | ents  |
+|       0 |   114 |  121 | patient    | patient           |        0 |          0 |      1 | ents  |
+|       0 |    17 |   34 | 2021-09-25 | 25 septembre 2021 |      nan |        nan |    nan | dates |
 
 ## Using EDS-NLP's helper functions
 
@@ -224,7 +224,7 @@ They share the same arguments:
 
 | Argument            | Description                                                                   | Default                 |
 | ------------------- | ----------------------------------------------------------------------------- | ----------------------- |
-| `note`              | A DataFrame, with two required columns, `note_id` and `note_id`               | Required                |
+| `note`              | A DataFrame, with two required columns, `note_id` and `note_text`             | Required                |
 | `nlp`               | The pipeline object                                                           | Required                |
 | `context`           | A list of column names to add context to the generate `Doc`                   | `[]`                    |
 | `additional_spans`  | Keys in `doc.spans` to include besides `doc.ents`                             | `[]`                    |

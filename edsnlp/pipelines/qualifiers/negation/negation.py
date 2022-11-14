@@ -85,7 +85,9 @@ class Negation(Qualifier):
             termination=termination,
             verbs=verbs,
         )
-        terms["verbs"] = self.load_verbs(terms["verbs"])
+        terms["verbs_preceding"], terms["verbs_following"] = self.load_verbs(
+            terms["verbs"]
+        )
 
         super().__init__(
             nlp=nlp,
@@ -157,20 +159,23 @@ class Negation(Qualifier):
 
         Returns
         -------
-        list_neg_verbs: List of negating verbs conjugated to specific tenses.
+        list_neg_verbs_preceding: List of conjugated negating verbs preceding entities.
+        list_neg_verbs_following: List of conjugated negating verbs following entities.
         """
 
         neg_verbs = get_verbs(verbs)
 
-        neg_verbs = neg_verbs.loc[
+        neg_verbs_preceding = neg_verbs.loc[
             ((neg_verbs["mode"] == "Indicatif") & (neg_verbs["tense"] == "Présent"))
             | (neg_verbs["tense"] == "Participe Présent")
             | (neg_verbs["tense"] == "Participe Passé")
+            | (neg_verbs["tense"] == "Infinitif Présent")
         ]
+        neg_verbs_following = neg_verbs.loc[neg_verbs["tense"] == "Participe Passé"]
+        list_neg_verbs_preceding = list(neg_verbs_preceding["term"].unique())
+        list_neg_verbs_following = list(neg_verbs_following["term"].unique())
 
-        list_neg_verbs = list(neg_verbs["term"].unique())
-
-        return list_neg_verbs
+        return (list_neg_verbs_preceding, list_neg_verbs_following)
 
     def annotate_entity(
         self,
@@ -249,8 +254,10 @@ class Negation(Qualifier):
 
             sub_preceding = get_spans(sub_matches, "preceding")
             sub_following = get_spans(sub_matches, "following")
-            # Verbs precede negated content
-            sub_preceding += get_spans(sub_matches, "verbs")
+            # Verbs preceding negated content
+            sub_preceding += get_spans(sub_matches, "verbs_preceding")
+            # Verbs following negated content
+            sub_following += get_spans(sub_matches, "verbs_following")
 
             if not sub_preceding + sub_following:
                 continue

@@ -36,7 +36,7 @@ def _df_to_spacy(
     -------
     generator:
         A generator which items are of the form (text, context), with `text`
-        being a string and `context` a dictionnary
+        being a string and `context` a dictionary
     """
 
     if context:

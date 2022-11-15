@@ -15,7 +15,6 @@ examples: List[str] = [
     "Suspicion de <ent hypothesis_=HYP>diabète</ent>.",
     "Le ligament est <ent hypothesis_=CERT>rompu</ent>.",
     "Probablement du diabète mais pas de <ent hypothesis_=CERT>cécité</ent>.",
-    "<ent hypothesis_=HYP>Tabac</ent> :\n",
 ]
 
 

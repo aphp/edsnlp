@@ -215,10 +215,12 @@ class Hypothesis(Qualifier):
 
                 if self.within_ents:
                     cues = [m for m in sub_preceding + sub_verbs if m.end <= ent.end]
-                    cues += [m for m in sub_following if m.start >= ent.start]
+                    cues += [
+                        m for m in sub_following + sub_verbs if m.start >= ent.start
+                    ]
                 else:
                     cues = [m for m in sub_preceding + sub_verbs if m.end <= ent.start]
-                    cues += [m for m in sub_following if m.start >= ent.end]
+                    cues += [m for m in sub_following + sub_verbs if m.start >= ent.end]
 
                 hypothesis = ent._.hypothesis or bool(cues)
 

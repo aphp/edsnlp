@@ -8,7 +8,7 @@
 - `eds.negation` : It takes into account following past participates and preceding infinitives.
 - `eds.negation` & `eds.hypothesis` : Introduce new patterns and remove unnecessary patterns.
 - `eds.dates` : Add a pattern for preceding relative dates (ex: l'embolie qui est survenue **à 10 jours**).
-- Improve pattern of footer in `eds.pollution` pipeline
+- Improve patterns in the `eds.pollution` component to account for multiline footers
 
 ### Fixed
 

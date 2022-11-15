@@ -1,4 +1,7 @@
 # Changelog
+
+## Unreleased
+
 ### Added
 - Harmonize processing utils (distributed custom_pipe) to have the same API for Pandas and Pyspark
 

@@ -6,6 +6,7 @@
 
 - `eds.history` : Add the option to consider only the closest dates in the sentence (dates inside the boundaries and if there is not, it takes the closest date in the entire sentence).
 - `eds.negation` : It takes into account following past participates and preceding infinitives.
+- `eds.hypothesis`: It takes into account following past participates hypothesis verbs.
 - `eds.negation` & `eds.hypothesis` : Introduce new patterns and remove unnecessary patterns.
 - `eds.dates` : Add a pattern for preceding relative dates (ex: l'embolie qui est survenue **à 10 jours**).
 

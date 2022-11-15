@@ -34,7 +34,6 @@ preceding: List[str] = [
     "discrets",
     "discrète",
     "discrètes",
-    "doute",
     "en admettant que",
     "en cas",
     "en considérant que",
@@ -78,11 +77,8 @@ preceding: List[str] = [
 
 following: List[str] = [
     "?",
-    "envisagé",
     "envisageable",
     "envisageables",
-    "envisagées",
-    "envisagés",
     "hypothétique",
     "hypothétiquement",
     "hypothétiques",

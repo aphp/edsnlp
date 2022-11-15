@@ -16,7 +16,6 @@
 - ``EDSTokenizer`` : It now tokenizes ``"rechereche d'"`` as ``["recherche", "d'"]``, instead of ``["recherche", "d", "'"]``.
 - Typos : Fix small typose in the documentation and in the docstring.
 
-
 ## v0.7.2 (2022-10-26)
 
 ### Added

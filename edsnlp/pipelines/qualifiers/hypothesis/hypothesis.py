@@ -88,7 +88,7 @@ class Hypothesis(Qualifier):
             verbs_eds=verbs_eds,
             verbs_hyp=verbs_hyp,
         )
-        terms["verbs"] = self.load_verbs(
+        terms["verbs_preceding"], terms["verbs_following"] = self.load_verbs(
             verbs_hyp=terms.pop("verbs_hyp"),
             verbs_eds=terms.pop("verbs_eds"),
         )
@@ -155,9 +155,15 @@ class Hypothesis(Qualifier):
         list_classic_verbs = list(classic_verbs["term"].unique())
 
         hypo_verbs = get_verbs(verbs_hyp)
-        list_hypo_verbs = list(hypo_verbs["term"].unique())
+        list_hypo_verbs_preceding = list(hypo_verbs["term"].unique())
 
-        return list_hypo_verbs + list_classic_verbs
+        hypo_verbs_following = hypo_verbs.loc[hypo_verbs["tense"] == "Participe Passé"]
+        list_hypo_verbs_following = list(hypo_verbs_following["term"].unique())
+
+        return (
+            list_hypo_verbs_preceding + list_classic_verbs,
+            list_hypo_verbs_following,
+        )
 
     def process(self, doc: Doc) -> Doc:
         """
@@ -200,24 +206,25 @@ class Hypothesis(Qualifier):
 
             sub_preceding = get_spans(sub_matches, "preceding")
             sub_following = get_spans(sub_matches, "following")
-            sub_verbs = get_spans(sub_matches, "verbs")
+            sub_preceding += get_spans(sub_matches, "verbs_preceding")
+            sub_following += get_spans(sub_matches, "verbs_following")
 
-            if not sub_preceding + sub_following + sub_verbs:
+            if not sub_preceding + sub_following:
                 continue
 
             if not self.on_ents_only:
                 for token in doc[start:end]:
                     token._.hypothesis = any(
-                        m.end <= token.i for m in sub_preceding + sub_verbs
+                        m.end <= token.i for m in sub_preceding
                     ) or any(m.start > token.i for m in sub_following)
 
             for ent in ents:
 
                 if self.within_ents:
-                    cues = [m for m in sub_preceding + sub_verbs if m.end <= ent.end]
+                    cues = [m for m in sub_preceding if m.end <= ent.end]
                     cues += [m for m in sub_following if m.start >= ent.start]
                 else:
-                    cues = [m for m in sub_preceding + sub_verbs if m.end <= ent.start]
+                    cues = [m for m in sub_preceding if m.end <= ent.start]
                     cues += [m for m in sub_following if m.start >= ent.end]
 
                 hypothesis = ent._.hypothesis or bool(cues)

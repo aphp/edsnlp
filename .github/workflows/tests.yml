@@ -26,12 +26,19 @@ jobs:
 
   Pytest:
     runs-on: ubuntu-latest
+    env:
+      UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
     strategy:
       fail-fast: true
       matrix:
         python-version: ["3.7", "3.8", "3.9"]
     steps:
       - uses: actions/checkout@v2
+      - name: Cache downloaded resources
+        uses: actions/cache@v3
+        with:
+          path: ~/.data/
+          key: resources
       - name: Set up Java
         uses: actions/setup-java@v2
         with:

@@ -1,7 +1,8 @@
-from edsnlp.matchers.utils import get_text
 from typing import Union
 
 from spacy.tokens import Span
+
+from edsnlp.matchers.utils import get_text
 
 DIGITS_VALUE = list(range(11))
 DIGITS_STR = [

@@ -23,17 +23,11 @@ def get_window(
     doclike: Union[Doc, Span], window: Tuple[int, int], limit_to_sentence: bool
 ):
 
-    start = (
-        doclike.start + window[0]
-        if not limit_to_sentence
-        else max(doclike.start + window[0], doclike.sent.start)
-    )
+    start_limit = doclike.sent.start if limit_to_sentence else 0
+    end_limit = doclike.sent.end if limit_to_sentence else len(doclike.doc)
 
-    end = (
-        doclike.end + window[1]
-        if not limit_to_sentence
-        else min(doclike.end + window[1], doclike.sent.end)
-    )
+    start = max(doclike.start + window[0], start_limit)
+    end = min(doclike.end + window[1], end_limit)
 
     return doclike.doc[start:end]
 

@@ -1,4 +1,4 @@
-from ..terms import BRAIN, HEART, ASYMPTOMATIC
+from ..terms import ASYMPTOMATIC, BRAIN, HEART, PERIPHERAL
 
 acronym = dict(
     source="acronym",
@@ -61,10 +61,11 @@ with_localization = dict(
         r"purpura.?thrombopenique.?idiopa",
         r"micro.?angiopathie.?thrombotique",
         r"syndrome.?hemolytique.{1,8}uremique",
+        r"stent",
     ],
     exclude=[
         dict(
-            regex=BRAIN + HEART,
+            regex=BRAIN + HEART + ASYMPTOMATIC,
             window=8,
         ),
     ],
@@ -76,8 +77,10 @@ thrombosis = dict(
     regex=[
         r"thrombos",
         r"thrombol",
+        r"thrombophi",
         r"thrombi[^n]",
         r"thrombus",
+        r"thrombectomi",
     ],
     exclude=[
         dict(
@@ -95,9 +98,75 @@ thrombosis = dict(
     regex_attr="NORM",
 )
 
+
+ischemia = dict(
+    source="ischemia",
+    regex=[
+        r"ischemi",
+    ],
+    exclude=[
+        dict(
+            regex=BRAIN + HEART,
+            window=7,
+        ),
+    ],
+    assign=[
+        dict(
+            name="peripheral",
+            regex="(" + r"|".join(PERIPHERAL) + ")",
+            window=7,
+        ),
+    ],
+    regex_attr="NORM",
+)
+
+ep = dict(
+    source="ep",
+    regex=r"\bep\b",
+    exclude=[
+        dict(
+            regex=[
+                r"fibreux",
+                r"retin",
+                r"\bfove",
+                r"\boct\b",
+                r"\bmacula",
+                r"prosta",
+                r"\bip\b",
+                r"protocole",
+                r"seance",
+                r"echange",
+                r"ritux",
+                r"ivig",
+                r"ig.?iv",
+                r"ctc",
+                r"corticoide",
+                r"serum",
+                r"cure",
+                r"plasma",
+                r"mensuel",
+                r"semaine",
+                r"serologi",
+                r"espaces porte",
+                r"projet",
+                r"bolus",
+            ],
+            window=(-25, 25),
+            limit_to_sentence=False,
+        ),
+        dict(
+            regex=[r"rdv", r"les", r"des", r"angine"],
+            window=(-3, 0),
+        ),
+    ],
+    regex_attr="NORM",
+)
+
 default_patterns = [
     acronym,
     other,
     with_localization,
     thrombosis,
+    ep,
+    ischemia,
 ]

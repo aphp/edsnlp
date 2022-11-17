@@ -29,7 +29,7 @@ acronym = dict(
         r"\bAREB\b",
         r"\bAPMF\b",
         r"\bLLC\b",
-        r"\bSMD`b",
+        r"\bSMD\b",
         r"LA my[éèe]lomonocytaire",
     ],
     regex_attr="TEXT",

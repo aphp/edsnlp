@@ -1,7 +1,7 @@
 """`eds.comorbidities.CKD` pipeline"""
 from typing import Generator, Optional
-from loguru import logger
 
+from loguru import logger
 from spacy.tokens import Doc, Span
 
 from edsnlp.pipelines.ner.comorbidities.base import Comorbidity

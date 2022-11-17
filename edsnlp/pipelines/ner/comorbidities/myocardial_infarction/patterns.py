@@ -6,7 +6,7 @@ main_pattern = dict(
         r"infarctus.{1,15}myocard",
         r"coronaropathie",
         r"angor instable",
-        r"angioplastie",
+        r"angioplast",
         r"cardiopathies? (ischem|arteriosc)",
         r"ischemie.{1,15}myocard",
         r"syndrome? corona.{1,10}aigu",
@@ -27,7 +27,7 @@ with_localization = dict(
         dict(
             name="heart_localized",
             regex="(" + r"|".join(HEART) + ")",
-            window=8,
+            window=(-8, 8),
         ),
     ],
     regex_attr="NORM",

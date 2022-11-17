@@ -15,6 +15,7 @@ main_pattern = dict(
         r"sydrome.{1,5}alport",
         r"good.?pasture",
         r"siadh",
+        r"tubulopathie",
     ],
     exclude=dict(
         regex=[

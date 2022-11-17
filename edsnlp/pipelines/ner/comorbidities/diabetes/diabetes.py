@@ -3,8 +3,8 @@ from typing import Generator
 
 from spacy.tokens import Doc, Span
 
-from edsnlp.pipelines.ner.comorbidities.base import Comorbidity
 from edsnlp.matchers.utils import get_text
+from edsnlp.pipelines.ner.comorbidities.base import Comorbidity
 
 from .patterns import default_patterns
 

@@ -10,7 +10,7 @@ main_pattern = dict(
         r"amylose",
         r"plasm[ao]cytome",
         r"lympho.{1,3}sarcome",
-        r"lymphoprolif",
+        r"lympho.?prolif",
         r"hemopathie.{1,10}lymphoide",
         r"macroglobulinemie",
         r"immunocytome",

@@ -1,7 +1,6 @@
 from spacy import registry
-from edsnlp import components  # noqa : used to update the registry
 
-from spacy.tokens import Span
+from edsnlp import components  # noqa : used to update the registry
 
 
 def get_all_pipes():

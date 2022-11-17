@@ -35,6 +35,19 @@ BRAIN = [
     r"meninge",
     r"dura(?:l|ux)",
     r"puncti",
+    r"fronto",
+    r"tempo",
+    r"occipi",
+    r"parieta",
+]
+
+PERIPHERAL = [
+    "pied",
+    "main",
+    "mi",
+    "membre",
+    "jambe",
+    "bras",
 ]
 
 ASYMPTOMATIC = [

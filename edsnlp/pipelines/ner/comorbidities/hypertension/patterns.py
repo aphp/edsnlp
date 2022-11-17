@@ -3,6 +3,7 @@ main_pattern = dict(
     regex=[
         r"\bhta\b",
         r"hyper.?tension.?arte",
+        r"hyper.?tendu",
     ],
     exclude=dict(
         regex="pulmo",

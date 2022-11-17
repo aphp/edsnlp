@@ -4,6 +4,7 @@ default_patterns = dict(
         r"\balco[ol]",
         r"\bethyl",
         r"(?<!25.?)\boh\b",
+        r"exogenose",
     ],
     exclude=[
         dict(

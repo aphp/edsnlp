@@ -1,8 +1,8 @@
 """`eds.comorbidities.diabetes` pipeline"""
-from curses.ascii import isupper
 from operator import itemgetter
 from typing import Generator
 
+from importlib_metadata import re
 from spacy.tokens import Doc, Span, Token
 
 from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
@@ -30,7 +30,7 @@ class Comorbidity(ContextualMatcher):
             attr="NORM",
             patterns=patterns,
             ignore_excluded=True,
-            regex_flags=0,
+            regex_flags=re.S,
             alignment_mode="expand",
             assign_as_span=True,
             include_assigned=include_assigned,

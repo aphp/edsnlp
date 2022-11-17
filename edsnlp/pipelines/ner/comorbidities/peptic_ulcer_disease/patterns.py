@@ -9,6 +9,7 @@ main_pattern = dict(
         r"ulcere.{1,10}curling",
         r"ulcere.{1,10}bulb",
         r"(œ|oe)sophagites? pepti.{1,10}ulcer",
+        r"gastrite.{1,20}ulcer",
     ],
     regex_attr="NORM",
 )

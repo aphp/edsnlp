@@ -28,6 +28,12 @@ htap = dict(
         r"hypertension.{0,10}pulmo",
     ],
     regex_attr="NORM",
+    exclude=[
+        dict(
+            regex="minime",
+            window=(0, 3),
+        ),
+    ],
 )
 
 oxygen = dict(
@@ -62,7 +68,6 @@ acronym = dict(
         r"\bFEPP\b",
         r"\bPINS\b",
         r"\bPID\b",
-        r"\bFID\b",
         r"\bSAOS\b",
         r"\bSAS\b",
         r"\bSAHOS\b",
@@ -70,9 +75,24 @@ acronym = dict(
     regex_attr="TEXT",
 )
 
+fid = dict(
+    source="fid",
+    regex=[
+        r"\bfid\b",
+    ],
+    regex_attr="NORM",
+    exclude=[
+        dict(
+            regex=r"\bfig\b",
+            window=(-7, 7),
+        ),
+    ],
+)
+
 default_patterns = [
     main_pattern,
     htap,
     oxygen,
     acronym,
+    fid,
 ]

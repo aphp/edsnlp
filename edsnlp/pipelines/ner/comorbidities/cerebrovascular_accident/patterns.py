@@ -8,13 +8,13 @@ AVC_CARE_SITES_REGEX = [
     r"\b" + re.escape(cs.strip()) + r"\b" for cs in get_AVC_care_site_prefixes()
 ] + [
     r"h[oô]p",
-    r"rcp",
+    r"\brcp",
     r"service",
-    r"sau",
+    r"\bsau",
     r"ap.?hp",
-    r"urg",
+    r"\burg",
     r"finess",
-    r"siret",
+    r"\bsiret",
     r"[àa] avc",
     r"consult",
 ]
@@ -31,7 +31,7 @@ avc = dict(
             regex_flags=re.S | re.I,
         ),
         dict(
-            regex=r"[a-z]\.",
+            regex=r"\b[a-z]\.",
             window=2,
         ),
     ],
@@ -44,10 +44,11 @@ with_localization = dict(
         r"(hemorr?agie|hematome)",
         r"infarctus",
         r"occlusion",
-        r"saignements",
+        r"saignement",
         r"thrombo(se|phlebite)",
         r"embol.{1,10}",
         r"vascularite",
+        r"\bhsd\b",
     ],
     regex_attr="NORM",
     assign=[
@@ -67,7 +68,7 @@ general = dict(
         r"accidents? ischemi",
         r"moya.?moya",
         r"occlusion.{1,5}(artere|veine).{1,20}retine",
-        r"vasculopathies?cerebrales?ischemique",
+        r"vasculopathies?.cerebrales?.ischemique",
         r"maladies? des petites arteres",
         r"maladies? des petits vaisseaux",
         r"thrombolyse.{1,10}(iv|intra.?vein)",

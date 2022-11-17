@@ -4,14 +4,14 @@ main_pattern = dict(
         r"demence",
         r"dementiel",
         r"corps de le[vw]y",
-        r"deficits? chroniques? cognitif",
-        r"troubles? mnesiques? chronique",
-        r"troubles? praxiques? chronique",
-        r"troubles? attentionels? chronique",
-        r"troubles? degeneratifs? des fonctions sup",
-        r"maladies? cerebrales? degen",
+        r"deficits?.chroniques?.cognitif",
+        r"troubles?.mnesique?",
+        r"troubles?.praxique",
+        r"troubles?.attentionel",
+        r"troubles?.degeneratifs? des fonctions sup",
+        r"maladies?.cerebrales? degen",
         r"troubles? neurocogn",
-        r"déficits? chroniques? cognitif",
+        r"déficits?.cognitif",
         r"(trouble|dysfonction).{1,20} cogniti",
         r"atteinte.{1,7}spheres?cogniti",
         r"syndrome frontal",
@@ -26,12 +26,6 @@ main_pattern = dict(
         r"korsako[fv]",
         r"atropie.{1,10}(cortico|hippocamp|cereb|lobe)",
     ],
-    exclude=dict(
-        regex=[
-            "vascul",
-        ],
-        window=3,
-    ),
 )
 
 acronym = dict(

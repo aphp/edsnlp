@@ -4,7 +4,7 @@ STAGE = r"stade ([^\s]*)"
 main_pattern = dict(
     source="main",
     regex=[
-        r"carcinome(?!.{0,10}in.?situ)",
+        r"carcinom(?!.{0,10}in.?situ)",
         r"seminome",
         r"(?<!lympho)(?<!lympho-)sarcome",
         r"blastome",
@@ -34,10 +34,12 @@ main_pattern = dict(
         r"\bgist\b",
         r"\bchc\b",
         r"\badk\b",
+        r"\btves\b",
         r"tumeur",
         r"carcinoid",
         r"histiocytome",
         r"ependymome",
+        r"primitif",
     ],
     exclude=dict(
         regex=BENINE,
@@ -70,6 +72,7 @@ metastasis_pattern = dict(
         r"ruptures? corticale",
         r"envahissement.{0,15}parties\smolle",
         r"(localisation|lesion)s? .{0,20}second",
+        r"(lymphangite|meningite).{1,5}carcinomateuse",
     ],
     regex_attr="NORM",
 )

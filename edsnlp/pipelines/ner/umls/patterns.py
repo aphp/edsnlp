@@ -1,4 +1,5 @@
 import os
+import warnings
 import zipfile
 from collections import defaultdict
 from pathlib import Path
@@ -107,10 +108,11 @@ def download_and_agg_umls(config) -> Dict[str, List[str]]:
     """
 
     api_key = os.getenv("UMLS_API_KEY")
-    if api_key is None:
-        raise ValueError(
-            "You need to define UMLS_API_KEY. Get a key by creating an account"
-            " at https://uts.nlm.nih.gov/uts/signup-login"
+    if not api_key:
+        warnings.warn(
+            "You need to define UMLS_API_KEY to download the UMLS. "
+            "Get a key by creating an account at "
+            "https://uts.nlm.nih.gov/uts/signup-login"
         )
 
     path = download_umls(version=UMLS_VERSION, api_key=api_key)

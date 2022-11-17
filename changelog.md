@@ -9,6 +9,7 @@
 - `eds.hypothesis`: It takes into account following past participates hypothesis verbs.
 - `eds.negation` & `eds.hypothesis` : Introduce new patterns and remove unnecessary patterns.
 - `eds.dates` : Add a pattern for preceding relative dates (ex: l'embolie qui est survenue **à 10 jours**).
+- Improve patterns in the `eds.pollution` component to account for multiline footers
 
 ### Fixed
 

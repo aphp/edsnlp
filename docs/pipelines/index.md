@@ -46,6 +46,7 @@ EDS-NLP provides easy-to-use spaCy components.
     | `eds.cim10`              | A CIM10 terminology matcher |
     | `eds.drugs`              | A Drug mentions extractor   |
     | `eds.adicap`             | A ADICAP codes extractor    |
+    | `eds.umls`               | A UMLS terminology matcher  |
 
 You can add them to your spaCy pipeline by simply calling `add_pipe`, for instance:
 

@@ -97,6 +97,11 @@ class TerminologyMatcher(BaseComponent):
 
         self.set_extensions()
 
+    def set_extensions(self) -> None:
+        super().set_extensions()
+        if not Span.has_extension(self.label):
+            Span.set_extension(self.label, default=None)
+
     def process(self, doc: Doc) -> List[Span]:
         """
         Find matching spans in doc.
@@ -127,6 +132,7 @@ class TerminologyMatcher(BaseComponent):
                 label=self.label,
                 kb_id=match.label,
             )
+            span._.set(self.label, match.label_)
             spans.append(span)
 
         return spans

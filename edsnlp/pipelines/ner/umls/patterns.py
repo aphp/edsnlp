@@ -107,6 +107,7 @@ def download_and_agg_umls(config) -> Dict[str, List[str]]:
     """
 
     api_key = os.getenv("UMLS_API_KEY")
+    print("API KEY", len(api_key))
     if api_key is None:
         raise ValueError(
             "You need to define UMLS_API_KEY. Get a key by creating an account"

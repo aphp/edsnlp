@@ -26,6 +26,8 @@ jobs:
 
   Pytest:
     runs-on: ubuntu-latest
+    env:
+      UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
     strategy:
       fail-fast: true
       matrix:

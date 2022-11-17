@@ -3,19 +3,20 @@
 ## Unreleased
 
 ### Added
-- Harmonize processing utils (distributed custom_pipe) to have the same API for Pandas and Pyspark
 - `eds.history` : Add the option to consider only the closest dates in the sentence (dates inside the boundaries and if there is not, it takes the closest date in the entire sentence).
 - `eds.negation` : It takes into account following past participates and preceding infinitives.
 - `eds.hypothesis`: It takes into account following past participates hypothesis verbs.
 - `eds.negation` & `eds.hypothesis` : Introduce new patterns and remove unnecessary patterns.
 - `eds.dates` : Add a pattern for preceding relative dates (ex: l'embolie qui est survenue **à 10 jours**).
 - Improve patterns in the `eds.pollution` component to account for multiline footers
+- Add UMLS terminology matcher `eds.umls`
 
 ### Fixed
 
 - `eds.hypothesis` : Remove too generic patterns.
-- ``EDSTokenizer`` : It now tokenizes ``"rechereche d'"`` as ``["recherche", "d'"]``, instead of ``["recherche", "d", "'"]``.
-- Typos : Fix small typose in the documentation and in the docstring.
+- `EDSTokenizer` : It now tokenizes `"rechereche d'"` as `["recherche", "d'"]`, instead of `["recherche", "d", "'"]`.
+- Fix small typos in the documentation and in the docstring.
+- Harmonize processing utils (distributed custom_pipe) to have the same API for Pandas and Pyspark
 
 ## v0.7.2 (2022-10-26)
 

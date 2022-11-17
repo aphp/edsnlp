@@ -4,6 +4,7 @@ import re
 from preshed.maps cimport map_clear, map_get, map_init, map_iter, map_set
 
 from spacy import Language
+from tqdm import tqdm
 
 from preshed.maps cimport MapStruct, key_t
 from spacy.matcher.phrasematcher cimport PhraseMatcher
@@ -94,7 +95,10 @@ cdef class EDSPhraseMatcher(PhraseMatcher):
             )
         ]
         with nlp.select_pipes(enable=token_pipelines):
-            for key, expressions in terms.items():
+            for key, expressions in tqdm(
+                terms.items(),
+                desc="Adding terms into the pipeline"
+            ):
                 if isinstance(expressions, dict):
                     attr = expressions.get("attr")
                     expressions = expressions.get("patterns")
@@ -106,15 +110,16 @@ cdef class EDSPhraseMatcher(PhraseMatcher):
                 self.add(key, patterns, attr)
 
     cdef void find_matches(self, Doc doc, int start_idx, int end_idx, vector[SpanC] *matches) nogil:
-        cdef MapStruct * current_node = self.c_map
-        cdef int start = 0
-        cdef int idx = start_idx
-        cdef int idy = start_idx
-        cdef key_t key
-        cdef void * value
-        cdef int i = 0
-        cdef SpanC ms
-        cdef void * result
+        cdef:
+            MapStruct * current_node = self.c_map
+            int start = 0
+            int idx = start_idx
+            int idy = start_idx
+            key_t key
+            void * value
+            int i = 0
+            SpanC ms
+            void * result
         while idx < end_idx:
             start = idx
             token = Token.get_struct_attr(&doc.c[idx], self.attr)

@@ -81,6 +81,7 @@ nav:
           - pipelines/ner/drugs.md
           - pipelines/ner/adicap.md
           - pipelines/ner/cim10.md
+          - pipelines/ner/umls.md
       - Trainable components:
           - pipelines/trainable/index.md
           - pipelines/trainable/ner.md

@@ -26,6 +26,7 @@ from .ner.scores.emergency.priority.factory import create_component as priority
 from .ner.scores.factory import create_component as score
 from .ner.scores.sofa.factory import create_component as sofa
 from .ner.scores.tnm.factory import create_component as tnm
+from .ner.umls.factory import create_component as umls
 from .qualifiers.family.factory import create_component as family
 from .qualifiers.history.factory import create_component as history
 from .qualifiers.hypothesis.factory import create_component as hypothesis

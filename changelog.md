@@ -3,7 +3,7 @@
 ## Unreleased
 
 ### Added
-
+- Harmonize processing utils (distributed custom_pipe) to have the same API for Pandas and Pyspark
 - `eds.history` : Add the option to consider only the closest dates in the sentence (dates inside the boundaries and if there is not, it takes the closest date in the entire sentence).
 - `eds.negation` : It takes into account following past participates and preceding infinitives.
 - `eds.hypothesis`: It takes into account following past participates hypothesis verbs.

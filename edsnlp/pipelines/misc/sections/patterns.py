@@ -16,6 +16,7 @@ antecedents = [
     r"antecedents medicaux",
     r"antecedents chirurgicaux",
     r"atcd",
+    r"antecedents-allergies",
 ]
 
 antecedents_familiaux = [r"antecedents familiaux"]
@@ -25,6 +26,7 @@ traitements_entree = [
     r"traitement a l'entree",
     r"traitement actuel",
     r"traitement en cours",
+    r"traitement en-cours",
     r"traitements a l'entree",
 ]
 
@@ -56,9 +58,11 @@ diagnostic = [r"diagnostic retenu"]
 donnees_biometriques_entree = [
     r"donnees biometriques et parametres vitaux a l'entree",
     r"parametres vitaux et donnees biometriques a l'entree",
+    r"constantes initiales",
+    r"dernieres constantes",
 ]
 
-examens = [r"examen clinique", r"examen clinique a l'entree"]
+examens = [r"examen clinique", r"examen clinique a l'entree", r"examen clinique initial"]
 
 examens_complementaires = [
     r"examen(s) complementaire(s)",
@@ -68,6 +72,7 @@ examens_complementaires = [
     r"examens complementaires realises pendant le sejour",
     r"examens para-cliniques",
     r"imagerie post-operatoire",
+    r"examens complementaires (Résultats et commentaires)"
 ]
 
 facteurs_de_risques = [r"facteurs de risque", r"facteurs de risques"]
@@ -99,7 +104,7 @@ prescriptions = [r"prescriptions de sortie", r"prescriptions medicales de sortie
 
 traitements_sortie = [r"traitement de sortie"]
 
-evolution = [r"evolution", r"evolution et examen clinique aux lits portes :"]
+evolution = [r"evolution", r"evolution et examen clinique aux lits portes :", r"evolution clinique"]
 
 modalites_sortie = [r"modalites de sortie", r"devenir du patient"]
 

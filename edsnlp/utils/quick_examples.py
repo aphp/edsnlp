@@ -1,5 +1,9 @@
 import bisect
 
+from typing import List, Union
+from spacy.language import Language
+from spacy.tokens import Token, Doc
+
 from rich.console import Console
 from rich.table import Table
 
@@ -9,14 +13,18 @@ from edsnlp.matchers.utils import get_text
 
 
 class QuickExamples:
-    def __init__(self, nlp, extensions=[]):
+    def __init__(self, nlp: Language, extensions: List[str] = []):
         self.nlp = nlp
         self.qualifiers = get_qualifier_extensions(nlp)
         self.extensions = extensions
 
-    def __call__(self, txt):
-        self.txt = txt
-        self.doc = self.nlp(txt)
+    def __call__(self, object: Union[str, Doc]):
+        if isinstance(object, str):
+            self.txt = object
+            self.doc = self.nlp(object)
+        elif isinstance(object, Doc):
+            self.txt = object.text
+            self.doc = object
         self.get_ents()
         self.get_ents_interval()
         self.get_text()
@@ -24,7 +32,7 @@ class QuickExamples:
 
     def get_ents(self):
 
-        all_spans = self.doc.spans
+        all_spans = {k: list(s) for k, s in self.doc.spans.items() if s}
         all_spans["ents"] = list(self.doc.ents).copy()
 
         ents = []
@@ -50,6 +58,10 @@ class QuickExamples:
         self.ents = ents
 
     def get_ents_interval(self):
+        """
+        From the list of all entities, removes overlapping spans
+        """
+
         intervals = []
         for ent in self.ents:
             interval = (ent["start"], ent["end"])
@@ -67,13 +79,29 @@ class QuickExamples:
 
         self.intervals = intervals
 
-    def is_ent(self, tok):
+    def is_ent(self, tok: Token) -> bool:
+        """
+        Check if the provided Token is part of an entity
+
+        Parameters
+        ----------
+        tok : Token
+            A spaCy Token
+
+        Returns
+        -------
+        bool
+            True if `tok` is part of an entity
+        """
         for interval in self.intervals:
             if (tok.i >= interval[0]) and (tok.i < interval[1]):
                 return True
         return False
 
-    def get_text(self):
+    def get_text(self) -> None:
+        """
+        Adds bold tags to `self.text`
+        """
         text = []
         for tok in self.doc:
             raw_tok_text = tok.text + tok.whitespace_
@@ -83,7 +111,10 @@ class QuickExamples:
             text.append(tok_text)
         self.text = "".join(text)
 
-    def display(self):
+    def display(self) -> None:
+        """
+        Displays the text and a table of entities
+        """
         console = Console()
 
         table = Table(title=self.text + "\n")

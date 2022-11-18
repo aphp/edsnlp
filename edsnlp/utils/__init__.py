@@ -1,1 +1,1 @@
-from quick_examples import QuickExamples
+from .quick_examples import QuickExamples

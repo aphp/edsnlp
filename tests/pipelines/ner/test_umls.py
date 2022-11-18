@@ -23,22 +23,20 @@ def test_get_patterns():
     path, _, _ = get_path(pattern_config)
     assert isinstance(path, Path)
 
-    if path.exists():
+    api_key = os.getenv("UMLS_API_KEY")
+
+    try:
         patterns = get_patterns(pattern_config)
+    except AttributeError:
+        if not api_key:
+            raise Exception(
+                "Missing UMLS_API_KEY env variable to download the UMLS. "
+                f"UMLS cannot be found at path: {path}.\nTo skip the test, "
+                f"uninstall the umls_downloader package."
+            )
+        raise
 
-    # test the umls download when it doesn't exist
-    else:
-        api_key = os.getenv("UMLS_API_KEY")
-        assert api_key is not None
-
-        os.environ.pop("UMLS_API_KEY")
-        with pytest.raises(ValueError):
-            patterns = get_patterns(pattern_config)
-
-        os.environ["UMLS_API_KEY"] = api_key
-        patterns = get_patterns(pattern_config)
-
-        assert path.exists()
+    assert path.exists()
 
     assert len(patterns) == 48587
 

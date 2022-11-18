@@ -1,15 +1,14 @@
 import bisect
-
 from typing import List, Union
-from spacy.language import Language
-from spacy.tokens import Token, Doc
 
 from rich.console import Console
 from rich.table import Table
+from spacy.language import Language
+from spacy.tokens import Doc, Token
 
+from edsnlp.matchers.utils import get_text
 from edsnlp.pipelines.qualifiers.base import get_qualifier_extensions
 from edsnlp.utils.extensions import rgetattr
-from edsnlp.matchers.utils import get_text
 
 
 class QuickExamples:

@@ -85,7 +85,7 @@ nav:
       - Trainable components:
           - pipelines/trainable/index.md
           - pipelines/trainable/ner.md
-  - languages.md
+  - tokenizers.md
   - Connectors:
       - utilities/connectors/index.md
       - utilities/connectors/brat.md

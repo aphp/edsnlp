@@ -1,8 +1,8 @@
 # Drugs
 
 The `eds.drugs` pipeline component detects mentions of French drugs (brand names and active ingredients) and adds them to `doc.ents`.
-Each drug has an associated [ATC](https://en.wikipedia.org/wiki/Anatomical_Therapeutic_Chemical_Classification_System) code.
-ATC classifies drugs into groups.
+Each drug is mapped to an [ATC](https://en.wikipedia.org/wiki/Anatomical_Therapeutic_Chemical_Classification_System) code through
+the Romedi terminology [@cossin:hal-02987843]. The ATC classifies drugs into groups.
 
 ## Usage
 
@@ -48,3 +48,5 @@ The pipeline can be configured using the following parameters :
 ## Authors and citation
 
 The `eds.drugs` pipeline was developed by the IAM team and CHU de Bordeaux's Data Science team.
+
+\bibliography

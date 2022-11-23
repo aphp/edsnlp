@@ -34,19 +34,26 @@ EDS-NLP provides easy-to-use spaCy components.
 
 === "NER"
 
-    | Pipeline                 | Description                 |
-    | ------------------------ | --------------------------- |
-    | `eds.covid`              | A COVID mentions detector   |
-    | `eds.charlson`           | A Charlson score extractor  |
-    | `eds.sofa`               | A SOFA score extractor      |
-    | `eds.emergency.priority` | A priority score extractor  |
-    | `eds.emergency.ccmu`     | A CCMU score extractor      |
-    | `eds.emergency.gemsa`    | A GEMSA score extractor     |
-    | `eds.TNM`                | A TNM score extractor       |
-    | `eds.cim10`              | A CIM10 terminology matcher |
-    | `eds.drugs`              | A Drug mentions extractor   |
-    | `eds.adicap`             | A ADICAP codes extractor    |
-    | `eds.umls`               | A UMLS terminology matcher  |
+    | Pipeline                 | Description                      |
+    | ------------------------ | -------------------------------- |
+    | `eds.covid`              | A COVID mentions detector        |
+    | `eds.charlson`           | A Charlson score extractor       |
+    | `eds.elstonellis`        | An Elston & Ellis code extractor |
+    | `eds.emergency.priority` | A priority score extractor       |
+    | `eds.emergency.ccmu`     | A CCMU score extractor           |
+    | `eds.emergency.gemsa`    | A GEMSA score extractor          |
+    | `eds.sofa`               | A SOFA score extractor           |
+    | `eds.TNM`                | A TNM score extractor            |
+    | `eds.adicap`             | A ADICAP codes extractor         |
+    | `eds.drugs`              | A drug mentions extractor        |
+    | `eds.cim10`              | A CIM10 terminology matcher      |
+    | `eds.umls`               | An UMLS terminology matcher      |
+
+=== "Trainable"
+
+    | Pipeline                 | Description                  |
+    | ------------------------ | ---------------------------- |
+    | `eds.nested-ner`         | A nested NER trainable model |
 
 You can add them to your spaCy pipeline by simply calling `add_pipe`, for instance:
 

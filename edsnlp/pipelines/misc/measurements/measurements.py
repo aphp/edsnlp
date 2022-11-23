@@ -359,7 +359,7 @@ class MeasurementsMatcher:
         Creates a pseudo sentence (one letter per entity)
         to extract higher order patterns
         Ex: the sentence
-        "Il font [1][,] [2] [et] [3] [cm] de long[.]" is transformed into "wn,n,nuw."
+        "Il font {1}{,} {2} {et} {3} {cm} de long{.}" is transformed into "wn,n,nuw."
 
         Parameters
         ----------

@@ -10,13 +10,13 @@ from spacy import Language
 from spacy.tokens import Doc
 
 from edsnlp.pipelines.base import BaseComponent
+from edsnlp.utils.extensions import rgetattr
 
 from .helpers import (
     DataFrameModules,
     DataFrames,
     check_spacy_version_for_context,
     get_module,
-    rgetattr,
     slugify,
 )
 

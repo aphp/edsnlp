@@ -6,7 +6,9 @@ from spacy import Language
 from spacy.tokens import Doc, Span
 from tqdm import tqdm
 
-from .helpers import check_spacy_version_for_context, rgetattr, slugify
+from edsnlp.utils.extensions import rgetattr
+
+from .helpers import check_spacy_version_for_context, slugify
 
 nlp = spacy.blank("eds")
 

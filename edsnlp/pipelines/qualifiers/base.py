@@ -22,6 +22,17 @@ def check_normalizer(nlp: Language) -> None:
         )
 
 
+def get_qualifier_extensions(nlp: Language):
+    """
+    Check for all qualifiers present in the pipe and return its corresponding extension
+    """
+    return {
+        name: nlp.get_pipe_meta(name).assigns[0].split("span.")[-1]
+        for name, pipe in nlp.pipeline
+        if isinstance(pipe, Qualifier)
+    }
+
+
 class Qualifier(BaseComponent):
     """
     Implements the NegEx algorithm.

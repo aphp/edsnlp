@@ -38,6 +38,7 @@ nav:
   - Tutorials:
       - tutorials/index.md
       - tutorials/spacy101.md
+      - tutorials/quick-examples.md
       - tutorials/matching-a-terminology.md
       - tutorials/qualifying-entities.md
       - tutorials/detecting-dates.md

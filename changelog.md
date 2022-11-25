@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.7.3 (2022-11-25)
+## Unreleased
 
 ### Added
 - `eds.history` : Add the option to consider only the closest dates in the sentence (dates inside the boundaries and if there is not, it takes the closest date in the entire sentence).
@@ -9,6 +9,7 @@
 - `eds.negation` & `eds.hypothesis` : Introduce new patterns and remove unnecessary patterns.
 - `eds.dates` : Add a pattern for preceding relative dates (ex: l'embolie qui est survenue **à 10 jours**).
 - Improve patterns in the `eds.pollution` component to account for multiline footers
+- Add `QuickExample` object to quickly try a pipeline.
 - Add UMLS terminology matcher `eds.umls`
 
 ### Fixed

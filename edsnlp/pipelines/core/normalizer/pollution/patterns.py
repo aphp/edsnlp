@@ -23,7 +23,11 @@ biology = r"(\b.*[|¦].*\n)+"
 doctors = r"(?mi)(^((dr)|(pr))\W.*)+"
 
 # Mails or websites
-web = r"(www\.\S*)|(\S*@\S*)"
+web = [
+    r"(www\.\S*)",
+    r"(\S*@\S*)",
+    r"\S*\.(?:fr|com|net|org)",
+]
 
 # Subsection with ICD-10 Codes
 coding = r".*? \(\d+\) [a-zA-Z]\d{2,4}.*?(\n|[a-zA-Z]\d{2,4})"

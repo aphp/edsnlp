@@ -92,6 +92,7 @@ class SingleExcludeModel(BaseModel):
     window: Window
     limit_to_sentence: Optional[bool] = True
     regex_flags: Optional[Flags] = None
+    regex_attr: Optional[str] = None
 
     @validator("regex")
     def exclude_regex_validation(cls, v):
@@ -122,6 +123,7 @@ class SingleAssignModel(BaseModel):
     window: Window
     limit_to_sentence: Optional[bool] = True
     regex_flags: Optional[Flags] = None
+    regex_attr: Optional[str] = None
     replace_entity: bool = False
     reduce_mode: Optional[str] = None
 

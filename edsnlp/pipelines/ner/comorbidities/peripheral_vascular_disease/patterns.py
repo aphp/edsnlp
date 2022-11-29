@@ -122,7 +122,8 @@ ischemia = dict(
 
 ep = dict(
     source="ep",
-    regex=r"\bep\b",
+    regex=r"\bEP[^\.]\b",
+    regex_attr="TEXT",
     exclude=[
         dict(
             regex=[
@@ -153,13 +154,14 @@ ep = dict(
             ],
             window=(-25, 25),
             limit_to_sentence=False,
+            regex_attr="NORM",
         ),
         dict(
             regex=[r"rdv", r"les", r"des", r"angine"],
             window=(-3, 0),
+            regex_attr="NORM",
         ),
     ],
-    regex_attr="NORM",
 )
 
 default_patterns = [

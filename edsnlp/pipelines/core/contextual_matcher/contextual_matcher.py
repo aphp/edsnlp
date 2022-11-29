@@ -130,8 +130,10 @@ class ContextualMatcher(BaseComponent):
             for exclude in p["exclude"]:
 
                 exclude_matcher = RegexMatcher(
-                    attr=p["regex_attr"] or self.attr,
-                    flags=p["regex_flags"] or self.regex_flags,
+                    attr=exclude["regex_attr"] or p["regex_attr"] or self.attr,
+                    flags=exclude["regex_flags"]
+                    or p["regex_flags"]
+                    or self.regex_flags,
                     ignore_excluded=ignore_excluded,
                     alignment_mode="expand",
                 )
@@ -151,8 +153,8 @@ class ContextualMatcher(BaseComponent):
             for assign in p["assign"]:
 
                 assign_matcher = RegexMatcher(
-                    attr=p["regex_attr"] or self.attr,
-                    flags=p["regex_flags"] or self.regex_flags,
+                    attr=assign["regex_attr"] or p["regex_attr"] or self.attr,
+                    flags=assign["regex_flags"] or p["regex_flags"] or self.regex_flags,
                     ignore_excluded=ignore_excluded,
                     alignment_mode=alignment_mode,
                     span_from_group=True,

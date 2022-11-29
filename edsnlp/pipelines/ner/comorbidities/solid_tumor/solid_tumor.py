@@ -25,16 +25,12 @@ class SolidTumor(Comorbidity):
     def postprocess(self, doc: Doc, spans: Generator[Span, None, None]):
         for span in spans:
 
-            if all(tok.is_upper for tok in span):
-                # Huge change of FP / Title section
-                continue
-            if span._.source == "metastasis_pattern":
+            if (span._.source == "metastasis") or (
+                "metastasis" in span._.assigned.keys()
+            ):
                 span._.status = 2
 
-            elif "metastasis" in span._.assigned.keys():
-                span._.status = 2
-
-            elif "stage" in span._.assigned.keys():
+            if "stage" in span._.assigned.keys():
                 stage = parse_digit(
                     span._.assigned["stage"],
                     atttr="NORM",

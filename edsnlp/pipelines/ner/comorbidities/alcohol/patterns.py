@@ -10,6 +10,7 @@ default_patterns = dict(
         dict(
             regex=[
                 "occasion",
+                "episod",
                 "moder",
                 "quelqu",
                 "festi",

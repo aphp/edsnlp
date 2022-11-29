@@ -58,7 +58,12 @@ def get_adicap_dict():
 
 
 @lru_cache()
-def get_AVC_care_site_prefixes():
+def get_AVC_care_site(prefix: bool = True):
     df = pd.read_csv(BASE_DIR / "resources" / "AVC.csv.gz")
-    df["prefix"] = df.care_site_name.str.split(" ").str[:2].str.join(" ")
-    return set(df.prefix.to_list())
+
+    col = (
+        df.care_site_name.str.split(" ").str[:2].str.join(" ")
+        if prefix
+        else df.care_site_name
+    )
+    return set(col.to_list())

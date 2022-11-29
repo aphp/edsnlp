@@ -1,11 +1,11 @@
 import re
 
-from edsnlp.utils.resources import get_AVC_care_site_prefixes
+from edsnlp.utils.resources import get_AVC_care_site
 
 from ..terms import BRAIN
 
 AVC_CARE_SITES_REGEX = [
-    r"\b" + re.escape(cs.strip()) + r"\b" for cs in get_AVC_care_site_prefixes()
+    r"\b" + re.escape(cs.strip()) + r"\b" for cs in get_AVC_care_site(prefix=True)
 ] + [
     r"h[oô]p",
     r"\brcp",
@@ -29,10 +29,12 @@ avc = dict(
             regex=AVC_CARE_SITES_REGEX,
             window=(-5, 5),
             regex_flags=re.S | re.I,
+            limit_to_sentence=False,
         ),
         dict(
             regex=r"\b[a-z]\.",
             window=2,
+            limit_to_sentence=False,
         ),
     ],
     regex_attr="NORM",

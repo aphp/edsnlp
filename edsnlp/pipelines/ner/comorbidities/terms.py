@@ -44,7 +44,7 @@ BRAIN = [
 PERIPHERAL = [
     "pied",
     "main",
-    "mi",
+    "\bmi\b",
     "membre",
     "jambe",
     "bras",

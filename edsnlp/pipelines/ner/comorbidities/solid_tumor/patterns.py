@@ -75,6 +75,10 @@ metastasis_pattern = dict(
         r"(lymphangite|meningite).{1,5}carcinomateuse",
     ],
     regex_attr="NORM",
+    exclude=dict(
+        regex=r"goitre",
+        window=-3,
+    ),
 )
 
 default_patterns = [

@@ -229,7 +229,7 @@ def unique_sent_is_title(sent: Optional[Span]) -> bool:
     """
     Check if a sentence is likely to be a 'Title'
     by checking each token's case.
-    Used proxy: more than 50% of non-stopword tokens
+    Used proxy: more than 75% of non-stopword and non-excluded tokens
     are Title/Uppercase --> Then it is a title
 
     Parameters
@@ -245,7 +245,9 @@ def unique_sent_is_title(sent: Optional[Span]) -> bool:
 
     if sent is None:
         return 0, 0
-    ents = [ent for ent in sent if (ent.is_alpha and not ent.is_stop)]
+    ents = [
+        ent for ent in sent if (ent.is_alpha and not ent.is_stop and not ent._.excluded)
+    ]
     count = 0
     for i, ent in enumerate(ents):
         if i == 0:

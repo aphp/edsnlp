@@ -184,7 +184,7 @@ class Hypothesis(Qualifier):
         # Removes duplicate matches and pseudo-expressions in one statement
         matches = filter_spans(matches, label_to_remove="pseudo")
 
-        entities = list(doc.ents) + list(doc.spans.get("discarded", []))
+        entities = list(self.get_spans(doc))
         ents = None
 
         for start, end in boundaries:

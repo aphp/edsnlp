@@ -61,7 +61,7 @@ with_localization = dict(
         r"purpura.?thrombopenique.?idiopa",
         r"micro.?angiopathie.?thrombotique",
         r"syndrome.?hemolytique.{1,8}uremique",
-        r"stent",
+        r"\bstent",
     ],
     exclude=[
         dict(
@@ -91,6 +91,7 @@ thrombosis = dict(
             regex=[
                 "pre",
                 "anti",
+                "bilan",
             ],
             window=-4,
         ),

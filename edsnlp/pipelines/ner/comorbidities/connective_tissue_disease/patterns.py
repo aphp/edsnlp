@@ -60,7 +60,7 @@ named_disease = dict(
         r"raynaud",
         r"thibierge.?weiss",
         r"sjogren",
-        r"gou(g|j)erot.+sjogren",
+        r"gou(g|j)erot.?sjogren",
     ],
     regex_attr="NORM",
 )

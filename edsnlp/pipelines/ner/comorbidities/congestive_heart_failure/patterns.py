@@ -43,8 +43,29 @@ acronym = dict(
     regex_attr="TEXT",
 )
 
+AF_main_pattern = dict(
+    source="AF_main",
+    regex=[
+        r"fibrill?ation.{1,3}(atriale|auriculaire|ventriculaire)",
+        r"flutter",
+        r"brady.?arythmie",
+        r"pace.?maker",
+    ],
+)
+
+AF_acronym = dict(
+    source="AF_acronym",
+    regex=[
+        r"\bFA\b",
+        r"\bACFA\b",
+    ],
+    regex_attr="TEXT",
+)
+
 default_patterns = [
     main_pattern,
     symptomatic,
     acronym,
+    AF_main_pattern,
+    AF_acronym,
 ]

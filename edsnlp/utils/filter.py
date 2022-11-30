@@ -210,6 +210,8 @@ def get_spans(spans: List[Span], label: Union[int, str]) -> List[Span]:
 
 def sent_is_title(sent: Span, neighbours: bool = False):
     count, n_ents = unique_sent_is_title(sent)
+    if len(sent) <= 3:  # Too small sentence
+        return 0
     if neighbours:
         for direction in {True, False}:
             add_count, add_n_ents = unique_sent_is_title(
@@ -217,8 +219,7 @@ def sent_is_title(sent: Span, neighbours: bool = False):
             )
             count += add_count
             n_ents += add_n_ents
-    if n_ents <= 3:  # Too small sentence
-        return 0
+
     return count / n_ents
 
 

@@ -323,11 +323,12 @@ class BratConnector(object):
         docs:
             List of spaCy documents, with annotations in the `ents` attribute.
         """
-        filenames = list(
-            glob.iglob(str(self.directory / "**" / "*.txt"), recursive=True)
-        )
+        filenames = [
+            path.relative_to(self.directory) for path in self.directory.rglob("*.txt")
+        ]
 
-        assert filenames, f"BRAT directory {self.directory} is empty!"
+        assert len(filenames), f"BRAT directory {self.directory} is empty!"
+
         logger.info(
             f"The BRAT directory contains {len(filenames)} annotated documents."
         )
@@ -337,10 +338,13 @@ class BratConnector(object):
             res["note_id"] = str(Path(filename).relative_to(self.directory)).rsplit(
                 ".", 1
             )[0]
+            bar.update(1)
             return res
 
-        iterator = tqdm(filenames, ascii=True, ncols=100, desc="Annotation extraction")
-        with iterator:
+        bar = tqdm(
+            total=len(filenames), ascii=True, ncols=100, desc="Annotation extraction"
+        )
+        with bar:
             annotations = Parallel(n_jobs=self.n_jobs)(
                 delayed(load_and_rename)(self.full_path(filename))
                 for filename in filenames

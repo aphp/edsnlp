@@ -18,6 +18,7 @@
 - `EDSTokenizer` : It now tokenizes `"rechereche d'"` as `["recherche", "d'"]`, instead of `["recherche", "d", "'"]`.
 - Fix small typos in the documentation and in the docstring.
 - Harmonize processing utils (distributed custom_pipe) to have the same API for Pandas and Pyspark
+- Fix BratConnector file loading issues with complex file hierarchies
 
 ## v0.7.2 (2022-10-26)
 

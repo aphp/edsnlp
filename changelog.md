@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.7.4 (2022-12-12)
 
 ### Added
 - `eds.history` : Add the option to consider only the closest dates in the sentence (dates inside the boundaries and if there is not, it takes the closest date in the entire sentence).

@@ -8,6 +8,6 @@ from pathlib import Path
 from . import extensions
 from .language import *
 
-__version__ = "0.7.3"
+__version__ = "0.7.4"
 
 BASE_DIR = Path(__file__).parent

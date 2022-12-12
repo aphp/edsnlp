@@ -3,7 +3,6 @@ main_pattern = dict(
     regex=[
         r"glomerulonephrite",
         r"(?<!pyelo)nephrite.{1,10}chronique",
-        r"nephropathie",
         r"glomerulopathie",
         r"\bGNIgA",
         r"syndrome nephrotique",
@@ -81,6 +80,7 @@ general = dict(
         r"insuffisance.{1,7}\b(rein|rena)",
         r"maladies? renales?",
         r"\birc\b",
+        r"nephropathie",
     ],
     regex_attr="NORM",
     assign=[

@@ -1,5 +1,6 @@
 PA = r"(?:\bp/?a\b|paquets?.?annee)"
 QUANTITY = r"(?P<quantity>[\d]{1,3})"
+PUNCT = r"\.,-;\(\)"
 
 default_patterns = dict(
     source="tobacco",
@@ -17,7 +18,6 @@ default_patterns = dict(
             "quelqu",
             "festi",
             "rare",
-            "passif",
             "sujet",  # Example : Chez le sujet fumeur ... generic sentences
         ],
         window=(-3, 5),
@@ -31,13 +31,19 @@ default_patterns = dict(
         ),
         dict(
             name="zero_after",
-            regex=r"^[a-z]*\s*:?[\s-]*(0|oui|non(?! sevr))",
+            regex=r"^[a-z]*\s*:?[\s-]*(0|non(?! sevr))",
             window=6,
         ),
         dict(
             name="PA",
-            regex=rf"{QUANTITY}.{{0,10}}{PA}|{PA}.{{0,10}}{QUANTITY}",
+            regex=rf"{QUANTITY}[^{PUNCT}]{{0,10}}{PA}|{PA}[^{PUNCT}]{{0,10}}{QUANTITY}",
             window=(-10, 10),
+            reduce_mode="keep_first",
+        ),
+        dict(
+            name="secondhand",
+            regex="(passif)",
+            window=5,
             reduce_mode="keep_first",
         ),
     ],

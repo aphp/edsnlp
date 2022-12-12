@@ -7,7 +7,7 @@ main_pattern = dict(
         r"(œ|oe)deme.{1,10}pulmon",
         r"(œ|oe)deme.{1,10}poumon",
         r"decompensation.{1,10}card",
-        r"chocs?\s(septi.{1,10}|cardio)",
+        r"choc.{1,30}cardio",
         r"greffe.{1,10}c(œ|oe)ur",
         r"greffe.{1,10}cardia",
         r"transplantation.{1,10}c(œ|oe)ur",
@@ -15,6 +15,8 @@ main_pattern = dict(
         r"arret.{1,10}cardi",
         r"c(œ|oe)ur pulmo",
         r"foie card",
+        r"pace.?maker",
+        r"stimulateur.cardiaque",
     ],
     regex_attr="NORM",
 )
@@ -24,12 +26,18 @@ symptomatic = dict(
     regex=[
         r"cardiopathi",
         r"cardiomyopathi",
-        r"insuffisance.{1,10}(cardi|diasto|ventri)",
+        r"insuffisance.{1,10}(\bcardi|\bdiasto|\bventri|\bmitral)",
         r"d(i|y)sfonction.{1,15}(ventricul|\bvg|cardiaque)",
+        r"(retrecissement|stenose).(aortique|mitral)",
+        r"\brac\b",
+        r"\brm\b",
+        r"valvulopathie",
+        r"\bic\b.{1,10}(droite|gauche)",
     ],
     regex_attr="NORM",
     exclude=dict(
-        regex=ASYMPTOMATIC + ["ischemi"],  # Exclusion of ischemic events
+        regex=ASYMPTOMATIC
+        + ["ischemi", "minime", "modere", r"non.serre"],  # Exclusion of ischemic events
         window=5,
     ),
 )
@@ -57,7 +65,7 @@ AF_acronym = dict(
     source="AF_acronym",
     regex=[
         r"\bFA\b",
-        r"\bACFA\b",
+        r"\bAC.?FA\b",
     ],
     regex_attr="TEXT",
 )

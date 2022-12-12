@@ -1,4 +1,4 @@
-TO_EXCLUDE = r"(\bacc\b)|anti.?coag|anti.?corps|buschke"
+TO_EXCLUDE = r"(?<!a )((\bacc\b)|anti.?coag|anti.?corps|buschke|(\bac\b))"
 
 main_pattern = dict(
     source="main",
@@ -22,7 +22,7 @@ main_pattern = dict(
     regex_attr="NORM",
 )
 
-main_pattern = dict(
+lupus = dict(
     source="lupus",
     regex=[
         r"\blupus",
@@ -67,6 +67,7 @@ named_disease = dict(
 
 default_patterns = [
     main_pattern,
+    lupus,
     acronym,
     named_disease,
 ]

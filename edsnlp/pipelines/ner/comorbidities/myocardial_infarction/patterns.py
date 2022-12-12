@@ -3,12 +3,10 @@ from ..terms import HEART
 main_pattern = dict(
     source="main",
     regex=[
-        r"infarctus.{1,15}myocard",
         r"coronaropathie",
         r"angor instable",
-        r"angioplast",
         r"cardiopathies? (ischem|arteriosc)",
-        r"ischemie.{1,15}myocard",
+        r"ischemi.{1,15}myocard",
         r"syndrome? corona.{1,10}aigu",
         r"syndrome? corona.{1,10}st",
         r"pontages?.mammaire",
@@ -22,12 +20,15 @@ with_localization = dict(
         r"\bstent",
         r"endoprothese",
         r"pontage",
+        r"anevr[iy]sme",
+        "infarctus",
+        r"angioplasti",
     ],
     assign=[
         dict(
             name="heart_localized",
             regex="(" + r"|".join(HEART) + ")",
-            window=(-8, 8),
+            window=(-10, 10),
         ),
     ],
     regex_attr="NORM",
@@ -47,6 +48,7 @@ acronym = dict(
         window=2,
     ),
 )
+
 
 default_patterns = [
     main_pattern,

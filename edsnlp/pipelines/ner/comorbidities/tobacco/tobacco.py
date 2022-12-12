@@ -31,6 +31,9 @@ class Tobacco(Comorbidity):
             if "zero_after" in span._.assigned.keys():
                 span._.negation = True
 
+            if "secondhand" in span._.assigned.keys():
+                span._.negation = True
+
             elif "PA" in span._.assigned.keys():
                 pa = parse_digit(
                     span._.assigned["PA"],

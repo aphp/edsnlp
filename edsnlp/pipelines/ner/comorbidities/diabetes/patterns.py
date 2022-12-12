@@ -1,3 +1,13 @@
+COMPLICATIONS = [
+    r"nephropat",
+    r"neuropat",
+    r"retinopat",
+    r"glomerulopathi",
+    r"glomeruloscleros",
+    r"angiopathi",
+    r"origine",
+]
+
 main_pattern = dict(
     source="main",
     regex=[
@@ -23,38 +33,15 @@ main_pattern = dict(
     assign=[
         dict(
             name="complicated_before",
-            regex="("
-            + r"|".join(
-                [
-                    r"nephropat",
-                    r"neuropat",
-                    r"retinopat",
-                    r"glomerulopathi",
-                    r"glomeruloscleros",
-                    r"neuroangiopathi",
-                    r"origine",
-                ]
-            )
-            + ")",
+            regex=r"(" + r"|".join(COMPLICATIONS + ["origine"]) + r")",
             window=-3,
         ),
         dict(
             name="complicated_after",
-            regex="("
-            + r"|".join(
-                [
-                    r"(?<!sans )compli",
-                    r"(?<!a)symptomatique",
-                    r"nephropat",
-                    r"neuropat",
-                    r"retinopat",
-                    r"glomerulopathi",
-                    r"glomeruloscleros",
-                    r"neuroangiopathi",
-                ]
-            )
-            + ")",
-            window=7,
+            regex=r"("
+            + r"|".join([r"(?<!sans )compli", r"(?<!a)symptomatique"] + COMPLICATIONS)
+            + r")",
+            window=12,
         ),
         dict(
             name="type",
@@ -77,7 +64,7 @@ main_pattern = dict(
 complicated_pattern = dict(
     source="complicated",
     regex=[
-        r"mal perforant plantaire",
+        r"(mal|maux).perforants?(.plantaire)?",
         r"pieds? diabeti",
     ],
     exclude=dict(

@@ -3,10 +3,12 @@ from typing import Generator
 
 from spacy.tokens import Doc, Span
 
+from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.matchers.utils import get_text
+from edsnlp.pipelines.core.contextual_matcher.contextual_matcher import get_window
 from edsnlp.pipelines.ner.comorbidities.base import Comorbidity
 
-from .patterns import default_patterns
+from .patterns import COMPLICATIONS, default_patterns
 
 
 class Diabetes(Comorbidity):
@@ -20,6 +22,13 @@ class Diabetes(Comorbidity):
             nlp=nlp,
             name="diabetes",
             patterns=patterns,
+        )
+
+        self.complication_matcher = RegexMatcher(
+            attr="NORM", ignore_excluded=True, alignment_mode="expand"
+        )
+        self.complication_matcher.build_patterns(
+            regex=dict(far_complications=COMPLICATIONS)
         )
 
     def postprocess(self, doc: Doc, spans: Generator[Span, None, None]):
@@ -37,4 +46,14 @@ class Diabetes(Comorbidity):
                 # Huge chance of FP
                 continue
 
+            elif self.has_far_complications(span):
+                span._.status = 2
+
             yield span
+
+    def has_far_complications(self, span: Span):
+        window = (0, 50)
+        context = get_window(span, window, limit_to_sentence=False)
+        if next(self.complication_matcher(context), None) is not None:
+            return True
+        return False

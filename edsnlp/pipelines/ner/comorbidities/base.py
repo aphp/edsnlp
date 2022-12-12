@@ -18,7 +18,7 @@ class Comorbidity(ContextualMatcher):
         name,
         patterns,
         include_assigned=True,
-        titles_as_hypothesis_threshold=0.8,
+        titles_as_hypothesis_threshold=None,
         aggregate_per_document=True,
     ):
 

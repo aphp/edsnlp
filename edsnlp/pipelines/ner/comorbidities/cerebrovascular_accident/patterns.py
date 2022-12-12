@@ -2,7 +2,7 @@ import re
 
 from edsnlp.utils.resources import get_AVC_care_site
 
-from ..terms import BRAIN
+from ..terms import BRAIN, HEART, PERIPHERAL
 
 AVC_CARE_SITES_REGEX = [
     r"\b" + re.escape(cs.strip()) + r"\b" for cs in get_AVC_care_site(prefix=True)
@@ -44,20 +44,29 @@ with_localization = dict(
     source="with_localization",
     regex=[
         r"(hemorr?agie|hematome)",
+        r"angiopath",
+        r"angioplasti",
         r"infarctus",
         r"occlusion",
         r"saignement",
-        r"thrombo(se|phlebite)",
-        r"embol.{1,10}",
+        r"embol",
         r"vascularite",
         r"\bhsd\b",
+        r"thrombos",
+        r"thrombol[^y]",
+        r"thrombophi",
+        r"thrombi[^n]",
+        r"thrombus",
+        r"thrombectomi",
     ],
     regex_attr="NORM",
     assign=[
         dict(
             name="brain_localized",
             regex="(" + r"|".join(BRAIN) + ")",
-            window=8,
+            window=(-15, 15),
+            limit_to_sentence=False,
+            include_assigned=False,
         ),
     ],
 )
@@ -73,7 +82,8 @@ general = dict(
         r"vasculopathies?.cerebrales?.ischemique",
         r"maladies? des petites arteres",
         r"maladies? des petits vaisseaux",
-        r"thrombolyse.{1,10}(iv|intra.?vein)",
+        r"thrombolyse",
+        r"\bsusac\b",
     ],
     regex_attr="NORM",
 )
@@ -99,10 +109,32 @@ AIT = dict(
     regex_attr="TEXT",
 )
 
+ischemia = dict(
+    source="ischemia",
+    regex=[
+        r"ischemi",
+    ],
+    exclude=[
+        dict(
+            regex=PERIPHERAL + HEART,
+            window=(-7, 7),
+        ),
+    ],
+    assign=[
+        dict(
+            name="brain",
+            regex="(" + r"|".join(BRAIN) + ")",
+            window=(-10, 15),
+        ),
+    ],
+    regex_attr="NORM",
+)
+
 default_patterns = [
     avc,
     with_localization,
     general,
     acronym,
     AIT,
+    ischemia,
 ]

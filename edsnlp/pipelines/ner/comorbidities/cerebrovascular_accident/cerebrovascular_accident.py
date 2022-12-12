@@ -19,6 +19,7 @@ class CerebrovascularAccident(Comorbidity):
             nlp=nlp,
             name="cerebrovascular_accident",
             patterns=patterns,
+            include_assigned=False,
         )
 
     def postprocess(self, doc: Doc, spans: Generator[Span, None, None]):
@@ -28,6 +29,10 @@ class CerebrovascularAccident(Comorbidity):
                 "brain_localized" not in span._.assigned.keys()
             ):
                 continue
+
+            if span._.source == "ischemia":
+                if "brain" not in span._.assigned.keys():
+                    continue
 
             if (span._.source == "AIT") and span[-1].nbor().is_upper:
                 # Proxy: Then AIT is part of a name

@@ -14,6 +14,10 @@ mild = dict(
         r"(maladie|syndrome) de hanot",
     ],
     regex_attr="NORM",
+    exclude=dict(
+        regex="\bdots?\b",
+        window=-5,
+    ),
 )
 
 moderate_severe = dict(
@@ -22,6 +26,7 @@ moderate_severe = dict(
         r"cirrhose",
         r"necrose.{1,10}(hepati|foie)",
         r"varice.{1,10}(estomac|oesopha|gastr)",
+        r"\bvo\b.{1,5}stade.(1|2|3|i{1,3})",
         r"hypertension portale",
         r"scleroses? hepatoportale",
         r"sydromes? hepato.?ren",

@@ -29,10 +29,12 @@ hiv = dict(
                 r"\bcmv\b",
                 r"myobact",
                 r"opportunist",
+                r"co.?infect",
             ]
         )
         + ")",
-        window=(-8, 8),
+        window=(-10, 30),
+        limit_to_sentence=False,
     ),
     regex_attr="NORM",
 )

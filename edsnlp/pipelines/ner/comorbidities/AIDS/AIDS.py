@@ -19,6 +19,7 @@ class AIDS(Comorbidity):
             nlp=nlp,
             name="AIDS",
             patterns=patterns,
+            include_assigned=False,
         )
 
     def postprocess(self, doc: Doc, spans: Generator[Span, None, None]):

@@ -3,24 +3,24 @@ default_patterns = dict(
     regex=[
         r"\balco[ol]",
         r"\bethyl",
-        r"(?<!25.?)\boh\b",
+        r"(?<!(25.?)|(sevrage)).?\boh\b",
         r"exogenose",
+        r"delirium.tremens",
     ],
     exclude=[
         dict(
             regex=[
                 "occasion",
                 "episod",
-                "moder",
-                "quelqu",
                 "festi",
                 "rare",
                 "libre",  # OH-libres
+                "aigu",
             ],
-            window=(0, 5),
+            window=(-3, 5),
         ),
         dict(
-            regex="pansement",
+            regex=["pansement", "compress"],
             window=-3,
         ),
     ],
@@ -29,7 +29,7 @@ default_patterns = dict(
         dict(
             name="stopped",
             regex=r"(?<!non )(?<!pas )(sevr|arret|stop|ancien)",
-            window=(-5, 5),
+            window=(0, 5),
         ),
         dict(
             name="zero_after",

@@ -6,10 +6,10 @@ main_pattern = dict(
         r"broncho.?pneumopathies? chroniques? obstru",
         r"bronchites? chroniques? obstru",
         r"fibro.{1,20}(poumon|pulmo|pleur)",
-        r"fibroses? interstitielles? diffuses? idiopathique",
-        r"obstructions? chroniques? des voies aerienne",
+        r"fibroses?.interstitielles?.diffuses?.idiopathique",
+        r"fibroses?.intersti" r"obstructions? chroniques? des voies aerienne",
         r"pneumoconiose",
-        r"pneumo(nie|pathie)s?.{0,15}(intersti|radiq|infiltr|fibro)",
+        r"pneumo(nie|pathie)s?.{0,15}(intersti|radiq|infiltr|fibro|organis)",
         r"poumons* noir",
         r"scleroses* pulmo",
         r"fibro.?elastose pleuro.?paren",
@@ -17,6 +17,7 @@ main_pattern = dict(
         r"emphysemes? (severe|etendu)",
         r"insuffisan.{1,5}respiratoire.{1,5}chron",
         r"mucoviscidose",
+        r"bronchiolite.oblilerante.{1,10}pneumo.{1,20}organis",
     ],
     regex_attr="NORM",
 )
@@ -43,18 +44,24 @@ oxygen = dict(
         r"oxygeno.?requeran",
         r"oxygenation",
         r"oxygeno.?ther",
+        r"oxygene",
     ],
     regex_attr="NORM",
     assign=[
         dict(
             name="long",
-            regex=r"(long.{1,10}(?:cour|dure)|chroni)",
+            regex=r"(long.{1,10}(?:cour|dure)|chroni|domicil)",
             window=6,
         ),
         dict(
             name="long_bis",
             regex=r"(persist|major|minor)",
             window=-6,
+        ),
+        dict(
+            name="need",
+            regex=r"(besoin)",
+            window=(-6, 6),
         ),
     ],
 )
@@ -71,6 +78,7 @@ acronym = dict(
         r"\bSAOS\b",
         r"\bSAS\b",
         r"\bSAHOS\b",
+        r"\bBOOP\b",
     ],
     regex_attr="TEXT",
 )
@@ -83,7 +91,10 @@ fid = dict(
     regex_attr="NORM",
     exclude=[
         dict(
-            regex=r"\bfig\b",
+            regex=[
+                r"\bfig\b",
+                r"palpation",
+            ],
             window=(-7, 7),
         ),
     ],

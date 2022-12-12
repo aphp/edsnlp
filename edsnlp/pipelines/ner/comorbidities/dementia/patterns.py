@@ -14,9 +14,10 @@ main_pattern = dict(
         r"déficits?.cognitif",
         r"(trouble|dysfonction).{1,20} cogniti",
         r"atteinte.{1,7}spheres?cogniti",
-        r"syndrome frontal",
+        r"syndrome.{1,10}(frontal|neuro.deg)",
         r"dysfonction.{1,25}cogni",
-        r"(?<=d').+alzheimer",
+        r"(?<!specialisee )alzheimer",
+        r"demence.d.alz",
         r"binswanger",
         r"gehring",
         r"\bpick",
@@ -24,7 +25,7 @@ main_pattern = dict(
         r"[kc]reutzfeld.{1,5}ja[ck]ob",
         r"huntington",
         r"korsako[fv]",
-        r"atropie.{1,10}(cortico|hippocamp|cereb|lobe)",
+        r"atrophie.{1,10}(cortico|hippocamp|cereb|lobe)",
     ],
 )
 
@@ -37,6 +38,11 @@ acronym = dict(
         r"\bTNC\b",
     ],
     regex_attr="TEXT",
+    exclude=dict(
+        regex=r"\banti",  # anticorps
+        window=-15,
+        regex_attr="NORM",
+    ),
 )
 
 charcot = dict(

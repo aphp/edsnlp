@@ -16,7 +16,7 @@ main_pattern = dict(
         r"immunocytome",
         r"maladie des chaine",
         r"histiocytose.{1,5}(maligne|langerhans)",
-        r"waldenstrom",
+        r"waldenst(ro|or)m",
         r"mycos.{1,10}fongoide",
         r"myelome",
         r"maladie.{1,5}immunoproliferative.{1,5}maligne",

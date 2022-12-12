@@ -2,7 +2,7 @@ main_pattern = dict(
     source="main",
     regex=[
         r"leucemie",
-        r"myeloproliferatif",
+        r"(syndrome.)?myeloproliferatif",
         r"m[yi]eloprolifer",
     ],
     exclude=dict(
@@ -51,6 +51,7 @@ other = dict(
         r"letterer.?siwe",
         r"anemie refractaire.{1,20}blaste",
         r"m[iy]elod[iy]splasi",
+        r"syndrome.myelo.?dysplasique",
     ],
     regex_attr="NORM",
 )

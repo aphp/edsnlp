@@ -87,4 +87,4 @@ If you use EDS-NLP, please cite us as below.
 
 ## Acknowledgement
 
-We would like to thank [Assistance Publique – Hôpitaux de Paris](https://www.aphp.fr/) and [AP-HP Foundation](https://fondationrechercheaphp.fr/) for funding this project.
+We would like to thank [Assistance Publique – Hôpitaux de Paris](https://www.aphp.fr/), [AP-HP Foundation](https://fondationrechercheaphp.fr/) and [Inria](https://www.inria.fr) for funding this project.

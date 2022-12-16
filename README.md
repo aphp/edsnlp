@@ -1,5 +1,5 @@
-![Tests](https://img.shields.io/github/workflow/status/aphp/edsnlp/Tests%20and%20Linting?label=tests&style=flat-square)
-[![Documentation](https://img.shields.io/github/workflow/status/aphp/edsnlp/Documentation?label=docs&style=flat-square)](https://aphp.github.io/edsnlp/latest/)
+![Tests](https://img.shields.io/github/actions/workflow/status/aphp/edsnlp/tests.yml?branch=master&label=tests&style=flat-square)
+[![Documentation](https://img.shields.io/github/actions/workflow/status/aphp/edsnlp/documentation.yml?branch=master&label=docs&style=flat-square)](https://aphp.github.io/edsnlp/latest/)
 [![PyPI](https://img.shields.io/pypi/v/edsnlp?color=blue&style=flat-square)](https://pypi.org/project/edsnlp/)
 [![Demo](https://img.shields.io/badge/demo%20%F0%9F%9A%80-streamit-grean?style=flat-square)](https://aphp.github.io/edsnlp/demo/)
 [![Codecov](https://img.shields.io/codecov/c/github/aphp/edsnlp?logo=codecov&style=flat-square)](https://codecov.io/gh/aphp/edsnlp)

@@ -10,6 +10,7 @@ DEFAULT_CONFIG = dict(
     punct_chars=None,
     ignore_excluded=True,
     use_endlines=None,
+    split_on_newlines="with_capitalized",
 )
 
 
@@ -30,10 +31,12 @@ def create_component(
     punct_chars: Optional[List[str]],
     use_endlines: Optional[bool],
     ignore_excluded: bool,
+    split_on_newlines: Optional[str],
 ):
     return SentenceSegmenter(
         nlp.vocab,
         punct_chars=punct_chars,
         use_endlines=use_endlines,
         ignore_excluded=ignore_excluded,
+        split_on_newlines=split_on_newlines,
     )

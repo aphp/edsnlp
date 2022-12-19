@@ -50,3 +50,38 @@ def test_false_positives(blank_nlp):
     for fp in false_positives:
         doc = blank_nlp(fp)
         assert len(list(doc.sents)) == 1
+
+
+@mark.parametrize(
+    "split_options",
+    [
+        dict(
+            split_on_newlines=False,
+            n_sents=2,
+        ),
+        dict(
+            split_on_newlines="with_capitalized",
+            n_sents=3,
+        ),
+        dict(
+            split_on_newlines="with_uppercase",
+            n_sents=4,
+        ),
+    ],
+)
+def test_newline_split_options(blank_nlp, split_options):
+
+    text = "Une première phrase. "
+    text += "Une deuxième\n"
+    text += "Peut-être un autre\n"
+    text += "ET encore une."
+
+    segmenter = SentenceSegmenter(
+        blank_nlp.vocab,
+        punct_chars=terms.punctuation,
+        use_endlines=False,
+        split_on_newlines=split_options["split_on_newlines"],
+    )
+
+    doc = segmenter(blank_nlp(text))
+    assert len(list(doc.sents)) == split_options["n_sents"]

@@ -1,5 +1,14 @@
 # Changelog
 
+## Pending
+
+### Added
+- `split_on_newlines` parameter to the `sentences` pipeline.
+
+### Fixed
+- `sentences` issue with punctiation followed by a digit.
+
+
 ## v0.7.4 (2022-12-12)
 
 ### Added

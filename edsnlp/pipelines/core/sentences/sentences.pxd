@@ -4,6 +4,7 @@ from libcpp.vector cimport vector
 from spacy.tokens.doc cimport Doc
 from spacy.typedefs cimport attr_t
 
+
 cdef enum split_options: WITH_CAPITALIZED, WITH_UPPERCASE, NONE
 
 cdef class SentenceSegmenter(object):

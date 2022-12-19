@@ -71,15 +71,15 @@ The pipeline can be configured using the following parameters :
 
 === "`with_capitalized` (Default)"
 
-    The rule applied here is to consider a newline as a sentence split if the following token is capitalized, 
-    i.e. it's first letter is in uppercase and it's other letters are lowercase.  
+    The rule applied here is to consider a newline as a sentence split if the following token is capitalized,
+    i.e. it's first letter is in uppercase and it's other letters are lowercase.
     This rule should cover most cases, but might be problematic with long lists of fully uppercased strings (e.g. lsits of drugs commercial names)
 
 === "`with_uppercase`"
 
-    The rule applied here is to consider a newline as a sentence split if the following token starts with an uppercase letter, 
+    The rule applied here is to consider a newline as a sentence split if the following token starts with an uppercase letter,
     with no regards on the other letters.
-    This rule will correct the problem of long fully-uppercased texts, but might wrongly split sentences e.g. around acronyms. 
+    This rule will correct the problem of long fully-uppercased texts, but might wrongly split sentences e.g. around acronyms.
 
 
 === "`False`"

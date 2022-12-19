@@ -3,7 +3,15 @@ from typing import Iterable, List, Optional
 from libcpp cimport bool
 
 # from spacy.typedefs cimport attr_t
-from spacy.attrs cimport IS_ALPHA, IS_ASCII, IS_DIGIT, IS_LOWER, IS_PUNCT, IS_SPACE, IS_UPPER
+from spacy.attrs cimport (
+    IS_ALPHA,
+    IS_ASCII,
+    IS_DIGIT,
+    IS_LOWER,
+    IS_PUNCT,
+    IS_SPACE,
+    IS_UPPER,
+)
 from spacy.lexeme cimport Lexeme
 from spacy.tokens.doc cimport Doc
 from spacy.tokens.token cimport TokenC
@@ -52,8 +60,8 @@ cdef class SentenceSegmenter(object):
         self.capitalized_chars_hash = {vocab.strings[letter] for letter in uppercase}
 
         options = {
-            "with_capitalized": 0, 
-            "with_uppercase": 1, 
+            "with_capitalized": 0,
+            "with_uppercase": 1,
             False: 2
         }
         chosen = options.get(split_on_newlines, None)
@@ -119,7 +127,7 @@ cdef class SentenceSegmenter(object):
                     seen_newline = False
                     seen_period = False
                 else:
-                    if self.split_on_newlines == WITH_UPPERCASE: 
+                    if self.split_on_newlines == WITH_UPPERCASE:
                         doc.c[i].sent_start = 1 if self.capitalized_chars_hash.const_find(token.lex.prefix) != self.capitalized_chars_hash.const_end() else -1
                     elif self.split_on_newlines == WITH_CAPITALIZED:
                         doc.c[i].sent_start = 1 if self.capitalized_shapes_hash.const_find(token.lex.shape) != self.capitalized_shapes_hash.const_end() else -1

@@ -15,7 +15,7 @@ HEART = [
     r"\bcx\b",
     r"marginale",
     r"\bmg\b",
-    r"diag",
+    r"\bdiago",
     r"\brvp\b",
     r"myocard",
     "apical",

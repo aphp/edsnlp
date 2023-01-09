@@ -127,7 +127,7 @@ ischemia = dict(
 
 ep = dict(
     source="ep",
-    regex=r"\bEP[^\.]\b",
+    regex=r"\bEP(?![\w\./-])",
     regex_attr="TEXT",
     exclude=[
         dict(

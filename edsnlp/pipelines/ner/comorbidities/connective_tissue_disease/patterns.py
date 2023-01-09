@@ -1,4 +1,4 @@
-TO_EXCLUDE = r"(?<!a )((\bacc\b)|anti.?coag|anti.?corps|buschke|(\bac\b))"
+TO_EXCLUDE = r"(?<!a )((\bacc\b)|anti.?coag|anti.?corps|buschke|(\bac\b)|(\bbio))"
 
 main_pattern = dict(
     source="main",
@@ -6,8 +6,6 @@ main_pattern = dict(
         r"arthrites? juveniles? idiopa",
         r"myosite",
         r"myopathie.{1,5}inflammatoire",
-        r"lupus",
-        r"lupique",
         r"polyarthrite chronique evol",
         r"polymyosie",
         r"polyarthrites? (rhizo|rhuma)",
@@ -26,7 +24,14 @@ lupus = dict(
     source="lupus",
     regex=[
         r"\blupus",
-        r"lupique",
+    ],
+    regex_attr="NORM",
+)
+
+lupique = dict(
+    source="lupique",
+    regex=[
+        r"\blupique",
     ],
     exclude=dict(
         regex=[TO_EXCLUDE],
@@ -68,6 +73,7 @@ named_disease = dict(
 default_patterns = [
     main_pattern,
     lupus,
+    lupique,
     acronym,
     named_disease,
 ]

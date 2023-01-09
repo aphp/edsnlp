@@ -3,8 +3,7 @@ mild = dict(
     regex=[
         r"cholangites?.{1,10}(sclero|secondaire)",
         r"fibrose.{1,10}(hepatique|foie)",
-        r"hepatites? chronique",
-        r"hepatites? virales? chronique",
+        r"hepatite.{1,15}chronique",
         r"hepatopathie",
         r"\bnash\b",
         r"(maladie|sydrome).{1,10}Hanot",

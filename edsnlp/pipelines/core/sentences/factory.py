@@ -11,6 +11,7 @@ DEFAULT_CONFIG = dict(
     ignore_excluded=True,
     use_endlines=None,
     split_on_newlines="with_capitalized",
+    split_on_bullets=False,
 )
 
 
@@ -32,6 +33,7 @@ def create_component(
     use_endlines: Optional[bool],
     ignore_excluded: bool,
     split_on_newlines: Optional[str],
+    split_on_bullets: Optional[bool],
 ):
     return SentenceSegmenter(
         nlp.vocab,

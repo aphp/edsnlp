@@ -17,7 +17,7 @@ from spacy.tokens.doc cimport Doc
 from spacy.tokens.token cimport TokenC
 from spacy.vocab cimport Vocab
 
-from .terms import punctuation, uppercase
+from .terms import punctuation, uppercase, bullets
 
 
 cdef class SentenceSegmenter(object):
@@ -46,18 +46,21 @@ cdef class SentenceSegmenter(object):
         use_endlines: bool,
         ignore_excluded: bool = True,
         split_on_newlines: Optional[str] = "with_capitalized",
+        split_on_bullets: bool = False,
     ):
 
         if punct_chars is None:
             punct_chars = punctuation
 
         self.ignore_excluded = ignore_excluded or use_endlines
+        self.split_on_bullets = split_on_bullets
         self.newline_hash = vocab.strings["\n"]
         self.excluded_hash = vocab.strings["EXCLUDED"]
         self.endline_hash = vocab.strings["ENDLINE"]
         self.punct_chars_hash = {vocab.strings[c] for c in punct_chars}
         self.capitalized_shapes_hash = {vocab.strings[shape] for shape in ("Xx", "Xxx", "Xxxx", "Xxxxx")}
         self.capitalized_chars_hash = {vocab.strings[letter] for letter in uppercase}
+        self.bullets_chars_hash = {vocab.strings[bullet] for bullet in bullets}
 
         options = {
             "with_capitalized": 0,
@@ -129,8 +132,10 @@ cdef class SentenceSegmenter(object):
                 else:
                     if self.split_on_newlines == WITH_UPPERCASE:
                         doc.c[i].sent_start = 1 if self.capitalized_chars_hash.const_find(token.lex.prefix) != self.capitalized_chars_hash.const_end() else -1
-                    elif self.split_on_newlines == WITH_CAPITALIZED:
+                    if self.split_on_newlines == WITH_CAPITALIZED:
                         doc.c[i].sent_start = 1 if self.capitalized_shapes_hash.const_find(token.lex.shape) != self.capitalized_shapes_hash.const_end() else -1
+                    if self.split_on_bullets:
+                        doc.c[i].sent_start = 1 if self.bullets_chars_hash.const_find(token.lex.prefix) != self.bullets_chars_hash.const_end() else -1
                     seen_newline = False
                     seen_period = False
             elif is_in_punct_chars:

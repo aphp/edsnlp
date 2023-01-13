@@ -9,12 +9,14 @@ cdef enum split_options: WITH_CAPITALIZED, WITH_UPPERCASE, NONE
 
 cdef class SentenceSegmenter(object):
     cdef bool ignore_excluded
+    cdef bool split_on_bullets
     cdef attr_t newline_hash
     cdef attr_t excluded_hash
     cdef attr_t endline_hash
     cdef set[attr_t] punct_chars_hash
     cdef set[attr_t] capitalized_shapes_hash
     cdef set[attr_t] capitalized_chars_hash
+    cdef set[attr_t] bullets_chars_hash
     cdef split_options split_on_newlines
 
     cdef void process(self, Doc doc) nogil

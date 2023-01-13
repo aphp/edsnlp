@@ -67,6 +67,11 @@ def test_false_positives(blank_nlp):
             split_on_newlines="with_uppercase",
             n_sents=4,
         ),
+        dict(
+            split_on_newlines="with_uppercase",
+            split_on_bullets=True,
+            n_sents=5,
+        ),
     ],
 )
 def test_newline_split_options(blank_nlp, split_options):
@@ -74,13 +79,15 @@ def test_newline_split_options(blank_nlp, split_options):
     text = "Une première phrase. "
     text += "Une deuxième\n"
     text += "Peut-être un autre\n"
-    text += "ET encore une."
+    text += "ET encore une\n"
+    text += "- Enfin une dernière avec une liste."
 
     segmenter = SentenceSegmenter(
         blank_nlp.vocab,
         punct_chars=terms.punctuation,
         use_endlines=False,
         split_on_newlines=split_options["split_on_newlines"],
+        split_on_bullets=split_options.get("split_on_bullets", False),
     )
 
     doc = segmenter(blank_nlp(text))

@@ -14,19 +14,19 @@ nlp.add_pipe("eds.sentences")
 # Dummy matcher
 nlp.add_pipe(
     "eds.matcher",
-    config=dict(terms=dict(douleur="douleur", ostheoporose="osthéoporose")),
+    config=dict(terms=dict(douleur="douleur", osteoporose="ostéoporose")),
 )
 nlp.add_pipe("eds.family")
 
 text = (
     "Le patient est admis le 23 août 2021 pour une douleur au bras. "
-    "Il a des antécédents familiaux d'osthéoporose"
+    "Il a des antécédents familiaux d'ostéoporose"
 )
 
 doc = nlp(text)
 
 doc.ents
-# Out: (douleur, osthéoporose)
+# Out: (douleur, ostéoporose)
 
 doc.ents[0]._.family
 # Out: False

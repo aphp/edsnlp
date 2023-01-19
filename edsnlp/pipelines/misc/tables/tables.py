@@ -88,6 +88,6 @@ class Tables(GenericMatcher):
             sep=self.sep,
             engine="python",
             header=None,
-            error_bad_lines=True,
+            error_bad_lines=False,
         )
         return parsed

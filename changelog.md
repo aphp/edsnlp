@@ -1,4 +1,6 @@
 # Changelog
+### Added
+- `eds.tables`: new pipeline to identify formatted tables
 
 ## v0.7.4 (2022-12-12)
 

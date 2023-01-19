@@ -83,5 +83,11 @@ class Tables(GenericMatcher):
 
     def to_pd_table(self, span) -> pd.DataFrame:
         table_str_io = StringIO(span.text)
-        parsed = pd.read_csv(table_str_io, sep=self.sep, engine="python", header=None)
+        parsed = pd.read_csv(
+            table_str_io,
+            sep=self.sep,
+            engine="python",
+            header=None,
+            error_bad_lines=True,
+        )
         return parsed

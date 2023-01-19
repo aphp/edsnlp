@@ -9,7 +9,7 @@ DEFAULT_CONFIG = dict(
     tables_pattern=None,
     sep_pattern=None,
     attr="TEXT",
-    ignore_excluded=False,
+    ignore_excluded=True,
 )
 
 

@@ -63,6 +63,18 @@ df = table._.to_pd_table
 type(df)
 # >> pandas.core.frame.DataFrame
 ```
+The pd DataFrame:
+|    | 0           | 1        | 2      | 3         |
+|---:|:------------|:---------|:-------|:----------|
+|  0 | Leucocytes  | x10*9/L  | 4.97   | 4.09-11   |
+|  1 | Hématies    | x10*12/L | 4.68   | 4.53-5.79 |
+|  2 | Hémoglobine | g/dL     | 14.8   | 13.4-16.7 |
+|  3 | Hématocrite | %        | 44.2   | 39.2-48.6 |
+|  4 | VGM         | fL       | 94.4 + | 79.6-94   |
+|  5 | TCMH        | pg       | 31.6   | 27.3-32.8 |
+|  6 | CCMH        | g/dL     | 33.5   | 32.4-36.3 |
+|  7 | Plaquettes  | x10*9/L  | 191    | 172-398   |
+|  8 | VMP         | fL       | 11.5 + | 7.4-10.8  |
 
 ## Declared extensions
 

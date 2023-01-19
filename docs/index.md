@@ -97,9 +97,11 @@ This example is complete, it should run as-is. Check out the [spaCy 101 page](tu
     | Pipeline           | Description                                 |
     | ------------------ | ------------------------------------------- |
     | `eds.dates`        | Date extraction and normalisation           |
+    | `eds.consultation_dates`| Identify consultation dates            |
     | `eds.measurements` | Measure extraction and normalisation        |
     | `eds.sections`     | Section detection                           |
     | `eds.reason`       | Rule-based hospitalisation reason detection |
+    | `eds.tables`       | Tables detection                            |
 
 === "NER"
 
@@ -115,6 +117,7 @@ This example is complete, it should run as-is. Check out the [spaCy 101 page](tu
     | `eds.cim10`              | A CIM10 terminology matcher |
     | `eds.drugs`              | A Drug mentions extractor   |
     | `eds.adicap`             | A ADICAP codes extractor    |
+    | `eds.umls`               | A UMLS terminology matcher  |
 
 === "Trainable"
 

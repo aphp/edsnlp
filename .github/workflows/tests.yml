@@ -26,8 +26,6 @@ jobs:
 
   Pytest:
     runs-on: ubuntu-latest
-    env:
-      UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
     strategy:
       fail-fast: true
       matrix:
@@ -56,10 +54,14 @@ jobs:
           pip install -e .
 
       - name: Test with Pytest on Python ${{ matrix.python-version }}
+        env:
+          UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
         run: python -m pytest --cov edsnlp --cov-report xml --ignore tests/test_docs.py
         if: matrix.python-version != '3.9'
 
       - name: Test with Pytest on Python ${{ matrix.python-version }}
+        env:
+          UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
         run: python -m pytest --cov edsnlp --cov-report xml
         if: matrix.python-version == '3.9'
 

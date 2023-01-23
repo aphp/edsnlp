@@ -92,7 +92,7 @@ class TerminologyMatcher(BaseComponent):
             ignore_excluded=ignore_excluded,
         )
 
-        self.phrase_matcher.build_patterns(nlp=nlp, terms=terms)
+        self.phrase_matcher.build_patterns(nlp=nlp, terms=terms, progress=True)
         self.regex_matcher.build_patterns(regex=regex)
 
         self.set_extensions()

@@ -105,7 +105,9 @@ class SimstringMatcher:
         self.ss_reader = None
         self.syn2cuis = None
 
-    def build_patterns(self, nlp: Language, terms: Dict[str, Iterable[str]]):
+    def build_patterns(
+        self, nlp: Language, terms: Dict[str, Iterable[str]], progress: bool = False
+    ):
         """
         Build patterns and adds them for matching.
 
@@ -115,6 +117,8 @@ class SimstringMatcher:
             The instance of the spaCy language class.
         terms : Patterns
             Dictionary of label/terms, or label/dictionary of terms/attribute.
+        progress: bool
+            Whether to track progress when preprocessing terms
         """
 
         self.ss_reader = None
@@ -131,7 +135,7 @@ class SimstringMatcher:
         ]
         with nlp.select_pipes(enable=token_pipelines):
             with SimstringWriter(self.path) as ss_db:
-                for cui, synset in tqdm(terms.items()):
+                for cui, synset in tqdm(terms.items()) if progress else terms.items():
                     for term in nlp.pipe(synset):
                         norm_text = get_text(
                             term, self.attr, ignore_excluded=self.ignore_excluded

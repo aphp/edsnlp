@@ -70,7 +70,7 @@ cdef class EDSPhraseMatcher(PhraseMatcher):
         if not Span.has_extension("normalized_variant"):
             Span.set_extension("normalized_variant", getter=get_normalized_variant)
 
-    def build_patterns(self, nlp: Language, terms: Patterns):
+    def build_patterns(self, nlp: Language, terms: Patterns, progress: bool = False):
         """
         Build patterns and adds them for matching.
         Helper function for pipelines using this matcher.
@@ -81,6 +81,8 @@ cdef class EDSPhraseMatcher(PhraseMatcher):
             The instance of the spaCy language class.
         terms : Patterns
             Dictionary of label/terms, or label/dictionary of terms/attribute.
+        progress: bool
+            Whether to track progress when preprocessing terms
         """
 
         if not terms:
@@ -95,10 +97,10 @@ cdef class EDSPhraseMatcher(PhraseMatcher):
             )
         ]
         with nlp.select_pipes(enable=token_pipelines):
-            for key, expressions in tqdm(
+            for key, expressions in (tqdm(
                 terms.items(),
                 desc="Adding terms into the pipeline"
-            ):
+            ) if progress else terms.items()):
                 if isinstance(expressions, dict):
                     attr = expressions.get("attr")
                     expressions = expressions.get("patterns")

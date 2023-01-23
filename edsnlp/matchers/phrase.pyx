@@ -99,7 +99,7 @@ cdef class EDSPhraseMatcher(PhraseMatcher):
         with nlp.select_pipes(enable=token_pipelines):
             for key, expressions in (tqdm(
                 terms.items(),
-                desc="Adding terms into the pipeline"
+                desc="Adding terms into the pipeline !"
             ) if progress else terms.items()):
                 if isinstance(expressions, dict):
                     attr = expressions.get("attr")

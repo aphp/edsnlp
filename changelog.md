@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Disable `EDSMatcher` preprocessing auto progress tracking by default
+
 ## v0.7.4 (2022-12-12)
 
 ### Added

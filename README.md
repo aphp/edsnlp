@@ -5,7 +5,7 @@
 [![Codecov](https://img.shields.io/codecov/c/github/aphp/edsnlp?logo=codecov&style=flat-square)](https://codecov.io/gh/aphp/edsnlp)
 [![DOI](https://zenodo.org/badge/467585436.svg)](https://zenodo.org/badge/latestdoi/467585436)
 
-# EDS-NLP
+# EDS-NLP it's so Nice
 
 EDS-NLP provides a set of spaCy components that are used to extract information from clinical notes written in French.
 

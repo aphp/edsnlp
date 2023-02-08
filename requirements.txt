@@ -1,4 +1,5 @@
 decorator
+dill
 loguru
 numpy>=1.15.0,<1.24.0
 pandas

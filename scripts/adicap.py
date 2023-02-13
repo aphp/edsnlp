@@ -7,6 +7,7 @@ source : https://smt.esante.gouv.fr/terminologie-adicap/
 
 import gzip
 import json
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -20,7 +21,11 @@ def parse_each_dict(df, dictionaryCode: str):
     decode_d_spec = {}
 
     for code, label, anatomyCode in d_spec[["code", "label", "anatomyCode"]].values:
-        decode_d_spec[str(anatomyCode) + str(code)] = label
+        if dictionaryCode == "D5":
+            if re.match(r"[0-9]{4}", code) is None:
+                decode_d_spec[str(anatomyCode) + str(code)] = label
+        else:
+            decode_d_spec[str(anatomyCode) + str(code)] = label
 
     d_value = decode_d_spec.pop(dictionaryCode)
 

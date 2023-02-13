@@ -6,6 +6,10 @@
 
 - Disable `EDSMatcher` preprocessing auto progress tracking by default
 
+### Fixed
+
+- `eds.adicap` : reparsed the dictionnary used to decode the ADICAP codes (some of them were wrongly decoded)
+
 ## v0.7.4 (2022-12-12)
 
 ### Added

@@ -1,5 +1,5 @@
 import re
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 from spacy.language import Language
 
@@ -29,7 +29,7 @@ def create_component(
     value_extract: Union[str, Dict[str, str], List[Dict[str, str]]],
     score_normalization: Union[str, Callable[[Union[str, None]], Any]],
     attr: str,
-    window: int,
+    window: Tuple[int, int],
     ignore_excluded: bool,
     flags: Union[re.RegexFlag, int],
 ):

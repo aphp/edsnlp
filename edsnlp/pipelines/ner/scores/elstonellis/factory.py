@@ -11,7 +11,7 @@ DEFAULT_CONFIG = dict(
     value_extract=patterns.value_extract,
     score_normalization=patterns.score_normalization_str,
     attr="TEXT",
-    window=20,
+    window=(-20, 20),
     ignore_excluded=False,
     flags=0,
 )

@@ -7,7 +7,7 @@ regex = [r"[Ee]lston|[Ee]ll?is", r"\b[Ee]{2}\b"]
 
 pattern1 = r"[^\d\(\)]*[0-3]"
 pattern2 = r".{0,2}[\+,\-]"
-score_norm = r"(?s).(?P<score_norm>I{1,3}|\b[123]\b)"
+score_norm = r"(?s).(?P<score_norm>I{1,3})"
 score_detail = (
     rf"(?s).(?P<score_detail>\({pattern1}{pattern2}{pattern1}{pattern2}{pattern1}"
     + r".{0,10}\))"

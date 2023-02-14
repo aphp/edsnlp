@@ -1,5 +1,5 @@
 import re
-from typing import Any, Callable, List, Union
+from typing import Any, Callable, Dict, List, Union
 
 from spacy.language import Language
 
@@ -26,7 +26,47 @@ def create_component(
     nlp: Language,
     name: str,
     regex: List[str],
-    value_extract: str,
+    value_extract: Union[str, Dict[str, str], List[Dict[str, str]]],
+    score_normalization: Union[str, Callable[[Union[str, None]], Any]],
+    attr: str,
+    window: int,
+    ignore_excluded: bool,
+    flags: Union[re.RegexFlag, int],
+):
+    return Score(
+        nlp,
+        score_name=name,
+        regex=regex,
+        value_extract=value_extract,
+        score_normalization=score_normalization,
+        attr=attr,
+        window=window,
+        ignore_excluded=ignore_excluded,
+        flags=flags,
+    )
+
+
+DEFAULT_CONFIG = dict(
+    regex=patterns.regex,
+    value_extract=patterns.value_extract_detail,
+    score_normalization=patterns.score_normalization_str_detail,
+    attr="TEXT",
+    window=20,
+    ignore_excluded=False,
+    flags=0,
+)
+
+
+@Language.factory(
+    "eds.elston-ellis-detail",
+    default_config=DEFAULT_CONFIG,
+    assigns=["doc.ents", "doc.spans"],
+)
+def create_component(
+    nlp: Language,
+    name: str,
+    regex: List[str],
+    value_extract: Union[str, Dict[str, str], List[Dict[str, str]]],
     score_normalization: Union[str, Callable[[Union[str, None]], Any]],
     attr: str,
     window: int,

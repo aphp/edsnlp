@@ -1,3 +1,132 @@
+[project]
+name = "edsnlp"
+description = "A set of spaCy components to extract information from clinical notes written in French"
+authors = [
+    { name = "Data Science - DSN APHP", email = "perceval.wajsburt-ext@aphp.fr" }
+]
+license = { file = "LICENSE" }
+readme = "README.md"
+requires-python = ">=3.7.1"
+dynamic = ['version']
+dependencies = [
+    "decorator",
+    "loguru",
+    "pendulum>=2.1.2",
+    "pydantic>=1.8.2,<2.0.0",
+    "pysimstring>=1.2.1",
+    "regex<=2022.3.2",
+    "rich>=12.0.0",
+    "scikit-learn>=1.0.0",
+    "spacy>=3.1,<4.0.0",
+    "thinc>=8.0.14",
+    "tqdm",
+    "umls-downloader>=0.1.1",
+    "numpy>=1.15.0,<1.23.2; python_version<'3.8'",
+    "numpy>=1.15.0; python_version>='3.8'",
+    "pandas>=1.1.0; python_version<'3.8'",
+    "pandas>=1.4.0; python_version>='3.8'",
+]
+[project.optional-dependencies]
+dev = [
+    "black>=22.3.0,<23.0.0",
+    "fastapi",
+    "flake8==3.9.2",
+    "koalas>=1.8.1; python_version<='3.10'",
+    "pre-commit>=2.0.0; python_version<'3.8'",
+    "pre-commit>=2.21.0; python_version>='3.8'",
+    "pyspark",
+    "pytest>=7.1.0,<8.0.0",
+    "pytest-cov>=3.0.0,<4.0.0",
+    "pytest-html>=3.1.1,<4.0.0",
+    "torch>=1.0.0,<1.13.0",
+]
+setup = [
+    "mlconjug3<3.9.0",
+    "typer"
+]
+docs = [
+    "griffe==0.17.0",
+    "jinja2==3.0.3",
+    "mike==1.1.2",
+    "mkdocs-autorefs==0.3.1",
+    "mkdocs-bibtex==2.8.5",
+    "mkdocs-charts-plugin==0.0.8",
+    "mkdocs-gen-files==0.3.5",
+    "mkdocs-img2fig-plugin==0.9.3",
+    "mkdocs-literate-nav==0.4.1",
+    "mkdocs-material==8.5.11",
+    "mkdocs-section-index==0.3.4",
+    "mkdocstrings==0.19.0",
+    "mkdocstrings-python==0.7.1",
+]
+
+[project.urls]
+"Source Code" = "https://github.com/aphp/edsnlp"
+"Documentation" = "https://aphp.github.io/edsnlp"
+"Demo" = "https://aphp.github.io/edsnlp/demo"
+"Bug Tracker" = "https://github.com/aphp/edsnlp/issues"
+
+[tool.setuptools.dynamic]
+version = { attr = "edsnlp.__version__" }
+
+[tool.setuptools.package-data]
+"edsnlp" = [
+    "*.pyx",
+    "*.pxd",
+    "*.pxi",
+    "resources/*.csv",
+    "resources/*.json",
+    "resources/*.csv.gz",
+    "resources/*.json.gz",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[project.entry-points."spacy_factories"]
+"matcher" = "edsnlp.components:matcher"
+"terminology" = "edsnlp.components:terminology"
+"contextual_matcher" = "edsnlp.components:contextual_matcher"
+"endlines" = "edsnlp.components:endlines"
+"sentences" = "edsnlp.components:sentences"
+"normalizer" = "edsnlp.components:normalizer"
+"accents" = "edsnlp.components:accents"
+"lowercase" = "edsnlp.components:remove_lowercase"
+"pollution" = "edsnlp.components:pollution"
+"quotes" = "edsnlp.components:quotes"
+"charlson" = "edsnlp.components:charlson"
+"sofa" = "edsnlp.components:sofa"
+"tnm" = "edsnlp.components:tnm"
+"priority" = "edsnlp.components:priority"
+"ccmu" = "edsnlp.components:ccmu"
+"gemsa" = "edsnlp.components:gemsa"
+"covid" = "edsnlp.components:covid"
+"cim10" = "edsnlp.components:cim10"
+"history" = "edsnlp.components:history"
+"family" = "edsnlp.components:family"
+"hypothesis" = "edsnlp.components:hypothesis"
+"negation" = "edsnlp.components:negation"
+"rspeech" = "edsnlp.components:rspeech"
+"consultation_dates" = "edsnlp.components:consultation_dates"
+"dates" = "edsnlp.components:dates"
+"reason" = "edsnlp.components:reason"
+"sections" = "edsnlp.components:sections"
+"context" = "edsnlp.components:context"
+"measurements" = "edsnlp.components:measurements"
+"drugs" = "edsnlp.components:drugs"
+"nested_ner" = "edsnlp.components:nested_ner"
+"adicap" = "edsnlp.components:adicap"
+"umls" = "edsnlp.components:umls"
+
+[project.entry-points."spacy_architectures"]
+"eds.stack_crf_ner_model.v1" = "edsnlp.models.stack_crf_ner:create_model"
+
+[project.entry-points."spacy_scorers"]
+"eds.nested_ner_scorer.v1" = "edsnlp.pipelines.trainable.nested_ner:make_nested_ner_scorer"
+
+[project.entry-points."spacy_languages"]
+"eds" = "edsnlp.language:EDSLanguage"
+
 [build-system]
 requires = [
     "setuptools",
@@ -10,7 +139,6 @@ requires = [
     "numpy; python_version>='3.11'",
 ]
 build-backend = "setuptools.build_meta"
-
 
 [tool.interrogate]
 ignore-init-method = true
@@ -35,15 +163,15 @@ omit-covered-files = false
 
 [tool.cibuildwheel]
 skip = [
-    "*p36-*",               # Skip Python 3.6
-    "pp*",                  # Skip PyPy
-    "*-win32",              # Skip 32-bit Windows
-    "*-manylinux_i686",     # Skip 32-bit Linux
-    "*-win_arm64",          # Skip experimental Windows on ARM
-    "*-musllinux*",         # Skip slow Linux
-    "*-manylinux_aarch64",  # Skip slow Linux
-    "*-manylinux_ppc64le",  # Skip slow Linux
-    "*-manylinux_s390x",    # Skip slow Linux
+    "*p36-*", # Skip Python 3.6
+    "pp*", # Skip PyPy
+    "*-win32", # Skip 32-bit Windows
+    "*-manylinux_i686", # Skip 32-bit Linux
+    "*-win_arm64", # Skip experimental Windows on ARM
+    "*-musllinux*", # Skip slow Linux
+    "*-manylinux_aarch64", # Skip slow Linux
+    "*-manylinux_ppc64le", # Skip slow Linux
+    "*-manylinux_s390x", # Skip slow Linux
 ]
 
 before-test = "pip install pytest"

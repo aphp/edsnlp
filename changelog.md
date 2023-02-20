@@ -5,6 +5,7 @@
 ### Changed
 
 - Disable `EDSMatcher` preprocessing auto progress tracking by default
+- Moved dependencies to a single pyproject.toml: support for `pip install -e '.[dev,docs,setup]'`
 
 ### Fixed
 

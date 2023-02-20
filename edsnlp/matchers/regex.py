@@ -1,3 +1,4 @@
+import re
 from bisect import bisect_left
 from functools import lru_cache
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -5,7 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from loguru import logger
 from spacy.tokens import Doc, Span, Token
 
-from edsnlp.utils.regex import compile_regex, re
+from edsnlp.utils.regex import compile_regex
 
 from .utils import Patterns, alignment, get_text, offset
 

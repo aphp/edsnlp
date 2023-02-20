@@ -1,3 +1,0 @@
-mlconjug3<3.9.0
-numpy
-typer

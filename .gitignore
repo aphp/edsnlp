@@ -54,8 +54,6 @@ _build/
 *.tsv
 *.ann
 
-!requirements*.txt
-
 # Editors
 .idea
 .vscode

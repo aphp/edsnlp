@@ -67,3 +67,27 @@ def test_eds_tokenizer_numbers():
         ("5.4", ""),
         ("mm", ""),
     ]
+
+
+def test_eds_tokenizer_exceptions():
+    nlp = spacy.blank("eds")
+    txt = "M. Gentil a un rhume, code ADICAP: B.H.HP.A7A0"
+    tokenized = [(w.text, w.whitespace_) for w in nlp(txt)]
+    assert tokenized == [
+        ("M.", " "),
+        ("Gentil", " "),
+        ("a", " "),
+        ("un", " "),
+        ("rhume", ""),
+        (",", " "),
+        ("code", " "),
+        ("ADICAP", ""),
+        (":", " "),
+        ("B.", ""),
+        ("H.", ""),
+        ("HP.", ""),
+        ("A", ""),
+        ("7", ""),
+        ("A", ""),
+        ("0", ""),
+    ]

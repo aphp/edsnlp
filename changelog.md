@@ -9,6 +9,7 @@
 
 - Disable `EDSMatcher` preprocessing auto progress tracking by default
 - Moved dependencies to a single pyproject.toml: support for `pip install -e '.[dev,docs,setup]'`
+- ADICAP matcher now allow dot separators (e.g. `B.H.HP.A7A0`)
 
 ### Fixed
 

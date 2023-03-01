@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Added
+- Tokenization exceptions (`Mr.`, `Dr.`, `Mrs.`) and non end-of-sentence periods are now tokenized with the next letter in the `eds` tokenizer
+
 ### Changed
 
 - Disable `EDSMatcher` preprocessing auto progress tracking by default

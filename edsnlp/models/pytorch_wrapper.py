@@ -1,5 +1,5 @@
 import typing
-from typing import Any, Callable, Iterable, List, Optional, OrderedDict, Tuple
+from typing import Any, Callable, Iterable, List, Optional, OrderedDict, Sequence, Tuple
 
 import torch
 from spacy.tokens import Doc
@@ -62,7 +62,7 @@ class PytorchWrapperModule(torch.nn.Module):
         """
         self.cfg = state_dict.pop("cfg")
         self.initialize()
-        super().load_state_dict(state_dict, strict)
+        super().load_state_dict(state_dict, False)
 
     def state_dict(self, destination=None, prefix="", keep_vars=False):
         """
@@ -296,6 +296,7 @@ def wrap_pytorch_model(
 def wrap_pytorch_model(
     encoder: Model[List[Doc], List[Floats2d]],
     pt_model: PytorchWrapperModule,
+    attrs: Sequence[str] = ("set_n_labels",),
 ) -> Model[
     Tuple[Iterable[Doc], Optional[PredT], Optional[bool]],
     Tuple[Floats1d, PredT],
@@ -311,6 +312,8 @@ def wrap_pytorch_model(
         The Thinc document token embedding layer
     pt_model: PytorchWrapperModule
         The Pytorch model
+    attrs: Sequence[str]
+        The attributes of the Pytorch model that should be copied to the Thinc model
 
     Returns
     -------
@@ -323,8 +326,8 @@ def wrap_pytorch_model(
         "pytorch",
         pytorch_forward,
         attrs={
-            "set_n_labels": pt_model.set_n_labels,
             "pt_model": pt_model,
+            **{attr: getattr(pt_model, attr) for attr in attrs},
         },
         layers=[encoder],
         shims=[PyTorchShim(pt_model)],

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.8.0 (2023-03-09)
 
 ### Added
 - Tokenization exceptions (`Mr.`, `Dr.`, `Mrs.`) and non end-of-sentence periods are now tokenized with the next letter in the `eds` tokenizer

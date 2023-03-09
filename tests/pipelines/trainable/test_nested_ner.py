@@ -24,6 +24,7 @@ def gold(blank_nlp):
 
 
 @mark.parametrize("crf_mode", ["marginal", "independent", "joint"])
+@mark.parametrize("lang", ["eds"], indirect=True)
 def test_nested_ner_training(blank_nlp, gold, tmp_path, crf_mode):
     tmp_path.mkdir(parents=True, exist_ok=True)
 

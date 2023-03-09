@@ -191,8 +191,8 @@ def make_spacy_corpus_config(
         train_path = tmp_path / "train.spacy"
         dev_path = tmp_path / "dev.spacy"
 
-        DocBin(docs=train_docs).to_disk(train_path)
-        DocBin(docs=dev_docs).to_disk(dev_path)
+        DocBin(docs=train_docs, store_user_data=True).to_disk(train_path)
+        DocBin(docs=dev_docs, store_user_data=True).to_disk(dev_path)
     else:
         train_path = train_data
         dev_path = dev_data

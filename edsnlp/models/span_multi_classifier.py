@@ -8,7 +8,6 @@ from thinc.model import Model
 from thinc.types import Floats1d, Floats2d, Ints2d
 
 from edsnlp.models.pytorch_wrapper import PytorchWrapperModule, wrap_pytorch_model
-from edsnlp.models.torch.crf import IMPOSSIBLE
 
 
 class ProjectionMode(str, Enum):
@@ -55,8 +54,6 @@ class SpanMultiClassifier(PytorchWrapperModule):
 
         self.groups_indices = None
         self.classifier = None
-        self.ner_constraints: Optional[torch.BoolTensor] = None
-        self.combinations: Optional[torch.BoolTensor] = None
 
     def initialize(self):
         """
@@ -69,9 +66,8 @@ class SpanMultiClassifier(PytorchWrapperModule):
     def state_dict(self, destination=None, prefix="", keep_vars=False):
         sd = super().state_dict()
 
-        sd["combinations"] = self.combinations
         sd["groups_indices"] = self.groups_indices
-        sd["ner_constraints"] = self.ner_constraints
+        sd["combinations"] = list(self.combinations)
         return sd
 
     def load_state_dict(
@@ -82,10 +78,7 @@ class SpanMultiClassifier(PytorchWrapperModule):
                 groups_combinations=state_dict.pop("combinations"),
                 groups_indices=state_dict.pop("groups_indices"),
             )
-        if state_dict.get("ner_constraints", None) is not None:
-            self.set_ner_constraints(
-                ner_constraints=state_dict.pop("ner_constraints"),
-            )
+
         super().load_state_dict(state_dict, strict)
 
     def set_label_groups(
@@ -103,36 +96,25 @@ class SpanMultiClassifier(PytorchWrapperModule):
         # To make the buffers discoverable by pytorch (for device moving operations),
         # we need to register them as buffer, and then we can group them in a
         # single list of tensors
-        self.combinations = []
+        self.groups_indices = groups_indices
         for i, group_combinations in enumerate(groups_combinations):
             # n_combinations_in_group * n_labels_in_group
             self.register_buffer(
                 f"combinations_{i}",
                 torch.as_tensor(group_combinations, dtype=torch.bool),
             )
-            self.combinations.append(getattr(self, f"combinations_{i}"))
-        self.groups_indices = groups_indices
 
-    def set_ner_constraints(self, ner_constraints):
-        """
-        Set the NER label to qualifier label matrix.
-
-        Parameters
-        ----------
-        ner_constraints: List[List[bool]]
-        """
-        # n_ner_label * n_labels
-        del self.ner_constraints
-        self.register_buffer(
-            "ner_constraints", torch.as_tensor(ner_constraints, dtype=torch.bool)
-        )
+    @property
+    def combinations(self):
+        for i in range(len(self.groups_indices)):
+            yield getattr(self, f"combinations_{i}")
 
     def forward(
         self,
         embeds: torch.FloatTensor,
         mask: torch.BoolTensor,
         spans: Optional[torch.LongTensor],
-        gold_labels: Optional[torch.LongTensor],
+        targets: Optional[torch.LongTensor],
         additional_outputs: Dict[str, Any] = None,
         is_train: bool = False,
         is_predict: bool = False,
@@ -152,8 +134,8 @@ class SpanMultiClassifier(PytorchWrapperModule):
             Mask of the sequences
         spans: Optional[torch.LongTensor]
             2d tensor of n_spans * (doc_idx, ner_label_idx, begin, end)
-        gold_labels: Optional[torch.LongTensor]
-            2d tensor of n_spans * n_labels (1 hot)
+        targets: Optional[List[torch.LongTensor]]
+            list of 2d tensor of n_spans * n_combinations (1 hot)
         additional_outputs: Dict[str, Any]
             Additional outputs that should not / cannot be back-propped through
             This dict will contain the predicted 2d tensor of labels
@@ -168,13 +150,24 @@ class SpanMultiClassifier(PytorchWrapperModule):
             Optional 0d loss (shape = [1]) to train the model
         """
         n_samples, n_words = embeds.shape[:2]
-        flat_embeds = embeds.view(-1, embeds.shape[-1])
-        (sample_idx, span_ner_labels, span_begins, span_ends) = spans.unbind(1)
+        device = embeds.device
+        (sample_idx, span_begins, span_ends) = spans.unbind(1)
+        if len(span_begins) == 0:
+            loss = None
+            if is_train:
+                loss = embeds.sum().unsqueeze(0) * 0
+            else:
+                additional_outputs["labels"] = torch.zeros(
+                    0, self.n_labels, device=embeds.device, dtype=torch.int
+                )
+            return loss
+
         flat_begins = n_words * sample_idx + span_begins
         flat_ends = n_words * sample_idx + span_ends
+        flat_embeds = embeds.view(-1, embeds.shape[-1])
         flat_indices = torch.cat(
             [
-                torch.arange(b, e)
+                torch.arange(b, e, device=device)
                 for b, e in zip(flat_begins.cpu().tolist(), flat_ends.cpu().tolist())
             ]
         ).to(embeds.device)
@@ -188,11 +181,7 @@ class SpanMultiClassifier(PytorchWrapperModule):
         )
 
         scores = self.classifier(span_embeds)
-        if self.ner_constraints is not None:
-            # [e]ntities * [b]indings
-            span_allowed_labels = self.ner_constraints[span_ner_labels]
-            # [e]ntities * [b]indings
-            scores = scores.masked_fill(~span_allowed_labels, IMPOSSIBLE)
+
         groups_combinations_scores = [
             # ([e]ntities * [b]indings) * ([c]ombinations * [b]indings)
             torch.einsum("eb,cb->ec", scores[:, grp_ids], grp_combinations.float())
@@ -201,25 +190,13 @@ class SpanMultiClassifier(PytorchWrapperModule):
 
         loss = None
         if is_train:
-            gold_combinations = [
-                (
-                    # [e]nts * 1 * [b]indings ==  [c]ombinations * [b]indings
-                    gold_labels[:, None, grp_ids]
-                    == grp_combinations
-                ).all(-1)
-                for grp_ids, grp_combinations in zip(
-                    self.groups_indices, self.combinations
-                )  # noqa: E501
-            ]  # list of ([e]nts * [c]ombinations)
             loss = sum(
                 [
-                    torch.einsum(
-                        "ec,ec->",  # [e]nts * [c]ombinations
-                        -grp_combinations_scores.log_softmax(-1),
-                        grp_gold_combinations.float(),  # [e]nts * [c]ombinations
-                    )
+                    -grp_combinations_scores.log_softmax(-1)
+                    .masked_fill(~grp_gold_combinations.to(device).bool(), 0)
+                    .sum()
                     for grp_combinations_scores, grp_gold_combinations in zip(
-                        groups_combinations_scores, gold_combinations
+                        groups_combinations_scores, targets
                     )
                 ]
             )
@@ -234,7 +211,7 @@ class SpanMultiClassifier(PytorchWrapperModule):
                 ],
                 dim=-1,
             )
-            additional_outputs["labels"] = pred
+            additional_outputs["labels"] = pred.int()
         return loss
 
 
@@ -259,6 +236,5 @@ def create_model(
         attrs=[
             "set_n_labels",
             "set_label_groups",
-            "set_ner_constraints",
         ],
     )

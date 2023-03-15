@@ -60,7 +60,7 @@ class EDSTokenizer(DummyTokenizer):
         """
         self.vocab = vocab
         punct = "[:punct:]" + "\"'ˊ＂〃ײ᳓″״‶˶ʺ“”˝"
-        num_like = r"\d+(?:[.,]\d+)?"
+        num_like = r"\d+(?:[.,]\d(?![.,]?[0-9])|(?![.,]?[0-9]))?"
         sep = rf"\d{punct}'\n[:space:]"
         default = rf"[^{sep}]+(?:['ˊ](?=[[:alpha:]]|$))?"
         exceptions = "|".join(TOKENIZER_EXCEPTIONS)
@@ -71,7 +71,7 @@ class EDSTokenizer(DummyTokenizer):
             {exceptions}    # tokenizer exceptions like M., Dr., etc
             |{acronym}      # acronyms
             |{num_like}     # numbers
-            |[{punct}]        # punctuations
+            |[{punct}]      # punctuations
             |[\n\r\t]       # new lines or tabs
             |[^\S\r\n\t]+   # multi-spaces
             |{default}      # anything else: most often alpha-numerical words

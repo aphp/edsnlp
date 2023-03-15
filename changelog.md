@@ -17,6 +17,11 @@
 
 - Abbreviation and number tokenization issues in the `eds` tokenizer
 
+## Unreleased
+
+### Added
+- New trainable component for multi-label, multi-class span qualification (any attribute/extension)
+
 ## v0.8.0 (2023-03-09)
 
 ### Added

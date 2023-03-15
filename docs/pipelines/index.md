@@ -53,9 +53,10 @@ EDS-NLP provides easy-to-use spaCy components.
 
 === "Trainable"
 
-    | Pipeline                 | Description                  |
-    | ------------------------ | ---------------------------- |
-    | `eds.nested-ner`         | A nested NER trainable model |
+    | Pipeline             | Description                                                          |
+    |----------------------|----------------------------------------------------------------------|
+    | `eds.nested-ner`     | A trainable component for nested (and classic) NER                   |
+    | `eds.span-qualifier` | A trainable component for multi-class multi-label span qualification |
 
 You can add them to your spaCy pipeline by simply calling `add_pipe`, for instance:
 

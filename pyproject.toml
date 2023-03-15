@@ -111,7 +111,7 @@ where = ["."]
 "measurements" = "edsnlp.components:measurements"
 "drugs" = "edsnlp.components:drugs"
 "nested_ner" = "edsnlp.components:nested_ner"
-"span_qualifier" = "edsnlp.components:span_qualifier"
+"eds.span_qualifier" = "edsnlp.pipelines.trainable.span_qualifier.factory:create_component"
 "adicap" = "edsnlp.components:adicap"
 "umls" = "edsnlp.components:umls"
 
@@ -121,7 +121,10 @@ where = ["."]
 
 [project.entry-points."spacy_scorers"]
 "eds.nested_ner_scorer.v1" = "edsnlp.pipelines.trainable.nested_ner:make_nested_ner_scorer"
-"eds.span_qualifier_scorer.v1" = "edsnlp.pipelines.trainable.span_qualifier:make_span_qualifier_scorer"
+"eds.span_qualifier_scorer.v1" = "edsnlp.pipelines.trainable.span_qualifier.factory:create_scorer"
+
+[project.entry-points."spacy_misc"]
+"eds.candidate_span_qualifier_getter" = "edsnlp.pipelines.trainable.span_qualifier.factory:create_candidate_getter"
 
 [project.entry-points."spacy_languages"]
 "eds" = "edsnlp.language:EDSLanguage"

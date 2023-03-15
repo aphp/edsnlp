@@ -1,7 +1,3 @@
----
-ᴴₒᴴₒᴴₒ: true
----
-
 # Getting started
 
 EDS-NLP provides a set of spaCy components that are used to extract information from clinical notes written in French.

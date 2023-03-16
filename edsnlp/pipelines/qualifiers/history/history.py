@@ -17,9 +17,9 @@ from .patterns import history, sections_history
 
 class History(Qualifier):
     """
-    Implements an history detection algorithm.
+    Implements a history detection algorithm.
 
-    The components looks for terms indicating history in the text.
+    The component looks for terms indicating history in the text.
 
     Parameters
     ----------
@@ -28,7 +28,7 @@ class History(Qualifier):
     history : Optional[List[str]]
         List of terms indicating medical history reference.
     termination : Optional[List[str]]
-        List of syntagme termination terms.
+        List of syntagms termination terms.
     use_sections : bool
         Whether to use section pipeline to detect medical history section.
     use_dates : bool
@@ -37,7 +37,7 @@ class History(Qualifier):
     history_limit : int
         The number of days after which the event is considered as history.
     exclude_birthdate : bool
-        Whether to exclude the birth date from history dates.
+        Whether to exclude the birthdate from history dates.
     closest_dates_only : bool
         Whether to include the closest dates only.
     attr : str
@@ -47,8 +47,6 @@ class History(Qualifier):
     on_ents_only : bool
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.
-    regex : Optional[Dict[str, Union[List[str], str]]]
-        A dictionary of regex patterns.
     explain : bool
         Whether to keep track of cues for each entity.
     """

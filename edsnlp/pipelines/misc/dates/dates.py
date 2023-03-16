@@ -41,7 +41,7 @@ class Dates(BaseComponent):
     false_positive : Union[List[str], str]
         List of regular expressions for false positive (eg phone numbers, etc).
     on_ents_only : Union[bool, str, List[str]]
-        Wether to look on dates in the whole document or in specific sentences:
+        Whether to look on dates in the whole document or in specific sentences:
 
         - If `True`: Only look in the sentences of each entity in doc.ents
         - If False: Look in the whole document
@@ -49,6 +49,8 @@ class Dates(BaseComponent):
           each entity in `#!python doc.spans[key]`
     detect_periods : bool
         Whether to detect periods (experimental)
+    detect_time: bool
+        Whether to detect time inside dates
     as_ents : bool
         Whether to treat dates as entities
     attr : str

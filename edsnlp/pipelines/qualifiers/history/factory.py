@@ -3,13 +3,13 @@ from typing import List, Optional
 from spacy.language import Language
 
 from edsnlp.pipelines.qualifiers.history import History, patterns
-from edsnlp.pipelines.terminations import termination
+from edsnlp.pipelines.terminations import termination as termination_patterns
 from edsnlp.utils.deprecation import deprecated_factory
 
 DEFAULT_CONFIG = dict(
     attr="NORM",
     history=patterns.history,
-    termination=termination,
+    termination=termination_patterns,
     use_sections=False,
     use_dates=False,
     history_limit=14,
@@ -45,18 +45,54 @@ DEFAULT_CONFIG = dict(
 )
 def create_component(
     nlp: Language,
-    name: str,
-    history: Optional[List[str]],
-    termination: Optional[List[str]],
-    use_sections: bool,
-    use_dates: bool,
-    history_limit: int,
-    exclude_birthdate: bool,
-    closest_dates_only: bool,
-    attr: str,
-    explain: bool,
-    on_ents_only: bool,
+    name: str = "eds.history",
+    history: Optional[List[str]] = patterns.history,
+    termination: Optional[List[str]] = termination_patterns,
+    use_sections: bool = False,
+    use_dates: bool = False,
+    history_limit: int = 14,
+    exclude_birthdate: bool = True,
+    closest_dates_only: bool = True,
+    attr: str = "NORM",
+    explain: bool = False,
+    on_ents_only: bool = True,
 ):
+    """
+    Implements a history detection algorithm.
+
+    The component looks for terms indicating history in the text.
+
+    Parameters
+    ----------
+    nlp : Language
+        spaCy nlp pipeline to use for matching.
+    name : str
+        Name of the component.
+    history : Optional[List[str]]
+        List of terms indicating medical history reference.
+    termination : Optional[List[str]]
+        List of syntagms termination terms.
+    use_sections : bool
+        Whether to use section pipeline to detect medical history section.
+    use_dates : bool
+        Whether to use dates pipeline to detect if the event occurs
+         a long time before the document date.
+    history_limit : int
+        The number of days after which the event is considered as history.
+    exclude_birthdate : bool
+        Whether to exclude the birthdate from history dates.
+    closest_dates_only : bool
+        Whether to include the closest dates only.
+    attr : str
+        spaCy's attribute to use:
+        a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
+        we can also add a key for each regex.
+    on_ents_only : bool
+        Whether to look for matches around detected entities only.
+        Useful for faster inference in downstream tasks.
+    explain : bool
+        Whether to keep track of cues for each entity.
+    """
     return History(
         nlp,
         attr=attr,

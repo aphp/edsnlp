@@ -230,3 +230,23 @@ def test_groupdict_as_spans(doc):
     assert span1.text == "patient"
     assert len(gd0) == 1 and gd0["cause"].text == "douleurs"
     assert len(gd1) == 0
+
+
+def test_regex_with_space(blank_nlp):
+    blank_nlp.add_pipe("eds.spaces")
+
+    text = "pneumopathie à      coronavirus"
+
+    doc = blank_nlp(text)
+
+    matcher = RegexMatcher(ignore_space_tokens=False)
+    matcher.add("test", ["pneumopathie à coronavirus"])
+
+    assert len(list(matcher(doc, as_spans=True))) == 0
+
+    matcher = RegexMatcher(ignore_space_tokens=True)
+    matcher.add("test", ["pneumopathie à coronavirus"])
+
+    match = list(matcher(doc, as_spans=True))[0]
+    assert match.text == text
+    assert match._.normalized_variant == "pneumopathie à coronavirus"

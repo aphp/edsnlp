@@ -35,6 +35,9 @@ class GenericMatcher(BaseComponent):
     ignore_excluded : bool
         Whether to skip excluded tokens (requires an upstream
         pipeline to mark excluded tokens).
+    ignore_excluded : bool
+        Whether to skip space tokens (requires an upstream
+        pipeline to mark space tokens).
     term_matcher: GenericTermMatcher
         The matcher to use for matching phrases ?
         One of (exact, simstring)
@@ -49,6 +52,7 @@ class GenericMatcher(BaseComponent):
         regex: Optional[Patterns],
         attr: str,
         ignore_excluded: bool,
+        ignore_space_tokens: bool = False,
         term_matcher: GenericTermMatcher = GenericTermMatcher.exact,
         term_matcher_config: Dict[str, Any] = None,
     ):
@@ -62,6 +66,7 @@ class GenericMatcher(BaseComponent):
                 self.nlp.vocab,
                 attr=attr,
                 ignore_excluded=ignore_excluded,
+                ignore_space_tokens=ignore_space_tokens,
                 **(term_matcher_config or {}),
             )
         elif term_matcher == GenericTermMatcher.simstring:
@@ -69,6 +74,7 @@ class GenericMatcher(BaseComponent):
                 self.nlp.vocab,
                 attr=attr,
                 ignore_excluded=ignore_excluded,
+                ignore_space_tokens=ignore_space_tokens,
                 **(term_matcher_config or {}),
             )
         else:

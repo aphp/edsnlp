@@ -3,11 +3,22 @@ from pytest import fixture
 from thinc.config import ConfigValidationError
 
 from edsnlp.pipelines.core.matcher import GenericMatcher
+from tests.conftest import text
 
 
 @fixture
-def matcher_factory(blank_nlp):
+def nlp(blank_nlp):
+    blank_nlp.add_pipe("eds.normalizer")
+    return blank_nlp
 
+
+@fixture
+def doc(nlp):
+    return nlp(text)
+
+
+@fixture
+def matcher_factory(nlp):
     default_config = dict(
         attr="TEXT",
         ignore_excluded=False,
@@ -21,7 +32,7 @@ def matcher_factory(blank_nlp):
         config.update(kwargs)
 
         return GenericMatcher(
-            nlp=blank_nlp,
+            nlp=nlp,
             terms=terms,
             regex=regex,
             **config,
@@ -30,9 +41,9 @@ def matcher_factory(blank_nlp):
     return factory
 
 
-def test_matcher_config_typo(blank_nlp):
+def test_matcher_config_typo(nlp):
     with pytest.raises(ConfigValidationError):
-        blank_nlp.add_pipe(
+        nlp.add_pipe(
             "matcher",
             config={
                 "terms": {"test": ["test"]},
@@ -41,8 +52,8 @@ def test_matcher_config_typo(blank_nlp):
         )
 
 
-def test_exact_matcher_spacy_factory(blank_nlp):
-    blank_nlp.add_pipe(
+def test_exact_matcher_spacy_factory(nlp):
+    nlp.add_pipe(
         "matcher",
         config={
             "terms": {"test": ["test"]},
@@ -51,8 +62,8 @@ def test_exact_matcher_spacy_factory(blank_nlp):
     )
 
 
-def test_simstring_matcher_spacy_factory(blank_nlp):
-    blank_nlp.add_pipe(
+def test_simstring_matcher_spacy_factory(nlp):
+    nlp.add_pipe(
         "matcher",
         config={
             "terms": {"test": ["test"]},
@@ -64,19 +75,29 @@ def test_simstring_matcher_spacy_factory(blank_nlp):
     )
 
 
-def test_terms(blank_doc, matcher_factory):
+def test_terms(doc, matcher_factory):
     matcher = matcher_factory(
         terms=dict(patient="patient", anomalie="anomalie"),
         attr="NORM",
     )
-    doc = matcher(blank_doc)
+    doc = matcher(doc)
     assert len(doc.ents) == 3, "There should be two entities."
 
 
-def test_regex(blank_doc, matcher_factory):
+def test_regex(doc, matcher_factory):
     matcher = matcher_factory(
         regex=dict(patient=r"patient", anomalie=r"anomalie"),
         attr="TEXT",
     )
-    doc = matcher(blank_doc)
+    doc = matcher(doc)
     assert len(doc.ents) == 3, "There should be two entities."
+
+
+def test_space(doc, matcher_factory):
+    matcher = matcher_factory(
+        terms=dict(holidays=r"vacances d'été"),
+        attr="NORM",
+        ignore_space_tokens=True,
+    )
+    doc = matcher(doc)
+    assert len(doc.ents) == 1, "There should be one entity."

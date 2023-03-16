@@ -81,6 +81,7 @@ def create_span(
     attr: str,
     alignment_mode: str,
     ignore_excluded: bool,
+    ignore_space_tokens: bool,
 ) -> Span:
     """
     spaCy only allows strict alignment mode for char_span on Spans.
@@ -99,6 +100,8 @@ def create_span(
         The alignment mode.
     ignore_excluded : bool
         Whether to skip excluded tokens.
+    ignore_space_tokens : bool
+        Whether to skip space tokens.
     Returns
     -------
     span:
@@ -108,7 +111,7 @@ def create_span(
     doc = doclike if isinstance(doclike, Doc) else doclike.doc
 
     # Handle the simple case immediately
-    if attr in {"TEXT", "LOWER"} and not ignore_excluded:
+    if attr in {"TEXT", "LOWER"} and not ignore_excluded and not ignore_space_tokens:
         off = doclike[0].idx
         return doc.char_span(
             start_char + off,
@@ -119,11 +122,12 @@ def create_span(
 
     # If doclike is a Span, we need to get the clean
     # index of the first included token
-    if ignore_excluded:
+    if ignore_excluded or ignore_space_tokens:
         original, clean = alignment(
             doc=doc,
             attr=attr,
             ignore_excluded=ignore_excluded,
+            ignore_space_tokens=ignore_space_tokens,
         )
 
         first_included = get_first_included(doclike)
@@ -140,6 +144,7 @@ def create_span(
             doc,
             attr=attr,
             ignore_excluded=ignore_excluded,
+            ignore_space_tokens=ignore_space_tokens,
             index=first + start_char,
         )
     )
@@ -151,6 +156,7 @@ def create_span(
             doc,
             attr=attr,
             ignore_excluded=ignore_excluded,
+            ignore_space_tokens=ignore_space_tokens,
             index=first + end_char,
         )
     )
@@ -186,6 +192,11 @@ class RegexMatcher(object):
         Can be overiden in the `add` method.
     ignore_excluded : bool
         Whether to skip exclusions
+    ignore_space_tokens: bool
+        Whether to skip space tokens during matching.
+
+        You won't be able to match on newlines if this is enabled and
+        the "spaces"/"newline" option of `eds.normalizer` is enabled (by default).
     span_from_group : bool
         If set to `False`, will create spans basede on the regex's full match.
         If set to `True`, will use the first matching capturing group as a span
@@ -197,6 +208,7 @@ class RegexMatcher(object):
         alignment_mode: str = "expand",
         attr: str = "TEXT",
         ignore_excluded: bool = False,
+        ignore_space_tokens: bool = False,
         flags: Union[re.RegexFlag, int] = 0,  # No additional flags
         span_from_group: bool = False,
     ):
@@ -209,6 +221,7 @@ class RegexMatcher(object):
         self.span_from_group = span_from_group
 
         self.ignore_excluded = ignore_excluded
+        self.ignore_space_tokens = ignore_space_tokens
 
         self.set_extensions()
 
@@ -258,6 +271,7 @@ class RegexMatcher(object):
         patterns: List[str],
         attr: Optional[str] = None,
         ignore_excluded: Optional[bool] = None,
+        ignore_space_tokens: Optional[bool] = None,
         alignment_mode: Optional[str] = None,
         flags: Optional[re.RegexFlag] = None,
     ):
@@ -270,12 +284,18 @@ class RegexMatcher(object):
             Key of the new/updated pattern.
         patterns : List[str]
             List of patterns to add.
-        attr : str, optional
+        attr : Optional[str]
             Attribute to use for matching.
-            By default uses the `default_attr` attribute
-        ignore_excluded : bool, optional
+            By default, uses the `default_attr` attribute
+        ignore_excluded : Optional[bool]
             Whether to skip excluded tokens during matching.
-        alignment_mode : str, optional
+        ignore_space_tokens: Optional[bool]
+            Whether to skip space tokens during matching.
+
+            You won't be able to match on newlines if this is enabled and
+            the "spaces"/"newline" option of `eds.normalizer` is enabled (by default).
+
+        alignment_mode : Optional[str]
             Overwrite alignment mode.
         """
 
@@ -285,6 +305,9 @@ class RegexMatcher(object):
         if ignore_excluded is None:
             ignore_excluded = self.ignore_excluded
 
+        if ignore_space_tokens is None:
+            ignore_space_tokens = self.ignore_space_tokens
+
         if alignment_mode is None:
             alignment_mode = self.alignment_mode
 
@@ -293,7 +316,16 @@ class RegexMatcher(object):
 
         patterns = [compile_regex(pattern, flags) for pattern in patterns]
 
-        self.regex.append((key, patterns, attr, ignore_excluded, alignment_mode))
+        self.regex.append(
+            (
+                key,
+                patterns,
+                attr,
+                ignore_excluded,
+                ignore_space_tokens,
+                alignment_mode,
+            )
+        )
 
     def remove(
         self,
@@ -313,7 +345,7 @@ class RegexMatcher(object):
             If the key is not present in the registered patterns.
         """
         n = len(self.regex)
-        self.regex = [(k, p, a, i, am) for k, p, a, i, am in self.regex if k != key]
+        self.regex = [pat for pat in self.regex if pat[0] != key]
         if len(self.regex) == n:
             raise ValueError(f"`{key}` is not referenced in the matcher")
 
@@ -338,8 +370,15 @@ class RegexMatcher(object):
             A match.
         """
 
-        for key, patterns, attr, ignore_excluded, alignment_mode in self.regex:
-            text = get_text(doclike, attr, ignore_excluded)
+        for (
+            key,
+            patterns,
+            attr,
+            ignore_excluded,
+            ignore_space_tokens,
+            alignment_mode,
+        ) in self.regex:
+            text = get_text(doclike, attr, ignore_excluded, ignore_space_tokens)
 
             for pattern in patterns:
                 for match in pattern.finditer(text):
@@ -358,6 +397,7 @@ class RegexMatcher(object):
                         attr=attr,
                         alignment_mode=alignment_mode,
                         ignore_excluded=ignore_excluded,
+                        ignore_space_tokens=ignore_space_tokens,
                     )
 
                     if span is None:
@@ -383,8 +423,15 @@ class RegexMatcher(object):
             A match.
         """
 
-        for key, patterns, attr, ignore_excluded, alignment_mode in self.regex:
-            text = get_text(doclike, attr, ignore_excluded)
+        for (
+            key,
+            patterns,
+            attr,
+            ignore_excluded,
+            ignore_space_tokens,
+            alignment_mode,
+        ) in self.regex:
+            text = get_text(doclike, attr, ignore_excluded, ignore_space_tokens)
 
             for pattern in patterns:
                 for match in pattern.finditer(text):
@@ -403,6 +450,7 @@ class RegexMatcher(object):
                         attr=attr,
                         alignment_mode=alignment_mode,
                         ignore_excluded=ignore_excluded,
+                        ignore_space_tokens=ignore_space_tokens,
                     )
                     group_spans = {}
                     for group_key, group_string in match.groupdict().items():
@@ -415,6 +463,7 @@ class RegexMatcher(object):
                                 attr=attr,
                                 alignment_mode=alignment_mode,
                                 ignore_excluded=ignore_excluded,
+                                ignore_space_tokens=ignore_space_tokens,
                             )
 
                     yield span, group_spans

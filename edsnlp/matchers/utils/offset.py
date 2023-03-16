@@ -20,6 +20,7 @@ def alignment(
     doc: Doc,
     attr: str = "TEXT",
     ignore_excluded: bool = True,
+    ignore_space_tokens: bool = True,
 ) -> Tuple[List[int], List[int]]:
     """
     Align different representations of a `Doc` or `Span` object.
@@ -32,6 +33,8 @@ def alignment(
         Attribute to use, by default `"TEXT"`
     ignore_excluded : bool, optional
         Whether to remove excluded tokens, by default True
+    ignore_space_tokens : bool, optional
+        Whether to remove space tokens, by default True
 
     Returns
     -------
@@ -58,7 +61,9 @@ def alignment(
 
     for token in doc:
 
-        if not ignore_excluded or token.tag_ != "EXCLUDED":
+        if (not ignore_excluded or token.tag_ != "EXCLUDED") and (
+            not ignore_space_tokens or not token.tag_ == "SPACE"
+        ):
 
             # The token is not excluded, we add its extremities to the list
             original.append(token.idx)
@@ -77,6 +82,7 @@ def offset(
     doc: Doc,
     attr: str,
     ignore_excluded: bool,
+    ignore_space_tokens: bool,
     index: int,
 ) -> int:
     """
@@ -94,7 +100,9 @@ def offset(
         The attribute used by the [`RegexMatcher`][edsnlp.matchers.regex.RegexMatcher]
         (eg `NORM`)
     ignore_excluded : bool
-        Whether the RegexMatcher ignores excluded tokens.
+        Whether to ignore excluded tokens.
+    ignore_space_tokens : bool
+        Whether to ignore spaces tokens.
     index : int
         The index in the pre-processed text.
 
@@ -108,6 +116,7 @@ def offset(
         doc=doc,
         attr=attr,
         ignore_excluded=ignore_excluded,
+        ignore_space_tokens=ignore_space_tokens,
     )
 
     # We use bisect to efficiently find the correct rightmost-lower index

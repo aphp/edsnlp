@@ -300,7 +300,15 @@ class History(Qualifier):
                                 Span(doc, date.start, date.end, label="relative_date")
                             )
                     elif date._.date.direction.value == "PAST":
-                        if -date._.date.to_datetime() >= self.history_limit:
+                        if (
+                            -date._.date.to_duration(
+                                note_datetime=doc._.note_datetime,
+                                infer_from_context=True,
+                                tz="Europe/Paris",
+                                default_day=15,
+                            )
+                            >= self.history_limit
+                        ):
                             history_dates.append(
                                 Span(doc, date.start, date.end, label="relative_date")
                             )

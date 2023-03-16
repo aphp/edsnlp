@@ -35,27 +35,30 @@ doc = nlp(text)
 
 dates = doc.spans["dates"]
 dates
-# Out: [23 août 2021, il y a un an, pendant une semaine, mai 1995]
+# Out: [23 août 2021, il y a un an, mai 1995]
 
 dates[0]._.date.to_datetime()
 # Out: 2021-08-23T00:00:00+02:00
 
 dates[1]._.date.to_datetime()
-# Out: -1 year
+# Out: None
 
 note_datetime = pendulum.datetime(2021, 8, 27, tz="Europe/Paris")
 
 dates[1]._.date.to_datetime(note_datetime=note_datetime)
-# Out: DateTime(2020, 8, 27, 0, 0, 0, tzinfo=Timezone('Europe/Paris'))
+# Out: 2020-08-27T00:00:00+02:00
 
-date_3_output = dates[3]._.date.to_datetime(
+date_2_output = dates[2]._.date.to_datetime(
     note_datetime=note_datetime,
     infer_from_context=True,
     tz="Europe/Paris",
     default_day=15,
 )
-date_3_output
-# Out: DateTime(1995, 5, 15, 0, 0, 0, tzinfo=Timezone('Europe/Paris'))
+date_2_output
+# Out: 1995-05-15T00:00:00+02:00
+
+doc.spans["durations"]
+# Out: [pendant une semaine]
 ```
 
 ## Declared extensions

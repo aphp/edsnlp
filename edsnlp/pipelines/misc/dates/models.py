@@ -74,25 +74,36 @@ class AbsoluteDate(BaseDate):
         default_month=1,
         **kwargs,
     ) -> Optional[pendulum.datetime]:
-        """_summary_
+        """
+        Convert the date to a pendulum.datetime object.
 
         Parameters
         ----------
-        tz : Union[str, pendulum.tz.timezone], optional
-            _description_, by default "Europe/Paris"
-        note_datetime : Optional[Union[pendulum.datetime, datetime.datetime]], optional
-            _description_, by default None
-        infer_from_context : bool, optional
-            _description_, by default False
-        default_day : int, optional
-            _description_, by default 1
-        default_month : int, optional
-            _description_, by default 1
+        tz : Optional[Union[str, pendulum.tz.timezone]]
+            The timezone to use. Defaults to "Europe/Paris".
+        note_datetime : Optional[Union[pendulum.datetime, datetime.datetime]]
+            The datetime of the note. Used to infer missing parts of the date.
+        infer_from_context : bool
+            Whether to infer missing parts of the date from the note datetime.
+            In a (year, month, day) triplet:
+
+                - if only year is missing, it will be inferred from the note datetime
+                - if only month is missing, it will be inferred from the note datetime
+                - if only day is missing, it will be set to `default_day`
+                - if only the year is given, the day and month will be set to
+                  `default_day` and `default_month`
+                - if only the month is given, the day will be set to `default_day`
+                  and the year will be inferred from the note datetime
+                - if only the day is given, the month and year will be inferred from
+                  the note datetime
+        default_day : int
+            Default day to use when inferring missing parts of the date.
+        default_month : int
+            Default month to use when inferring missing parts of the date.
 
         Returns
         -------
         Optional[pendulum.datetime]
-            _description_
         """
 
         d = self.dict(exclude_none=True)
@@ -104,40 +115,31 @@ class AbsoluteDate(BaseDate):
                 return None
 
         elif infer_from_context:
-            # no year
-            if (
-                not self.year
-                and self.month
-                and self.day
-                and note_datetime
-                and not isinstance(note_datetime, NaTType)
-            ):
-                d["year"] = note_datetime.year
-                return pendulum.datetime(**d, tz=tz)
 
-            # no day
-            elif self.year and self.month and not self.day:
-                d["day"] = default_day
-                return pendulum.datetime(**d, tz=tz)
+            if note_datetime and not isinstance(note_datetime, NaTType):
+                note_datetime = pendulum.instance(note_datetime)
 
-            # year only
-            elif self.year and not self.month and not self.day:
-                d["day"] = default_day
-                d["month"] = default_month
-                return pendulum.datetime(**d, tz=tz)
+                if self.year is None:
+                    d["year"] = note_datetime.year
+                if self.month is None:
+                    if self.day is None:
+                        d["month"] = default_month
+                    else:
+                        d["month"] = note_datetime.month
+                if self.day is None:
+                    d["day"] = default_day
+            else:
+                if self.year is None:
+                    return None
+                if self.month is None:
+                    d["month"] = default_month
+                if self.day is None:
+                    d["day"] = default_day
 
-            # month only
-            elif (
-                not self.year
-                and self.month
-                and not self.day
-                and note_datetime
-                and not isinstance(note_datetime, NaTType)
-            ):
-                d["day"] = default_day
-                d["year"] = note_datetime.year
+            try:
                 return pendulum.datetime(**d, tz=tz)
-            return None
+            except ValueError:
+                return None
 
         return None
 

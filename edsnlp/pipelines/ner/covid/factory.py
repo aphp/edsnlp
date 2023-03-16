@@ -19,10 +19,28 @@ DEFAULT_CONFIG = dict(
 )
 def create_component(
     nlp: Language,
-    name: str,
-    attr: Union[str, Dict[str, str]],
-    ignore_excluded: bool,
+    name: str = "eds.covid",
+    attr: Union[str, Dict[str, str]] = "LOWER",
+    ignore_excluded: bool = False,
 ):
+    """
+    Create a factory that returns new GenericMatcher with patterns for covid
+
+    Parameters
+    ----------
+    nlp: Language
+        spaCy `Language` object.
+    name: str
+        The name of the pipe
+    attr: Union[str, Dict[str, str]]
+        Attribute to match on, eg `TEXT`, `NORM`, etc.
+    ignore_excluded: bool
+        Whether to skip excluded tokens during matching.
+
+    Returns
+    -------
+    GenericMatcher
+    """
 
     return GenericMatcher(
         nlp,

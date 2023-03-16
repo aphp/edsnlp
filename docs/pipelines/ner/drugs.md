@@ -38,12 +38,9 @@ Glucophage is the brand name of a medication that contains metformine, the first
 
 The pipeline can be configured using the following parameters :
 
-| Parameter             | Description                                                    | Default   |
-|-----------------------|----------------------------------------------------------------|-----------|
-| `term_matcher`        | Which algorithm should we use : `exact` or `simstring`         | `"LOWER"` |
-| `term_matcher_config` | Config of the algorithm (`SimstringMatcher`'s for `simstring`) | `"LOWER"` |
-| `attr`                | spaCy attribute to match on (eg `NORM`, `TEXT`, `LOWER`)       | `"NORM"`  |
-| `ignore_excluded`     | Whether to ignore excluded tokens for matching                 | `False`   |
+::: edsnlp.pipelines.ner.drugs.factory.create_component
+    options:
+        only_parameters: true
 
 ## Authors and citation
 

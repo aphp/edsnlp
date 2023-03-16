@@ -6,17 +6,15 @@ from edsnlp.pipelines.core.terminology import TerminologyMatcher, TerminologyTer
 
 from . import patterns
 
-PATTERN_CONFIG = dict(
-    languages=["FRE"],
-    sources=None,
-)
-
 DEFAULT_CONFIG = dict(
     attr="NORM",
     ignore_excluded=False,
     term_matcher=TerminologyTermMatcher.exact,
     term_matcher_config={},
-    pattern_config=PATTERN_CONFIG,
+    pattern_config=dict(
+        languages=["FRE"],
+        sources=None,
+    ),
 )
 
 
@@ -25,13 +23,42 @@ DEFAULT_CONFIG = dict(
 )
 def create_component(
     nlp: Language,
-    name: str,
-    attr: Union[str, Dict[str, str]],
-    ignore_excluded: bool,
-    term_matcher: TerminologyTermMatcher,
-    term_matcher_config: Dict[str, Any],
-    pattern_config: Dict[str, Any],
+    name: str = "eds.umls",
+    attr: Union[str, Dict[str, str]] = "NORM",
+    ignore_excluded: bool = False,
+    term_matcher: TerminologyTermMatcher = TerminologyTermMatcher.exact,
+    term_matcher_config: Dict[str, Any] = {},
+    pattern_config: Dict[str, Any] = dict(
+        languages=["FRE"],
+        sources=None,
+    ),
 ):
+    """
+    Create a component to recognize and normalize terms in document that
+    normalize to UMLS concepts.
+
+    Parameters
+    ----------
+    nlp: Language
+        spaCy `Language` object.
+    name: str
+        The name of the pipe
+    attr: Union[str, Dict[str, str]]
+        Attribute to match on, eg `TEXT`, `NORM`, etc.
+    ignore_excluded: bool
+        Whether to skip excluded tokens during matching.
+    term_matcher: TerminologyTermMatcher
+        The term matcher to use, either `TerminologyTermMatcher.exact` or
+        `TerminologyTermMatcher.simstring`
+    term_matcher_config: Dict[str, Any]
+        The configuration for the term matcher
+    pattern_config: Dict[str, Any]
+        The pattern retriever configuration
+
+    Returns
+    -------
+
+    """
 
     return TerminologyMatcher(
         nlp,

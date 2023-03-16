@@ -1,3 +1,5 @@
+from pytest import mark
+
 from edsnlp.matchers.simstring import SimstringMatcher
 
 
@@ -21,7 +23,12 @@ def test_with_normalizer(blank_nlp):
     blank_nlp.add_pipe("eds.normalizer")
     pattern = "matching"
     matcher = SimstringMatcher(
-        blank_nlp.vocab, attr="NORM", threshold=0.75, measure="dice"
+        blank_nlp.vocab,
+        attr="NORM",
+        threshold=0.75,
+        measure="dice",
+        ignore_space_tokens=True,
+        ignore_excluded=True,
     )
 
     matcher.build_patterns(
@@ -36,10 +43,10 @@ def test_with_normalizer(blank_nlp):
     texts = (
         ("Ceci est un test de matching", ["matching"]),
         ("Ceci est un test de matchings", ["matchings"]),
-        ("On prescrit du paracétomol, un medicament.", ["paracétomol"]),
+        ("On prescrit du paracétomol      , un medicament.", ["paracétomol"]),
         (
-            "Le patient a un carcinome hépatacellulaire !",
-            ["carcinome hépatacellulaire"],
+            "Le patient a un carcinome\nhépatacellulaire !",
+            ["carcinome\nhépatacellulaire"],
         ),
     )
 
@@ -55,10 +62,11 @@ def test_with_normalizer(blank_nlp):
         assert sorted([doc[s:e].text for _, s, e in matcher(doc)]) == ents
 
 
-def test_without_normalizer(blank_nlp):
+@mark.parametrize("measure", ["dice", "cosine", "jaccard", "overlap"])
+def test_without_normalizer(blank_nlp, measure):
     pattern = "matching"
     matcher = SimstringMatcher(
-        blank_nlp.vocab, attr="NORM", threshold=0.75, measure="dice"
+        blank_nlp.vocab, attr="NORM", threshold=0.6, measure=measure
     )
 
     matcher.build_patterns(

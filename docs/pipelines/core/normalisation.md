@@ -168,7 +168,7 @@ matching.
 !!! tip
 
       This component and its `spaces` option should be enabled if you ever set
-      `skip_space_tokens` parameter token to True in a downstream component.
+      `ignore_space_tokens` parameter token to True in a downstream component.
 
 ```python
 import spacy

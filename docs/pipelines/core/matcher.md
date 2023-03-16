@@ -43,14 +43,9 @@ This snippet is complete, and should run as is.
 
 The pipeline can be configured using the following parameters :
 
-| Parameter             | Explanation                                                    | Default                 |
-| --------------------- | -------------------------------------------------------------- | ----------------------- |
-| `terms`               | Terms patterns. Expects a dictionary.                          | `None` (use regex only) |
-| `regex`               | RegExp patterns. Expects a dictionary.                         | `None` (use terms only) |
-| `term_matcher`        | Which algorithm should we use : `exact` or `simstring`         | `"exact"`               |
-| `term_matcher_config` | Config of the algorithm (`SimstringMatcher`'s for `simstring`) | `{}`                    |
-| `attr`                | spaCy attribute to match on (eg `NORM`, `LOWER`)               | `"TEXT"`                |
-| `ignore_excluded`     | Whether to skip excluded tokens during matching                | `False`                 |
+::: edsnlp.pipelines.core.matcher.factory.create_component
+    options:
+        only_parameters: true
 
 Patterns, be they `terms` or `regex`, are defined as dictionaries where keys become the label of the extracted entities. Dictionary values are a either a single expression or a list of expressions that match the concept (see [example](#usage)).
 

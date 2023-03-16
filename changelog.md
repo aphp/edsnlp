@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Add `eds.spaces` (or `eds.normalizer` with `spaces=True`) to detect space tokens, and add `ignore_space_tokens` to `EDSPhraseMatcher` and `SimstringMatcher` to skip them
+
 ## v0.8.0 (2023-03-09)
 
 ### Added

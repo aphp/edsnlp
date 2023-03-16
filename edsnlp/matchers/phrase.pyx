@@ -123,32 +123,31 @@ cdef class EDSPhraseMatcher(PhraseMatcher):
             SpanC ms
             void * result
         while idx < end_idx:
+            while idx < end_idx and (
+                (0 < self.space_hash == doc.c[idx].tag)
+                or (0 < self.excluded_hash == doc.c[idx].tag)
+            ):
+                idx += 1
             start = idx
-            token = Token.get_struct_attr(&doc.c[idx], self.attr)
             # look for sequences from this position
-            if 0 < self.space_hash == doc.c[idx].tag:
-                idx += 1
-                continue
-            if 0 < self.excluded_hash == doc.c[idx].tag:
-                idx += 1
-                continue
+            token = Token.get_struct_attr(&doc.c[idx], self.attr)
             result = map_get(current_node, token)
             if result:
                 current_node = <MapStruct *> result
                 idy = idx + 1
                 while idy < end_idx:
-                    if 0 < self.space_hash == doc.c[idy].tag:
-                        idy += 1
-                        continue
-                    if 0 < self.excluded_hash == doc.c[idy].tag:
-                        idy += 1
-                        continue
                     result = map_get(current_node, self._terminal_hash)
                     if result:
                         i = 0
                         while map_iter(<MapStruct *> result, &i, &key, &value):
                             ms = make_spanstruct(key, start, idy)
                             matches.push_back(ms)
+
+                    while idy < end_idx and (
+                        (0 < self.space_hash == doc.c[idy].tag)
+                        or (0 < self.excluded_hash == doc.c[idy].tag)
+                    ):
+                        idy += 1
                     inner_token = Token.get_struct_attr(&doc.c[idy], self.attr)
                     result = map_get(current_node, inner_token)
                     if result:

@@ -1,3 +1,5 @@
+from itertools import chain
+
 import spacy
 from pytest import fixture, raises
 from spacy.language import Language
@@ -6,7 +8,7 @@ from edsnlp.pipelines.misc.measurements import MeasurementsMatcher
 from edsnlp.pipelines.misc.measurements.factory import DEFAULT_CONFIG
 
 text = (
-    "Le patient fait 1 m 50 kg. La tumeur fait 2cm x 3cm. \n"
+    "Le patient fait 1 m 50 kg. La tumeur fait 2.0cm x 3cm. \n"
     "Une autre tumeur plus petite fait 2 par 1mm.\n"
     "Les trois éléments font 8, 13 et 15dm."
 )
@@ -52,15 +54,15 @@ def test_measurements_component(blank_nlp: Language, matcher: MeasurementsMatche
 
     m1, m2, m3, m4, m5, m6, m7, m8, m9 = doc.spans["measurements"]
 
-    assert str(m1._.value) == "1.0 m"
-    assert str(m2._.value) == "50.0 kg"
+    assert str(m1._.value) == "1 m"
+    assert str(m2._.value) == "50 kg"
     assert str(m3._.value) == "2.0 cm"
-    assert str(m4._.value) == "3.0 cm"
-    assert str(m5._.value) == "2.0 mm"
-    assert str(m6._.value) == "1.0 mm"
-    assert str(m7._.value) == "8.0 dm"
-    assert str(m8._.value) == "13.0 dm"
-    assert str(m9._.value) == "15.0 dm"
+    assert str(m4._.value) == "3 cm"
+    assert str(m5._.value) == "2 mm"
+    assert str(m6._.value) == "1 mm"
+    assert str(m7._.value) == "8 dm"
+    assert str(m8._.value) == "13 dm"
+    assert str(m9._.value) == "15 dm"
 
 
 def test_measurements_component_scaling(
@@ -140,13 +142,28 @@ def test_compare(blank_nlp: Language, matcher: MeasurementsMatcher):
     assert m1._.value <= m2._.value
     assert m2._.value > m1._.value
 
+    m3 = "Entre deux et trois metres"
+    m4 = "De 2 à 3 metres"
+    m3 = matcher(blank_nlp(m3)).spans["measurements"][0]
+    m4 = matcher(blank_nlp(m4)).spans["measurements"][0]
+    print(blank_nlp("Entre deux et trois metres"))
+    assert str(m3._.value) == "2-3 m"
+    assert str(m4._.value) == "2-3 m"
+    assert m4._.value.cm == (200.0, 300.0)
+
+    assert m3._.value == m4._.value
+    assert m3._.value <= m4._.value
+    assert m3._.value >= m1._.value
+
+    assert max(list(chain(m1._.value, m2._.value, m3._.value, m4._.value))).cm == 300
+
 
 def test_unitless(blank_nlp: Language, matcher: MeasurementsMatcher):
     for text, res in [
-        ("BMI: 24 .", "24.0 kg_per_m2"),
+        ("BMI: 24 .", "24 kg_per_m2"),
         ("Le patient mesure 1.5 ", "1.5 m"),
-        ("Le patient mesure 152 ", "152.0 cm"),
-        ("Le patient pèse 34 ", "34.0 kg"),
+        ("Le patient mesure 152 ", "152 cm"),
+        ("Le patient pèse 34 ", "34 kg"),
     ]:
         doc = blank_nlp(text)
         doc = matcher(doc)
@@ -159,8 +176,37 @@ def test_non_matches(blank_nlp: Language, matcher: MeasurementsMatcher):
         "On délivre à 10 g / h.",
         "Le patient grandit de 10 cm par jour ",
         "Truc 10cma truc",
+        "01.42.43.56.78 m",
+    ]:
+        doc = blank_nlp(text)
+        print(list(doc))
+        doc = matcher(doc)
+
+        assert len(doc.spans["measurements"]) == 0
+
+
+def test_numbers(blank_nlp: Language, matcher: MeasurementsMatcher):
+    for text, res in [
+        ("deux m", "2 m"),
+        ("2 m", "2 m"),
+        ("⅛ m", "0.125 m"),
+        ("0 m", "0 m"),
     ]:
         doc = blank_nlp(text)
         doc = matcher(doc)
 
-        assert len(doc.spans["measurements"]) == 0
+        assert str(doc.spans["measurements"][0]._.value) == res
+
+
+def test_ranges(blank_nlp: Language, matcher: MeasurementsMatcher):
+    for text, res, snippet in [
+        ("Le patient fait entre 1 et 2m", "1-2 m", "entre 1 et 2m"),
+        ("On mesure de 2 à 2.5 dl d'eau", "2-2.5 dl", "de 2 à 2.5 dl"),
+    ]:
+        doc = blank_nlp(text)
+        doc = matcher(doc)
+
+        measurement = doc.spans["measurements"][0]
+        print(doc.spans["measurements"])
+        assert str(measurement._.value) == res
+        assert measurement.text == snippet

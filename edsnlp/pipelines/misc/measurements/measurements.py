@@ -9,11 +9,12 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 import regex
 import spacy
 from spacy.tokens import Doc, Span
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher
-from edsnlp.pipelines.misc.measurements.patterns import common_measurements
+from edsnlp.matchers.utils import get_text
+from edsnlp.pipelines.misc.measurements import patterns
 from edsnlp.utils.filter import filter_spans
 
 __all__ = ["MeasurementsMatcher"]
@@ -32,8 +33,8 @@ class UnitConfig(TypedDict):
 
 
 class UnitlessRange(TypedDict):
-    min: int
-    max: int
+    min: NotRequired[int]
+    max: NotRequired[int]
     unit: str
 
 
@@ -50,7 +51,8 @@ class UnitlessPatternConfigWithName(TypedDict):
 
 class MeasureConfig(TypedDict):
     unit: str
-    unitless_patterns: List[UnitlessPatternConfig]
+    unitless_patterns: NotRequired[List[UnitlessPatternConfig]]
+    name: NotRequired[str]
 
 
 class Measurement(abc.ABC):
@@ -92,12 +94,17 @@ class UnitRegistry:
 
     @lru_cache(maxsize=-1)
     def parse_unit(self, unit: str) -> Tuple[str, float]:
-        degrees = defaultdict(lambda: 0)
+        degrees = defaultdict(lambda: [])
         scale = 1
         for part in regex.split("(?<!per)_", unit):
             unit_config = self.config[unicodedata.normalize("NFKC", part)]
-            degrees[unit_config["dim"]] += unit_config["degree"]
+            degrees[unit_config["dim"]].append(unit_config["degree"])
             scale *= unit_config["scale"]
+        degrees = {
+            k: sum(v) if len(set(v)) > 1 else v[0]
+            for k, v in degrees.items()
+            if sum(v) != 0
+        }
         return str(dict(sorted(degrees.items()))), scale
 
 
@@ -142,11 +149,11 @@ class SimpleMeasurement(Measurement):
             self.value + other.convert_to(self.unit), self.unit, self.registry
         )
 
-    def __lt__(self, other: "SimpleMeasurement"):
-        return self.convert_to(other.unit) < other.value
+    def __lt__(self, other: Union["SimpleMeasurement", "RangeMeasurement"]):
+        return self.convert_to(other.unit) < min((part.value for part in other))
 
-    def __le__(self, other: "SimpleMeasurement"):
-        return self.convert_to(other.unit) <= other.value
+    def __le__(self, other: Union["SimpleMeasurement", "RangeMeasurement"]):
+        return self.convert_to(other.unit) <= min((part.value for part in other))
 
     def convert_to(self, other_unit):
         self_degrees, self_scale = self.registry.parse_unit(self.unit)
@@ -156,11 +163,77 @@ class SimpleMeasurement(Measurement):
             raise AttributeError(
                 f"Units {self.unit} and {other_unit} are not homogenous"
             )
-        new_value = self.value * self_scale / other_scale
-        return new_value
+        ratio = self_scale / other_scale
+        if ratio != 1:
+            return self.value * ratio
+        return self.value
 
     def __getattr__(self, other_unit):
         return self.convert_to(other_unit)
+
+    @classmethod
+    def verify(cls, ent):
+        return True
+
+
+class RangeMeasurement(Measurement):
+    def __init__(self, from_value, to_value, unit, registry):
+        super().__init__()
+        self.value = (from_value, to_value)
+        self.unit = unit
+        self.registry = registry
+
+    @classmethod
+    def from_measurements(cls, a, b):
+        a_value = a.value
+        b_value = b.convert_to(a.unit)
+        return RangeMeasurement(a_value, b_value, a.unit, a.registry)
+
+    def convert_to(self, other_unit):
+        self_degrees, self_scale = self.registry.parse_unit(self.unit)
+        other_degrees, other_scale = self.registry.parse_unit(other_unit)
+
+        if self_degrees != other_degrees:
+            raise AttributeError(
+                f"Units {self.unit} and {other_unit} are not homogenous"
+            )
+        ratio = self_scale / other_scale
+        if ratio == 1:
+            return self.value
+        from_value = self.value[0] * ratio
+        to_value = self.value[1] * ratio
+        return (from_value, to_value)
+
+    def __iter__(self):
+        yield self[0]
+        yield self[1]
+
+    def __len__(self):
+        return 2
+
+    def __lt__(self, other: Union[SimpleMeasurement, "RangeMeasurement"]):
+        return max(self.convert_to(other.unit)) < min((part.value for part in other))
+
+    def __le__(self, other: Union[SimpleMeasurement, "RangeMeasurement"]):
+        return max(self.convert_to(other.unit)) <= max((part.value for part in other))
+
+    def __getattr__(self, other_unit):
+        return self.convert_to(other_unit)
+
+    def __eq__(self, other: Any):
+        if isinstance(other, RangeMeasurement):
+            return self.convert_to(other.unit) == other.value
+        return False
+
+    def __str__(self):
+        return f"{self.value[0]}-{self.value[1]} {self.unit}"
+
+    def __repr__(self):
+        return f"RangeMeasurement({self.value}, {repr(self.unit)})"
+
+    def __getitem__(self, item: int):
+        assert isinstance(item, int)
+        return SimpleMeasurement(self.value[item], self.unit, self.registry)
 
     @classmethod
     def verify(cls, ent):
@@ -171,14 +244,22 @@ class MeasurementsMatcher:
     def __init__(
         self,
         nlp: spacy.Language,
-        measurements: Union[List[str], Tuple[str], Dict[str, MeasureConfig]],
-        units_config: Dict[str, UnitConfig],
-        number_terms: Dict[str, List[str]],
-        stopwords: List[str] = ("par", "sur", "de", "a", ":"),
-        unit_divisors: List[str] = ("par", "/"),
+        measurements: Optional[
+            Union[
+                List[Union[str, MeasureConfig]],
+                Dict[str, MeasureConfig],
+            ]
+        ] = None,
+        units_config: Dict[str, UnitConfig] = patterns.units_config,
+        number_terms: Dict[str, List[str]] = patterns.number_terms,
+        stopwords: List[str] = patterns.stopwords,
+        unit_divisors: List[str] = patterns.unit_divisors,
         name: str = "measurements",
         ignore_excluded: bool = True,
+        compose_units: bool = True,
         attr: str = "NORM",
+        range_patterns: Union[List[Tuple[str, str]]] = patterns.range_patterns,
+        as_ents: bool = False,
     ):
         """
         Matcher component to extract measurements.
@@ -198,7 +279,7 @@ class MeasurementsMatcher:
         ----------
         nlp : Language
             The SpaCy object.
-        measurements : Dict[str, MeasureConfig]
+        measurements : Optional[Union[List[Union[str, MeasureConfig]],Dict[str, MeasureConfig]]]
             A mapping from measure names to MeasureConfig
             Each measure's configuration has the following shape:
             {
@@ -229,30 +310,57 @@ class MeasurementsMatcher:
             Whether to match on the text ('TEXT') or on the normalized text ('NORM')
         ignore_excluded : bool
             Whether to exclude pollution patterns when matching in the text
-        """
+        compose_units: bool
+            Whether to compose units (like "m/s" or "m.s-1")
+        range_patterns: List[Tuple[str, str]]
+            A list of "{FROM} xx {TO} yy" patterns to match range measurements
+        """  # noqa E501
 
         if measurements is None:
-            measurements = common_measurements
+            measurements = [
+                {**m, "name": k} for k, m in patterns.common_measurements.items()
+            ]
         elif isinstance(measurements, (list, tuple)):
-            measurements = {m: common_measurements[m] for m in measurements}
+            measurements = [
+                m
+                if isinstance(m, dict)
+                else {**patterns.common_measurements[m], "name": m}
+                for m in measurements
+            ]
+        elif isinstance(measurements, dict):
+            measurements = [{"name": k, **m} for k, m in measurements.items()]
 
         self.nlp = nlp
         self.name = name
         self.unit_registry = UnitRegistry(units_config)
-        self.regex_matcher = RegexMatcher(attr=attr, ignore_excluded=True)
-        self.term_matcher = EDSPhraseMatcher(nlp.vocab, attr=attr, ignore_excluded=True)
+        self.regex_matcher = RegexMatcher(
+            attr=attr,
+            ignore_excluded=True,
+        )
+        self.term_matcher = EDSPhraseMatcher(
+            nlp.vocab,
+            attr=attr,
+            ignore_excluded=ignore_excluded,
+            ignore_space_tokens=True,
+        )
         self.unitless_patterns: Dict[str, UnitlessPatternConfigWithName] = {}
         self.unit_part_label_hashes: Set[int] = set()
         self.unitless_label_hashes: Set[int] = set()
         self.unit_followers: Dict[str, str] = {}
         self.measure_names: Dict[str, str] = {}
+        self.as_ents = as_ents
+        self.compose_units = compose_units
+        self.range_patterns = range_patterns
 
         # NUMBER PATTERNS
+        one_plus = "[1-9][0-9]*"
         self.regex_matcher.add(
             "number",
             [
-                r"(?<![a-z-])\d+([ ]\d{3})*[ ]+(?:[,.][ ]+\d+)?",
-                r"(?<![a-z-])\d+([ ]\d{3})*(?:[,.]\d+)?",
+                rf"(?<![0-9][.,]?){one_plus}([ ]\d{{3}})*[ ]+(?:[,.][ ]+\d+)?",
+                rf"(?<![0-9][.,]?){one_plus}([ ]\d{{3}})*(?:[,.]\d+)?",
+                rf"(?<![0-9][.,]?){one_plus}([ ]/[ ]|/){one_plus}",
+                r"(?<![0-9][.,]?)00?",
             ],
         )
         self.number_label_hashes = {nlp.vocab.strings["number"]}
@@ -273,11 +381,13 @@ class MeasurementsMatcher:
             {
                 "per": unit_divisors,
                 "stopword": stopwords,
+                "unitless_stopword": [":"],
             },
         )
 
         # MEASURES
-        for name, measure_config in measurements.items():
+        for measure_config in measurements:
+            name = measure_config["name"]
             unit = measure_config["unit"]
             self.measure_names[self.unit_registry.parse_unit(unit)[0]] = name
             if "unitless_patterns" in measure_config:
@@ -327,7 +437,17 @@ class MeasurementsMatcher:
         for unit_part in filter_spans(term_matches):
             if unit_part.label not in self.unit_part_label_hashes:
                 continue
-            if last is not None and unit_part.start != last.end and len(current):
+            if last is not None and (
+                (
+                    unit_part.doc[last.end : unit_part.start].text.strip() != ""
+                    and len(current)
+                )
+                or (
+                    not self.compose_units
+                    and len(current)
+                    and current[-1].label_ != "per"
+                )
+            ):
                 doc = current[0].doc
                 # Last non "per" match: we don't want our units to be like `g_per`
                 end = next(
@@ -340,8 +460,7 @@ class MeasurementsMatcher:
                     unit_label_hashes.add(units[-1].label)
                 current = []
                 last = None
-            if len(current) > 0 or unit_part.label_ != "per":
-                current.append(unit_part)
+            current.append(unit_part)
             last = unit_part
 
         end = next(
@@ -386,15 +505,12 @@ class MeasurementsMatcher:
         last = 0
         offsets = []
         for ent, is_sent_split in matches:
-            if ent.start != last:
+            if ent.start != last and not doc[last : ent.start].text.strip() == "":
                 pseudo.append("w")
             offsets.append(len(pseudo))
-            if is_sent_split:
-                pseudo.append(".")
-            else:
-                pseudo.append(pseudo_mapping.get(ent.label, "w"))
+            pseudo.append(pseudo_mapping.get(ent.label, "." if is_sent_split else "w"))
             last = ent.end
-        if len(doc) != last:
+        if len(doc) != last and doc[last : len(doc)].text.strip() == "":
             pseudo.append("w")
         pseudo = "".join(pseudo)
 
@@ -444,9 +560,7 @@ class MeasurementsMatcher:
                 *zip(units, repeat(True), repeat(False)),
                 *zip(doc.ents, repeat(False), repeat(False)),
                 *zip(sent_ends, repeat(True), repeat(True)),
-            ],
-            # filter entities to keep only the ...
-            sort_key=measurements_match_tuples_sort_key,
+            ]
         )
 
         # Remove non-measurement related spans (keep = False) and sort the matches
@@ -498,6 +612,7 @@ class MeasurementsMatcher:
             matches,
             {
                 self.nlp.vocab.strings["stopword"]: ",",
+                self.nlp.vocab.strings["unitless_stopword"]: ":",
                 self.nlp.vocab.strings["number"]: "n",
                 **{name: "u" for name in unit_label_hashes},
                 **{name: "n" for name in self.number_label_hashes},
@@ -506,6 +621,7 @@ class MeasurementsMatcher:
 
         measurements = []
         matched_unit_indices = set()
+        matched_number_indices = set()
 
         # Iterate through the number matches
         for number_idx, (number, is_sent_split) in enumerate(matches):
@@ -515,12 +631,16 @@ class MeasurementsMatcher:
             # Detect the measure value
             try:
                 if number.label_ == "number":
-                    value = float(
-                        number.text.replace(" ", "").replace(",", ".").replace(" ", "")
+                    number_text = (
+                        number.text.replace(" ", "")
+                        .replace(",", ".")
+                        .replace(" ", "")
+                        .lstrip("0")
                     )
+                    value = eval(number_text or "0")
                 else:
-                    value = float(number.label_)
-            except ValueError:
+                    value = eval(number.label_)
+            except (ValueError, SyntaxError):
                 continue
 
             unit_idx = unit_text = unit_norm = None
@@ -566,7 +686,7 @@ class MeasurementsMatcher:
                     )
                     unit_norm = None
                     if re.fullmatch(
-                        r"[,n]*",
+                        r"[,:n]*",
                         pseudo[offsets[unitless_idx] + 1 : offsets[number_idx]],
                     ):
                         unitless_pattern = self.unitless_patterns[unitless_text.label_]
@@ -584,10 +704,20 @@ class MeasurementsMatcher:
                 continue
 
             # Compute the final entity
-            if unit_text and unit_text.end == number.start:
-                ent = doc[unit_text.start : number.end]
-            elif unit_text and unit_text.start == number.end:
+            # TODO: handle this part better without .text.strip(), with cases for
+            #  stopwords, etc
+            if (
+                unit_text
+                and number.start <= unit_text.end
+                and doc[number.end : unit_text.start].text.strip() == ""
+            ):
                 ent = doc[number.start : unit_text.end]
+            elif (
+                unit_text
+                and unit_text.start <= number.end
+                and doc[unit_text.end : number.start].text.strip() == ""
+            ):
+                ent = doc[unit_text.start : number.end]
             else:
                 ent = number
 
@@ -609,8 +739,20 @@ class MeasurementsMatcher:
 
             if unit_idx is not None:
                 matched_unit_indices.add(unit_idx)
+            if number_idx is not None:
+                matched_number_indices.add(number_idx)
 
-        return measurements
+        unmatched = []
+        for idx, (match, _) in enumerate(matches):
+            if (
+                match.label in unit_label_hashes
+                and idx not in matched_unit_indices
+                or match.label in self.number_label_hashes
+                and idx not in matched_number_indices
+            ):
+                unmatched.append(match)
+
+        return measurements, unmatched
 
     @classmethod
     def merge_adjacent_measurements(cls, measurements: List[Span]) -> List[Span]:
@@ -645,6 +787,54 @@ class MeasurementsMatcher:
 
         return merged
 
+    def extract_ranges(self, measurements: List[Span]) -> List[Span]:
+        """
+        Aggregates extracted measurements together when they are adjacent to handle
+        cases like
+        - 1 meter 50 cm
+        - 30° 4' 54"
+
+        Parameters
+        ----------
+        measurements: List[Span]
+
+        Returns
+        -------
+        List[Span]
+        """
+        if not self.range_patterns:
+            return measurements
+
+        merged = measurements[:1]
+        for ent in measurements[1:]:
+            last = merged[-1]
+
+            from_text = last.doc[last.start - 1].norm_ if last.start > 0 else None
+            to_text = get_text(last.doc[last.end : ent.start], "NORM", True)
+            matching_patterns = [
+                (a, b)
+                for a, b in self.range_patterns
+                if b == to_text and (a is None or a == from_text)
+            ]
+            if len(matching_patterns):
+                try:
+                    new_value = RangeMeasurement.from_measurements(
+                        last._.value, ent._.value
+                    )
+                    merged[-1] = last = last.doc[
+                        last.start
+                        if matching_patterns[0][0] is None
+                        else last.start - 1 : ent.end
+                    ]
+                    last.label_ = ent.label_
+                    last._.value = new_value
+                except (AttributeError, TypeError):
+                    merged.append(ent)
+            else:
+                merged.append(ent)
+
+        return merged
+
     def __call__(self, doc):
         """
         Adds measurements to document's "measurements" SpanGroup.
@@ -659,22 +849,17 @@ class MeasurementsMatcher:
         doc:
             spaCy Doc object, annotated for extracted measurements.
         """
-        measurements = self.extract_measurements(doc)
+        measurements, _ = self.extract_measurements(doc)
         measurements = self.merge_adjacent_measurements(measurements)
+        measurements = self.extract_ranges(measurements)
 
-        doc.spans["measurements"] = measurements
+        if self.as_ents:
+            doc.ents = filter_spans((*doc.ents, *measurements))
+
+        doc.spans[self.name] = measurements
 
         # for backward compatibility
-        doc.spans["measures"] = doc.spans["measurements"]
+        if self.name == "measurements":
+            doc.spans["measures"] = doc.spans["measurements"]
 
         return doc
-
-
-def measurements_match_tuples_sort_key(
-    span__keep__is_sent_end: Tuple[Span, bool, bool]
-) -> Tuple[int, int, bool]:
-    span, _, is_sent_end = span__keep__is_sent_end
-
-    length = span.end - span.start
-
-    return length, span.end, not is_sent_end

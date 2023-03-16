@@ -217,14 +217,9 @@ Let us see what we can get from this pipeline with a few examples
 
 The pipeline can be configured using the following parameters :
 
-| Parameter          | Explanation                                                                                                              | Default              |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------ | -------------------- |
-| `patterns`         | Dictionary or list of dictionaries. See below                                                                            |                      |
-| `assign_as_span`   | Whether to store eventual extractions defined via the `assign` key as Spans or as string                                 | False                |
-| `attr`             | spaCy attribute to match on (eg `NORM`, `LOWER`)                                                                         | `"TEXT"`             |
-| `ignore_excluded`  | Whether to skip excluded tokens during matching                                                                          | `False`              |
-| `include_assigned` | Whether to include (eventuals) assign matches to the final entity                                                        | `False`              |
-| `regex_flags`      | RegExp flags to use when matching, filtering and assigning (See [here](https://docs.python.org/3/library/re.html#flags)) | 0 (use default flag) |
+::: edsnlp.pipelines.core.contextual_matcher.factory.create_component
+    options:
+        only_parameters: true
 
 However, most of the configuration is provided in the `patterns` key, as a **pattern dictionary** or a **list of pattern dictionaries**
 

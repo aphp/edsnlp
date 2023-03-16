@@ -93,10 +93,9 @@ ent._.adicap.dict()
 
 The pipeline can be configured using the following parameters :
 
-| Parameter | Description                                                                             | Default              |
-|-----------|-----------------------------------------------------------------------------------------|----------------------|
-| `window`  | Number of tokens to look for prefix. It will never go further the start of the sentence | -500                 |
-| `prefix`  | The prefix to look before the ADICAP pattern                                            | `r"(?i)(codification |adicap)"` |
+::: edsnlp.pipelines.ner.adicap.factory.create_component
+    options:
+        only_parameters: true
 
 
 ## Authors and citation

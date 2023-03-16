@@ -22,10 +22,9 @@ doc.ents
 
 The pipeline can be configured using the following parameters :
 
-| Parameter         | Description                                              | Default   |
-| ----------------- | -------------------------------------------------------- | --------- |
-| `attr`            | spaCy attribute to match on (eg `NORM`, `TEXT`, `LOWER`) | `"LOWER"` |
-| `ignore_excluded` | Whether to ignore excluded tokens for matching           | `False`   |
+::: edsnlp.pipelines.ner.covid.factory.create_component
+    options:
+        only_parameters: true
 
 ## Authors and citation
 

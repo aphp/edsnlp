@@ -35,6 +35,7 @@ def create_component(
     detect_time: bool = True,
     as_ents: bool = False,
     attr: str = "LOWER",
+    use_date_label: bool = False,
 ):
     """
     Tags and normalizes dates, using the open-source `dateparser` library.
@@ -73,6 +74,9 @@ def create_component(
         Whether to treat dates as entities
     attr : str
         spaCy attribute to use
+    use_date_label: bool
+        Whether to use a shared `date` label for absolute and relative dates
+        instead of `absolute` and `relative` labels
     """
     return Dates(
         nlp,
@@ -85,4 +89,5 @@ def create_component(
         detect_time=detect_time,
         as_ents=as_ents,
         attr=attr,
+        use_date_label=use_date_label,
     )

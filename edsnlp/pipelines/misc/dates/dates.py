@@ -55,6 +55,9 @@ class Dates(BaseComponent):
         Whether to treat dates as entities
     attr : str
         spaCy attribute to use
+    use_date_label: bool
+        Whether to use a shared `date` label for absolute and relative dates
+        instead of `absolute` and `relative` labels
     """
 
     # noinspection PyProtectedMember
@@ -70,8 +73,10 @@ class Dates(BaseComponent):
         detect_time: bool,
         as_ents: bool,
         attr: str,
+        use_date_label: bool = False,
     ):
 
+        self.use_date_label = use_date_label
         self.nlp = nlp
 
         if absolute is None:
@@ -195,8 +200,12 @@ class Dates(BaseComponent):
         for span, groupdict in dates:
             if span.label_ == "relative":
                 parsed = RelativeDate.parse_obj(groupdict)
+                if self.use_date_label:
+                    span.label_ = "date"
             elif span.label_ == "absolute":
                 parsed = AbsoluteDate.parse_obj(groupdict)
+                if self.use_date_label:
+                    span.label_ = "date"
             else:
                 parsed = Duration.parse_obj(groupdict)
 
@@ -277,7 +286,8 @@ class Dates(BaseComponent):
         dates = self.process(doc)
         dates = self.parse(dates)
 
-        doc.spans["dates"] = dates
+        doc.spans["dates"] = [d for d in dates if d.label_ != "duration"]
+        doc.spans["durations"] = [d for d in dates if d.label_ == "duration"]
 
         if self.detect_periods:
             doc.spans["periods"] = self.process_periods(dates)

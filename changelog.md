@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- New `to_duration` method to convert an absolute date into a date relative to the note_datetime (or None)
+- New `use_date_label` in `eds.dates` to store absolute and relative dates under a same `date` label (instead of `absolute` and `relative`)
+
+### Changed
+
+- Duration time entities (from `eds.dates`) are now stored in the `durations` span group, different than the `dates` span group
+- `to_datetime` now only return absolute dates, converts relative dates into absolute if `doc._.note_datetime` is given, and None otherwise
+
 ## v0.8.0 (2023-03-09)
 
 ### Added

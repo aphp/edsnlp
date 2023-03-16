@@ -2,6 +2,7 @@ import abc
 import re
 import unicodedata
 from collections import defaultdict
+from enum import Enum
 from functools import lru_cache
 from itertools import repeat
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
@@ -15,13 +16,29 @@ from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.matchers.utils import get_text
 from edsnlp.pipelines.misc.measurements import patterns
-from edsnlp.utils.filter import filter_spans
+from edsnlp.utils.collections import dedup
+from edsnlp.utils.filter import align_spans, filter_spans, get_span_group
 
 __all__ = ["MeasurementsMatcher"]
 
 
 AFTER_SNIPPET_LIMIT = 6
 BEFORE_SNIPPET_LIMIT = 10
+
+
+class MergeStrategy(str, Enum):
+    """
+    The strategy to use when merging measurements.
+    """
+
+    # Align the new measurement to existing spans
+    align = "align"
+
+    # Only extract measurements if they fall within an existing span
+    intersect = "intersect"
+
+    # Extract measurements regardless of whether they fall within an existing span
+    union = "union"
 
 
 class UnitConfig(TypedDict):
@@ -260,6 +277,7 @@ class MeasurementsMatcher:
         attr: str = "NORM",
         range_patterns: Union[List[Tuple[str, str]]] = patterns.range_patterns,
         as_ents: bool = False,
+        merge_mode: MergeStrategy = MergeStrategy.union,
     ):
         """
         Matcher component to extract measurements.
@@ -351,6 +369,7 @@ class MeasurementsMatcher:
         self.as_ents = as_ents
         self.compose_units = compose_units
         self.range_patterns = range_patterns
+        self.merge_mode = merge_mode
 
         # NUMBER PATTERNS
         one_plus = "[1-9][0-9]*"
@@ -477,7 +496,7 @@ class MeasurementsMatcher:
     @classmethod
     def make_pseudo_sentence(
         cls,
-        doc: Doc,
+        doclike: Union[Doc, Span],
         matches: List[Tuple[Span, bool]],
         pseudo_mapping: Dict[int, str],
     ) -> Tuple[str, List[int]]:
@@ -489,7 +508,8 @@ class MeasurementsMatcher:
 
         Parameters
         ----------
-        doc: Doc
+        doclike: Union[Doc, Span]
+            The document or span to transform
         matches: List[(Span, bool)]
             List of tuple of span and whether the span represents a sentence end
         pseudo_mapping: Dict[int, str]
@@ -502,15 +522,19 @@ class MeasurementsMatcher:
             - a list of offsets to convert match indices into pseudo sent char indices
         """
         pseudo = []
-        last = 0
+        snippet = doclike if isinstance(doclike, Span) else doclike[:]
+        last = snippet.start
         offsets = []
         for ent, is_sent_split in matches:
-            if ent.start != last and not doc[last : ent.start].text.strip() == "":
+            if (
+                ent.start != last
+                and not doclike.doc[last : ent.start].text.strip() == ""
+            ):
                 pseudo.append("w")
             offsets.append(len(pseudo))
             pseudo.append(pseudo_mapping.get(ent.label, "." if is_sent_split else "w"))
             last = ent.end
-        if len(doc) != last and doc[last : len(doc)].text.strip() == "":
+        if snippet.end != last and doclike.doc[last : snippet.end].text.strip() == "":
             pseudo.append("w")
         pseudo = "".join(pseudo)
 
@@ -551,14 +575,16 @@ class MeasurementsMatcher:
         # Filter out measurement-related spans that overlap already matched
         # entities (in doc.ents or doc.spans["dates"])
         # Note: we also include sentence ends tokens as 1-token spans in those matches
+        # Prevent from matching over ents that are not measurement related
+        ents = (e for e in doc.ents if e.label_ not in self.measure_names.values())
         spans__keep__is_sent_end = filter_spans(
             [
                 # Tuples (span, keep = is measurement related, is sentence end)
-                *zip(doc.spans.get("dates", ()), repeat(False), repeat(False)),
+                *zip(get_span_group(doc, "dates"), repeat(False), repeat(False)),
                 *zip(regex_matches, repeat(True), repeat(False)),
                 *zip(non_unit_terms, repeat(True), repeat(False)),
                 *zip(units, repeat(True), repeat(False)),
-                *zip(doc.ents, repeat(False), repeat(False)),
+                *zip(ents, repeat(False), repeat(False)),
                 *zip(sent_ends, repeat(True), repeat(True)),
             ]
         )
@@ -575,19 +601,20 @@ class MeasurementsMatcher:
 
         return matches_and_is_sentence_end, unit_label_hashes
 
-    def extract_measurements(self, doc: Doc):
+    def extract_measurements(self, doclike: Doc):
         """
         Extracts measure entities from the document
 
         Parameters
         ----------
-        doc: Doc
+        doclike: Doc
 
         Returns
         -------
         List[Span]
         """
-        matches, unit_label_hashes = self.get_matches(doc)
+        doc = doclike.doc if isinstance(doclike, Span) else doclike
+        matches, unit_label_hashes = self.get_matches(doclike)
 
         # Make match slice function to query them
         def get_matches_after(i):
@@ -608,7 +635,7 @@ class MeasurementsMatcher:
         # `offsets` is a mapping from matches indices (ie match n°i) to
         # char indices in the pseudo sentence
         pseudo, offsets = self.make_pseudo_sentence(
-            doc,
+            doclike,
             matches,
             {
                 self.nlp.vocab.strings["stopword"]: ",",
@@ -835,6 +862,47 @@ class MeasurementsMatcher:
 
         return merged
 
+    def merge_with_existing(
+        self,
+        extracted: List[Span],
+        existing: List[Span],
+    ) -> List[Span]:
+        """
+        Merges the extracted measurements with the existing measurements in the
+        document.
+
+        Parameters
+        ----------
+        extracted: List[Span]
+            The extracted measurements
+        existing: List[Span]
+            The existing measurements in the document
+
+        Returns
+        -------
+        List[Span]
+        """
+        if self.merge_mode == "align":
+            spans_measurements = align_spans(extracted, existing, sort_by_overlap=True)
+
+            extracted = []
+            for span, span_measurements in zip(existing, spans_measurements):
+                if len(span_measurements):
+                    span._.value = span_measurements[0]._.value
+                    extracted.append(span)
+
+        elif self.merge_mode == "intersect":
+            spans_measurements = align_spans(extracted, existing)
+            extracted = []
+            for span, span_measurements in zip(existing, spans_measurements):
+                extracted.extend(span_measurements)
+            extracted = list(dict.fromkeys(extracted))
+
+        else:
+            extracted = [*extracted, *existing]
+
+        return extracted
+
     def __call__(self, doc):
         """
         Adds measurements to document's "measurements" SpanGroup.
@@ -849,14 +917,30 @@ class MeasurementsMatcher:
         doc:
             spaCy Doc object, annotated for extracted measurements.
         """
-        measurements, _ = self.extract_measurements(doc)
+        ent_labels = set(self.measure_names.values())
+        existing = [
+            ent
+            for ent in (*doc.ents, *doc.spans.get(self.name, ()))
+            if ent.label_ in ent_labels
+        ]
+        other_ents = [ent for ent in doc.ents if ent.label_ not in ent_labels]
+        snippets = (
+            dict.fromkeys(ent.sent for ent in existing)
+            if self.merge_mode in ("intersect", "align")
+            else [doc]
+        )
+        measurements = [m for s in snippets for m in self.extract_measurements(s)[0]]
         measurements = self.merge_adjacent_measurements(measurements)
         measurements = self.extract_ranges(measurements)
+        measurements = self.merge_with_existing(measurements, existing)
 
         if self.as_ents:
-            doc.ents = filter_spans((*doc.ents, *measurements))
+            doc.ents = filter_spans((*other_ents, *measurements))
 
-        doc.spans[self.name] = measurements
+        doc.spans[self.name] = dedup(
+            (*measurements, *doc.spans.get(self.name, ())),
+            key=lambda x: (x.start, x.end, x.label_),
+        )
 
         # for backward compatibility
         if self.name == "measurements":

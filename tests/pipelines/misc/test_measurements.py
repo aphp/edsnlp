@@ -3,6 +3,7 @@ from itertools import chain
 import spacy
 from pytest import fixture, raises
 from spacy.language import Language
+from spacy.tokens.span import Span
 
 from edsnlp.pipelines.misc.measurements import MeasurementsMatcher
 from edsnlp.pipelines.misc.measurements.factory import DEFAULT_CONFIG
@@ -210,3 +211,28 @@ def test_ranges(blank_nlp: Language, matcher: MeasurementsMatcher):
         print(doc.spans["measurements"])
         assert str(measurement._.value) == res
         assert measurement.text == snippet
+
+
+def test_merge_align(blank_nlp, matcher):
+    matcher.merge_mode = "align"
+    doc = blank_nlp(text)
+    ent = Span(doc, 10, 15, label="eds.size")
+    doc.ents = [ent]
+    doc = matcher(doc)
+
+    assert len(doc.ents) == 1
+    assert str(ent._.value) == "2.0 cm"
+
+
+def test_merge_intersect(blank_nlp, matcher):
+    matcher.merge_mode = "intersect"
+    matcher.as_ents = True
+    doc = blank_nlp(text)
+    ent = Span(doc, 10, 16, label="eds.size")
+    doc.ents = [ent]
+    doc = matcher(doc)
+
+    assert len(doc.ents) == 2
+    assert len(doc.spans["measurements"]) == 2
+    assert [doc.ents[0].text, doc.ents[1].text] == ["2.0cm", "3cm"]
+    assert [doc.ents[0]._.value.cm, doc.ents[1]._.value.cm] == [2.0, 3]

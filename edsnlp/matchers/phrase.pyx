@@ -123,11 +123,13 @@ cdef class EDSPhraseMatcher(PhraseMatcher):
             SpanC ms
             void * result
         while idx < end_idx:
-            while idx < end_idx and (
+            while (
                 (0 < self.space_hash == doc.c[idx].tag)
                 or (0 < self.excluded_hash == doc.c[idx].tag)
             ):
                 idx += 1
+                if idx >= end_idx:
+                    return
             start = idx
             # look for sequences from this position
             token = Token.get_struct_attr(&doc.c[idx], self.attr)

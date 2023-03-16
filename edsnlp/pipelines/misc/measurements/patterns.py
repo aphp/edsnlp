@@ -1,4 +1,11 @@
 number_terms = {
+    "0.125": ["⅛"],
+    "0.16666666": ["⅙"],
+    "0.2": ["⅕"],
+    "0.25": ["¼"],
+    "0.3333333": ["⅓"],
+    "0.5": ["½"],
+    "2.5": ["21/2"],
     "1": ["un", "une"],
     "2": ["deux"],
     "3": ["trois"],
@@ -76,6 +83,19 @@ units_config = {
         "followed_by": "cm",
     },
     # Weights
+    "µg": {
+        "dim": "mass",
+        "degree": 1,
+        "scale": 1e-1,
+        "terms": [
+            "microgramme",
+            "microgrammes",
+            "micro-gramme",
+            "microgrammes",
+            "µg",
+        ],
+        "followed_by": None,
+    },
     "mg": {
         "dim": "mass",
         "degree": 1,
@@ -137,34 +157,34 @@ units_config = {
         "dim": "time",
         "degree": 1,
         "scale": 3600,
-        "terms": ["heure", "h"],
+        "terms": ["heure", "heures", "h"],
         "followed_by": "minute",
     },
     "day": {
         "dim": "time",
         "degree": 1,
-        "scale": 3600 * 1,
+        "scale": 3600 * 24,
         "terms": ["jour", "jours", "j"],
         "followed_by": None,
     },
     "month": {
         "dim": "time",
         "degree": 1,
-        "scale": 3600 * 30.4167,
+        "scale": 3600 * 24 * 30.4167,
         "terms": ["mois"],
         "followed_by": None,
     },
     "week": {
         "dim": "time",
         "degree": 1,
-        "scale": 3600 * 7,
-        "terms": ["semaine", "semaines"],
+        "scale": 3600 * 24 * 7,
+        "terms": ["semaine", "semaines", "sem"],
         "followed_by": None,
     },
     "year": {
         "dim": "time",
         "degree": 1,
-        "scale": 3600 * 365.25,
+        "scale": 3600 * 24 * 365.25,
         "terms": ["an", "année", "ans", "années"],
         "followed_by": None,
     },
@@ -238,7 +258,7 @@ units_config = {
         "dim": "length",
         "degree": 3,
         "scale": 5e-5,
-        "terms": ["gt", "goutte"],
+        "terms": ["gt", "goutte", "gouttes"],
         "followed_by": None,
     },
     "mm3": {
@@ -574,4 +594,16 @@ common_measurements = {
 
 unit_divisors = ["/", "par"]
 
-stopwords = ["par", "sur", "de", "a", ":", ",", "et"]
+stopwords = ["par", "sur", "de", "a", ",", "et"]
+
+# Should we only make accented patterns and expect the user to use
+# `eds.normalizer` component first ?
+range_patterns = [
+    ("De", "à"),
+    ("De", "a"),
+    ("de", "à"),
+    ("de", "a"),
+    ("Entre", "et"),
+    ("entre", "et"),
+    (None, "à"),
+]

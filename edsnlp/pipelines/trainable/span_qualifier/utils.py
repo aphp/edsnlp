@@ -14,17 +14,18 @@ from typing import (
 from spacy import registry
 from spacy.tokens import Doc, Span
 
+from edsnlp.utils.span_getters import make_span_getter
+
 Binding = Tuple[str, Any]
 Spans = List[Span]
 SpanGroups = Dict[str, Spans]
 
 
-@registry.misc("eds.candidate_span_qualifier_getter")
 class make_candidate_getter:
     def __init__(
         self,
-        from_ents: Optional[Union[bool, Sequence[str]]] = None,
-        from_span_groups: Union[
+        on_ents: Optional[Union[bool, Sequence[str]]] = None,
+        on_span_groups: Union[
             bool, Sequence[str], Mapping[str, Union[bool, Sequence[str]]]
         ] = False,
         qualifiers: Optional[Sequence[str]] = None,
@@ -36,12 +37,12 @@ class make_candidate_getter:
 
         Parameters
         ----------
-        from_ents: Union[bool, Sequence[str]]
+        on_ents: Union[bool, Sequence[str]]
             Whether to look into `doc.ents` for spans to classify. If a list of strings
             is provided, only the span of the given labels will be considered. If None
-            and `from_span_groups` is False, labels mentioned in `label_constraints`
+            and `on_span_groups` is False, labels mentioned in `label_constraints`
             will be used.
-        from_span_groups: Union[bool, Sequence[str], Mapping[str, Sequence[str]]]
+        on_span_groups: Union[bool, Sequence[str], Mapping[str, Sequence[str]]]
             Whether to look into `doc.spans` for spans to classify:
 
             - If True, all span groups will be considered
@@ -70,11 +71,11 @@ class make_candidate_getter:
         elif qualifiers is None:
             qualifiers = list(label_constraints.keys())
 
-        if not from_span_groups and from_ents is None:
+        if not on_span_groups and on_ents is None:
             if label_constraints is None:
-                from_ents = True
+                on_ents = True
             else:
-                from_ents = sorted(
+                on_ents = sorted(
                     set(
                         label
                         for qualifier in label_constraints
@@ -82,8 +83,7 @@ class make_candidate_getter:
                     )
                 )
 
-        self.from_ents = from_ents
-        self.from_span_groups = from_span_groups
+        self.span_getter = make_span_getter(on_ents, on_span_groups)
         self.label_constraints = label_constraints
         self.qualifiers = qualifiers
 
@@ -91,45 +91,10 @@ class make_candidate_getter:
         self,
         doc: Doc,
     ) -> Tuple[Spans, Optional[Spans], SpanGroups, List[List[str]]]:
-        flattened_spans = []
-        span_groups = {}
-        ents = None
-        if self.from_ents:
-            # /!\ doc.ents is not a list but a Span iterator, so to ensure referential
-            # equality between the spans of `flattened_spans` and `ents`,
-            # we need to convert it to a list to "extract" the spans first
-            ents = list(doc.ents)
-            if isinstance(self.from_ents, Sequence):
-                flattened_spans.extend(
-                    span for span in ents if span.label_ in self.from_ents
-                )
-            else:
-                flattened_spans.extend(ents)
-
-        if self.from_span_groups:
-            if isinstance(self.from_span_groups, Mapping):
-                for name, labels in self.from_span_groups.items():
-                    if labels:
-                        span_groups[name] = list(doc.spans.get(name, ()))
-                        if isinstance(labels, Sequence):
-                            flattened_spans.extend(
-                                span
-                                for span in span_groups[name]
-                                if span.label_ in labels
-                            )
-                        else:
-                            flattened_spans.extend(span_groups[name])
-            elif isinstance(self.from_span_groups, Sequence):
-                for name in self.from_span_groups:
-                    span_groups[name] = list(doc.spans.get(name, ()))
-                    flattened_spans.extend(span_groups[name])
-            else:
-                for name, spans_ in doc.spans.items():
-                    # /!\ spans_ is not a list but a SpanGroup, so to ensure referential
-                    # equality between the spans of `flattened_spans` and `span_groups`,
-                    # we need to convert it to a list to "extract" the spans first
-                    span_groups[name] = list(spans_)
-                    flattened_spans.extend(span_groups[name])
+        flattened_spans, ents, span_groups = self.span_getter(
+            doc,
+            return_origin=True,
+        )
 
         if self.label_constraints:
             span_qualifiers = [
@@ -144,6 +109,9 @@ class make_candidate_getter:
         else:
             span_qualifiers = [self.qualifiers] * len(flattened_spans)
         return flattened_spans, ents, span_groups, span_qualifiers
+
+
+registry.misc("eds.candidate_span_qualifier_getter")(make_candidate_getter)
 
 
 def _check_path(path: str):

@@ -77,8 +77,8 @@ def test_span_qualifier_label_training(gold, tmp_path):
         config={
             **SPAN_QUALIFIER_DEFAULTS,
             "qualifiers": ("label_",),
-            "from_ents": False,
-            "from_span_groups": True,
+            "on_ents": False,
+            "on_span_groups": True,
             "model": {
                 **SPAN_QUALIFIER_DEFAULTS["model"],
             },
@@ -131,8 +131,8 @@ def test_span_qualifier_constrained_training(gold, tmp_path):
                 "@misc": "eds.candidate_span_qualifier_getter",
                 "qualifiers": ("_.test_negated", "_.event_type"),
                 "label_constraints": {"_.event_type": ("event",)},
-                "from_ents": False,
-                "from_span_groups": ("sc",),
+                "on_ents": False,
+                "on_span_groups": ("sc",),
             },
             "model": SPAN_QUALIFIER_DEFAULTS["model"],
         },

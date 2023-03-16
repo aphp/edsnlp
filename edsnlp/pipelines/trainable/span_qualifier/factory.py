@@ -57,8 +57,8 @@ np_ops = NumpyOps()
 def create_component(
     nlp,
     model: Model,
-    from_ents: Optional[Union[bool, Sequence[str]]] = None,
-    from_span_groups: Union[
+    on_ents: Optional[Union[bool, Sequence[str]]] = None,
+    on_span_groups: Union[
         bool, Sequence[str], Mapping[str, Union[bool, Sequence[str]]]
     ] = False,
     qualifiers: Optional[Sequence[str]] = None,
@@ -80,12 +80,12 @@ def create_component(
         The model to extract the spans
     name: str
         Name of the component
-    from_ents: Union[bool, Sequence[str]]
+    on_ents: Union[bool, Sequence[str]]
         Whether to look into `doc.ents` for spans to classify. If a list of strings
         is provided, only the span of the given labels will be considered. If None
-        and `from_span_groups` is False, labels mentioned in `label_constraints`
+        and `on_span_groups` is False, labels mentioned in `label_constraints`
         will be used, and all ents will be used if `label_constraints` is None.
-    from_span_groups: Union[bool, Sequence[str], Mapping[str, Sequence[str]]]
+    on_span_groups: Union[bool, Sequence[str], Mapping[str, Sequence[str]]]
         Whether to look into `doc.spans` for spans to classify:
 
         - If True, all span groups will be considered
@@ -103,13 +103,13 @@ def create_component(
     candidate_getter: Optional[Callable[[Doc], Tuple[Spans, Optional[Spans], SpanGroups, List[List[str]]]]]
         Optional method to call to extract the candidate spans and the qualifiers
         to predict or train on. If None, a candidate getter will be created from
-        the other parameters: `from_ents`, `from_span_groups`, `qualifiers` and
+        the other parameters: `on_ents`, `on_span_groups`, `qualifiers` and
         `label_constraints`.
     scorer: Optional[Callable]
         Optional method to call to score predictions
     """  # noqa: E501
     do_make_candidate_getter = (
-        from_ents or from_span_groups or qualifiers or label_constraints
+        on_ents or on_span_groups or qualifiers or label_constraints
     )
     if (candidate_getter is not None) == do_make_candidate_getter:
         raise ValueError(
@@ -118,8 +118,8 @@ def create_component(
         )
     if do_make_candidate_getter:
         candidate_getter = create_candidate_getter(
-            from_ents=from_ents,
-            from_span_groups=from_span_groups,
+            on_ents=on_ents,
+            on_span_groups=on_span_groups,
             qualifiers=qualifiers,
             label_constraints=label_constraints,
         )

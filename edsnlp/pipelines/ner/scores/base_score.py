@@ -10,30 +10,7 @@ from edsnlp.utils.filter import filter_spans
 
 
 class Score(ContextualMatcher):
-    """
-    Matcher component to extract a numeric score
-
-    Parameters
-    ----------
-    nlp : Language
-        The spaCy object.
-    score_name : str
-        The name of the extracted score
-    regex : List[str]
-        A list of regexes to identify the score
-    attr : str
-        Wether to match on the text ('TEXT') or on the normalized text ('NORM')
-    value_extract : str
-        Regex with capturing group to get the score value
-    score_normalization : Callable[[Union[str,None]], Any]
-        Function that takes the "raw" value extracted from the `value_extract` regex,
-        and should return
-        - None if no score could be extracted
-        - The desired score value else
-    window : int
-        Number of token to include after the score's mention to find the
-        score's value
-    """
+    """Matcher component to extract a numeric score"""
 
     def __init__(
         self,
@@ -45,16 +22,44 @@ class Score(ContextualMatcher):
         score_normalization: Union[str, Callable[[Union[str, None]], Any]],
         window: int,
         ignore_excluded: bool,
+        ignore_space_tokens: bool,
         flags: Union[re.RegexFlag, int],
     ):
+        """
+        Parameters
+        ----------
+        nlp : Language
+            The spaCy object.
+        score_name : str
+            The name of the extracted score
+        regex : List[str]
+            A list of regexes to identify the score
+        attr : str
+            Whether to match on the text ('TEXT') or on the normalized text ('NORM')
+        value_extract : str
+            Regex with capturing group to get the score value
+        score_normalization : Callable[[Union[str,None]], Any]
+            Function that takes the "raw" value extracted from the `value_extract`
+            regex and should return:
+
+            - None if no score could be extracted
+            - The desired score value else
+        window : int
+            Number of token to include after the score's mention to find the
+            score's value
+        ignore_excluded : bool
+            Whether to ignore excluded spans when matching
+        ignore_space_tokens : bool
+            Whether to ignore space tokens when matching
+        flags : Union[re.RegexFlag, int]
+            Regex flags to use when matching
+        """
         if isinstance(value_extract, str):
-            value_extract = [
-                dict(
-                    name="value",
-                    regex=value_extract,
-                    window=window,
-                )
-            ]
+            value_extract = dict(
+                name="value",
+                regex=value_extract,
+                window=window,
+            )
 
         if isinstance(value_extract, dict):
             value_extract = [value_extract]
@@ -83,6 +88,7 @@ class Score(ContextualMatcher):
             assign_as_span=False,
             alignment_mode="expand",
             ignore_excluded=ignore_excluded,
+            ignore_space_tokens=ignore_space_tokens,
             attr=attr,
             regex_flags=flags,
             include_assigned=False,

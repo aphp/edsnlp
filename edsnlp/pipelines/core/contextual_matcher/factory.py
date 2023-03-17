@@ -9,6 +9,7 @@ from edsnlp.utils.deprecation import deprecated_factory
 DEFAULT_CONFIG = dict(
     attr="NORM",
     ignore_excluded=False,
+    ignore_space_tokens=False,
     regex_flags=0,
     alignment_mode="expand",
     assign_as_span=False,
@@ -28,6 +29,7 @@ def create_component(
     alignment_mode: str,
     attr: str,
     ignore_excluded: bool,
+    ignore_space_tokens: bool,
     regex_flags: Union[re.RegexFlag, int],
     include_assigned: bool,
 ):
@@ -68,6 +70,7 @@ def create_component(
         alignment_mode,
         attr=attr,
         ignore_excluded=ignore_excluded,
+        ignore_space_tokens=ignore_space_tokens,
         regex_flags=regex_flags,
         include_assigned=include_assigned,
     )

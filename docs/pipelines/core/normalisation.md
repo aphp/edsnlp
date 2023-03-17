@@ -62,8 +62,8 @@ Moreover, every span exposes a `normalized_variant` extension getter, which comp
 The pipeline can be configured using the following parameters :
 
 ::: edsnlp.pipelines.core.normalizer.factory.create_component
-   options:
-      only_parameters: true
+    options:
+       only_parameters: true
 
 ## Pipelines
 

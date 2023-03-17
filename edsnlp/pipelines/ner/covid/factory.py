@@ -9,6 +9,7 @@ from . import patterns
 DEFAULT_CONFIG = dict(
     attr="LOWER",
     ignore_excluded=False,
+    ignore_space_tokens=False,
 )
 
 
@@ -22,6 +23,7 @@ def create_component(
     name: str = "eds.covid",
     attr: Union[str, Dict[str, str]] = "LOWER",
     ignore_excluded: bool = False,
+    ignore_space_tokens: bool = False,
 ):
     """
     Create a factory that returns new GenericMatcher with patterns for covid
@@ -36,6 +38,8 @@ def create_component(
         Attribute to match on, eg `TEXT`, `NORM`, etc.
     ignore_excluded: bool
         Whether to skip excluded tokens during matching.
+    ignore_space_tokens: bool
+        Whether to skip space tokens during matching.
 
     Returns
     -------
@@ -48,4 +52,5 @@ def create_component(
         regex=dict(covid=patterns.pattern),
         attr=attr,
         ignore_excluded=ignore_excluded,
+        ignore_space_tokens=ignore_space_tokens,
     )

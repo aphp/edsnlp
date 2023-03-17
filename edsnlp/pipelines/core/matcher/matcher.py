@@ -35,9 +35,11 @@ class GenericMatcher(BaseComponent):
     ignore_excluded : bool
         Whether to skip excluded tokens (requires an upstream
         pipeline to mark excluded tokens).
-    ignore_excluded : bool
-        Whether to skip space tokens (requires an upstream
-        pipeline to mark space tokens).
+    ignore_space_tokens: bool
+        Whether to skip space tokens during matching.
+
+        You won't be able to match on newlines if this is enabled and
+        the "spaces"/"newline" option of `eds.normalizer` is enabled (by default).
     term_matcher: GenericTermMatcher
         The matcher to use for matching phrases ?
         One of (exact, simstring)
@@ -86,6 +88,7 @@ class GenericMatcher(BaseComponent):
         self.regex_matcher = RegexMatcher(
             attr=attr,
             ignore_excluded=ignore_excluded,
+            ignore_space_tokens=ignore_space_tokens,
         )
 
         self.phrase_matcher.build_patterns(nlp=nlp, terms=terms)

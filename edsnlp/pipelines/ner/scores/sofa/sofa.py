@@ -15,16 +15,11 @@ class Sofa(Score):
     ----------
     nlp : Language
         The spaCy object.
-    score_name : str
-        The name of the extracted score
     regex : List[str]
         A list of regexes to identify the SOFA score
     attr : str
-        Wether to match on the text ('TEXT') or on the normalized text ('CUSTOM_NORM')
-    method_regex : str
-        Regex with capturing group to get the score extraction method
-        (e.g. "à l'admission", "à 24H", "Maximum")
-    value_regex : str
+        Whether to match on the text ('TEXT') or on the normalized text ('CUSTOM_NORM')
+    value_extract : Dict[str, str]
         Regex to extract the score value
     score_normalization : Callable[[Union[str,None]], Any]
         Function that takes the "raw" value extracted from the `value_extract` regex,
@@ -34,6 +29,12 @@ class Sofa(Score):
     window : int
         Number of token to include after the score's mention to find the
         score's value
+    ignore_excluded : bool
+        Whether to ignore excluded spans
+    ignore_space_tokens : bool
+        Whether to ignore space tokens
+    flags : Union[re.RegexFlag, int]
+        Flags to pass to the regex
     """
 
     def __init__(
@@ -47,6 +48,7 @@ class Sofa(Score):
         window: int,
         flags: Union[re.RegexFlag, int],
         ignore_excluded: bool,
+        ignore_space_tokens: bool,
     ):
 
         super().__init__(
@@ -59,6 +61,7 @@ class Sofa(Score):
             window=window,
             flags=flags,
             ignore_excluded=ignore_excluded,
+            ignore_space_tokens=ignore_space_tokens,
         )
 
         self.set_extensions()

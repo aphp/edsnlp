@@ -20,15 +20,15 @@ from . import models
 
 @lru_cache(64)
 def get_window(
-    doclike: Union[Doc, Span],
-    window: Tuple[int, int],
+    doclike: Union[Doc, Span], window: Tuple[int, int], limit_to_sentence: bool
 ):
+    start_limit = doclike.sent.start if limit_to_sentence else 0
+    end_limit = doclike.sent.end if limit_to_sentence else len(doclike.doc)
 
-    return doclike.doc[
-        max(doclike.start + window[0], doclike.sent.start) : min(
-            doclike.end + window[1], doclike.sent.end
-        )
-    ]
+    start = max(doclike.start + window[0], start_limit)
+    end = min(doclike.end + window[1], end_limit)
+
+    return doclike.doc[start:end]
 
 
 class ContextualMatcher(BaseComponent):
@@ -80,6 +80,7 @@ class ContextualMatcher(BaseComponent):
         self.attr = attr
         self.assign_as_span = assign_as_span
         self.ignore_excluded = ignore_excluded
+        self.ignore_space_tokens = ignore_space_tokens
         self.alignment_mode = alignment_mode
         self.regex_flags = regex_flags
         self.include_assigned = include_assigned
@@ -93,11 +94,13 @@ class ContextualMatcher(BaseComponent):
             self.nlp.vocab,
             attr=attr,
             ignore_excluded=ignore_excluded,
+            ignore_space_tokens=ignore_space_tokens,
         )
         self.regex_matcher = RegexMatcher(
             attr=attr,
             flags=regex_flags,
             ignore_excluded=ignore_excluded,
+            ignore_space_tokens=ignore_space_tokens,
             alignment_mode=alignment_mode,
         )
 
@@ -134,15 +137,16 @@ class ContextualMatcher(BaseComponent):
         self.replace_key = {}
 
         for source, p in self.patterns.items():
-
             p = p.dict()
 
             for exclude in p["exclude"]:
-
                 exclude_matcher = RegexMatcher(
-                    attr=p["regex_attr"] or self.attr,
-                    flags=p["regex_flags"] or self.regex_flags,
+                    attr=exclude["regex_attr"] or p["regex_attr"] or self.attr,
+                    flags=exclude["regex_flags"]
+                    or p["regex_flags"]
+                    or self.regex_flags,
                     ignore_excluded=ignore_excluded,
+                    ignore_space_tokens=ignore_space_tokens,
                     alignment_mode="expand",
                 )
 
@@ -152,16 +156,16 @@ class ContextualMatcher(BaseComponent):
                     dict(
                         matcher=exclude_matcher,
                         window=exclude["window"],
+                        limit_to_sentence=exclude["limit_to_sentence"],
                     )
                 )
 
             replace_key = None
 
             for assign in p["assign"]:
-
                 assign_matcher = RegexMatcher(
-                    attr=p["regex_attr"] or self.attr,
-                    flags=p["regex_flags"] or self.regex_flags,
+                    attr=assign["regex_attr"] or p["regex_attr"] or self.attr,
+                    flags=assign["regex_flags"] or p["regex_flags"] or self.regex_flags,
                     ignore_excluded=ignore_excluded,
                     ignore_space_tokens=ignore_space_tokens,
                     alignment_mode=alignment_mode,
@@ -177,6 +181,7 @@ class ContextualMatcher(BaseComponent):
                         name=assign["name"],
                         matcher=assign_matcher,
                         window=assign["window"],
+                        limit_to_sentence=assign["limit_to_sentence"],
                         replace_entity=assign["replace_entity"],
                         reduce_mode=assign["reduce_mode"],
                     )
@@ -221,11 +226,12 @@ class ContextualMatcher(BaseComponent):
         source = span.label_
         to_keep = True
         for matcher in self.exclude_matchers[source]:
-
             window = matcher["window"]
+            limit_to_sentence = matcher["limit_to_sentence"]
             snippet = get_window(
                 doclike=span,
                 window=window,
+                limit_to_sentence=limit_to_sentence,
             )
 
             if (
@@ -270,14 +276,15 @@ class ContextualMatcher(BaseComponent):
         replace_key = None
 
         for matcher in self.assign_matchers[source]:
-
             attr = self.patterns[source].regex_attr or matcher["matcher"].default_attr
             window = matcher["window"]
+            limit_to_sentence = matcher["limit_to_sentence"]
             replace_entity = matcher["replace_entity"]  # Boolean
 
             snippet = get_window(
                 doclike=span,
                 window=window,
+                limit_to_sentence=limit_to_sentence,
             )
 
             # Getting the matches
@@ -367,12 +374,10 @@ class ContextualMatcher(BaseComponent):
                 replaced.label_ = self.name
 
         else:
-
             # Entity expansion
             expandables = flatten([a["span"] for a in assigned_dict.values()])
 
             if self.include_assigned and expandables:
-
                 span = Span(
                     span.doc,
                     min(expandables + [span], key=attrgetter("start")).start,

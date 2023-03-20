@@ -1,5 +1,5 @@
 from itertools import chain
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set, Union
 
 from loguru import logger
 from spacy.language import Language
@@ -45,9 +45,13 @@ class Qualifier(BaseComponent):
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
         we can also add a key for each regex.
-    on_ents_only : bool
+    on_ents_only : Union[bool, str, List[str], Set[str]]
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.
+
+        - If True, will look in all ents located in `doc.ents` only
+        - If an iterable of string is passed, will additionally look in `doc.spans[key]`
+        for each key in the iterable
     explain : bool
         Whether to keep track of cues for each entity.
     **terms : Dict[str, Optional[List[str]]]
@@ -60,7 +64,7 @@ class Qualifier(BaseComponent):
         self,
         nlp: Language,
         attr: str,
-        on_ents_only: bool,
+        on_ents_only: Union[bool, str, List[str], Set[str]],
         explain: bool,
         **terms: Dict[str, Optional[List[str]]],
     ):
@@ -71,6 +75,17 @@ class Qualifier(BaseComponent):
         self.phrase_matcher = EDSPhraseMatcher(vocab=nlp.vocab, attr=attr)
         self.phrase_matcher.build_patterns(nlp=nlp, terms=terms)
 
+        self.on_ents_only = on_ents_only
+
+        assert isinstance(on_ents_only, (list, str, set, bool)), (
+            "The `on_ents_only` argument should be a "
+            "string, a bool, a list or a set of string"
+        )
+
+        if isinstance(on_ents_only, list):
+            on_ents_only = set(on_ents_only)
+        elif isinstance(on_ents_only, str):
+            on_ents_only = set([on_ents_only])
         self.on_ents_only = on_ents_only
         self.explain = explain
 
@@ -100,15 +115,15 @@ class Qualifier(BaseComponent):
         ----------
         doc : Doc
             spaCy `Doc` object.
-
         Returns
         -------
         List[Span]
             List of detected spans
         """
-        if self.on_ents_only:
 
-            sents = set([ent.sent for ent in doc.ents])
+        if self.on_ents_only:
+            sents = set([ent.sent for ent in self.get_spans(doc)])
+
             match_iterator = map(
                 lambda sent: self.phrase_matcher(sent, as_spans=True), sents
             )
@@ -116,6 +131,7 @@ class Qualifier(BaseComponent):
             matches = chain.from_iterable(match_iterator)
 
         else:
+
             matches = self.phrase_matcher(doc, as_spans=True)
 
         return list(matches)

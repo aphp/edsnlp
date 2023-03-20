@@ -1,7 +1,7 @@
 """`eds.dates` pipeline."""
 
 from itertools import chain
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 from loguru import logger
 from spacy.language import Language
@@ -40,7 +40,7 @@ class Dates(BaseComponent):
         (eg `pendant trois mois`).
     false_positive : Union[List[str], str]
         List of regular expressions for false positive (eg phone numbers, etc).
-    on_ents_only : Union[bool, str, List[str]]
+    on_ents_only : Union[bool, str, List[str], Set[str]]
         Wether to look on dates in the whole document or in specific sentences:
 
         - If `True`: Only look in the sentences of each entity in doc.ents
@@ -63,7 +63,7 @@ class Dates(BaseComponent):
         relative: Optional[List[str]],
         duration: Optional[List[str]],
         false_positive: Optional[List[str]],
-        on_ents_only: Union[bool, List[str]],
+        on_ents_only: Union[bool, str, List[str], Set[str]],
         detect_periods: bool,
         detect_time: bool,
         as_ents: bool,
@@ -141,18 +141,8 @@ class Dates(BaseComponent):
         """
 
         if self.on_ents_only:
-
-            if type(self.on_ents_only) == bool:
-                ents = doc.ents
-            else:
-                if type(self.on_ents_only) == str:
-                    self.on_ents_only = [self.on_ents_only]
-                ents = []
-                for key in self.on_ents_only:
-                    ents.extend(list(doc.spans[key]))
-
             dates = []
-            for sent in set([ent.sent for ent in ents]):
+            for sent in set([ent.sent for ent in self.get_spans(doc)]):
                 dates = chain(
                     dates,
                     self.regex_matcher(

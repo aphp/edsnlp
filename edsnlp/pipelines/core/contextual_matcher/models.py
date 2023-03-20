@@ -1,6 +1,7 @@
 import re
 from typing import List, Optional, Tuple, Union
 
+import regex
 from pydantic import BaseModel, Extra, validator
 
 from edsnlp.matchers.utils import ListOrStr
@@ -89,7 +90,9 @@ class AssignDict(dict):
 class SingleExcludeModel(BaseModel):
     regex: ListOrStr = []
     window: Window
+    limit_to_sentence: Optional[bool] = True
     regex_flags: Optional[Flags] = None
+    regex_attr: Optional[str] = None
 
     @validator("regex")
     def exclude_regex_validation(cls, v):
@@ -118,13 +121,17 @@ class SingleAssignModel(BaseModel):
     name: str
     regex: str
     window: Window
+    limit_to_sentence: Optional[bool] = True
     regex_flags: Optional[Flags] = None
+    regex_attr: Optional[str] = None
     replace_entity: bool = False
     reduce_mode: Optional[str] = None
 
     @validator("regex")
     def check_single_regex_group(cls, pat):
-        compiled_pat = re.compile(pat)
+        compiled_pat = regex.compile(
+            pat
+        )  # Using regex to allow multiple fgroups with same name
         n_groups = compiled_pat.groups
         assert n_groups == 1, (
             "The pattern {pat} should have only one capturing group, not {n_groups}"

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Set, Union
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
@@ -36,9 +36,13 @@ class ReportedSpeech(Qualifier):
         a string with the value "TEXT" or "NORM",
         or a dict with the key 'term_attr'
         we can also add a key for each regex.
-    on_ents_only : bool
+    on_ents_only : Union[bool, str, List[str], Set[str]]
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.
+
+        - If True, will look in all ents located in `doc.ents` only
+        - If an iterable of string is passed, will additionally look in `doc.spans[key]`
+        for each key in the iterable
     within_ents : bool
         Whether to consider cues within entities.
     explain : bool
@@ -61,7 +65,7 @@ class ReportedSpeech(Qualifier):
         following: Optional[List[str]],
         quotation: Optional[List[str]],
         verbs: Optional[List[str]],
-        on_ents_only: bool,
+        on_ents_only: Union[bool, str, List[str], Set[str]],
         within_ents: bool,
         explain: bool,
     ):
@@ -168,7 +172,7 @@ class ReportedSpeech(Qualifier):
 
         boundaries = self._boundaries(doc)
 
-        entities = list(doc.ents) + list(doc.spans.get("discarded", []))
+        entities = self.get_spans(doc)
         ents = None
 
         # Removes duplicate matches and pseudo-expressions in one statement

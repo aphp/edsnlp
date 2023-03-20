@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import List, Optional
+from typing import List, Optional, Set, Union
 
 import pendulum
 from loguru import logger
@@ -44,9 +44,13 @@ class History(Qualifier):
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
         we can also add a key for each regex.
-    on_ents_only : bool
+    on_ents_only : Union[bool, str, List[str], Set[str]]
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.
+
+        - If True, will look in all ents located in `doc.ents` only
+        - If an iterable of string is passed, will additionally look in `doc.spans[key]`
+        for each key in the iterable
     regex : Optional[Dict[str, Union[List[str], str]]]
         A dictionary of regex patterns.
     explain : bool
@@ -70,7 +74,7 @@ class History(Qualifier):
         closest_dates_only: bool,
         exclude_birthdate: bool,
         explain: bool,
-        on_ents_only: bool,
+        on_ents_only: Union[bool, str, List[str], Set[str]],
     ):
 
         terms = self.get_defaults(
@@ -261,7 +265,7 @@ class History(Qualifier):
         # Removes duplicate matches and pseudo-expressions in one statement
         matches = filter_spans(matches, label_to_remove="pseudo")
 
-        entities = list(doc.ents) + list(doc.spans.get("discarded", []))
+        entities = self.get_spans(doc)
         ents = None
         sub_sections = None
         sub_recent_dates = None

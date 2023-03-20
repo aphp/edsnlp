@@ -8,7 +8,7 @@ from edsnlp.utils.deprecation import deprecated_factory
 
 DEFAULT_CONFIG = dict(
     attr="NORM",
-    ignore_excluded=False,
+    ignore_excluded=True,
     ignore_space_tokens=False,
     regex_flags=0,
     alignment_mode="expand",

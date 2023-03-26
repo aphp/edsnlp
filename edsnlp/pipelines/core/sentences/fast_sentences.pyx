@@ -1,26 +1,44 @@
-from spacy import Language
+import spacy
 from typing import Iterable, List, Optional
+import builtins
 
-from libcpp cimport bool
+from libcpp cimport bool as cbool
 
 from spacy.attrs cimport IS_ALPHA, IS_ASCII, IS_DIGIT, IS_LOWER, IS_PUNCT, IS_SPACE
 from spacy.lexeme cimport Lexeme
-from spacy.tokens.doc cimport Doc
 from spacy.tokens.token cimport TokenC
 
 from .terms import punctuation
 
-cdef class SentenceSegmenter:
+cdef class FastSentenceSegmenter(object):
+    """
+    Segments the Doc into sentences using a rule-based strategy,
+    specific to AP-HP documents.
+
+    Applies the same rule-based pipeline as spaCy's sentencizer,
+    and adds a simple rule on the new lines : if a new line is followed by a
+    capitalised word, then it is also an end of sentence.
+
+    DOCS: https://spacy.io/api/sentencizer
+
+    Arguments
+    ---------
+    punct_chars : Optional[List[str]]
+        Punctuation characters.
+    use_endlines : bool
+        Whether to use endlines prediction.
+    """
+
     def __init__(
           self,
-          nlp: Language,
+          nlp: PipelineProtocol,
           name: Optional[str] = None,
           *,
-          punct_chars: Optional[List[str]],
-          use_endlines: bool,
-          ignore_excluded: bool = True,
+          punct_chars,
+          use_endlines = None,
+          ignore_excluded = True,
     ):
-        if isinstance(nlp, Language):
+        if hasattr(nlp, 'vocab'):
             vocab = nlp.vocab
         else:
             vocab = nlp
@@ -29,7 +47,10 @@ cdef class SentenceSegmenter:
         if punct_chars is None:
             punct_chars = punctuation
 
-        self.ignore_excluded = ignore_excluded or use_endlines
+        if use_endlines is not None:
+            print("The use_endlines parameter of eds.sentences is deprecated and has been replaced by the ignore_excluded parameter")
+
+        self.ignore_excluded = builtins.bool(ignore_excluded or use_endlines)
         self.newline_hash = vocab.strings["\n"]
         self.excluded_hash = vocab.strings["EXCLUDED"]
         self.endline_hash = vocab.strings["ENDLINE"]
@@ -39,11 +60,7 @@ cdef class SentenceSegmenter:
             for shape in ("Xx", "Xxx", "Xxxx", "Xxxxx")
         }
 
-        if use_endlines:
-            print("The use_endlines is deprecated and has been replaced by the "
-                  "ignore_excluded parameter")
-
-    def __call__(self, doc: Doc):
+    def __call__(self, doc: spacy.tokens.Doc):
         self.process(doc)
         return doc
 
@@ -57,10 +74,10 @@ cdef class SentenceSegmenter:
             A list of spacy Doc objects.
         """
         cdef TokenC token
-        cdef bool seen_period
-        cdef bool seen_newline
-        cdef bool is_in_punct_chars
-        cdef bool is_newline
+        cdef cbool seen_period
+        cdef cbool seen_newline
+        cdef cbool is_in_punct_chars
+        cdef cbool is_newline
 
         seen_period = False
         seen_newline = False

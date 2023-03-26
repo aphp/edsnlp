@@ -4,7 +4,7 @@ from spacy.language import Language
 
 from edsnlp.utils.deprecation import deprecated_factory
 
-from . import SentenceSegmenter
+from .sentences import SentenceSegmenter
 
 DEFAULT_CONFIG = dict(
     punct_chars=None,
@@ -27,8 +27,8 @@ def create_component(
     name: str = "eds.sentences",
     *,
     punct_chars: Optional[List[str]] = None,
-    use_endlines: Optional[bool] = True,
-    ignore_excluded: bool = None,
+    use_endlines: Optional[bool] = None,
+    ignore_excluded: bool = True,
 ):
     r'''
     The `eds.sentences` matcher provides an alternative to spaCy's default

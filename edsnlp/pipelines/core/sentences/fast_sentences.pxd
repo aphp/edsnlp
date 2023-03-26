@@ -1,12 +1,12 @@
 from libcpp cimport bool
 from libcpp.set cimport set
-from libcpp.vector cimport vector
 from spacy.tokens.doc cimport Doc
 from spacy.typedefs cimport attr_t
 
 
 cdef class SentenceSegmenter(object):
     cdef str name
+cdef class FastSentenceSegmenter(object):
     cdef bool ignore_excluded
     cdef attr_t newline_hash
     cdef attr_t excluded_hash

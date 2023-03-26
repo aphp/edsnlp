@@ -4,7 +4,7 @@ from spacy.language import Language
 
 from edsnlp.utils.deprecation import deprecated_factory
 
-from . import SentenceSegmenter
+from .sentences import SentenceSegmenter
 
 DEFAULT_CONFIG = dict(
     punct_chars=None,

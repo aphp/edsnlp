@@ -1,26 +1,45 @@
-from spacy import Language
+import spacy
 from typing import Iterable, List, Optional
 
 from libcpp cimport bool
 
 from spacy.attrs cimport IS_ALPHA, IS_ASCII, IS_DIGIT, IS_LOWER, IS_PUNCT, IS_SPACE
 from spacy.lexeme cimport Lexeme
-from spacy.tokens.doc cimport Doc
 from spacy.tokens.token cimport TokenC
+
+from edsnlp.core import PipelineProtocol
 
 from .terms import punctuation
 
-cdef class SentenceSegmenter:
+cdef class FastSentenceSegmenter(object):
+    """
+    Segments the Doc into sentences using a rule-based strategy,
+    specific to AP-HP documents.
+
+    Applies the same rule-based pipeline as spaCy's sentencizer,
+    and adds a simple rule on the new lines : if a new line is followed by a
+    capitalised word, then it is also an end of sentence.
+
+    DOCS: https://spacy.io/api/sentencizer
+
+    Arguments
+    ---------
+    punct_chars : Optional[List[str]]
+        Punctuation characters.
+    use_endlines : bool
+        Whether to use endlines prediction.
+    """
+
     def __init__(
           self,
-          nlp: Language,
+          nlp: PipelineProtocol,
           name: Optional[str] = None,
           *,
           punct_chars: Optional[List[str]],
           use_endlines: bool,
           ignore_excluded: bool = True,
     ):
-        if isinstance(nlp, Language):
+        if hasattr(nlp, 'vocab'):
             vocab = nlp.vocab
         else:
             vocab = nlp
@@ -43,7 +62,7 @@ cdef class SentenceSegmenter:
             print("The use_endlines is deprecated and has been replaced by the "
                   "ignore_excluded parameter")
 
-    def __call__(self, doc: Doc):
+    def __call__(self, doc: spacy.tokens.Doc):
         self.process(doc)
         return doc
 

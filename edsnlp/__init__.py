@@ -2,11 +2,13 @@
 EDS-NLP
 """
 
-from . import patch_spacy_dot_components  # isort: skip
+# fmt: off
+from . import patch_spacy  # noqa: F401
 from pathlib import Path
 
-from . import extensions
+from . import extensions  # noqa: F401
 from .language import *
+# fmt: on
 
 __version__ = "0.9.1"
 

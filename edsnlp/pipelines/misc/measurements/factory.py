@@ -1,5 +1,4 @@
-from spacy.language import Language
-
+from edsnlp.core import registry
 from edsnlp.utils.deprecation import deprecated_factory
 
 from . import patterns
@@ -29,7 +28,7 @@ create_component = deprecated_factory(
     "eds.measurements",
     assigns=["doc.spans", "doc.ents"],
 )(MeasurementsMatcher)
-create_component = Language.factory(
+create_component = registry.factory.register(
     "eds.measurements",
     assigns=["doc.spans", "doc.ents"],
 )(create_component)

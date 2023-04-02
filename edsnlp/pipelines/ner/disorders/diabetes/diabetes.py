@@ -1,9 +1,9 @@
 """`eds.diabetes` pipeline"""
 from typing import Any, Dict, List, Optional, Union
 
-from spacy import Language
 from spacy.tokens import Doc, Span
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.matchers.utils import get_text
 from edsnlp.pipelines.base import SpanSetterArg
@@ -73,7 +73,7 @@ class DiabetesMatcher(DisorderMatcher):
 
     Parameters
     ----------
-    nlp : Optional[Language]
+    nlp : Optional[PipelineProtocol]
         The pipeline
     name : Optional[str]
         The name of the component
@@ -93,7 +93,7 @@ class DiabetesMatcher(DisorderMatcher):
 
     def __init__(
         self,
-        nlp: Optional[Language] = None,
+        nlp: Optional[PipelineProtocol] = None,
         name: str = "eds.diabetes",
         *,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]] = default_patterns,

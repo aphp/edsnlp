@@ -3,7 +3,6 @@ import re
 
 from preshed.maps cimport map_clear, map_get, map_init, map_iter, map_set
 
-from spacy import Language
 from tqdm import tqdm
 
 from preshed.maps cimport MapStruct, key_t
@@ -12,6 +11,7 @@ from spacy.tokens.token cimport Token
 from spacy.typedefs cimport attr_t
 from spacy.vocab cimport Vocab
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.utils import Patterns
 
 
@@ -70,14 +70,14 @@ cdef class EDSPhraseMatcher(PhraseMatcher):
         if not Span.has_extension("normalized_variant"):
             Span.set_extension("normalized_variant", getter=get_normalized_variant)
 
-    def build_patterns(self, nlp: Language, terms: Patterns, progress: bool = False):
+    def build_patterns(self, nlp: PipelineProtocol, terms: Patterns, progress: bool = False):
         """
         Build patterns and adds them for matching.
         Helper function for pipelines using this matcher.
 
         Parameters
         ----------
-        nlp : Language
+        nlp : PipelineProtocol
             The instance of the spaCy language class.
         terms : Patterns
             Dictionary of label/terms, or label/dictionary of terms/attribute.

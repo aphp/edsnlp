@@ -2,10 +2,9 @@ import re
 import warnings
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from spacy import registry
-from spacy.language import Language
 from spacy.tokens import Doc, Span
 
+from edsnlp.core import PipelineProtocol, registry
 from edsnlp.pipelines.base import SpanSetterArg
 from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
 
@@ -16,7 +15,7 @@ class SimpleScoreMatcher(ContextualMatcher):
 
     Parameters
     ----------
-    nlp : Language
+    nlp : PipelineProtocol
         The pipeline object
     label : str
         The name of the extracted score
@@ -51,7 +50,7 @@ class SimpleScoreMatcher(ContextualMatcher):
 
     def __init__(
         self,
-        nlp: Language,
+        nlp: PipelineProtocol,
         name: str,
         *,
         regex: List[str] = None,
@@ -122,7 +121,7 @@ class SimpleScoreMatcher(ContextualMatcher):
         )
 
         if isinstance(score_normalization, str):
-            self.score_normalization = registry.get("misc", score_normalization)
+            self.score_normalization = registry.misc.get(score_normalization)
         else:
             self.score_normalization = score_normalization
 

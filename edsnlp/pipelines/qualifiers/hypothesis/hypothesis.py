@@ -1,8 +1,8 @@
 from typing import List, Optional, Set, Union
 
-from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.pipelines.base import SpanGetterArg, get_spans
 from edsnlp.pipelines.qualifiers.base import RuleBasedQualifier
 from edsnlp.pipelines.terminations import termination as default_termination
@@ -94,7 +94,7 @@ class HypothesisQualifier(RuleBasedQualifier):
 
     Parameters
     ----------
-    nlp : Language
+    nlp : PipelineProtocol
         The pipeline object.
     name : Optional[str]
         The component name.
@@ -138,7 +138,7 @@ class HypothesisQualifier(RuleBasedQualifier):
 
     def __init__(
         self,
-        nlp: Language,
+        nlp: PipelineProtocol,
         name: Optional[str] = "eds.hypothesis",
         *,
         pseudo: Optional[List[str]] = None,

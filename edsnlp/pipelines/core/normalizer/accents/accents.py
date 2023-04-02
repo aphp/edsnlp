@@ -1,7 +1,8 @@
 from typing import List, Optional, Tuple
 
-from spacy import Language
 from spacy.tokens import Doc
+
+from edsnlp.core import PipelineProtocol
 
 from . import patterns
 
@@ -12,7 +13,7 @@ class AccentsConverter(object):
 
     Parameters
     ----------
-    nlp : Optional[Language]
+    nlp : Optional[PipelineProtocol]
         The pipeline object.
     name : Optional[str]
         The component name.
@@ -22,7 +23,7 @@ class AccentsConverter(object):
 
     def __init__(
         self,
-        nlp: Optional[Language] = None,
+        nlp: Optional[PipelineProtocol] = None,
         name: Optional[str] = "eds.spaces",
         *,
         accents: List[Tuple[str, str]] = patterns.accents,

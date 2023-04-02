@@ -9,10 +9,11 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import pysimstring.simstring as simstring
-from spacy import Language, Vocab
 from spacy.tokens import Doc, Span
+from spacy.vocab import Vocab
 from tqdm import tqdm
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.utils import ATTRIBUTES, get_text
 
 
@@ -110,14 +111,17 @@ class SimstringMatcher:
         self.syn2cuis = None
 
     def build_patterns(
-        self, nlp: Language, terms: Dict[str, Iterable[str]], progress: bool = False
+        self,
+        nlp: PipelineProtocol,
+        terms: Dict[str, Iterable[str]],
+        progress: bool = False,
     ):
         """
         Build patterns and adds them for matching.
 
         Parameters
         ----------
-        nlp : Language
+        nlp : PipelineProtocol
             The instance of the spaCy language class.
         terms : Patterns
             Dictionary of label/terms, or label/dictionary of terms/attribute.
@@ -217,7 +221,6 @@ class SimstringMatcher:
 
 
 def _similarity(x: str, y: str, measure: SimilarityMeasure = SimilarityMeasure.dice):
-
     x_ngrams = {x[i : i + 3] for i in range(0, len(x) - 3)}
     y_ngrams = {y[i : i + 3] for i in range(0, len(y) - 3)}
 
@@ -284,7 +287,6 @@ def get_text_and_offsets(
     last = cursor
     last_i = 0
     for i, token in enumerate(doclike):
-
         if (not ignore_excluded or token.tag_ != "EXCLUDED") and (
             not ignore_space_tokens or token.tag_ != "SPACE"
         ):

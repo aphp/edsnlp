@@ -13,9 +13,9 @@ from typing import (
     Union,
 )
 
-from spacy import Language
 from spacy.tokens import Doc, Span
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.utils.filter import filter_spans
 
 
@@ -30,7 +30,7 @@ class BaseComponent:
     imposes that the extensions be reset.
     """
 
-    def __init__(self, nlp: Language = None, name: str = None, *args, **kwargs):
+    def __init__(self, nlp: PipelineProtocol = None, name: str = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.nlp = nlp
         self.name = name
@@ -264,7 +264,7 @@ class SpanGetterArg:
 class BaseNERComponent(BaseComponent):
     def __init__(
         self,
-        nlp: Language = None,
+        nlp: PipelineProtocol = None,
         name: str = None,
         *args,
         span_setter: SpanSetterArg,

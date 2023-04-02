@@ -2,9 +2,9 @@
 import re
 from typing import List, Optional, Union
 
-from spacy import Language
 from spacy.tokens import Doc, Span
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.pipelines.base import SpanSetterArg
 from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
 from edsnlp.utils.resources import get_adicap_dict
@@ -109,7 +109,7 @@ Name=cgts_sem_adicap_fiche-detaillee.pdf).
 
     Parameters
     ----------
-    nlp : Optional[Language]
+    nlp : Optional[PipelineProtocol]
         The pipeline object
     name : str
         The name of the pipe
@@ -137,7 +137,7 @@ Name=cgts_sem_adicap_fiche-detaillee.pdf).
 
     def __init__(
         self,
-        nlp: Optional[Language],
+        nlp: Optional[PipelineProtocol],
         name: str = "eds.adicap",
         *,
         pattern: Union[List[str], str] = patterns.base_code,

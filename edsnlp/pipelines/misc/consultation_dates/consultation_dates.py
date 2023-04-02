@@ -1,9 +1,9 @@
 from typing import List, Union
 
 from loguru import logger
-from spacy.language import Language
 from spacy.tokens import Doc, Span
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.pipelines.core.matcher.matcher import GenericMatcher
 from edsnlp.pipelines.misc.dates.factory import DEFAULT_CONFIG, DatesMatcher
 
@@ -64,7 +64,7 @@ class ConsultationDatesMatcher(GenericMatcher):
 
     Parameters
     ----------
-    nlp : Language
+    nlp : PipelineProtocol
         Language pipeline object
     consultation_mention : Union[List[str], bool]
         List of RegEx for consultation mentions.
@@ -103,7 +103,7 @@ class ConsultationDatesMatcher(GenericMatcher):
 
     def __init__(
         self,
-        nlp: Language,
+        nlp: PipelineProtocol,
         name: str = "eds.consultation_dates",
         *,
         consultation_mention: Union[List[str], bool] = True,

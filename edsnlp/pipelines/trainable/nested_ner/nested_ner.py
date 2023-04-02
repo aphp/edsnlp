@@ -3,7 +3,6 @@ from itertools import islice
 from typing import Callable, Dict, Iterable, List, Mapping, Optional, Tuple
 
 import spacy
-from spacy import Language
 from spacy.pipeline import TrainablePipe
 from spacy.tokens import Doc, Span
 from spacy.training import Example
@@ -14,6 +13,7 @@ from thinc.model import set_dropout_rate
 from thinc.types import Ints2d
 from wasabi import Printer
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.utils.filter import filter_spans
 
 msg = Printer()
@@ -276,7 +276,7 @@ class TrainableNer(TrainablePipe):
         self,
         get_examples: Callable[[], Iterable[Example]],
         *,
-        nlp: Language = None,
+        nlp: PipelineProtocol = None,
         labels: Optional[List[str]] = None,
     ):
         """
@@ -292,8 +292,8 @@ class TrainableNer(TrainablePipe):
         ----------
         get_examples: Callable[[], Iterable[Example]]
             Method to sample some examples
-        nlp: spacy.Language
-            Unused spacy model
+        nlp: PipelineProtocol
+            The pipeline instance
         labels
             Unused list of labels
         """
@@ -364,7 +364,9 @@ class TrainableNer(TrainablePipe):
         -------
         Ints2d
         """
-        label_vocab = {self.vocab.strings[l]: i for i, l in enumerate(self.labels)}
+        label_vocab = {
+            self.vocab.strings[label]: i for i, label in enumerate(self.labels)
+        }
         spans = set()
         for eg_idx, eg in enumerate(examples):
             for span in (

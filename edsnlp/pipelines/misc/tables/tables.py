@@ -2,9 +2,9 @@ from io import StringIO
 from typing import Dict, Optional, Union
 
 import pandas as pd
-from spacy.language import Language
 from spacy.tokens import Doc, Span
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.pipelines.core.matcher.matcher import GenericMatcher
 from edsnlp.pipelines.misc.tables import patterns
 from edsnlp.utils.filter import get_spans
@@ -95,7 +95,7 @@ class TablesMatcher(GenericMatcher):
 
     Parameters
     ----------
-    nlp : Language
+    nlp : PipelineProtocol
         spaCy nlp pipeline to use for matching.
     name: str
         Name of the component.
@@ -116,7 +116,7 @@ class TablesMatcher(GenericMatcher):
 
     def __init__(
         self,
-        nlp: Language,
+        nlp: PipelineProtocol,
         name: str = "eds.tables",
         *,
         tables_pattern: Optional[Dict[str, str]] = None,

@@ -1,5 +1,4 @@
-from spacy.language import Language
-
+from edsnlp.core import registry
 from edsnlp.utils.deprecation import deprecated_factory
 
 from .reported_speech import ReportedSpeechQualifier
@@ -28,7 +27,7 @@ create_component = deprecated_factory(
     "eds.reported_speech",
     assigns=["span._.reported_speech"],
 )(create_component)
-create_component = Language.factory(
+create_component = registry.factory.register(
     "eds.reported_speech",
     assigns=["span._.reported_speech"],
 )(create_component)

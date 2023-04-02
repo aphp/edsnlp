@@ -1,7 +1,8 @@
 from typing import List, Optional, Tuple
 
-from spacy import Language
 from spacy.tokens import Doc
+
+from edsnlp.core import PipelineProtocol
 
 from .patterns import quotes_and_apostrophes
 
@@ -13,7 +14,7 @@ class QuotesConverter:
 
     Parameters
     ----------
-    nlp : Optional[Language]
+    nlp : Optional[PipelineProtocol]
         The pipeline object.
     name : Optional[str]
         The component name.
@@ -23,7 +24,7 @@ class QuotesConverter:
 
     def __init__(
         self,
-        nlp: Optional[Language] = None,
+        nlp: Optional[PipelineProtocol] = None,
         name: Optional[str] = "eds.spaces",
         *,
         quotes: List[Tuple[str, str]] = quotes_and_apostrophes

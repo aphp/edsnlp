@@ -1,6 +1,5 @@
 import pytest
 from pytest import fixture
-from thinc.config import ConfigValidationError
 
 from edsnlp.pipelines.core.matcher import GenericMatcher
 from tests.conftest import text
@@ -42,7 +41,7 @@ def matcher_factory(nlp):
 
 
 def test_matcher_config_typo(nlp):
-    with pytest.raises(ConfigValidationError):
+    with pytest.raises(ValueError):
         nlp.add_pipe(
             "matcher",
             config={

@@ -1,4 +1,4 @@
-from spacy import Language
+from edsnlp.core import registry
 
 from .hemiplegia import HemiplegiaMatcher
 from .patterns import default_patterns
@@ -9,7 +9,7 @@ DEFAULT_CONFIG = dict(
     span_setter={"ents": True, "hemiplegia": True},
 )
 
-create_component = Language.factory(
+create_component = registry.factory.register(
     "eds.hemiplegia",
     assigns=["doc.ents", "doc.spans"],
 )(HemiplegiaMatcher)

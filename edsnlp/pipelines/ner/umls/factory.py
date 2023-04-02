@@ -1,8 +1,8 @@
 from typing import Any, Dict, Union
 
-from spacy.language import Language
 from typing_extensions import Literal
 
+from edsnlp.core import PipelineProtocol, registry
 from edsnlp.pipelines.core.terminology.terminology import TerminologyMatcher
 
 from ...base import SpanSetterArg
@@ -20,12 +20,12 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@Language.factory(
+@registry.factory.register(
     "eds.umls",
     assigns=["doc.ents", "doc.spans"],
 )
 def create_component(
-    nlp: Language,
+    nlp: PipelineProtocol,
     name: str = "eds.umls",
     *,
     attr: Union[str, Dict[str, str]] = "NORM",
@@ -97,7 +97,7 @@ def create_component(
 
     Parameters
     ----------
-    nlp : Language
+    nlp : PipelineProtocol
         spaCy `Language` object.
     name : str
         The name of the pipe

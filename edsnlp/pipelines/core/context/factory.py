@@ -1,7 +1,6 @@
 from typing import List
 
-from spacy.language import Language
-
+from edsnlp.core import PipelineProtocol, registry
 from edsnlp.pipelines.core.context import ContextAdder
 
 DEFAULT_CONFIG = dict(
@@ -9,9 +8,9 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@Language.factory("eds.context")
+@registry.factory.register("eds.context")
 def create_component(
-    nlp: Language,
+    nlp: PipelineProtocol,
     name: str,
     *,
     context: List[str] = ["note_id"],

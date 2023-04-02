@@ -1,4 +1,4 @@
-from spacy import Language
+from edsnlp.core import registry
 
 from .liver_disease import LiverDiseaseMatcher
 from .patterns import default_patterns
@@ -9,7 +9,7 @@ DEFAULT_CONFIG = dict(
     span_setter={"ents": True, "liver_disease": True},
 )
 
-create_component = Language.factory(
+create_component = registry.factory.register(
     "eds.liver_disease",
     assigns=["doc.ents", "doc.spans"],
 )(LiverDiseaseMatcher)

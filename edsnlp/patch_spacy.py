@@ -1,11 +1,13 @@
-from typing import Any, Callable, Dict, Iterable, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
-import spacy
-from spacy import util
-from spacy.errors import Errors
-from spacy.language import FactoryMeta
+from spacy import Errors, Vocab, registry, util
+from spacy.language import DEFAULT_CONFIG, FactoryMeta, Language
 from spacy.pipe_analysis import validate_attrs
-from spacy.util import SimpleFrozenDict, SimpleFrozenList, registry
+from spacy.tokens import Doc
+from spacy.util import SimpleFrozenDict, SimpleFrozenList, raise_error
+from spacy.vocab import create_vocab
+
+from edsnlp.core.registry import accepted_arguments
 
 
 @classmethod
@@ -50,15 +52,14 @@ def factory(
     if not isinstance(name, str):
         raise ValueError(Errors.E963.format(decorator="factory"))
     if not isinstance(default_config, dict):
-        raise ValueError(
-            Errors.E962.format(
-                style="default config", name=name, cfg_type=type(default_config)
-            )
+        err = Errors.E962.format(
+            style="default config", name=name, cfg_type=type(default_config)
         )
+        raise ValueError(err)
 
     def add_factory(factory_func: Callable) -> Callable:
         internal_name = cls.get_factory_name(name)
-        if internal_name in registry.factories:
+        if internal_name in registry.factories.namespace:
             # We only check for the internal name here – it's okay if it's a
             # subclass and the base class has a factory of the same name. We
             # also only raise if the function is different to prevent raising
@@ -70,8 +71,8 @@ def factory(
                 )
                 raise ValueError(err)
 
-        arg_names = util.get_arg_names(factory_func)
-        if "nlp" not in arg_names or "name" not in arg_names:
+        util.get_arg_names(factory_func)
+        if len(accepted_arguments(factory_func, ["nlp", "name"])) < 2:
             raise ValueError(Errors.E964.format(name=name))
         # Officially register the factory so we can later call
         # registry.resolve and refer to it in the config as
@@ -92,9 +93,11 @@ def factory(
         # backwards-compat (writing to Language.factories directly). This
         # wouldn't work with an instance property and just produce a
         # confusing error – here we can show a custom error
+        registry.factories.entry_points = False
         cls.factories = SimpleFrozenDict(
             registry.factories.get_all(), error=Errors.E957
         )
+        registry.factories.entry_points = True
         return factory_func
 
     if func is not None:  # Support non-decorator use cases
@@ -102,4 +105,74 @@ def factory(
     return add_factory
 
 
-spacy.Language.factory = factory
+def __init__(
+    self,
+    vocab: Union[Vocab, bool] = True,
+    *,
+    max_length: int = 10**6,
+    meta: Dict[str, Any] = {},
+    create_tokenizer: Optional[Callable[["Language"], Callable[[str], Doc]]] = None,
+    batch_size: int = 1000,
+    **kwargs,
+) -> None:
+    """
+    EDS-NLP: Patched from spaCy do enable lazy-loading components
+
+    Initialise a Language object.
+
+    vocab (Vocab): A `Vocab` object. If `True`, a vocab is created.
+    meta (dict): Custom meta data for the Language class. Is written to by
+        models to add model meta data.
+    max_length (int): Maximum number of characters in a single text. The
+        current models may run out memory on extremely long texts, due to
+        large internal allocations. You should segment these texts into
+        meaningful units, e.g. paragraphs, subsections etc, before passing
+        them to spaCy. Default maximum length is 1,000,000 charas (1mb). As
+        a rule of thumb, if all pipeline components are enabled, spaCy's
+        default models currently requires roughly 1GB of temporary memory per
+        100,000 characters in one text.
+    create_tokenizer (Callable): Function that takes the nlp object and
+        returns a tokenizer.
+    batch_size (int): Default batch size for pipe and evaluate.
+
+    DOCS: https://spacy.io/api/language#init
+    """
+
+    # EDS-NLP: disable spacy default call to load every factory
+    # since some of them may be missing dependencies (like torch)
+    # util.registry._entry_point_factories.get_all()
+    util.registry.factories = util.registry._entry_point_factories
+
+    self._config = DEFAULT_CONFIG.merge(self.default_config)
+    self._meta = dict(meta)
+    self._path = None
+    self._optimizer = None
+    # Component meta and configs are only needed on the instance
+    self._pipe_meta: Dict[str, "FactoryMeta"] = {}  # meta by component
+    self._pipe_configs = {}  # config by component
+
+    if not isinstance(vocab, Vocab) and vocab is not True:
+        raise ValueError(Errors.E918.format(vocab=vocab, vocab_type=type(Vocab)))
+    if vocab is True:
+        vectors_name = meta.get("vectors", {}).get("name")
+        vocab = create_vocab(self.lang, self.Defaults, vectors_name=vectors_name)
+    else:
+        if (self.lang and vocab.lang) and (self.lang != vocab.lang):
+            raise ValueError(Errors.E150.format(nlp=self.lang, vocab=vocab.lang))
+    self.vocab: Vocab = vocab
+    if self.lang is None:
+        self.lang = self.vocab.lang
+    self._components: List[Tuple[str, Callable[[Doc], Doc]]] = []
+    self._disabled: Set[str] = set()
+    self.max_length = max_length
+    # Create the default tokenizer from the default config
+    if not create_tokenizer:
+        tokenizer_cfg = {"tokenizer": self._config["nlp"]["tokenizer"]}
+        create_tokenizer = registry.resolve(tokenizer_cfg)["tokenizer"]
+    self.tokenizer = create_tokenizer(self)
+    self.batch_size = batch_size
+    self.default_error_handler = raise_error
+
+
+Language.factory = factory
+Language.__init__ = __init__

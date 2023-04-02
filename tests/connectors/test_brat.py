@@ -7,9 +7,9 @@ from random import choice, randint, random
 from string import ascii_letters, ascii_lowercase
 
 import pytest
-from spacy.language import Language
 
 from edsnlp.connectors.brat import BratConnector
+from edsnlp.core import PipelineProtocol
 
 
 def random_word():
@@ -76,7 +76,7 @@ def brat_exporter(tmpdir):
     return BratConnector(tmpdir, attributes=["etat", "assertion"])
 
 
-def test_empty_brat(brat2: BratConnector, blank_nlp: Language):
+def test_empty_brat(brat2: BratConnector, blank_nlp: PipelineProtocol):
     with pytest.raises(AssertionError):
         brat2.brat2docs(blank_nlp)
 
@@ -85,7 +85,9 @@ def test_brat2pandas(brat1: BratConnector):
     brat1.get_brat()
 
 
-def test_brat2brat(brat1: BratConnector, brat2: BratConnector, blank_nlp: Language):
+def test_brat2brat(
+    brat1: BratConnector, brat2: BratConnector, blank_nlp: PipelineProtocol
+):
     docs = brat1.brat2docs(blank_nlp)
     brat2.docs2brat(docs)
 
@@ -124,7 +126,9 @@ def test_docs2brat(nlp, brat2):
 
 
 def test_brat(
-    brat_importer: BratConnector, brat_exporter: BratConnector, blank_nlp: Language
+    brat_importer: BratConnector,
+    brat_exporter: BratConnector,
+    blank_nlp: PipelineProtocol,
 ):
     doc = brat_importer.brat2docs(blank_nlp)[0]
     assert doc._.note_id == "subfolder/doc-1"

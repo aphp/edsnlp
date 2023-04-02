@@ -1,5 +1,4 @@
-from spacy.language import Language
-
+from edsnlp.core import PipelineProtocol
 from edsnlp.utils.examples import parse_example
 
 examples = [
@@ -8,7 +7,7 @@ examples = [
 ]
 
 
-def test_cim10(blank_nlp: Language):
+def test_cim10(blank_nlp: PipelineProtocol):
 
     blank_nlp.add_pipe("eds.cim10")
 

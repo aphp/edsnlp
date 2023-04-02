@@ -7,10 +7,10 @@ from itertools import repeat
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import regex
-import spacy
 from spacy.tokens import Doc, Span
 from typing_extensions import Literal, NotRequired, TypedDict
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.matchers.utils import get_text
@@ -405,7 +405,7 @@ class MeasurementsMatcher(BaseNERComponent):
 
     Parameters
     ----------
-    nlp : Language
+    nlp : PipelineProtocol
         The pipeline object
     name : str
         The name of the component.
@@ -475,7 +475,7 @@ class MeasurementsMatcher(BaseNERComponent):
     # fmt: off
     def __init__(
           self,
-          nlp: spacy.Language,
+          nlp: PipelineProtocol,
           name: str = "eds.measurements",
           *,
           measurements: Union[str, List[Union[str, MsrConfig]], Dict[str, MsrConfig]] = list(patterns.common_measurements.keys()),  # noqa: E501

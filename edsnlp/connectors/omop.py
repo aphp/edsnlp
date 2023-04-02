@@ -1,16 +1,16 @@
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
-from spacy.language import Language
 from spacy.tokens import Doc, Span
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.utils.filter import filter_spans
 
 
 def omop2docs(
     note: pd.DataFrame,
     note_nlp: pd.DataFrame,
-    nlp: Language,
+    nlp: PipelineProtocol,
     extensions: Optional[List[str]] = None,
 ) -> List[Doc]:
     """
@@ -22,8 +22,8 @@ def omop2docs(
         The OMOP `note` table.
     note_nlp : pd.DataFrame
         The OMOP `note_nlp` table
-    nlp : Language
-        spaCy language object.
+    nlp : PipelineProtocol
+        The pipeline instance
     extensions : Optional[List[str]], optional
         Extensions to keep, by default None
 
@@ -188,8 +188,8 @@ class OmopConnector(object):
 
     Parameters
     ----------
-    nlp : Language
-        spaCy language object.
+    nlp : PipelineProtocol
+        The pipeline instance
     start_char : str, optional
         Name of the column containing the start character index of the entity,
         by default "start_char"
@@ -200,7 +200,7 @@ class OmopConnector(object):
 
     def __init__(
         self,
-        nlp: Language,
+        nlp: PipelineProtocol,
         start_char: str = "start_char",
         end_char: str = "end_char",
     ):

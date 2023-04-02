@@ -4,16 +4,16 @@ from typing import List, Optional, Union
 import pandas as pd
 from rich.console import Console
 from rich.table import Table
-from spacy.language import Language
 from spacy.tokens import Doc, Token
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.utils import get_text
 from edsnlp.pipelines.qualifiers.base import get_qualifier_extensions
 from edsnlp.utils.extensions import rgetattr
 
 
 class QuickExample:
-    def __init__(self, nlp: Language, extensions: List[str] = []):
+    def __init__(self, nlp: PipelineProtocol, extensions: List[str] = []):
         self.nlp = nlp
         self.qualifiers = get_qualifier_extensions(nlp)
         self.extensions = extensions

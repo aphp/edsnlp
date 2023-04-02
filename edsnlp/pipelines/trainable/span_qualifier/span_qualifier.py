@@ -5,7 +5,6 @@ from typing import Callable, Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
 import spacy
-from spacy import Language
 from spacy.pipeline import TrainablePipe
 from spacy.tokens import Doc
 from spacy.training import Example
@@ -16,6 +15,7 @@ from thinc.model import set_dropout_rate
 from thinc.types import Ints2d
 from wasabi import Printer
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.pipelines.trainable.span_qualifier.utils import (
     Binding,
     SpanGroups,
@@ -238,7 +238,7 @@ class TrainableSpanQualifier(TrainablePipe):
             - the ents to reassign if the "label_" qualifier is updated
             - the span groups dicts to reassign if the "label_" qualifier is updated
             - the qualifiers for each span
-        """
+        """  # noqa: E501
         output, spans, ents, span_groups, spans_qlf = predictions
         one_hot = output["labels"]
         for span, span_one_hot, span_qualifiers in zip(spans, one_hot, spans_qlf):
@@ -341,7 +341,7 @@ class TrainableSpanQualifier(TrainablePipe):
         self,
         get_examples: Callable[[], Iterable[Example]],
         *,
-        nlp: Language = None,
+        nlp: PipelineProtocol = None,
         labels: Optional[List[str]] = None,
     ):
         """
@@ -356,7 +356,7 @@ class TrainableSpanQualifier(TrainablePipe):
         ----------
         get_examples: Callable[[], Iterable[Example]]
             Method to sample some examples
-        nlp: spacy.Language
+        nlp: PipelineProtocol
             Unused spacy model
         labels
             Unused list of labels

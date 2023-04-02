@@ -2,8 +2,7 @@
 import itertools
 from typing import Any, Dict, List, Optional, Union
 
-from spacy.language import Language
-
+from edsnlp.core import PipelineProtocol
 from edsnlp.pipelines.base import SpanSetterArg
 from edsnlp.pipelines.ner.disorders.base import DisorderMatcher
 from edsnlp.pipelines.qualifiers.hypothesis import HypothesisQualifier
@@ -79,7 +78,7 @@ class AIDSMatcher(DisorderMatcher):
 
     Parameters
     ----------
-    nlp : Optional[Language]
+    nlp : Optional[PipelineProtocol]
         The pipeline object
     name : Optional[str]
         The name of the component
@@ -99,7 +98,7 @@ class AIDSMatcher(DisorderMatcher):
 
     def __init__(
         self,
-        nlp: Optional[Language],
+        nlp: Optional[PipelineProtocol],
         name: str = "eds.aids",
         *,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]] = default_patterns,

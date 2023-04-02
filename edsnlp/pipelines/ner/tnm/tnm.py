@@ -2,9 +2,9 @@
 from typing import Dict, List, Optional, Tuple, Union
 
 from pydantic import ValidationError
-from spacy.language import Language
 from spacy.tokens import Doc, Span
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.pipelines.base import BaseNERComponent, SpanSetterArg
 from edsnlp.utils.filter import filter_spans
@@ -48,7 +48,7 @@ class TNMMatcher(BaseNERComponent):
 
     Parameters
     ----------
-    nlp : Optional[Language]
+    nlp : Optional[PipelineProtocol]
         The pipeline object
     name : str
         The name of the pipe
@@ -70,7 +70,7 @@ class TNMMatcher(BaseNERComponent):
     # noinspection PyProtectedMember
     def __init__(
         self,
-        nlp: Optional[Language],
+        nlp: Optional[PipelineProtocol],
         name: str = "eds.tnm",
         *,
         pattern: Optional[Union[List[str], str]] = tnm_pattern,

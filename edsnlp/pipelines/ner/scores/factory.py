@@ -1,5 +1,4 @@
-from spacy.language import Language
-
+from edsnlp.core import registry
 from edsnlp.pipelines.ner.scores.base_score import SimpleScoreMatcher
 from edsnlp.utils.deprecation import deprecated_factory
 
@@ -21,7 +20,7 @@ create_component = deprecated_factory(
     "eds.score",
     assigns=["doc.ents", "doc.spans"],
 )(create_component)
-create_component = Language.factory(
+create_component = registry.factory.register(
     "eds.score",
     assigns=["doc.ents", "doc.spans"],
 )(create_component)

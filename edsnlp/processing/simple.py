@@ -2,10 +2,10 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import pandas as pd
 import spacy
-from spacy import Language
 from spacy.tokens import Doc, Span
 from tqdm import tqdm
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.utils.extensions import rgetattr
 
 from .helpers import check_spacy_version_for_context, slugify
@@ -21,7 +21,7 @@ ExtensionSchema = Union[
 
 def _df_to_spacy(
     note: pd.DataFrame,
-    nlp: Language,
+    nlp: PipelineProtocol,
     context: List[str],
 ):
     """
@@ -72,7 +72,7 @@ def _flatten(list_of_lists: List[List[Any]]):
 
 def _pipe_generator(
     note: pd.DataFrame,
-    nlp: Language,
+    nlp: PipelineProtocol,
     context: List[str] = [],
     results_extractor: Optional[Callable[[Doc], List[Dict[str, Any]]]] = None,
     additional_spans: Union[List[str], str] = [],
@@ -81,13 +81,13 @@ def _pipe_generator(
     progress_bar: bool = True,
 ):
 
-    if type(extensions) == str:
+    if isinstance(extensions, str):
         extensions = [extensions]
 
-    elif type(extensions) == dict:
+    elif isinstance(extensions, dict):
         extensions = list(extensions.keys())
 
-    if type(additional_spans) == str:
+    if isinstance(additional_spans, str):
         additional_spans = [additional_spans]
 
     if "note_id" not in context:
@@ -181,7 +181,7 @@ def _full_schema(
 
 def pipe(
     note: pd.DataFrame,
-    nlp: Language,
+    nlp: PipelineProtocol,
     context: List[str] = [],
     results_extractor: Optional[Callable[[Doc], List[Dict[str, Any]]]] = None,
     additional_spans: Union[List[str], str] = [],
@@ -197,7 +197,7 @@ def pipe(
     ----------
     note : DataFrame
         A pandas DataFrame with a `note_id` and `note_text` column
-    nlp : Language
+    nlp : PipelineProtocol
         A spaCy pipe
     context : List[str]
         A list of column to add to the generated SpaCy document as an extension.

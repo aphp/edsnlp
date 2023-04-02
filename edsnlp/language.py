@@ -39,7 +39,6 @@ class EDSLanguage(French):
 
     lang = "eds"
     Defaults = EDSDefaults
-    default_config = Defaults
 
 
 TOKENIZER_EXCEPTIONS = [r"Dr\.", r"Pr\.", r"M\.", r"Mme\.", r"Mlle\.", r"(?i:(?:ep\.))"]

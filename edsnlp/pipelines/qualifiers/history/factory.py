@@ -1,5 +1,4 @@
-from spacy.language import Language
-
+from edsnlp.core import registry
 from edsnlp.utils.deprecation import deprecated_factory
 
 from .history import HistoryQualifier
@@ -25,7 +24,7 @@ for name in ["history", "antecedents", "eds.antecedents"]:
         "eds.history",
         assigns=["span._.history"],
     )(create_component)
-create_component = Language.factory(
+create_component = registry.factory.register(
     "eds.history",
     assigns=["span._.history"],
 )(create_component)

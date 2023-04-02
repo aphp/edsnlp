@@ -1,9 +1,9 @@
 import re
 from typing import Any, Dict, List, Union
 
-from spacy import Language
 from spacy.tokens import Doc, Span
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.pipelines.base import SpanSetterArg
 from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
 from edsnlp.utils.deprecation import deprecated_getter_factory
@@ -16,7 +16,7 @@ class DisorderMatcher(ContextualMatcher):
 
     Parameters
     ----------
-    nlp : Language
+    nlp : PipelineProtocol
         spaCy `Language` object.
     name : str
         The name of the pipe
@@ -40,7 +40,7 @@ class DisorderMatcher(ContextualMatcher):
 
     def __init__(
         self,
-        nlp: Language,
+        nlp: PipelineProtocol,
         name: str,
         *,
         label: str,

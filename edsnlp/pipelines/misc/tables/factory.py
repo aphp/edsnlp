@@ -1,5 +1,4 @@
-from spacy.language import Language
-
+from edsnlp.core import registry
 from edsnlp.pipelines.misc.tables import TablesMatcher
 from edsnlp.utils.deprecation import deprecated_factory
 
@@ -16,7 +15,7 @@ create_component = deprecated_factory(
     "eds.tables",
     assigns=["doc.spans", "doc.ents"],
 )(create_component)
-create_component = Language.factory(
+create_component = registry.factory.register(
     "eds.tables",
     assigns=["doc.spans", "doc.ents"],
 )(create_component)

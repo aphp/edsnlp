@@ -1,5 +1,4 @@
-from spacy.language import Language
-
+from edsnlp.core import registry
 from edsnlp.utils.deprecation import deprecated_factory
 
 from .matcher import GenericMatcher
@@ -21,7 +20,7 @@ create_component = deprecated_factory(
     "eds.matcher",
     assigns=["doc.ents", "doc.spans"],
 )(create_component)
-create_component = Language.factory(
+create_component = registry.factory.register(
     "eds.matcher",
     assigns=["doc.ents", "doc.spans"],
 )(create_component)

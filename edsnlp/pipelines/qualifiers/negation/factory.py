@@ -1,5 +1,4 @@
-from spacy.language import Language
-
+from edsnlp.core import registry
 from edsnlp.utils.deprecation import deprecated_factory
 
 from .negation import NegationQualifier
@@ -23,7 +22,7 @@ create_component = deprecated_factory(
     "eds.negation",
     assigns=["span._.negation"],
 )(NegationQualifier)
-create_component = Language.factory(
+create_component = registry.factory.register(
     "eds.negation",
     assigns=["span._.negation"],
 )(create_component)

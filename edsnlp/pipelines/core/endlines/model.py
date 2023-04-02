@@ -9,9 +9,10 @@ from pandas.core.groupby import DataFrameGroupBy
 from scipy.sparse import hstack
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.preprocessing import OneHotEncoder
-from spacy.language import Language
 from spacy.strings import StringStore
 from spacy.tokens import Doc
+
+from edsnlp.core import PipelineProtocol
 
 from .functional import _convert_series_to_array
 
@@ -21,11 +22,11 @@ class EndLinesModel:
 
     Parameters
     ----------
-    nlp : Language
+    nlp : PipelineProtocol
         spaCy nlp pipeline to use for matching.
     """
 
-    def __init__(self, nlp: Language):
+    def __init__(self, nlp: PipelineProtocol):
         self.nlp = nlp
 
     def _preprocess_data(self, corpus: Iterable[Doc]) -> pd.DataFrame:

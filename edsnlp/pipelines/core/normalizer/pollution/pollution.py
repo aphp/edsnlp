@@ -1,9 +1,9 @@
 import re
 from typing import Dict, List, Optional, Union
 
-from spacy.language import Language
 from spacy.tokens import Doc, Span
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
@@ -26,7 +26,7 @@ class PollutionTagger(BaseComponent):
 
     Parameters
     ----------
-    nlp : Language
+    nlp : PipelineProtocol
         The pipeline object
     name : Optional[str]
         The component name.
@@ -37,7 +37,7 @@ class PollutionTagger(BaseComponent):
     # noinspection PyProtectedMember
     def __init__(
         self,
-        nlp: Language,
+        nlp: PipelineProtocol,
         name: Optional[str] = "eds.pollution",
         *,
         pollution: Dict[str, Union[bool, str, List[str]]] = default_enabled,

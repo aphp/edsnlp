@@ -1,5 +1,4 @@
-from spacy.language import Language
-
+from edsnlp.core import registry
 from edsnlp.utils.deprecation import deprecated_factory
 
 from .hypothesis import HypothesisQualifier
@@ -23,7 +22,7 @@ create_component = deprecated_factory(
     "eds.hypothesis",
     assigns=["span._.hypothesis"],
 )(HypothesisQualifier)
-create_component = Language.factory(
+create_component = registry.factory.register(
     "eds.hypothesis",
     assigns=["span._.hypothesis"],
 )(create_component)

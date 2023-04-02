@@ -1,9 +1,9 @@
 """`eds.copd` pipeline"""
 from typing import Any, Dict, List, Optional, Union
 
-from spacy import Language
 from spacy.tokens import Doc
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.pipelines.base import SpanSetterArg
 
 from ..base import DisorderMatcher
@@ -65,7 +65,7 @@ class COPDMatcher(DisorderMatcher):
 
     Parameters
     ----------
-    nlp : Optional[Language]
+    nlp : Optional[PipelineProtocol]
         The pipeline
     name : Optional[str]
         The name of the component
@@ -85,7 +85,7 @@ class COPDMatcher(DisorderMatcher):
 
     def __init__(
         self,
-        nlp: Optional[Language] = None,
+        nlp: Optional[PipelineProtocol] = None,
         name: str = "eds.copd",
         *,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]] = default_patterns,

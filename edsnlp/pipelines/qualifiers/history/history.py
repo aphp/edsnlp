@@ -3,9 +3,9 @@ from typing import List, Optional, Set, Union
 
 import pendulum
 from loguru import logger
-from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.pipelines.base import SpanGetterArg, get_spans
 from edsnlp.pipelines.qualifiers.base import RuleBasedQualifier
 from edsnlp.pipelines.terminations import termination as default_termination
@@ -121,7 +121,7 @@ class HistoryQualifier(RuleBasedQualifier):
 
     Parameters
     ----------
-    nlp : Language
+    nlp : PipelineProtocol
         The pipeline object.
     name : Optional[str]
         The component name.
@@ -167,7 +167,7 @@ class HistoryQualifier(RuleBasedQualifier):
 
     def __init__(
         self,
-        nlp: Language,
+        nlp: PipelineProtocol,
         name: Optional[str] = "eds.history",
         *,
         history: Optional[List[str]] = None,

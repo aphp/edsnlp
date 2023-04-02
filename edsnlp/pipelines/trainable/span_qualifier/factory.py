@@ -1,9 +1,10 @@
 from typing import Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
-from spacy import Language
 from spacy.tokens import Doc
 from thinc.api import Model
 from thinc.config import Config
+
+from edsnlp import registry
 
 from .span_qualifier import TrainableSpanQualifier
 from .span_qualifier import make_span_qualifier_scorer as create_scorer  # noqa: F401
@@ -36,7 +37,7 @@ span_qualifier_default_config = """
 SPAN_QUALIFIER_DEFAULTS = Config().from_str(span_qualifier_default_config)
 
 
-@Language.factory(
+@registry.factory.register(
     "eds.span_qualifier",
     default_config=SPAN_QUALIFIER_DEFAULTS,
     requires=["doc.ents", "doc.spans"],
@@ -65,7 +66,7 @@ def create_component(
 
     Parameters
     ----------
-    nlp: Language
+    nlp: PipelineProtocol
         Spacy vocabulary
     model: Model
         The model to extract the spans

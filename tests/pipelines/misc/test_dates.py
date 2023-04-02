@@ -4,8 +4,8 @@ import pytest
 import pytz
 import spacy
 from pytest import fixture
-from spacy.language import Language
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.pipelines.misc.dates.models import AbsoluteDate, Relative
 from edsnlp.utils.examples import parse_example
 
@@ -72,11 +72,11 @@ examples = [
 
 
 @fixture(autouse=True)
-def add_date_pipeline(blank_nlp: Language):
+def add_date_pipeline(blank_nlp: PipelineProtocol):
     blank_nlp.add_pipe("eds.dates", config=dict(detect_periods=True, as_ents=True))
 
 
-def test_dates_component(blank_nlp: Language):
+def test_dates_component(blank_nlp: PipelineProtocol):
     note_datetime = datetime(year=1993, month=9, day=23)
 
     for example in examples:
@@ -152,7 +152,7 @@ def test_dates_component(blank_nlp: Language):
                 assert date.to_datetime(note_datetime=note_datetime)
 
 
-def test_periods(blank_nlp: Language):
+def test_periods(blank_nlp: PipelineProtocol):
 
     period_examples = [
         "à partir de <ent>juin 2017 pendant trois semaines</ent>",
@@ -199,7 +199,7 @@ def test_time(with_time: bool):
             assert span._.date.norm() == norm
 
 
-def test_false_positives(blank_nlp: Language):
+def test_false_positives(blank_nlp: PipelineProtocol):
 
     counter_examples = [
         "page 1/1",  # Often found in the form `1/1` only

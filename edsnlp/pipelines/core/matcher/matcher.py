@@ -1,9 +1,9 @@
 from typing import Any, Dict, List, Optional
 
-from spacy.language import Language
 from spacy.tokens import Doc, Span
 from typing_extensions import Literal
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.matchers.simstring import SimstringMatcher
@@ -58,7 +58,7 @@ class GenericMatcher(BaseNERComponent):
 
     Parameters
     ----------
-    nlp : Language
+    nlp : PipelineProtocol
         The pipeline object.
     name: str
         The name of the component.
@@ -92,7 +92,7 @@ class GenericMatcher(BaseNERComponent):
 
     def __init__(
         self,
-        nlp: Language,
+        nlp: PipelineProtocol,
         name: Optional[str] = "eds.matcher",
         *,
         terms: Optional[Patterns] = None,

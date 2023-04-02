@@ -1,8 +1,7 @@
 import re
 from typing import Any, Callable, List, Optional, Union
 
-from spacy.language import Language
-
+from edsnlp.core import PipelineProtocol, registry
 from edsnlp.pipelines.base import SpanSetterArg
 from edsnlp.pipelines.ner.scores.base_score import SimpleScoreMatcher
 from edsnlp.utils.deprecation import deprecated_factory
@@ -33,12 +32,12 @@ DEFAULT_CONFIG = dict(
     "eds.emergency_priority",
     assigns=["doc.ents", "doc.spans"],
 )
-@Language.factory(
+@registry.factory.register(
     "eds.emergency_priority",
     assigns=["doc.ents", "doc.spans"],
 )
 def create_component(
-    nlp: Language,
+    nlp: PipelineProtocol,
     name: Optional[str] = None,
     *,
     regex: List[str] = regex,
@@ -69,7 +68,7 @@ def create_component(
 
     Parameters
     ----------
-    nlp : Language
+    nlp : PipelineProtocol
         The pipeline object
     name : str
         The name of the component

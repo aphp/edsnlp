@@ -1,10 +1,10 @@
 from itertools import chain
 from typing import Any, Dict, List, Optional
 
-from spacy.language import Language
 from spacy.tokens import Doc, Span
 from typing_extensions import Literal
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.matchers.simstring import SimstringMatcher
@@ -70,7 +70,7 @@ class TerminologyMatcher(BaseNERComponent):
 
     Parameters
     ----------
-    nlp : Language
+    nlp : PipelineProtocol
         The pipeline object
     terms : Optional[Patterns]
         A dictionary of terms.
@@ -105,7 +105,7 @@ class TerminologyMatcher(BaseNERComponent):
 
     def __init__(
         self,
-        nlp: Language,
+        nlp: PipelineProtocol,
         name: Optional[str] = None,
         *,
         terms: Optional[Patterns] = None,

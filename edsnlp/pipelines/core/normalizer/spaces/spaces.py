@@ -1,7 +1,8 @@
 from typing import Optional
 
-from spacy import Language
 from spacy.tokens import Doc
+
+from edsnlp.core import PipelineProtocol
 
 
 class SpacesTagger:
@@ -11,7 +12,7 @@ class SpacesTagger:
 
     Parameters
     ----------
-    nlp : Optional[Language]
+    nlp : Optional[PipelineProtocol]
         The pipeline object.
     name : Optional[str]
         The component name.
@@ -21,7 +22,7 @@ class SpacesTagger:
 
     def __init__(
         self,
-        nlp: Optional[Language] = None,
+        nlp: Optional[PipelineProtocol] = None,
         name: Optional[str] = "eds.spaces",
         *,
         newline: bool = True,

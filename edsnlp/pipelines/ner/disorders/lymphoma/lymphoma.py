@@ -1,8 +1,7 @@
 """`eds.lymphoma` pipeline"""
 from typing import Any, Dict, List, Optional, Union
 
-from spacy import Language
-
+from edsnlp.core import PipelineProtocol
 from edsnlp.pipelines.base import SpanSetterArg
 from edsnlp.pipelines.ner.disorders.base import DisorderMatcher
 
@@ -64,7 +63,7 @@ class LymphomaMatcher(DisorderMatcher):
 
     Parameters
     ----------
-    nlp : Optional[Language]
+    nlp : Optional[PipelineProtocol]
         The pipeline
     name : Optional[str]
         The name of the component
@@ -84,7 +83,7 @@ class LymphomaMatcher(DisorderMatcher):
 
     def __init__(
         self,
-        nlp: Optional[Language] = None,
+        nlp: Optional[PipelineProtocol] = None,
         name: str = "eds.lymphoma",
         *,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]] = default_patterns,

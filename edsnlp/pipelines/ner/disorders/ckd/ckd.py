@@ -2,13 +2,13 @@
 from typing import Any, Dict, List, Optional, Union
 
 from loguru import logger
-from spacy import Language
 from spacy.tokens import Doc, Span
 
+from edsnlp.core import PipelineProtocol, registry
 from edsnlp.pipelines.base import SpanSetterArg
+from edsnlp.pipelines.ner.disorders.base import DisorderMatcher
 from edsnlp.utils.deprecation import deprecated_factory
 
-from ..base import DisorderMatcher
 from .patterns import default_patterns
 
 
@@ -17,7 +17,7 @@ from .patterns import default_patterns
     "eds.ckd",
     assigns=["doc.ents", "doc.spans"],
 )
-@Language.factory(
+@registry.factory.register(
     "eds.ckd",
     assigns=["doc.ents", "doc.spans"],
 )
@@ -88,7 +88,7 @@ class CKDMatcher(DisorderMatcher):
 
     Parameters
     ----------
-    nlp : Optional[Language]
+    nlp : Optional[PipelineProtocol]
         The pipeline
     name : Optional[str]
         The name of the component
@@ -108,7 +108,7 @@ class CKDMatcher(DisorderMatcher):
 
     def __init__(
         self,
-        nlp: Optional[Language],
+        nlp: Optional[PipelineProtocol],
         name: str = "eds.ckd",
         *,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]] = default_patterns,

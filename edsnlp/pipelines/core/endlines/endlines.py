@@ -3,9 +3,9 @@ from typing import List, Optional, Union
 
 import numpy as np
 import pandas as pd
-from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.pipelines.core.matcher.matcher import GenericMatcher
 from edsnlp.utils.filter import get_spans
 
@@ -104,7 +104,7 @@ class EndLinesMatcher(GenericMatcher):
 
     Parameters
     ----------
-    nlp : Language
+    nlp : PipelineProtocol
         The pipeline object.
     name: str
         The name of the component.
@@ -119,7 +119,7 @@ class EndLinesMatcher(GenericMatcher):
 
     def __init__(
         self,
-        nlp: Language,
+        nlp: PipelineProtocol,
         name: Optional[str] = "eds.endlines",
         *,
         model_path: Optional[Union[str, EndLinesModel]] = None,

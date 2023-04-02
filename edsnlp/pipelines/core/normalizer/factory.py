@@ -1,7 +1,6 @@
 from typing import Any, Dict, Union
 
-from spacy.language import Language
-
+from edsnlp.core import PipelineProtocol, registry
 from edsnlp.utils.deprecation import deprecated_factory
 
 from .accents.accents import AccentsConverter
@@ -25,9 +24,9 @@ DEFAULT_CONFIG = dict(
     "eds.normalizer",
     assigns=["token.norm", "token.tag"],
 )
-@Language.factory("eds.normalizer", assigns=["token.norm", "token.tag"])
+@registry.factory.register("eds.normalizer", assigns=["token.norm", "token.tag"])
 def create_component(
-    nlp: Language,
+    nlp: PipelineProtocol,
     name: str = "eds.normalizer",
     *,
     accents: Union[bool, Dict[str, Any]] = True,
@@ -48,7 +47,7 @@ def create_component(
 
     Parameters
     ----------
-    nlp: Language
+    nlp: PipelineProtocol
         The pipeline object.
     name : str
         The component name.

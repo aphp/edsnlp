@@ -1,4 +1,4 @@
-from spacy import Language
+from edsnlp.core import registry
 
 from .leukemia import LeukemiaMatcher
 from .patterns import default_patterns
@@ -9,7 +9,7 @@ DEFAULT_CONFIG = dict(
     span_setter={"ents": True, "leukemia": True},
 )
 
-create_component = Language.factory(
+create_component = registry.factory.register(
     "eds.leukemia",
     assigns=["doc.ents", "doc.spans"],
 )(LeukemiaMatcher)

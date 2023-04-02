@@ -6,9 +6,9 @@ from loguru import logger
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
-from spacy import Language
 from spacy.tokens import Doc
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.extensions import rgetattr
 
@@ -57,7 +57,7 @@ def module_checker(
 @module_checker
 def pipe(
     note: DataFrames,
-    nlp: Language,
+    nlp: PipelineProtocol,
     context: List[str] = [],
     additional_spans: Union[List[str], str] = "discarded",
     extensions: Dict[str, T.DataType] = {},
@@ -69,7 +69,7 @@ def pipe(
     ----------
     note : DataFrame
         A Pyspark or Koalas DataFrame with a `note_id` and `note_text` column
-    nlp : Language
+    nlp : PipelineProtocol
         A spaCy pipe
     context : List[str]
         A list of column to add to the generated SpaCy document as an extension.
@@ -166,7 +166,7 @@ def pipe(
             if additional_spans is None:
                 return ents
 
-            if type(additional_spans) == str:
+            if isinstance(additional_spans, str):
                 additional_spans = [additional_spans]
 
             for spans_name in additional_spans:
@@ -222,7 +222,7 @@ def pipe(
 @module_checker
 def custom_pipe(
     note: DataFrames,
-    nlp: Language,
+    nlp: PipelineProtocol,
     results_extractor: Callable[[Doc], List[Dict[str, Any]]],
     dtypes: Dict[str, T.DataType],
     context: List[str] = [],
@@ -236,7 +236,7 @@ def custom_pipe(
     ----------
     note : DataFrame
         A Pyspark or Koalas DataFrame with a `note_text` column
-    nlp : Language
+    nlp : PipelineProtocol
         A spaCy pipe
     results_extractor : Callable[[Doc], List[Dict[str, Any]]]
         Arbitrary function that takes extract serialisable results from the computed

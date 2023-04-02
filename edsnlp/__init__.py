@@ -2,13 +2,13 @@
 EDS-NLP
 """
 
-# fmt: off
-from . import patch_spacy  # noqa: F401
 from pathlib import Path
 
-from . import extensions  # noqa: F401
-from .language import *
-# fmt: on
+from spacy import pipeline as _spacy_pipeline  # noqa: F401
+from . import extensions
+from . import patch_spacy
+from .core.pipeline import Pipeline, blank
+from .core.registry import registry
 
 __version__ = "0.9.1"
 

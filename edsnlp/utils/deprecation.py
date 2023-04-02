@@ -2,8 +2,9 @@ from typing import Any, Callable, Dict, Optional, Union
 
 from decorator import decorator
 from loguru import logger
-from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
+
+from edsnlp import registry
 
 
 def deprecated_extension(name: str, new_name: str) -> None:
@@ -50,7 +51,7 @@ def deprecated_factory(
     **kwargs,
 ) -> Callable:
     """
-    Execute the Language.factory method on a modified factory function.
+    Execute the register method on a modified factory function.
     The modification adds a deprecation warning.
 
     Parameters
@@ -60,7 +61,7 @@ def deprecated_factory(
     new_name : Optional[str], optional
         The new name for the pipeline, which should be used, by default None
     default_config : Optional[Dict[str, Any]], optional
-        The configuration that should be passed to Language.factory, by default None
+        The configuration that should be passed to register method, by default None
     func : Optional[Callable], optional
         The function to decorate, by default None
 
@@ -72,7 +73,7 @@ def deprecated_factory(
     if default_config is None:
         default_config = dict()
 
-    wrapper = Language.factory(name, default_config=default_config, **kwargs)
+    wrapper = registry.factory.register(name, default_config=default_config, **kwargs)
 
     def wrap(factory):
 

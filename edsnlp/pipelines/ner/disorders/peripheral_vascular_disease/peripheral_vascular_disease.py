@@ -1,9 +1,9 @@
 """`eds.peripheral_vascular_disease` pipeline"""
 from typing import Any, Dict, List, Optional, Union
 
-from spacy import Language
 from spacy.tokens import Doc, Span
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.pipelines.base import SpanSetterArg
 from edsnlp.pipelines.ner.disorders.base import DisorderMatcher
 
@@ -62,7 +62,7 @@ class PeripheralVascularDiseaseMatcher(DisorderMatcher):
 
     Parameters
     ----------
-    nlp : Optional[Language]
+    nlp : Optional[PipelineProtocol]
         The pipeline
     name : Optional[str]
         The name of the component
@@ -83,7 +83,7 @@ class PeripheralVascularDiseaseMatcher(DisorderMatcher):
 
     def __init__(
         self,
-        nlp: Optional[Language] = None,
+        nlp: Optional[PipelineProtocol] = None,
         name: str = "eds.peripheral_vascular_disease",
         *,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]] = default_patterns,

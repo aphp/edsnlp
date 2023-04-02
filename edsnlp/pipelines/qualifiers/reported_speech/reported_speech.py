@@ -1,8 +1,8 @@
 from typing import List, Optional, Set, Union
 
-from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.pipelines.base import SpanGetterArg, get_spans
 from edsnlp.pipelines.qualifiers.base import RuleBasedQualifier
@@ -66,7 +66,7 @@ class ReportedSpeechQualifier(RuleBasedQualifier):
 
     Parameters
     ----------
-    nlp : Language
+    nlp : PipelineProtocol
         spaCy nlp pipeline to use for matching.
     name : Optional[str]
         The component name.
@@ -104,7 +104,7 @@ class ReportedSpeechQualifier(RuleBasedQualifier):
 
     def __init__(
         self,
-        nlp: Language,
+        nlp: PipelineProtocol,
         name: Optional[str] = "eds.reported_speech",
         *,
         pseudo: Optional[List[str]] = None,

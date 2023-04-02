@@ -2,9 +2,9 @@ from itertools import chain
 
 import spacy
 from pytest import fixture, raises
-from spacy.language import Language
 from spacy.tokens.span import Span
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.pipelines.misc.measurements import MeasurementsMatcher
 
 text = (
@@ -23,14 +23,14 @@ def blank_nlp():
 
 
 @fixture
-def matcher(blank_nlp: Language):
+def matcher(blank_nlp: PipelineProtocol):
     return MeasurementsMatcher(
         blank_nlp,
         extract_ranges=True,
     )
 
 
-def test_default_factory(blank_nlp: Language):
+def test_default_factory(blank_nlp: PipelineProtocol):
     blank_nlp.add_pipe("matcher", config=dict(terms={"patient": "patient"}))
     blank_nlp.add_pipe(
         "eds.measurements",
@@ -44,7 +44,9 @@ def test_default_factory(blank_nlp: Language):
     assert len(doc.spans["measurements"]) == 9
 
 
-def test_measurements_component(blank_nlp: Language, matcher: MeasurementsMatcher):
+def test_measurements_component(
+    blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher
+):
     doc = blank_nlp(text)
 
     with raises(KeyError):
@@ -66,7 +68,7 @@ def test_measurements_component(blank_nlp: Language, matcher: MeasurementsMatche
 
 
 def test_measurements_component_scaling(
-    blank_nlp: Language, matcher: MeasurementsMatcher
+    blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher
 ):
     doc = blank_nlp(text)
 
@@ -88,7 +90,7 @@ def test_measurements_component_scaling(
     assert m9._.value.m == 1.5
 
 
-def test_measure_label(blank_nlp: Language, matcher: MeasurementsMatcher):
+def test_measure_label(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
     doc = blank_nlp(text)
     doc = matcher(doc)
 
@@ -105,7 +107,7 @@ def test_measure_label(blank_nlp: Language, matcher: MeasurementsMatcher):
     assert m9.label_ == "size"
 
 
-def test_measure_str(blank_nlp: Language, matcher: MeasurementsMatcher):
+def test_measure_str(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
     for text, res in [
         ("1m50", "1.5 m"),
         ("1,50cm", "1.5 cm"),
@@ -116,7 +118,7 @@ def test_measure_str(blank_nlp: Language, matcher: MeasurementsMatcher):
         assert str(doc.spans["measurements"][0]._.value) == res
 
 
-def test_measure_repr(blank_nlp: Language, matcher: MeasurementsMatcher):
+def test_measure_repr(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
     for text, res in [
         (
             "1m50",
@@ -135,7 +137,7 @@ def test_measure_repr(blank_nlp: Language, matcher: MeasurementsMatcher):
         assert repr(doc.spans["measurements"][0]._.value) == res
 
 
-def test_compare(blank_nlp: Language, matcher: MeasurementsMatcher):
+def test_compare(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
     m1, m2 = "1m0", "120cm"
     m1 = matcher(blank_nlp(m1)).spans["measurements"][0]
     m2 = matcher(blank_nlp(m2)).spans["measurements"][0]
@@ -158,7 +160,7 @@ def test_compare(blank_nlp: Language, matcher: MeasurementsMatcher):
     assert max(list(chain(m1._.value, m2._.value, m3._.value, m4._.value))).cm == 300
 
 
-def test_unitless(blank_nlp: Language, matcher: MeasurementsMatcher):
+def test_unitless(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
     for text, res in [
         ("BMI: 24 .", "24 kg_per_m2"),
         ("Le patient mesure 1.5 ", "1.5 m"),
@@ -171,7 +173,7 @@ def test_unitless(blank_nlp: Language, matcher: MeasurementsMatcher):
         assert str(doc.spans["measurements"][0]._.value) == res
 
 
-def test_non_matches(blank_nlp: Language, matcher: MeasurementsMatcher):
+def test_non_matches(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
     for text in [
         "On délivre à 10 g / h.",
         "Le patient grandit de 10 cm par jour ",
@@ -185,7 +187,7 @@ def test_non_matches(blank_nlp: Language, matcher: MeasurementsMatcher):
         assert len(doc.spans["measurements"]) == 0
 
 
-def test_numbers(blank_nlp: Language, matcher: MeasurementsMatcher):
+def test_numbers(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
     for text, res in [
         ("deux m", "2 m"),
         ("2 m", "2 m"),
@@ -198,7 +200,7 @@ def test_numbers(blank_nlp: Language, matcher: MeasurementsMatcher):
         assert str(doc.spans["measurements"][0]._.value) == res
 
 
-def test_ranges(blank_nlp: Language, matcher: MeasurementsMatcher):
+def test_ranges(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
     for text, res, snippet in [
         ("Le patient fait entre 1 et 2m", "1-2 m", "entre 1 et 2m"),
         ("On mesure de 2 à 2.5 dl d'eau", "2-2.5 dl", "de 2 à 2.5 dl"),

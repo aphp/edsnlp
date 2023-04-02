@@ -1,7 +1,8 @@
 from typing import Optional
 
-from spacy import Language
 from spacy.tokens import Doc
+
+from edsnlp.core import PipelineProtocol
 
 from .accents.accents import AccentsConverter
 from .pollution.pollution import PollutionTagger
@@ -23,7 +24,7 @@ class Normalizer(object):
 
     Parameters
     ----------
-    nlp : Optional[Language]
+    nlp : Optional[PipelineProtocol]
         The pipeline object.
     name : Optional[str]
         The name of the component.
@@ -41,7 +42,7 @@ class Normalizer(object):
 
     def __init__(
         self,
-        nlp: Optional[Language],
+        nlp: Optional[PipelineProtocol],
         name: Optional[str] = "eds.normalizer",
         *,
         lowercase: bool = False,

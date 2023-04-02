@@ -6,9 +6,9 @@ from operator import attrgetter
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from loguru import logger
-from spacy.language import Language
 from spacy.tokens import Doc, Span
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher, create_span
 from edsnlp.matchers.utils import get_text
@@ -38,7 +38,7 @@ class ContextualMatcher(BaseNERComponent):
 
     Parameters
     ----------
-    nlp : Language
+    nlp : PipelineProtocol
         spaCy `Language` object.
     name : Optional[str]
         The name of the pipe
@@ -70,7 +70,7 @@ class ContextualMatcher(BaseNERComponent):
 
     def __init__(
         self,
-        nlp: Optional[Language],
+        nlp: Optional[PipelineProtocol],
         name: Optional[str] = None,
         *,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]],

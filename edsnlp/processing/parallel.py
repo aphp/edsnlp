@@ -3,8 +3,9 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import pandas as pd
 import spacy
 from joblib import Parallel, delayed
-from spacy import Language
 from spacy.tokens import Doc
+
+from edsnlp.core import PipelineProtocol
 
 from .helpers import check_spacy_version_for_context
 from .simple import ExtensionSchema, _flatten, _pipe_generator
@@ -12,7 +13,7 @@ from .simple import ExtensionSchema, _flatten, _pipe_generator
 nlp = spacy.blank("eds")
 
 
-def _define_nlp(new_nlp: Language):
+def _define_nlp(new_nlp: PipelineProtocol):
     """
     Set the global nlp variable
     Doing it this way saves non negligeable amount of time
@@ -46,7 +47,7 @@ def _process_chunk(note: pd.DataFrame, **pipe_kwargs):
 
 def pipe(
     note: pd.DataFrame,
-    nlp: Language,
+    nlp: PipelineProtocol,
     context: List[str] = [],
     additional_spans: Union[List[str], str] = [],
     extensions: ExtensionSchema = [],
@@ -63,7 +64,7 @@ def pipe(
     ----------
     note : DataFrame
         A pandas DataFrame with a `note_id` and `note_text` column
-    nlp : Language
+    nlp : PipelineProtocol
         A spaCy pipe
     context : List[str]
         A list of column to add to the generated SpaCy document as an extension.

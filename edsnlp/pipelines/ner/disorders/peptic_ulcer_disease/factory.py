@@ -1,4 +1,4 @@
-from spacy import Language
+from edsnlp.core import registry
 
 from .patterns import default_patterns
 from .peptic_ulcer_disease import PepticUlcerDiseaseMatcher
@@ -9,7 +9,7 @@ DEFAULT_CONFIG = dict(
     span_setter={"ents": True, "peptic_ulcer_disease": True},
 )
 
-create_component = Language.factory(
+create_component = registry.factory.register(
     "eds.peptic_ulcer_disease",
     assigns=["doc.ents", "doc.spans"],
 )(PepticUlcerDiseaseMatcher)

@@ -2,15 +2,15 @@ from itertools import chain
 from typing import Dict, List, Optional, Set, Union
 
 from loguru import logger
-from spacy.language import Language
 from spacy.tokens import Doc, Span
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.pipelines.base import BaseComponent, SpanGetterArg, validate_span_getter
 
 
-def check_normalizer(nlp: Language) -> None:
+def check_normalizer(nlp: PipelineProtocol) -> None:
     components = {name: component for name, component in nlp.pipeline}
     normalizer = components.get("normalizer")
 
@@ -23,7 +23,7 @@ def check_normalizer(nlp: Language) -> None:
         )
 
 
-def get_qualifier_extensions(nlp: Language):
+def get_qualifier_extensions(nlp: PipelineProtocol):
     """
     Check for all qualifiers present in the pipe and return its corresponding extension
     """
@@ -40,7 +40,7 @@ class RuleBasedQualifier(BaseComponent):
 
     Parameters
     ----------
-    nlp : Language
+    nlp : PipelineProtocol
         The pipeline object.
     attr : str
         spaCy's attribute to use:
@@ -65,7 +65,7 @@ class RuleBasedQualifier(BaseComponent):
 
     def __init__(
         self,
-        nlp: Language,
+        nlp: PipelineProtocol,
         name: Optional[str] = None,
         *,
         attr: str,

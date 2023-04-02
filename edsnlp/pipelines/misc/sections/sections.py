@@ -1,10 +1,10 @@
 from typing import Dict, List
 
 from loguru import logger
-from spacy.language import Language
 from spacy.tokens import Doc, Span
 from spacy.util import filter_spans
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.pipelines.core.matcher.matcher import GenericMatcher
 
 from . import patterns
@@ -93,7 +93,7 @@ class SectionsMatcher(GenericMatcher):
 
     Parameters
     ----------
-    nlp : Language
+    nlp : PipelineProtocol
         The pipeline object.
     sections : Dict[str, List[str]]
         Dictionary of terms to look for.
@@ -111,7 +111,7 @@ class SectionsMatcher(GenericMatcher):
 
     def __init__(
         self,
-        nlp: Language,
+        nlp: PipelineProtocol,
         name: str = "eds.sections",
         *,
         sections: Dict[str, List[str]] = patterns.sections,

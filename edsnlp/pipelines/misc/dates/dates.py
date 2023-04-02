@@ -4,10 +4,10 @@ from itertools import chain
 from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 from loguru import logger
-from spacy.language import Language
 from spacy.tokens import Doc, Span
 from typing_extensions import Literal
 
+from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.pipelines.base import (
     BaseNERComponent,
@@ -100,7 +100,7 @@ class DatesMatcher(BaseNERComponent):
 
     Parameters
     ----------
-    nlp : Language
+    nlp : PipelineProtocol
         The pipeline object
     name : Optional[str]
         Name of the pipeline component
@@ -161,7 +161,7 @@ class DatesMatcher(BaseNERComponent):
     # noinspection PyProtectedMember
     def __init__(
         self,
-        nlp: Language,
+        nlp: PipelineProtocol,
         name: str = "eds.dates",
         *,
         absolute: Optional[List[str]] = None,

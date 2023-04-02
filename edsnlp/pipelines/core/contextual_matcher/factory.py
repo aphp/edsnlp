@@ -1,5 +1,4 @@
-from spacy.language import Language
-
+from edsnlp.core import registry
 from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
 from edsnlp.utils.deprecation import deprecated_factory
 
@@ -20,6 +19,6 @@ create_component = deprecated_factory(
     "contextual-matcher",
     "eds.contextual-matcher",
 )(ContextualMatcher)
-create_component = Language.factory(
+create_component = registry.factory.register(
     "eds.contextual-matcher",
 )(create_component)

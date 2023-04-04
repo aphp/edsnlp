@@ -18,7 +18,7 @@ dependencies = [
     "rich>=12.0.0",
     "scikit-learn>=1.0.0",
     "spacy>=3.1,<4.0.0",
-    "thinc>=8.1.10",
+    "confit>=0.2",
     "tqdm",
     "safetensors>=0.3.0",
     "umls-downloader>=0.1.1",

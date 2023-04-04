@@ -3,7 +3,12 @@ import torch
 IMPOSSIBLE = -10000000
 
 
+def repeat_like(x, y):
+    return x.repeat(tuple((a if b == 1 else 1) for a, b in zip(y.shape, x.shape)))
+
+
 def masked_flip(x, mask, dim_x=-2):
+    mask = repeat_like(mask, x)
     flipped_x = torch.zeros_like(x)
     flipped_x[mask] = x.flip(dim_x)[mask.flip(-1)]
     return flipped_x
@@ -23,6 +28,21 @@ def max_reduce(log_A, log_B):
     # log_B: 2 *     M * O
     # out: 2 * N * O
     return (log_A.unsqueeze(-1) + log_B.unsqueeze(-3)).max(-2)
+
+
+def index_dim(X, Y, dim):
+    ndims = X.dim()
+    if dim < 0:
+        dim += ndims
+    assert (
+        0 <= dim < ndims
+    ), f"Index out of range: {dim} for tensor of {ndims} dimensions"
+    index_dims = list(
+        torch.meshgrid(
+            *(torch.arange(size) for i, size in enumerate(X.shape) if i != dim)
+        )
+    )
+    return X[(*index_dims[:dim], Y, *index_dims[dim:])]
 
 
 # noinspection PyTypeChecker
@@ -61,23 +81,18 @@ class LinearChainCRF(torch.nn.Module):
         num_tags = forbidden_transitions.shape[0]
 
         self.register_buffer("forbidden_transitions", forbidden_transitions.bool())
-        if start_forbidden_transitions is not None:
-            self.register_buffer(
-                "start_forbidden_transitions", start_forbidden_transitions.bool()
-            )
-        else:
-            self.register_buffer(
-                "start_forbidden_transitions", torch.zeros(num_tags, dtype=torch.bool)
-            )
-        if end_forbidden_transitions is not None:
-            self.register_buffer(
-                "end_forbidden_transitions", end_forbidden_transitions.bool()
-            )
-        else:
-            self.register_buffer(
-                "end_forbidden_transitions", torch.zeros(num_tags, dtype=torch.bool)
-            )
-
+        self.register_buffer(
+            "start_forbidden_transitions",
+            start_forbidden_transitions.bool()
+            if start_forbidden_transitions is not None
+            else torch.zeros(num_tags, dtype=torch.bool),
+        )
+        self.register_buffer(
+            "end_forbidden_transitions",
+            end_forbidden_transitions.bool()
+            if end_forbidden_transitions is not None
+            else torch.zeros(num_tags, dtype=torch.bool),
+        )
         if learnable_transitions:
             self.transitions = torch.nn.Parameter(
                 torch.zeros_like(forbidden_transitions, dtype=torch.float)
@@ -131,10 +146,10 @@ class LinearChainCRF(torch.nn.Module):
         end_transitions = self.end_transitions.masked_fill(
             self.end_forbidden_transitions, IMPOSSIBLE
         )
-        n_samples, n_tokens = mask.shape
+        path = torch.zeros(*emissions.shape[:-1], dtype=torch.long)
 
         emissions[..., 1:][~mask] = IMPOSSIBLE
-        emissions = emissions.transpose(0, 1)
+        emissions = emissions.unbind(1)  # 1 is axis for words
 
         # emissions: n_tokens * n_samples * n_tags
         out = [emissions[0] + start_transitions]
@@ -146,14 +161,14 @@ class LinearChainCRF(torch.nn.Module):
             out.append(res + emissions[k])
 
         res, indices = max_reduce(out[-1], end_transitions.unsqueeze(-1))
-        path = torch.zeros(n_samples, n_tokens, dtype=torch.long)
         path[:, -1] = indices.squeeze(-1)
 
-        path_range = torch.arange(n_samples, device=path.device)
+        # If make has shape n_samples * n_tokens,
+        # we only need range(n_samples)
         if len(backtrack) > 1:
             # Backward max path following
             for k, b in enumerate(backtrack[::-1]):
-                path[:, -k - 2] = b[path_range, path[:, -k - 1]]
+                path[:, -k - 2] = index_dim(b, path[:, -k - 1], dim=-1)
 
         return path
 
@@ -190,14 +205,12 @@ class LinearChainCRF(torch.nn.Module):
             self.end_forbidden_transitions, IMPOSSIBLE
         )
 
-        bi_transitions = torch.stack([transitions, transitions.t()], dim=0)
+        bi_transitions = torch.stack([transitions, transitions.t()], dim=0).unsqueeze(1)
 
         # add start transitions (ie cannot start with ...)
         emissions[:, 0] = emissions[:, 0] + start_transitions
 
-        # add end transitions (ie cannot end with ...): flip the emissions along the
-        # token axis, and add the end transitions
-        # emissions = masked_flip(emissions, mask, dim_x=1)
+        # add end transitions (ie cannot end with ...)
         emissions[
             torch.arange(mask.shape[0], device=device), mask.long().sum(1) - 1
         ] = (
@@ -208,24 +221,27 @@ class LinearChainCRF(torch.nn.Module):
             + end_transitions
         )
 
-        # stack start -> end emissions (needs to flip the previously flipped emissions),
-        # and end -> start emissions
+        # stack start -> end emissions (need to flip the previously flipped emissions)
+        # and end -> start emissions.
+        # emissions: n_samples * n_tokens * ... * n_tags
+        # bi_emissions: n_tokens * (2 * n_samples *  * ... * n_tags)
         bi_emissions = torch.stack(
-            [emissions, masked_flip(emissions, mask, dim_x=1)], 1
-        )
-        bi_emissions = bi_emissions.transpose(0, 2)
+            [emissions, masked_flip(emissions, mask, dim_x=1)], 0
+        ).unbind(2)
 
         out = [bi_emissions[0]]
-        for k in range(1, len(bi_emissions)):
+        for word_bi_emissions in bi_emissions[1:]:
             res = logsumexp_reduce(out[-1], bi_transitions)
-            out.append(res + bi_emissions[k])
-        out = torch.stack(out, dim=0).transpose(0, 2)
+            out.append(res + word_bi_emissions)
 
-        forward = out[:, 0]
-        backward = masked_flip(out[:, 1], mask, dim_x=1)
-        backward_z = backward[:, 0].logsumexp(-1)
+        # out shape: 2 * n_samples * n_tokens * ... * n_tags
+        out = torch.stack(out, dim=2)
 
-        return forward + backward - emissions - backward_z[:, None, None]
+        forward = out[0]
+        backward = masked_flip(out[1], mask, dim_x=1)
+        backward_z = backward.logsumexp(-1)
+
+        return forward + backward - emissions - backward_z[:, :, :, None]
 
     def forward(self, emissions, mask, target):
         """
@@ -240,11 +256,11 @@ class LinearChainCRF(torch.nn.Module):
         Parameters
         ----------
         emissions: torch.FloatTensor
-            Shape: ... * n_tokens * n_tags
+            Shape: n_samples * n_tokens * ... * n_tags
         mask: torch.BoolTensor
-            Shape: ... * n_tokens
+            Shape: n_samples * n_tokens * ...
         target: torch.BoolTensor
-            Shape: ... * n_tokens * n_tags
+            Shape: n_samples * n_tokens * ... * n_tags
             The target tags represented with 1-hot encoding
             We use 1-hot instead of long format to handle
             cases when multiple tags at a given position are
@@ -266,25 +282,27 @@ class LinearChainCRF(torch.nn.Module):
             self.end_forbidden_transitions, IMPOSSIBLE
         )
 
+        # emissions: n_samples * n_tokens * ... * n_tags
+        # bi_emissions: n_tokens * (2 * n_samples *  * ... * n_tags)
         bi_emissions = torch.stack(
-            [emissions.masked_fill(~target, IMPOSSIBLE), emissions], 1
-        ).transpose(0, 2)
+            [emissions.masked_fill(~target, IMPOSSIBLE), emissions], 0
+        ).unbind(2)
 
-        # emissions: n_samples * n_tokens * n_tags
-        # bi_emissions: n_tokens * 2 * n_samples * n_tags
         out = [bi_emissions[0] + start_transitions]
 
-        for k in range(1, len(bi_emissions)):
+        for word_bi_emissions in bi_emissions[1:]:
             res = logsumexp_reduce(out[-1], transitions)
-            out.append(res + bi_emissions[k])
-        out = torch.stack(out, dim=0).transpose(0, 2)
-        # n_samples * 2 * n_tokens * n_tags
-        z = (
-            masked_flip(out, mask.unsqueeze(1).repeat(1, 2, 1), dim_x=2)[:, :, 0]
-            + end_transitions
-        )
-        supervised_z = z[:, 0].logsumexp(-1)
-        unsupervised_z = z[:, 1].logsumexp(-1)
+            out.append(res + word_bi_emissions)
+        out = torch.stack(out, dim=2)
+
+        # out shape: 2 * n_samples * n_tokens * ... * n_tags
+        # out = masked_flip(out, mask.unsqueeze(0), dim_x=2)
+        # out = out.flip(2)
+        z = out[:, :, -1] + end_transitions
+
+        supervised_z = z[0].logsumexp(-1)
+        unsupervised_z = z[1].logsumexp(-1)
+
         return -(supervised_z - unsupervised_z)
 
 
@@ -306,7 +324,7 @@ class MultiLabelBIOULDecoder(LinearChainCRF):
         with_start_end_transitions: bool
         learnable_transitions: bool
         """
-        O, I, B, L, U = 0, 1, 2, 3, 4
+        O, I, B, L, U = 0, 1, 2, 3, 4  # noqa: E741
 
         num_tags = 1 + num_labels * 4
         self.num_tags = num_tags
@@ -354,54 +372,6 @@ class MultiLabelBIOULDecoder(LinearChainCRF):
         )
 
     @staticmethod
-    def spans_to_tags(
-        spans: torch.Tensor, n_samples: int, n_labels: int, n_tokens: int
-    ):
-        """
-        Convert a tensor of spans of shape n_spans * (doc_idx, label, begin, end)
-        to a matrix of BIOUL tags of shape n_samples * n_labels * n_tokens
-
-        Parameters
-        ----------
-        spans: torch.Tensor
-        n_samples: int
-        n_labels: int
-        n_tokens: int
-
-        Returns
-        -------
-        torch.Tensor
-        """
-        device = spans.device
-        cpu = torch.device("cpu")
-        if not len(spans):
-            return torch.zeros(
-                n_samples, n_labels, n_tokens, dtype=torch.long, device=device
-            )
-        doc_indices, label_indices, begins, ends = spans.cpu().unbind(-1)
-        ends = ends - 1
-
-        pos = torch.arange(n_tokens, device=cpu)
-        b_tags, l_tags, u_tags, i_tags = torch.zeros(
-            4, n_samples, n_labels, n_tokens, dtype=torch.bool, device=cpu
-        ).unbind(0)
-        tags = torch.zeros(n_samples, n_labels, n_tokens, dtype=torch.long, device=cpu)
-        where_u = begins == ends
-        u_tags[doc_indices[where_u], label_indices[where_u], begins[where_u]] = True
-        b_tags[doc_indices[~where_u], label_indices[~where_u], begins[~where_u]] = True
-        l_tags[doc_indices[~where_u], label_indices[~where_u], ends[~where_u]] = True
-        i_tags.view(-1, n_tokens).index_add_(
-            0,
-            doc_indices * n_labels + label_indices,
-            (begins.unsqueeze(-1) < pos) & (pos < ends.unsqueeze(-1)),
-        )
-        tags[u_tags] = 4
-        tags[b_tags] = 2
-        tags[l_tags] = 3
-        tags[i_tags.bool()] = 1
-        return tags.to(device)
-
-    @staticmethod
     def tags_to_spans(tags):
         """
         Convert a sequence of multiple label BIOUL tags to a sequence of spans
@@ -415,12 +385,15 @@ class MultiLabelBIOULDecoder(LinearChainCRF):
         -------
         torch.LongTensor
             Shape: n_spans *  4
-            (doc_idx, label_idx, begin, end)
+            (doc_idx, begin, end, label_idx)
         """
+        begins_indices = torch.nonzero((tags == 4) | (tags == 2))
+        ends_indices = torch.nonzero((tags == 4) | (tags == 3))
         return torch.cat(
             [
-                torch.nonzero((tags == 4) | (tags == 2)),
-                torch.nonzero((tags == 4) | (tags == 3))[..., [-1]] + 1,
+                begins_indices[..., :2],
+                ends_indices[..., [1]] + 1,
+                begins_indices[..., 2:],
             ],
             dim=-1,
         )

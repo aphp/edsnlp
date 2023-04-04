@@ -156,6 +156,7 @@ where = ["."]
 
 # Trainable
 "eds.transformer"                 = "edsnlp.pipelines.trainable.embeddings.transformer:create_component"
+"eds.text_cnn"                    = "edsnlp.pipelines.trainable.embeddings.text_cnn:create_component"
 "eds.ner"                         = "edsnlp.pipelines.trainable.ner.factory:create_component"
 "eds.span_qualifier"              = "edsnlp.pipelines.trainable.span_qualifier.factory:create_component"
 

@@ -280,6 +280,7 @@ class registry(RegistryCollection):
     misc = Registry(("spacy", "misc"), entry_points=True)
     languages = Registry(("spacy", "languages"), entry_points=True)
     tokenizers = Registry(("spacy", "tokenizers"), entry_points=True)
+    scorers = Registry(("spacy", "scorers"), entry_points=True)
 
 
 set_default_registry(registry)

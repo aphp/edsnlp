@@ -156,7 +156,7 @@ where = ["."]
 
 # Trainable
 "eds.transformer"                 = "edsnlp.pipelines.trainable.embeddings.transformer:create_component"
-"eds.nested_ner"                  = "edsnlp.pipelines.trainable.nested_ner.factory:create_component"
+"eds.ner"                         = "edsnlp.pipelines.trainable.ner.factory:create_component"
 "eds.span_qualifier"              = "edsnlp.pipelines.trainable.span_qualifier.factory:create_component"
 
 # Deprecated (links to the same factories as above)

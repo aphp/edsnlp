@@ -4,6 +4,8 @@ import pandas as pd
 import spacy
 from pytest import fixture
 
+import edsnlp
+
 
 @fixture(scope="session", params=["eds", "fr"])
 def lang(request):
@@ -12,7 +14,10 @@ def lang(request):
 
 @fixture(scope="session")
 def nlp(lang):
-    model = spacy.blank(lang)
+    if lang == "eds":
+        model = spacy.blank("eds")
+    else:
+        model = edsnlp.blank("fr")
 
     model.add_pipe("eds.normalizer")
 
@@ -49,7 +54,10 @@ def nlp(lang):
 
 @fixture
 def blank_nlp(lang):
-    model = spacy.blank(lang)
+    if lang == "eds":
+        model = spacy.blank("eds")
+    else:
+        model = edsnlp.blank("fr")
     model.add_pipe("eds.sentences")
     return model
 
@@ -93,3 +101,8 @@ def df_notes():
     )
 
     return notes
+
+
+@fixture
+def run_in_test_dir(request, monkeypatch):
+    monkeypatch.chdir(request.fspath.dirname)

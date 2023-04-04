@@ -67,7 +67,7 @@ class LinearChainCRF(torch.nn.Module):
             Shape: n_tags
             Impossible transitions at the start of a sequence
         end_forbidden_transitions Optional[torch.BoolTensor]
-            Shape is (n_tags,)
+            Shape: n_tags
             Impossible transitions at the end of a sequence
         learnable_transitions: bool
             Should we learn transition scores to complete the
@@ -293,15 +293,19 @@ class LinearChainCRF(torch.nn.Module):
         for word_bi_emissions in bi_emissions[1:]:
             res = logsumexp_reduce(out[-1], transitions)
             out.append(res + word_bi_emissions)
-        out = torch.stack(out, dim=2)
 
-        # out shape: 2 * n_samples * n_tokens * ... * n_tags
-        # out = masked_flip(out, mask.unsqueeze(0), dim_x=2)
-        # out = out.flip(2)
-        z = out[:, :, -1] + end_transitions
+        last_out = (
+            torch.stack(
+                [
+                    out[length - 1][:, i]
+                    for i, length in enumerate(mask.long().sum(1).tolist())
+                ],
+                dim=1,
+            )
+            + end_transitions
+        )
 
-        supervised_z = z[0].logsumexp(-1)
-        unsupervised_z = z[1].logsumexp(-1)
+        supervised_z, unsupervised_z = last_out.logsumexp(-1)
 
         return -(supervised_z - unsupervised_z)
 
@@ -379,7 +383,7 @@ class MultiLabelBIOULDecoder(LinearChainCRF):
         Parameters
         ----------
         tags: torch.LongTensor
-            Shape: n_samples * n_labels * n_tokens
+            Shape: n_samples * n_tokens * n_labels
 
         Returns
         -------

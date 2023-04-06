@@ -9,6 +9,7 @@ from . import extensions
 from . import patch_spacy
 from .core.pipeline import Pipeline, blank
 from .core.registry import registry
+from . import language
 
 __version__ = "0.9.1"
 

@@ -1,0 +1,30 @@
+results_tobacco = dict(
+    has_match=[
+        True,
+        True,
+        False,
+        True,
+        True,
+        True,
+        True,
+    ],
+    status_=[
+        "PRESENT",
+        "PRESENT",
+        None,
+        "ABSTINENCE",
+        "ABSENT",
+        "ABSENT",
+        "ABSTINENCE",
+    ],
+    assign=[{"PA": 15}] + 6 * [None],
+    texts=[
+        "Tabagisme évalué à 15 PA",
+        "Patient tabagique",
+        "Tabagisme festif",
+        "On a un tabagisme ancien",
+        "Tabac: 0",
+        "Tabagisme passif",
+        "Tabac: sevré depuis 5 ans",
+    ],
+)

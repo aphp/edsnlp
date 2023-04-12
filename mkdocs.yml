@@ -85,6 +85,29 @@ nav:
           - pipelines/ner/adicap.md
           - pipelines/ner/cim10.md
           - pipelines/ner/umls.md
+          - Disorders:
+            - pipelines/ner/disorders/index.md
+            - pipelines/ner/disorders/AIDS.md
+            - pipelines/ner/disorders/CKD.md
+            - pipelines/ner/disorders/COPD.md
+            - pipelines/ner/disorders/cerebrovascular_accident.md
+            - pipelines/ner/disorders/congestive_heart_failure.md
+            - pipelines/ner/disorders/connective_tissue_disease.md
+            - pipelines/ner/disorders/dementia.md
+            - pipelines/ner/disorders/diabetes.md
+            - pipelines/ner/disorders/hemiplegia.md
+            - pipelines/ner/disorders/leukemia.md
+            - pipelines/ner/disorders/liver_disease.md
+            - pipelines/ner/disorders/lymphoma.md
+            - pipelines/ner/disorders/myocardial_infarction.md
+            - pipelines/ner/disorders/peptic_ulcer_disease.md
+            - pipelines/ner/disorders/peripheral_vascular_disease.md
+            - pipelines/ner/disorders/solid_tumor.md
+          - Behaviors:
+            - pipelines/ner/behaviors/index.md
+            - pipelines/ner/behaviors/alcohol.md
+            - pipelines/ner/behaviors/tobacco.md
+
       - Trainable components:
           - pipelines/trainable/index.md
           - pipelines/trainable/ner.md

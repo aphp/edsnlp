@@ -1,0 +1,33 @@
+results_alcohol = dict(
+    has_match=[
+        True,
+        True,
+        False,
+        False,
+        True,
+        True,
+        True,
+        True,
+    ],
+    status_=[
+        "PRESENT",
+        "PRESENT",
+        None,
+        None,
+        "ABSTINENCE",
+        "PRESENT",
+        "ABSENT",
+        "ABSTINENCE",
+    ],
+    assign=None,
+    texts=[
+        "Patient alcoolique.",
+        "OH chronique.",
+        "Prise d'alcool occasionnelle",
+        "Application d'un pansement alcoolisé",
+        "Alcoolisme sevré",
+        "Alcoolisme non sevré",
+        "Alcool: 0",
+        "Le patient est en cours de sevrage éthylotabagique",
+    ],
+)

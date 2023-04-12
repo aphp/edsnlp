@@ -90,14 +90,14 @@ This example is complete, it should run as-is. Check out the [spaCy 101 page](tu
 
 === "Miscellaneous"
 
-    | Pipeline           | Description                                 |
-    | ------------------ | ------------------------------------------- |
-    | `eds.dates`        | Date extraction and normalisation           |
-    | `eds.consultation_dates`| Identify consultation dates            |
-    | `eds.measurements` | Measure extraction and normalisation        |
-    | `eds.sections`     | Section detection                           |
-    | `eds.reason`       | Rule-based hospitalisation reason detection |
-    | `eds.tables`       | Tables detection                            |
+    | Pipeline                 | Description                                 |
+    | ------------------------ | ------------------------------------------- |
+    | `eds.dates`              | Date extraction and normalisation           |
+    | `eds.consultation_dates` | Identify consultation dates                 |
+    | `eds.measurements`       | Measure extraction and normalisation        |
+    | `eds.sections`           | Section detection                           |
+    | `eds.reason`             | Rule-based hospitalisation reason detection |
+    | `eds.tables`             | Tables detection                            |
 
 === "NER"
 
@@ -117,9 +117,10 @@ This example is complete, it should run as-is. Check out the [spaCy 101 page](tu
 
 === "Trainable"
 
-    | Pipeline               | Description                                     |
-    | ---------------------- | ----------------------------------------------- |
-    | `eds.nested-ner`       | Nested and overlapping named entity recogntion  |
+    | Pipeline             | Description                                                          |
+    | -------------------- | -------------------------------------------------------------------- |
+    | `eds.nested-ner`     | Nested and overlapping named entity recogntion                       |
+    | `eds.span-qualifier` | A trainable component for multi-class multi-label span qualification |
 
 ## Disclaimer
 

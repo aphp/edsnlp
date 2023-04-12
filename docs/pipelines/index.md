@@ -34,26 +34,44 @@ EDS-NLP provides easy-to-use spaCy components.
 
 === "NER"
 
-    | Pipeline                 | Description                      |
-    | ------------------------ | -------------------------------- |
-    | `eds.covid`              | A COVID mentions detector        |
-    | `eds.charlson`           | A Charlson score extractor       |
-    | `eds.elstonellis`        | An Elston & Ellis code extractor |
-    | `eds.emergency.priority` | A priority score extractor       |
-    | `eds.emergency.ccmu`     | A CCMU score extractor           |
-    | `eds.emergency.gemsa`    | A GEMSA score extractor          |
-    | `eds.sofa`               | A SOFA score extractor           |
-    | `eds.TNM`                | A TNM score extractor            |
-    | `eds.adicap`             | A ADICAP codes extractor         |
-    | `eds.drugs`              | A drug mentions extractor        |
-    | `eds.cim10`              | A CIM10 terminology matcher      |
-    | `eds.umls`               | An UMLS terminology matcher      |
+    | Pipeline                          | Description                           |
+    | --------------------------------- | ------------------------------------- |
+    | `eds.covid`                       | A COVID mentions detector             |
+    | `eds.charlson`                    | A Charlson score extractor            |
+    | `eds.elstonellis`                 | An Elston & Ellis code extractor      |
+    | `eds.emergency.priority`          | A priority score extractor            |
+    | `eds.emergency.ccmu`              | A CCMU score extractor                |
+    | `eds.emergency.gemsa`             | A GEMSA score extractor               |
+    | `eds.sofa`                        | A SOFA score extractor                |
+    | `eds.TNM`                         | A TNM score extractor                 |
+    | `eds.adicap`                      | A ADICAP codes extractor              |
+    | `eds.drugs`                       | A drug mentions extractor             |
+    | `eds.cim10`                       | A CIM10 terminology matcher           |
+    | `eds.umls`                        | An UMLS terminology matcher           |
+    | `eds.CKD`                         | CKD extractor                         |
+    | `eds.COPD`                        | COPD extractor                        |
+    | `eds.cerebrovascular_accident`    | Cerebrovascular accident extractor    |
+    | `eds.congestive_heart_failure`    | Congestive heart failure extractor    |
+    | `eds.connective_tissue_disease`   | Connective tissue disease extractor   |
+    | `eds.dementia`                    | Dementia extractor                    |
+    | `eds.diabetes`                    | Diabetes extractor                    |
+    | `eds.hemiplegia`                  | Hemiplegia extractor                  |
+    | `eds.leukemia`                    | Leukemia extractor                    |
+    | `eds.liver_disease`               | Liver disease extractor               |
+    | `eds.lymphoma`                    | Lymphoma extractor                    |
+    | `eds.myocardial_infarction`       | Myocardial infarction extractor       |
+    | `eds.peptic_ulcer_disease`        | Peptic ulcer disease extractor        |
+    | `eds.peripheral_vascular_disease` | Peripheral vascular disease extractor |
+    | `eds.solid_tumor`                 | Solid tumor extractor                 |
+    | `eds.alcohol`                     | Alcohol consumption extractor         |
+    | `eds.tobacco`                     | Tobacco consumption extractor         |
 
 === "Trainable"
 
-    | Pipeline                 | Description                  |
-    | ------------------------ | ---------------------------- |
-    | `eds.nested-ner`         | A nested NER trainable model |
+    | Pipeline         | Description                  |
+    | ---------------- | ---------------------------- |
+    | `eds.nested-ner` | A nested NER trainable model |
+
 
 You can add them to your spaCy pipeline by simply calling `add_pipe`, for instance:
 

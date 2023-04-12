@@ -1,0 +1,30 @@
+results_diabetes = dict(
+    has_match=[
+        True,
+        True,
+        True,
+        False,
+        True,
+        True,
+        True,
+    ],
+    status_=[
+        "WITHOUT_COMPLICATION",
+        "WITHOUT_COMPLICATION",
+        "WITHOUT_COMPLICATION",
+        None,
+        "WITH_COMPLICATION",
+        "WITH_COMPLICATION",
+        "WITH_COMPLICATION",
+    ],
+    assign=None,
+    texts=[
+        "Présence d'un DT2",
+        "Présence d'un DNID",
+        "Patient diabétique",
+        "Un diabète insipide",
+        "Atteinte neurologique d'origine diabétique",
+        "Une rétinopathie diabétique",
+        "Il y a un mal perforant plantaire",
+    ],
+)

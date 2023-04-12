@@ -23,8 +23,8 @@ dependencies = [
     "umls-downloader>=0.1.1",
     "numpy>=1.15.0,<1.23.2; python_version<'3.8'",
     "numpy>=1.15.0; python_version>='3.8'",
-    "pandas>=1.1.0; python_version<'3.8'",
-    "pandas>=1.4.0; python_version>='3.8'",
+    "pandas>=1.1.0,<2.0.0; python_version<'3.8'",
+    "pandas>=1.4.0,<2.0.0; python_version>='3.8'",
 ]
 [project.optional-dependencies]
 dev = [
@@ -113,6 +113,24 @@ where = ["."]
 "nested_ner" = "edsnlp.components:nested_ner"
 "adicap" = "edsnlp.components:adicap"
 "umls" = "edsnlp.components:umls"
+"diabetes" = "edsnlp.components:diabetes"
+"tobacco" = "edsnlp.components:tobacco"
+"AIDS" = "edsnlp.components:AIDS"
+"lymphoma" = "edsnlp.components:lymphoma"
+"leukemia" = "edsnlp.components:leukemia"
+"solid_tumor" = "edsnlp.components:solid_tumor"
+"CKD" = "edsnlp.components:CKD"
+"hemiplegia" = "edsnlp.components:hemiplegia"
+"liver_disease" = "edsnlp.components:liver_disease"
+"peptic_ulcer_disease" = "edsnlp.components:peptic_ulcer_disease"
+"connective_tissue_disease" = "edsnlp.components:connective_tissue_disease"
+"COPD" = "edsnlp.components:COPD"
+"dementia" = "edsnlp.components:dementia"
+"cerebrovascular_accident" = "edsnlp.components:cerebrovascular_accident"
+"peripheral_vascular_disease" = "edsnlp.components:peripheral_vascular_disease"
+"congestive_heart_failure" = "edsnlp.components:congestive_heart_failure"
+"myocardial_infarction" = "edsnlp.components:myocardial_infarction"
+"alcohol" = "edsnlp.components:alcohol"
 
 [project.entry-points."spacy_architectures"]
 "eds.stack_crf_ner_model.v1" = "edsnlp.models.stack_crf_ner:create_model"

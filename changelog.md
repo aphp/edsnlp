@@ -4,6 +4,23 @@
 
 ### Added
 
+- Add `eds.CKD` component
+- Add `eds.COPD` component
+- Add `eds.alcohol` component
+- Add `eds.cerebrovascular_accident` component
+- Add `eds.congestive_heart_failure` component
+- Add `eds.connective_tissue_disease` component
+- Add `eds.dementia` component
+- Add `eds.diabetes` component
+- Add `eds.hemiplegia` component
+- Add `eds.leukemia` component
+- Add `eds.liver_disease` component
+- Add `eds.lymphoma` component
+- Add `eds.myocardial_infarction` component
+- Add `eds.peptic_ulcer_disease` component
+- Add `eds.peripheral_vascular_disease` component
+- Add `eds.solid_tumor` component
+- Add `eds.tobacco` component
 - Add `eds.spaces` (or `eds.normalizer` with `spaces=True`) to detect space tokens, and add `ignore_space_tokens` to `EDSPhraseMatcher` and `SimstringMatcher` to skip them
 - Add `ignore_space_tokens` option in most components
 

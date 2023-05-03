@@ -1,5 +1,3 @@
-from edsnlp.pipelines.misc.tables import factory  # noqa
-
 TEXT = """
 Le patientqsfqfdf bla bla bla
 Leucocytes ¦x10*9/L ¦4.97 ¦4.09-11

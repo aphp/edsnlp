@@ -10,7 +10,7 @@ from edsnlp.pipelines.misc.tables import patterns
 from edsnlp.utils.filter import get_spans
 
 
-class Tables(GenericMatcher):
+class TablesMatcher(GenericMatcher):
     """Pipeline to identify the Tables.
 
     It adds the key `tables` to doc.spans.

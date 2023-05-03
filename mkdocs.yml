@@ -92,7 +92,6 @@ nav:
       - utilities/connectors/index.md
       - utilities/connectors/brat.md
       - utilities/connectors/omop.md
-      - utilities/connectors/labeltool.md
   - Utilities:
       - utilities/tests/index.md
       - utilities/tests/blocs.md

@@ -27,5 +27,5 @@ def test_tables(blank_nlp):
     assert len(doc.spans["tables"]) == 1
 
     span = doc.spans["tables"][0]
-    df = span._.to_pd_table
+    df = span._.to_pd_table()
     assert df.iloc[5, 0] == "TCMH "

@@ -58,7 +58,7 @@ class TablesMatcher(GenericMatcher):
         )
 
         if not Span.has_extension("to_pd_table"):
-            Span.set_extension("to_pd_table", getter=self.to_pd_table)
+            Span.set_extension("to_pd_table", method=self.to_pd_table)
 
         self.set_extensions()
 

@@ -2,7 +2,7 @@ from typing import Dict, List, Optional, Union
 
 from spacy.language import Language
 
-from edsnlp.pipelines.misc.tables import Tables
+from edsnlp.pipelines.misc.tables import TablesMatcher
 from edsnlp.utils.deprecation import deprecated_factory
 
 DEFAULT_CONFIG = dict(
@@ -23,7 +23,7 @@ def create_component(
     attr: str,
     ignore_excluded: bool,
 ):
-    return Tables(
+    return TablesMatcher(
         nlp,
         tables_pattern=tables_pattern,
         sep_pattern=sep_pattern,

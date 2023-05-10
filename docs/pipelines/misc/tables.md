@@ -59,37 +59,37 @@ table = doc.spans["tables"][0]
 # VMP ¦fL ¦11.5 + ¦7.4-10.8
 
 # Convert span to Pandas table
-df = table._.to_pd_table
+df = table._.to_pd_table()
 type(df)
 # >> pandas.core.frame.DataFrame
 ```
 The pd DataFrame:
-|    | 0           | 1        | 2      | 3         |
-|---:|:------------|:---------|:-------|:----------|
-|  0 | Leucocytes  | x10*9/L  | 4.97   | 4.09-11   |
-|  1 | Hématies    | x10*12/L | 4.68   | 4.53-5.79 |
-|  2 | Hémoglobine | g/dL     | 14.8   | 13.4-16.7 |
-|  3 | Hématocrite | %        | 44.2   | 39.2-48.6 |
-|  4 | VGM         | fL       | 94.4 + | 79.6-94   |
-|  5 | TCMH        | pg       | 31.6   | 27.3-32.8 |
-|  6 | CCMH        | g/dL     | 33.5   | 32.4-36.3 |
-|  7 | Plaquettes  | x10*9/L  | 191    | 172-398   |
-|  8 | VMP         | fL       | 11.5 + | 7.4-10.8  |
+|      | 0           | 1        | 2      | 3         |
+| ---: | :---------- | :------- | :----- | :-------- |
+|    0 | Leucocytes  | x10*9/L  | 4.97   | 4.09-11   |
+|    1 | Hématies    | x10*12/L | 4.68   | 4.53-5.79 |
+|    2 | Hémoglobine | g/dL     | 14.8   | 13.4-16.7 |
+|    3 | Hématocrite | %        | 44.2   | 39.2-48.6 |
+|    4 | VGM         | fL       | 94.4 + | 79.6-94   |
+|    5 | TCMH        | pg       | 31.6   | 27.3-32.8 |
+|    6 | CCMH        | g/dL     | 33.5   | 32.4-36.3 |
+|    7 | Plaquettes  | x10*9/L  | 191    | 172-398   |
+|    8 | VMP         | fL       | 11.5 + | 7.4-10.8  |
 
 ## Declared extensions
 
-The `eds.tables` pipeline declares one [spaCy extension](https://spacy.io/usage/processing-pipelines#custom-components-attributes) on the `Span` object: the `to_pd_table` attribute contains a parsed pandas version of the table.
+The `eds.tables` pipeline declares one [spaCy extension](https://spacy.io/usage/processing-pipelines#custom-components-attributes) on the `Span` object: the `to_pd_table()` method returns a parsed pandas version of the table.
 
 ## Configuration
 
 The pipeline can be configured using the following parameters :
 
-| Parameter        | Explanation                                      | Default                           |
-|------------------|--------------------------------------------------|-----------------------------------|
-| `tables_pattern`       | Pattern to identify table spans     | `rf"(\b.*{sep}.*\n)+"` |
-| `sep_pattern`       |Pattern to identify column separation              | `r"¦"` |
-| `ignore_excluded`      | Ignore excluded tokens     | `True`  |
-| `attr`           | spaCy attribute to match on, eg `NORM` or `TEXT` | `"TEXT"`                          |
+| Parameter         | Explanation                                      | Default                |
+| ----------------- | ------------------------------------------------ | ---------------------- |
+| `tables_pattern`  | Pattern to identify table spans                  | `rf"(\b.*{sep}.*\n)+"` |
+| `sep_pattern`     | Pattern to identify column separation            | `r"¦"`                 |
+| `ignore_excluded` | Ignore excluded tokens                           | `True`                 |
+| `attr`            | spaCy attribute to match on, eg `NORM` or `TEXT` | `"TEXT"`               |
 
 ## Authors and citation
 

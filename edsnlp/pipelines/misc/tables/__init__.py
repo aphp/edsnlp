@@ -1,2 +1,2 @@
 from .patterns import regex, sep
-from .tables import Tables
+from .tables import TablesMatcher

@@ -43,7 +43,7 @@ ent._.score_value
 
 ## SOFA score
 
-The `SOFA` pipe allows to extract SOFA scores.
+The `SOFA` pipe allows to extract [Sequential Organ Failure Assessment (SOFA) scores](https://www.mdcalc.com/calc/691/sequential-organ-failure-assessment-sofa-score), used to track a person's status during the stay in an intensive care unit to determine the extent of a person's organ function or rate failure.
 
 ```python
 import spacy

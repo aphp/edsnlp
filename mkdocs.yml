@@ -11,6 +11,7 @@ repo_name: aphp/edsnlp
 #       link: https://github.com/aphp
 
 theme:
+  language: en
   name: material
   palette:
     - scheme: default
@@ -106,6 +107,14 @@ extra:
   version:
     provider: mike
     default: latest
+#   Just uncomment the following lines to enable i18n
+#   alternate:
+#     - name: English
+#       link: /en/
+#       lang: en
+#     - name: Français
+#       link: /fr/
+#       lang: fr
 
 extra_css:
   - assets/stylesheets/extra.css
@@ -117,30 +126,40 @@ extra_javascript:
   - https://cdn.jsdelivr.net/npm/vega-embed@6
   - assets/termynal/termynal.js
 
+watch:
+  - contributing.md
+  - changelog.md
+  - edsnlp
+
+hooks:
+    - docs/scripts/plugin.py
+
 plugins:
   - search
-  - autorefs
   - bibtex:
       bib_file: "docs/references.bib"
-  - gen-files:
-      scripts:
-        - docs/generate_reference.py
-        - docs/generate_development.py
+  - autorefs
   - mkdocstrings:
+      custom_templates: docs/assets/templates
       handlers:
         python:
-          selection:
+          options:
             docstring_style: numpy
-          rendering:
             docstring_section_style: spacy
-            heading_level: 3
+            heading_level: 2
             members_order: source
             show_root_toc_entry: false
-            show_if_no_docstring: yes
       watch:
         - "edsnlp"
-  - literate-nav:
-      nav_file: SUMMARY.md
+# Just uncomment the following lines to enable i18n
+# and start creating .fr.md and .en.md files.
+#  - i18n:
+#      default_language: en
+#      docs_structure: suffix
+#      languages:
+#        en:
+#          name: English
+#          build: true
   - mike
 
 markdown_extensions:
@@ -155,3 +174,8 @@ markdown_extensions:
   - md_in_html
   - attr_list
   - pymdownx.details
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg

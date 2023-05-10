@@ -1,3 +1,4 @@
+import pytest
 from spacy.language import Language
 
 from edsnlp.utils.examples import parse_example
@@ -5,13 +6,15 @@ from edsnlp.utils.examples import parse_example
 example = "1g de <ent kb_id=paracetamol>doliprane</ent>"
 
 
-def test_terminology(blank_nlp: Language):
+@pytest.mark.parametrize("term_matcher", ["exact", "simstring"])
+def test_terminology(blank_nlp: Language, term_matcher: str):
     blank_nlp.add_pipe(
         "eds.terminology",
         config=dict(
             label="drugs",
             terms=dict(paracetamol=["doliprane", "tylenol", "paracetamol"]),
             attr="NORM",
+            term_matcher=term_matcher,
         ),
     )
 

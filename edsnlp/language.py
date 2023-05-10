@@ -42,6 +42,9 @@ class EDSLanguage(French):
     default_config = Defaults
 
 
+TOKENIZER_EXCEPTIONS = [r"Dr\.", r"Pr\.", r"M\.", r"Mme\.", r"Mlle\.", r"(?i)(?:ep\.)"]
+
+
 class EDSTokenizer(DummyTokenizer):
     def __init__(self, vocab: Vocab) -> None:
         """
@@ -50,7 +53,6 @@ class EDSTokenizer(DummyTokenizer):
         - numbers: "ACR5" -> ["ACR", "5"] instead of ["ACR5"]
         - newlines: "\n \n \n" -> ["\n", "\n", "\n"] instead of ["\n \n \n"]
         and should be around 5-6 times faster than its standard French counterpart.
-
         Parameters
         ----------
         vocab: Vocab
@@ -59,9 +61,23 @@ class EDSTokenizer(DummyTokenizer):
         self.vocab = vocab
         punct = "[:punct:]" + "\"'ˊ＂〃ײ᳓″״‶˶ʺ“”˝"
         num_like = r"\d+(?:[.,]\d+)?"
-        default = rf"[^\d{punct}'\n[[:space:]]+(?:['ˊ](?=[[:alpha:]]|$))?"
+        sep = rf"\d{punct}'\n[:space:]"
+        default = rf"[^{sep}]+(?:['ˊ](?=[[:alpha:]]|$))?"
+        exceptions = "|".join(TOKENIZER_EXCEPTIONS)
+        acronym = r"[A-Z][A-Z0-9]*[.](?=[A-Z0-9])"
         self.word_regex = regex.compile(
-            rf"({num_like}|[{punct}]|[\n\r\t]|[^\S\r\n\t]+|{default})([^\S\r\n\t])?"
+            rf"""(?x)
+        (
+            {exceptions}    # tokenizer exceptions like M., Dr., etc
+            |{acronym}      # acronyms
+            |{num_like}     # numbers
+            |[{punct}]        # punctuations
+            |[\n\r\t]       # new lines or tabs
+            |[^\S\r\n\t]+   # multi-spaces
+            |{default}      # anything else: most often alpha-numerical words
+        )                   # followed by
+        ([^\S\r\n\t])?      # an optional space
+        """
         )
 
     def __call__(self, text: str) -> Doc:

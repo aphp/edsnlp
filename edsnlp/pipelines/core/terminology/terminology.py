@@ -42,6 +42,8 @@ class TerminologyMatcher(BaseComponent):
     ignore_excluded : bool
         Whether to skip excluded tokens (requires an upstream
         pipeline to mark excluded tokens).
+    ignore_space_tokens: bool
+        Whether to skip space tokens during matching.
     term_matcher: TerminologyTermMatcher
         The matcher to use for matching phrases ?
         One of (exact, simstring)
@@ -57,6 +59,7 @@ class TerminologyMatcher(BaseComponent):
         regex: Optional[Patterns],
         attr: str,
         ignore_excluded: bool,
+        ignore_space_tokens: bool = False,
         term_matcher: TerminologyTermMatcher = TerminologyTermMatcher.exact,
         term_matcher_config=None,
     ):
@@ -72,6 +75,7 @@ class TerminologyMatcher(BaseComponent):
                 self.nlp.vocab,
                 attr=attr,
                 ignore_excluded=ignore_excluded,
+                ignore_space_tokens=ignore_space_tokens,
                 **(term_matcher_config or {}),
             )
         elif term_matcher == TerminologyTermMatcher.simstring:
@@ -79,6 +83,7 @@ class TerminologyMatcher(BaseComponent):
                 vocab=self.nlp.vocab,
                 attr=attr,
                 ignore_excluded=ignore_excluded,
+                ignore_space_tokens=ignore_space_tokens,
                 **(term_matcher_config or {}),
             )
         else:
@@ -90,9 +95,10 @@ class TerminologyMatcher(BaseComponent):
         self.regex_matcher = RegexMatcher(
             attr=attr,
             ignore_excluded=ignore_excluded,
+            ignore_space_tokens=ignore_space_tokens,
         )
 
-        self.phrase_matcher.build_patterns(nlp=nlp, terms=terms)
+        self.phrase_matcher.build_patterns(nlp=nlp, terms=terms, progress=True)
         self.regex_matcher.build_patterns(regex=regex)
 
         self.set_extensions()

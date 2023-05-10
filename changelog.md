@@ -3,6 +3,28 @@
 ### Added
 - `eds.tables`: new pipeline to identify formatted tables
 
+## Unreleased
+
+### Added
+
+- Add `eds.spaces` (or `eds.normalizer` with `spaces=True`) to detect space tokens, and add `ignore_space_tokens` to `EDSPhraseMatcher` and `SimstringMatcher` to skip them
+- Add `ignore_space_tokens` option in most components
+
+## v0.8.0 (2023-03-09)
+
+### Added
+- Tokenization exceptions (`Mr.`, `Dr.`, `Mrs.`) and non end-of-sentence periods are now tokenized with the next letter in the `eds` tokenizer
+
+### Changed
+
+- Disable `EDSMatcher` preprocessing auto progress tracking by default
+- Moved dependencies to a single pyproject.toml: support for `pip install -e '.[dev,docs,setup]'`
+- ADICAP matcher now allow dot separators (e.g. `B.H.HP.A7A0`)
+
+### Fixed
+
+- `eds.adicap` : reparsed the dictionnary used to decode the ADICAP codes (some of them were wrongly decoded)
+
 ## v0.7.4 (2022-12-12)
 
 ### Added

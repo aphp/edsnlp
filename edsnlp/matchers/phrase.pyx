@@ -70,7 +70,7 @@ cdef class EDSPhraseMatcher(PhraseMatcher):
         if not Span.has_extension("normalized_variant"):
             Span.set_extension("normalized_variant", getter=get_normalized_variant)
 
-    def build_patterns(self, nlp: Language, terms: Patterns):
+    def build_patterns(self, nlp: Language, terms: Patterns, progress: bool = False):
         """
         Build patterns and adds them for matching.
         Helper function for pipelines using this matcher.
@@ -81,6 +81,8 @@ cdef class EDSPhraseMatcher(PhraseMatcher):
             The instance of the spaCy language class.
         terms : Patterns
             Dictionary of label/terms, or label/dictionary of terms/attribute.
+        progress: bool
+            Whether to track progress when preprocessing terms
         """
 
         if not terms:
@@ -95,10 +97,10 @@ cdef class EDSPhraseMatcher(PhraseMatcher):
             )
         ]
         with nlp.select_pipes(enable=token_pipelines):
-            for key, expressions in tqdm(
+            for key, expressions in (tqdm(
                 terms.items(),
                 desc="Adding terms into the pipeline"
-            ):
+            ) if progress else terms.items()):
                 if isinstance(expressions, dict):
                     attr = expressions.get("attr")
                     expressions = expressions.get("patterns")
@@ -121,32 +123,31 @@ cdef class EDSPhraseMatcher(PhraseMatcher):
             SpanC ms
             void * result
         while idx < end_idx:
+            while idx < end_idx and (
+                (0 < self.space_hash == doc.c[idx].tag)
+                or (0 < self.excluded_hash == doc.c[idx].tag)
+            ):
+                idx += 1
             start = idx
-            token = Token.get_struct_attr(&doc.c[idx], self.attr)
             # look for sequences from this position
-            if 0 < self.space_hash == doc.c[idx].tag:
-                idx += 1
-                continue
-            if 0 < self.excluded_hash == doc.c[idx].tag:
-                idx += 1
-                continue
+            token = Token.get_struct_attr(&doc.c[idx], self.attr)
             result = map_get(current_node, token)
             if result:
                 current_node = <MapStruct *> result
                 idy = idx + 1
                 while idy < end_idx:
-                    if 0 < self.space_hash == doc.c[idy].tag:
-                        idy += 1
-                        continue
-                    if 0 < self.excluded_hash == doc.c[idy].tag:
-                        idy += 1
-                        continue
                     result = map_get(current_node, self._terminal_hash)
                     if result:
                         i = 0
                         while map_iter(<MapStruct *> result, &i, &key, &value):
                             ms = make_spanstruct(key, start, idy)
                             matches.push_back(ms)
+
+                    while idy < end_idx and (
+                        (0 < self.space_hash == doc.c[idy].tag)
+                        or (0 < self.excluded_hash == doc.c[idy].tag)
+                    ):
+                        idy += 1
                     inner_token = Token.get_struct_attr(&doc.c[idy], self.attr)
                     result = map_get(current_node, inner_token)
                     if result:

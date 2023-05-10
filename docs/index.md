@@ -1,7 +1,3 @@
----
-ᴴₒᴴₒᴴₒ: true
----
-
 # Getting started
 
 EDS-NLP provides a set of spaCy components that are used to extract information from clinical notes written in French.
@@ -27,7 +23,7 @@ color:green Successfully installed!
 We recommend pinning the library version in your projects, or use a strict package manager like [Poetry](https://python-poetry.org/).
 
 ```
-pip install edsnlp==0.7.4
+pip install edsnlp==0.8.0
 ```
 
 ### A first pipeline

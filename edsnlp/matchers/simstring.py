@@ -57,6 +57,7 @@ class SimstringMatcher:
         threshold: float = 0.75,
         windows: int = 5,
         ignore_excluded: bool = False,
+        ignore_space_tokens: bool = False,
         attr: str = "NORM",
     ):
         """
@@ -76,7 +77,9 @@ class SimstringMatcher:
             Maximum number of words in a candidate span
         threshold: float
             Minimum similarity value to match a concept's synonym
-        ignore_excluded : bool, optional
+        ignore_excluded : Optional[bool]
+            Whether to exclude tokens that have an EXCLUDED tag, by default False
+        ignore_space_tokens : Optional[bool]
             Whether to exclude tokens that have a "SPACE" tag, by default False
         attr : str
             Default attribute to match on, by default "TEXT".
@@ -96,6 +99,7 @@ class SimstringMatcher:
         self.measure = measure
         self.threshold = threshold
         self.ignore_excluded = ignore_excluded
+        self.ignore_space_tokens = ignore_space_tokens
         self.attr = attr
 
         if path is None:
@@ -105,7 +109,9 @@ class SimstringMatcher:
         self.ss_reader = None
         self.syn2cuis = None
 
-    def build_patterns(self, nlp: Language, terms: Dict[str, Iterable[str]]):
+    def build_patterns(
+        self, nlp: Language, terms: Dict[str, Iterable[str]], progress: bool = False
+    ):
         """
         Build patterns and adds them for matching.
 
@@ -115,6 +121,8 @@ class SimstringMatcher:
             The instance of the spaCy language class.
         terms : Patterns
             Dictionary of label/terms, or label/dictionary of terms/attribute.
+        progress: bool
+            Whether to track progress when preprocessing terms
         """
 
         self.ss_reader = None
@@ -131,10 +139,13 @@ class SimstringMatcher:
         ]
         with nlp.select_pipes(enable=token_pipelines):
             with SimstringWriter(self.path) as ss_db:
-                for cui, synset in tqdm(terms.items()):
+                for cui, synset in tqdm(terms.items()) if progress else terms.items():
                     for term in nlp.pipe(synset):
                         norm_text = get_text(
-                            term, self.attr, ignore_excluded=self.ignore_excluded
+                            term,
+                            self.attr,
+                            ignore_excluded=self.ignore_excluded,
+                            ignore_space_tokens=self.ignore_space_tokens,
                         )
                         term = "##" + norm_text + "##"
                         ss_db.insert(term)
@@ -174,12 +185,12 @@ class SimstringMatcher:
             sent_start = getattr(sent, "start", 0)
             for size in range(1, self.windows):
                 for i in range(0, len(offsets) - size):
-                    begin_char, _, begin_i = offsets[i]
-                    _, end_char, end_i = offsets[i + size]
+                    begin_char, _, begin_i, _ = offsets[i]
+                    _, end_char, _, end_i = offsets[i + size]
                     span_text = "##" + text[begin_char:end_char] + "##"
                     matches = self.ss_reader.retrieve(span_text)
                     for res in matches:
-                        sim = similarity(span_text, res, measure=self.measure)
+                        sim = _similarity(span_text, res, measure=self.measure)
                         for cui in self.syn2cuis[res]:
                             ents.append(
                                 (cui, begin_i + sent_start, end_i + sent_start, sim)
@@ -205,7 +216,7 @@ class SimstringMatcher:
             return [(self.vocab.strings[span[0]], span[1], span[2]) for span in results]
 
 
-def similarity(x: str, y: str, measure: SimilarityMeasure = SimilarityMeasure.dice):
+def _similarity(x: str, y: str, measure: SimilarityMeasure = SimilarityMeasure.dice):
 
     x_ngrams = {x[i : i + 3] for i in range(0, len(x) - 3)}
     y_ngrams = {y[i : i + 3] for i in range(0, len(y) - 3)}
@@ -222,8 +233,6 @@ def similarity(x: str, y: str, measure: SimilarityMeasure = SimilarityMeasure.di
     if measure == SimilarityMeasure.overlap:
         return len(x_ngrams & y_ngrams)
 
-    raise ValueError("Cannot compute similarity {}".format(repr(measure)))
-
 
 def simstring_sort_key(span_data: Tuple[str, int, int, float]):
     return span_data[3], span_data[2] - span_data[1], -span_data[1]
@@ -234,6 +243,7 @@ def get_text_and_offsets(
     doclike: Union[Span, Doc],
     attr: str = "TEXT",
     ignore_excluded: bool = True,
+    ignore_space_tokens: bool = True,
 ) -> Tuple[str, List[Tuple[int, int, int]]]:
     """
     Align different representations of a `Doc` or `Span` object.
@@ -244,15 +254,18 @@ def get_text_and_offsets(
         spaCy `Doc` or `Span` object
     attr : str, optional
         Attribute to use, by default `"TEXT"`
-    ignore_excluded : bool, optional
+    ignore_excluded : bool
         Whether to remove excluded tokens, by default True
+    ignore_space_tokens : bool
+        Whether to remove space tokens, by default False
+
 
     Returns
     -------
-    Tuple[str, List[Tuple[int, int, int]]]
+    Tuple[str, List[Tuple[int, int, int, int]]]
         The new clean text and offset tuples for each word giving the begin char indice
         of the word in the new text, the end char indice of its preceding word and the
-        indice of the word in the original document
+        begin / end indices of the word in the original document
     """
     attr = attr.upper()
     attr = ATTRIBUTES.get(attr, attr)
@@ -269,9 +282,12 @@ def get_text_and_offsets(
     text = []
 
     last = cursor
+    last_i = 0
     for i, token in enumerate(doclike):
 
-        if not ignore_excluded or not token._.excluded:
+        if (not ignore_excluded or token.tag_ != "EXCLUDED") and (
+            not ignore_space_tokens or token.tag_ != "SPACE"
+        ):
             if custom:
                 token_text = getattr(token._, attr)
             else:
@@ -279,10 +295,11 @@ def get_text_and_offsets(
 
             # We add the cursor
             end = cursor + len(token_text)
-            offsets.append((cursor, last, i))
+            offsets.append((cursor, last, i, last_i + 1))
 
             cursor = end
             last = end
+            last_i = i
 
             text.append(token_text)
 
@@ -290,6 +307,6 @@ def get_text_and_offsets(
                 cursor += 1
                 text.append(" ")
 
-    offsets.append((cursor, last, len(doclike)))
+    offsets.append((cursor, last, len(doclike), last_i + 1))
 
     return "".join(text), offsets

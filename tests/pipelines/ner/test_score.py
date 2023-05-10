@@ -51,6 +51,7 @@ def test_scores(blank_nlp):
         regex=[r"test+score"],
         attr="NORM",
         ignore_excluded=True,
+        ignore_space_tokens=False,
         value_extract=r"(\d+)",
         score_normalization=testscore_normalization,
         window=4,

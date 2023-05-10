@@ -57,6 +57,15 @@ def test_normalization_accents(nlp_factory, text):
     assert norm == "L'aieul ʺnˊest pas malade”, ecrit-il. Fievre NBNbWbWbNbWbNB jaune."
 
 
+def test_normalization_spaces(nlp_factory, text):
+
+    nlp = nlp_factory(a=True)
+    doc = nlp("Phrase    avec des espaces \n et un retour à la ligne")
+
+    tags = [t.tag_ for t in doc]
+    assert tags == ["", "SPACE", "", "", "", "SPACE", "", "", "", "", "", ""]
+
+
 def test_normalization_quotes(nlp_factory, text):
 
     nlp = nlp_factory(q=True)

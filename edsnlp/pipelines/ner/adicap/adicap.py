@@ -1,5 +1,5 @@
 """`eds.adicap` pipeline"""
-
+import re
 
 from spacy.tokens import Doc, Span
 
@@ -61,6 +61,7 @@ class Adicap(ContextualMatcher):
             Span.set_extension("value", default=None)
 
     def decode(self, code):
+        code = re.sub("[^A-Za-z0-9 ]+", "", code)
         exploded = list(code)
         adicap = AdicapCode(
             code=code,

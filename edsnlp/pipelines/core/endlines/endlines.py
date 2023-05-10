@@ -49,6 +49,7 @@ class EndLines(GenericMatcher):
                 new_line=r"\n+",
             ),
             ignore_excluded=False,
+            ignore_space_tokens=False,
             **kwargs,
         )
 

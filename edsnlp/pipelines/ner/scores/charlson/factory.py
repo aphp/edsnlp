@@ -14,6 +14,7 @@ DEFAULT_CONFIG = dict(
     attr="NORM",
     window=7,
     ignore_excluded=False,
+    ignore_space_tokens=False,
     flags=0,
 )
 
@@ -38,6 +39,7 @@ def create_component(
     attr: str,
     window: int,
     ignore_excluded: bool,
+    ignore_space_tokens: bool,
     flags: Union[re.RegexFlag, int],
 ):
     return Score(
@@ -49,5 +51,6 @@ def create_component(
         attr=attr,
         window=window,
         ignore_excluded=ignore_excluded,
+        ignore_space_tokens=ignore_space_tokens,
         flags=flags,
     )

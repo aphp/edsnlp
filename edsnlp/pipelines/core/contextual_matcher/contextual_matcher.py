@@ -44,12 +44,22 @@ class ContextualMatcher(BaseComponent):
         The name of the pipe
     patterns: Union[Dict[str, Any], List[Dict[str, Any]]]
         The configuration dictionary
+    assign_as_span : bool
+        Whether to store eventual extractions defined via the `assign` key as Spans
+        or as string
     attr : str
         Attribute to match on, eg `TEXT`, `NORM`, etc.
     ignore_excluded : bool
         Whether to skip excluded tokens during matching.
+    ignore_space_tokens: bool
+        Whether to skip space tokens during matching.
     alignment_mode : str
         Overwrite alignment mode.
+    regex_flags : Union[re.RegexFlag, int]
+        RegExp flags to use when matching, filtering and assigning (See
+        [here](https://docs.python.org/3/library/re.html#flags))
+    include_assigned : bool
+        Whether to include (eventual) assign matches to the final entity
     """
 
     def __init__(
@@ -57,12 +67,13 @@ class ContextualMatcher(BaseComponent):
         nlp: Language,
         name: str,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]],
-        assign_as_span: bool,
-        alignment_mode: str,
-        attr: str,
-        regex_flags: Union[re.RegexFlag, int],
-        ignore_excluded: bool,
-        include_assigned: bool,
+        assign_as_span: bool = False,
+        alignment_mode: str = "expand",
+        attr: str = "NORM",
+        regex_flags: Union[re.RegexFlag, int] = 0,
+        ignore_excluded: bool = False,
+        ignore_space_tokens: bool = False,
+        include_assigned: bool = False,
     ):
         self.name = name
         self.nlp = nlp
@@ -152,6 +163,7 @@ class ContextualMatcher(BaseComponent):
                     attr=p["regex_attr"] or self.attr,
                     flags=p["regex_flags"] or self.regex_flags,
                     ignore_excluded=ignore_excluded,
+                    ignore_space_tokens=ignore_space_tokens,
                     alignment_mode=alignment_mode,
                     span_from_group=True,
                 )
@@ -282,8 +294,9 @@ class ContextualMatcher(BaseComponent):
                         end_char=match.end(0),
                         key=matcher["matcher"].regex[0][0],
                         attr=matcher["matcher"].regex[0][2],
-                        alignment_mode=matcher["matcher"].regex[0][4],
+                        alignment_mode=matcher["matcher"].regex[0][5],
                         ignore_excluded=matcher["matcher"].regex[0][3],
+                        ignore_space_tokens=matcher["matcher"].regex[0][4],
                     ),
                 )
                 for (span, match) in assigned_list

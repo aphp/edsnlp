@@ -4,7 +4,7 @@ The `eds.umls` pipeline component matches the UMLS (Unified Medical Language Sys
 
 !!! warning "Very low recall"
 
-    When using the `exact' matching mode, this component has a very poor recall performance.
+    When using the `exact` matching mode, this component has a very poor recall performance.
     We can use the `simstring` mode to retrieve approximate matches, albeit at the cost of a significantly higher computation time.
 
 ## Usage
@@ -55,13 +55,9 @@ See more options of languages and sources [here](https://www.nlm.nih.gov/researc
 
 The pipeline can be configured using the following parameters :
 
-| Parameter             | Description                                                    | Default   |
-|-----------------------|----------------------------------------------------------------|-----------|
-| `term_matcher`        | Which algorithm should we use : `exact` or `simstring`         | `"exact"` |
-| `term_matcher_config` | Config of the algorithm (`SimstringMatcher`'s for `simstring`) | `{}` |
-| `pattern_config`      | Config of the terminology patterns loader                      | `{"languages"=["FRE"], sources=None}` (sources None means all available sources) |
-| `attr`                | spaCy attribute to match on (eg `NORM`, `TEXT`, `LOWER`)       | `"LOWER"` |
-| `ignore_excluded`     | Whether to ignore excluded tokens for matching                 | `False`   |
+::: edsnlp.pipelines.ner.umls.factory.create_component
+    options:
+        only_parameters: true
 
 ## Authors and citation
 

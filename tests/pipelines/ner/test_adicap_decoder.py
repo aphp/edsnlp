@@ -1,11 +1,11 @@
 examples = [
     "1. Codification ADICAP : OHNP6071",
     "2. Codification ADICAP : CSGS7624",
-    "3. Codification ADICAP : CSBG0120",
-    "4. Codification ADICAP : BSDETMA0",
-    "5. Codification ADICAP : BSSG0503",
-    "6. Codification ADICAP : BSGS0503",
-    "7. Codification ADICAP : HSGS0G26",
+    "3. Codification ADICAP : BSDETMA0",
+    "4. Codification ADICAP : BSSG0503",
+    "5. Codification ADICAP : BSGS0503",
+    "6. Codification ADICAP : HSGS0G26",
+    "7. Codification ADICAP : HSGS0150",
 ]
 
 
@@ -35,15 +35,6 @@ expected_outputs = [
             "MODIFICATION DE VOLUME, DYSTROPHIE, "
             "KYSTE, METAPLASIE ET DYSPLASIE ACQUISE"
         ),
-    },
-    {
-        "code": "CSBG0120",
-        "sampling_mode": "CYTOPONCTION NON GUIDEE PAR IMAGERIE",
-        "technic": "COLORATION SPECIALE - HISTO ET CYTOCHIMIE",
-        "organ": "GENCIVE",
-        "pathology": "PATHOLOGIE TUMORALE",
-        "pathology_type": "NEOPLASIE INTRA-EPITHELIALE",
-        "behaviour_type": "BÉNIN AVEC DYSPLASIE LÉGÈRE",
     },
     {
         "code": "BSDETMA0",
@@ -83,6 +74,15 @@ expected_outputs = [
             "EN FAVEUR D'UNE NATURE NEOPLASIQUE - SAI"
         ),
         "behaviour_type": "MATERIEL DE SIGNIFICATION INDETERMINEE",
+    },
+    {
+        "code": "HSGS0150",
+        "sampling_mode": "HISTOPONCTION GUIDEE PAR IMAGERIE",
+        "technic": "COLORATION SPECIALE - HISTO ET CYTOCHIMIE",
+        "organ": "SEIN (ÉGALEMENT UTILISÉ CHEZ L'HOMME)",
+        "pathology": "PATHOLOGIE GÉNÉRALE NON TUMORALE",
+        "pathology_type": "LESION D'INTERET PARTICULIER",
+        "behaviour_type": "MALADIE INNEE ET GRANDE MALFORMATION EXTERNE",
     },
 ]
 

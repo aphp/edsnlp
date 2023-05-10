@@ -23,17 +23,10 @@ $ cd edsnlp
 $ python -m venv venv
 $ source venv/bin/activate
 
-# Install setup dependencies and build resources
-$ pip install -r requirements.txt
-$ pip install -r requirements-setup.txt
+# Install the package with common, dev, setup dependencies in editable mode
+$ pip install -e '.[dev,docs,setup]'
+# And build resources
 $ python scripts/conjugate_verbs.py
-
-# Install development dependencies
-$ pip install -r requirements-dev.txt
-$ pip install -r requirements-docs.txt
-
-# Finally, install the package in editable mode
-$ pip install -e .
 ```
 
 </div>
@@ -120,7 +113,7 @@ We use `MkDocs` for EDS-NLP's documentation. You can checkout the changes you ma
 
 ```console
 # Install the requirements
-$ pip install -r requirements-docs.txt
+$ pip install -e '.[docs]'
 ---> 100%
 color:green Installation successful
 

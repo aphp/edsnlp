@@ -64,7 +64,8 @@ text = (
     "Motif :\n"
     "Douleurs dans le bras droit.\n"
     "ANTÉCÉDENTS\n"
-    "Le patient est déjà venu\n"
+    "Le patient est déjà venu pendant les vacances\n"
+    "d'été.\n"
     "Pas d'anomalie détectée."
 )
 

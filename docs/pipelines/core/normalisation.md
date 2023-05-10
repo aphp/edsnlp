@@ -12,16 +12,17 @@ is always true.
 
 To achieve this, the input text is never modified. Instead, our normalisation strategy focuses on two axes:
 
-1. Only the `NORM` attribute is modified by the `normalizer` pipeline ;
-2. Pipelines (eg the [`pollution`](#pollution) pipeline) can mark tokens as _excluded_ by setting the extension `Token._.excluded` to `True`.
+1. Only the `NORM` and `tag_` attributes are modified by the `normalizer` pipeline ;
+2. Pipelines (eg the [`pollution`](#pollution) pipeline) can mark tokens as _excluded_ by setting the extension `Token.tag_` to `EXCLUDED` or as _space_ by setting the extension `Token.tag_` to `SPACE`.
    It enables downstream matchers to skip excluded tokens.
 
-The normaliser can act on the input text in four dimensions :
+The normaliser can act on the input text in five dimensions :
 
 1. Move the text to [lowercase](#lowercase).
 2. Remove [accents](#accents). We use a deterministic approach to avoid modifying the character-length of the text, which helps for RegEx matching.
 3. Normalize [apostrophes and quotation marks](#apostrophes-and-quotation-marks), which are often coded using special characters.
-4. Remove [pollutions](#pollution).
+4. Detect spaces and [new lines](#new-lines) and mark them as such (to be skipped later)
+5. Detect tokens in [pollutions](#pollution) patterns and mark them as such (to be skipped later)
 
 !!! note
 
@@ -58,12 +59,11 @@ Moreover, every span exposes a `normalized_variant` extension getter, which comp
 
 ## Configuration
 
-| Parameter   | Explanation                                  | Default |
-| ----------- | -------------------------------------------- | ------- |
-| `accents`   | Whether to strip accents                     | `True`  |
-| `lowercase` | Whether to remove casing                     | `True`  |
-| `quotes`    | Whether to normalise quotes                  | `True`  |
-| `pollution` | Whether to tag pollutions as excluded tokens | `True`  |
+The pipeline can be configured using the following parameters :
+
+::: edsnlp.pipelines.core.normalizer.factory.create_component
+    options:
+       only_parameters: true
 
 ## Pipelines
 
@@ -83,6 +83,7 @@ config = dict(
     lowercase=True,
     accents=False,
     quotes=False,
+    spaces=False,
     pollution=False,
 )
 
@@ -113,6 +114,7 @@ config = dict(
     lowercase=False,
     accents=True,
     quotes=False,
+    spaces=False,
     pollution=False,
 )
 
@@ -126,6 +128,7 @@ doc = nlp(text)
 get_text(doc, attr="NORM", ignore_excluded=False)
 # Out: Pneumopathie a NBNbWbWbNbWbNBNbNbWbW `coronavirus'
 ```
+
 
 ### Apostrophes and quotation marks
 
@@ -141,6 +144,7 @@ config = dict(
     lowercase=False,
     accents=False,
     quotes=True,
+    spaces=False,
     pollution=False,
 )
 
@@ -153,6 +157,36 @@ doc = nlp(text)
 
 get_text(doc, attr="NORM", ignore_excluded=False)
 # Out: Pneumopathie à NBNbWbWbNbWbNBNbNbWbW 'coronavirus'
+```
+
+### Spaces
+
+This is not truly a normalisation component, but this allows us to detect spaces tokens
+ahead of the other components and encode it as using the `tag_` attribute for fast
+matching.
+
+!!! tip
+
+      This component and its `spaces` option should be enabled if you ever set
+      `ignore_space_tokens` parameter token to True in a downstream component.
+
+```python
+import spacy
+
+config = dict(
+    lowercase=False,
+    accents=False,
+    quotes=False,
+    spaces=True,
+    pollution=False,
+)
+
+nlp = spacy.blank("eds")
+nlp.add_pipe("eds.normalizer", config=config)
+
+doc = nlp("Phrase    avec des espaces \n et un retour à la ligne")
+[t.tag_ for t in doc]
+# Out: ['', 'SPACE', '', '', '', 'SPACE', '', '', '', '', '', '']
 ```
 
 ### Pollution
@@ -169,6 +203,7 @@ config = dict(
     lowercase=False,
     accents=True,
     quotes=False,
+    spaces=False,
     pollution=True,
 )
 
@@ -198,6 +233,8 @@ Pollution can come in various forms in clinical texts. We provide a small set of
 For instance, if we consider biology tables as pollution, we only need to instantiate the `normalizer` pipe as follows:
 
 ```python
+import spacy
+
 nlp = spacy.blank("fr")
 nlp.add_pipe(
     "eds.normalizer",
@@ -210,14 +247,14 @@ nlp.add_pipe(
 ```
 
 | Type          | Description                                                                                                               | Example                                                                                                    | Included by default |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------- |
+|---------------|---------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|---------------------|
 | `information` | Footnote present in a lot of notes, providing information to the patient about the use of its data                        | "L'AP-HP collecte vos données administratives à des fins ..."                                              | `True`              |
 | `bars`        | Barcodes wrongly parsed as text                                                                                           | "...NBNbWbWbNbWbNBNbNbWbW..."                                                                              | `True`              |
 | `biology`     | Parsed biology results table. It often contains disease names that often leads to *false positives* with NER pipelines.   | "...¦UI/L ¦20 ¦ ¦ ¦20-70 Polyarthrite rhumatoïde Facteur rhumatoide ¦UI/mL ¦ ¦<10 ¦ ¦ ¦ ¦0-14..."          | `False`             |
 | `doctors`     | List of doctor names and specialities, often found in left-side note margins. Also source of potential *false positives*. | "... Dr ABC - Diabète/Endocrino ..."                                                                       | `True`              |
 | `web`         | Webpages URL and email adresses. Also source of potential *false positives*.                                              | "... www.vascularites.fr ..."                                                                              | `True`              |
 | `coding`      | Subsection containing ICD-10 codes along with their description. Also source of potential *false positives*.              | "... (2) E112 + Oeil (2) E113 + Neuro (2) E114 Démence (2) F03 MA (2) F001+G301 DCL G22+G301 Vasc (2) ..." | `False`             |
-`footer`| Footer of new page| "2/2Pat : NOM Prenom le 2020/01/01 IPP 12345678 Intitulé RCP : Urologie HMN le <date>"| `True`
+| `footer`      | Footer of new page                                                                                                        | "2/2Pat : NOM Prenom le 2020/01/01 IPP 12345678 Intitulé RCP : Urologie HMN le <date>"                     | `True`              |
 
 #### Custom pollution
 
@@ -225,6 +262,8 @@ If you want to exclude specific patterns, you can provide them as a RegEx (or a 
 For instance, to consider text between "AAA" and "ZZZ" as pollution you might use:
 
 ```python
+import spacy
+
 nlp = spacy.blank("fr")
 nlp.add_pipe(
     "eds.normalizer",

@@ -76,6 +76,7 @@ nav:
           - pipelines/misc/consultation-dates.md
           - pipelines/misc/sections.md
           - pipelines/misc/reason.md
+          - pipelines/misc/tables.md
       - Named Entity Recognition:
           - pipelines/ner/index.md
           - pipelines/ner/score.md
@@ -97,6 +98,7 @@ nav:
       - utilities/tests/blocs.md
       - utilities/tests/examples.md
       - utilities/matchers.md
+      - utilities/processing/spark.md
   - Code Reference: reference/
   - contributing.md
   - changelog.md

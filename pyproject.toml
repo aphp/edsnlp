@@ -23,8 +23,8 @@ dependencies = [
     "umls-downloader>=0.1.1",
     "numpy>=1.15.0,<1.23.2; python_version<'3.8'",
     "numpy>=1.15.0; python_version>='3.8'",
-    "pandas>=1.1.0; python_version<'3.8'",
-    "pandas>=1.4.0; python_version>='3.8'",
+    "pandas>=1.1.0,<2.0.0; python_version<'3.8'",
+    "pandas>=1.4.0,<2.0.0; python_version>='3.8'",
 ]
 [project.optional-dependencies]
 dev = [

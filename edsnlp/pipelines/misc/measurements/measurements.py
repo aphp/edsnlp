@@ -19,16 +19,15 @@ from edsnlp.utils.filter import filter_spans
 __all__ = ["MeasurementsMatcher"]
 
 
-AFTER_SNIPPET_LIMIT = 6
+AFTER_SNIPPET_LIMIT = 8
 BEFORE_SNIPPET_LIMIT = 10
 
 
 class UnitConfig(TypedDict):
-    dim: str
-    degree: int
     scale: float
     terms: List[str]
     followed_by: Optional[str] = None
+    ui_decomposition: Dict[str, int]
 
 
 class UnitlessRange(TypedDict):
@@ -81,13 +80,23 @@ class Measurement(abc.ABC):
 
 class UnitRegistry:
     def __init__(self, config: Dict[str, UnitConfig]):
+        def generate_inverse_terms(unit_terms):
+            for unit_term in unit_terms:
+                yield "/" + unit_term
+                yield unit_term + "⁻¹"
+                yield unit_term + "-1"
+
         self.config = {unicodedata.normalize("NFKC", k): v for k, v in config.items()}
         for unit, unit_config in list(self.config.items()):
-            if not unit.startswith("per_") and "per_" + unit not in unit_config:
+            if not unit.startswith("per_") and "per_" + unit not in self.config:
                 self.config["per_" + unit] = {
-                    "dim": unit_config["dim"],
-                    "degree": -unit_config["degree"],
                     "scale": 1 / unit_config["scale"],
+                    "terms": list(generate_inverse_terms(unit_config["terms"])),
+                    "followed_by": None,
+                    "ui_decomposition": {
+                        dim: -degree
+                        for dim, degree in unit_config["ui_decomposition"].items()
+                    },
                 }
 
     @lru_cache(maxsize=-1)
@@ -96,13 +105,16 @@ class UnitRegistry:
         scale = 1
         for part in regex.split("(?<!per)_", unit):
             unit_config = self.config[unicodedata.normalize("NFKC", part)]
-            degrees[unit_config["dim"]] += unit_config["degree"]
+            degrees = {
+                k: degrees.get(k, 0) + unit_config["ui_decomposition"].get(k, 0)
+                for k in set(degrees) | set(unit_config["ui_decomposition"])
+            }
             scale *= unit_config["scale"]
         return str(dict(sorted(degrees.items()))), scale
 
 
 class SimpleMeasurement(Measurement):
-    def __init__(self, value, unit, registry):
+    def __init__(self, value_range, value, unit, registry):
         """
         The SimpleMeasurement class contains the value and unit
         for a single non-composite measure
@@ -113,6 +125,7 @@ class SimpleMeasurement(Measurement):
         unit : str
         """
         super().__init__()
+        self.value_range = value_range
         self.value = value
         self.unit = unit
         self.registry = registry
@@ -125,21 +138,41 @@ class SimpleMeasurement(Measurement):
         return [self][item]
 
     def __str__(self):
-        return f"{self.value} {self.unit}"
+        return f"{self.value_range} {self.value} {self.unit}"
 
     def __repr__(self):
-        return f"Measurement({self.value}, {repr(self.unit)})"
+        return f"Measurement({self.value_range}, {self.value}, {repr(self.unit)})"
 
     def __eq__(self, other: Any):
         if isinstance(other, SimpleMeasurement):
-            return self.convert_to(other.unit) == other.value
+            return (
+                self.convert_to(other.unit) == other.value
+                and self.value_range == other.value_range
+            )
         return False
 
     def __add__(self, other: "SimpleMeasurement"):
         if other.unit == self.unit:
-            return self.__class__(self.value + other.value, self.unit, self.registry)
+            return self.__class__(
+                self.value_range, self.value + other.value, self.unit, self.registry
+            )
         return self.__class__(
-            self.value + other.convert_to(self.unit), self.unit, self.registry
+            self.value_range,
+            self.value + other.convert_to(self.unit),
+            self.unit,
+            self.registry,
+        )
+
+    def __sub__(self, other: "SimpleMeasurement"):
+        if other.unit == self.unit:
+            return self.__class__(
+                self.value_range, self.value - other.value, self.unit, self.registry
+            )
+        return self.__class__(
+            self.value_range,
+            self.value - other.convert_to(self.unit),
+            self.unit,
+            self.registry,
         )
 
     def __lt__(self, other: "SimpleMeasurement"):
@@ -150,6 +183,11 @@ class SimpleMeasurement(Measurement):
 
     def convert_to(self, other_unit):
         self_degrees, self_scale = self.registry.parse_unit(self.unit)
+
+        if other_unit == "ui":
+            new_value = self.value * self_scale
+            return new_value
+
         other_degrees, other_scale = self.registry.parse_unit(other_unit)
 
         if self_degrees != other_degrees:
@@ -160,7 +198,12 @@ class SimpleMeasurement(Measurement):
         return new_value
 
     def __getattr__(self, other_unit):
-        return self.convert_to(other_unit)
+        if other_unit.startswith("__"):
+            return super().__geattr__(other_unit)
+        try:
+            return self.convert_to(other_unit)
+        except KeyError as e:
+            raise AttributeError()
 
     @classmethod
     def verify(cls, ent):
@@ -174,10 +217,13 @@ class MeasurementsMatcher:
         measurements: Union[List[str], Tuple[str], Dict[str, MeasureConfig]],
         units_config: Dict[str, UnitConfig],
         number_terms: Dict[str, List[str]],
-        stopwords: List[str] = ("par", "sur", "de", "a", ":"),
+        value_range_terms: Dict[str, List[str]],
+        stopwords_unitless: List[str] = ("par", "sur", "de", "a", ":"),
+        stopwords_measure_unit: List[str] = ("|", "¦", "…", "."),
+        measure_before_unit: bool = False,
         unit_divisors: List[str] = ("par", "/"),
         name: str = "measurements",
-        ignore_excluded: bool = True,
+        ignore_excluded: bool = False,
         attr: str = "NORM",
     ):
         """
@@ -219,10 +265,21 @@ class MeasurementsMatcher:
                 }
         number_terms: Dict[str, List[str]
             A mapping of numbers to their lexical variants
-        stopwords: List[str]
+        value_range_terms: Dict[str, List[str]
+            A mapping of range terms (=, <, >) to their lexical variants
+        stopwords_unitless: List[str]
             A list of stopwords that do not matter when placed between a unitless
-            trigger
-            and a number
+            trigger and a number
+        stopwords_measure_unit: List[str]
+            A list of stopwords that do not matter when placed between a unit and a number
+            These stopwords do not matter only in one of the following pattern :
+            unit - stopwords - measure or measure - stopwords - unit, according to
+            measure_before_unit parameter.
+        measure_before_unit: bool
+            Set It True if the measure is generally before the unit, False in the other case.
+            This parameter will indicate if the stopwords in stopwords_measure_unit should
+            not matter in the unit - stopwords - measure patterns only (False) or in
+            the measure - stopwords - unit patterns only (True)
         unit_divisors: List[str]
             A list of terms used to divide two units (like: m / s)
         attr : str
@@ -230,6 +287,7 @@ class MeasurementsMatcher:
         ignore_excluded : bool
             Whether to exclude pollution patterns when matching in the text
         """
+        self.all_measurements = True if measurements is None else False
 
         if measurements is None:
             measurements = common_measurements
@@ -242,10 +300,31 @@ class MeasurementsMatcher:
         self.regex_matcher = RegexMatcher(attr=attr, ignore_excluded=True)
         self.term_matcher = EDSPhraseMatcher(nlp.vocab, attr=attr, ignore_excluded=True)
         self.unitless_patterns: Dict[str, UnitlessPatternConfigWithName] = {}
+        self.value_range_label_hashes: Set[int] = set()
         self.unit_part_label_hashes: Set[int] = set()
         self.unitless_label_hashes: Set[int] = set()
         self.unit_followers: Dict[str, str] = {}
         self.measure_names: Dict[str, str] = {}
+        self.measure_before_unit = measure_before_unit
+
+        # INTERVALS
+        self.regex_matcher.add(
+            "interval",
+            [r"-?\s*\d+(?:[.,]\d+)?\s*-\s*-?\s*\d+(?:[.,]\d+)?"],
+        )
+
+        # POWERS OF 10
+        self.regex_matcher.add(
+            "pow10",
+            [
+                r"(?:(?:\s*x\s*10\s*(?:\*{1,2}|\^)\s*)|(?:\s*\*\s*10\s*(?:\*{2}|\^)\s*))(-?\d+)",
+            ],
+        )
+
+        # MEASUREMENT VALUE RANGES
+        for value_range, terms in value_range_terms.items():
+            self.term_matcher.build_patterns(nlp, {value_range: terms})
+            self.value_range_label_hashes.add(nlp.vocab.strings[value_range])
 
         # NUMBER PATTERNS
         self.regex_matcher.add(
@@ -253,6 +332,7 @@ class MeasurementsMatcher:
             [
                 r"(?<![a-z-])\d+([ ]\d{3})*[ ]+(?:[,.][ ]+\d+)?",
                 r"(?<![a-z-])\d+([ ]\d{3})*(?:[,.]\d+)?",
+                r"-?\s*\d+(?:\s\d{3})*(?:[.,]\d+)?",
             ],
         )
         self.number_label_hashes = {nlp.vocab.strings["number"]}
@@ -272,7 +352,21 @@ class MeasurementsMatcher:
             nlp,
             {
                 "per": unit_divisors,
-                "stopword": stopwords,
+                "stopword": [
+                    stopword
+                    for stopword in stopwords_measure_unit
+                    if stopword in stopwords_unitless
+                ],
+                "stopword_unitless": [
+                    stopword
+                    for stopword in stopwords_unitless
+                    if stopword not in stopwords_measure_unit
+                ],
+                "stopword_measure_unit": [
+                    stopword
+                    for stopword in stopwords_measure_unit
+                    if stopword not in stopwords_unitless
+                ],
             },
         )
 
@@ -340,8 +434,7 @@ class MeasurementsMatcher:
                     unit_label_hashes.add(units[-1].label)
                 current = []
                 last = None
-            if len(current) > 0 or unit_part.label_ != "per":
-                current.append(unit_part)
+            current.append(unit_part)
             last = unit_part
 
         end = next(
@@ -352,7 +445,6 @@ class MeasurementsMatcher:
             unit = "_".join(part.label_ for part in current[: end + 1])
             units.append(Span(doc, current[0].start, current[end].end, unit))
             unit_label_hashes.add(units[-1].label)
-
         return units
 
     @classmethod
@@ -490,6 +582,16 @@ class MeasurementsMatcher:
                     return
                 yield i - j, ent
 
+        # Return a float based on the measure (float) and the power of 10 extracted with regex (string)
+        def combine_measure_pow10(measure, pow10_text):
+            pow10 = int(
+                re.fullmatch(
+                    r"(?:(?:\s*x\s*10\s*(?:\*{1,2}|\^)\s*)|(?:\s*\*\s*10\s*(?:\*{2}|\^)\s*))(-?\d+)",
+                    pow10_text,
+                ).group(1)
+            )
+            return measure * 10**pow10
+
         # Make a pseudo sentence to query higher order patterns in the main loop
         # `offsets` is a mapping from matches indices (ie match n°i) to
         # char indices in the pseudo sentence
@@ -497,10 +599,15 @@ class MeasurementsMatcher:
             doc,
             matches,
             {
-                self.nlp.vocab.strings["stopword"]: ",",
+                self.nlp.vocab.strings["stopword"]: "o",
+                self.nlp.vocab.strings["interval"]: ",",
+                self.nlp.vocab.strings["stopword_unitless"]: ",",
+                self.nlp.vocab.strings["stopword_measure_unit"]: "s",
                 self.nlp.vocab.strings["number"]: "n",
+                self.nlp.vocab.strings["pow10"]: "p",
                 **{name: "u" for name in unit_label_hashes},
                 **{name: "n" for name in self.number_label_hashes},
+                **{name: "r" for name in self.value_range_label_hashes},
             },
         )
 
@@ -523,6 +630,29 @@ class MeasurementsMatcher:
             except ValueError:
                 continue
 
+            # Link It to Its adjacent power if available
+            try:
+                pow10_idx, pow10_ent = next(
+                    (j, ent)
+                    for j, ent in get_matches_after(number_idx)
+                    if ent.label == self.nlp.vocab.strings["pow10"]
+                )
+                pseudo_sent = pseudo[offsets[number_idx] + 1 : offsets[pow10_idx]]
+                if re.fullmatch(r"[,o]*", pseudo_sent):
+                    pow10_text = pow10_ent.text
+                    value = combine_measure_pow10(value, pow10_text)
+            except:
+                pass
+
+            # Check if the measurement is an =, < or > measurement
+            try:
+                if pseudo[offsets[number_idx] - 1] == "r":
+                    value_range = matches[number_idx - 1][0].label_
+                else:
+                    value_range = "="
+            except:
+                value_range = "="
+
             unit_idx = unit_text = unit_norm = None
 
             # Find the closest unit after the number
@@ -537,10 +667,11 @@ class MeasurementsMatcher:
                 pass
 
             # Try to pair the number with this next unit if the two are only separated
-            # by numbers and separators alternatively (as in [1][,] [2] [and] [3] cm)
+            # by numbers (with or without powers of 10) and separators
+            # (as in [1][,] [2] [and] [3] cm)
             try:
                 pseudo_sent = pseudo[offsets[number_idx] + 1 : offsets[unit_idx]]
-                if not re.fullmatch(r"(,n)*", pseudo_sent):
+                if not re.fullmatch(r"[,o]*p?([,o]n?p?)*", pseudo_sent):
                     unit_text, unit_norm = None, None
             except TypeError:
                 pass
@@ -550,7 +681,10 @@ class MeasurementsMatcher:
             if unit_norm is None and number_idx - 1 in matched_unit_indices:
                 try:
                     unit_before = matches[number_idx - 1][0]
-                    if unit_before.end == number.start:
+                    if (
+                        unit_before.end == number.start
+                        and pseudo[offsets[number_idx] - 2] == "n"
+                    ):
                         unit_norm = self.unit_followers[unit_before.label_]
                 except (KeyError, AttributeError, IndexError):
                     pass
@@ -566,22 +700,80 @@ class MeasurementsMatcher:
                     )
                     unit_norm = None
                     if re.fullmatch(
-                        r"[,n]*",
+                        r"[,onr]*",
                         pseudo[offsets[unitless_idx] + 1 : offsets[number_idx]],
                     ):
                         unitless_pattern = self.unitless_patterns[unitless_text.label_]
                         unit_norm = next(
                             scope["unit"]
                             for scope in unitless_pattern["ranges"]
-                            if ("min" not in scope or value >= scope["min"])
-                            and ("max" not in scope or value < scope["max"])
+                            if (
+                                "min" not in scope
+                                or value >= scope["min"]
+                                or value_range == ">"
+                            )
+                            and (
+                                "max" not in scope
+                                or value < scope["max"]
+                                or value_range == "<"
+                            )
                         )
                 except StopIteration:
                     pass
 
-            # Otherwise, skip this number
+            # If no unit was matched, take the nearest unit only if
+            # It is separated by a stopword from stopwords_measure_unit and / or a value_range_term
+            # Take It before or after the measure according to
             if not unit_norm:
-                continue
+                try:
+                    if not self.measure_before_unit:
+                        (unit_before_idx, unit_before_text) = next(
+                            (j, e)
+                            for j, e in get_matches_before(number_idx)
+                            if e.label in unit_label_hashes
+                        )
+                        if re.fullmatch(
+                            r"[sor]*",
+                            pseudo[offsets[unit_before_idx] + 1 : offsets[number_idx]],
+                        ):
+                            unit_norm = unit_before_text.label_
+                            # Check if there is a power of 10 before the unit
+                            if (
+                                offsets[unit_before_idx] >= 1
+                                and pseudo[offsets[unit_before_idx] - 1] == "p"
+                            ):
+                                pow10_text = matches[unit_before_idx - 1][0].text
+                                value = combine_measure_pow10(value, pow10_text)
+                    else:
+                        (unit_after_idx, unit_after_text) = next(
+                            (j, e)
+                            for j, e in get_matches_after(number_idx)
+                            if e.label in unit_label_hashes
+                        )
+                        if re.fullmatch(
+                            r"[sop]*",
+                            pseudo[offsets[number_idx] + 1 : offsets[unit_after_idx]],
+                        ):
+                            unit_norm = unit_after_text.label_
+                            # Check if there is a power of 10 between the measure and the unit without considering
+                            # the one that we have already considered at the beginning of thos program
+                            try:
+                                (pow10_idx, pow10_ent) = next(
+                                    (j, e)
+                                    for j, e in get_matches_before(unit_after_idx)
+                                    if e.label == self.nlp.vocab.strings["pow10"]
+                                )
+                                if pow10_idx > pseudo[offsets[number_idx] + 1]:
+                                    pow10_text = pow10_ent.text
+                                    value = combine_measure_pow10(value, pow10_text)
+                            except:
+                                pass
+                except:
+                    pass
+
+            # Otherwise, set the unit as no_unit
+            if not unit_norm:
+                unit_norm = "nounit"
 
             # Compute the final entity
             if unit_text and unit_text.end == number.start:
@@ -597,13 +789,20 @@ class MeasurementsMatcher:
             except KeyError:
                 continue
 
-            # If the measure was not requested, dismiss it
-            # Otherwise, relabel the entity and create the value attribute
-            if dims not in self.measure_names:
-                continue
-
-            ent._.value = SimpleMeasurement(value, unit_norm, self.unit_registry)
-            ent.label_ = self.measure_names[dims]
+            if self.all_measurements:
+                ent._.value = SimpleMeasurement(
+                    value_range, value, unit_norm, self.unit_registry
+                )
+                ent.label_ = "eds.measurement"
+            else:
+                # If the measure was not requested, dismiss it
+                # Otherwise, relabel the entity and create the value attribute
+                if dims not in self.measure_names:
+                    continue
+                ent._.value = SimpleMeasurement(
+                    value_range, value, unit_norm, self.unit_registry
+                )
+                ent.label_ = self.measure_names[dims]
 
             measurements.append(ent)
 

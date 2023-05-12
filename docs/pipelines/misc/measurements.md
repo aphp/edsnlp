@@ -1,21 +1,14 @@
 # Measurements
 
 The `eds.measurements` pipeline's role is to detect and normalise numerical measurements within a medical document.
-We use simple regular expressions to extract and normalize measurements, and use `Measurement` classes to store them.
-
-!!! warning
-
-    The ``measurements`` pipeline is still in active development and has not been rigorously validated.
-    If you come across a measurement expression that goes undetected, please file an issue !
+We use simple regular expressions to extract and normalize measurements, and use `SimpleMeasurement` classes to store them.
 
 ## Scope
 
-The `eds.measurements` pipeline can extract simple (eg `3cm`) measurements.
-It can detect elliptic enumerations (eg `32, 33 et 34kg`) of measurements of the same type and split the measurements accordingly.
+By default, the `eds.measurements` pipeline lets you match all measurements, i.e measurements in most units as well as unitless measurements. If a unit is not in our register,
+then you can add It manually. If not, the measurement will be matched without Its unit.
 
-The normalized value can then be accessed via the `span._.value` attribute and converted on the fly to a desired unit.
-
-The current pipeline annotates the following measurements out of the box:
+If you prefer to match specific measurements only, you can create your own measurement config. Nevertheless, some default measurements configs are already provided out of the box:
 
 | Measurement name | Example                |
 | ---------------- | ---------------------- |
@@ -24,7 +17,40 @@ The current pipeline annotates the following measurements out of the box:
 | `eds.bmi`        | `BMI: 24`, `24 kg.m-2` |
 | `eds.volume`     | `2 cac`, `8ml`         |
 
+The normalized value can then be accessed via the `span._.value` attribute and converted on the fly to a desired unit (eg `span._.value.g_per_cl` or `span._.value.kg_per_m3` for a density).
+
+The measurements that can be extracted can have one or many of the following characteristics:
+- Unitless measurements
+- Measurements with unit
+- Measurements with range indication (escpecially < or >)
+- Measurements with power
+
+The measurement can be written in many coplex forms. Among them, this pipe can detect:
+- Measurements with range indication, numerical value, power and units in many different orders and separated by customizable stop words
+- Composed units (eg `1m50`)
+- Measurement with "unitless patterns", i.e some textual information next to a numerical value which allows us to retrieve a unit even if It is not written (eg in the text `Height: 80`, this pipe will a detect the numlerical value `80`and match It to the unit `kg`)
+- Elliptic enumerations (eg `32, 33 et 34mol`) of measurements of the same type and split the measurements accordingly
+
 ## Usage
+
+The matched measurements are labelised with `eds.measurement` by default. However, if you are only creating your own measurement or using a predefined one, your measurements will be labeled with the name of this measurement (eg `eds.weight`).
+
+As said before, each matched measurement can be accessed via the `span._.value`. This gives you a `SimpleMeasurement` object with the following attributes :
+- `value_range` ("<", "=" or ">")
+- `value`
+- `unit`
+- `registry` (This attribute stores the entire unit config like the link between each unit, Its dimension like `length`, `quantity of matter`...)
+
+`SimpleMeasurement` objects are especially usefull when converting measurements to an other specified unit with the same dimension (eg densities stay densities). To do so, simply call your `SimpleMeasurement` followed by `.` + name of the usual unit abbreviation with `per` and `_` as separators (eg `object.kg_per_dm3`, `mol_per_l`, `g_per_cm2`).
+
+Moreover, for now, `SimpleMeasurement` objects can be manipulated with the following operations:
+- compared with an other `SimpleMeasurement` object with the same dimension with automatic conversion (eg a density in kg_per_m3 and a density in g_per_l)
+- summed with an other `SimpleMeasurement` object with the same dimension with automatic conversion
+- substracted with an other `SimpleMeasurement` object with the same dimension with automatic conversion
+
+Note that for all operations listed above, different `value_range` attributes between two units do not matter: by default, the `value_range` of the first measurement is kept.
+
+Below is a complete example on a use case where we want to extract size, weigth and bmi measurements a simple text.
 
 ```python
 import spacy
@@ -77,7 +103,7 @@ str(measurements[4]._.value.kg_per_m2)
 
 ## Custom measurement
 
-You can declare custom measurements by changing the patterns
+You can declare custom measurements by changing the patterns.
 
 ```python
 import spacy
@@ -114,21 +140,24 @@ nlp.add_pipe(
 ## Declared extensions
 
 The `eds.measurements` pipeline declares a single [spaCy extension](https://spacy.io/usage/processing-pipelines#custom-components-attributes) on the `Span` object,
-the `value` attribute that is a `Measurement` instance.
+the `value` attribute that is a `SimpleMeasurement` instance.
 
 ## Configuration
 
 The pipeline can be configured using the following parameters :
 
-| Parameter         | Explanation                                                                    | Default                                                              |
-| ----------------- | --------------------------------------------------------------------------     | -------------------------------------------------------------------- |
-| `measurements`    | A list or dict of the measurements to extract                                  | `["eds.size", "eds.weight", "eds.angle"]` |
-| `units_config`    | A dict describing the units with lexical patterns, dimensions, scales, ...     | ... |
-| `number_terms`    | A dict describing the textual forms of common numbers                          | ... |
-| `stopwords`       | A list of stopwords that do not matter when placed between a unitless trigger  | ... |
-| `unit_divisors`   | A list of terms used to divide two units (like: m / s)                         | ... |
-| `ignore_excluded` | Whether to ignore excluded tokens for matching                                 | `False`                                                              |
-| `attr`            | spaCy attribute to match on, eg `NORM` or `TEXT`                               | `"NORM"`                                                             |
+| Parameter                | Explanation                                                                      | Default                                                                   |
+| ------------------------ | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `measurements`           | A list or dict of the measurements to extract                                    | `None` # Extract measurements from all units                              |
+| `units_config`           | A dict describing the units with lexical patterns, dimensions, scales, ...       | ... # Config of mostly all commonly used units                            |
+| `number_terms`           | A dict describing the textual forms of common numbers                            | ... # Config of mostly all commonly used textual forms of common numbers  |
+| `value_range_terms`      | A dict describing the textual forms of ranges ("<", "=" or ">")                  | ... # Config of mostly all commonly used range terms                      |
+| `stopwords_unitless`     | A list of stopwords that do not matter when placed between a unitless trigger    | `["par", "sur", "de", "a", ":", ",", "et"]`                               |
+| `stopwords_measure_unit` | A list of stopwords that do not matter when placed between a measure and a unit  | `["|", "¦", "…", "."]`                                                    |
+| `measure_before_unit`    | A bool to tell if the numerical value is usually placed before the unit          | `["par", "sur", "de", "a", ":", ",", "et"]`                               |
+| `unit_divisors`          | A list of terms used to divide two units (like: m / s)                           | `["/", "par"]`                                                            |
+| `ignore_excluded`        | Whether to ignore excluded tokens for matching                                   | `False`                                                                   |
+| `attr`                   | spaCy attribute to match on, eg `NORM` or `TEXT`                                 | `"NORM"`                                                                  |
 
 ## Authors and citation
 

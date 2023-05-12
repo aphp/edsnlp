@@ -852,9 +852,7 @@ class MeasurementsMatcher:
         -------
         List[Span]
         """
-        print("RANGES", self.range_patterns)
         if not self.extract_ranges or not self.range_patterns:
-            print("NOT MERGE RANGES")
             return measurements
 
         merged = measurements[:1]

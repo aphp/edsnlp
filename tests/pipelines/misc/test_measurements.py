@@ -6,7 +6,6 @@ from spacy.language import Language
 from spacy.tokens.span import Span
 
 from edsnlp.pipelines.misc.measurements import MeasurementsMatcher
-from edsnlp.pipelines.misc.measurements.factory import DEFAULT_CONFIG
 
 text = (
     "Le patient fait 1 m 50 kg. La tumeur fait 2.0cm x 3cm. \n"
@@ -27,7 +26,7 @@ def blank_nlp():
 def matcher(blank_nlp: Language):
     return MeasurementsMatcher(
         blank_nlp,
-        **DEFAULT_CONFIG,
+        extract_ranges=True,
     )
 
 

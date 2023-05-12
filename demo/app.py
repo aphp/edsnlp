@@ -111,8 +111,8 @@ def load_model(
         pipes.append('nlp.add_pipe("eds.dates")')
 
     if measurements:
-        nlp.add_pipe("eds.measurements")
-        pipes.append('nlp.add_pipe("eds.measurements")')
+        nlp.add_pipe("eds.measurements", config={"extract_ranges": True})
+        pipes.append('nlp.add_pipe("eds.measurements", config={"extract_ranges": True}')
 
     if charlson:
         nlp.add_pipe("eds.charlson")

@@ -31,7 +31,11 @@ import spacy
 
 nlp = spacy.blank("eds")
 nlp.add_pipe(
-    "eds.measurements", config=dict(measurements=["eds.size", "eds.weight", "eds.bmi"])
+    "eds.measurements",
+    config=dict(
+        measurements=["eds.size", "eds.weight", "eds.bmi"],
+        extract_ranges=True,
+    ),
 )
 
 text = """
@@ -78,6 +82,19 @@ str(measurements[4]._.value.kg_per_m2)
 
 str(measurements[5]._.value)
 # Out: 1-1.5 cm
+```
+
+To extract all sizes in centimeters, and average range measurements, you can use the following snippet:
+
+```python
+sizes = [
+    sum(item.cm for item in m._.value) / len(m._.value)
+    for m in doc.spans["measurements"]
+    if m.label_ == "eds.size"
+]
+print(sizes)
+sizes
+# Out: [178.0, 0.12, 0.24, 1.25]
 ```
 
 ## Custom measurement

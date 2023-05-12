@@ -74,6 +74,20 @@ class MeasureConfig(TypedDict):
 
 class Measurement(abc.ABC):
     @abc.abstractmethod
+    def __len__(self) -> Iterable["SimpleMeasurement"]:
+        """
+        Number of items in the measure (only one for SimpleMeasurement)
+
+        Returns
+        -------
+        iterable : Iterable["SimpleMeasurement"]
+
+        Returns
+        -------
+
+        """
+
+    @abc.abstractmethod
     def __iter__(self) -> Iterable["SimpleMeasurement"]:
         """
         Iter over items of the measure (only one for SimpleMeasurement)
@@ -150,6 +164,9 @@ class SimpleMeasurement(Measurement):
 
     def __str__(self):
         return f"{self.value} {self.unit}"
+
+    def __len__(self):
+        return 1
 
     def __repr__(self):
         return f"Measurement({self.value}, {repr(self.unit)})"
@@ -275,7 +292,10 @@ class MeasurementsMatcher:
         ignore_excluded: bool = True,
         compose_units: bool = True,
         attr: str = "NORM",
-        range_patterns: Union[List[Tuple[str, str]]] = patterns.range_patterns,
+        extract_ranges: bool = False,
+        range_patterns: List[
+            Tuple[Optional[str], Optional[str]]
+        ] = patterns.range_patterns,  # noqa: E501
         as_ents: bool = False,
         merge_mode: MergeStrategy = MergeStrategy.union,
     ):
@@ -330,6 +350,8 @@ class MeasurementsMatcher:
             Whether to exclude pollution patterns when matching in the text
         compose_units: bool
             Whether to compose units (like "m/s" or "m.s-1")
+        extract_ranges: bool
+            Whether to extract ranges (like "entre 1 et 2 cm")
         range_patterns: List[Tuple[str, str]]
             A list of "{FROM} xx {TO} yy" patterns to match range measurements
         """  # noqa E501
@@ -368,6 +390,7 @@ class MeasurementsMatcher:
         self.measure_names: Dict[str, str] = {}
         self.as_ents = as_ents
         self.compose_units = compose_units
+        self.extract_ranges = extract_ranges
         self.range_patterns = range_patterns
         self.merge_mode = merge_mode
 
@@ -814,7 +837,7 @@ class MeasurementsMatcher:
 
         return merged
 
-    def extract_ranges(self, measurements: List[Span]) -> List[Span]:
+    def merge_measurements_in_ranges(self, measurements: List[Span]) -> List[Span]:
         """
         Aggregates extracted measurements together when they are adjacent to handle
         cases like
@@ -829,7 +852,9 @@ class MeasurementsMatcher:
         -------
         List[Span]
         """
-        if not self.range_patterns:
+        print("RANGES", self.range_patterns)
+        if not self.extract_ranges or not self.range_patterns:
+            print("NOT MERGE RANGES")
             return measurements
 
         merged = measurements[:1]
@@ -931,7 +956,7 @@ class MeasurementsMatcher:
         )
         measurements = [m for s in snippets for m in self.extract_measurements(s)[0]]
         measurements = self.merge_adjacent_measurements(measurements)
-        measurements = self.extract_ranges(measurements)
+        measurements = self.merge_measurements_in_ranges(measurements)
         measurements = self.merge_with_existing(measurements, existing)
 
         if self.as_ents:

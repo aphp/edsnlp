@@ -297,11 +297,7 @@ def get_span_group(doclike: Union[Doc, Span], group: str) -> List[Span]:
         List of spans.
     """
     if isinstance(doclike, Doc):
-        return [
-            span
-            for span in doclike.spans.get(group, ())
-            if span.start >= doclike.start and span.end <= doclike.end
-        ]
+        return [span for span in doclike.spans.get(group, ())]
     else:
         return [
             span

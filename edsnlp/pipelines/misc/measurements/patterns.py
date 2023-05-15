@@ -34,7 +34,7 @@ number_terms = {
 
 value_range_terms = {
     "<": ["<", "<=", "inferieure a", "inferieur a", "inf a", "inf"],
-    ">": [">", ">=", "superieure a", "sup a", "sup a", "sup"],
+    ">": [">", ">=", "superieure a", "superieur a", "sup a", "sup"],
 }
 
 
@@ -2340,5 +2340,14 @@ units_config = {
         ],
         "followed_by": None,
         "ui_decomposition": {"nounit": 1},
+    },
+    "mmhg": {
+        "scale": 133.3224,
+        "terms": [
+            "mmhg",
+            "torr",
+        ],
+        "followed_by": None,
+        "ui_decomposition": {"mass": 1, "length": -1, "time": -2},
     },
 }

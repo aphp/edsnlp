@@ -138,10 +138,10 @@ class SimpleMeasurement(Measurement):
         return [self][item]
 
     def __str__(self):
-        return f"{self.value_range} {self.value} {self.unit}"
+        return f"{self.value} {self.unit}"
 
     def __repr__(self):
-        return f"Measurement({self.value_range}, {self.value}, {repr(self.unit)})"
+        return f"Measurement({self.value}, {repr(self.unit)})"
 
     def __eq__(self, other: Any):
         if isinstance(other, SimpleMeasurement):
@@ -202,7 +202,7 @@ class SimpleMeasurement(Measurement):
             return super().__geattr__(other_unit)
         try:
             return self.convert_to(other_unit)
-        except KeyError as e:
+        except KeyError:
             raise AttributeError()
 
     @classmethod
@@ -244,7 +244,7 @@ class MeasurementsMatcher:
         ----------
         nlp : Language
             The SpaCy object.
-        measurements : Dict[str, MeasureConfig]
+        measurements : Union[List[str], Tuple[str], Dict[str, MeasureConfig]]
             A mapping from measure names to MeasureConfig
             Each measure's configuration has the following shape:
             {
@@ -271,15 +271,18 @@ class MeasurementsMatcher:
             A list of stopwords that do not matter when placed between a unitless
             trigger and a number
         stopwords_measure_unit: List[str]
-            A list of stopwords that do not matter when placed between a unit and a number
-            These stopwords do not matter only in one of the following pattern :
-            unit - stopwords - measure or measure - stopwords - unit, according to
-            measure_before_unit parameter.
+            A list of stopwords that do not matter when placed between a unit and
+            a number
+            These stopwords do not matter only in one of the following pattern:
+            unit - stopwords - measure or measure - stopwords - unit,
+            according to measure_before_unit parameter.
         measure_before_unit: bool
-            Set It True if the measure is generally before the unit, False in the other case.
-            This parameter will indicate if the stopwords in stopwords_measure_unit should
-            not matter in the unit - stopwords - measure patterns only (False) or in
-            the measure - stopwords - unit patterns only (True)
+            Set It True if the measure is generally before the unit, False
+            in the other case.
+            This parameter will indicate if the stopwords in
+            stopwords_measure_unit should not matter in the unit-stopwords-measure
+            patterns only (False) or in the measure-stopwords- unit patterns
+            only (True)
         unit_divisors: List[str]
             A list of terms used to divide two units (like: m / s)
         attr : str
@@ -317,7 +320,10 @@ class MeasurementsMatcher:
         self.regex_matcher.add(
             "pow10",
             [
-                r"(?:(?:\s*x\s*10\s*(?:\*{1,2}|\^)\s*)|(?:\s*\*\s*10\s*(?:\*{2}|\^)\s*))(-?\d+)",
+                (
+                    r"(?:(?:\s*x\s*10\s*(?:\*{1,2}|\^)\s*)|"
+                    r"(?:\s*\*\s*10\s*(?:\*{2}|\^)\s*))(-?\d+)"
+                ),
             ],
         )
 
@@ -582,11 +588,15 @@ class MeasurementsMatcher:
                     return
                 yield i - j, ent
 
-        # Return a float based on the measure (float) and the power of 10 extracted with regex (string)
+        # Return a float based on the measure (float) and the power of
+        # 10 extracted with regex (string)
         def combine_measure_pow10(measure, pow10_text):
             pow10 = int(
                 re.fullmatch(
-                    r"(?:(?:\s*x\s*10\s*(?:\*{1,2}|\^)\s*)|(?:\s*\*\s*10\s*(?:\*{2}|\^)\s*))(-?\d+)",
+                    (
+                        r"(?:(?:\s*x\s*10\s*(?:\*{1,2}|\^)\s*)|"
+                        r"(?:\s*\*\s*10\s*(?:\*{2}|\^)\s*))(-?\d+)"
+                    ),
                     pow10_text,
                 ).group(1)
             )
@@ -641,7 +651,7 @@ class MeasurementsMatcher:
                 if re.fullmatch(r"[,o]*", pseudo_sent):
                     pow10_text = pow10_ent.text
                     value = combine_measure_pow10(value, pow10_text)
-            except:
+            except (AttributeError, StopIteration):
                 pass
 
             # Check if the measurement is an =, < or > measurement
@@ -650,7 +660,7 @@ class MeasurementsMatcher:
                     value_range = matches[number_idx - 1][0].label_
                 else:
                     value_range = "="
-            except:
+            except (KeyError, AttributeError, IndexError):
                 value_range = "="
 
             unit_idx = unit_text = unit_norm = None
@@ -722,7 +732,8 @@ class MeasurementsMatcher:
                     pass
 
             # If no unit was matched, take the nearest unit only if
-            # It is separated by a stopword from stopwords_measure_unit and / or a value_range_term
+            # It is separated by a stopword from stopwords_measure_unit and
+            # / or a value_range_term
             # Take It before or after the measure according to
             if not unit_norm:
                 try:
@@ -755,8 +766,9 @@ class MeasurementsMatcher:
                             pseudo[offsets[number_idx] + 1 : offsets[unit_after_idx]],
                         ):
                             unit_norm = unit_after_text.label_
-                            # Check if there is a power of 10 between the measure and the unit without considering
-                            # the one that we have already considered at the beginning of thos program
+                            # Check if there is a power of 10 between the measure and
+                            # the unit without considering the one that we have already
+                            # considered at the beginning of thos program
                             try:
                                 (pow10_idx, pow10_ent) = next(
                                     (j, e)
@@ -766,14 +778,18 @@ class MeasurementsMatcher:
                                 if pow10_idx > pseudo[offsets[number_idx] + 1]:
                                     pow10_text = pow10_ent.text
                                     value = combine_measure_pow10(value, pow10_text)
-                            except:
+                            except (AttributeError, StopIteration):
                                 pass
-                except:
+                except (AttributeError, StopIteration):
                     pass
 
-            # Otherwise, set the unit as no_unit
+            # Otherwise, set the unit as no_unit if the value
+            # is not written with letters
             if not unit_norm:
-                unit_norm = "nounit"
+                if number.label_ == "number":
+                    unit_norm = "nounit"
+                else:
+                    continue
 
             # Compute the final entity
             if unit_text and unit_text.end == number.start:

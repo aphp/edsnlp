@@ -54,7 +54,7 @@ class TablesMatcher:
             sep_pattern = patterns.sep
 
         self.regex_matcher = RegexMatcher(attr=attr, ignore_excluded=True)
-        self.regex_matcher.add("row", [tables_pattern])
+        self.regex_matcher.add("table", [tables_pattern])
 
         self.term_matcher = EDSPhraseMatcher(nlp.vocab, attr=attr, ignore_excluded=True)
         self.term_matcher.build_patterns(

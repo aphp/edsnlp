@@ -18,7 +18,6 @@ from edsnlp.utils.filter import filter_spans
 
 __all__ = ["MeasurementsMatcher"]
 
-
 AFTER_SNIPPET_LIMIT = 8
 BEFORE_SNIPPET_LIMIT = 10
 
@@ -263,7 +262,7 @@ class MeasurementsMatcher:
                         "unit": str,
                     }, ...],
                 }
-        number_terms: Dict[str, List[str]
+        number_terms: Dict[str, List[str]]
             A mapping of numbers to their lexical variants
         value_range_terms: Dict[str, List[str]
             A mapping of range terms (=, <, >) to their lexical variants
@@ -498,7 +497,37 @@ class MeasurementsMatcher:
 
         return pseudo, offsets
 
-    def get_matches(self, doc):
+    @classmethod
+    def combine_measure_pow10(
+        cls,
+        measure: float,
+        pow10_text: str,
+    ) -> float:
+        """
+        Return a float based on the measure (float) and the power of
+        10 extracted with regex (string)
+
+        Parameters
+        ----------
+        measure: float
+        pow10_text: str
+
+        Returns
+        -------
+        float
+        """
+        pow10 = int(
+            re.fullmatch(
+                (
+                    r"(?:(?:\s*x\s*10\s*(?:\*{1,2}|\^)\s*)|"
+                    r"(?:\s*\*\s*10\s*(?:\*{2}|\^)\s*))(-?\d+)"
+                ),
+                pow10_text,
+            ).group(1)
+        )
+        return measure * 10**pow10
+
+    def get_matches(self, doc: Union[Doc, Span]):
         """
         Extract and filter regex and phrase matches in the document
         to prepare the measurement extraction.
@@ -506,7 +535,7 @@ class MeasurementsMatcher:
 
         Parameters
         ----------
-        doc: Doc
+        doc: Union[Doc, Span]
 
         Returns
         -------
@@ -531,21 +560,37 @@ class MeasurementsMatcher:
         ]
 
         # Filter out measurement-related spans that overlap already matched
-        # entities (in doc.ents or doc.spans["dates"])
+        # entities (in doc.ents or doc.spans["dates"] or doc.spans["tables"])
+        # Tables are considered in a separate step
         # Note: we also include sentence ends tokens as 1-token spans in those matches
-        spans__keep__is_sent_end = filter_spans(
-            [
-                # Tuples (span, keep = is measurement related, is sentence end)
-                *zip(doc.spans.get("dates", ()), repeat(False), repeat(False)),
-                *zip(regex_matches, repeat(True), repeat(False)),
-                *zip(non_unit_terms, repeat(True), repeat(False)),
-                *zip(units, repeat(True), repeat(False)),
-                *zip(doc.ents, repeat(False), repeat(False)),
-                *zip(sent_ends, repeat(True), repeat(True)),
-            ],
-            # filter entities to keep only the ...
-            sort_key=measurements_match_tuples_sort_key,
-        )
+        if type(doc) == Doc:
+            spans__keep__is_sent_end = filter_spans(
+                [
+                    # Tuples (span, keep = is measurement related, is sentence end)
+                    *zip(doc.spans.get("dates", ()), repeat(False), repeat(False)),
+                    *zip(doc.spans.get("tables", ()), repeat(False), repeat(False)),
+                    *zip(regex_matches, repeat(True), repeat(False)),
+                    *zip(non_unit_terms, repeat(True), repeat(False)),
+                    *zip(units, repeat(True), repeat(False)),
+                    *zip(doc.ents, repeat(False), repeat(False)),
+                    *zip(sent_ends, repeat(True), repeat(True)),
+                ],
+                # filter entities to keep only the ...
+                sort_key=measurements_match_tuples_sort_key,
+            )
+        else:
+            spans__keep__is_sent_end = filter_spans(
+                [
+                    # Tuples (span, keep = is measurement related, is sentence end)
+                    *zip(regex_matches, repeat(True), repeat(False)),
+                    *zip(non_unit_terms, repeat(True), repeat(False)),
+                    *zip(units, repeat(True), repeat(False)),
+                    *zip(doc.ents, repeat(False), repeat(False)),
+                    *zip(sent_ends, repeat(True), repeat(True)),
+                ],
+                # filter entities to keep only the ...
+                sort_key=measurements_match_tuples_sort_key,
+            )
 
         # Remove non-measurement related spans (keep = False) and sort the matches
         matches_and_is_sentence_end: List[(Span, bool)] = sorted(
@@ -559,9 +604,9 @@ class MeasurementsMatcher:
 
         return matches_and_is_sentence_end, unit_label_hashes
 
-    def extract_measurements(self, doc: Doc):
+    def extract_measurements_from_doc(self, doc: Doc):
         """
-        Extracts measure entities from the document
+        Extracts measure entities from the filtered document
 
         Parameters
         ----------
@@ -587,20 +632,6 @@ class MeasurementsMatcher:
                 if not is_sent_end and ent.end < anchor.start - BEFORE_SNIPPET_LIMIT:
                     return
                 yield i - j, ent
-
-        # Return a float based on the measure (float) and the power of
-        # 10 extracted with regex (string)
-        def combine_measure_pow10(measure, pow10_text):
-            pow10 = int(
-                re.fullmatch(
-                    (
-                        r"(?:(?:\s*x\s*10\s*(?:\*{1,2}|\^)\s*)|"
-                        r"(?:\s*\*\s*10\s*(?:\*{2}|\^)\s*))(-?\d+)"
-                    ),
-                    pow10_text,
-                ).group(1)
-            )
-            return measure * 10**pow10
 
         # Make a pseudo sentence to query higher order patterns in the main loop
         # `offsets` is a mapping from matches indices (ie match n°i) to
@@ -650,7 +681,7 @@ class MeasurementsMatcher:
                 pseudo_sent = pseudo[offsets[number_idx] + 1 : offsets[pow10_idx]]
                 if re.fullmatch(r"[,o]*", pseudo_sent):
                     pow10_text = pow10_ent.text
-                    value = combine_measure_pow10(value, pow10_text)
+                    value = self.combine_measure_pow10(value, pow10_text)
             except (AttributeError, StopIteration):
                 pass
 
@@ -754,7 +785,7 @@ class MeasurementsMatcher:
                                 and pseudo[offsets[unit_before_idx] - 1] == "p"
                             ):
                                 pow10_text = matches[unit_before_idx - 1][0].text
-                                value = combine_measure_pow10(value, pow10_text)
+                                value = self.combine_measure_pow10(value, pow10_text)
                     else:
                         (unit_after_idx, unit_after_text) = next(
                             (j, e)
@@ -766,20 +797,6 @@ class MeasurementsMatcher:
                             pseudo[offsets[number_idx] + 1 : offsets[unit_after_idx]],
                         ):
                             unit_norm = unit_after_text.label_
-                            # Check if there is a power of 10 between the measure and
-                            # the unit without considering the one that we have already
-                            # considered at the beginning of thos program
-                            try:
-                                (pow10_idx, pow10_ent) = next(
-                                    (j, e)
-                                    for j, e in get_matches_before(unit_after_idx)
-                                    if e.label == self.nlp.vocab.strings["pow10"]
-                                )
-                                if pow10_idx > pseudo[offsets[number_idx] + 1]:
-                                    pow10_text = pow10_ent.text
-                                    value = combine_measure_pow10(value, pow10_text)
-                            except (AttributeError, StopIteration):
-                                pass
                 except (AttributeError, StopIteration):
                     pass
 
@@ -792,18 +809,20 @@ class MeasurementsMatcher:
                     continue
 
             # Compute the final entity
-            if unit_text and unit_text.end == number.start:
-                ent = doc[unit_text.start : number.end]
-            elif unit_text and unit_text.start == number.end:
-                ent = doc[number.start : unit_text.end]
+            if type(doc) == Doc:
+                if unit_text and unit_text.end == number.start:
+                    ent = doc[unit_text.start : number.end]
+                elif unit_text and unit_text.start == number.end:
+                    ent = doc[number.start : unit_text.end]
+                else:
+                    ent = number
             else:
-                ent = number
-
-            # Compute the dimensionality of the parsed unit
-            try:
-                dims = self.unit_registry.parse_unit(unit_norm)[0]
-            except KeyError:
-                continue
+                if unit_text and unit_text.end == number.start:
+                    ent = doc[unit_text.start - doc.start : number.end - doc.start]
+                elif unit_text and unit_text.start == number.end:
+                    ent = doc[number.start - doc.start : unit_text.end - doc.start]
+                else:
+                    ent = number
 
             if self.all_measurements:
                 ent._.value = SimpleMeasurement(
@@ -813,18 +832,368 @@ class MeasurementsMatcher:
             else:
                 # If the measure was not requested, dismiss it
                 # Otherwise, relabel the entity and create the value attribute
-                if dims not in self.measure_names:
+                # Compute the dimensionality of the parsed unit
+                try:
+                    dims = self.unit_registry.parse_unit(unit_norm)[0]
+                    if dims not in self.measure_names:
+                        continue
+                    ent._.value = SimpleMeasurement(
+                        value_range, value, unit_norm, self.unit_registry
+                    )
+                    ent.label_ = self.measure_names[dims]
+                except KeyError:
                     continue
-                ent._.value = SimpleMeasurement(
-                    value_range, value, unit_norm, self.unit_registry
-                )
-                ent.label_ = self.measure_names[dims]
 
             measurements.append(ent)
 
             if unit_idx is not None:
                 matched_unit_indices.add(unit_idx)
 
+        return measurements
+
+    def extract_measurements_from_tables(self, doc: Doc):
+        """
+        Extracts measure entities from the document tables
+
+        Parameters
+        ----------
+        doc: Doc
+
+        Returns
+        -------
+        List[Span]
+        """
+
+        tables = doc.spans.get("tables", None)
+        measurements = []
+
+        if not tables:
+            return []
+
+        def get_distance_between_columns(column1_key, column2_key):
+            return abs(keys.index(column1_key) - keys.index(column2_key))
+
+        for table in tables:
+            # Try to retrieve columns linked to values
+            # or columns linked to units
+            # or columns linked to powers of 10
+            # And then iter through the value columns
+            # to recreate measurements
+            keys = list(table._.table.keys())
+
+            unit_column_keys = []
+            value_column_keys = []
+            pow10_column_keys = []
+            # Table with measurements related labellisation
+            table_labeled = {key: [] for key in keys}
+            unit_label_hashes = set()
+
+            for key, column in list(table._.table.items()):
+                # We link the column to values, powers of 10 or units
+                # if more than half of the cells contain the said object
+
+                # Cell counters
+                n_unit = 0
+                n_value = 0
+                n_pow10 = 0
+
+                for term in column:
+
+                    matches_in_term, unit_label_hashes_in_term = self.get_matches(term)
+                    unit_label_hashes = unit_label_hashes.union(
+                        unit_label_hashes_in_term
+                    )
+
+                    measurement_matches = []
+                    is_unit = False
+                    is_value = False
+                    is_pow10 = False
+
+                    for match, _ in matches_in_term:
+
+                        if match.label in self.number_label_hashes:
+                            is_value = True
+                            measurement_matches.append(match)
+                        elif match.label in unit_label_hashes_in_term:
+                            is_unit = True
+                            measurement_matches.append(match)
+                        elif match.label == self.nlp.vocab.strings["pow10"]:
+                            is_pow10 = True
+                            measurement_matches.append(match)
+                        elif match.label in self.value_range_label_hashes:
+                            measurement_matches.append(match)
+
+                    if is_unit:
+                        n_unit += 1
+                    if is_value:
+                        n_value += 1
+                    if is_pow10:
+                        n_pow10 += 1
+
+                    table_labeled[key].append(measurement_matches)
+
+                # Checking if half of the cells contain units, values
+                # or powers of 10
+                if n_unit > len(column) / 2:
+                    unit_column_keys.append(key)
+                if n_value > len(column) / 2:
+                    value_column_keys.append(key)
+                if n_pow10 > len(column) / 2:
+                    pow10_column_keys.append(key)
+
+            # Iter through the value keys to create measurements
+            for value_column_key in value_column_keys:
+
+                # If the table contains a unit column,
+                # try to pair the value to the unit of
+                # the nearest unit column
+                if len(unit_column_keys):
+                    # Prevent same distance conflict
+                    # For example is a table is organised as
+                    # "header, unit1, value1, unit2, value2"
+                    # value1 is at equal distance of unit1 and unit2 columns
+                    # To solve this problem, we try to detect if we have a
+                    # value - unit pattern or unit - value pattern by checking
+                    # the first column that appears.
+                    if keys.index(unit_column_keys[0]) > keys.index(
+                        value_column_keys[0]
+                    ):
+                        measure_before_unit_in_table = True
+                    else:
+                        measure_before_unit_in_table = False
+
+                    # We only consider the nearest unit column when It
+                    # is not a value column at the same time
+                    # except if It is the column that we are considering
+                    try:
+                        unit_column_key = sorted(
+                            [
+                                unit_column_key
+                                for unit_column_key in unit_column_keys
+                                if unit_column_key
+                                not in [
+                                    v
+                                    for v in value_column_keys
+                                    if v != value_column_key
+                                ]
+                            ],
+                            key=lambda unit_column_key: get_distance_between_columns(
+                                unit_column_key, value_column_key
+                            ),
+                        )[0 : min(2, len(unit_column_keys))][
+                            0 * (not measure_before_unit_in_table)
+                            - 1 * measure_before_unit_in_table
+                        ]
+                    except IndexError:
+                        unit_column_key = value_column_key
+                else:
+                    unit_column_key = value_column_key
+
+                # If the table contains a power column,
+                # try to pair the value to the power of
+                # the nearest power column
+                if len(pow10_column_keys):
+                    # Same distance conflict as for unit columns
+                    if keys.index(pow10_column_keys[0]) > keys.index(
+                        value_column_keys[0]
+                    ):
+                        measure_before_power_in_table = True
+                    else:
+                        measure_before_power_in_table = False
+
+                    try:
+                        pow10_column_key = sorted(
+                            [
+                                pow10_column_key
+                                for pow10_column_key in pow10_column_keys
+                                if pow10_column_key
+                                not in [
+                                    v
+                                    for v in value_column_keys
+                                    if v != value_column_key
+                                ]
+                            ],
+                            key=lambda pow10_column_key: get_distance_between_columns(
+                                pow10_column_key, value_column_key
+                            ),
+                        )[0 : min(2, len(pow10_column_keys))][
+                            0 * (not measure_before_power_in_table)
+                            - 1 * measure_before_power_in_table
+                        ]
+                    except IndexError:
+                        pow10_column_key = value_column_key
+                else:
+                    pow10_column_key = value_column_key
+
+                # If unit column is the same as value column, extract
+                # measurement in this column with the
+                # extract_measurements_from_doc method
+
+                if unit_column_key == value_column_key:
+                    # Consider possible pow10 column
+                    if pow10_column_key != value_column_key:
+                        for term, pow10_list in zip(
+                            table._.table[value_column_key],
+                            table_labeled[pow10_column_key],
+                        ):
+                            measurements_part = self.extract_measurements_from_doc(term)
+                            try:
+                                pow10_text = [
+                                    p.text
+                                    for p in pow10_list
+                                    if p.label == self.nlp.vocab.strings["pow10"]
+                                ][0]
+                                for measurement in measurements_part:
+                                    measurement._.value.value = (
+                                        self.combine_measure_pow10(
+                                            measurement._.value.value, pow10_text
+                                        )
+                                    )
+                            except IndexError:
+                                pass
+                            measurements += measurements_part
+                    else:
+                        for term in table._.table[value_column_key]:
+                            measurements += self.extract_measurements_from_doc(term)
+                    continue
+
+                # If unit column is different from value column
+                # Iter through the value column to create the measurement
+                # Iter through the units and powers columns
+                # at the same time if they exist, else value column
+                for unit_list, value_list, pow10_list in zip(
+                    table_labeled[unit_column_key],
+                    table_labeled[value_column_key],
+                    table_labeled[pow10_column_key],
+                ):
+                    # Check if there is really a value
+                    try:
+                        ent = [
+                            v for v in value_list if v.label in self.number_label_hashes
+                        ][0]
+                        value = float(
+                            ent.text.replace(" ", "").replace(",", ".").replace(" ", "")
+                        )
+                        # Sometimes the value column contains a power.
+                        # It may not be common enough to reach 50%
+                        # of the cells, that's why
+                        # It may not be labeled as pow10_column.
+                        # Still, we should retrieve these powers.
+                        try:
+                            pow10_text = [
+                                p.text
+                                for p in value_list
+                                if p.label == self.nlp.vocab.strings["pow10"]
+                            ][0]
+                            value = self.combine_measure_pow10(value, pow10_text)
+                        except IndexError:
+                            pass
+                    except (IndexError, ValueError):
+                        continue
+
+                    # Check for value range terms
+                    try:
+                        value_range = [
+                            v_r.label_
+                            for v_r in value_list
+                            if v_r.label in self.value_range_label_hashes
+                        ][0]
+                    except IndexError:
+                        value_range = "="
+
+                    # Check for units and powers in the unit column
+                    # (for same reasons as described before)
+                    # in units column
+                    try:
+                        unit_norm = [
+                            u.label_ for u in unit_list if u.label in unit_label_hashes
+                        ][0]
+                        # To avoid duplicates
+                        if unit_column_key != value_column_key:
+                            try:
+                                pow10_text = [
+                                    p.text
+                                    for p in unit_list
+                                    if p.label == self.nlp.vocab.strings["pow10"]
+                                ][0]
+                                value = self.combine_measure_pow10(value, pow10_text)
+                            except IndexError:
+                                pass
+                    except IndexError:
+                        unit_norm = "nounit"
+
+                    if unit_norm == "nounit":
+                        # Try to retrieve a possible unit in the header
+                        # of the value column
+                        try:
+                            unit_norm = [
+                                u.label_
+                                for u in self.extract_units(
+                                    list(
+                                        self.term_matcher(
+                                            self.nlp(str(value_column_key)),
+                                            as_spans=True,
+                                        )
+                                    )
+                                )
+                            ][0]
+                        except IndexError:
+                            pass
+
+                    # Check for powers in power column
+                    try:
+                        if (
+                            pow10_column_key != value_column_key
+                            and pow10_column_key != unit_column_key
+                        ):
+                            pow10_text = [
+                                p.text
+                                for p in pow10_list
+                                if p.label == self.nlp.vocab.strings["pow10"]
+                            ][0]
+                            value = self.combine_measure_pow10(value, pow10_text)
+                    except IndexError:
+                        pass
+
+                    if self.all_measurements:
+                        ent._.value = SimpleMeasurement(
+                            value_range, value, unit_norm, self.unit_registry
+                        )
+                        ent.label_ = "eds.measurement"
+                    else:
+                        # If the measure was not requested, dismiss it
+                        # Otherwise, relabel the entity and create the value attribute
+                        # Compute the dimensionality of the parsed unit
+                        try:
+                            dims = self.unit_registry.parse_unit(unit_norm)[0]
+                            if dims not in self.measure_names:
+                                continue
+                            ent._.value = SimpleMeasurement(
+                                value_range, value, unit_norm, self.unit_registry
+                            )
+                            ent.label_ = self.measure_names[dims]
+                        except KeyError:
+                            continue
+
+                    measurements.append(ent)
+
+        return measurements
+
+    def extract_measurements(self, doc: Doc):
+        """
+        Extracts measure entities from the document
+
+        Parameters
+        ----------
+        doc: Doc
+
+        Returns
+        -------
+        List[Span]
+        """
+        measurements = self.extract_measurements_from_doc(doc)
+        measurements += self.extract_measurements_from_tables(doc)
+        measurements = filter_spans(measurements)
         return measurements
 
     @classmethod

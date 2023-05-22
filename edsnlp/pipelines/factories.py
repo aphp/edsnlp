@@ -1,4 +1,3 @@
-# flake8: noqa: F811
 from .core.context.factory import create_component as context
 from .core.contextual_matcher.factory import create_component as contextual_matcher
 from .core.endlines.factory import create_component as endlines

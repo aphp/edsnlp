@@ -26,11 +26,11 @@ dependencies = [
     "pandas>=1.1.0,<2.0.0; python_version<'3.8'",
     "pandas>=1.4.0,<2.0.0; python_version>='3.8'",
 ]
+
 [project.optional-dependencies]
 dev = [
     "black>=22.3.0,<23.0.0",
     "fastapi",
-    "flake8==3.9.2",
     "koalas>=1.8.1; python_version<='3.10'",
     "pre-commit>=2.0.0; python_version<'3.8'",
     "pre-commit>=2.21.0; python_version>='3.8'",
@@ -78,6 +78,29 @@ version = { attr = "edsnlp.__version__" }
 
 [tool.setuptools.packages.find]
 where = ["."]
+
+[tool.ruff]
+ignore-init-module-imports = true
+exclude = [
+    ".git",
+    "__pycache__",
+    "__init__.py",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".venv",
+    "build",
+]
+ignore = ["E741"]
+line-length = 88
+select = [
+    "E",
+    "F",
+    "W",
+]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+"factories.py" = ["F401", "F811"]
 
 [project.entry-points."spacy_factories"]
 "matcher" = "edsnlp.components:matcher"

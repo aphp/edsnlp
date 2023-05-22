@@ -520,7 +520,9 @@ class EndLinesModel:
         return outputs
 
     def _fit_encoder_2S(self, S1: pd.Series, S2: pd.Series) -> OneHotEncoder:
-        """Fit a one hot encoder with 2 Series. It concatenates the series and after it fits.
+        """
+        Fit a one hot encoder with 2 Series.
+        It concatenates the series and after it fits.
 
         Parameters
         ----------
@@ -685,7 +687,8 @@ class EndLinesModel:
 
     @classmethod
     def _get_attributes(cls, doc: Doc, i=0):
-        """Function to get the attributes of tokens of a spacy doc in a pd.DataFrame format.
+        """
+        Function to get the attributes of tokens of a spacy doc in a DataFrame format.
 
         Parameters
         ----------

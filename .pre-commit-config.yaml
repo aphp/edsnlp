@@ -25,20 +25,6 @@ repos:
       - id: check-docstring-first
       - id: check-added-large-files
       - id: detect-private-key
-  - repo: https://github.com/pycqa/isort
-    rev: 5.11.5
-    hooks:
-      - id: isort
-        name: isort (python)
-        args: ["--profile", "black"]
-      - id: isort
-        name: isort (cython)
-        types: [cython]
-        args: ["--profile", "black"]
-      - id: isort
-        name: isort (pyi)
-        types: [pyi]
-        args: ["--profile", "black"]
 
   - repo: https://github.com/psf/black
     rev: 22.3.0

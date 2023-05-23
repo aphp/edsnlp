@@ -105,8 +105,6 @@ class TrainableSpanQualifier(TrainablePipe):
         scorer: Optional[Callable] = None,
     ) -> None:
         """
-        # noqa: E501
-
         Parameters
         ----------
         vocab: Vocab
@@ -120,7 +118,7 @@ class TrainableSpanQualifier(TrainablePipe):
             to predict or train on.
         scorer: Optional[Callable]
             Method to call to score predictions
-        """
+        """  # noqa: E501
 
         super().__init__(vocab, model, name)
 

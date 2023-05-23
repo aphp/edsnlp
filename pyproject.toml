@@ -25,6 +25,7 @@ dependencies = [
     "numpy>=1.15.0; python_version>='3.8'",
     "pandas>=1.1.0,<2.0.0; python_version<'3.8'",
     "pandas>=1.4.0,<2.0.0; python_version>='3.8'",
+    "typing_extensions<4.6.0"  # https://github.com/explosion/spaCy/issues/12659
 ]
 [project.optional-dependencies]
 dev = [
@@ -52,8 +53,8 @@ docs = [
     "mkdocs-img2fig-plugin==0.9.3",
     "mkdocs-material~=9.1.0",
     "mkdocs-section-index==0.3.4",
-    "mkdocstrings~=0.20.0",
-    "mkdocstrings-python~=0.8.3",
+    "mkdocstrings~=0.21.2",
+    "mkdocstrings-python~=0.10.1",
 ]
 
 [project.urls]
@@ -116,11 +117,11 @@ where = ["."]
 "umls" = "edsnlp.components:umls"
 
 [project.entry-points."spacy_architectures"]
-"eds.stack_crf_ner_model.v1" = "edsnlp.models.stack_crf_ner:create_model"
-"eds.span_multi_classifier.v1" = "edsnlp.models.span_multi_classifier:create_model"
+"eds.stack_crf_ner_model.v1" = "edsnlp.pipelines.trainable.nested_ner.stack_crf_ner:create_model"
+"eds.span_multi_classifier.v1" = "edsnlp.pipelines.trainable.span_qualifier.span_multi_classifier:create_model"
 
 [project.entry-points."spacy_scorers"]
-"eds.nested_ner_scorer.v1" = "edsnlp.pipelines.trainable.nested_ner:make_nested_ner_scorer"
+"eds.nested_ner_scorer.v1" = "edsnlp.pipelines.trainable.nested_ner.nested_ner:make_nested_ner_scorer"
 "eds.span_qualifier_scorer.v1" = "edsnlp.pipelines.trainable.span_qualifier.factory:create_scorer"
 
 [project.entry-points."spacy_misc"]

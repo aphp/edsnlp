@@ -152,7 +152,7 @@ def make_binding_setter(binding: Binding):
 
     Parameters
     ----------
-    qualifier: Binding
+    binding: Binding
         A pair of
         - a path to a nested attributes of the span, such as `qualifier_` or `_.negated`
         - a value assignment

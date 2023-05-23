@@ -33,5 +33,5 @@ from .qualifiers.history.factory import create_component as history
 from .qualifiers.hypothesis.factory import create_component as hypothesis
 from .qualifiers.negation.factory import create_component as negation
 from .qualifiers.reported_speech.factory import create_component as rspeech
-from .trainable.nested_ner import create_component as nested_ner
-from .trainable.span_qualifier import create_component as span_qualifier
+from .trainable.nested_ner.factory import create_component as nested_ner
+from .trainable.span_qualifier.factory import create_component as span_qualifier

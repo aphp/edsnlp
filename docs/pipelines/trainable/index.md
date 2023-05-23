@@ -11,7 +11,7 @@ In addition to its rule-based pipeline components, EDS-NLP offers new trainable 
 !!! note "Writing custom models"
 
     spaCy models can be written with Thinc (spaCy's deep learning library), Tensorflow or Pytorch. As Pytorch is predominant in the NLP research field, we recommend writing models with the latter to facilitate interactions with the NLP community.
-    To this end, we have written some Pytorch wrapping utilities like [wrap_pytorch_model][edsnlp.models.pytorch_wrapper.wrap_pytorch_model] to allow loss and predictions to be computed directly in the Pytorch module.
+    To this end, we have written some Pytorch wrapping utilities like [wrap_pytorch_model][edsnlp.pipelines.trainable.pytorch_wrapper.wrap_pytorch_model] to allow loss and predictions to be computed directly in the Pytorch module.
 
 ## Utils
 

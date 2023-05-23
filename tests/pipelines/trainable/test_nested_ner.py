@@ -3,7 +3,7 @@ from pytest import fixture, mark
 from spacy.tokens import Span
 from spacy.training import Example
 
-from edsnlp.pipelines.trainable.nested_ner import NESTED_NER_DEFAULTS
+from edsnlp.pipelines.trainable.nested_ner.factory import NESTED_NER_DEFAULTS
 from edsnlp.utils.training import make_spacy_corpus_config, train
 
 

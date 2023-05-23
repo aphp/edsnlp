@@ -7,7 +7,10 @@ from spacy.tokens import Doc
 from thinc.model import Model
 from thinc.types import Floats1d, Floats2d, Ints2d
 
-from edsnlp.models.pytorch_wrapper import PytorchWrapperModule, wrap_pytorch_model
+from edsnlp.pipelines.trainable.pytorch_wrapper import (
+    PytorchWrapperModule,
+    wrap_pytorch_model,
+)
 
 
 class ProjectionMode(str, Enum):
@@ -88,9 +91,6 @@ class SpanMultiClassifier(PytorchWrapperModule):
     ):
         """
         Set the label groups matrices.
-
-        Parameters
-        ----------
         """
 
         # To make the buffers discoverable by pytorch (for device moving operations),

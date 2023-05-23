@@ -16,7 +16,7 @@ class FamilyContext(Qualifier):
     """
     Implements a family context detection algorithm.
 
-    The components looks for terms indicating family references in the text.
+    The component looks for terms indicating family references in the text.
 
     Parameters
     ----------
@@ -24,8 +24,6 @@ class FamilyContext(Qualifier):
         spaCy nlp pipeline to use for matching.
     family : Optional[List[str]]
         List of terms indicating family reference.
-    terminations : Optional[List[str]]
-        List of termination terms, to separate syntagmas.
     attr : str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
@@ -33,8 +31,6 @@ class FamilyContext(Qualifier):
     on_ents_only : bool
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.
-    regex : Optional[Dict[str, Union[List[str], str]]]
-        A dictionnary of regex patterns.
     explain : bool
         Whether to keep track of cues for each entity.
     use_sections : bool, by default `False`

@@ -80,11 +80,7 @@ class Measurement(abc.ABC):
 
         Returns
         -------
-        iterable : Iterable["SimpleMeasurement"]
-
-        Returns
-        -------
-
+        Iterable["SimpleMeasurement"]
         """
 
     @abc.abstractmethod
@@ -94,7 +90,7 @@ class Measurement(abc.ABC):
 
         Returns
         -------
-        iterable : Iterable["SimpleMeasurement"]
+        Iterable["SimpleMeasurement"]
         """
 
     @abc.abstractmethod
@@ -108,7 +104,7 @@ class Measurement(abc.ABC):
 
         Returns
         -------
-        measure : SimpleMeasurement
+        SimpleMeasurement
         """
 
 

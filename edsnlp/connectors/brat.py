@@ -313,14 +313,9 @@ class BratConnector(object):
         """
         Transforms a BRAT folder to a list of spaCy documents.
 
-        Parameters
-        ----------
-        nlp:
-            A spaCy pipeline.
-
         Returns
         -------
-        docs:
+        List[Dict]
             List of spaCy documents, with annotations in the `ents` attribute.
         """
         filenames = [

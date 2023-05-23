@@ -245,7 +245,7 @@ def instance_init(model: Model, X: List[Doc] = None, Y: Ints2d = None) -> Model:
 
     Returns
     -------
-
+    Model
     """
     encoder = model.get_ref("encoder")
     if X is not None:

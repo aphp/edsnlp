@@ -47,7 +47,7 @@ class LinearChainCRF(torch.nn.Module):
             Shape: n_tags
             Impossible transitions at the start of a sequence
         end_forbidden_transitions Optional[torch.BoolTensor]
-            Shape: n_tags
+            Shape is (n_tags,)
             Impossible transitions at the end of a sequence
         learnable_transitions: bool
             Should we learn transition scores to complete the
@@ -409,8 +409,6 @@ class MultiLabelBIOULDecoder(LinearChainCRF):
         Parameters
         ----------
         tags: torch.LongTensor
-            Shape: n_samples * n_labels * n_tokens
-        mask: torch.BoolTensor
             Shape: n_samples * n_labels * n_tokens
 
         Returns

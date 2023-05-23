@@ -74,9 +74,7 @@ class Qualifier(BaseComponent):
         self.on_ents_only = on_ents_only
         self.explain = explain
 
-    def get_defaults(
-        self, **kwargs: Dict[str, Optional[List[str]]]
-    ) -> Dict[str, List[str]]:
+    def get_defaults(self, **kwargs: Optional[List[str]]) -> Dict[str, List[str]]:
         """
         Merge terms with their defaults. Null keys are replaced with defaults.
 

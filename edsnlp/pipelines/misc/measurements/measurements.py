@@ -9,7 +9,7 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 import regex
 import spacy
 from spacy.tokens import Doc, Span
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher
@@ -29,9 +29,15 @@ class UnitConfig(TypedDict):
     ui_decomposition: Dict[str, int]
 
 
+class SimpleMeasurementConfigWithoutRegistry(TypedDict):
+    value_range: str
+    value: Union[float, int]
+    unit: str
+
+
 class UnitlessRange(TypedDict):
-    min: int
-    max: int
+    min: NotRequired[int]
+    max: NotRequired[int]
     unit: str
 
 
@@ -46,9 +52,16 @@ class UnitlessPatternConfigWithName(TypedDict):
     name: str
 
 
+class ValuelessPatternConfig(TypedDict):
+    terms: NotRequired[List[str]]
+    regex: NotRequired[List[str]]
+    measurement: SimpleMeasurementConfigWithoutRegistry
+
+
 class MeasureConfig(TypedDict):
     unit: str
-    unitless_patterns: List[UnitlessPatternConfig]
+    unitless_patterns: NotRequired[List[UnitlessPatternConfig]]
+    valueless_patterns: NotRequired[List[ValuelessPatternConfig]]
 
 
 class Measurement(abc.ABC):
@@ -217,6 +230,9 @@ class MeasurementsMatcher:
         units_config: Dict[str, UnitConfig],
         number_terms: Dict[str, List[str]],
         value_range_terms: Dict[str, List[str]],
+        all_measurements: bool = True,
+        parse_tables: bool = True,
+        parse_doc: bool = True,
         stopwords_unitless: List[str] = ("par", "sur", "de", "a", ":"),
         stopwords_measure_unit: List[str] = ("|", "¦", "…", "."),
         measure_before_unit: bool = False,
@@ -248,7 +264,9 @@ class MeasurementsMatcher:
             Each measure's configuration has the following shape:
             {
                 "unit": str, # the unit of the measure (like "kg"),
-                "unitless_patterns": { # optional patterns to handle unitless cases
+                "unitless_patterns": List[
+                # optional patterns to handle unitless cases
+                {
                     "terms": List[str], # list of preceding terms used to trigger the
                     measure
                     # Mapping from ranges to unit to handle cases like
@@ -262,10 +280,36 @@ class MeasurementsMatcher:
                         "unit": str,
                     }, ...],
                 }
+                ],
+                "valueless_patterns": List[
+                # optional patterns to handle unmatched measures by
+                # this pipe. The measures are hardcoded with this option.
+                # It can be useful to detect measures such as "positive"
+                # or "negative" and store it as booleans.
+                {
+                    "regex": List[str],
+                    "terms": List[str],
+                    "measurement": {
+                        "value_range": str,
+                        "value": Union[int, float],
+                        "unit": str
+                    }
+                }
+                ],
         number_terms: Dict[str, List[str]]
             A mapping of numbers to their lexical variants
         value_range_terms: Dict[str, List[str]
             A mapping of range terms (=, <, >) to their lexical variants
+        all_measurements: bool
+            Whether to keep all measurements or only the one specified in measurements.
+            If True, matched measurements not mentionned in measurements variable
+            will be labeled "eds.measurement", while the ones mentionned in
+            measurements variable will be labeled with the specified name.
+        parse_tables: bool
+            Whether to parse the tables of the doc detected with "eds.tables" pipe.
+        parse_doc: bool
+            Whether to parse the doc without the tables. If parse_tables and parse_doc
+            are both False, anything is parsed.
         stopwords_unitless: List[str]
             A list of stopwords that do not matter when placed between a unitless
             trigger and a number
@@ -289,7 +333,6 @@ class MeasurementsMatcher:
         ignore_excluded : bool
             Whether to exclude pollution patterns when matching in the text
         """
-        self.all_measurements = True if measurements is None else False
 
         if measurements is None:
             measurements = common_measurements
@@ -302,12 +345,17 @@ class MeasurementsMatcher:
         self.regex_matcher = RegexMatcher(attr=attr, ignore_excluded=True)
         self.term_matcher = EDSPhraseMatcher(nlp.vocab, attr=attr, ignore_excluded=True)
         self.unitless_patterns: Dict[str, UnitlessPatternConfigWithName] = {}
+        self.valueless_patterns: Dict[str, SimpleMeasurement] = {}
         self.value_range_label_hashes: Set[int] = set()
         self.unit_part_label_hashes: Set[int] = set()
         self.unitless_label_hashes: Set[int] = set()
+        self.valueless_label_hashes: Set[int] = set()
         self.unit_followers: Dict[str, str] = {}
         self.measure_names: Dict[str, str] = {}
         self.measure_before_unit = measure_before_unit
+        self.all_measurements = all_measurements
+        self.parse_tables = parse_tables
+        self.parse_doc = parse_doc
 
         # INTERVALS
         self.regex_matcher.add(
@@ -390,6 +438,25 @@ class MeasurementsMatcher:
                     )
                     self.unitless_label_hashes.add(nlp.vocab.strings[pattern_name])
                     self.unitless_patterns[pattern_name] = {"name": name, **pattern}
+            if "valueless_patterns" in measure_config:
+                for pattern in measure_config["valueless_patterns"]:
+                    pattern_name = f"valueless_{len(self.valueless_patterns)}"
+                    if "terms" in pattern:
+                        self.term_matcher.build_patterns(
+                            nlp,
+                            terms={
+                                pattern_name: pattern["terms"],
+                            },
+                        )
+                    if "regex" in pattern:
+                        self.regex_matcher.add(
+                            pattern_name,
+                            pattern["regex"],
+                        )
+                    self.valueless_label_hashes.add(nlp.vocab.strings[pattern_name])
+                    self.valueless_patterns[pattern_name] = SimpleMeasurement(
+                        registry=self.unit_registry, **pattern["measurement"]
+                    )
 
         self.set_extensions()
 
@@ -658,6 +725,14 @@ class MeasurementsMatcher:
         # Iterate through the number matches
         for number_idx, (number, is_sent_split) in enumerate(matches):
             if not is_sent_split and number.label not in self.number_label_hashes:
+                # Check if we have a valueless pattern
+                if number.label in self.valueless_label_hashes:
+                    ent = number
+                    ent._.value = self.valueless_patterns[number.label_]
+                    ent.label_ = self.measure_names[
+                        self.unit_registry.parse_unit(ent._.value.unit)[0]
+                    ]
+                    measurements.append(ent)
                 continue
 
             # Detect the measure value
@@ -824,25 +899,23 @@ class MeasurementsMatcher:
                 else:
                     ent = number
 
-            if self.all_measurements:
+            # If the measure was not requested, dismiss it
+            # Otherwise, relabel the entity and create the value attribute
+            # Compute the dimensionality of the parsed unit
+            try:
+                dims = self.unit_registry.parse_unit(unit_norm)[0]
                 ent._.value = SimpleMeasurement(
                     value_range, value, unit_norm, self.unit_registry
                 )
-                ent.label_ = "eds.measurement"
-            else:
-                # If the measure was not requested, dismiss it
-                # Otherwise, relabel the entity and create the value attribute
-                # Compute the dimensionality of the parsed unit
-                try:
-                    dims = self.unit_registry.parse_unit(unit_norm)[0]
-                    if dims not in self.measure_names:
+                if dims not in self.measure_names:
+                    if self.all_measurements:
+                        ent.label_ = "eds.measurement"
+                    else:
                         continue
-                    ent._.value = SimpleMeasurement(
-                        value_range, value, unit_norm, self.unit_registry
-                    )
+                else:
                     ent.label_ = self.measure_names[dims]
-                except KeyError:
-                    continue
+            except KeyError:
+                continue
 
             measurements.append(ent)
 
@@ -911,7 +984,10 @@ class MeasurementsMatcher:
 
                     for match, _ in matches_in_term:
 
-                        if match.label in self.number_label_hashes:
+                        if (
+                            match.label in self.number_label_hashes
+                            or match.label in self.valueless_label_hashes
+                        ):
                             is_value = True
                             measurement_matches.append(match)
                         elif match.label in unit_label_hashes_in_term:
@@ -1069,11 +1145,29 @@ class MeasurementsMatcher:
                     # Check if there is really a value
                     try:
                         ent = [
-                            v for v in value_list if v.label in self.number_label_hashes
+                            v
+                            for v in value_list
+                            if v.label in self.number_label_hashes
+                            or v.label in self.valueless_label_hashes
                         ][0]
-                        value = float(
-                            ent.text.replace(" ", "").replace(",", ".").replace(" ", "")
-                        )
+                        # Take the value linked to valueless pattern if
+                        # we have a valueless pattern
+                        if ent.label in self.valueless_label_hashes:
+                            ent._.value = self.valueless_patterns[ent.label_]
+                            ent.label_ = self.measure_names[
+                                self.unit_registry.parse_unit(ent._.value.unit)[0]
+                            ]
+                            measurements.append(ent)
+                            continue
+                        # Else try to parse the number
+                        if ent.label_ == "number":
+                            value = float(
+                                ent.text.replace(" ", "")
+                                .replace(",", ".")
+                                .replace(" ", "")
+                            )
+                        else:
+                            value = float(ent.label_)
                         # Sometimes the value column contains a power.
                         # It may not be common enough to reach 50%
                         # of the cells, that's why
@@ -1191,8 +1285,11 @@ class MeasurementsMatcher:
         -------
         List[Span]
         """
-        measurements = self.extract_measurements_from_doc(doc)
-        measurements += self.extract_measurements_from_tables(doc)
+        measurements = []
+        if self.parse_doc:
+            measurements += self.extract_measurements_from_doc(doc)
+        if self.parse_tables:
+            measurements += self.extract_measurements_from_tables(doc)
         measurements = filter_spans(measurements)
         return measurements
 

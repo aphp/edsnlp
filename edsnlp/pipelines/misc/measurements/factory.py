@@ -21,6 +21,9 @@ DEFAULT_CONFIG = dict(
     stopwords_unitless=patterns.stopwords_unitless,
     stopwords_measure_unit=patterns.stopwords_measure_unit,
     measure_before_unit=False,
+    parse_doc=True,
+    parse_tables=True,
+    all_measurements=True,
 )
 
 
@@ -33,6 +36,9 @@ def create_component(
     units_config: Dict[str, UnitConfig],
     number_terms: Dict[str, List[str]],
     value_range_terms: Dict[str, List[str]],
+    all_measurements: bool,
+    parse_tables: bool,
+    parse_doc: bool,
     stopwords_unitless: List[str],
     stopwords_measure_unit: List[str],
     measure_before_unit: bool,
@@ -45,6 +51,9 @@ def create_component(
         units_config=units_config,
         number_terms=number_terms,
         value_range_terms=value_range_terms,
+        all_measurements=all_measurements,
+        parse_tables=parse_tables,
+        parse_doc=parse_doc,
         unit_divisors=unit_divisors,
         measurements=measurements,
         stopwords_unitless=stopwords_unitless,

@@ -80,6 +80,27 @@ common_measurements = {
         ],
     },
     "eds.volume": {"unit": "m3", "unitless_patterns": []},
+    "eds.bool": {
+        "unit": "bool",
+        "valueless_patterns": [
+            {
+                "terms": ["positif", "positifs", "positive", "positives"],
+                "measurement": {
+                    "value_range": "=",
+                    "value": 1,
+                    "unit": "bool",
+                },
+            },
+            {
+                "terms": ["negatif", "negatifs", "negative", "negatives"],
+                "measurement": {
+                    "value_range": "=",
+                    "value": 0,
+                    "unit": "bool",
+                },
+            },
+        ],
+    },
 }
 
 
@@ -2349,5 +2370,11 @@ units_config = {
         ],
         "followed_by": None,
         "ui_decomposition": {"mass": 1, "length": -1, "time": -2},
+    },
+    "bool": {
+        "scale": 1,
+        "terms": [],
+        "followed_by": None,
+        "ui_decomposition": {"bool": 1},
     },
 }

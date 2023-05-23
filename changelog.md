@@ -32,6 +32,15 @@
 
 - `eds.adicap` : reparsed the dictionnary used to decode the ADICAP codes (some of them were wrongly decoded)
 
+## Pending
+
+### Added
+- `split_on_newlines` parameter to the `sentences` pipeline.
+
+### Fixed
+- `eds.sentences` issue with punctuation followed by a digit.
+
+
 ## v0.7.4 (2022-12-12)
 
 ### Added

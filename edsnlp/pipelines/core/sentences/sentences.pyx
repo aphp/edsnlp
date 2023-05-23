@@ -3,13 +3,21 @@ from typing import Iterable, List, Optional
 from libcpp cimport bool
 
 # from spacy.typedefs cimport attr_t
-from spacy.attrs cimport IS_ALPHA, IS_ASCII, IS_DIGIT, IS_LOWER, IS_PUNCT, IS_SPACE
+from spacy.attrs cimport (
+    IS_ALPHA,
+    IS_ASCII,
+    IS_DIGIT,
+    IS_LOWER,
+    IS_PUNCT,
+    IS_SPACE,
+    IS_UPPER,
+)
 from spacy.lexeme cimport Lexeme
 from spacy.tokens.doc cimport Doc
 from spacy.tokens.token cimport TokenC
 from spacy.vocab cimport Vocab
 
-from .terms import punctuation
+from .terms import punctuation, uppercase, bullets
 
 
 cdef class SentenceSegmenter(object):
@@ -37,17 +45,38 @@ cdef class SentenceSegmenter(object):
         punct_chars: Optional[List[str]],
         use_endlines: bool,
         ignore_excluded: bool = True,
+        split_on_newlines: Optional[str] = "with_capitalized",
+        split_on_bullets: bool = False,
     ):
 
         if punct_chars is None:
             punct_chars = punctuation
 
         self.ignore_excluded = ignore_excluded or use_endlines
+        self.split_on_bullets = split_on_bullets
         self.newline_hash = vocab.strings["\n"]
         self.excluded_hash = vocab.strings["EXCLUDED"]
         self.endline_hash = vocab.strings["ENDLINE"]
         self.punct_chars_hash = {vocab.strings[c] for c in punct_chars}
         self.capitalized_shapes_hash = {vocab.strings[shape] for shape in ("Xx", "Xxx", "Xxxx", "Xxxxx")}
+        self.capitalized_chars_hash = {vocab.strings[letter] for letter in uppercase}
+        self.bullets_chars_hash = {vocab.strings[bullet] for bullet in bullets}
+
+        options = {
+            "with_capitalized": 0,
+            "with_uppercase": 1,
+            False: 2
+        }
+        chosen = options.get(split_on_newlines, None)
+        if chosen is None:
+            raise ValueError(
+                (
+                    "Incorrect value for 'split_on_newlines'. "
+                    f"Provided: {split_on_newlines}\n"
+                    f"Available: {options}."
+                )
+            )
+        self.split_on_newlines = chosen
 
         if use_endlines:
             print("The use_endlines is deprecated and has been replaced by the ignore_excluded parameter")
@@ -90,16 +119,23 @@ cdef class SentenceSegmenter(object):
             is_newline = Lexeme.c_check_flag(token.lex, IS_SPACE) and token.lex.orth == self.newline_hash
 
             if seen_period or seen_newline:
-                if seen_period and Lexeme.c_check_flag(token.lex, IS_DIGIT):
-                    continue
                 if is_in_punct_chars or is_newline or Lexeme.c_check_flag(token.lex, IS_PUNCT):
                     continue
+                if seen_period and Lexeme.c_check_flag(token.lex, IS_DIGIT):
+                    continue
+                    seen_newline = False
+                    seen_period = False
                 if seen_period:
                     doc.c[i].sent_start = 1
                     seen_newline = False
                     seen_period = False
                 else:
-                    doc.c[i].sent_start = 1 if self.capitalized_shapes_hash.const_find(token.lex.shape) != self.capitalized_shapes_hash.const_end() else -1
+                    if self.split_on_newlines == WITH_UPPERCASE:
+                        doc.c[i].sent_start = 1 if self.capitalized_chars_hash.const_find(token.lex.prefix) != self.capitalized_chars_hash.const_end() else -1
+                    if self.split_on_newlines == WITH_CAPITALIZED:
+                        doc.c[i].sent_start = 1 if self.capitalized_shapes_hash.const_find(token.lex.shape) != self.capitalized_shapes_hash.const_end() else -1
+                    if self.split_on_bullets:
+                        doc.c[i].sent_start = 1 if self.bullets_chars_hash.const_find(token.lex.prefix) != self.bullets_chars_hash.const_end() else -1
                     seen_newline = False
                     seen_period = False
             elif is_in_punct_chars:

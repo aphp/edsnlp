@@ -102,6 +102,7 @@ def create_span(
         Whether to skip excluded tokens.
     ignore_space_tokens : bool
         Whether to skip space tokens.
+
     Returns
     -------
     span:

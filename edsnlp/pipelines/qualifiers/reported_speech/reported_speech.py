@@ -31,8 +31,6 @@ class ReportedSpeech(Qualifier):
         List of terms following a reported speech.
     preceding : List[str]
         List of terms preceding a reported speech.
-    filter_matches : bool
-        Whether to filter out overlapping matches.
     attr : str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM",

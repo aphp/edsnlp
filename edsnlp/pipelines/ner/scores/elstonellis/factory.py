@@ -62,6 +62,7 @@ def create_component(
         Whether to ignore space tokens
     flags: Union[re.RegexFlag, int]
         The regex flags to use
+
     Returns
     -------
     Score

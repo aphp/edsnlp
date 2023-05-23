@@ -44,10 +44,6 @@ def create_component(
         the sentence
     attr: str
         Attribute to match on, eg `TEXT`, `NORM`, etc.
-
-    Returns
-    -------
-
     """
 
     return Adicap(nlp, pattern=pattern, attr=attr, prefix=prefix, window=window)

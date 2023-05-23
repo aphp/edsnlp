@@ -58,10 +58,6 @@ def create_component(
         The configuration for the term matcher
     pattern_config: Dict[str, Any]
         The pattern retriever configuration
-
-    Returns
-    -------
-
     """
 
     return TerminologyMatcher(

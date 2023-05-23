@@ -18,11 +18,11 @@ class Hypothesis(Qualifier):
 
     The component looks for five kinds of expressions in the text :
 
-    - preceding hypothesis, ie cues that precede a hypothetic expression
-    - following hypothesis, ie cues that follow a hypothetic expression
+    - preceding hypothesis, ie cues that precede a hypothetical expression
+    - following hypothesis, ie cues that follow a hypothetical expression
     - pseudo hypothesis : contain a hypothesis cue, but are not hypothesis
       (eg "pas de doute"/"no doubt")
-    - hypothetic verbs : verbs indicating hypothesis (eg "douter")
+    - hypothetical verbs : verbs indicating hypothesis (eg "douter")
     - classic verbs conjugated to the conditional, thus indicating hypothesis
 
     Parameters
@@ -36,11 +36,9 @@ class Hypothesis(Qualifier):
     following : Optional[List[str]]
         List of following hypothesis cues.
     verbs_hyp : Optional[List[str]]
-        List of hypothetic verbs.
+        List of hypothetical verbs.
     verbs_eds : Optional[List[str]]
         List of mainstream verbs.
-    filter_matches : bool
-        Whether to filter out overlapping matches.
     attr : str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
@@ -52,8 +50,6 @@ class Hypothesis(Qualifier):
         Whether to consider cues within entities.
     explain : bool
         Whether to keep track of cues for each entity.
-    regex : Optional[Dict[str, Union[List[str], str]]]
-        A dictionnary of regex patterns.
     """
 
     defaults = dict(

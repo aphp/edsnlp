@@ -8,8 +8,11 @@ from spacy.tokens import Doc
 from thinc.model import Model
 from thinc.types import Floats1d, Floats2d, Ints2d
 
-from edsnlp.models.pytorch_wrapper import PytorchWrapperModule, wrap_pytorch_model
-from edsnlp.models.torch.crf import IMPOSSIBLE, MultiLabelBIOULDecoder
+from edsnlp.pipelines.trainable.layers.crf import IMPOSSIBLE, MultiLabelBIOULDecoder
+from edsnlp.pipelines.trainable.pytorch_wrapper import (
+    PytorchWrapperModule,
+    wrap_pytorch_model,
+)
 
 
 class CRFMode(str, Enum):
@@ -176,11 +179,29 @@ class StackedCRFNERModule(PytorchWrapperModule):
 def create_model(
     tok2vec: Model[List[Doc], List[Floats2d]],
     mode: CRFMode,
-    n_labels: int = None,
+    n_labels: Optional[int] = None,
 ) -> Model[
     Tuple[Iterable[Doc], Optional[Ints2d], Optional[bool]],
     Tuple[Floats1d, Ints2d],
 ]:
+    """
+    Parameters
+    ----------
+    tok2vec: Model[List[Doc], List[Floats2d]]
+        The tok2vec embedding model used to generate the word embeddings
+    mode: CRFMode
+        How the CRF loss is computed
+
+        - `joint`: Loss accounts for CRF transitions
+        - `independent`: Loss does not account for CRF transitions (softmax loss)
+        - `marginal`: Tag scores are smoothly updated with CRF transitions, and softmax loss is applied
+    n_labels: Optional[int]
+        Number of labels. This will be automatically set later during initialization
+
+    Returns
+    -------
+    Model
+    """  # noqa: E501
     return wrap_pytorch_model(  # noqa
         encoder=tok2vec,
         pt_model=StackedCRFNERModule(

@@ -1,22 +1,14 @@
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from spacy import Language
 from spacy.tokens import Doc
 from thinc.api import Model
-from thinc.backends import NumpyOps
 from thinc.config import Config
-from wasabi import Printer
 
 from .span_qualifier import TrainableSpanQualifier
 from .span_qualifier import make_span_qualifier_scorer as create_scorer  # noqa: F401
 from .utils import SpanGroups, Spans
 from .utils import make_candidate_getter as create_candidate_getter
-
-msg = Printer()
-
-Binding = Tuple[str, Any]
-
-NUM_INITIALIZATION_EXAMPLES = 10
 
 span_qualifier_default_config = """
 [model]
@@ -42,7 +34,6 @@ span_qualifier_default_config = """
 """
 
 SPAN_QUALIFIER_DEFAULTS = Config().from_str(span_qualifier_default_config)
-np_ops = NumpyOps()
 
 
 @Language.factory(

@@ -252,7 +252,7 @@ The `span_qualifier` pipeline component can be configured using the following pa
 
 The default model `eds.span_multi_classifier.v1` can be configured using the following parameters :
 
-::: edsnlp.models.span_multi_classifier.create_model
+::: edsnlp.pipelines.trainable.span_qualifier.span_multi_classifier.create_model
     options:
       only_parameters: true
 

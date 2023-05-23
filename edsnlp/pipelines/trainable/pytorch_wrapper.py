@@ -27,7 +27,7 @@ class PytorchWrapperModule(torch.nn.Module):
         """
         Pytorch wrapping module for Spacy.
         Models that expect to be wrapped with
-        [wrap_pytorch_model][edsnlp.models.pytorch_wrapper.wrap_pytorch_model]
+        [wrap_pytorch_model][edsnlp.pipelines.trainable.pytorch_wrapper.wrap_pytorch_model]
         should inherit from this module.
 
         Parameters

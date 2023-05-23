@@ -23,7 +23,7 @@ out) and `doc.spans`.
 
 The model performs token classification using the BIOUL (Begin, Inside, Outside, Unary, Last) tagging scheme.
 To extract overlapping entities, each label has its own tag sequence, so the model predicts
-$n_{labels}$ sequences of O, I, B, L, U tags. The architecture is displayed in the figure below.
+`n_labels` sequences of O, I, B, L, U tags. The architecture is displayed in the figure below.
 
 To enforce the tagging scheme, (ex: I cannot follow O but only B, ...), we use a stack of
 CRF (Conditional Random Fields) layers, one per label during both training and prediction.
@@ -89,20 +89,15 @@ The pipeline component can be configured using the following parameters :
 
 <div markdown="1" class="explicit-col-width">
 
-| Parameter      | Explanation                                                             | Default                                                           |
-|----------------|-------------------------------------------------------------------------|-------------------------------------------------------------------|
-| `ent_labels`   | Labels to search in and assign to `doc.ents`. Expects a list.           | `None` (inits to all labels in `doc.ents`)                        |
-| `spans_labels` | Labels to search in and assign to `doc.spans`. Expects a dict of lists. | `None` (inits to all span groups and their labels in `doc.spans`) |
+::: edsnlp.pipelines.trainable.nested_ner.factory.create_component
+    options:
+      only_parameters: true
 
 The default model `eds.nested_ner_model.v1` can be configured using the following parameters :
 
-
-| Parameter      | Explanation                                                                       | Default |
-|----------------|-----------------------------------------------------------------------------------|---------|
-| `loss_mode`    | How the CRF loss is computed                                                      | `joint` |
-| →`joint`       | Loss accounts for CRF transitions                                                 |         |
-| →`independent` | Loss does not account for CRF transitions (softmax loss)                          |         |
-| →`marginal`    | Tag scores are smoothly updated with CRF transitions, and softmax loss is applied |         |
+::: edsnlp.pipelines.trainable.nested_ner.stack_crf_ner.create_model
+    options:
+      only_parameters: true
 
 </div>
 

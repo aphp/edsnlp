@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Union
+from typing import List, Optional
 
 import pandas as pd
 from spacy.language import Language
@@ -19,10 +19,10 @@ class TablesMatcher:
     ----------
     nlp : Language
         spaCy nlp pipeline to use for matching.
-    tables_pattern : Optional[str]
-        The regex pattern to identify tables.
-    sep_pattern : Optional[str]
-        The regex pattern to identify separators
+    tables_pattern : Optional[List[str]]
+        The regex patterns to identify tables.
+    sep_pattern : Optional[List[str]]
+        The regex patterns to identify separators
         in the detected tables
     col_names : Optional[bool]
         Whether the tables_pattern matches column names
@@ -39,9 +39,9 @@ class TablesMatcher:
     def __init__(
         self,
         nlp: Language,
-        tables_pattern: Optional[str],
-        sep_pattern: Optional[str],
-        attr: Union[Dict[str, str], str],
+        tables_pattern: Optional[List[str]],
+        sep_pattern: Optional[List[str]],
+        attr: str,
         ignore_excluded: bool,
         col_names: Optional[bool] = False,
         row_names: Optional[bool] = False,
@@ -54,7 +54,7 @@ class TablesMatcher:
             sep_pattern = patterns.sep
 
         self.regex_matcher = RegexMatcher(attr=attr, ignore_excluded=True)
-        self.regex_matcher.add("table", [tables_pattern])
+        self.regex_matcher.add("table", tables_pattern)
 
         self.term_matcher = EDSPhraseMatcher(nlp.vocab, attr=attr, ignore_excluded=True)
         self.term_matcher.build_patterns(
@@ -138,7 +138,53 @@ class TablesMatcher:
             if all(row[-1].start == row[-1].end for row in processed_table):
                 processed_table = [row[:-1] for row in processed_table]
 
-            tables_list.append(processed_table)
+            # Check if all rows have the same dimension.
+            # If not, try to merge neighbour rows
+            # to find a new table
+            row_len = len(processed_table[0])
+            if not all(len(row) == row_len for row in processed_table):
+
+                # Method to find all possible lengths of the rows
+                def divisors(n):
+                    result = set()
+                    for i in range(1, int(n**0.5) + 1):
+                        if n % i == 0:
+                            result.add(i)
+                            result.add(n // i)
+                    return sorted(list(result))
+
+                if self.col_names:
+                    n_rows = len(processed_table) - 1
+                else:
+                    n_rows = len(processed_table)
+
+                for n_rows_to_merge in divisors(n_rows):
+                    row_len = sum(len(row) for row in processed_table[:n_rows_to_merge])
+                    if all(
+                        sum(
+                            len(row)
+                            for row in processed_table[
+                                i * n_rows_to_merge : (i + 1) * n_rows_to_merge
+                            ]
+                        )
+                        == row_len
+                        for i in range(n_rows // n_rows_to_merge)
+                    ):
+                        processed_table = [
+                            [
+                                cell
+                                for subrow in processed_table[
+                                    i * n_rows_to_merge : (i + 1) * n_rows_to_merge
+                                ]
+                                for cell in subrow
+                            ]
+                            for i in range(n_rows // n_rows_to_merge)
+                        ]
+                        tables_list.append(processed_table)
+                        break
+                continue
+            else:
+                tables_list.append(processed_table)
 
         # Convert to dictionnaries according to self.col_names
         # and self.row_names

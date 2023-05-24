@@ -8,7 +8,7 @@ We use simple regular expressions to extract and normalize measurements, and use
 By default, the `eds.measurements` pipeline lets you match all measurements, i.e measurements in most units as well as unitless measurements. If a unit is not in our register,
 then you can add It manually. If not, the measurement will be matched without Its unit.
 
-If you prefer to match specific measurements only, you can create your own measurement config. Nevertheless, some default measurements configs are already provided out of the box:
+If you prefer matching specific measurements only, you can create your own measurement config anda set `all_measurements` parameter to `False`. Nevertheless, some default measurements configs are already provided out of the box:
 
 | Measurement name | Example                |
 | ---------------- | ---------------------- |
@@ -16,6 +16,7 @@ If you prefer to match specific measurements only, you can create your own measu
 | `eds.weight`     | `12kg`, `1kg300`       |
 | `eds.bmi`        | `BMI: 24`, `24 kg.m-2` |
 | `eds.volume`     | `2 cac`, `8ml`         |
+| `eds.bool`       | `positive`, `negatif`  |
 
 The normalized value can then be accessed via the `span._.value` attribute and converted on the fly to a desired unit (eg `span._.value.g_per_cl` or `span._.value.kg_per_m3` for a density).
 
@@ -25,7 +26,7 @@ The measurements that can be extracted can have one or many of the following cha
 - Measurements with range indication (escpecially < or >)
 - Measurements with power
 
-The measurement can be written in many coplex forms. Among them, this pipe can detect:
+The measurement can be written in many complex forms. Among them, this pipe can detect:
 - Measurements with range indication, numerical value, power and units in many different orders and separated by customizable stop words
 - Composed units (eg `1m50`)
 - Measurement with "unitless patterns", i.e some textual information next to a numerical value which allows us to retrieve a unit even if It is not written (eg in the text `Height: 80`, this pipe will a detect the numlerical value `80`and match It to the unit `kg`)
@@ -33,7 +34,9 @@ The measurement can be written in many coplex forms. Among them, this pipe can d
 
 ## Usage
 
-The matched measurements are labelised with `eds.measurement` by default. However, if you are only creating your own measurement or using a predefined one, your measurements will be labeled with the name of this measurement (eg `eds.weight`).
+This pipe works better with `eds.dates` and `eds.tables` pipe at the same time. These pipes let `eds.measurements` skip dates as measurements and make a specific matching for each table, benefitting of the structured data.
+
+The matched measurements are labeled with a default measurement name if available (eg `eds.size`), else `eds.measurement` if any measure is linked to the dimension of the measure's unit and if `all_measurements` is set to `True`.
 
 As said before, each matched measurement can be accessed via the `span._.value`. This gives you a `SimpleMeasurement` object with the following attributes :
 - `value_range` ("<", "=" or ">")

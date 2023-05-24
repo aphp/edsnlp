@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import List, Optional
 
 from spacy.language import Language
 
@@ -20,8 +20,8 @@ DEFAULT_CONFIG = dict(
 def create_component(
     nlp: Language,
     name: str,
-    tables_pattern: Optional[Dict[str, Union[List[str], str]]],
-    sep_pattern: Optional[str],
+    tables_pattern: Optional[List[str]],
+    sep_pattern: Optional[List[str]],
     attr: str,
     ignore_excluded: bool,
     col_names: Optional[bool] = False,

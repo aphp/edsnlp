@@ -14,7 +14,7 @@ The `eds.diabetes` pipeline component extracts mentions of diabetes.
 
 On each span `span` that match, the following attributes are available:
 
-- `span._.status_`: set to either
+- `span._.detailled_status`: set to either
     - `"WITH_COMPLICATION"` if the diabetes is  complicated (e.g., via organ damages)
     - `"WITHOUT_COMPLICATION"` else
 - `span._.assigned`: dictionary with the following keys, if relevant:
@@ -115,7 +115,7 @@ Below are a few examples:
 
     span = spans[0]
 
-    span._.status_
+    span._.detailled_status
     # Out: WITH_COMPLICATION
 
     span._.assigned
@@ -135,7 +135,7 @@ Below are a few examples:
 
     span = spans[0]
 
-    span._.status_
+    span._.detailled_status
     # Out: WITH_COMPLICATION
 
     span._.assigned
@@ -155,7 +155,7 @@ Below are a few examples:
 
     span = spans[0]
 
-    span._.status_
+    span._.detailled_status
     # Out: WITH_COMPLICATION
     ```
 

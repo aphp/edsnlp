@@ -5,7 +5,7 @@ results_dementia = dict(
         False,
         True,
     ],
-    status_="PRESENT",
+    detailled_status="PRESENT",
     assign=None,
     texts=[
         "D'importants déficits cognitifs",

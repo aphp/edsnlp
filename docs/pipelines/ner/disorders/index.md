@@ -2,12 +2,12 @@
 
 ## Presentation
 
-The following components extract various mentions of disorders. For the moment, the available components match the 16 different conditions from the [Charlson Comorbidity Index](https://www.rdplf.org/calculateurs/pages/charlson/charlson.html). Each component is based on the ContextualMatcher component.
+The following components extract various mentions of disorders. At the moment, the available components match the 16 different conditions from the [Charlson Comorbidity Index](https://www.rdplf.org/calculateurs/pages/charlson/charlson.html). Each component is based on the ContextualMatcher component.
 Some general considerations about those components:
 
 - Extracted entities are stored in the `doc.spans` dictionary. For instance, the `eds.tobacco` component stores matches in `doc.spans["tobacco"]`.
 - The comorbidity is also available under the `ent.label_` of each match.
-- Matches have an associated `_.status` attribute taking the value `0`, `1`, or `2`. A corresponding `_.status_` attribute stores the human-readable status, which can be component-dependent. See each component documentation for more details.
+- Matches have an associated `_.status` attribute taking the value `0`, `1`, or `2`. A corresponding `_.detailled_status` attribute stores the human-readable status, which can be component-dependent. See each component documentation for more details.
 - Some components add additional information to matches. For instance, the `tobacco` adds, if relevant, extracted *pack-year* (= *paquet-année*). Those information are available under the `ent._.assigned` attribute.
 - Those components work on **normalized** documents. Please use the `eds.normalizer` pipeline with the following parameters:
   <!-- no-check -->
@@ -31,6 +31,7 @@ Some general considerations about those components:
       ),
   )
   ```
+
 - Those components **should be used with a qualification pipeline** to avoid extracted unwanted matches. At the very least, you can use available rule-based qualifiers (`eds.negation`, `eds.hypothesis` and `eds.family`). Better, a machine learning qualification component was developped and trained specificaly for those components. For privacy reason, the model isn't publicly available yet.
 
     !!! aphp "Use the ML model"
@@ -49,36 +50,7 @@ Thus, a good and simple aggregation rule is, for each comorbidity, to
 - disregard all entities tagged as irrelevant by the qualification component(s)
 - take the maximum (i.e., the most severe) status of the leftover entities
 
-Below is a simple implementation of this aggregation rule (this can be adapted for other comorbidity components and other qualification methods):
-
-??? example "Aggregation example"
-    <!-- no-check -->
-    ```python
-    if not Doc.has_extension("aggregated"):
-        Doc.set_extension("aggregated", default={})  # (1)
-
-    spans = doc.spans["diabetes"]  # (2)
-    kept_spans = [
-        (span, span._.status, span._.status_)
-        for span in spans
-        if not any([span._.negation, span._.hypothesis, span._.family])
-    ]  # (3)
-
-    if not kept_spans:  # (4)
-        status = "ABSENT"
-
-    else:
-        status = max(kept_spans, key=itemgetter(1))[2]  # (5)
-
-    doc._.aggregated["diabetes"] = status
-    ```
-
-    1. Storing the status in the `doc._.aggregated` dictionary
-    2. Getting status for the `diabetes` component
-    3. Disregarding entities which are either negated, hypothetical, or not
-    about the patient himself
-    1. Setting the status to 0 if no relevant entities are left:
-    2. Getting the maximum severity status
+An implementation of this rule is presented [here][aggregating-results]
 
 ## Usage
 
@@ -130,7 +102,7 @@ doc.spans
 # }
 
 tobacco = doc.spans["tobacco"]
-tobacco[0]._.status_
+tobacco[0]._.detailled_status
 # Out: "ABSTINENCE"
 
 tobacco[0]._.assigned["PA"]  # paquet-année
@@ -138,7 +110,7 @@ tobacco[0]._.assigned["PA"]  # paquet-année
 
 
 diabetes = doc.spans["diabetes"]
-(diabetes[0]._.status_, diabetes[1]._.status_)
+(diabetes[0]._.detailled_status, diabetes[1]._.detailled_status)
 # Out: ('WITH_COMPLICATION', 'WITHOUT_COMPLICATION') # (2)
 ```
 

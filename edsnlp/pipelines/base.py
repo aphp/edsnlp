@@ -29,7 +29,8 @@ class BaseComponent(object):
 
     def get_spans(self, doc: Doc):
         """
-        Returns sorted spans of interest depending on the eventual `on_ents_only` value.
+        Returns sorted spans of interest according to the
+        possible value of `on_ents_only`.
         Includes `doc.ents` by default, and adds eventual SpanGroups.
         """
         ents = list(doc.ents) + list(doc.spans.get("discarded", []))

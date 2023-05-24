@@ -14,7 +14,7 @@ The `eds.solid_tumor` pipeline component extracts mentions of solid tumors. It w
 
 On each span `span` that match, the following attributes are available:
 
-- `span._.status_`: set to either
+- `span._.detailled_status`: set to either
     - `"METASTASIS"` for tumors at the metastatic stage
     - `"LOCALIZED"` else
 - `span._.assigned`: dictionary with the following keys, if relevant:
@@ -101,7 +101,7 @@ Below are a few examples:
 
     span = spans[0]
 
-    span._.status_
+    span._.detailled_status
     # Out: METASTASIS
 
     span._.assigned
@@ -121,7 +121,7 @@ Below are a few examples:
 
     span = spans[0]
 
-    span._.status_
+    span._.detailled_status
     # Out: METASTASIS
 
     span._.assigned
@@ -158,7 +158,7 @@ Below are a few examples:
 
     span = spans[0]
 
-    span._.status_
+    span._.detailled_status
     # Out: METASTASIS
     ```
 

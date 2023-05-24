@@ -18,7 +18,7 @@ class LiverDisease(DisorderMatcher):
             nlp=nlp,
             name="liver_disease",
             patterns=patterns,
-            status_mapping={
+            detailled_statusmapping={
                 0: "ABSENT",
                 1: "MILD",
                 2: "MODERATE_TO_SEVERE",

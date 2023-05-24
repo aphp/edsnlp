@@ -12,7 +12,7 @@ results_ckd = dict(
         True,
         False,
     ],
-    status_="PRESENT",
+    detailled_status="PRESENT",
     assign=8 * [None] + [{"stage": "IV"}, {"dfg": 30}, None],
     texts=[
         "Patient atteint d'une glomérulopathie.",

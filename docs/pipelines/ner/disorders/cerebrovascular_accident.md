@@ -17,7 +17,7 @@ The `eds.cerebrovascular_accident` pipeline component extracts mentions of cereb
 
 On each span `span` that match, the following attributes are available:
 
-- `span._.status_`: set to `"PRESENT"`
+- `span._.detailled_status`: set to `"PRESENT"`
 
 ## Usage
 

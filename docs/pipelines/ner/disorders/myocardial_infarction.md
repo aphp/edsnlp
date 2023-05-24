@@ -17,7 +17,7 @@ The `eds.myocardial_infarction` pipeline component extracts mentions of myocardi
 
 On each span `span` that match, the following attributes are available:
 
-- `span._.status_`: set to `"PRESENT"`
+- `span._.detailled_status`: set to `"PRESENT"`
 - `span._.assigned`: dictionary with the following keys, if relevant:
     - `heart_localized`: localization of the stent or bypass
 

@@ -1,4 +1,4 @@
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 from importlib_metadata import re
 from spacy import Language
@@ -26,7 +26,7 @@ class DisorderMatcher(ContextualMatcher):
         Whether to skip excluded tokens during matching.
     ignore_space_tokens: bool
         Whether to skip space tokens during matching.
-    status_mapping: Optional[Dict[int, str]]
+    detailled_statusmapping: Optional[Dict[int, str]]
         Mapping from integer status (0, 1 or 2) to human-readable string
 
     alignment_mode : str
@@ -45,10 +45,13 @@ class DisorderMatcher(ContextualMatcher):
         include_assigned: bool = True,
         ignore_excluded: bool = True,
         ignore_space_tokens: bool = True,
-        status_mapping: Optional[Dict[int, str]] = None,
+        detailled_statusmapping: Optional[Dict[int, str]] = None,
     ):
         self.nlp = nlp
-        self.status_mapping = status_mapping or {0: "ABSENT", 1: "PRESENT"}
+        self.detailled_statusmapping = detailled_statusmapping or {
+            0: "ABSENT",
+            1: "PRESENT",
+        }
 
         super().__init__(
             nlp=nlp,
@@ -71,8 +74,8 @@ class DisorderMatcher(ContextualMatcher):
 
         if not Span.has_extension("status"):
             Span.set_extension("status", default=1)
-        if not Span.has_extension("status_"):
-            Span.set_extension("status_", default="PRESENT")
+        if not Span.has_extension("detailled_status"):
+            Span.set_extension("detailled_status", default="PRESENT")
 
     def __call__(self, doc: Doc) -> Doc:
         """
@@ -92,13 +95,13 @@ class DisorderMatcher(ContextualMatcher):
         spans = filter_spans(spans)
 
         for span in spans:
-            span._.status_ = self.status_mapping[span._.status]
+            span._.detailled_status = self.detailled_statusmapping[span._.status]
 
         doc.spans[self.name] = spans
 
         return doc
 
-    def postprocess(self, doc: Doc, spans: Generator[Span, None, None]):
+    def postprocess(self, doc: Doc, spans: Iterable[Span]):
         """
         Can be overrid
         """

@@ -14,7 +14,7 @@ The `eds.liver_disease` pipeline component extracts mentions of liver disease.
 
 On each span `span` that match, the following attributes are available:
 
-- `span._.status_`: set to either
+- `span._.detailled_status`: set to either
     - `"MILD"` for mild liver diseases
     - `"MODERATE_TO_SEVERE"` else
 
@@ -87,7 +87,7 @@ Below are a few examples:
 
     span = spans[0]
 
-    span._.status_
+    span._.detailled_status
     # Out: MODERATE_TO_SEVERE
     ```
 
@@ -104,7 +104,7 @@ Below are a few examples:
 
     span = spans[0]
 
-    span._.status_
+    span._.detailled_status
     # Out: MODERATE_TO_SEVERE
     ```
 

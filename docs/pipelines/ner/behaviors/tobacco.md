@@ -14,7 +14,7 @@ The `eds.tobacco` pipeline component extracts mentions of tobacco consumption.
 
 On each span `span` that match, the following attributes are available:
 
-- `span._.status_`: set to either
+- `span._.detailled_status`: set to either
     - `"PRESENT"`
     - `"ABSTINENCE"` if the patient stopped its consumption
     - `"ABSENT"` if the patient has no tobacco dependence
@@ -108,7 +108,7 @@ Below are a few examples:
 
     span = spans[0]
 
-    span._.status_
+    span._.detailled_status
     # Out: ABSTINENCE
 
     span._.assigned
@@ -128,7 +128,7 @@ Below are a few examples:
 
     span = spans[0]
 
-    span._.status_
+    span._.detailled_status
     # Out: ABSENT
 
     span._.assigned
@@ -148,7 +148,7 @@ Below are a few examples:
 
     span = spans[0]
 
-    span._.status_
+    span._.detailled_status
     # Out: ABSENT
 
     span._.assigned
@@ -168,7 +168,7 @@ Below are a few examples:
 
     span = spans[0]
 
-    span._.status_
+    span._.detailled_status
     # Out: ABSTINENCE
 
     span._.assigned

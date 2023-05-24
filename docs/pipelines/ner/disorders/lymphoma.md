@@ -14,7 +14,7 @@ The `eds.lymphoma` pipeline component extracts mentions of lymphoma.
 
 On each span `span` that match, the following attributes are available:
 
-- `span._.status_`: set to `"PRESENT"`
+- `span._.detailled_status`: set to `"PRESENT"`
 
 !!! warning "Monoclonal gammapathy"
 

@@ -14,7 +14,7 @@ results_peripheral_vascular_disease = dict(
         True,
         False,
     ],
-    status_="PRESENT",
+    detailled_status="PRESENT",
     assign=None,
     texts=[
         "Un AOMI",

@@ -6,7 +6,7 @@ results_connective_tissue_disease = dict(
         True,
         True,
     ],
-    status_="PRESENT",
+    detailled_status="PRESENT",
     assign=None,
     texts=[
         "Présence d'une sclérodermie.",

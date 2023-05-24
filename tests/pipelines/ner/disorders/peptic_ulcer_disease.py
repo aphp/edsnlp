@@ -5,7 +5,7 @@ results_peptic_ulcer_disease = dict(
         False,
         True,
     ],
-    status_="PRESENT",
+    detailled_status="PRESENT",
     assign=None,
     texts=[
         "Beaucoup d'ulcères gastriques",

@@ -8,7 +8,7 @@ results_diabetes = dict(
         True,
         True,
     ],
-    status_=[
+    detailled_status=[
         "WITHOUT_COMPLICATION",
         "WITHOUT_COMPLICATION",
         "WITHOUT_COMPLICATION",

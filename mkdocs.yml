@@ -42,6 +42,7 @@ nav:
       - tutorials/quick-examples.md
       - tutorials/matching-a-terminology.md
       - tutorials/qualifying-entities.md
+      - tutorials/aggregating-results.md
       - tutorials/detecting-dates.md
       - tutorials/multiple-texts.md
       - tutorials/endlines.md

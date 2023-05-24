@@ -19,7 +19,7 @@ class Tobacco(DisorderMatcher):
             nlp=nlp,
             name="tobacco",
             patterns=patterns,
-            status_mapping={0: "ABSENT", 1: "PRESENT", 2: "ABSTINENCE"},
+            detailled_statusmapping={0: "ABSENT", 1: "PRESENT", 2: "ABSTINENCE"},
         )
 
     def postprocess(self, doc: Doc, spans: Generator[Span, None, None]):

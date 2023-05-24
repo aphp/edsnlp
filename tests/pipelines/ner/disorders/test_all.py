@@ -1,23 +1,23 @@
 import pytest
 import spacy
-from test_AIDS import results_aids
-from test_alcohol import results_alcohol
-from test_cerebrovascular_accident import results_cerebrovascular_accident
-from test_CKD import results_ckd
-from test_congestive_heart_failure import results_congestive_heart_failure
-from test_connective_tissue_disease import results_connective_tissue_disease
-from test_COPD import results_copd
-from test_dementia import results_dementia
-from test_diabetes import results_diabetes
-from test_hemiplegia import results_hemiplegia
-from test_leukemia import results_leukemia
-from test_liver_disease import results_liver_disease
-from test_lymphoma import results_lymphoma
-from test_myocardial_infarction import results_myocardial_infarction
-from test_peptic_ulcer_disease import results_peptic_ulcer_disease
-from test_peripheral_vascular_disease import results_peripheral_vascular_disease
-from test_solid_tumor import results_solid_tumor
-from test_tobacco import results_tobacco
+from AIDS import results_aids
+from alcohol import results_alcohol
+from cerebrovascular_accident import results_cerebrovascular_accident
+from CKD import results_ckd
+from congestive_heart_failure import results_congestive_heart_failure
+from connective_tissue_disease import results_connective_tissue_disease
+from COPD import results_copd
+from dementia import results_dementia
+from diabetes import results_diabetes
+from hemiplegia import results_hemiplegia
+from leukemia import results_leukemia
+from liver_disease import results_liver_disease
+from lymphoma import results_lymphoma
+from myocardial_infarction import results_myocardial_infarction
+from peptic_ulcer_disease import results_peptic_ulcer_disease
+from peripheral_vascular_disease import results_peripheral_vascular_disease
+from solid_tumor import results_solid_tumor
+from tobacco import results_tobacco
 
 results = dict(
     AIDS=results_aids,
@@ -56,7 +56,7 @@ class DisorderTester:
         nlp,
         texts,
         has_match,
-        status_,
+        detailled_status,
         assign=None,
     ):
         self.disorder = disorder
@@ -65,14 +65,18 @@ class DisorderTester:
         self.texts = texts
 
         self.has_match = has_match
-        self.status_ = status_ if isinstance(status_, list) else len(texts) * [status_]
+        self.detailled_status = (
+            detailled_status
+            if isinstance(detailled_status, list)
+            else len(texts) * [detailled_status]
+        )
         self.assign = assign if assign is not None else len(texts) * [None]
 
         self.nlp.add_pipe(f"eds.{disorder}")
 
     def check(self):
-        for text, has_match, status_, assign in zip(
-            self.texts, self.has_match, self.status_, self.assign
+        for text, has_match, detailled_status, assign in zip(
+            self.texts, self.has_match, self.detailled_status, self.assign
         ):
             doc = self.nlp(text)
             ents = doc.spans[self.disorder]
@@ -84,7 +88,7 @@ class DisorderTester:
 
             ent = ents[0]
 
-            assert ent._.status_ == status_
+            assert ent._.detailled_status == detailled_status
 
             if assign is not None:
                 for key, value in assign.items():

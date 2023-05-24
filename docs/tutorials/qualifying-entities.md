@@ -2,6 +2,9 @@
 
 In the previous tutorial, we saw how to match a terminology on a text. Using the `#!python doc.ents` attribute, we can check whether a document mentions a concept of interest to build a cohort or describe patients.
 
+
+
+
 ## The issue
 
 However, consider the classical example where we look for the `diabetes` concept:
@@ -144,8 +147,8 @@ their configuration options and validation performance.
 
 Recall the qualifier pipeline proposed by EDS-NLP:
 
-| Pipeline                                                               | Description                          |
-| ---------------------------------------------------------------------- | ------------------------------------ |
+| Pipeline                                                            | Description                          |
+| ------------------------------------------------------------------- | ------------------------------------ |
 | [`eds.negation`](../pipelines/qualifiers/negation.md)               | Rule-based negation detection        |
 | [`eds.family`](../pipelines/qualifiers/family.md)                   | Rule-based family context detection  |
 | [`eds.hypothesis`](../pipelines/qualifiers/hypothesis.md)           | Rule-based speculation detection     |

@@ -8,7 +8,7 @@ results_cerebrovascular_accident = dict(
         True,
         True,
     ],
-    status_="PRESENT",
+    detailled_status="PRESENT",
     assign=None,
     texts=[
         "Patient hospitalisé à AVC.",

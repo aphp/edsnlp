@@ -5,7 +5,7 @@ results_aids = dict(
         True,
         True,
     ],
-    status_=[
+    detailled_status=[
         "PRESENT",
         None,
         "PRESENT",

@@ -20,7 +20,7 @@ class SolidTumor(DisorderMatcher):
             nlp=nlp,
             name="solid_tumor",
             patterns=patterns,
-            status_mapping={
+            detailled_statusmapping={
                 0: "ABSENT",
                 1: "LOCALIZED",
                 2: "METASTASIS",

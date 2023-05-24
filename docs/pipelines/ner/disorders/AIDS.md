@@ -21,7 +21,7 @@ The `eds.AIDS` pipeline component extracts mentions of AIDS. It will notably mat
 
 On each span `span` that match, the following attributes are available:
 
-- `span._.status_`: set to `"PRESENT"`
+- `span._.detailled_status`: set to `"PRESENT"`
 - `span._.assigned`: dictionary with the following keys, if relevant:
     - `opportunist`: list of opportunist infections extracted around the HIV mention
     - `stage`: stage of the HIV infection

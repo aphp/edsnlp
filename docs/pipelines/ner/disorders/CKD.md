@@ -22,7 +22,7 @@ The `eds.CKD` pipeline component extracts mentions of CKD (Chronic Kidney Diseas
 
 On each span `span` that match, the following attributes are available:
 
-- `span._.status_`: set to `"PRESENT"`
+- `span._.detailled_status`: set to `"PRESENT"`
 - `span._.assigned`: dictionary with the following keys, if relevant:
     - `stage`: mentionned renal failure stage
     - `status`: mentionned renal failure severity (e.g. modérée, sévère, terminale, etc.)

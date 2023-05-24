@@ -8,7 +8,7 @@ results_solid_tumor = dict(
         True,
         True,
     ],
-    status_=[
+    detailled_status=[
         "LOCALIZED",
         "LOCALIZED",
         None,

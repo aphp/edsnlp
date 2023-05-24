@@ -1,6 +1,6 @@
 results_liver_disease = dict(
     has_match=4 * [True],
-    status_=[
+    detailled_status=[
         "MILD",
         "MILD",
         "MODERATE_TO_SEVERE",

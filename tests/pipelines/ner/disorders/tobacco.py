@@ -8,7 +8,7 @@ results_tobacco = dict(
         True,
         True,
     ],
-    status_=[
+    detailled_status=[
         "PRESENT",
         "PRESENT",
         None,

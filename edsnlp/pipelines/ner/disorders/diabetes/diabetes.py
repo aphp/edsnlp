@@ -21,7 +21,7 @@ class Diabetes(DisorderMatcher):
             nlp=nlp,
             name="diabetes",
             patterns=patterns,
-            status_mapping={
+            detailled_statusmapping={
                 0: "ABSENT",
                 1: "WITHOUT_COMPLICATION",
                 2: "WITH_COMPLICATION",

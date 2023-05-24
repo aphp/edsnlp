@@ -23,12 +23,36 @@ The underlying `eds.span_multilabel_classifier.v1` model performs span classific
 For instance in the second group, we can't have both `negated=True` and `negated=False` so the combinations are `[(1, 0), (0, 1)]`
 5. Assigning bindings on spans depending on the predicted results
 
+## Under the hood
+
+#### Initialization
+
+During the initialization of the pipeline, the `span_qualifier` component will gather all spans
+that match `on_ents` and `on_span_groups` patterns (or `candidate_getter` function). It will then list
+all possible values for each `qualifier` of the `qualifiers` list and store every possible
+(qualifier, value) pair (i.e. binding).
+
+For instance, a custom qualifier `negation` with possible values `True` and `False` will result in the following bindings
+`[("_.negation", True), ("_.negation", False)]`, while a custom qualifier `event_type` with possible values `start`, `stop`, and `start-stop` will result in the following bindings `[("_.event_type", "start"), ("_.event_type", "stop"), ("_.event_type", "start-stop")]`.
+
+#### Training
+
+During training, the `span_qualifier` component will gather spans on the documents in a mini-batch
+and evaluate each binding on each span to build a supervision matrix.
+This matrix will be feed it to the underlying model (most likely a `eds.span_multilabel_classifier.v1`).
+The model will compute logits for each entry of the matrix and compute a cross-entropy loss for each group of bindings
+sharing the same qualifier. The loss will not be computed for entries that violate the `label_constraints` parameter (for instance, the `event_type` qualifier can only be assigned to spans with the `event` label).
+
+#### Prediction
+
+During prediction, the `span_qualifier` component will gather spans on a given document and evaluate each binding on each span using the underlying model. Using the same binding exclusion and label constraint mechanisms as during training, scores will be computed for each binding and the best legal combination of bindings will be selected. Finally, the selected bindings will be assigned to the spans.
+
 ## Usage
 
 Let us define the pipeline and train it. We provide utils to train the model using an API, but you can use a spaCy's config file as well.
 
 
-=== "API-based"
+=== "API-based (Light)"
 
     <!-- no-check -->
 
@@ -94,6 +118,8 @@ Let us define the pipeline and train it. We provide utils to train the model usi
         # drug = "folfox"
         spacy.tokens.Span(doc, 4, 5, "drug"),
     ]
+    doc = nlp(doc)
+
     [ent._.negation for ent in doc.ents]
     # Out: [True, False, False]
 
@@ -105,7 +131,7 @@ Let us define the pipeline and train it. We provide utils to train the model usi
     BratConnector("/path/to/predictions").docs2brat(predicted_docs)
     ```
 
-=== "Configuration-based"
+=== "Configuration-based (Light)"
 
     ```ini title="config.cfg"
 
@@ -238,9 +264,197 @@ Let us define the pipeline and train it. We provide utils to train the model usi
 
     ```
 
+    To train it, run the following command :
+
     ```bash
     spacy train config.cfg --output training/ --paths.train your_corpus/train.spacy --paths.dev your_corpus/dev.spacy
     ```
+
+    To use it, load the model and process a text :
+
+    <!-- no-check -->
+
+    ```python
+    import spacy
+
+    nlp = spacy.load("training/model-best")
+    doc = nlp.make_doc("Arret du ttt si folfox inefficace")
+    doc.ents = [
+        # event = "Arret"
+        spacy.tokens.Span(doc, 0, 1, "event"),
+        # criteria = "si"
+        spacy.tokens.Span(doc, 3, 4, "criteria"),
+        # drug = "folfox"
+        spacy.tokens.Span(doc, 4, 5, "drug"),
+    ]
+    doc = nlp(doc)
+
+    [ent._.negation for ent in doc.ents]
+    # Out: [True, False, False]
+
+    [ent._.event_type for ent in doc.ents]
+    # Out: ["start", None, None]
+    ```
+
+=== "Configuration-based (BERT)"
+
+    ```ini title="config.cfg"
+
+    [paths]
+    bert = "camembert-base"
+    train = null
+    dev = null
+    vectors = null
+    init_tok2vec = null
+    raw = null
+
+    [system]
+    seed = 0
+    gpu_allocator = "pytorch"
+
+    [nlp]
+    lang = "eds"
+    pipeline = ["span_qualifier"]
+
+    [components]
+
+    [components.span_qualifier]
+    factory = "span_qualifier"
+    label_constraints = null
+    from_ents = false
+    from_span_groups = true
+    qualifiers = ["label_"]
+    scorer = {"@scorers":"eds.span_qualifier_scorer.v1"}
+
+    [components.span_qualifier.model]
+    @architectures = "eds.span_multi_classifier.v1"
+    projection_mode = "dot"
+    pooler_mode = "max"
+    n_labels = null
+
+    # (1) We use a transformer instead below here
+    [components.span_qualifier.model.tok2vec]
+    @architectures = "spacy-transformers.Tok2VecTransformer.v3"
+    name = ${path.bert}
+    tokenizer_config = {"use_fast": false}
+    transformer_config = {}
+    grad_factor = 1.0
+    mixed_precision = true
+    grad_scaler_config = {"init_scale": 32768}
+
+    [corpora]
+
+    [corpora.train]
+    @readers = "test-span-classification-corpus"
+    path = ${path.train}
+    max_length = 0
+    gold_preproc = false
+    limit = 0
+    augmenter = null
+
+    [corpora.dev]
+    @readers = "test-span-classification-corpus"
+    path = ${path.dev}
+    max_length = 0
+    gold_preproc = false
+    limit = 0
+    augmenter = null
+
+    [training]
+    seed = ${system.seed}
+    gpu_allocator = ${system.gpu_allocator}
+    dropout = 0.1
+    accumulate_gradient = 1
+    patience = 10000
+    max_epochs = 0
+    max_steps = 10
+    eval_frequency = 5
+    frozen_components = []
+    annotating_components = []
+    dev_corpus = "corpora.dev"
+    train_corpus = "corpora.train"
+    before_to_disk = null
+    before_update = null
+
+    [training.batcher]
+    @batchers = "spacy.batch_by_words.v1"
+    discard_oversize = false
+    tolerance = 0.2
+    get_length = null
+
+    [training.batcher.size]
+    @schedules = "compounding.v1"
+    start = 100
+    stop = 1000
+    compound = 1.001
+    t = 0.0
+
+    [training.logger]
+    @loggers = "spacy.ConsoleLogger.v1"
+    progress_bar = false
+
+    [training.optimizer]
+    @optimizers = "Adam.v1"
+    beta1 = 0.9
+    beta2 = 0.999
+    L2_is_weight_decay = true
+    L2 = 0.01
+    grad_clip = 1.0
+    use_averages = false
+    eps = 0.00000001
+    learn_rate = 0.001
+
+    [training.score_weights]
+    accuracy = 1.0
+
+    [pretraining]
+
+    [initialize]
+    vectors = ${paths.vectors}
+    init_tok2vec = ${paths.init_tok2vec}
+    vocab_data = null
+    lookups = null
+    before_init = null
+    after_init = null
+
+    [initialize.components]
+
+    [initialize.tokenizer]
+
+    ```
+
+    To train it, run the following command :
+
+    ```bash
+    spacy train config.cfg --output training/ --paths.train your_corpus/train.spacy --paths.dev your_corpus/dev.spacy
+    ```
+
+    To use it, load the model and process a text :
+
+    <!-- no-check -->
+
+    ```python
+    import spacy
+
+    nlp = spacy.load("training/model-best")
+    doc = nlp.make_doc("Arret du ttt si folfox inefficace")
+    doc.ents = [
+        # event = "Arret"
+        spacy.tokens.Span(doc, 0, 1, "event"),
+        # criteria = "si"
+        spacy.tokens.Span(doc, 3, 4, "criteria"),
+        # drug = "folfox"
+        spacy.tokens.Span(doc, 4, 5, "drug"),
+    ]
+    doc = nlp(doc)
+
+    [ent._.negation for ent in doc.ents]
+    # Out: [True, False, False]
+
+    [ent._.event_type for ent in doc.ents]
+    # Out: ["start", None, None]
+    ```
+
 
 ## Configuration
 

@@ -1,12 +1,10 @@
 # Changelog
-## Unreleased
-### Added
-- `eds.tables`: new pipeline to identify formatted tables
 
-## Unreleased
+## v0.8.0 (2023-05-24)
 
 ### Added
 
+- New trainable component for multi-label, multi-class span qualification (any attribute/extension)
 - Add range measurements (like `la tumeur fait entre 1 et 2 cm`) to `eds.measurements` matcher
 - Add `eds.CKD` component
 - Add `eds.COPD` component
@@ -27,21 +25,9 @@
 - Add `eds.tobacco` component
 - Add `eds.spaces` (or `eds.normalizer` with `spaces=True`) to detect space tokens, and add `ignore_space_tokens` to `EDSPhraseMatcher` and `SimstringMatcher` to skip them
 - Add `ignore_space_tokens` option in most components
+- `eds.tables`: new pipeline to identify formatted tables
 - New `merge_mode` parameter in `eds.measurements` to normalize existing entities or detect
   measures only inside existing entities
-
-### Fixed
-
-- Abbreviation and number tokenization issues in the `eds` tokenizer
-
-## Unreleased
-
-### Added
-- New trainable component for multi-label, multi-class span qualification (any attribute/extension)
-
-## v0.8.0 (2023-03-09)
-
-### Added
 - Tokenization exceptions (`Mr.`, `Dr.`, `Mrs.`) and non end-of-sentence periods are now tokenized with the next letter in the `eds` tokenizer
 
 ### Changed
@@ -52,7 +38,9 @@
 
 ### Fixed
 
+- Abbreviation and number tokenization issues in the `eds` tokenizer
 - `eds.adicap` : reparsed the dictionnary used to decode the ADICAP codes (some of them were wrongly decoded)
+- Fix build for python 3.9 on Mac M1/M2 machines.
 
 ## v0.7.4 (2022-12-12)
 

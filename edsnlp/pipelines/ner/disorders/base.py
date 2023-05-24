@@ -1,6 +1,6 @@
+import re
 from typing import Any, Dict, Iterable, List, Optional, Union
 
-from importlib_metadata import re
 from spacy import Language
 from spacy.tokens import Doc, Span
 

@@ -68,9 +68,9 @@ version = { attr = "edsnlp.__version__" }
 
 [tool.setuptools.package-data]
 "edsnlp" = [
-    "*.pyx",
-    "*.pxd",
-    "*.pxi",
+    "**/*.pyx",
+    "**/*.pxd",
+    "**/*.pxi",
     "resources/*.csv",
     "resources/*.json",
     "resources/*.csv.gz",

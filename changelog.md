@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.8.1 (2023-05-31)
+
+Fix release to allow installation from source
+
 ## v0.8.0 (2023-05-24)
 
 ### Added

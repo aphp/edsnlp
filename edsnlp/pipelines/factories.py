@@ -15,6 +15,7 @@ from .misc.dates.factory import create_component as dates
 from .misc.measurements.factory import create_component as measurements
 from .misc.reason.factory import create_component as reason
 from .misc.sections.factory import create_component as sections
+from .misc.tables.factory import create_component as tables
 from .ner.adicap.factory import create_component as adicap
 from .ner.cim10.factory import create_component as cim10
 from .ner.covid.factory import create_component as covid

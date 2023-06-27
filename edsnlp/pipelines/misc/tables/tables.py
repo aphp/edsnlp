@@ -153,6 +153,7 @@ class TablesMatcher:
                             result.add(n // i)
                     return sorted(list(result))
 
+                # Do not count the column names when splitting the table
                 if self.col_names:
                     n_rows = len(processed_table) - 1
                 else:
@@ -170,17 +171,26 @@ class TablesMatcher:
                         == row_len
                         for i in range(n_rows // n_rows_to_merge)
                     ):
-                        processed_table = [
-                            [
-                                cell
-                                for subrow in processed_table[
-                                    i * n_rows_to_merge : (i + 1) * n_rows_to_merge
-                                ]
-                                for cell in subrow
-                            ]
-                            for i in range(n_rows // n_rows_to_merge)
-                        ]
-                        tables_list.append(processed_table)
+                        new_table = []
+                        for i in range(n_rows // n_rows_to_merge):
+                            # Init new_row with the first subrow
+                            new_row = processed_table[i * n_rows_to_merge]
+                            for subrow in processed_table[
+                                i * n_rows_to_merge + 1 : (i + 1) * n_rows_to_merge
+                            ]:
+                                new_row = (
+                                    new_row[:-1]
+                                    + [
+                                        table[
+                                            new_row[-1].start
+                                            - table.start : subrow[0].end
+                                            - table.start
+                                        ]
+                                    ]
+                                    + subrow[1:]
+                                )
+                            new_table.append(new_row)
+                        tables_list.append(new_table)
                         break
                 continue
             else:

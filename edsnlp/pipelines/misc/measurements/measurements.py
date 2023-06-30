@@ -1044,7 +1044,12 @@ class MeasurementsMatcher:
                     try:
                         unit_column_key = sorted(
                             [
-                                unit_column_key
+                                (
+                                    unit_column_key,
+                                    get_distance_between_columns(
+                                        unit_column_key, value_column_key
+                                    ),
+                                )
                                 for unit_column_key in unit_column_keys
                                 if unit_column_key
                                 not in [
@@ -1053,13 +1058,18 @@ class MeasurementsMatcher:
                                     if v != value_column_key
                                 ]
                             ],
-                            key=lambda unit_column_key: get_distance_between_columns(
-                                unit_column_key, value_column_key
-                            ),
-                        )[0 : min(2, len(unit_column_keys))][
-                            0 * (not measure_before_unit_in_table)
-                            - 1 * measure_before_unit_in_table
-                        ]
+                            key=lambda unit_column_key_tuple: unit_column_key_tuple[1],
+                        )[0 : min(2, len(unit_column_keys))]
+                        if (
+                            len(unit_column_key) == 1
+                            or unit_column_key[0][1] != unit_column_key[1][1]
+                        ):
+                            unit_column_key = unit_column_key[0][0]
+                        else:
+                            unit_column_key = unit_column_key[
+                                0 * (not measure_before_unit_in_table)
+                                - 1 * measure_before_unit_in_table
+                            ][0]
                     except IndexError:
                         unit_column_key = value_column_key
                 else:
@@ -1080,7 +1090,12 @@ class MeasurementsMatcher:
                     try:
                         pow10_column_key = sorted(
                             [
-                                pow10_column_key
+                                (
+                                    pow10_column_key,
+                                    get_distance_between_columns(
+                                        pow10_column_key, value_column_key
+                                    ),
+                                )
                                 for pow10_column_key in pow10_column_keys
                                 if pow10_column_key
                                 not in [
@@ -1088,14 +1103,24 @@ class MeasurementsMatcher:
                                     for v in value_column_keys
                                     if v != value_column_key
                                 ]
+                                + [u for u in unit_column_keys if u != unit_column_key]
+                                # The pow10_column_key cannot be a unit_column_key
+                                # other than the one selected
                             ],
-                            key=lambda pow10_column_key: get_distance_between_columns(
-                                pow10_column_key, value_column_key
-                            ),
-                        )[0 : min(2, len(pow10_column_keys))][
-                            0 * (not measure_before_power_in_table)
-                            - 1 * measure_before_power_in_table
-                        ]
+                            key=lambda pow10_column_key_tuple: pow10_column_key_tuple[
+                                1
+                            ],
+                        )[0 : min(2, len(pow10_column_keys))]
+                        if (
+                            len(pow10_column_key) == 1
+                            or pow10_column_key[0][1] != pow10_column_key[1][1]
+                        ):
+                            pow10_column_key = pow10_column_key[0][0]
+                        else:
+                            pow10_column_key = pow10_column_key[
+                                0 * (not measure_before_power_in_table)
+                                - 1 * measure_before_power_in_table
+                            ][0]
                     except IndexError:
                         pow10_column_key = value_column_key
                 else:

@@ -5,24 +5,17 @@ import torch
 from edsnlp.utils.collections import get_deep_attr, set_deep_attr
 
 
-def split_name(names):
-    _names = []
-    for part in names.split("."):
-        try:
-            _names.append(int(part))
-        except ValueError:
-            _names.append(part)
-    return _names
-
-
 class ScheduledOptimizer(torch.optim.Optimizer):
     def __init__(self, optim):
         self.optim = optim
         schedule_to_groups = defaultdict(lambda: [])
         for group in self.optim.param_groups:
             if "schedules" in group:
-                if not isinstance(group["schedules"], list):
-                    group["schedules"] = [group["schedules"]]
+                group["schedules"] = (
+                    group["schedules"]
+                    if isinstance(group["schedules"], list)
+                    else [group["schedules"]]
+                )
                 group["schedules"] = list(group["schedules"])
                 for schedule in group["schedules"]:
                     schedule_to_groups[schedule].append(group)

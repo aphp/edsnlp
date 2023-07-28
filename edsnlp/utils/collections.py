@@ -82,12 +82,12 @@ class batch_compress_dict:
     def __iter__(self):
         return batch_compress_dict(iter(self.seq))
 
-    def __getstate__(self):
-        return {"seq": self.seq}
+    # def __getstate__(self):
+    #     return {"seq": self.seq}
 
-    def __setstate__(self, state):
-        self.seq = state["seq"]
-        self.flatten = None
+    # def __setstate__(self, state):
+    #     self.seq = state["seq"]
+    #     self.flatten = None
 
     def __next__(self) -> Dict[str, List]:
         exec_result = {}

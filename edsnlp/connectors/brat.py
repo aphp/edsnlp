@@ -226,18 +226,17 @@ def export_to_brat(doc, txt_filename, overwrite_txt=False, overwrite_ann=False):
                     ):
                         idx = fragment["begin"]
                         entity_text = doc["text"][fragment["begin"] : fragment["end"]]
-                        for part in entity_text.split("\n"):
-                            begin = idx
-                            end = idx + len(part)
-                            idx = end + 1
-                            if begin != end:
-                                spans.append((begin, end))
+                        # eg: "mon entité  \n  est problématique"
+                        for match in re.finditer(
+                            r"\s*(.+?)(?:( *\n+)+ *|$)", entity_text, flags=re.DOTALL
+                        ):
+                            spans.append((idx + match.start(1), idx + match.end(1)))
                     print(
                         "{}\t{} {}\t{}".format(
                             brat_entity_id,
                             str(entity["label"]),
                             ";".join(" ".join(map(str, span)) for span in spans),
-                            entity_text.replace("\n", " "),
+                            " ".join(doc["text"][begin:end] for begin, end in spans),
                         ),
                         file=f,
                     )

@@ -1,5 +1,10 @@
 # Changelog
 
+## Pending
+
+### Fixed
+- `export_to_brat` issue with spans of entities on multiple lines.
+
 ## v0.8.1 (2023-05-31)
 
 Fix release to allow installation from source

@@ -193,7 +193,7 @@ T1	sosy 30 38	douleurs
 A1	etat T1 test
 T2	localisation 39 57	dans le bras droit
 T3	anatomie 47 57	bras droit
-T4	pathologie 75 84;85 98	problème  de locomotion
+T4	pathologie 75 83;85 98	problème de locomotion
 A2	assertion T4 absent
 T5	pathologie 114 117	AVC
 A3	etat T5 passé

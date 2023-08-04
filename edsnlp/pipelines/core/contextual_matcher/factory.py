@@ -1,5 +1,5 @@
 import re
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 from spacy.language import Language
 
@@ -8,6 +8,7 @@ from edsnlp.utils.deprecation import deprecated_factory
 
 DEFAULT_CONFIG = dict(
     attr="NORM",
+    label_name=None,
     ignore_excluded=True,
     ignore_space_tokens=False,
     regex_flags=0,
@@ -24,6 +25,7 @@ DEFAULT_CONFIG = dict(
 def create_component(
     nlp: Language,
     name: str,
+    label_name: Optional[str],
     patterns: Union[Dict[str, Any], List[Dict[str, Any]]],
     assign_as_span: bool,
     alignment_mode: str,
@@ -52,6 +54,8 @@ def create_component(
         Attribute to match on, eg `TEXT`, `NORM`, etc.
     ignore_excluded : bool
         Whether to skip excluded tokens during matching.
+    ignore_space_tokens: bool
+        Whether to skip space tokens during matching.
     alignment_mode : str
         Overwrite alignment mode.
     regex_flags : Union[re.RegexFlag, int]
@@ -63,11 +67,12 @@ def create_component(
     """
 
     return ContextualMatcher(
-        nlp,
-        name,
-        patterns,
-        assign_as_span,
-        alignment_mode,
+        nlp=nlp,
+        name=name,
+        label_name=label_name,
+        patterns=patterns,
+        assign_as_span=assign_as_span,
+        alignment_mode=alignment_mode,
         attr=attr,
         ignore_excluded=ignore_excluded,
         ignore_space_tokens=ignore_space_tokens,

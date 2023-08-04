@@ -20,9 +20,9 @@ from solid_tumor import results_solid_tumor
 from tobacco import results_tobacco
 
 results = dict(
-    AIDS=results_aids,
-    CKD=results_ckd,
-    COPD=results_copd,
+    aids=results_aids,
+    ckd=results_ckd,
+    copd=results_copd,
     alcohol=results_alcohol,
     cerebrovascular_accident=results_cerebrovascular_accident,
     congestive_heart_failure=results_congestive_heart_failure,
@@ -82,6 +82,9 @@ class DisorderTester:
             ents = doc.spans[self.disorder]
 
             assert len(ents) == int(has_match)
+
+            for ent in ents:
+                assert ent.label_ == self.disorder
 
             if not ents:
                 continue

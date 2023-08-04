@@ -9,7 +9,7 @@ from .patterns import default_patterns
 
 
 class MyocardialInfarction(DisorderMatcher):
-    def __init__(self, nlp, patterns):
+    def __init__(self, nlp, name, patterns):
 
         self.nlp = nlp
         if patterns is None:
@@ -17,7 +17,8 @@ class MyocardialInfarction(DisorderMatcher):
 
         super().__init__(
             nlp=nlp,
-            name="myocardial_infarction",
+            name=name,
+            label_name="myocardial_infarction",
             patterns=patterns,
         )
 

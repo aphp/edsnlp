@@ -17,4 +17,4 @@ def create_component(
     name: str,
     patterns: Optional[Dict[str, Any]],
 ):
-    return PepticUlcerDisease(nlp, patterns=patterns)
+    return PepticUlcerDisease(nlp, name, patterns=patterns)

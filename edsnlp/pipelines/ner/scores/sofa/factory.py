@@ -24,8 +24,14 @@ DEFAULT_CONFIG = dict(
     default_config=DEFAULT_CONFIG,
     assigns=["doc.ents", "doc.spans"],
 )
-@Language.factory(
+@deprecated_factory(
     "eds.SOFA",
+    "eds.sofa",
+    default_config=DEFAULT_CONFIG,
+    assigns=["doc.ents", "doc.spans"],
+)
+@Language.factory(
+    "eds.sofa",
     default_config=DEFAULT_CONFIG,
     assigns=["doc.ents", "doc.spans"],
 )
@@ -75,7 +81,8 @@ def create_component(
     """
     return Sofa(
         nlp,
-        score_name=name,
+        name=name,
+        score_name="sofa",
         regex=regex,
         value_extract=value_extract,
         score_normalization=score_normalization,

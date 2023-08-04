@@ -10,7 +10,7 @@ from .patterns import default_patterns
 
 
 class PepticUlcerDisease(DisorderMatcher):
-    def __init__(self, nlp, patterns):
+    def __init__(self, nlp, name, patterns):
 
         self.nlp = nlp
         if patterns is None:
@@ -18,7 +18,8 @@ class PepticUlcerDisease(DisorderMatcher):
 
         super().__init__(
             nlp=nlp,
-            name="peptic_ulcer_disease",
+            name=name,
+            label_name="peptic_ulcer_disease",
             patterns=patterns,
             include_assigned=False,
         )

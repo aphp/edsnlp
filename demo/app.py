@@ -119,8 +119,8 @@ def load_model(
         pipes.append('nlp.add_pipe("eds.charlson")')
 
     if sofa:
-        nlp.add_pipe("eds.SOFA")
-        pipes.append('nlp.add_pipe("eds.SOFA")')
+        nlp.add_pipe("eds.sofa")
+        pipes.append('nlp.add_pipe("eds.sofa")')
 
     if priority:
         nlp.add_pipe("eds.emergency.priority")
@@ -292,7 +292,7 @@ labels = [
     "drug",
     "cim10",
     "eds.emergency.priority",
-    "eds.SOFA",
+    "eds.sofa",
     "eds.charlson",
     "eds.size",
     "eds.weight",

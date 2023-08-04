@@ -1,6 +1,6 @@
 # COPD
 
-The `eds.COPD` pipeline component extracts mentions of COPD (*Chronic obstructive pulmonary disease*). It will notably match:
+The `eds.copd` pipeline component extracts mentions of COPD (*Chronic obstructive pulmonary disease*). It will notably match:
 
 - Mentions of various diseases (see below)
 - Pulmonary hypertension
@@ -44,7 +44,7 @@ nlp.add_pipe(
         ),
     ),
 )
-nlp.add_pipe(f"eds.COPD")
+nlp.add_pipe(f"eds.copd")
 ```
 
 Below are a few examples:
@@ -56,7 +56,7 @@ Below are a few examples:
     ```python
     text = "Une fibrose interstitielle diffuse idiopathique"
     doc = nlp(text)
-    spans = doc.spans["COPD"]
+    spans = doc.spans["copd"]
 
     spans
     # Out: [fibrose interstitielle diffuse idiopathique]
@@ -68,7 +68,7 @@ Below are a few examples:
     ```python
     text = "Patient atteint de pneumoconiose"
     doc = nlp(text)
-    spans = doc.spans["COPD"]
+    spans = doc.spans["copd"]
 
     spans
     # Out: [pneumoconiose]
@@ -80,7 +80,7 @@ Below are a few examples:
     ```python
     text = "Présence d'une HTAP."
     doc = nlp(text)
-    spans = doc.spans["COPD"]
+    spans = doc.spans["copd"]
 
     spans
     # Out: [HTAP]
@@ -92,7 +92,7 @@ Below are a few examples:
     ```python
     text = "On voit une hypertension pulmonaire minime"
     doc = nlp(text)
-    spans = doc.spans["COPD"]
+    spans = doc.spans["copd"]
 
     spans
     # Out: []
@@ -104,7 +104,7 @@ Below are a few examples:
     ```python
     text = "La patiente a été mis sous oxygénorequérance"
     doc = nlp(text)
-    spans = doc.spans["COPD"]
+    spans = doc.spans["copd"]
 
     spans
     # Out: []
@@ -116,7 +116,7 @@ Below are a few examples:
     ```python
     text = "La patiente est sous oxygénorequérance au long cours"
     doc = nlp(text)
-    spans = doc.spans["COPD"]
+    spans = doc.spans["copd"]
 
     spans
     # Out: [oxygénorequérance au long cours]
@@ -129,4 +129,4 @@ Below are a few examples:
 
 ## Authors and citation
 
-The `eds.COPD` component was developed by AP-HP's Data Science team with a team of medical experts. A paper describing in details the development of those components is being drafted and will soon be available.
+The `eds.copd` component was developed by AP-HP's Data Science team with a team of medical experts. A paper describing in details the development of those components is being drafted and will soon be available.

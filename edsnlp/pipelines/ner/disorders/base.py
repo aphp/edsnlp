@@ -41,6 +41,7 @@ class DisorderMatcher(ContextualMatcher):
         self,
         nlp: Language,
         name: str,
+        label_name: str,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]],
         include_assigned: bool = True,
         ignore_excluded: bool = True,
@@ -56,6 +57,7 @@ class DisorderMatcher(ContextualMatcher):
         super().__init__(
             nlp=nlp,
             name=name,
+            label_name=label_name,
             attr="NORM",
             patterns=patterns,
             ignore_excluded=ignore_excluded,
@@ -97,7 +99,7 @@ class DisorderMatcher(ContextualMatcher):
         for span in spans:
             span._.detailled_status = self.detailled_statusmapping[span._.status]
 
-        doc.spans[self.name] = spans
+        doc.spans[self.label_name] = spans
 
         return doc
 

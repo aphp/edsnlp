@@ -1,4 +1,4 @@
-"""`eds.COPD` pipeline"""
+"""`eds.copd` pipeline"""
 from typing import Generator
 
 from spacy.tokens import Doc, Span
@@ -9,7 +9,7 @@ from .patterns import default_patterns
 
 
 class COPD(DisorderMatcher):
-    def __init__(self, nlp, patterns):
+    def __init__(self, nlp, name, patterns):
 
         self.nlp = nlp
         if patterns is None:
@@ -17,7 +17,8 @@ class COPD(DisorderMatcher):
 
         super().__init__(
             nlp=nlp,
-            name="COPD",
+            name=name,
+            label_name="copd",
             patterns=patterns,
         )
 

@@ -17,4 +17,4 @@ def create_component(
     name: str,
     patterns: Optional[Dict[str, Any]],
 ):
-    return Dementia(nlp, patterns=patterns)
+    return Dementia(nlp, name=name, patterns=patterns)

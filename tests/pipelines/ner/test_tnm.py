@@ -17,7 +17,7 @@ examples = [
 
 def test_scores(blank_nlp):
 
-    blank_nlp.add_pipe("eds.TNM")
+    blank_nlp.add_pipe("eds.tnm")
 
     for example in examples:
 

@@ -1,4 +1,4 @@
-"""`eds.CKD` pipeline"""
+"""`eds.ckd` pipeline"""
 from typing import Generator, Optional
 
 from loguru import logger
@@ -10,7 +10,7 @@ from .patterns import default_patterns
 
 
 class CKD(DisorderMatcher):
-    def __init__(self, nlp, patterns):
+    def __init__(self, nlp, name, patterns):
 
         self.nlp = nlp
         if patterns is None:
@@ -18,7 +18,8 @@ class CKD(DisorderMatcher):
 
         super().__init__(
             nlp=nlp,
-            name="CKD",
+            name=name,
+            label_name="ckd",
             patterns=patterns,
         )
 

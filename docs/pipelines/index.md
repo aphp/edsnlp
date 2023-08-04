@@ -45,13 +45,13 @@ EDS-NLP provides easy-to-use spaCy components.
     | `eds.emergency.ccmu`              | A CCMU score extractor                |
     | `eds.emergency.gemsa`             | A GEMSA score extractor               |
     | `eds.sofa`                        | A SOFA score extractor                |
-    | `eds.TNM`                         | A TNM score extractor                 |
+    | `eds.tnm`                         | A TNM score extractor                 |
     | `eds.adicap`                      | A ADICAP codes extractor              |
     | `eds.drugs`                       | A drug mentions extractor             |
     | `eds.cim10`                       | A CIM10 terminology matcher           |
     | `eds.umls`                        | An UMLS terminology matcher           |
-    | `eds.CKD`                         | CKD extractor                         |
-    | `eds.COPD`                        | COPD extractor                        |
+    | `eds.ckd`                         | CKD extractor                         |
+    | `eds.copd`                        | COPD extractor                        |
     | `eds.cerebrovascular_accident`    | Cerebrovascular accident extractor    |
     | `eds.congestive_heart_failure`    | Congestive heart failure extractor    |
     | `eds.connective_tissue_disease`   | Connective tissue disease extractor   |

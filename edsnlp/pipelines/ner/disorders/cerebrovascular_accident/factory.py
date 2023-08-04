@@ -17,4 +17,4 @@ def create_component(
     name: str,
     patterns: Optional[Dict[str, Any]],
 ):
-    return CerebrovascularAccident(nlp, patterns=patterns)
+    return CerebrovascularAccident(nlp, name=name, patterns=patterns)

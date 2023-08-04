@@ -92,7 +92,7 @@ def model(lang):
     nlp.add_pipe("eds.hypothesis")
     nlp.add_pipe("eds.family")
     nlp.add_pipe("eds.reported_speech")
-    nlp.add_pipe("eds.SOFA")
+    nlp.add_pipe("eds.sofa")
     nlp.add_pipe("eds.dates")
 
     return nlp

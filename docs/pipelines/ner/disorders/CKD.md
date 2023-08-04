@@ -1,6 +1,6 @@
 # CKD
 
-The `eds.CKD` pipeline component extracts mentions of CKD (Chronic Kidney Disease). It will notably match:
+The `eds.ckd` pipeline component extracts mentions of CKD (Chronic Kidney Disease). It will notably match:
 
 - Mentions of various diseases (see below)
 - Kidney transplantation
@@ -54,7 +54,7 @@ nlp.add_pipe(
         ),
     ),
 )
-nlp.add_pipe(f"eds.CKD")
+nlp.add_pipe(f"eds.ckd")
 ```
 
 Below are a few examples:
@@ -66,7 +66,7 @@ Below are a few examples:
     ```python
     text = "Patient atteint d'une glomérulopathie."
     doc = nlp(text)
-    spans = doc.spans["CKD"]
+    spans = doc.spans["ckd"]
 
     spans
     # Out: [glomérulopathie]
@@ -78,7 +78,7 @@ Below are a few examples:
     ```python
     text = "Patient atteint d'une tubulopathie aigüe."
     doc = nlp(text)
-    spans = doc.spans["CKD"]
+    spans = doc.spans["ckd"]
 
     spans
     # Out: []
@@ -90,7 +90,7 @@ Below are a few examples:
     ```python
     text = "Patient transplanté rénal"
     doc = nlp(text)
-    spans = doc.spans["CKD"]
+    spans = doc.spans["ckd"]
 
     spans
     # Out: [transplanté rénal]
@@ -102,7 +102,7 @@ Below are a few examples:
     ```python
     text = "Présence d'une insuffisance rénale aigüe sur chronique"
     doc = nlp(text)
-    spans = doc.spans["CKD"]
+    spans = doc.spans["ckd"]
 
     spans
     # Out: [insuffisance rénale aigüe sur chronique]
@@ -114,7 +114,7 @@ Below are a few examples:
     ```python
     text = "Le patient a été dialysé"
     doc = nlp(text)
-    spans = doc.spans["CKD"]
+    spans = doc.spans["ckd"]
 
     spans
     # Out: []
@@ -126,7 +126,7 @@ Below are a few examples:
     ```python
     text = "Le patient est dialysé chaque lundi"
     doc = nlp(text)
-    spans = doc.spans["CKD"]
+    spans = doc.spans["ckd"]
 
     spans
     # Out: [dialysé chaque lundi]
@@ -143,7 +143,7 @@ Below are a few examples:
     ```python
     text = "Présence d'une IRC"
     doc = nlp(text)
-    spans = doc.spans["CKD"]
+    spans = doc.spans["ckd"]
 
     spans
     # Out: []
@@ -155,7 +155,7 @@ Below are a few examples:
     ```python
     text = "Présence d'une IRC sévère"
     doc = nlp(text)
-    spans = doc.spans["CKD"]
+    spans = doc.spans["ckd"]
 
     spans
     # Out: [IRC sévère]
@@ -172,7 +172,7 @@ Below are a few examples:
     ```python
     text = "Présence d'une IRC au stade IV"
     doc = nlp(text)
-    spans = doc.spans["CKD"]
+    spans = doc.spans["ckd"]
 
     spans
     # Out: [IRC au stade IV]
@@ -189,7 +189,7 @@ Below are a few examples:
     ```python
     text = "Présence d'une IRC avec DFG à 30"
     doc = nlp(text)
-    spans = doc.spans["CKD"]
+    spans = doc.spans["ckd"]
 
     spans
     # Out: [IRC avec DFG à 30]
@@ -206,7 +206,7 @@ Below are a few examples:
     ```python
     text = "Présence d'une maladie rénale avec DFG à 110"
     doc = nlp(text)
-    spans = doc.spans["CKD"]
+    spans = doc.spans["ckd"]
 
     spans
     # Out: []
@@ -214,4 +214,4 @@ Below are a few examples:
 
 ## Authors and citation
 
-The `eds.CKD` component was developed by AP-HP's Data Science team with a team of medical experts. A paper describing in details the development of those components is being drafted and will soon be available.
+The `eds.ckd` component was developed by AP-HP's Data Science team with a team of medical experts. A paper describing in details the development of those components is being drafted and will soon be available.

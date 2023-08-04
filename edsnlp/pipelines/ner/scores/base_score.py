@@ -15,6 +15,7 @@ class Score(ContextualMatcher):
     def __init__(
         self,
         nlp: Language,
+        name: str,
         score_name: str,
         regex: List[str],
         attr: str,
@@ -83,7 +84,8 @@ class Score(ContextualMatcher):
 
         super().__init__(
             nlp=nlp,
-            name=score_name,
+            name=name,
+            label_name=score_name,
             patterns=patterns,
             assign_as_span=False,
             alignment_mode="expand",
@@ -93,8 +95,6 @@ class Score(ContextualMatcher):
             regex_flags=flags,
             include_assigned=False,
         )
-
-        self.score_name = score_name
 
         if isinstance(score_normalization, str):
             self.score_normalization = registry.get("misc", score_normalization)
@@ -163,7 +163,7 @@ class Score(ContextualMatcher):
                 continue
             normalized_value = self.score_normalization(value)
             if normalized_value is not None:
-                ent._.score_name = self.score_name
+                ent._.score_name = self.label_name
                 ent._.score_value = normalized_value
 
                 yield ent

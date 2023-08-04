@@ -10,18 +10,21 @@ from spacy.tokens import Span
 from edsnlp.pipelines.misc.dates.patterns.relative import specific_dict
 
 
-class Direction(Enum):
+class Direction(str, Enum):
+    FUTURE = "future"
+    PAST = "past"
+    CURRENT = "current"
 
-    FUTURE = "FUTURE"
-    PAST = "PAST"
-    CURRENT = "CURRENT"
+
+class Bound(str, Enum):
+    UNTIL = "until"
+    FROM = "from"
 
 
-class Mode(Enum):
-
-    FROM = "FROM"
-    UNTIL = "UNTIL"
-    DURATION = "DURATION"
+class Mode(str, Enum):
+    ABSOLUTE = "absolute"
+    RELATIVE = "relative"
+    DURATION = "duration"
 
 
 class Period(BaseModel):
@@ -35,7 +38,8 @@ class Period(BaseModel):
 
 class BaseDate(BaseModel):
 
-    mode: Optional[Mode] = None
+    mode: Mode = None
+    bound: Optional[Bound] = None
 
     @validator("*", pre=True)
     def remove_space(cls, v):
@@ -58,6 +62,7 @@ class BaseDate(BaseModel):
 
 class AbsoluteDate(BaseDate):
 
+    mode: Mode = Mode.ABSOLUTE
     year: Optional[int] = None
     month: Optional[int] = None
     day: Optional[int] = None
@@ -77,6 +82,7 @@ class AbsoluteDate(BaseDate):
 
         d = self.dict(exclude_none=True)
         d.pop("mode", None)
+        d.pop("bound", None)
         if self.year and self.month and self.day:
             try:
                 return pendulum.datetime(**d, tz=tz)
@@ -151,6 +157,7 @@ class AbsoluteDate(BaseDate):
 
 class Relative(BaseDate):
 
+    mode: Mode = Mode.RELATIVE
     year: Optional[int] = None
     month: Optional[int] = None
     week: Optional[int] = None
@@ -184,19 +191,6 @@ class Relative(BaseDate):
 
         return d
 
-    def to_datetime(self, **kwargs) -> pendulum.Duration:
-        d = self.dict(exclude_none=True)
-
-        direction = d.pop("direction", None)
-        dir = -1 if direction == Direction.PAST else 1
-
-        d.pop("mode", None)
-
-        d = {f"{k}s": v for k, v in d.items()}
-
-        td = dir * pendulum.duration(**d)
-        return td
-
 
 class RelativeDate(Relative):
     direction: Direction = Direction.CURRENT
@@ -206,7 +200,17 @@ class RelativeDate(Relative):
         note_datetime: Optional[datetime] = None,
         **kwargs,
     ) -> pendulum.Duration:
-        td = super(RelativeDate, self).to_datetime()
+        d = self.dict(exclude_none=True)
+
+        direction = d.pop("direction", None)
+        dir = -1 if direction == Direction.PAST else 1
+
+        d.pop("mode", None)
+        d.pop("bound", None)
+
+        d = {f"{k}s": v for k, v in d.items()}
+
+        td = dir * pendulum.duration(**d)
 
         if note_datetime is not None and not isinstance(note_datetime, NaTType):
             return note_datetime + td
@@ -264,3 +268,10 @@ class Duration(Relative):
 
         td = self.to_datetime()
         return f"during {td}"
+
+    def to_datetime(self, **kwargs) -> pendulum.Duration:
+        d = self.dict(exclude_none=True)
+
+        d = {f"{k}s": v for k, v in d.items() if k not in ("mode", "bound")}
+
+        return pendulum.duration(**d)

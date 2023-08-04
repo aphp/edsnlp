@@ -12,7 +12,7 @@ from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
 
 from . import patterns
-from .models import AbsoluteDate, Duration, Mode, Period, RelativeDate
+from .models import AbsoluteDate, Bound, Duration, Mode, Period, RelativeDate
 
 PERIOD_PROXIMITY_THRESHOLD = 3
 
@@ -41,7 +41,7 @@ class Dates(BaseComponent):
     false_positive : Union[List[str], str]
         List of regular expressions for false positive (eg phone numbers, etc).
     on_ents_only : Union[bool, str, Iterable[str]]
-        Wether to look on dates in the whole document or in specific sentences:
+        Whether to look on dates in the whole document or in specific sentences:
 
         - If `True`: Only look in the sentences of each entity in doc.ents
         - If False: Look in the whole document
@@ -69,7 +69,6 @@ class Dates(BaseComponent):
         as_ents: bool,
         attr: str,
     ):
-
         self.nlp = nlp
 
         if absolute is None:
@@ -122,10 +121,13 @@ class Dates(BaseComponent):
         if not Span.has_extension("date"):
             Span.set_extension("date", default=None)
 
+        if not Span.has_extension("duration"):
+            Span.set_extension("duration", default=None)
+
         if not Span.has_extension("period"):
             Span.set_extension("period", default=None)
 
-    def process(self, doc: Doc) -> List[Span]:
+    def process(self, doc: Doc) -> List[Tuple[Span, Dict[str, str]]]:
         """
         Find dates in doc.
 
@@ -164,33 +166,47 @@ class Dates(BaseComponent):
 
         return dates
 
-    def parse(self, dates: List[Tuple[Span, Dict[str, str]]]) -> List[Span]:
+    def parse(
+        self, matches: List[Tuple[Span, Dict[str, str]]]
+    ) -> Tuple[List[Span], List[Span]]:
         """
         Parse dates using the groupdict returned by the matcher.
 
         Parameters
         ----------
-        dates : List[Tuple[Span, Dict[str, str]]]
+        matches : List[Tuple[Span, Dict[str, str]]]
             List of tuples containing the spans and groupdict
             returned by the matcher.
 
         Returns
         -------
-        List[Span]
+        Tuple[List[Span], List[Span]]
             List of processed spans, with the date parsed.
         """
 
-        for span, groupdict in dates:
+        dates = []
+        durations = []
+        for span, groupdict in matches:
             if span.label_ == "relative":
                 parsed = RelativeDate.parse_obj(groupdict)
+                span.label_ = "date"
+                span._.date = parsed
+                dates.append(span)
+                print("SPAN", span, parsed.dict())
             elif span.label_ == "absolute":
                 parsed = AbsoluteDate.parse_obj(groupdict)
+                span.label_ = "date"
+                span._.date = parsed
+                dates.append(span)
+                print("SPAN", span, parsed.dict())
             else:
                 parsed = Duration.parse_obj(groupdict)
+                span.label_ = "duration"
+                span._.duration = parsed
+                durations.append(span)
+                print("SPAN", span, parsed.dict())
 
-            span._.date = parsed
-
-        return [span for span, _ in dates]
+        return dates, durations
 
     def process_periods(self, dates: List[Span]) -> List[Span]:
         """
@@ -216,28 +232,32 @@ class Dates(BaseComponent):
         dates = list(sorted(dates, key=lambda d: d.start))
 
         for d1, d2 in zip(dates[:-1], dates[1:]):
-
-            if d1._.date.mode == Mode.DURATION or d2._.date.mode == Mode.DURATION:
+            v1 = d1._.date if d1.label_ == "date" else d1._.duration
+            v2 = d2._.date if d2.label_ == "date" else d2._.duration
+            if v1.mode == Mode.DURATION or v2.mode == Mode.DURATION:
                 pass
-            elif d1 in seen or d1._.date.mode is None or d2._.date.mode is None:
+            elif d1 in seen or v1.bound is None or v2.bound is None:
                 continue
 
-            if (
-                d1.end - d2.start < PERIOD_PROXIMITY_THRESHOLD
-                and d1._.date.mode != d2._.date.mode
-            ):
-
+            if d1.end - d2.start < PERIOD_PROXIMITY_THRESHOLD and v1.bound != v2.bound:
                 period = Span(d1.doc, d1.start, d2.end, label="period")
 
                 # If one date is a duration,
-                # the other may not have a registered mode.
-                m1 = d1._.date.mode or Mode.FROM
-                m2 = d2._.date.mode or Mode.FROM
+                # the other may not have a registered bound attribute.
+                if v1.mode == Mode.DURATION:
+                    m1 = Bound.FROM if v2.bound == Bound.UNTIL else Bound.UNTIL
+                    m2 = v2.mode or Bound.FROM
+                elif v2.mode == Mode.DURATION:
+                    m1 = v1.mode or Bound.FROM
+                    m2 = Bound.FROM if v1.bound == Bound.UNTIL else Bound.UNTIL
+                else:
+                    m1 = v1.mode or Bound.FROM
+                    m2 = v2.mode or Bound.FROM
 
                 period._.period = Period.parse_obj(
                     {
-                        m1.value: d1,
-                        m2.value: d2,
+                        m1: d1,
+                        m2: d2,
                     }
                 )
 
@@ -262,17 +282,18 @@ class Dates(BaseComponent):
         doc : Doc
             spaCy Doc object, annotated for dates
         """
-        dates = self.process(doc)
-        dates = self.parse(dates)
+        matches = self.process(doc)
+        dates, durations = self.parse(matches)
 
         doc.spans["dates"] = dates
+        doc.spans["durations"] = durations
 
         if self.detect_periods:
-            doc.spans["periods"] = self.process_periods(dates)
+            doc.spans["periods"] = self.process_periods(dates + durations)
 
         if self.as_ents:
             ents, discarded = filter_spans(
-                list(doc.ents) + dates, return_discarded=True
+                list(doc.ents) + dates + durations, return_discarded=True
             )
 
             doc.ents = ents

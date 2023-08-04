@@ -32,10 +32,10 @@ def make_specific_pattern(mode: str = "forward"):
 
 
 specific = {
-    "minus1": (r"hier", dict(direction="PAST", day=1)),
-    "minus2": (r"avant[-\s]hier", dict(direction="PAST", day=2)),
-    "plus1": (r"demain", dict(direction="FUTURE", day=1)),
-    "plus2": (r"après[-\s]demain", dict(direction="FUTURE", day=2)),
+    "minus1": (r"hier", dict(direction="past", day=1)),
+    "minus2": (r"avant[-\s]hier", dict(direction="past", day=2)),
+    "plus1": (r"demain", dict(direction="future", day=1)),
+    "plus2": (r"après[-\s]demain", dict(direction="future", day=2)),
 }
 
 specific_pattern = make_pattern(

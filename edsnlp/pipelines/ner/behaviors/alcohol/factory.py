@@ -17,4 +17,4 @@ def create_component(
     name: str,
     patterns: Optional[Dict[str, Any]],
 ):
-    return Alcohol(nlp, patterns=patterns)
+    return Alcohol(nlp, name, patterns=patterns)

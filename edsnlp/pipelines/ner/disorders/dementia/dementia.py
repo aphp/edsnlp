@@ -7,7 +7,7 @@ from .patterns import default_patterns
 
 
 class Dementia(DisorderMatcher):
-    def __init__(self, nlp, patterns):
+    def __init__(self, nlp, name, patterns):
 
         self.nlp = nlp
         if patterns is None:
@@ -15,6 +15,7 @@ class Dementia(DisorderMatcher):
 
         super().__init__(
             nlp=nlp,
-            name="dementia",
+            name=name,
+            label_name="dementia",
             patterns=patterns,
         )

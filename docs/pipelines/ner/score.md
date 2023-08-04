@@ -35,7 +35,7 @@ Each extraction exposes 2 extensions:
 ent = doc.ents[0]
 
 ent._.score_name
-# Out: 'eds.charlson'
+# Out: 'charlson'
 
 ent._.score_value
 # Out: 7
@@ -51,7 +51,7 @@ import spacy
 nlp = spacy.blank("fr")
 nlp.add_pipe("eds.sentences")
 nlp.add_pipe("eds.normalizer")
-nlp.add_pipe("eds.SOFA")
+nlp.add_pipe("eds.sofa")
 
 text = "SOFA (à 24H) : 12.\n" "OMS: \n"
 
@@ -66,7 +66,7 @@ Each extraction exposes 3 extensions:
 ent = doc.ents[0]
 
 ent._.score_name
-# Out: 'eds.SOFA'
+# Out: 'sofa'
 
 ent._.score_value
 # Out: 12
@@ -79,14 +79,14 @@ Score method can here be "24H", "Maximum", "A l'admission" or "Non précisée"
 
 ## TNM score
 
-The `eds.TNM` pipe allows to extract TNM scores.
+The `eds.tnm` pipe allows to extract TNM scores.
 
 ```python
 import spacy
 
 nlp = spacy.blank("fr")
 nlp.add_pipe("eds.sentences")
-nlp.add_pipe("eds.TNM")
+nlp.add_pipe("eds.tnm")
 
 text = "TNM: pTx N1 M1"
 

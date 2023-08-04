@@ -40,6 +40,7 @@ class Sofa(Score):
     def __init__(
         self,
         nlp: Language,
+        name: str,
         score_name: str,
         regex: List[str],
         attr: str,
@@ -53,6 +54,7 @@ class Sofa(Score):
 
         super().__init__(
             nlp,
+            name=name,
             score_name=score_name,
             regex=regex,
             value_extract=value_extract,
@@ -104,7 +106,7 @@ class Sofa(Score):
             normalized_value = self.score_normalization(assigned["value"])
 
             if normalized_value is not None:
-                ent._.score_name = self.score_name
+                ent._.score_name = self.label_name
                 ent._.score_value = int(normalized_value)
                 ent._.score_method = method
 

@@ -17,4 +17,4 @@ def create_component(
     name: str,
     patterns: Optional[Dict[str, Any]],
 ):
-    return Hemiplegia(nlp, patterns=patterns)
+    return Hemiplegia(nlp, name=name, patterns=patterns)

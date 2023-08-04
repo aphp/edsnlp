@@ -2,7 +2,7 @@ import re
 from collections import defaultdict
 from functools import lru_cache
 from operator import attrgetter
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from loguru import logger
 from spacy.language import Language
@@ -65,8 +65,9 @@ class ContextualMatcher(BaseComponent):
     def __init__(
         self,
         nlp: Language,
-        name: str,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]],
+        name: str = None,
+        label_name: Optional[str] = None,
         assign_as_span: bool = False,
         alignment_mode: str = "expand",
         attr: str = "NORM",
@@ -76,6 +77,9 @@ class ContextualMatcher(BaseComponent):
         include_assigned: bool = False,
     ):
         self.name = name
+        if label_name is None:
+            label_name = name
+        self.label_name = label_name
         self.nlp = nlp
         self.attr = attr
         self.assign_as_span = assign_as_span
@@ -371,7 +375,7 @@ class ContextualMatcher(BaseComponent):
             for replaced in kept_ents:
                 # Propagating attributes from the anchor
                 replaced._.source = source
-                replaced.label_ = self.name
+                replaced.label_ = self.label_name
 
         else:
             # Entity expansion
@@ -386,7 +390,7 @@ class ContextualMatcher(BaseComponent):
                 )
 
             span._.source = source
-            span.label_ = self.name
+            span.label_ = self.label_name
             kept_ents = [span]
 
         key = "value_span" if self.assign_as_span else "value_text"
@@ -444,7 +448,7 @@ class ContextualMatcher(BaseComponent):
 
         ents = list(self.process(doc))
 
-        doc.spans[self.name] = ents
+        doc.spans[self.label_name] = ents
 
         ents, discarded = filter_spans(list(doc.ents) + ents, return_discarded=True)
 

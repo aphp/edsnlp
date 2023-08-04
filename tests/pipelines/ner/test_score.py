@@ -17,7 +17,7 @@ La seule valeur admissible est 0.
 testScore de 1.
 TestScore de <ent score_name=TestScore score_value=0>0</ent>.
 Testons également un autre score.
-SOFA maximum : <ent score_name=SOFA score_value=12 score_method=Maximum>12</ent>.
+SOFA maximum : <ent score_name=sofa score_value=12 score_method=Maximum>12</ent>.
 
 
 CR-URG.
@@ -29,7 +29,7 @@ CCMU: Etat clinique jugé stable avec actes diag ou thérapeutiques ( <ent score
 CONCLUSION
 
 La patiente est atteinte d'un carcinome mammaire infiltrant de type non spécifique, de grade 2 de malignité selon Elston et Ellis
-<ent score_name=eds.elston-ellis score_value=2>(architecture : 3 + noyaux : 3 + mitoses : 1)</ent>.
+<ent score_name=elston-ellis score_value=2>(architecture : 3 + noyaux : 3 + mitoses : 1)</ent>.
 
 """  # noqa: E501
 
@@ -47,6 +47,7 @@ def test_scores(blank_nlp):
 
     testscore = Score(
         blank_nlp,
+        name="TestScore",
         score_name="TestScore",
         regex=[r"test+score"],
         attr="NORM",
@@ -60,12 +61,12 @@ def test_scores(blank_nlp):
 
     text, entities = parse_example(example=example)
 
-    blank_nlp.add_pipe("charlson")
-    blank_nlp.add_pipe("SOFA")
+    blank_nlp.add_pipe("eds.charlson")
+    blank_nlp.add_pipe("eds.sofa")
     blank_nlp.add_pipe("eds.elston-ellis")
-    blank_nlp.add_pipe("emergency.priority")
-    blank_nlp.add_pipe("emergency.ccmu")
-    blank_nlp.add_pipe("emergency.gemsa")
+    blank_nlp.add_pipe("eds.emergency.priority")
+    blank_nlp.add_pipe("eds.emergency.ccmu")
+    blank_nlp.add_pipe("eds.emergency.gemsa")
 
     doc = blank_nlp(text)
     doc = testscore(doc)

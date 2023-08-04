@@ -11,14 +11,15 @@ from .patterns import default_patterns
 
 
 class SolidTumor(DisorderMatcher):
-    def __init__(self, nlp, patterns, use_tnm):
+    def __init__(self, nlp, name, patterns, use_tnm):
         self.nlp = nlp
         if patterns is None:
             patterns = default_patterns
 
         super().__init__(
             nlp=nlp,
-            name="solid_tumor",
+            name=name,
+            label_name="solid_tumor",
             patterns=patterns,
             detailled_statusmapping={
                 0: "ABSENT",

@@ -274,6 +274,7 @@ class MeasurementsMatcher:
     def __init__(
         self,
         nlp: spacy.Language,
+        name: str = "measurements",
         measurements: Optional[
             Union[
                 List[Union[str, MeasureConfig]],
@@ -284,7 +285,6 @@ class MeasurementsMatcher:
         number_terms: Dict[str, List[str]] = patterns.number_terms,
         stopwords: List[str] = patterns.stopwords,
         unit_divisors: List[str] = patterns.unit_divisors,
-        name: str = "measurements",
         ignore_excluded: bool = True,
         compose_units: bool = True,
         attr: str = "NORM",
@@ -313,6 +313,8 @@ class MeasurementsMatcher:
         ----------
         nlp : Language
             The SpaCy object.
+        name : str
+            The name of the component.
         measurements : Optional[Union[List[Union[str, MeasureConfig]],Dict[str, MeasureConfig]]]
             A mapping from measure names to MeasureConfig
             Each measure's configuration has the following shape:
@@ -939,7 +941,7 @@ class MeasurementsMatcher:
         ent_labels = set(self.measure_names.values())
         existing = [
             ent
-            for ent in (*doc.ents, *doc.spans.get(self.name, ()))
+            for ent in (*doc.ents, *doc.spans.get("measurements", ()))
             if ent.label_ in ent_labels
         ]
         other_ents = [ent for ent in doc.ents if ent.label_ not in ent_labels]
@@ -956,13 +958,9 @@ class MeasurementsMatcher:
         if self.as_ents:
             doc.ents = filter_spans((*other_ents, *measurements))
 
-        doc.spans[self.name] = dedup(
-            (*measurements, *doc.spans.get(self.name, ())),
+        doc.spans["measurements"] = dedup(
+            (*measurements, *doc.spans.get("measurements", ())),
             key=lambda x: (x.start, x.end, x.label_),
         )
-
-        # for backward compatibility
-        if self.name == "measurements":
-            doc.spans["measures"] = doc.spans["measurements"]
 
         return doc

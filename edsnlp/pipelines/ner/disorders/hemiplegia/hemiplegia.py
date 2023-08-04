@@ -7,7 +7,7 @@ from .patterns import default_patterns
 
 
 class Hemiplegia(DisorderMatcher):
-    def __init__(self, nlp, patterns):
+    def __init__(self, nlp, name, patterns):
 
         self.nlp = nlp
         if patterns is None:
@@ -15,6 +15,7 @@ class Hemiplegia(DisorderMatcher):
 
         super().__init__(
             nlp=nlp,
-            name="hemiplegia",
+            name=name,
+            label_name="hemiplegia",
             patterns=patterns,
         )

@@ -212,6 +212,7 @@ def test_contextual(blank_nlp, params, example):
         "eds.contextual-matcher",
         name="Cancer",
         config=dict(
+            label_name="Cancer",
             patterns=patterns,
             include_assigned=include_assigned,
         ),

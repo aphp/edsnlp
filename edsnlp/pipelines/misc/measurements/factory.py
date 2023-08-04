@@ -47,6 +47,7 @@ def create_component(
 ):
     return MeasurementsMatcher(
         nlp,
+        name=name,
         measurements=measurements,
         units_config=units_config,
         number_terms=number_terms,

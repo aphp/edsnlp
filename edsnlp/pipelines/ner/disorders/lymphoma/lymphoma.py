@@ -5,7 +5,7 @@ from .patterns import default_patterns
 
 
 class Lymphoma(DisorderMatcher):
-    def __init__(self, nlp, patterns):
+    def __init__(self, nlp, name, patterns):
 
         self.nlp = nlp
         if patterns is None:
@@ -13,6 +13,7 @@ class Lymphoma(DisorderMatcher):
 
         super().__init__(
             nlp=nlp,
-            name="lymphoma",
+            name=name,
+            label_name="lymphoma",
             patterns=patterns,
         )

@@ -17,4 +17,4 @@ def create_component(
     name: str,
     patterns: Optional[Dict[str, Any]],
 ):
-    return CongestiveHeartFailure(nlp, patterns=patterns)
+    return CongestiveHeartFailure(nlp, name=name, patterns=patterns)

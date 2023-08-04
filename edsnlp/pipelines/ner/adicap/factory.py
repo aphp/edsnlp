@@ -46,4 +46,11 @@ def create_component(
         Attribute to match on, eg `TEXT`, `NORM`, etc.
     """
 
-    return Adicap(nlp, pattern=pattern, attr=attr, prefix=prefix, window=window)
+    return Adicap(
+        nlp,
+        name=name,
+        pattern=pattern,
+        attr=attr,
+        prefix=prefix,
+        window=window,
+    )

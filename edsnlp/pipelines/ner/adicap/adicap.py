@@ -12,7 +12,7 @@ from .models import AdicapCode
 
 
 class Adicap(ContextualMatcher):
-    def __init__(self, nlp, pattern, attr, prefix, window):
+    def __init__(self, nlp, name, pattern, attr, prefix, window):
 
         self.nlp = nlp
         if pattern is None:
@@ -38,7 +38,8 @@ class Adicap(ContextualMatcher):
 
         super().__init__(
             nlp=nlp,
-            name="adicap",
+            name=name,
+            label_name="adicap",
             attr=attr,
             patterns=adicap_pattern,
             ignore_excluded=False,

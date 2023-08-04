@@ -10,14 +10,15 @@ from .patterns import default_patterns
 
 
 class Tobacco(DisorderMatcher):
-    def __init__(self, nlp, patterns):
+    def __init__(self, nlp, name, patterns):
         self.nlp = nlp
         if patterns is None:
             patterns = default_patterns
 
         super().__init__(
             nlp=nlp,
-            name="tobacco",
+            name=name,
+            label_name="tobacco",
             patterns=patterns,
             detailled_statusmapping={0: "ABSENT", 1: "PRESENT", 2: "ABSTINENCE"},
         )

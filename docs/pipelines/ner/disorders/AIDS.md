@@ -1,6 +1,6 @@
 # AIDS
 
-The `eds.AIDS` pipeline component extracts mentions of AIDS. It will notably match:
+The `eds.aids` pipeline component extracts mentions of AIDS. It will notably match:
 
 - Mentions of VIH/HIV at the SIDA/AIDS stage
 - Mentions of VIH/HIV with opportunistic(s) infection(s)
@@ -53,7 +53,7 @@ nlp.add_pipe(
         ),
     ),
 )
-nlp.add_pipe(f"eds.AIDS")
+nlp.add_pipe(f"eds.aids")
 ```
 
 Below are a few examples:
@@ -62,7 +62,7 @@ Below are a few examples:
     ```python
     text = "Patient atteint du VIH au stade SIDA."
     doc = nlp(text)
-    spans = doc.spans["AIDS"]
+    spans = doc.spans["aids"]
 
     spans
     # Out: [VIH au stade SIDA]
@@ -74,7 +74,7 @@ Below are a few examples:
     ```python
     text = "Patient atteint du VIH."
     doc = nlp(text)
-    spans = doc.spans["AIDS"]
+    spans = doc.spans["aids"]
 
     spans
     # Out: []
@@ -86,7 +86,7 @@ Below are a few examples:
     ```python
     text = "Il y a un VIH avec coinfection pneumocystose"
     doc = nlp(text)
-    spans = doc.spans["AIDS"]
+    spans = doc.spans["aids"]
 
     spans
     # Out: [VIH]
@@ -103,7 +103,7 @@ Below are a few examples:
     ```python
     text = "Présence d'un VIH stade C"
     doc = nlp(text)
-    spans = doc.spans["AIDS"]
+    spans = doc.spans["aids"]
 
     spans
     # Out: [VIH]
@@ -116,4 +116,4 @@ Below are a few examples:
 
 ## Authors and citation
 
-The `eds.AIDS` component was developed by AP-HP's Data Science team with a team of medical experts. A paper describing in details the development of those components is being drafted and will soon be available.
+The `eds.aids` component was developed by AP-HP's Data Science team with a team of medical experts. A paper describing in details the development of those components is being drafted and will soon be available.

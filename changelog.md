@@ -1,6 +1,17 @@
 # Changelog
 
-## Pending
+## Unreleased
+
+### Changes
+
+- Score / disorders / behaviors entities now have a hardcoded label, instead of being dynamically set from the component name. The following scores may have a different name than the current one in your pipelines:
+  * `eds.emergency.gemsa` → `emergency.gemsa`
+  * `eds.emergency.ccmu` → `emergency.ccmu`
+  * `eds.emergency.priority` → `emergency.priority`
+  * `eds.charlson` → `charlson`
+  * `eds.elston-ellis` → `elston-ellis`
+  * `eds.SOFA` → `sofa`
+  * `eds.adicap` → `adicap`
 
 ### Fixed
 - `export_to_brat` issue with spans of entities on multiple lines.

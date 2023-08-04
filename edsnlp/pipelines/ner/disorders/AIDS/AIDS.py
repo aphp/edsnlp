@@ -1,4 +1,4 @@
-"""`eds.AIDS` pipeline"""
+"""`eds.aids` pipeline"""
 import itertools
 from typing import Generator
 
@@ -18,14 +18,15 @@ from .patterns import default_patterns
 
 
 class AIDS(DisorderMatcher):
-    def __init__(self, nlp, patterns):
+    def __init__(self, nlp, name, patterns):
         self.nlp = nlp
         if patterns is None:
             patterns = default_patterns
 
         super().__init__(
             nlp=nlp,
-            name="AIDS",
+            name=name,
+            label_name="aids",
             patterns=patterns,
             include_assigned=False,
         )

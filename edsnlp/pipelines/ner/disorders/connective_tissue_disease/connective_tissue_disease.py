@@ -9,7 +9,7 @@ from .patterns import default_patterns
 
 
 class ConnectiveTissueDisease(DisorderMatcher):
-    def __init__(self, nlp, patterns):
+    def __init__(self, nlp, name, patterns):
 
         self.nlp = nlp
         if patterns is None:
@@ -17,7 +17,8 @@ class ConnectiveTissueDisease(DisorderMatcher):
 
         super().__init__(
             nlp=nlp,
-            name="connective_tissue_disease",
+            name=name,
+            label_name="connective_tissue_disease",
             patterns=patterns,
         )
 

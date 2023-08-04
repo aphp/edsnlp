@@ -17,4 +17,4 @@ def create_component(
     name: str,
     patterns: Optional[Dict[str, Any]],
 ):
-    return ConnectiveTissueDisease(nlp, patterns=patterns)
+    return ConnectiveTissueDisease(nlp, name=name, patterns=patterns)

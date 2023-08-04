@@ -21,4 +21,4 @@ def create_component(
     patterns: Optional[Dict[str, Any]],
     use_tnm: bool,
 ):
-    return SolidTumor(nlp, patterns=patterns, use_tnm=use_tnm)
+    return SolidTumor(nlp, name, patterns=patterns, use_tnm=use_tnm)

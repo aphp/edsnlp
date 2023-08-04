@@ -278,28 +278,22 @@ class History(Qualifier):
         recent_dates = []
         if self.dates:
             for date in doc.spans["dates"]:
-                if date.label_ == "relative":
-                    if date._.date.direction.value == "CURRENT":
+                value = date._.date
+                if value.mode == "relative":
+                    if value.direction.value == "CURRENT":
                         if (
-                            (
-                                date._.date.year == 0
-                                and self.history_limit >= timedelta(365)
-                            )
+                            (value.year == 0 and self.history_limit >= timedelta(365))
                             or (
-                                date._.date.month == 0
-                                and self.history_limit >= timedelta(30)
+                                value.month == 0 and self.history_limit >= timedelta(30)
                             )
-                            or (
-                                date._.date.week == 0
-                                and self.history_limit >= timedelta(7)
-                            )
-                            or (date._.date.day == 0)
+                            or (value.week == 0 and self.history_limit >= timedelta(7))
+                            or (value.day == 0)
                         ):
                             recent_dates.append(
                                 Span(doc, date.start, date.end, label="relative_date")
                             )
-                    elif date._.date.direction.value == "PAST":
-                        if -date._.date.to_datetime() >= self.history_limit:
+                    elif value.direction.value == "past":
+                        if -value.to_datetime() >= self.history_limit:
                             history_dates.append(
                                 Span(doc, date.start, date.end, label="relative_date")
                             )
@@ -307,9 +301,9 @@ class History(Qualifier):
                             recent_dates.append(
                                 Span(doc, date.start, date.end, label="relative_date")
                             )
-                elif date.label_ == "absolute" and doc._.note_datetime:
+                elif value.mode == "absolute" and doc._.note_datetime:
                     try:
-                        absolute_date = date._.date.to_datetime(
+                        absolute_date = value.to_datetime(
                             note_datetime=note_datetime,
                             infer_from_context=True,
                             tz="Europe/Paris",
@@ -321,7 +315,7 @@ class History(Qualifier):
                             "In doc {}, the following date {} raises this error: {}. "
                             "Skipping this date.",
                             doc._.note_id,
-                            date._.date,
+                            value,
                             e,
                         )
                     if absolute_date:

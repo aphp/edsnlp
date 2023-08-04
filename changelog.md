@@ -12,6 +12,12 @@
   * `eds.elston-ellis` → `elston-ellis`
   * `eds.SOFA` → `sofa`
   * `eds.adicap` → `adicap`
+- `eds.dates` now separate dates from durations. Each entity has its own label:
+  * `spans["dates"]` → entities labelled as `date` with a `span._.date` parsed object
+  * `spans["durations"]` → entities labelled as `duration` with a `span._.duration` parsed object
+- the "relative" / "absolute" / "duration" mode of the time entity is now stored in
+  the `mode` attribute of the `span._.date/duration`
+- the "from" / "until" period bound, if any, is now stored in the `span._.date.bound` attribute
 
 ### Fixed
 - `export_to_brat` issue with spans of entities on multiple lines.

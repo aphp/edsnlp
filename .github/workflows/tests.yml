@@ -50,7 +50,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -e '.[dev,docs,setup]'
+          pip install -e '.[dev,setup]'
 
       - name: Test with Pytest on Python ${{ matrix.python-version }}
         env:

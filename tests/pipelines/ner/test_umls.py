@@ -18,6 +18,7 @@ examples = [
 pattern_config = {"lang": ["FRE"], "sources": ["MSHFRE"]}
 
 
+@pytest.mark.skipif(not os.getenv("UMLS_API_KEY"), reason="No UMLS_API_KEY given")
 def test_get_patterns():
 
     path, _, _ = get_path(pattern_config)
@@ -41,6 +42,7 @@ def test_get_patterns():
     assert len(patterns) == 48587
 
 
+@pytest.mark.skipif(not os.getenv("UMLS_API_KEY"), reason="No UMLS_API_KEY given")
 def test_add_pipe(blank_nlp: Language):
     path, _, _ = get_path(pattern_config)
     if not path.exists():

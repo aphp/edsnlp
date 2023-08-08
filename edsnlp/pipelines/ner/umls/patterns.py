@@ -37,10 +37,10 @@ def get_patterns(config: Dict[str, Any]) -> Dict[str, List[str]]:
 
     path, module, filename = get_path(config)
 
-    if path.exists():
+    if path.exists():  # pragma: no cover
         print(f"Loading {filename} from {module.base}")
         return module.load_pickle(name=filename)
-    else:
+    else:  # pragma: no cover
         patterns = download_and_agg_umls(config)
         module.dump_pickle(name=filename, obj=patterns)
         print(f"Saved patterns into {module.base / filename}")
@@ -108,7 +108,7 @@ def download_and_agg_umls(config) -> Dict[str, List[str]]:
     """
 
     api_key = os.getenv("UMLS_API_KEY")
-    if not api_key:
+    if not api_key:  # pragma: no cover
         warnings.warn(
             "You need to define UMLS_API_KEY to download the UMLS. "
             "Get a key by creating an account at "

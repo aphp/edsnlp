@@ -198,6 +198,22 @@ omit-covered-files = false
 # generate-badge = "."
 # badge-format = "svg"
 
+
+[tool.coverage]
+exclude_lines = [
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "if typing.TYPE_CHECKING:",
+    "@overload",
+    "pragma: no cover",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "def __repr__",
+    "Span.set_extension.*",
+    "Doc.set_extension.*",
+    "Token.set_extension.*",
+]
+
 [tool.cibuildwheel]
 skip = [
     "*p36-*", # Skip Python 3.6

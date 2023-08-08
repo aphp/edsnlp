@@ -134,6 +134,8 @@ class Pipeline:
     def pipe_names(self) -> List[str]:
         return FrozenList([name for name, _ in self._components])
 
+    component_names = pipe_names
+
     def get_pipe(self, name: str) -> Pipe:
         """
         Get a component by its name.
@@ -204,6 +206,9 @@ class Pipeline:
     def add_pipe(
         self,
         factory: Union[str, Pipe],
+        first: bool = False,
+        before: Optional[str] = None,
+        after: Optional[str] = None,
         name: Optional[str] = None,
         config: Optional[Dict[str, Any]] = None,
     ) -> Pipe:
@@ -217,6 +222,15 @@ class Pipeline:
         name: Optional[str]
             The name of the component. If not provided, the name of the component
             will be used if it has one (.name), otherwise the factory name will be used.
+        first: bool
+            Whether to add the component to the beginning of the pipeline. This argument
+            is mutually exclusive with `before` and `after`.
+        before: Optional[str]
+            The name of the component to add the new component before. This argument is
+            mutually exclusive with `after` and `first`.
+        after: Optional[str]
+            The name of the component to add the new component after. This argument is
+            mutually exclusive with `before` and `first`.
         config: Dict[str, Any]
             The arguments to pass to the component factory.
 
@@ -251,7 +265,19 @@ class Pipeline:
                         "The component does not have a name, so you must provide one",
                     )
                 pipe.name = name
-        self._components.append((name, pipe))
+        assert sum([before is not None, after is not None, first]) <= 1, (
+            "You can only use one of before, after, or first",
+        )
+        insertion_idx = (
+            0
+            if first
+            else self.pipe_names.index(before)
+            if before is not None
+            else self.pipe_names.index(after) + 1
+            if after is not None
+            else len(self._components)
+        )
+        self._components.insert(insertion_idx, (name, pipe))
         return pipe
 
     def get_pipe_meta(self, name: str) -> FactoryMeta:

@@ -3,7 +3,6 @@ from datetime import datetime
 import databricks.koalas  # noqa F401
 import pandas as pd
 import pytest
-import spacy
 from pyspark.sql import types as T
 from pyspark.sql.session import SparkSession
 
@@ -58,14 +57,12 @@ def note(module: DataFrameModules):
 
 
 @pytest.fixture
-def model(lang):
+def model(blank_nlp):
     # Creates the spaCy instance
-    nlp = spacy.blank(lang)
+    nlp = blank_nlp
 
     # Normalisation of accents, case and other special characters
     nlp.add_pipe("eds.normalizer")
-    # Detecting end of lines
-    nlp.add_pipe("eds.sentences")
 
     # Extraction of named entities
     nlp.add_pipe(

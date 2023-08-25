@@ -55,7 +55,6 @@ class CurriedFactory:
     def __init__(self, func, kwargs):
         self.kwargs = kwargs
         self.factory = func
-        # self.factory_name = factory_name
         self.instantiated = None
 
     def instantiate(
@@ -85,16 +84,6 @@ class CurriedFactory:
                     **kwargs,
                 }
             )
-            # Config._store_resolved(
-            #     obj.instantiated,
-            #     Config(
-            #         {
-            #             "@factory": obj.factory_name,
-            #             **kwargs,
-            #         }
-            #     ),
-            # )
-            # PIPE_META[obj.instantiated] = obj.meta
             return obj.instantiated
         elif isinstance(obj, dict):
             return {

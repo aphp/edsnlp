@@ -88,13 +88,7 @@ The pipeline component can be configured using the following parameters :
 
 <div markdown="1" class="explicit-col-width">
 
-::: edsnlp.pipelines.trainable.nested_ner.factory.create_component
-    options:
-      only_parameters: true
-
-The default model `eds.nested_ner_model.v1` can be configured using the following parameters :
-
-::: edsnlp.pipelines.trainable.nested_ner.stack_crf_ner.create_model
+::: edsnlp.pipelines.trainable.ner.factory.create_component
     options:
       only_parameters: true
 

@@ -391,8 +391,37 @@ class MultiLabelBIOULDecoder(LinearChainCRF):
             Shape: n_spans *  4
             (doc_idx, begin, end, label_idx)
         """
-        begins_indices = torch.nonzero((tags == 4) | (tags == 2))
-        ends_indices = torch.nonzero((tags == 4) | (tags == 3))
+
+        # Note: tags are O, I, B, L, U => 0, 1, 2, 3, 4
+
+        # begins_indices = torch.nonzero((tags == 4) | (tags == 2))
+        # ends_indices = torch.nonzero((tags == 4) | (tags == 3))
+
+        tags_after = tags.roll(-1, 1)
+        tags_after[:, -1] = 0
+        tags_before = tags.roll(1, 1)
+        tags_before[:, 0] = 0
+
+        # A span starts if:
+        # - tags is B / U
+        # - tags is I / L and tags_before is not B / I (illegal transition)
+        #   this gives: O -> I, L -> I, U -> I
+
+        # A span ends if:
+        # - tags is L / U
+        # - tags is I / B and tags_after is not L / I (illegal transition)
+
+        begins_indices = torch.nonzero(
+            (tags == 4)
+            | (tags == 2)
+            | (((tags == 1) | (tags == 3)) & (tags_before != 2) & (tags_before != 1))
+        )
+        ends_indices = torch.nonzero(
+            (tags == 4)
+            | (tags == 3)
+            | (((tags == 1) | (tags == 2)) & (tags_after != 3) & (tags_after != 1))
+        )
+
         return torch.cat(
             [
                 begins_indices[..., :2],

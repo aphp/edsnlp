@@ -116,31 +116,36 @@ class FactoryRegistry(Registry):
         RETURNS (Any): The registered function.
         """
 
-        def curried(**kwargs):
-            return CurriedFactory(func, kwargs=kwargs)
-
         namespace = list(self.namespace) + [name]
         spacy_namespace = ["spacy", "internal_factories", name]
-        if catalogue.check_exists(*namespace):
-            func = catalogue._get(namespace)
-            return curried
-        elif catalogue.check_exists(*spacy_namespace):
-            func = catalogue._get(spacy_namespace)
-            meta = spacy.Language.get_factory_meta(name)
 
-            def curried(**kwargs):
-                return CurriedFactory(
-                    func,
-                    kwargs=Config(meta.default_config).merge(kwargs),
+        def check_and_return():
+            if not catalogue.check_exists(*namespace) and catalogue.check_exists(
+                *spacy_namespace
+            ):
+                func = catalogue._get(spacy_namespace)
+                meta = spacy.Language.get_factory_meta(name)
+
+                self.register(
+                    name,
+                    func=func,
+                    assigns=meta.assigns,
+                    requires=meta.requires,
+                    retokenizes=meta.retokenizes,
+                    default_config=meta.default_config,
                 )
 
-            return curried
-
-        if self.entry_points:
-            self.get_entry_point(name)
             if catalogue.check_exists(*namespace):
                 func = catalogue._get(namespace)
-                return curried
+                return lambda **kwargs: CurriedFactory(func, kwargs=kwargs)
+
+        func = check_and_return()
+        if func is None and self.entry_points:
+            self.get_entry_point(name)
+            func = check_and_return()
+
+        if func is not None:
+            return func
 
         current_namespace = " -> ".join(self.namespace)
         available_str = ", ".join(self.get_available()) or "none"

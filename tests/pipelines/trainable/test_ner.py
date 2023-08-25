@@ -22,6 +22,8 @@ def test_ner(ner_mode):
         config=dict(
             embedding=nlp.get_pipe("eds.transformer"),
             mode=ner_mode,
+            to_ents=True,
+            to_span_groups="ner-preds",
         ),
     )
     doc = nlp(

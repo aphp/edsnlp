@@ -1,6 +1,7 @@
 # ruff: noqa: E501
 import copy
 import functools
+import inspect
 import os
 import shutil
 import time
@@ -35,6 +36,7 @@ from spacy.tokens import Doc
 from spacy.util import get_lang_class
 from spacy.vocab import Vocab, create_vocab
 from tqdm import tqdm
+from typing_extensions import NotRequired, TypedDict
 
 from edsnlp.core.registry import PIPE_META, CurriedFactory, FactoryMeta
 from edsnlp.utils.collections import (
@@ -62,6 +64,16 @@ class CacheEnum(str, Enum):
 
 Pipe = TypeVar("Pipe", bound=Callable[[Doc], Doc])
 
+ScorerType = Union[
+    Callable[[Iterable[Doc]], Dict[str, Any]],
+    Callable[[Iterable[Doc], float], Dict[str, Any]],
+]
+
+
+class ScoringConfig(TypedDict):
+    pipes: NotRequired[Union[str, List[str]]]
+    scorer: ScorerType
+
 
 class Pipeline:
     """
@@ -80,6 +92,7 @@ class Pipeline:
         batch_size: Optional[int] = 4,
         vocab_config: Type[BaseDefaults] = BaseDefaults,
         meta: Dict[str, Any] = None,
+        scorers: Dict[str, Union[ScoringConfig, ScorerType]] = None,
     ):
         """
         Parameters
@@ -124,7 +137,9 @@ class Pipeline:
         self._path: Optional[Path] = None
         self.meta = dict(meta) if meta is not None else {}
         self.lang: str = lang
+        self.scorers = scorers or {}
         self._cache: Optional[Dict] = None
+        self._cache_is_writeonly = False
 
     @property
     def pipeline(self) -> List[Tuple[str, Pipe]]:
@@ -412,9 +427,12 @@ class Pipeline:
         """
         Enable caching for all (trainable) components in the pipeline
         """
-        self._cache = {}
+        was_not_cached = not self._cache
+        if was_not_cached:
+            self._cache = {}
         yield
-        self._cache = None
+        if was_not_cached:
+            self._cache = None
 
     def torch_components(
         self, disable: Sequence[str] = ()
@@ -493,17 +511,18 @@ class Pipeline:
                 config["nlp"]["components"] = Reference("components")
                 config = config["nlp"]
 
-        config = Config(config).resolve(root=root_config)
+        config = dict(Config(config).resolve(root=root_config))
+        components = config.pop("components", {})
+        pipeline = config.pop("pipeline", ())
+        tokenizer = config.pop("tokenizer", None)
+        disable = (config.pop("disabled", ()), disable)
 
         nlp = Pipeline(
             vocab=vocab,
-            create_tokenizer=config.get("tokenizer"),
-            lang=config["lang"],
+            create_tokenizer=tokenizer,
             meta=meta,
+            **config,
         )
-
-        components = config.get("components", {})
-        pipeline = config.get("pipeline", ())
 
         # Since components are actually resolved as curried factories,
         # we need to instantiate them here
@@ -722,46 +741,81 @@ class Pipeline:
         import torch
         from spacy.training import Example
 
-        inputs: Sequence[Doc] = copy.deepcopy(docs)
-        golds: Sequence[Doc] = docs
-
-        scored_components = {}
-
         # Predicting intermediate steps
         preds = defaultdict(lambda: [])
         if batch_size is None:
             batch_size = self.batch_size
-        total_duration = 0
+
+        scorers_by_pipes = defaultdict(lambda: {})
+        for scorer_name, scorer in self.scorers.items():
+            if isinstance(scorer, dict) and "scorer" in scorer:
+                pipe_names = scorer.get("pipes", self.pipe_names)
+                actual_scorer = scorer["scorer"]
+                if isinstance(pipe_names, str):
+                    pipe_names = [pipe_names]
+                if pipe_names is None:
+                    pipe_names = self.pipe_names
+            else:
+                pipe_names = self.pipe_names
+                actual_scorer = scorer
+            scorers_by_pipes[tuple(pipe_names)][scorer_name] = actual_scorer
+
+        speed_metric_names = {
+            name
+            for _, scorers_group in scorers_by_pipes.items()
+            for name, scorer in scorers_group.items()
+            if "duration" in inspect.signature(scorer).parameters
+        }
+        pipes_to_duration = {
+            pipe_names: 0.0
+            for pipe_names in scorers_by_pipes.keys()
+            if speed_metric_names & set(scorers_by_pipes[pipe_names])
+        }
+
         with self.train(False), torch.no_grad():  # type: ignore
-            for batch in batchify(
-                tqdm(inputs, "Scoring components"), batch_size=batch_size
+            for gold_batch in batchify(
+                tqdm(docs, "Scoring components"), batch_size=batch_size
             ):
                 with self.cache():
-                    for name, pipe in self.pipeline[::-1]:
-                        if hasattr(pipe, "clean_gold_for_evaluation"):
-                            batch = [
-                                pipe.clean_gold_for_evaluation(doc) for doc in batch
-                            ]
+                    for pipe_names in scorers_by_pipes.keys():
+                        timed = speed_metric_names & set(scorers_by_pipes[pipe_names])
+
+                        if timed:
+                            self._cache_is_writeonly = True
+
+                        batch = copy.deepcopy(gold_batch)
+
                         t0 = time.time()
-                        if hasattr(pipe, "batch_process"):
-                            batch = pipe.batch_process(batch)
-                        else:
-                            batch = [pipe(doc) for doc in batch]
-                        total_duration += time.time() - t0
 
-                        if getattr(pipe, "score", None) is not None:
-                            scored_components[name] = pipe
-                            preds[name].extend(copy.deepcopy(batch))
+                        for pipe_name in pipe_names:
+                            pipe = self.get_pipe(pipe_name)
+                            if hasattr(pipe, "batch_process"):
+                                batch = pipe.batch_process(batch)
+                            else:
+                                batch = [pipe(doc) for doc in batch]
 
-            metrics: Dict[str, Any] = {
-                "speed": len(inputs) / total_duration,
-            }
-            for name, pipe in scored_components.items():
-                metrics[name] = pipe.score(
-                    [Example(p, g) for p, g in zip(preds[name], golds)]
-                )
+                        t1 = time.time()
 
-        return metrics
+                        if timed:
+                            pipes_to_duration[pipe_names] += t1 - t0
+                            self._cache_is_writeonly = False
+
+                        preds[pipe_names].extend(batch)
+
+            results: Dict[str, Any] = {}
+            for pipe_names, preds in preds.items():
+                for scorer_name, scorer in scorers_by_pipes[pipe_names].items():
+                    if scorer_name in speed_metric_names:
+                        results[scorer_name] = scorer(
+                            [Example(p, g) for p, g in zip(preds, docs)],
+                            duration=pipes_to_duration[pipe_names],
+                        )
+                    else:
+                        results[scorer_name] = scorer(
+                            [Example(p, g) for p, g in zip(preds, docs)],
+                        )
+
+        return results
 
     def to_disk(
         self, path: Union[str, Path], *, exclude: Sequence[str] = FrozenList()

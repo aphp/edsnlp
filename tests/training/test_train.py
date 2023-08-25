@@ -4,7 +4,7 @@ import shutil
 from collections import defaultdict
 from itertools import chain, count, repeat
 from pathlib import Path
-from typing import Callable, Iterable, List, Optional, Union
+from typing import Callable, Iterable, List, Optional
 
 import torch
 from confit import Config
@@ -14,6 +14,7 @@ from spacy.tokens import Doc, Span
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+import edsnlp
 from edsnlp.connectors.brat import BratConnector
 from edsnlp.core.pipeline import Pipeline
 from edsnlp.core.registry import registry
@@ -53,43 +54,8 @@ class LengthSortedBatchSampler:
             yield from buffer
 
 
-@registry.misc.register("deft_span_getter")
-def make_span_getter():
-    def span_getter(doclike: Union[Doc, Span]) -> List[Span]:
-        """
-        Get the spans of a span group that are contained inside a doclike object.
-        Parameters
-        ----------
-        doclike : Union[Doc, Span]
-            Doclike object to act as a mask.
-        group : str
-            Group name from which to get the spans.
-        Returns
-        -------
-        List[Span]
-            List of spans.
-        """
-        if isinstance(doclike, Doc):
-            # return [
-            #     ent
-            #     for group in doclike.doc.spans
-            #     for ent in doclike.spans.get(group, ())
-            # ]
-            return doclike.ents
-        else:
-            # return [
-            #     span
-            #     for group in doclike.doc.spans
-            #     for span in doclike.doc.spans.get(group, ())
-            #     if span.start >= doclike.start and span.end <= doclike.end
-            # ]
-            return doclike.ents
-
-    return span_getter
-
-
 @registry.misc.register("brat_dataset")
-def brat_dataset(path, limit: Optional[int] = None, span_getter=make_span_getter()):
+def brat_dataset(path, limit: Optional[int] = None):
     def load(nlp):
         raw_data = BratConnector(path).load_brat()
         assert len(raw_data) > 0, "No data found in {}".format(path)
@@ -104,6 +70,8 @@ def brat_dataset(path, limit: Optional[int] = None, span_getter=make_span_getter
 
         sentencizer = nlp.get_pipe("sentencizer")
         docs = [sentencizer(doc) for doc in docs]
+
+        ner = nlp.get_pipe("ner")
 
         # Annotate entities from the raw data
         for doc, raw in zip(docs, raw_data):
@@ -124,20 +92,20 @@ def brat_dataset(path, limit: Optional[int] = None, span_getter=make_span_getter
         new_docs = []
         for doc in docs:
             for sent in doc.sents:
-                if len(span_getter(sent)):
-                    new_doc = sent.as_doc(copy_user_data=True)
-                    for group in doc.spans:
-                        new_doc.spans[group] = [
-                            Span(
-                                new_doc,
-                                span.start - sent.start,
-                                span.end - sent.start,
-                                span.label_,
-                            )
-                            for span in doc.spans.get(group, ())
-                            if span.start >= sent.start and span.end <= sent.end
-                        ]
-                    new_docs.append(new_doc)
+                new_doc = sent.as_doc(copy_user_data=True)
+                for group in doc.spans:
+                    new_doc.spans[group] = [
+                        Span(
+                            new_doc,
+                            span.start - sent.start,
+                            span.end - sent.start,
+                            span.label_,
+                        )
+                        for span in doc.spans.get(group, ())
+                        if span.start >= sent.start and span.end <= sent.end
+                    ]
+                    if len(ner.get_target_spans(new_doc)):
+                        new_docs.append(new_doc)
         return new_docs
 
     return load
@@ -164,13 +132,8 @@ def train(
     val_docs = list(val_data(nlp))
 
     # Taking the first `initialization_subset` samples to initialize the model
-
     nlp.post_init(iter(train_docs))  # iter just to show it's possible
     nlp.batch_size = batch_size
-
-    # assert nlp.get_pipe('ner').embedding is nlp.get_pipe('embedding')
-
-    # print(nlp.config.to_str())
 
     # Preprocessing the training dataset into a dataloader
     preprocessed = list(nlp.preprocess_many(train_docs, supervision=True))
@@ -213,9 +176,6 @@ def train(
 
     # We will loop over the dataloader
     iterator = iter(dataloader)
-
-    # for name, pipe in nlp.torch_components():
-    #    pipe.train(False)
 
     nlp.to(device)
 
@@ -266,7 +226,7 @@ def train(
 
     assert Path(output_path / "last-model").exists()
 
-    nlp.from_disk(output_path / "last-model")
+    nlp = edsnlp.load(output_path / "last-model")
 
     list(nlp.pipe(val_data(nlp)))
 
@@ -277,7 +237,6 @@ def test_train(run_in_test_dir, tmp_path):
     set_seed(42)
     config = Config.from_disk("config.cfg")
     shutil.rmtree(tmp_path, ignore_errors=True)
-    print(config.to_str())
     train(
         **config["train"].resolve(registry=registry, root=config),
         output_path=tmp_path,

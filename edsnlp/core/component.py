@@ -43,7 +43,7 @@ def cached_preprocess(fn):
         if self.nlp._cache is None:
             return fn(self, doc)
         cache_id = hash((id(self), "preprocess", id(doc)))
-        if cache_id in self.nlp._cache:
+        if not self.nlp._cache_is_writeonly and cache_id in self.nlp._cache:
             return self.nlp._cache[cache_id]
         res = fn(self, doc)
         self.nlp._cache[cache_id] = res
@@ -58,7 +58,9 @@ def cached_preprocess_supervised(fn):
         if self.nlp._cache is None:
             return fn(self, doc)
         cache_id = hash((id(self), "preprocess_supervised", id(doc)))
-        if cache_id in self.nlp._cache.setdefault(self, {}):
+        if not self.nlp._cache_is_writeonly and cache_id in self.nlp._cache.setdefault(
+            self, {}
+        ):
             return self.nlp._cache[cache_id]
         res = fn(self, doc)
         self.nlp._cache[cache_id] = res
@@ -75,7 +77,7 @@ def cached_collate(fn):
         cache_id = hash((id(self), "collate", hash_batch(batch)))
         if self.nlp._cache is None or cache_id is None:
             return fn(self, batch, device)
-        if cache_id in self.nlp._cache:
+        if not self.nlp._cache_is_writeonly and cache_id in self.nlp._cache:
             return self.nlp._cache[cache_id]
         res = fn(self, batch, device)
         self.nlp._cache[cache_id] = res
@@ -92,7 +94,7 @@ def cached_forward(fn):
         cache_id = hash((id(self), "collate", hash_batch(batch)))
         if self.nlp._cache is None or cache_id is None:
             return fn(self, batch)
-        if cache_id in self.nlp._cache:
+        if not self.nlp._cache_is_writeonly and cache_id in self.nlp._cache:
             return self.nlp._cache[cache_id]
         res = fn(self, batch)
         self.nlp._cache[cache_id] = res
@@ -297,24 +299,6 @@ class TorchComponent(
             the document.
         """
         return self.preprocess(doc)
-
-    def clean_gold_for_evaluation(self, gold: Doc) -> Doc:
-        """
-        Clean the gold document before evaluation.
-        Only the attributes that are predicted by the component should be removed.
-        By default, this is a no-op.
-
-        Parameters
-        ----------
-        gold: Doc
-            Gold document
-
-        Returns
-        -------
-        Doc
-            The document without attributes that should be predicted
-        """
-        return gold
 
     def pipe(self, docs: Iterable[Doc], batch_size=1) -> Iterable[Doc]:
         """

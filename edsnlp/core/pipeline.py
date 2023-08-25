@@ -1064,4 +1064,27 @@ def blank(
     return Pipeline.from_config({"lang": lang, **config})
 
 
+def load(
+    config: Union[Path, str, Config],
+    exclude: Union[str, Iterable[str]] = EMPTY_LIST,
+):
+    error = "The load function expects a Config or a path to a config file"
+    if isinstance(config, (Path, str)):
+        path = Path(config)
+        if path.is_dir():
+            path = Path(path) if isinstance(path, str) else path
+            config = Config.from_disk(path / "config.cfg")
+            nlp = Pipeline.from_config(config)
+            nlp.from_disk(path, exclude=exclude)
+            return nlp
+        elif path.is_file():
+            config = Config.from_disk(path)
+        else:
+            raise ValueError(error)
+    elif not isinstance(config, Config):
+        raise ValueError(error)
+
+    return Pipeline.from_config(config)
+
+
 PipelineProtocol = Union[Pipeline, spacy.Language]

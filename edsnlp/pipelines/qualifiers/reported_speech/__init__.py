@@ -1,1 +1,3 @@
-from .reported_speech import ReportedSpeech
+from .reported_speech import ReportedSpeechQualifier
+
+ReportedSpeech = ReportedSpeechQualifier

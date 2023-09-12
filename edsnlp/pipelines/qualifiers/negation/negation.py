@@ -3,51 +3,124 @@ from typing import List, Optional, Set, Union
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
 
-from edsnlp.pipelines.qualifiers.base import Qualifier
-from edsnlp.pipelines.terminations import termination
+from edsnlp.pipelines.base import SpanGetterArg, get_spans
+from edsnlp.pipelines.qualifiers.base import RuleBasedQualifier
+from edsnlp.pipelines.terminations import termination as default_termination
 from edsnlp.utils.deprecation import deprecated_getter_factory
-from edsnlp.utils.filter import consume_spans, filter_spans, get_spans
+from edsnlp.utils.filter import consume_spans, filter_spans
 from edsnlp.utils.inclusion import check_inclusion
 from edsnlp.utils.resources import get_verbs
 
-from .patterns import following, preceding, pseudo, verbs
+from . import patterns
 
 
-class Negation(Qualifier):
+class NegationQualifier(RuleBasedQualifier):
     """
-    Implements the NegEx algorithm.
+    The `eds.negation` component uses a simple rule-based algorithm to detect negated
+    spans. It was designed at AP-HP's EDS, following the insights of the NegEx algorithm
+    by [@chapman_simple_2001].
 
     The component looks for five kinds of expressions in the text :
 
-    - preceding negations, ie cues that precede a negated expression
-
-    - following negations, ie cues that follow a negated expression
-
+    - preceding negations, i.e., cues that precede a negated expression
+    - following negations, i.e., cues that follow a negated expression
     - pseudo negations : contain a negation cue, but are not negations
       (eg "pas de doute"/"no doubt")
-
-    - negation verbs, ie verbs that indicate a negation
-
-    - terminations, ie words that delimit propositions.
+    - negation verbs, i.e., verbs that indicate a negation
+    - terminations, i.e., words that delimit propositions.
       The negation spans from the preceding cue to the termination.
+
+    Examples
+    --------
+    The following snippet matches a simple terminology, and checks the polarity of the
+    extracted entities. It is complete and can be run _as is_.
+
+    ```python
+    import spacy
+
+    nlp = spacy.blank("eds")
+    nlp.add_pipe("eds.sentences")
+    # Dummy matcher
+    nlp.add_pipe(
+        "eds.matcher",
+        config=dict(terms=dict(patient="patient", fracture="fracture")),
+    )
+    nlp.add_pipe("eds.negation")
+
+    text = (
+        "Le patient est admis le 23 août 2021 pour une douleur au bras. "
+        "Le scanner ne détecte aucune fracture."
+    )
+
+    doc = nlp(text)
+
+    doc.ents
+    # Out: (patient, fracture)
+
+    doc.ents[0]._.negation  # (1)
+    # Out: False
+
+    doc.ents[1]._.negation
+    # Out: True
+    ```
+
+    1. The result of the component is kept in the `negation` custom extension.
+
+    Extensions
+    ----------
+    The `eds.negation` component declares two extensions, on both `Span` and `Token`
+    objects :
+
+    1. The `negation` attribute is a boolean, set to `True` if the component predicts
+       that the span/token is negated.
+    2. The `negation_` property is a human-readable string, computed from the `negation`
+       attribute. It implements a simple getter function that outputs `AFF` or `NEG`,
+       depending on the value of `negation`.
+
+    Performance
+    -----------
+    The component's performance is measured on three datasets :
+
+    - The ESSAI ([@dalloux2017ESSAI]) and CAS ([@grabar2018CAS]) datasets were developed
+      at the CNRS. The two are concatenated.
+    - The NegParHyp corpus was specifically developed at AP-HP to test the component
+      on actual clinical notes, using pseudonymised notes from the AP-HP.
+
+    | Dataset   | Negation F1 |
+    |-----------|-------------|
+    | CAS/ESSAI | 71%         |
+    | NegParHyp | 88%         |
+
+    !!! note "NegParHyp corpus"
+
+        The NegParHyp corpus was built by matching a subset of the MeSH terminology with
+        around 300 documents from AP-HP's clinical data warehouse. Matched entities were
+        then labelled for negation, speculation and family context.
 
     Parameters
     ----------
     nlp : Language
-        spaCy nlp pipeline to use for matching.
+        The pipeline object.
+    name : Optional[str]
+        The component name.
     attr : str
         spaCy's attribute to use
     pseudo : Optional[List[str]]
-        List of pseudo negation terms.
+        List of pseudo negation cues.
     preceding : Optional[List[str]]
-        List of preceding negation terms
+        List of preceding negation cues
     following : Optional[List[str]]
-        List of following negation terms.
-    termination : Optional[List[str]]
-        List of termination terms.
+        List of following negation cues.
     verbs : Optional[List[str]]
         List of negation verbs.
+    termination : Optional[List[str]]
+        List of termination terms.
+    span_getter : SpanGetterArg
+        Where to look for dates in the doc. By default, look in the whole doc. You can
+        combine this with the `merge_mode` argument for interesting results.
     on_ents_only : Union[bool, str, List[str], Set[str]]
+        Deprecated, use `span_getter` instead.
+
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.
 
@@ -58,36 +131,34 @@ class Negation(Qualifier):
         Whether to consider cues within entities.
     explain : bool
         Whether to keep track of cues for each entity.
-    """
 
-    defaults = dict(
-        following=following,
-        preceding=preceding,
-        pseudo=pseudo,
-        verbs=verbs,
-        termination=termination,
-    )
+    Authors and citation
+    --------------------
+    The `eds.negation` component was developed by AP-HP's Data Science team.
+    """
 
     def __init__(
         self,
         nlp: Language,
-        attr: str,
-        pseudo: Optional[List[str]],
-        preceding: Optional[List[str]],
-        following: Optional[List[str]],
-        termination: Optional[List[str]],
-        verbs: Optional[List[str]],
-        on_ents_only: Union[bool, str, List[str], Set[str]],
-        within_ents: bool,
-        explain: bool,
+        name: Optional[str] = "eds.negation",
+        *,
+        pseudo: Optional[List[str]] = None,
+        preceding: Optional[List[str]] = None,
+        following: Optional[List[str]] = None,
+        verbs: Optional[List[str]] = None,
+        termination: Optional[List[str]] = None,
+        attr: str = "NORM",
+        span_getter: SpanGetterArg = None,
+        on_ents_only: Union[bool, str, List[str], Set[str]] = True,
+        within_ents: bool = False,
+        explain: bool = False,
     ):
-
-        terms = self.get_defaults(
-            pseudo=pseudo,
-            preceding=preceding,
-            following=following,
-            termination=termination,
-            verbs=verbs,
+        terms = dict(
+            pseudo=patterns.pseudo if pseudo is None else pseudo,
+            preceding=patterns.preceding if preceding is None else preceding,
+            following=patterns.following if following is None else following,
+            termination=default_termination if termination is None else termination,
+            verbs=patterns.verbs if verbs is None else verbs,
         )
         terms["verbs_preceding"], terms["verbs_following"] = self.load_verbs(
             terms["verbs"]
@@ -95,63 +166,42 @@ class Negation(Qualifier):
 
         super().__init__(
             nlp=nlp,
+            name=name,
             attr=attr,
-            on_ents_only=on_ents_only,
             explain=explain,
-            **terms,
+            terms=terms,
+            on_ents_only=on_ents_only,
+            span_getter=span_getter,
         )
 
         self.within_ents = within_ents
         self.set_extensions()
 
-    @classmethod
-    def set_extensions(cl) -> None:
+    def set_extensions(self) -> None:
+        super().set_extensions()
+        for cls in (Token, Span):
+            if not cls.has_extension("negation"):
+                cls.set_extension("negation", default=False)
 
-        if not Token.has_extension("negation"):
-            Token.set_extension("negation", default=False)
+            if not cls.has_extension("negated"):
+                cls.set_extension(
+                    "negated", getter=deprecated_getter_factory("negated", "negation")
+                )
 
-        if not Token.has_extension("negated"):
-            Token.set_extension(
-                "negated", getter=deprecated_getter_factory("negated", "negation")
-            )
+            if not cls.has_extension("negation_"):
+                cls.set_extension(
+                    "negation_",
+                    getter=lambda token: "NEG" if token._.negation else "AFF",
+                )
 
-        if not Token.has_extension("negation_"):
-            Token.set_extension(
-                "negation_",
-                getter=lambda token: "NEG" if token._.negation else "AFF",
-            )
-
-        if not Token.has_extension("polarity_"):
-            Token.set_extension(
-                "polarity_",
-                getter=deprecated_getter_factory("polarity_", "negation_"),
-            )
-
-        if not Span.has_extension("negation"):
-            Span.set_extension("negation", default=False)
-
-        if not Span.has_extension("negated"):
-            Span.set_extension(
-                "negated", getter=deprecated_getter_factory("negated", "negation")
-            )
+            if not cls.has_extension("polarity_"):
+                cls.set_extension(
+                    "polarity_",
+                    getter=deprecated_getter_factory("polarity_", "negation_"),
+                )
 
         if not Span.has_extension("negation_cues"):
             Span.set_extension("negation_cues", default=[])
-
-        if not Span.has_extension("negation_"):
-            Span.set_extension(
-                "negation_",
-                getter=lambda span: "NEG" if span._.negation else "AFF",
-            )
-
-        if not Span.has_extension("polarity_"):
-            Span.set_extension(
-                "polarity_",
-                getter=deprecated_getter_factory("polarity_", "negation_"),
-            )
-
-        if not Doc.has_extension("negations"):
-            Doc.set_extension("negations", default=[])
 
     def load_verbs(self, verbs: List[str]) -> List[str]:
         """
@@ -179,66 +229,18 @@ class Negation(Qualifier):
         list_neg_verbs_preceding = list(neg_verbs_preceding["term"].unique())
         list_neg_verbs_following = list(neg_verbs_following["term"].unique())
 
-        return (list_neg_verbs_preceding, list_neg_verbs_following)
-
-    def annotate_entity(
-        self,
-        ent: Span,
-        sub_preceding: List[Span],
-        sub_following: List[Span],
-    ) -> None:
-        """
-        Annotate entities using preceding and following negations.
-
-        Parameters
-        ----------
-        ent : Span
-            Entity to annotate
-        sub_preceding : List[Span]
-            List of preceding negations cues
-        sub_following : List[Span]
-            List of following negations cues
-        """
-        if self.within_ents:
-            cues = [m for m in sub_preceding if m.end <= ent.end]
-            cues += [m for m in sub_following if m.start >= ent.start]
-        else:
-            cues = [m for m in sub_preceding if m.end <= ent.start]
-            cues += [m for m in sub_following if m.start >= ent.end]
-
-        negation = ent._.negation or bool(cues)
-
-        ent._.negation = negation
-
-        if self.explain and negation:
-            ent._.negation_cues += cues
-
-        if not self.on_ents_only and negation:
-            for token in ent:
-                token._.negation = True
+        return list_neg_verbs_preceding, list_neg_verbs_following
 
     def process(self, doc: Doc) -> Doc:
-        """
-        Finds entities related to negation.
-
-        Parameters
-        ----------
-        doc: spaCy `Doc` object
-
-        Returns
-        -------
-        doc: spaCy `Doc` object, annotated for negation
-        """
-
         matches = self.get_matches(doc)
 
-        terminations = get_spans(matches, "termination")
+        terminations = [m for m in matches if m.label_ == "termination"]
         boundaries = self._boundaries(doc, terminations)
 
         # Removes duplicate matches and pseudo-expressions in one statement
         matches = filter_spans(matches, label_to_remove="pseudo")
 
-        entities = list(self.get_spans(doc))
+        entities = list(get_spans(doc, self.span_getter))
         ents = None
 
         for start, end in boundaries:
@@ -256,12 +258,12 @@ class Negation(Qualifier):
             if self.on_ents_only and not ents:
                 continue
 
-            sub_preceding = get_spans(sub_matches, "preceding")
-            sub_following = get_spans(sub_matches, "following")
+            sub_preceding = [m for m in sub_matches if m.label_ == "preceding"]
+            sub_following = [m for m in sub_matches if m.label_ == "following"]
             # Verbs preceding negated content
-            sub_preceding += get_spans(sub_matches, "verbs_preceding")
+            sub_preceding += [m for m in sub_matches if m.label_ == "verbs_preceding"]
             # Verbs following negated content
-            sub_following += get_spans(sub_matches, "verbs_following")
+            sub_following += [m for m in sub_matches if m.label_ == "verbs_following"]
 
             if not sub_preceding + sub_following:
                 continue
@@ -273,13 +275,22 @@ class Negation(Qualifier):
                     ) or any(m.start > token.i for m in sub_following)
 
             for ent in ents:
-                self.annotate_entity(
-                    ent=ent,
-                    sub_preceding=sub_preceding,
-                    sub_following=sub_following,
-                )
+                if self.within_ents:
+                    cues = [m for m in sub_preceding if m.end <= ent.end]
+                    cues += [m for m in sub_following if m.start >= ent.start]
+                else:
+                    cues = [m for m in sub_preceding if m.end <= ent.start]
+                    cues += [m for m in sub_following if m.start >= ent.end]
+
+                negation = ent._.negation or bool(cues)
+
+                ent._.negation = negation
+
+                if self.explain and negation:
+                    ent._.negation_cues += cues
+
+                if not self.on_ents_only and negation:
+                    for token in ent:
+                        token._.negation = True
 
         return doc
-
-    def __call__(self, doc: Doc) -> Doc:
-        return self.process(doc)

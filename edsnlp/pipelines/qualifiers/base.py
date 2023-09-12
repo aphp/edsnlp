@@ -6,7 +6,7 @@ from spacy.language import Language
 from spacy.tokens import Doc, Span
 
 from edsnlp.matchers.phrase import EDSPhraseMatcher
-from edsnlp.pipelines.base import BaseComponent
+from edsnlp.pipelines.base import BaseComponent, SpanGetterArg, validate_span_getter
 
 
 def check_normalizer(nlp: Language) -> None:
@@ -29,22 +29,25 @@ def get_qualifier_extensions(nlp: Language):
     return {
         name: nlp.get_pipe_meta(name).assigns[0].split("span.")[-1]
         for name, pipe in nlp.pipeline
-        if isinstance(pipe, Qualifier)
+        if isinstance(pipe, RuleBasedQualifier)
     }
 
 
-class Qualifier(BaseComponent):
+class RuleBasedQualifier(BaseComponent):
     """
     Implements the NegEx algorithm.
 
     Parameters
     ----------
     nlp : Language
-        spaCy nlp pipeline to use for matching.
+        The pipeline object.
     attr : str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
         we can also add a key for each regex.
+    span_getter : SpanGetterArg
+        Where to look for dates in the doc. By default, look in the whole doc. You can
+        combine this with the `merge_mode` argument for interesting results.
     on_ents_only : Union[bool, str, List[str], Set[str]]
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.
@@ -63,11 +66,15 @@ class Qualifier(BaseComponent):
     def __init__(
         self,
         nlp: Language,
+        name: Optional[str] = None,
+        *,
         attr: str,
+        span_getter: SpanGetterArg,
         on_ents_only: Union[bool, str, List[str], Set[str]],
         explain: bool,
-        **terms: Dict[str, Optional[List[str]]],
+        terms: Dict[str, Optional[List[str]]],
     ):
+        super().__init__(nlp=nlp, name=name)
 
         if attr.upper() == "NORM":
             check_normalizer(nlp)
@@ -77,35 +84,20 @@ class Qualifier(BaseComponent):
 
         self.on_ents_only = on_ents_only
 
-        assert isinstance(on_ents_only, (list, str, set, bool)), (
-            "The `on_ents_only` argument should be a "
-            "string, a bool, a list or a set of string"
-        )
+        if on_ents_only:
+            assert isinstance(on_ents_only, (list, str, set, bool)), (
+                "The `on_ents_only` argument should be a "
+                "string, a bool, a list or a set of string"
+            )
 
-        if isinstance(on_ents_only, list):
-            on_ents_only = set(on_ents_only)
-        elif isinstance(on_ents_only, str):
-            on_ents_only = set([on_ents_only])
-        self.on_ents_only = on_ents_only
+            assert span_getter is None, (
+                "Cannot use both `on_ents_only` and " "`span_getter`"
+            )
+            span_getter = "ents" if on_ents_only is True else on_ents_only
+        else:
+            span_getter = "ents"
+        self.span_getter = validate_span_getter(span_getter)
         self.explain = explain
-
-    def get_defaults(self, **kwargs: Optional[List[str]]) -> Dict[str, List[str]]:
-        """
-        Merge terms with their defaults. Null keys are replaced with defaults.
-
-        Returns
-        -------
-        Dict[str, List[str]]
-            Merged dictionary
-        """
-        # Filter out empty keys
-        kwargs = {k: v for k, v in kwargs.items() if v is not None}
-
-        # Update defaults
-        terms = self.defaults.copy()
-        terms.update(kwargs)
-
-        return terms
 
     def get_matches(self, doc: Doc) -> List[Span]:
         """
@@ -124,14 +116,11 @@ class Qualifier(BaseComponent):
         if self.on_ents_only:
             sents = set([ent.sent for ent in self.get_spans(doc)])
 
-            match_iterator = map(
-                lambda sent: self.phrase_matcher(sent, as_spans=True), sents
-            )
+            match_iterator = (self.phrase_matcher(s, as_spans=True) for s in sents)
 
             matches = chain.from_iterable(match_iterator)
 
         else:
-
             matches = self.phrase_matcher(doc, as_spans=True)
 
         return list(matches)

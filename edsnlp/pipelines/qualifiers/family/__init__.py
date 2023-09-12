@@ -1,1 +1,3 @@
-from .family import FamilyContext
+from .family import FamilyContextQualifier
+
+FamilyContext = FamilyContextQualifier

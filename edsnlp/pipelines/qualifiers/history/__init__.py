@@ -1,1 +1,3 @@
-from .history import History
+from .history import HistoryQualifier
+
+History = HistoryQualifier

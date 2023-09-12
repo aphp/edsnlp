@@ -1,63 +1,35 @@
-from typing import Dict, List, Optional, Tuple, Union
-
 from spacy.language import Language
 
-import edsnlp.pipelines.misc.measurements.patterns as patterns
-from edsnlp.pipelines.misc.measurements.measurements import (
-    MeasureConfig,
-    MeasurementsMatcher,
-    MergeStrategy,
-    UnitConfig,
-)
 from edsnlp.utils.deprecation import deprecated_factory
 
+from . import patterns
+from .measurements import MeasurementsMatcher
+
 DEFAULT_CONFIG = dict(
-    attr="NORM",
-    measurements=None,
-    ignore_excluded=True,
+    measurements=list(patterns.common_measurements.keys()),  # noqa: E501
     units_config=patterns.units_config,
     number_terms=patterns.number_terms,
-    unit_divisors=patterns.unit_divisors,
     stopwords=patterns.stopwords,
+    unit_divisors=patterns.unit_divisors,
+    ignore_excluded=True,
     compose_units=True,
+    attr="NORM",
     extract_ranges=False,
     range_patterns=patterns.range_patterns,
+    after_snippet_limit=6,
+    before_snippet_limit=10,
+    span_getter=None,
+    merge_mode="intersect",
     as_ents=False,
-    merge_mode=MergeStrategy.union,
+    span_setter=None,
 )
 
-
-@Language.factory("eds.measurements", default_config=DEFAULT_CONFIG)
-@deprecated_factory("eds.measures", "eds.measurements", default_config=DEFAULT_CONFIG)
-def create_component(
-    nlp: Language,
-    name: str,
-    measurements: Optional[Union[Dict[str, MeasureConfig], List[str]]],
-    units_config: Dict[str, UnitConfig],
-    number_terms: Dict[str, List[str]],
-    stopwords: List[str],
-    unit_divisors: List[str],
-    ignore_excluded: bool,
-    compose_units: bool,
-    attr: str,
-    extract_ranges: bool,
-    range_patterns: List[Tuple[Optional[str], Optional[str]]],
-    as_ents: bool,
-    merge_mode: MergeStrategy,
-):
-    return MeasurementsMatcher(
-        nlp,
-        name=name,
-        measurements=measurements,
-        units_config=units_config,
-        number_terms=number_terms,
-        stopwords=stopwords,
-        unit_divisors=unit_divisors,
-        ignore_excluded=ignore_excluded,
-        compose_units=compose_units,
-        attr=attr,
-        extract_ranges=extract_ranges,
-        range_patterns=range_patterns,
-        as_ents=as_ents,
-        merge_mode=merge_mode,
-    )
+create_component = deprecated_factory(
+    "eds.measures",
+    "eds.measurements",
+    assigns=["doc.spans", "doc.ents"],
+)(MeasurementsMatcher)
+create_component = Language.factory(
+    "eds.measurements",
+    assigns=["doc.spans", "doc.ents"],
+)(create_component)

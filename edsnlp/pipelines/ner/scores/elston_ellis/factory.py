@@ -5,52 +5,57 @@ from spacy.language import Language
 
 from edsnlp.pipelines.base import SpanSetterArg
 from edsnlp.pipelines.ner.scores.base_score import SimpleScoreMatcher
-from edsnlp.pipelines.ner.scores.charlson import patterns
 from edsnlp.utils.deprecation import deprecated_factory
 
+from .patterns import regex, score_normalization_str, value_extract
+
 DEFAULT_CONFIG = dict(
-    regex=patterns.regex,
-    value_extract=patterns.value_extract,
-    score_normalization=patterns.score_normalization_str,
-    attr="NORM",
-    window=7,
+    regex=regex,
+    value_extract=value_extract,
+    score_normalization=score_normalization_str,
+    attr="TEXT",
+    window=20,
     ignore_excluded=False,
     ignore_space_tokens=False,
     flags=0,
-    label="charlson",
-    span_setter={"ents": True, "charlson": True},
+    label="elston_ellis",
+    span_setter={"ents": True, "elston_ellis": True},
 )
 
 
 @deprecated_factory(
-    "charlson",
-    "eds.charlson",
+    "eds.elston-ellis",
+    "eds.elston_ellis",
+    assigns=["doc.ents", "doc.spans"],
+)
+@deprecated_factory(
+    "eds.elstonellis",
+    "eds.elston_ellis",
     assigns=["doc.ents", "doc.spans"],
 )
 @Language.factory(
-    "eds.charlson",
+    "eds.elston_ellis",
     assigns=["doc.ents", "doc.spans"],
 )
 def create_component(
     nlp: Language,
     name: Optional[str] = None,
     *,
-    regex: List[str] = patterns.regex,
-    value_extract: str = patterns.value_extract,
+    regex: List[str] = regex,
+    value_extract: str = value_extract,
     score_normalization: Union[
         str, Callable[[Union[str, None]], Any]
-    ] = patterns.score_normalization_str,
-    attr: str = "NORM",
-    window: int = 7,
+    ] = score_normalization_str,
+    attr: str = "TEXT",
+    window: int = 20,
     ignore_excluded: bool = False,
     ignore_space_tokens: bool = False,
     flags: Union[re.RegexFlag, int] = 0,
-    label: str = "charlson",
-    span_setter: SpanSetterArg = {"ents": True, "charlson": True},
+    label: str = "elston_ellis",
+    span_setter: SpanSetterArg = {"ents": True, "elston_ellis": True},
 ):
-    '''
-    The `eds.charlson` component extracts the
-    [Charlson Comorbidity Index](https://www.mdcalc.com/charlson-comorbidity-index-cci).
+    """
+    Matcher for the Elston-Ellis score.
 
     Examples
     --------
@@ -58,44 +63,15 @@ def create_component(
     import spacy
 
     nlp = spacy.blank("eds")
-    nlp.add_pipe("eds.sentences")
-    nlp.add_pipe("eds.normalizer")
-    nlp.add_pipe("eds.charlson")
-
-    text = """
-    Charlson à l'admission: 7.
-    Charlson:
-    OMS:
-    """
-
-    doc = nlp(text)
-    doc.ents
-    # Out: (Charlson à l'admission: 7,)
-    ```
-
-    We can see that only one occurrence was extracted. The second mention of
-    Charlson in the text doesn't contain any numerical value, so it isn't extracted.
-
-    Extensions
-    ----------
-    Each extraction exposes 2 extensions:
-
-    ```python
-    ent = doc.ents[0]
-
-    ent._.score_name
-    # Out: 'charlson'
-
-    ent._.score_value
-    # Out: 7
+    nlp.add_pipe("eds.elston_ellis")
     ```
 
     Parameters
     ----------
     nlp : Language
         The pipeline object
-    name : Optional[str]
-        Name of the component
+    name : str
+        The name of the component
     regex : List[str]
         A list of regexes to identify the score
     attr : str
@@ -125,7 +101,7 @@ def create_component(
     Returns
     -------
     SimpleScoreMatcher
-    '''
+    """
     return SimpleScoreMatcher(
         nlp,
         name=name,

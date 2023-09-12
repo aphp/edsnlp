@@ -34,7 +34,7 @@ def test_default_factory(blank_nlp: Language):
     blank_nlp.add_pipe("matcher", config=dict(terms={"patient": "patient"}))
     blank_nlp.add_pipe(
         "eds.measurements",
-        config=dict(measurements=["eds.size", "eds.weight", "eds.bmi"]),
+        config=dict(measurements=["size", "weight", "bmi"]),
     )
 
     doc = blank_nlp(text)
@@ -94,15 +94,15 @@ def test_measure_label(blank_nlp: Language, matcher: MeasurementsMatcher):
 
     m1, m2, m3, m4, m5, m6, m7, m8, m9 = doc.spans["measurements"]
 
-    assert m1.label_ == "eds.size"
-    assert m2.label_ == "eds.weight"
-    assert m3.label_ == "eds.size"
-    assert m4.label_ == "eds.size"
-    assert m5.label_ == "eds.size"
-    assert m6.label_ == "eds.size"
-    assert m7.label_ == "eds.size"
-    assert m8.label_ == "eds.size"
-    assert m9.label_ == "eds.size"
+    assert m1.label_ == "size"
+    assert m2.label_ == "weight"
+    assert m3.label_ == "size"
+    assert m4.label_ == "size"
+    assert m5.label_ == "size"
+    assert m6.label_ == "size"
+    assert m7.label_ == "size"
+    assert m8.label_ == "size"
+    assert m9.label_ == "size"
 
 
 def test_measure_str(blank_nlp: Language, matcher: MeasurementsMatcher):
@@ -214,21 +214,24 @@ def test_ranges(blank_nlp: Language, matcher: MeasurementsMatcher):
 
 def test_merge_align(blank_nlp, matcher):
     matcher.merge_mode = "align"
+    matcher.span_getter = {"candidates": True}
+    matcher.span_setter = {"ents": True}
     doc = blank_nlp(text)
-    ent = Span(doc, 10, 15, label="eds.size")
-    doc.ents = [ent]
+    ent = Span(doc, 10, 15, label="size")
+    doc.spans["candidates"] = [ent]
     doc = matcher(doc)
 
     assert len(doc.ents) == 1
     assert str(ent._.value) == "2.0 cm"
 
 
-def test_merge_intersect(blank_nlp, matcher):
+def test_merge_intersect(blank_nlp, matcher: MeasurementsMatcher):
     matcher.merge_mode = "intersect"
-    matcher.as_ents = True
+    matcher.span_setter = {**matcher.span_setter, "ents": True}
+    matcher.span_getter = {"lookup_zones": True}
     doc = blank_nlp(text)
-    ent = Span(doc, 10, 16, label="eds.size")
-    doc.ents = [ent]
+    ent = Span(doc, 10, 16, label="size")
+    doc.spans["lookup_zones"] = [ent]
     doc = matcher(doc)
 
     assert len(doc.ents) == 2

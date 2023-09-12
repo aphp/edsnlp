@@ -1,42 +1,26 @@
-from typing import List, Union
-
 from spacy.language import Language
 
-from edsnlp.pipelines.misc.consultation_dates import ConsultationDates
 from edsnlp.utils.deprecation import deprecated_factory
+
+from .consultation_dates import ConsultationDatesMatcher
 
 DEFAULT_CONFIG = dict(
     consultation_mention=True,
     town_mention=False,
     document_date_mention=False,
     attr="NORM",
+    ignore_excluded=False,
+    ignore_spacy_tokens=False,
+    label="consultation_date",
+    span_setter={"ents": True, "consultation_dates": True},
 )
 
-
-@deprecated_factory(
+create_component = deprecated_factory(
     "consultation_dates",
     "eds.consultation_dates",
-    default_config=DEFAULT_CONFIG,
-    assigns=["doc._.consultation_dates"],
-)
-@Language.factory(
+    assigns=["doc.spans", "doc.ents"],
+)(ConsultationDatesMatcher)
+create_component = Language.factory(
     "eds.consultation_dates",
-    default_config=DEFAULT_CONFIG,
-    assigns=["doc._.consultation_dates"],
-)
-def create_component(
-    nlp: Language,
-    name: str,
-    attr: str,
-    consultation_mention: Union[List[str], bool],
-    town_mention: Union[List[str], bool],
-    document_date_mention: Union[List[str], bool],
-):
-    return ConsultationDates(
-        nlp,
-        name=name,
-        attr=attr,
-        consultation_mention=consultation_mention,
-        document_date_mention=document_date_mention,
-        town_mention=town_mention,
-    )
+    assigns=["doc.spans", "doc.ents"],
+)(create_component)

@@ -549,7 +549,7 @@ units_config = {
 
 
 common_measurements = {
-    "eds.weight": {
+    "weight": {
         "unit": "kg",
         "unitless_patterns": [
             {
@@ -561,7 +561,7 @@ common_measurements = {
             }
         ],
     },
-    "eds.size": {
+    "size": {
         "unit": "m",
         "unitless_patterns": [
             {
@@ -583,13 +583,13 @@ common_measurements = {
             }
         ],
     },
-    "eds.bmi": {
+    "bmi": {
         "unit": "kg_per_m2",
         "unitless_patterns": [
             {"terms": ["imc", "bmi"], "ranges": [{"unit": "kg_per_m2"}]}
         ],
     },
-    "eds.volume": {"unit": "m3", "unitless_patterns": []},
+    "volume": {"unit": "m3", "unitless_patterns": []},
 }
 
 unit_divisors = ["/", "par"]

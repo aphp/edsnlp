@@ -1,8 +1,8 @@
 import spacy
 from pytest import fixture
 
-from edsnlp.pipelines.core.endlines.endlinesmodel import EndLinesModel
 from edsnlp.pipelines.core.endlines.functional import build_path
+from edsnlp.pipelines.core.endlines.model import EndLinesModel
 
 texts = [
     """Le patient est arrivé hier soir.

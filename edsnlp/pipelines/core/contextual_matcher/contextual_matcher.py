@@ -422,7 +422,6 @@ class ContextualMatcher(BaseNERComponent):
 
     def process_one(self, span):
         filtered = self.filter_one(span)
-        print("FILTERED", filtered)
         yield from self.assign_one(filtered)
 
     def process(self, doc: Doc) -> List[Span]:
@@ -442,9 +441,6 @@ class ContextualMatcher(BaseNERComponent):
 
         matches = self.phrase_matcher(doc, as_spans=True)
         regex_matches = list(self.regex_matcher(doc, as_spans=True))
-
-        print("MATCHES", matches)
-        print("REGEX_MATCHES", regex_matches)
 
         spans = (*matches, *regex_matches)
         for span in spans:

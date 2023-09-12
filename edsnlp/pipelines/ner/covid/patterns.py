@@ -6,8 +6,6 @@ covid = [
     r"corona[-\s]?virus",
 ]
 
-
 diseases = [r"pneumopathies?", r"infections?"]
 
-
-pattern = r"(" + make_pattern(diseases) + r"\s[àa]u?\s)?" + make_pattern(covid)
+patterns = [r"(" + make_pattern(diseases) + r"\s[àa]u?\s)?" + make_pattern(covid)]

@@ -1,1 +1,3 @@
-from .sections import Sections
+from .sections import SectionsMatcher
+
+Sections = SectionsMatcher

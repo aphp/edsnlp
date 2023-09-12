@@ -4,7 +4,6 @@ import pandas as pd
 import spacy
 import streamlit as st
 from spacy import displacy
-from spacy.tokens import Span
 
 from edsnlp.utils.filter import filter_spans
 
@@ -65,22 +64,43 @@ doc = nlp(text)
 doc.ents
 """
 
+PIPES = {
+    "Dates": "dates",
+    "Measurements": "measurements",
+    "Charlson": "charlson",
+    "SOFA": "sofa",
+    "Elston & Ellis": "elston_ellis",
+    "TNM": "tnm",
+    "Priority": "emergency_priority",
+    "CCMU": "emergency_ccmu",
+    "GEMSA": "emergency_gemsa",
+    "Covid": "covid",
+    "CIM10": "cim10",
+    "Drugs": "drugs",
+    "Adicap": "adicap",
+    "Diabetes": "diabetes",
+    "Tobacco": "tobacco",
+    "AIDS": "aids",
+    "Lymphoma": "lymphoma",
+    "Leukemia": "leukemia",
+    "Solid Tumor": "solid_tumor",
+    "CKD": "ckd",
+    "Hemiplegia": "hemiplegia",
+    "Liver Disease": "liver_disease",
+    "Peptic Ulcer Disease": "peptic_ulcer_disease",
+    "Connective Tissue Disease": "connective_tissue_disease",
+    "COPD": "copd",
+    "Dementia": "dementia",
+    "Cerebrovascular Accident": "cerebrovascular_accident",
+    "Peripheral Vascular Disease": "peripheral_vascular_disease",
+    "Congestive Heart Failure": "congestive_heart_failure",
+    "Myocardial Infarction": "myocardial_infarction",
+    "Alcohol": "alcohol",
+}
+
 
 @st.cache(allow_output_mutation=True)
-def load_model(
-    drugs: bool,
-    fuzzy_drugs: bool,
-    cim10: bool,
-    covid: bool,
-    dates: bool,
-    measurements: bool,
-    charlson: bool,
-    sofa: bool,
-    priority: bool,
-    custom_regex: str,
-    adicap: bool,
-):
-
+def load_model(custom_regex: str, **enabled):
     pipes = []
 
     # Declare the pipeline
@@ -88,47 +108,24 @@ def load_model(
     nlp.add_pipe("eds.normalizer")
     nlp.add_pipe("eds.sentences")
 
-    if drugs:
-        if fuzzy_drugs:
-            nlp.add_pipe("eds.drugs", config=dict(term_matcher="simstring"))
-            pipes.append(
-                'nlp.add_pipe("eds.drugs", config=dict(term_matcher="simstring"))'
-            )
+    for title, name in PIPES.items():
+
+        if name == "drugs":
+            if enabled["drugs"]:
+                if enabled["fuzzy_drugs"]:
+                    nlp.add_pipe("eds.drugs", config=dict(term_matcher="simstring"))
+                    pipes.append(
+                        'nlp.add_pipe("eds.drugs", '
+                        'config=dict(term_matcher="simstring"))'
+                    )
+                else:
+                    nlp.add_pipe("eds.drugs")
+                    pipes.append('nlp.add_pipe("eds.drugs")')
+
         else:
-            nlp.add_pipe("eds.drugs")
-            pipes.append('nlp.add_pipe("eds.drugs")')
-
-    if cim10:
-        nlp.add_pipe("eds.cim10")
-        pipes.append('nlp.add_pipe("eds.cim10")')
-
-    if covid:
-        nlp.add_pipe("eds.covid")
-        pipes.append('nlp.add_pipe("eds.covid")')
-
-    if dates:
-        nlp.add_pipe("eds.dates")
-        pipes.append('nlp.add_pipe("eds.dates")')
-
-    if measurements:
-        nlp.add_pipe("eds.measurements", config={"extract_ranges": True})
-        pipes.append('nlp.add_pipe("eds.measurements", config={"extract_ranges": True}')
-
-    if charlson:
-        nlp.add_pipe("eds.charlson")
-        pipes.append('nlp.add_pipe("eds.charlson")')
-
-    if sofa:
-        nlp.add_pipe("eds.sofa")
-        pipes.append('nlp.add_pipe("eds.sofa")')
-
-    if priority:
-        nlp.add_pipe("eds.emergency.priority")
-        pipes.append('nlp.add_pipe("eds.emergency.priority")')
-
-    if adicap:
-        nlp.add_pipe("eds.adicap")
-        pipes.append('nlp.add_pipe("eds.adicap")')
+            if enabled[name]:
+                nlp.add_pipe(f"eds.{name}")
+                pipes.append(f'nlp.add_pipe("eds.{name}")')
 
     if pipes:
         pipes.insert(0, "# Entity extraction pipelines")
@@ -191,19 +188,18 @@ st_custom_regex = st.sidebar.text_input(
 st.sidebar.markdown("The RegEx you defined above is detected under the `custom` label.")
 
 st.sidebar.subheader("Pipeline Components")
-st_cim10 = st.sidebar.checkbox("CIM10 (loading can be slow)", value=False)
+st_pipes = {}
+
+st_pipes["cim10"] = st.sidebar.checkbox("CIM10 (loading can be slow)", value=False)
 st_drugs_container = st.sidebar.columns([1, 2])
-st_drugs = st_drugs_container[0].checkbox("Drugs", value=True)
+st_pipes["drugs"] = st_drugs_container[0].checkbox("Drugs", value=True)
 st_fuzzy_drugs = st_drugs_container[1].checkbox(
-    "Fuzzy drugs search", value=True, disabled=not st_drugs
+    "Fuzzy drugs search", value=True, disabled=not st_pipes["drugs"]
 )
-st_covid = st.sidebar.checkbox("COVID", value=True)
-st_dates = st.sidebar.checkbox("Dates", value=True)
-st_measurements = st.sidebar.checkbox("Measurements", value=True)
-st_priority = st.sidebar.checkbox("Emergency Priority Score", value=True)
-st_charlson = st.sidebar.checkbox("Charlson Score", value=True)
-st_sofa = st.sidebar.checkbox("SOFA Score", value=True)
-st_adicap = st.sidebar.checkbox("ADICAP Code", value=True)
+for title, name in PIPES.items():
+    if name == "drugs":
+        continue
+    st_pipes[name] = st.sidebar.checkbox(title, value=True)
 st.sidebar.markdown(
     "These are just a few of the pipelines provided out-of-the-box by EDS-NLP. "
     "See the [documentation](https://aphp.github.io/edsnlp/latest/pipelines/) "
@@ -213,17 +209,9 @@ st.sidebar.markdown(
 model_load_state = st.info("Loading model...")
 
 nlp, pipes, regex = load_model(
-    drugs=st_drugs,
     fuzzy_drugs=st_fuzzy_drugs,
-    cim10=st_cim10,
-    covid=st_covid,
-    dates=st_dates,
-    measurements=st_measurements,
-    charlson=st_charlson,
-    sofa=st_sofa,
-    adicap=st_adicap,
-    priority=st_priority,
     custom_regex=st_custom_regex,
+    **st_pipes,
 )
 
 model_load_state.empty()
@@ -236,6 +224,9 @@ text = st.text_area(
 )
 
 doc = nlp(text)
+doc.ents = filter_spans(
+    (*doc.ents, *doc.spans.get("dates", []), *doc.spans.get("measurements", []))
+)
 
 st.header("Visualisation")
 
@@ -243,25 +234,6 @@ st.markdown(
     "The pipeline extracts simple entities using a dictionnary of RegEx (see the "
     "[Export the pipeline section](#export-the-pipeline) for more information)."
 )
-
-ents = list(doc.ents)
-
-for ent in ents:
-    if ent._.score_value:
-        ent._.value = ent._.score_value
-
-for date in doc.spans.get("dates", []):
-    span = Span(doc, date.start, date.end, label="date")
-    span._.value = span._.date.norm()
-    ents.append(span)
-
-for measure in doc.spans.get("measurements", []):
-    span = Span(doc, measure.start, measure.end, label=measure.label_)
-    span._.value = span._.value
-    ents.append(span)
-
-
-doc.ents = list(filter_spans(ents))
 
 category20 = [
     "#1f77b4",
@@ -291,11 +263,12 @@ labels = [
     "covid",
     "drug",
     "cim10",
-    "eds.emergency.priority",
-    "eds.sofa",
-    "eds.charlson",
-    "eds.size",
-    "eds.weight",
+    "emergency_priority",
+    "sofa",
+    "charlson",
+    "size",
+    "weight",
+    "adicap",
 ]
 
 colors = {label: cat for label, cat in zip(labels, category20)}
@@ -314,38 +287,17 @@ st.write(html, unsafe_allow_html=True)
 
 data = []
 for ent in doc.ents:
-
-    if ent.label_ == "date" or "measure" in ent.label_:
-        d = dict(
-            start=ent.start_char,
-            end=ent.end_char,
-            lexical_variant=ent.text,
-            label=ent.label_,
-            negation="",
-            family="",
-            hypothesis="",
-            reported_speech="",
-        )
-
-    else:
-        d = dict(
-            start=ent.start_char,
-            end=ent.end_char,
-            lexical_variant=ent.text,
-            label=ent.label_,
-            negation="YES" if ent._.negation else "NO",
-            family="YES" if ent._.family else "NO",
-            hypothesis="YES" if ent._.hypothesis else "NO",
-            reported_speech="YES" if ent._.reported_speech else "NO",
-        )
-
-    try:
-        if ent.kb_id_ and not ent._.value:
-            d["normalized_value"] = ent.kb_id_
-        else:
-            d["normalized_value"] = str(ent._.value)
-    except TypeError:
-        d["normalized_value"] = ""
+    d = dict(
+        start=ent.start_char,
+        end=ent.end_char,
+        text=ent.text,
+        label=ent.label_,
+        normalized_value=ent._.value or "",
+        negation="YES" if ent._.negation else "NO",
+        family="YES" if ent._.family else "NO",
+        hypothesis="YES" if ent._.hypothesis else "NO",
+        reported_speech="YES" if ent._.reported_speech else "NO",
+    )
 
     data.append(d)
 

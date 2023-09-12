@@ -47,15 +47,17 @@ setup = [
     "typer"
 ]
 docs = [
-    "mike==1.1.2",
-    "mkdocs-autorefs~=0.4.1",
-    "mkdocs-bibtex==2.8.5",
+    "mike~=1.1.2",
     "mkdocs-charts-plugin==0.0.8",
     "mkdocs-img2fig-plugin==0.9.3",
     "mkdocs-material~=9.1.0",
     "mkdocs-section-index==0.3.4",
-    "mkdocstrings~=0.21.2",
-    "mkdocstrings-python~=0.10.1",
+    "mkdocs~=1.5.2",
+    "mkdocstrings~=0.20",
+    "mkdocstrings-python~=1.1",
+    "mkdocs-autolinks-plugin~=0.7.1",
+    "pybtex~=0.24.0",
+    "pathspec>=0.11.1",  # required by vendored mkdocs-autorefs PR
 ]
 
 [project.urls]
@@ -176,6 +178,37 @@ requires = [
     "numpy; python_version>='3.9' and platform_python_implementation=='PyPy'",
 ]
 build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+fix = true
+extend-exclude = [
+    ".git",
+    "__pycache__",
+    "__init__.py",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".venv",
+    "build",
+    "edsnlp/pipelines/factories.py",
+]
+line-length = 88
+select = [
+    "E",
+    "F",
+    "W",
+    "I001"
+]
+
+[tool.ruff.flake8-tidy-imports]
+ban-relative-imports = "parents"
+
+[tool.ruff.extend-per-file-ignores]
+"__init__.py" = ["F401"]
+"edsnlp/pipelines/factories.py" = [ "F401", "E501" ]
+
+[tool.ruff.isort]
+known-first-party = ["edsnlp"]
+order-by-type = true
 
 [tool.interrogate]
 ignore-init-method = true

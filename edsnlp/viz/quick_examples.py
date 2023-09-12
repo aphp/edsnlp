@@ -49,12 +49,12 @@ class QuickExample:
     def get_ents(self):
 
         all_spans = {k: list(s) for k, s in self.doc.spans.items() if s}
-        all_spans["ents"] = list(self.doc.ents).copy()
+        all_spans["ents"] = list(self.doc.ents)
 
         ents = []
 
         for key, spans in all_spans.items():
-            for span in spans:
+            for span in list(spans):
                 if span in all_spans["ents"]:
                     all_spans["ents"].remove(span)
                 start, end = span.start, span.end

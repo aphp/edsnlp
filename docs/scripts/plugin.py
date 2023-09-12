@@ -1,85 +1,117 @@
 import os
-import shutil
 from pathlib import Path
 
-import mkdocs
+import mkdocs.config
+import mkdocs.structure
+import mkdocs.structure.files
+import mkdocs.structure.nav
+
+
+def exclude_file(name):
+    return name.startswith("assets/fragments/")
+
 
 # Add the files from the project root
 
-files = [
-    "changelog.md",
-    "contributing.md",
-]
-
-docs_gen = Path("docs")
-os.makedirs(docs_gen, exist_ok=True)
-
-for f in files:
-    with open(docs_gen / Path(f), "w") as fd:
-        fd.write(Path(f).read_text())
-
-# Generate the code reference pages and navigation.
-doc_reference = Path("docs/reference")
-shutil.rmtree(doc_reference, ignore_errors=True)
-os.makedirs(doc_reference, exist_ok=True)
-
-for path in sorted(Path("edsnlp").rglob("*.py")):
-    module_path = path.relative_to(".").with_suffix("")
-    doc_path = path.relative_to("edsnlp").with_suffix(".md")
-    full_doc_path = doc_reference / doc_path
-
-    parts = list(module_path.parts)
-
-    if parts[-1] == "__init__":
-        parts = parts[:-1]
-        doc_path = doc_path.with_name("index.md")
-        full_doc_path = full_doc_path.with_name("index.md")
-    elif parts[-1] == "__main__":
-        continue
-
-    ident = ".".join(parts)
-
-    os.makedirs(full_doc_path.parent, exist_ok=True)
-    with open(full_doc_path, "w") as fd:
-        print(f"# `{ident}`\n", file=fd)
-        print("::: " + ident, file=fd)
+REFERENCE_FILES = {}
+REFERENCE_TEMPLATE = """
+# `{ident}`
+::: {ident}
+    options:
+        show_source: false
+"""
 
 
-def on_files(files: mkdocs.structure.files.Files, config: mkdocs.config.Config) -> None:
+def on_files(files: mkdocs.structure.files.Files, config: mkdocs.config.Config):
     """
-    Updates the navigation to take code reference files into account
-    """
-    reference_files = []
-    for file in files:
-        if file.src_path.startswith("reference/"):
-            current = reference_files
-            parts = ["edsnlp"] + file.src_path.replace(".md", "").split("/")[1:]
-            for part in parts[:-1]:
-                entry = next(
-                    (
-                        next(iter(entry.values()))
-                        for entry in current
-                        if next(iter(entry.keys())) == part
-                    ),
-                    None,
-                )
-                if entry is None:
-                    entry = []
-                    current.append({part: entry})
-                    current = entry
-                else:
-                    current = entry
-            current.append({parts[-1]: file.src_path})
+    Recursively the navigation of the mkdocs config
+    and recursively content of directories of page that point
+    to directories.
 
-    def rec(tree):
-        if isinstance(tree, str) and tree.strip("/") == "reference":
-            return reference_files
-        elif isinstance(tree, list):
-            return [rec(item) for item in tree]
-        elif isinstance(tree, dict):
-            return {k: rec(item) for k, item in tree.items()}
+    Parameters
+    ----------
+    config: mkdocs.config.Config
+        The configuration object
+    kwargs: dict
+        Additional arguments
+    """
+
+    root = Path("edsnlp")
+    reference_nav = []
+    for path in sorted(root.rglob("*.py")):
+        module_path = path.relative_to(root.parent).with_suffix("")
+        doc_path = Path("reference") / path.relative_to(root.parent).with_suffix(".md")
+        # full_doc_path = Path("docs/reference/") / doc_path
+        parts = list(module_path.parts)
+        current = reference_nav
+        for part in parts[:-1]:
+            sub = next((item[part] for item in current if part in item), None)
+            if sub is None:
+                current.append({part: []})
+                sub = current[-1][part]
+            current = sub
+        if parts[-1] == "__init__":
+            parts = parts[:-1]
+            doc_path = doc_path.with_name("index.md")
+            current.append({"index.md": str(doc_path)})
+        elif parts[-1] == "__main__":
+            continue
         else:
-            return tree
+            current.append({parts[-1]: str(doc_path)})
+        ident = ".".join(parts)
+        os.makedirs(doc_path.parent, exist_ok=True)
+        REFERENCE_FILES[str(doc_path)] = REFERENCE_TEMPLATE.format(ident=ident)
 
-    new_nav = rec(config["nav"])
-    config["nav"] = new_nav
+    for item in config["nav"]:
+        if not isinstance(item, dict):
+            continue
+        key = next(iter(item.keys()))
+        if not isinstance(item[key], str):
+            continue
+        if item[key].strip("/") == "reference":
+            item[key] = reference_nav
+
+    return mkdocs.structure.files.Files(
+        [file for file in files if not exclude_file(file.src_path)]
+        + [
+            mkdocs.structure.files.File(
+                file,
+                config["docs_dir"],
+                config["site_dir"],
+                config["use_directory_urls"],
+            )
+            for file in REFERENCE_FILES
+        ]
+    )
+
+
+def on_nav(nav, config, files):
+    def rec(node):
+        if isinstance(node, list):
+            return [rec(item) for item in node]
+        if node.is_section and node.title == "Code Reference":
+            return
+        if isinstance(node, mkdocs.structure.nav.Navigation):
+            return rec(node.items)
+        if isinstance(node, mkdocs.structure.nav.Section):
+            if (
+                len(node.children)
+                and node.children[0].is_page
+                and not node.children[0].is_index
+            ):
+                first = node.children[0]
+                link = mkdocs.structure.nav.Link(
+                    title=first.title,
+                    url=first.url,
+                )
+                link.is_index = True
+                node.children.append(link)
+            return rec(node.children)
+
+    rec(nav.items)
+
+
+def on_page_read_source(page, config):
+    if page.file.src_path in REFERENCE_FILES:
+        return REFERENCE_FILES[page.file.src_path]
+    return None

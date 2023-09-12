@@ -3,7 +3,7 @@
   {% for section in docstring_sections %}
     {% if not config.only_parameters %}
       {% if section.kind.value == "text" %}
-        {{ section.value|convert_markdown(heading_level, html_id) }}
+        {{ section.value|convert_markdown(heading_level - 1, html_id) }}
       {% elif section.kind.value == "attributes" %}
         {% include "docstring/attributes.html" with context %}
       {% elif section.kind.value == "parameters" %}
@@ -27,6 +27,8 @@
       {% endif %}
     {% elif section.kind.value == "parameters" %}
       {% include "docstring/parameters.html" with context %}
+    {% elif section.kind.value == "attributes" %}
+      {% include "docstring/attributes.html" with context %}
     {% endif %}
   {% endfor %}
 {% endif %}

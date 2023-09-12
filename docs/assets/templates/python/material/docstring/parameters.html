@@ -1,4 +1,5 @@
 {{ log.debug("Rendering parameters section") }}
+{{ "# Parameters\n"|convert_markdown(heading_level, html_id) }}
 {% if config.docstring_section_style == "table" %}
   {% block table_style %}
   <p><strong>{{ section.title or "Parameters:" }}</strong></p>

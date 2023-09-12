@@ -1,20 +1,15 @@
-from typing import Any, Dict, Optional
+from spacy import Language
 
-from spacy.language import Language
+from .cerebrovascular_accident import CerebrovascularAccidentMatcher
+from .patterns import default_patterns
 
-from .cerebrovascular_accident import CerebrovascularAccident
-
-DEFAULT_CONFIG = dict(patterns=None)
-
-
-@Language.factory(
-    "eds.cerebrovascular_accident",
-    default_config=DEFAULT_CONFIG,
-    assigns=["doc.ents", "doc.spans"],
+DEFAULT_CONFIG = dict(
+    patterns=default_patterns,
+    label="cerebrovascular_accident",
+    span_setter={"ents": True, "cerebrovascular_accident": True},
 )
-def create_component(
-    nlp: Language,
-    name: str,
-    patterns: Optional[Dict[str, Any]],
-):
-    return CerebrovascularAccident(nlp, name=name, patterns=patterns)
+
+create_component = Language.factory(
+    "eds.cerebrovascular_accident",
+    assigns=["doc.ents", "doc.spans"],
+)(CerebrovascularAccidentMatcher)

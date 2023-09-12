@@ -1,20 +1,15 @@
-from typing import Any, Dict, Optional
+from spacy import Language
 
-from spacy.language import Language
+from .lymphoma import LymphomaMatcher
+from .patterns import default_patterns
 
-from .lymphoma import Lymphoma
-
-DEFAULT_CONFIG = dict(patterns=None)
-
-
-@Language.factory(
-    "eds.lymphoma",
-    default_config=DEFAULT_CONFIG,
-    assigns=["doc.ents", "doc.spans"],
+DEFAULT_CONFIG = dict(
+    patterns=default_patterns,
+    label="lymphoma",
+    span_setter={"ents": True, "lymphoma": True},
 )
-def create_component(
-    nlp: Language,
-    name: str,
-    patterns: Optional[Dict[str, Any]],
-):
-    return Lymphoma(nlp, name, patterns=patterns)
+
+create_component = Language.factory(
+    "eds.lymphoma",
+    assigns=["doc.ents", "doc.spans"],
+)(LymphomaMatcher)

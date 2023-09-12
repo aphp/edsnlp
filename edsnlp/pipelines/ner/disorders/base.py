@@ -1,10 +1,12 @@
 import re
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, List, Union
 
 from spacy import Language
 from spacy.tokens import Doc, Span
 
+from edsnlp.pipelines.base import SpanSetterArg
 from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
+from edsnlp.utils.deprecation import deprecated_getter_factory
 from edsnlp.utils.filter import filter_spans
 
 
@@ -26,58 +28,64 @@ class DisorderMatcher(ContextualMatcher):
         Whether to skip excluded tokens during matching.
     ignore_space_tokens: bool
         Whether to skip space tokens during matching.
-    detailled_statusmapping: Optional[Dict[int, str]]
+    detailed_status_mapping: Dict[int, str]
         Mapping from integer status (0, 1 or 2) to human-readable string
 
     alignment_mode : str
         Overwrite alignment mode.
     regex_flags : Union[re.RegexFlag, int]
         RegExp flags to use when matching, filtering and assigning (See
-        [here](https://docs.python.org/3/library/re.html#flags))
-
+        the [re docs](https://docs.python.org/3/library/re.html#flags))
     """
 
     def __init__(
         self,
         nlp: Language,
         name: str,
-        label_name: str,
+        *,
+        label: str,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]],
         include_assigned: bool = True,
         ignore_excluded: bool = True,
         ignore_space_tokens: bool = True,
-        detailled_statusmapping: Optional[Dict[int, str]] = None,
-    ):
-        self.nlp = nlp
-        self.detailled_statusmapping = detailled_statusmapping or {
+        detailed_status_mapping: Dict[int, str] = {
             0: "ABSENT",
             1: "PRESENT",
-        }
+        },
+        alignment_mode: str = "expand",
+        regex_flags: Union[re.RegexFlag, int] = re.S,
+        span_setter: SpanSetterArg,
+    ):
+        self.nlp = nlp
+        self.detailed_status_mapping = detailed_status_mapping
 
         super().__init__(
             nlp=nlp,
             name=name,
-            label_name=label_name,
+            label=label,
             attr="NORM",
             patterns=patterns,
             ignore_excluded=ignore_excluded,
             ignore_space_tokens=ignore_space_tokens,
-            regex_flags=re.S,
-            alignment_mode="expand",
+            regex_flags=regex_flags,
+            alignment_mode=alignment_mode,
             assign_as_span=True,
             include_assigned=include_assigned,
+            span_setter=span_setter,
         )
 
-        self.set_extensions()
-
-    @classmethod
-    def set_extensions(cl) -> None:
+    def set_extensions(self) -> None:
         super().set_extensions()
 
         if not Span.has_extension("status"):
             Span.set_extension("status", default=1)
+        if not Span.has_extension("detailed_status"):
+            Span.set_extension("detailed_status", default="PRESENT")
         if not Span.has_extension("detailled_status"):
-            Span.set_extension("detailled_status", default="PRESENT")
+            Span.set_extension(
+                "detailled_status",
+                getter=deprecated_getter_factory("detailed_status", "detailed_status"),
+            )
 
     def __call__(self, doc: Doc) -> Doc:
         """
@@ -93,18 +101,10 @@ class DisorderMatcher(ContextualMatcher):
         doc : Doc
             annotated spaCy Doc object
         """
-        spans = self.postprocess(doc, self.process(doc))
-        spans = filter_spans(spans)
-
+        spans = list(self.process(doc))
         for span in spans:
-            span._.detailled_status = self.detailled_statusmapping[span._.status]
+            span._.detailed_status = self.detailed_status_mapping[span._.status]
 
-        doc.spans[self.label_name] = spans
+        self.set_spans(doc, filter_spans(spans))
 
         return doc
-
-    def postprocess(self, doc: Doc, spans: Iterable[Span]):
-        """
-        Can be overrid
-        """
-        yield from spans

@@ -1,20 +1,15 @@
-from typing import Any, Dict, Optional
+from spacy import Language
 
-from spacy.language import Language
+from .leukemia import LeukemiaMatcher
+from .patterns import default_patterns
 
-from .leukemia import Leukemia
-
-DEFAULT_CONFIG = dict(patterns=None)
-
-
-@Language.factory(
-    "eds.leukemia",
-    default_config=DEFAULT_CONFIG,
-    assigns=["doc.ents", "doc.spans"],
+DEFAULT_CONFIG = dict(
+    patterns=default_patterns,
+    label="leukemia",
+    span_setter={"ents": True, "leukemia": True},
 )
-def create_component(
-    nlp: Language,
-    name: str,
-    patterns: Optional[Dict[str, Any]],
-):
-    return Leukemia(nlp, name, patterns=patterns)
+
+create_component = Language.factory(
+    "eds.leukemia",
+    assigns=["doc.ents", "doc.spans"],
+)(LeukemiaMatcher)

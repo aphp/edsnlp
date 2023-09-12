@@ -1,24 +1,16 @@
-from typing import Any, Dict, Optional
+from spacy import Language
 
-from spacy.language import Language
-
-from .solid_tumor import SolidTumor
+from .patterns import default_patterns
+from .solid_tumor import SolidTumorMatcher
 
 DEFAULT_CONFIG = dict(
-    patterns=None,
+    patterns=default_patterns,
     use_tnm=False,
+    label="solid_tumor",
+    span_setter={"ents": True, "solid_tumor": True},
 )
 
-
-@Language.factory(
+create_component = Language.factory(
     "eds.solid_tumor",
-    default_config=DEFAULT_CONFIG,
     assigns=["doc.ents", "doc.spans"],
-)
-def create_component(
-    nlp: Language,
-    name: str,
-    patterns: Optional[Dict[str, Any]],
-    use_tnm: bool,
-):
-    return SolidTumor(nlp, name, patterns=patterns, use_tnm=use_tnm)
+)(SolidTumorMatcher)

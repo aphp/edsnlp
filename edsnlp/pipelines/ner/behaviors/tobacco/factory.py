@@ -1,20 +1,15 @@
-from typing import Any, Dict, Optional
+from spacy import Language
 
-from spacy.language import Language
+from .patterns import default_patterns
+from .tobacco import TobaccoMatcher
 
-from .tobacco import Tobacco
-
-DEFAULT_CONFIG = dict(patterns=None)
-
-
-@Language.factory(
-    "eds.tobacco",
-    default_config=DEFAULT_CONFIG,
-    assigns=["doc.ents", "doc.spans"],
+DEFAULT_CONFIG = dict(
+    patterns=default_patterns,
+    label="tobacco",
+    span_setter={"ents": True, "tobacco": True},
 )
-def create_component(
-    nlp: Language,
-    name: str,
-    patterns: Optional[Dict[str, Any]],
-):
-    return Tobacco(nlp, name, patterns=patterns)
+
+create_component = Language.factory(
+    "eds.tobacco",
+    assigns=["doc.ents", "doc.spans"],
+)(TobaccoMatcher)

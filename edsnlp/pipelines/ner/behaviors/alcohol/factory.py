@@ -1,20 +1,15 @@
-from typing import Any, Dict, Optional
+from spacy import Language
 
-from spacy.language import Language
+from .alcohol import AlcoholMatcher
+from .patterns import default_patterns
 
-from .alcohol import Alcohol
-
-DEFAULT_CONFIG = dict(patterns=None)
-
-
-@Language.factory(
-    "eds.alcohol",
-    default_config=DEFAULT_CONFIG,
-    assigns=["doc.ents", "doc.spans"],
+DEFAULT_CONFIG = dict(
+    patterns=default_patterns,
+    label="alcohol",
+    span_setter={"ents": True, "alcohol": True},
 )
-def create_component(
-    nlp: Language,
-    name: str,
-    patterns: Optional[Dict[str, Any]],
-):
-    return Alcohol(nlp, name, patterns=patterns)
+
+create_component = Language.factory(
+    "eds.alcohol",
+    assigns=["doc.ents", "doc.spans"],
+)(AlcoholMatcher)

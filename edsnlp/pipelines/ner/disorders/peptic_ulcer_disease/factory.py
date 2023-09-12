@@ -1,20 +1,15 @@
-from typing import Any, Dict, Optional
+from spacy import Language
 
-from spacy.language import Language
+from .patterns import default_patterns
+from .peptic_ulcer_disease import PepticUlcerDiseaseMatcher
 
-from .peptic_ulcer_disease import PepticUlcerDisease
-
-DEFAULT_CONFIG = dict(patterns=None)
-
-
-@Language.factory(
-    "eds.peptic_ulcer_disease",
-    default_config=DEFAULT_CONFIG,
-    assigns=["doc.ents", "doc.spans"],
+DEFAULT_CONFIG = dict(
+    patterns=default_patterns,
+    label="peptic_ulcer_disease",
+    span_setter={"ents": True, "peptic_ulcer_disease": True},
 )
-def create_component(
-    nlp: Language,
-    name: str,
-    patterns: Optional[Dict[str, Any]],
-):
-    return PepticUlcerDisease(nlp, name, patterns=patterns)
+
+create_component = Language.factory(
+    "eds.peptic_ulcer_disease",
+    assigns=["doc.ents", "doc.spans"],
+)(PepticUlcerDiseaseMatcher)

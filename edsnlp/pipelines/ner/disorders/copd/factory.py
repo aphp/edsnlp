@@ -1,28 +1,22 @@
-from typing import Any, Dict, Optional
-
-from spacy.language import Language
+from spacy import Language
 
 from edsnlp.utils.deprecation import deprecated_factory
 
-from .COPD import COPD
+from .copd import COPDMatcher
+from .patterns import default_patterns
 
-DEFAULT_CONFIG = dict(patterns=None)
+DEFAULT_CONFIG = dict(
+    patterns=default_patterns,
+    label="copd",
+    span_setter={"ents": True, "copd": True},
+)
 
-
-@deprecated_factory(
+create_component = deprecated_factory(
     "eds.COPD",
     "eds.copd",
-    default_config=DEFAULT_CONFIG,
     assigns=["doc.ents", "doc.spans"],
-)
-@Language.factory(
+)(COPDMatcher)
+create_component = Language.factory(
     "eds.copd",
-    default_config=DEFAULT_CONFIG,
     assigns=["doc.ents", "doc.spans"],
-)
-def create_component(
-    nlp: Language,
-    name: str,
-    patterns: Optional[Dict[str, Any]],
-):
-    return COPD(nlp, name=name, patterns=patterns)
+)(create_component)

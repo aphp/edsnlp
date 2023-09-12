@@ -1,20 +1,15 @@
-from typing import Any, Dict, Optional
+from spacy import Language
 
-from spacy.language import Language
+from .myocardial_infarction import MyocardialInfarctionMatcher
+from .patterns import default_patterns
 
-from .myocardial_infarction import MyocardialInfarction
-
-DEFAULT_CONFIG = dict(patterns=None)
-
-
-@Language.factory(
-    "eds.myocardial_infarction",
-    default_config=DEFAULT_CONFIG,
-    assigns=["doc.ents", "doc.spans"],
+DEFAULT_CONFIG = dict(
+    patterns=default_patterns,
+    label="myocardial_infarction",
+    span_setter={"ents": True, "myocardial_infarction": True},
 )
-def create_component(
-    nlp: Language,
-    name: str,
-    patterns: Optional[Dict[str, Any]],
-):
-    return MyocardialInfarction(nlp, name, patterns=patterns)
+
+create_component = Language.factory(
+    "eds.myocardial_infarction",
+    assigns=["doc.ents", "doc.spans"],
+)(MyocardialInfarctionMatcher)

@@ -1,20 +1,15 @@
-from typing import Any, Dict, Optional
+from spacy import Language
 
-from spacy.language import Language
+from .liver_disease import LiverDiseaseMatcher
+from .patterns import default_patterns
 
-from .liver_disease import LiverDisease
-
-DEFAULT_CONFIG = dict(patterns=None)
-
-
-@Language.factory(
-    "eds.liver_disease",
-    default_config=DEFAULT_CONFIG,
-    assigns=["doc.ents", "doc.spans"],
+DEFAULT_CONFIG = dict(
+    patterns=default_patterns,
+    label="liver_disease",
+    span_setter={"ents": True, "liver_disease": True},
 )
-def create_component(
-    nlp: Language,
-    name: str,
-    patterns: Optional[Dict[str, Any]],
-):
-    return LiverDisease(nlp, name, patterns=patterns)
+
+create_component = Language.factory(
+    "eds.liver_disease",
+    assigns=["doc.ents", "doc.spans"],
+)(LiverDiseaseMatcher)

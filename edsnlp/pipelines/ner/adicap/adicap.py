@@ -1,26 +1,152 @@
 """`eds.adicap` pipeline"""
 import re
+from typing import List, Optional, Union
 
+from spacy import Language
 from spacy.tokens import Doc, Span
 
+from edsnlp.pipelines.base import SpanSetterArg
 from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
-from edsnlp.utils.filter import filter_spans
 from edsnlp.utils.resources import get_adicap_dict
 
 from . import patterns
 from .models import AdicapCode
 
 
-class Adicap(ContextualMatcher):
-    def __init__(self, nlp, name, pattern, attr, prefix, window):
+# noinspection SpellCheckingInspection
+class AdicapMatcher(ContextualMatcher):
+    """
+    The `eds.adicap` pipeline component matches the ADICAP codes. It was developped to
+    run on anapathology reports.
 
-        self.nlp = nlp
-        if pattern is None:
-            pattern = patterns.base_code
+    !!! warning "Document type"
 
-        if prefix is None:
-            prefix = patterns.adicap_prefix
+        It was developped to work on anapathology reports.
+        We recommend also to use the `eds` language (`spacy.blank("eds")`)
 
+    The compulsory characters of the ADICAP code are identified and decoded.
+    These characters represent the following attributes:
+
+    | Field [en]        | Field [fr]                    | Attribute       |
+    |-------------------|-------------------------------|-----------------|
+    | Sampling mode     | Mode de prelevement           | sampling_mode   |
+    | Technic           | Type de technique             | technic         |
+    | Organ and regions | Appareils, organes et régions | organ           |
+    | Pathology         | Pathologie générale           | pathology       |
+    | Pathology type    | Type de la pathologie         | pathology_type  |
+    | Behaviour type    | Type de comportement          | behaviour_type  |
+
+
+    The pathology field takes 4 different values corresponding to the 4 possible
+    interpretations of the ADICAP code, which are : "PATHOLOGIE GÉNÉRALE NON TUMORALE",
+    "PATHOLOGIE TUMORALE", "PATHOLOGIE PARTICULIERE DES ORGANES" and "CYTOPATHOLOGIE".
+
+    Depending on the pathology value the behaviour type meaning changes, when the
+    pathology is tumoral then it describes the malignancy of the tumor.
+
+    For further details about the ADICAP code follow this [link](https://smt.esante.\
+gouv.fr/wp-json/ans/terminologies/document?terminologyId=terminologie-adicap&file\
+Name=cgts_sem_adicap_fiche-detaillee.pdf).
+
+    Examples
+    --------
+    ```{ .python .no-check }
+    import spacy
+
+    nlp = spacy.blank("eds")
+    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe("eds.adicap")
+
+    text = \"\"\"
+    COMPTE RENDU D’EXAMEN
+
+    Antériorité(s) :  NEANT
+
+
+    Renseignements cliniques :
+    Contexte d'exploration d'un carcinome canalaire infiltrant du quadrant supéro-
+    externe du sein droit. La lésion biopsiée ce jour est située à 5,5 cm de la lésion
+    du quadrant supéro-externe, à l'union des quadrants inférieurs.
+
+
+    Macrobiopsie 10G sur une zone de prise de contraste focale à l'union des quadrants
+    inférieurs du sein droit, mesurant 4 mm, classée ACR4
+
+    14 fragments ont été communiqués fixés en formol (lame n° 1a et lame n° 1b) . Il
+    n'y a pas eu d'échantillon congelé. Ces fragments ont été inclus en paraffine en
+    totalité et coupés sur plusieurs niveaux.
+    Histologiquement, il s'agit d'un parenchyme mammaire fibroadipeux parfois
+    légèrement dystrophique avec quelques petits kystes. Il n'y a pas d'hyperplasie
+    épithéliale, pas d'atypie, pas de prolifération tumorale. On note quelques
+    suffusions hémorragiques focales.
+
+    Conclusion :
+    Légers remaniements dystrophiques à l'union des quadrants inférieurs du sein droit.
+    Absence d'atypies ou de prolifération tumorale.
+
+    Codification :   BHGS0040
+    \"\"\"
+
+    doc = nlp(text)
+
+    doc.ents
+    # Out: (BHGS0040,)
+
+    ent = doc.ents[0]
+
+    ent.label_
+    # Out: adicap
+
+    ent._.adicap.dict()
+    # Out: {'code': 'BHGS0040',
+    # 'sampling_mode': 'BIOPSIE CHIRURGICALE',
+    # 'technic': 'HISTOLOGIE ET CYTOLOGIE PAR INCLUSION',
+    # 'organ': "SEIN (ÉGALEMENT UTILISÉ CHEZ L'HOMME)",
+    # 'pathology': 'PATHOLOGIE GÉNÉRALE NON TUMORALE',
+    # 'pathology_type': 'ETAT SUBNORMAL - LESION MINEURE',
+    # 'behaviour_type': 'CARACTERES GENERAUX'}
+    ```
+
+    Parameters
+    ----------
+    nlp : Optional[Language]
+        The pipeline object
+    name : str
+        The name of the pipe
+    pattern : Optional[Union[List[str], str]]
+        The regex pattern to use for matching ADICAP codes
+    prefix : Optional[Union[List[str], str]]
+        The regex pattern to use for matching the prefix before ADICAP codes
+    window : int
+        Number of tokens to look for prefix. It will never go further the start of
+        the sentence
+    attr : str
+        Attribute to match on, eg `TEXT`, `NORM`, etc.
+    label : str
+        Label name to use for the `Span` object and the extension
+    span_setter : SpanSetterArg
+        How to set matches on the doc
+
+    Authors and citation
+    --------------------
+    The `eds.adicap` pipeline was developed by AP-HP's Data Science team.
+    The codes were downloaded from the website of 'Agence du numérique en santé'
+    ("Thésaurus de la codification ADICAP - Index raisonné des
+    lésions", [@terminologie-adicap])
+    """
+
+    def __init__(
+        self,
+        nlp: Optional[Language],
+        name: str = "eds.adicap",
+        *,
+        pattern: Union[List[str], str] = patterns.base_code,
+        prefix: Union[List[str], str] = patterns.adicap_prefix,
+        window: int = 500,
+        attr: str = "TEXT",
+        label: str = "adicap",
+        span_setter: SpanSetterArg = {"ents": True, "adicap": True},
+    ):
         adicap_pattern = dict(
             source="adicap",
             regex=prefix,
@@ -39,7 +165,7 @@ class Adicap(ContextualMatcher):
         super().__init__(
             nlp=nlp,
             name=name,
-            label_name="adicap",
+            label=label,
             attr=attr,
             patterns=adicap_pattern,
             ignore_excluded=False,
@@ -47,19 +173,17 @@ class Adicap(ContextualMatcher):
             alignment_mode="expand",
             include_assigned=False,
             assign_as_span=False,
+            span_setter=span_setter,
         )
 
         self.decode_dict = get_adicap_dict()
 
         self.set_extensions()
 
-    @classmethod
-    def set_extensions(cls) -> None:
+    def set_extensions(self) -> None:
         super().set_extensions()
-        if not Span.has_extension("adicap"):
-            Span.set_extension("adicap", default=None)
-        if not Span.has_extension("value"):
-            Span.set_extension("value", default=None)
+        if not Span.has_extension(self.label):
+            Span.set_extension(self.label, default=None)
 
     def decode(self, code):
         code = re.sub("[^A-Za-z0-9 ]+", "", code)
@@ -87,7 +211,7 @@ class Adicap(ContextualMatcher):
 
         return adicap
 
-    def __call__(self, doc: Doc) -> Doc:
+    def process(self, doc: Doc) -> List[Span]:
         """
         Tags ADICAP mentions.
 
@@ -101,22 +225,6 @@ class Adicap(ContextualMatcher):
         doc : Doc
             spaCy Doc object, annotated for ADICAP
         """
-        spans = self.process(doc)
-        spans = filter_spans(spans)
-
-        for span in spans:
-            span._.adicap = self.decode(span._.assigned["code"])
-            span._.value = span._.adicap
-            span._.assigned = None
-
-        doc.spans["adicap"] = spans
-
-        ents, discarded = filter_spans(list(doc.ents) + spans, return_discarded=True)
-
-        doc.ents = ents
-
-        if "discarded" not in doc.spans:
-            doc.spans["discarded"] = []
-        doc.spans["discarded"].extend(discarded)
-
-        return doc
+        for span in super().process(doc):
+            span._.set(self.label, self.decode(span._.assigned["code"]))
+            yield span

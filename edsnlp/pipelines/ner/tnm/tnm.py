@@ -6,57 +6,96 @@ from spacy.language import Language
 from spacy.tokens import Doc, Span
 
 from edsnlp.matchers.regex import RegexMatcher
-from edsnlp.pipelines.base import BaseComponent
+from edsnlp.pipelines.base import BaseNERComponent, SpanSetterArg
 from edsnlp.utils.filter import filter_spans
 
-from . import models, patterns
+from .model import TNM
+from .patterns import tnm_pattern
 
-PERIOD_PROXIMITY_THRESHOLD = 3
 
-
-class TNM(BaseComponent):
+class TNMMatcher(BaseNERComponent):
     """
-    Tags and normalizes TNM mentions.
+    The `eds.tnm` component extracts [TNM](https://enwp.org/wiki/TNM_staging_system)
+    mentions from clinical documents.
+
+    Examples
+    --------
+    ```python
+    import spacy
+
+    nlp = spacy.blank("eds")
+    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe("eds.tnm")
+
+    text = "TNM: pTx N1 M1"
+
+    doc = nlp(text)
+    doc.ents
+    # Out: (pTx N1 M1,)
+
+    ent = doc.ents[0]
+    ent._.tnm.dict()
+    # {'modifier': 'p',
+    #  'tumour': None,
+    #  'tumour_specification': 'x',
+    #  'node': '1',
+    #  'node_specification': None,
+    #  'metastasis': '1',
+    #  'resection_completeness': None,
+    #  'version': None,
+    #  'version_year': None}
+    ```
 
     Parameters
     ----------
-    nlp : spacy.language.Language
-        Language pipeline object
+    nlp : Optional[Language]
+        The pipeline object
+    name : str
+        The name of the pipe
     pattern : Optional[Union[List[str], str]]
-        List of regular expressions for TNM mentions.
+        The regex pattern to use for matching ADICAP codes
     attr : str
-        spaCy attribute to use
+        Attribute to match on, eg `TEXT`, `NORM`, etc.
+    label : str
+        Label name to use for the `Span` object and the extension
+    span_setter : SpanSetterArg
+        How to set matches on the doc
+
+    Authors and citation
+    --------------------
+    The TNM score is based on the development of S. Priou, B. Rance and
+    E. Kempf ([@kempf:hal-03519085]).
     """
 
     # noinspection PyProtectedMember
     def __init__(
         self,
-        nlp: Language,
-        pattern: Optional[Union[List[str], str]],
-        attr: str,
+        nlp: Optional[Language],
+        name: str = "eds.tnm",
+        *,
+        pattern: Optional[Union[List[str], str]] = tnm_pattern,
+        attr: str = "TEXT",
+        label: str = "tnm",
+        span_setter: SpanSetterArg = {"ents": True, "tnm": True},
     ):
+        self.label = label
 
-        self.nlp = nlp
-
-        if pattern is None:
-            pattern = patterns.tnm_pattern
+        super().__init__(nlp=nlp, name=name, span_setter=span_setter)
 
         if isinstance(pattern, str):
             pattern = [pattern]
 
         self.regex_matcher = RegexMatcher(attr=attr, alignment_mode="strict")
-        self.regex_matcher.add("tnm", pattern)
+        self.regex_matcher.add(self.label, pattern)
 
-        self.set_extensions()
-
-    @classmethod
-    def set_extensions(cls) -> None:
+    def set_extensions(self) -> None:
         """
-        Set extensions for the dates pipeline.
+        Set spaCy extensions
         """
+        super().set_extensions()
 
-        if not Span.has_extension("value"):
-            Span.set_extension("value", default=None)
+        if not Span.has_extension(self.label):
+            Span.set_extension(self.label, default=None)
 
     def process(self, doc: Doc) -> List[Span]:
         """
@@ -101,11 +140,12 @@ class TNM(BaseComponent):
 
         for span, groupdict in spans:
             try:
-                span._.value = models.TNM.parse_obj(groupdict)
+                value = TNM.parse_obj(groupdict)
             except ValidationError:
-                span._.value = models.TNM.parse_obj({})
+                value = TNM.parse_obj({})
 
-            span.kb_id_ = span._.value.norm()
+            span._.set(self.label, value)
+            span.kb_id_ = value.norm()
 
         return [span for span, _ in spans]
 
@@ -124,18 +164,6 @@ class TNM(BaseComponent):
             spaCy Doc object, annotated for TNM
         """
         spans = self.process(doc)
-        spans = filter_spans(spans)
-
         spans = self.parse(spans)
-
-        doc.spans["tnm"] = spans
-
-        ents, discarded = filter_spans(list(doc.ents) + spans, return_discarded=True)
-
-        doc.ents = ents
-
-        if "discarded" not in doc.spans:
-            doc.spans["discarded"] = []
-        doc.spans["discarded"].extend(discarded)
-
+        self.set_spans(doc, spans)
         return doc

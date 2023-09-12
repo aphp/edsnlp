@@ -1,8 +1,9 @@
 from itertools import chain
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Optional
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span
+from typing_extensions import Literal
 
 from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher

@@ -1,5 +1,3 @@
-from typing import Dict, List, Optional, Union
-
 from spacy.language import Language
 
 from edsnlp.pipelines.misc.tables import TablesMatcher
@@ -12,21 +10,13 @@ DEFAULT_CONFIG = dict(
     ignore_excluded=True,
 )
 
-
-@deprecated_factory("tables", "eds.tables", default_config=DEFAULT_CONFIG)
-@Language.factory("eds.tables", default_config=DEFAULT_CONFIG)
-def create_component(
-    nlp: Language,
-    name: str,
-    tables_pattern: Optional[Dict[str, Union[List[str], str]]],
-    sep_pattern: Optional[str],
-    attr: str,
-    ignore_excluded: bool,
-):
-    return TablesMatcher(
-        nlp,
-        tables_pattern=tables_pattern,
-        sep_pattern=sep_pattern,
-        attr=attr,
-        ignore_excluded=ignore_excluded,
-    )
+create_component = TablesMatcher
+create_component = deprecated_factory(
+    "tables",
+    "eds.tables",
+    assigns=["doc.spans", "doc.ents"],
+)(create_component)
+create_component = Language.factory(
+    "eds.tables",
+    assigns=["doc.spans", "doc.ents"],
+)(create_component)

@@ -1,36 +1,24 @@
-from typing import List, Optional, Union
-
 from spacy.language import Language
 
 from edsnlp.utils.deprecation import deprecated_factory
 
-from .tnm import TNM
+from .patterns import tnm_pattern
+from .tnm import TNMMatcher
 
 DEFAULT_CONFIG = dict(
-    pattern=None,
+    pattern=tnm_pattern,
     attr="TEXT",
+    label="tnm",
+    span_setter={"ents": True, "tnm": True},
 )
 
-
-@deprecated_factory(
+create_component = TNMMatcher
+create_component = deprecated_factory(
     "eds.TNM",
     "eds.tnm",
-    default_config=DEFAULT_CONFIG,
     assigns=["doc.ents", "doc.spans"],
-)
-@Language.factory(
+)(create_component)
+create_component = Language.factory(
     "eds.tnm",
-    default_config=DEFAULT_CONFIG,
     assigns=["doc.ents", "doc.spans"],
-)
-def create_component(
-    nlp: Language,
-    name: str,
-    pattern: Optional[Union[List[str], str]],
-    attr: str,
-):
-    return TNM(
-        nlp,
-        pattern=pattern,
-        attr=attr,
-    )
+)(create_component)

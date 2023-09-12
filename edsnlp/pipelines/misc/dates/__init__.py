@@ -1,1 +1,1 @@
-from .dates import Dates
+from .dates import DatesMatcher

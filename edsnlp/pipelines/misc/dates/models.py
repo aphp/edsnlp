@@ -37,7 +37,6 @@ class Period(BaseModel):
 
 
 class BaseDate(BaseModel):
-
     mode: Mode = None
     bound: Optional[Bound] = None
 
@@ -61,7 +60,6 @@ class BaseDate(BaseModel):
 
 
 class AbsoluteDate(BaseDate):
-
     mode: Mode = Mode.ABSOLUTE
     year: Optional[int] = None
     month: Optional[int] = None
@@ -72,9 +70,9 @@ class AbsoluteDate(BaseDate):
 
     def to_datetime(
         self,
-        tz: Union[str, pendulum.tz.timezone] = "Europe/Paris",
         note_datetime: Optional[Union[pendulum.datetime, datetime.datetime]] = None,
-        infer_from_context: bool = False,
+        tz: Union[str, pendulum.tz.timezone] = "Europe/Paris",
+        infer_from_context: Optional[bool] = None,
         default_day=1,
         default_month=1,
         **kwargs,
@@ -114,13 +112,17 @@ class AbsoluteDate(BaseDate):
         d = self.dict(exclude_none=True)
         d.pop("mode", None)
         d.pop("bound", None)
+
         if self.year and self.month and self.day:
             try:
                 return pendulum.datetime(**d, tz=tz)
             except ValueError:
                 return None
-
-        elif infer_from_context:
+        elif (
+            infer_from_context
+            or infer_from_context is None
+            and note_datetime is not None
+        ):
             if note_datetime and not isinstance(note_datetime, NaTType):
                 note_datetime = pendulum.instance(note_datetime)
 
@@ -189,9 +191,11 @@ class AbsoluteDate(BaseDate):
         if v < 25:
             return 2000 + v
 
+    def __str__(self):
+        return self.norm()
+
 
 class Relative(BaseDate):
-
     mode: Mode = Mode.RELATIVE
     year: Optional[int] = None
     month: Optional[int] = None
@@ -226,7 +230,7 @@ class Relative(BaseDate):
 
         return d
 
-    def to_duration(self, **kwargs) -> pendulum.Duration:
+    def to_duration(self, note_datetime=None, **kwargs) -> pendulum.Duration:
         d = self.dict(exclude_none=True)
 
         direction = d.pop("direction", None)
@@ -315,16 +319,18 @@ class RelativeDate(Relative):
 
         return d
 
+    def __str__(self):
+        return self.norm()
+
 
 class Duration(Relative):
     mode: Mode = Mode.DURATION
 
     def norm(self) -> str:
-
         td = self.to_duration()
         return f"during {td}"
 
-    def to_duration(self, **kwargs) -> pendulum.Duration:
+    def to_duration(self, note_datetime=None, **kwargs) -> pendulum.Duration:
         d = self.dict(exclude_none=True)
 
         d = {f"{k}s": v for k, v in d.items() if k not in ("mode", "bound")}

@@ -1,33 +1,23 @@
-from typing import Dict, List, Optional
-
 from spacy.language import Language
 
 from edsnlp.utils.deprecation import deprecated_factory
 
-from . import Sections
+from .patterns import sections
+from .sections import SectionsMatcher
 
 DEFAULT_CONFIG = dict(
-    sections=None,
+    sections=sections,
     add_patterns=True,
     attr="NORM",
     ignore_excluded=True,
 )
 
-
-@deprecated_factory("sections", "eds.sections", default_config=DEFAULT_CONFIG)
-@Language.factory("eds.sections", default_config=DEFAULT_CONFIG)
-def create_component(
-    nlp: Language,
-    name: str,
-    sections: Optional[Dict[str, List[str]]],
-    add_patterns: bool,
-    attr: str,
-    ignore_excluded: bool,
-):
-    return Sections(
-        nlp,
-        sections=sections,
-        add_patterns=add_patterns,
-        attr=attr,
-        ignore_excluded=ignore_excluded,
-    )
+create_component = deprecated_factory(
+    "sections",
+    "eds.sections",
+    assigns=["doc.spans", "doc.ents"],
+)(SectionsMatcher)
+create_component = Language.factory(
+    "eds.sections",
+    assigns=["doc.spans", "doc.ents"],
+)(create_component)

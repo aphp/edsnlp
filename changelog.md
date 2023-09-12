@@ -8,14 +8,16 @@
 
 ### Changes
 
-- Score / disorders / behaviors entities now have a hardcoded label, instead of being dynamically set from the component name. The following scores may have a different name than the current one in your pipelines:
-  * `eds.emergency.gemsa` → `emergency.gemsa`
-  * `eds.emergency.ccmu` → `emergency.ccmu`
-  * `eds.emergency.priority` → `emergency.priority`
+- Input and output of components are now specified by `span_getter` and `span_setter` arguments.
+- :boom: Score / disorders / behaviors entities now have a fixed label (passed as an argument), instead of being dynamically set from the component name. The following scores may have a different name than the current one in your pipelines:
+  * `eds.emergency.gemsa` → `emergency_gemsa`
+  * `eds.emergency.ccmu` → `emergency_ccmu`
+  * `eds.emergency.priority` → `emergency_priority`
   * `eds.charlson` → `charlson`
-  * `eds.elston-ellis` → `elston-ellis`
+  * `eds.elston_ellis` → `elston_ellis`
   * `eds.SOFA` → `sofa`
   * `eds.adicap` → `adicap`
+  * `eds.measuremets` → `size`, `weight`, ... instead of `eds.size`, `eds.weight`, ...
 - `eds.dates` now separate dates from durations. Each entity has its own label:
   * `spans["dates"]` → entities labelled as `date` with a `span._.date` parsed object
   * `spans["durations"]` → entities labelled as `duration` with a `span._.duration` parsed object

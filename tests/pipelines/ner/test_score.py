@@ -1,10 +1,6 @@
-# noqa: F401
 import re
 
 from edsnlp.pipelines.ner.scores import Score
-
-# from edsnlp.pipelines.ner.scores.charlson import patterns as charlson_terms
-# from edsnlp.pipelines.ner.scores.sofa import patterns as sofa_terms
 from edsnlp.utils.examples import parse_example
 
 example = """
@@ -21,21 +17,20 @@ SOFA maximum : <ent score_name=sofa score_value=12 score_method=Maximum>12</ent>
 
 
 CR-URG.
-PRIORITE: <ent score_name=emergency.priority score_value=2>2</ent>: 2 - Urgence relative.
-GEMSA: (<ent score_name=emergency.gemsa score_value=2>2</ent>) Patient non convoque sortant apres consultation
-CCMU: Etat clinique jugé stable avec actes diag ou thérapeutiques ( <ent score_name=emergency.ccmu score_value=2>2</ent> )
+PRIORITE: <ent score_name=emergency_priority score_value=2>2</ent>: 2 - Urgence relative.
+GEMSA: (<ent score_name=emergency_gemsa score_value=2>2</ent>) Patient non convoque sortant apres consultation
+CCMU: Etat clinique jugé stable avec actes diag ou thérapeutiques ( <ent score_name=emergency_ccmu score_value=2>2</ent> )
 
 
 CONCLUSION
 
 La patiente est atteinte d'un carcinome mammaire infiltrant de type non spécifique, de grade 2 de malignité selon Elston et Ellis
-<ent score_name=elston-ellis score_value=2>(architecture : 3 + noyaux : 3 + mitoses : 1)</ent>.
+<ent score_name=elston_ellis score_value=2>(architecture : 3 + noyaux : 3 + mitoses : 1)</ent>.
 
 """  # noqa: E501
 
 
 def test_scores(blank_nlp):
-
     blank_nlp.add_pipe(
         "eds.normalizer",
         config=dict(lowercase=True, accents=True, quotes=True, pollution=False),
@@ -63,10 +58,10 @@ def test_scores(blank_nlp):
 
     blank_nlp.add_pipe("eds.charlson")
     blank_nlp.add_pipe("eds.sofa")
-    blank_nlp.add_pipe("eds.elston-ellis")
-    blank_nlp.add_pipe("eds.emergency.priority")
-    blank_nlp.add_pipe("eds.emergency.ccmu")
-    blank_nlp.add_pipe("eds.emergency.gemsa")
+    blank_nlp.add_pipe("eds.elston_ellis")
+    blank_nlp.add_pipe("eds.emergency_priority")
+    blank_nlp.add_pipe("eds.emergency_ccmu")
+    blank_nlp.add_pipe("eds.emergency_gemsa")
 
     doc = blank_nlp(text)
     doc = testscore(doc)
@@ -74,7 +69,6 @@ def test_scores(blank_nlp):
     for entity, ent in zip(entities, doc.ents):
 
         for modifier in entity.modifiers:
-
             assert (
                 getattr(ent._, modifier.key) == modifier.value
             ), f"{modifier.key} labels don't match."

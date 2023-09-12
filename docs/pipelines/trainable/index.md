@@ -27,8 +27,7 @@ In addition to the spaCy `train` CLI, EDS-NLP offers a `train` function that can
 
 Let us define and train a full pipeline :
 
-<!-- no-check -->
-```python
+```{ .python .no-check }
 from pathlib import Path
 
 import spacy

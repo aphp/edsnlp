@@ -54,9 +54,7 @@ Let us define the pipeline and train it. We provide utils to train the model usi
 
 === "API-based (Light)"
 
-    <!-- no-check -->
-
-    ```python
+    ```{ .python .no-check }
     from pathlib import Path
 
     import spacy
@@ -272,9 +270,7 @@ Let us define the pipeline and train it. We provide utils to train the model usi
 
     To use it, load the model and process a text :
 
-    <!-- no-check -->
-
-    ```python
+    ```{ .python .no-check }
     import spacy
 
     nlp = spacy.load("training/model-best")
@@ -431,9 +427,7 @@ Let us define the pipeline and train it. We provide utils to train the model usi
 
     To use it, load the model and process a text :
 
-    <!-- no-check -->
-
-    ```python
+    ```{ .python .no-check }
     import spacy
 
     nlp = spacy.load("training/model-best")

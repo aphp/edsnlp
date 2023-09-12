@@ -83,9 +83,7 @@ for e in entities:
 
 We can verify that named entities that do not overlap with the spans of reason, have their attribute `#!python reason._.is_reason == False`:
 
-<!-- no-check -->
-
-```python
+```{ .python .no-check }
 for e in doc.ents:
     print(e.start, e, e._.is_reason)
 # Out: 42 asthme True

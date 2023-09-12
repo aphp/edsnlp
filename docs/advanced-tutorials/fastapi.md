@@ -81,9 +81,7 @@ class Document(BaseModel):  # (2)
 
 Having defined the output models and the pipeline, we can move on to creating the application itself:
 
-<!-- no-check -->
-
-```python title="app.py"
+```{ .python .no-check title="app.py" }
 from typing import List
 
 from fastapi import FastAPI
@@ -164,9 +162,7 @@ Go to [`localhost:8000/docs`](http://localhost:8000/docs) to admire the automati
 
 You can try the API directly from the documentation. Otherwise, you may use the `requests` package:
 
-<!-- no-check -->
-
-```python
+```{ .python .no-check }
 import requests
 
 notes = [

@@ -25,9 +25,7 @@ assert repr(v) == "1"
 We can disable code checking for a specific code bloc by adding `<!-- no-check -->` above it:
 
 ````md
-<!-- no-check -->
-
-```python
+```{ .python .no-check }
 test = undeclared_function(42)
 ```
 ````

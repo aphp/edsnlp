@@ -30,14 +30,12 @@ And its OMOP-style representation, separated in two tables `note` and `note_nlp`
 
 The following snippet expects the tables `note` and `note_nlp` to be already defined (eg through PySpark's `toPandas()` method).
 
-<!-- no-check -->
-
-```python
+```{ .python .no-check }
 import spacy
 from edsnlp.connectors.omop import OmopConnector
 
 # Instantiate a spacy pipeline
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 
 # Instantiate the connector
 connector = OmopConnector(nlp)

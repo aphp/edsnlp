@@ -46,7 +46,7 @@ The followings snippet adds the `eds.date` component to the pipeline:
 ```python
 import spacy
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 nlp.add_pipe("eds.dates")  # (1)
 
 text = (
@@ -117,7 +117,7 @@ whether a given entity can be linked to a date.
 import spacy
 from datetime import datetime
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 nlp.add_pipe("eds.sentences")
 nlp.add_pipe("eds.dates")
 
@@ -219,13 +219,12 @@ def get_event_date(ent: Span) -> Optional[Span]:
 
 We can apply this simple function:
 
-<!-- no-check -->
-
-```python
+```{ .python .no-check }
 import spacy
 from utils import get_event_date
+from datetime import datetime
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 nlp.add_pipe("eds.sentences")
 nlp.add_pipe("eds.dates")
 
@@ -242,17 +241,20 @@ text = (
 )
 
 doc = nlp(text)
+now = datetime.now()
 
 for ent in doc.ents:
+    if ent.label_ != "admission":
+        continue
     date = get_event_date(ent)
-    print(f"{ent.text:<20}{date.text:<20}{date._.date.to_datetime()}")
-# Out: admis               12 avril 2020       2020-04-12T00:00:00+02:00
-# Out: pris en charge      l'année dernière    -1 year
+    print(f"{ent.text:<20}{date.text:<20}{date._.date.to_datetime(now).strftime('%d/%m/%Y'):<15}{date._.date.to_duration(now)}")
+# Out: admis               12 avril            12/04/2023     21 weeks 4 days 6 hours 3 minutes 26 seconds
+# Out: pris en charge      l'année dernière    10/09/2022     -1 year
 ```
 
 Which will output:
 
 | `ent`          | `get_event_date(ent)` | `get_event_date(ent)._.date.to_datetime()` |
-| -------------- | --------------------- | ----------------------------------------- |
-| admis          | 12 avril              | `2020-04-12T00:00:00+02:00`               |
-| pris en charge | l'année dernière      | `-1 year`                                 |
+|----------------|-----------------------|--------------------------------------------|
+| admis          | 12 avril              | `2020-04-12T00:00:00+02:00`                |
+| pris en charge | l'année dernière      | `-1 year`                                  |

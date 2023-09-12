@@ -9,7 +9,7 @@ These can drastically increase throughput.
 
 Consider this simple pipeline:
 
-```python title="Pipeline definition: pipeline.py"
+```python
 import spacy
 
 nlp = spacy.blank("fr")
@@ -118,9 +118,7 @@ To make sure we can follow along, we propose three recipes for getting the DataF
 
 === "Loading data from a CSV"
 
-    <!-- no-check -->
-
-    ```python
+    ```{ .python .no-check }
     import pandas as pd
 
     data = pd.read_csv("note.csv")
@@ -128,9 +126,7 @@ To make sure we can follow along, we propose three recipes for getting the DataF
 
 === "Loading data from a Spark DataFrame"
 
-    <!-- no-check -->
-
-    ```python
+    ```{ .python .no-check }
     from pyspark.sql.session import SparkSession
 
     spark = SparkSession.builder.getOrCreate()
@@ -149,7 +145,7 @@ We'll see in what follows how we can efficiently deploy our pipeline on the `#!p
 
 We can deploy the pipeline using `nlp.pipe` directly, but we'll need some work to format the results in a usable way. Let's see how this might go, before using EDS-NLP's helper function to avoid the boilerplate code.
 
-```python title="processing.py"
+```python
 from spacy.tokens import Doc
 from typing import Any, Dict, List
 
@@ -187,9 +183,8 @@ def get_entities(doc: Doc) -> List[Dict[str, Any]]:
 
 <!-- no-check -->
 
-```python
+```{ .python .no-check }
 # ↑ Omitted code above ↑
-from processing import get_entities
 import pandas as pd
 
 data["doc"] = list(nlp.pipe(data.note_text))  # (1)
@@ -241,9 +236,7 @@ They share the same arguments:
 
     In this case, you can use the `context` parameter and provide a list of column names you want to add:
 
-    <!-- no-check -->
-
-    ```python
+    ```{ .python .no-check }
     note_nlp = single_pipe(
         data,
         nlp,
@@ -266,7 +259,7 @@ For instance, the `get_entities` function defined earlier could be distributed d
 
 <!-- no-check -->
 
-```python
+```{ .python .no-check }
 # ↑ Omitted code above ↑
 from edsnlp.processing.simple import pipe as single_pipe
 from processing import get_entities
@@ -368,9 +361,7 @@ Suppose you have a Spark DataFrame:
 
 === "Loading a pre-existing table"
 
-    <!-- no-check -->
-
-    ```python
+    ```{ .python .no-check }
     from pyspark.sql.session import SparkSession
 
     spark = SparkSession.builder.getOrCreate()
@@ -381,9 +372,7 @@ Suppose you have a Spark DataFrame:
 
 === "Using a Koalas DataFrame"
 
-    <!-- no-check -->
-
-    ```python
+    ```{ .python .no-check }
     from pyspark.sql.session import SparkSession
     import databricks.koalas
 
@@ -400,9 +389,7 @@ Accepted types are the ones present in [`pyspark.sql.types`](https://spark.apach
 
 EDS-NLP provides a helper function, [`pyspark_type_finder`][edsnlp.processing.distributed.pyspark_type_finder], is available to get the correct type for most Python objects. You just need to provide an example of the type you wish to collect:
 
-<!-- no-check -->
-
-```python
+```{ .python .no-check }
 int_type = pyspark_type_finder(1)
 
 # Out: IntegerType()
@@ -419,9 +406,7 @@ Once again, using the helper is trivial:
 
 === "Spark"
 
-    <!-- no-check -->
-
-    ```python
+    ```{ .python .no-check }
     # ↑ Omitted code above ↑
     from edsnlp.processing.distributed import pipe as distributed_pipe
 
@@ -438,9 +423,7 @@ Once again, using the helper is trivial:
 
 === "Koalas"
 
-    <!-- no-check -->
-
-    ```python
+    ```{ .python .no-check }
     # ↑ Omitted code above ↑
     from edsnlp.processing.distributed import pipe as distributed_pipe
 
@@ -461,9 +444,7 @@ Using Spark or Koalas, you can deploy EDS-NLP pipelines on tens of millions of d
 
 EDS-NLP provides a wrapper to simplify deployment even further:
 
-<!-- no-check -->
-
-```python
+```{ .python .no-check }
 # ↑ Omitted code above ↑
 from edsnlp.processing import pipe
 

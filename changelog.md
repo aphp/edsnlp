@@ -324,9 +324,7 @@ Fix release to allow installation from source
 
 - Renamed `generic` to `matcher`. This is a non-breaking change for the average user, adding the pipeline is still :
 
-  <!-- no-check -->
-
-  ```python
+  ```{ .python .no-check }
   nlp.add_pipe("matcher", config=dict(terms=dict(maladie="maladie")))
   ```
 

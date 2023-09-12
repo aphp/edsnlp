@@ -6,25 +6,125 @@ from loguru import logger
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
 
-from edsnlp.pipelines.qualifiers.base import Qualifier
-from edsnlp.pipelines.terminations import termination
+from edsnlp.pipelines.base import SpanGetterArg, get_spans
+from edsnlp.pipelines.qualifiers.base import RuleBasedQualifier
+from edsnlp.pipelines.terminations import termination as default_termination
 from edsnlp.utils.deprecation import deprecated_getter_factory
-from edsnlp.utils.filter import consume_spans, filter_spans, get_spans
+from edsnlp.utils.filter import consume_spans, filter_spans
 from edsnlp.utils.inclusion import check_inclusion, check_sent_inclusion
 
-from .patterns import history, sections_history
+from . import patterns
+from .patterns import sections_history
 
 
-class History(Qualifier):
+class HistoryQualifier(RuleBasedQualifier):
     """
-    Implements a history detection algorithm.
+    The `eds.history` pipeline uses a simple rule-based algorithm to detect spans that
+    describe medical history rather than the diagnostic of a given visit.
 
-    The component looks for terms indicating history in the text.
+    The mere definition of a medical history is not straightforward.
+    Hence, this component only tags entities that are _explicitly described as part of
+    the medical history_, e.g., preceded by a synonym of "medical history".
+
+    This component may also use the output of:
+
+    - the [`eds.sections` component](/pipelines/misc/sections/). In that case, the
+    entire `antécédent` section is tagged as a medical history.
+
+    !!! warning "Sections"
+
+        Be careful, the `eds.sections` component may oversize the `antécédents` section.
+        Indeed, it detects *section titles* and tags the entire text between a title and
+        the next as a section. Hence, should a section title goes undetected after the
+        `antécédents` title, some parts of the document will erroneously be tagged as
+        a medical history.
+
+        To curb that possibility, using the output of the `eds.sections` component is
+        deactivated by default.
+
+    - the [`eds.dates` component](/pipelines/misc/dates). In that case, it will take the
+      dates into account to tag extracted entities as a medical history or not.
+
+    !!! info "Dates"
+
+        To take the most of the `eds.dates` component, you may add the ``note_datetime``
+        context (cf. [Adding context][using-eds-nlps-helper-functions]). It allows the
+        component to compute the duration of absolute dates
+        (e.g., le 28 août 2022/August 28, 2022). The ``birth_datetime`` context allows
+        the component to exclude the birthdate from the extracted dates.
+
+    Examples
+    --------
+    The following snippet matches a simple terminology, and checks whether the extracted
+    entities are history or not. It is complete and can be run _as is_.
+
+    ```python
+    import spacy
+
+    nlp = spacy.blank("eds")
+    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe("eds.normalizer")
+    nlp.add_pipe("eds.sections")
+    nlp.add_pipe("eds.dates")
+    nlp.add_pipe(
+        "eds.matcher",
+        config=dict(terms=dict(douleur="douleur", malaise="malaises")),
+    )
+    nlp.add_pipe(
+        "eds.history",
+        config=dict(
+            use_sections=True,
+            use_dates=True,
+        ),
+    )
+
+    text = (
+        "Le patient est admis le 23 août 2021 pour une douleur au bras. "
+        "Il a des antécédents de malaises."
+        "ANTÉCÉDENTS : "
+        "- le patient a déjà eu des malaises. "
+        "- le patient a eu une douleur à la jambe il y a 10 jours"
+    )
+
+    doc = nlp(text)
+
+    doc.ents
+    # Out: (douleur, malaises, malaises, douleur)
+
+    doc.ents[0]._.history
+    # Out: False
+
+    doc.ents[1]._.history
+    # Out: True
+
+    doc.ents[2]._.history  # (1)
+    # Out: True
+
+    doc.ents[3]._.history  # (2)
+    # Out: False
+    ```
+
+    1. The entity is in the section `antécédent`.
+    2. The entity is in the section `antécédent`, however the extracted `relative_date`
+    refers to an event that took place within 14 days.
+
+    Extensions
+    ----------
+    The `eds.history` component declares two extensions, on both `Span` and `Token`
+    objects :
+
+    1. The `history` attribute is a boolean, set to `True` if the component predicts
+       that the span/token is a medical history.
+    2. The `history_` property is a human-readable string, computed from the `history`
+       attribute. It implements a simple getter function that outputs `CURRENT` or
+       `ATCD`, depending on the value of `history`.
 
     Parameters
     ----------
     nlp : Language
-        spaCy nlp pipeline to use for matching.
+        The pipeline object.
+    name : Optional[str]
+        The component name.
     history : Optional[List[str]]
         List of terms indicating medical history reference.
     termination : Optional[List[str]]
@@ -34,60 +134,70 @@ class History(Qualifier):
     use_dates : bool
         Whether to use dates pipeline to detect if the event occurs
          a long time before the document date.
-    history_limit : int
+    attr : str
+        spaCy's attribute to use:
+        a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
+        we can also add a key for each regex.
+    history_limit : Union[int, timedelta]
         The number of days after which the event is considered as history.
     exclude_birthdate : bool
         Whether to exclude the birthdate from history dates.
     closest_dates_only : bool
         Whether to include the closest dates only.
-    attr : str
-        spaCy's attribute to use:
-        a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
-        we can also add a key for each regex.
+    span_getter : SpanGetterArg
+        Where to look for dates in the doc. By default, look in the whole doc. You can
+        combine this with the `merge_mode` argument for interesting results.
     on_ents_only : Union[bool, str, List[str], Set[str]]
+        Deprecated, use `span_getter` instead.
+
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.
+
         - If True, will look in all ents located in `doc.ents` only
         - If an iterable of string is passed, will additionally look in `doc.spans[key]`
         for each key in the iterable
     explain : bool
         Whether to keep track of cues for each entity.
+
+    Authors and citation
+    --------------------
+    The `eds.history` component was developed by AP-HP's Data Science team.
     """
 
-    defaults = dict(
-        history=history,
-        termination=termination,
-    )
+    history_limit: timedelta
 
     def __init__(
         self,
         nlp: Language,
-        attr: str,
-        history: Optional[List[str]],
-        termination: Optional[List[str]],
-        use_sections: bool,
-        use_dates: bool,
-        history_limit: int,
-        closest_dates_only: bool,
-        exclude_birthdate: bool,
-        explain: bool,
-        on_ents_only: Union[bool, str, List[str], Set[str]],
+        name: Optional[str] = "eds.history",
+        *,
+        history: Optional[List[str]] = None,
+        termination: Optional[List[str]] = None,
+        use_sections: bool = False,
+        use_dates: bool = False,
+        attr: str = "NORM",
+        history_limit: int = 14,
+        closest_dates_only: bool = True,
+        exclude_birthdate: bool = True,
+        span_getter: SpanGetterArg = None,
+        on_ents_only: Union[bool, str, List[str], Set[str]] = True,
+        explain: bool = False,
     ):
 
-        terms = self.get_defaults(
-            history=history,
-            termination=termination,
+        terms = dict(
+            history=patterns.history if history is None else history,
+            termination=default_termination if termination is None else termination,
         )
 
         super().__init__(
             nlp=nlp,
+            name=name,
             attr=attr,
-            on_ents_only=on_ents_only,
             explain=explain,
-            **terms,
+            terms=terms,
+            on_ents_only=on_ents_only,
+            span_getter=span_getter,
         )
-
-        self.set_extensions()
 
         self.history_limit = timedelta(history_limit)
         self.exclude_birthdate = exclude_birthdate
@@ -129,74 +239,41 @@ class History(Qualifier):
                     "context. "
                 )
 
-    @classmethod
-    def set_extensions(cls) -> None:
+    def set_extensions(self) -> None:
+        for cls in (Token, Span):
+            if not cls.has_extension("history"):
+                cls.set_extension("history", default=False)
 
-        if not Token.has_extension("history"):
-            Token.set_extension("history", default=False)
+            if not cls.has_extension("antecedents"):
+                cls.set_extension(
+                    "antecedents",
+                    getter=deprecated_getter_factory("antecedents", "history"),
+                )
 
-        if not Token.has_extension("antecedents"):
-            Token.set_extension(
-                "antecedents",
-                getter=deprecated_getter_factory("antecedents", "history"),
-            )
+            if not cls.has_extension("antecedent"):
+                cls.set_extension(
+                    "antecedent",
+                    getter=deprecated_getter_factory("antecedent", "history"),
+                )
 
-        if not Token.has_extension("antecedent"):
-            Token.set_extension(
-                "antecedent",
-                getter=deprecated_getter_factory("antecedent", "history"),
-            )
+            if not cls.has_extension("history_"):
+                cls.set_extension(
+                    "history_",
+                    getter=lambda token: "ATCD" if token._.history else "CURRENT",
+                )
 
-        if not Token.has_extension("history_"):
-            Token.set_extension(
-                "history_",
-                getter=lambda token: "ATCD" if token._.history else "CURRENT",
-            )
+            if not cls.has_extension("antecedents_"):
+                cls.set_extension(
+                    "antecedents_",
+                    getter=deprecated_getter_factory("antecedents_", "history_"),
+                )
 
-        if not Token.has_extension("antecedents_"):
-            Token.set_extension(
-                "antecedents_",
-                getter=deprecated_getter_factory("antecedents_", "history_"),
-            )
+            if not cls.has_extension("antecedent_"):
+                cls.set_extension(
+                    "antecedent_",
+                    getter=deprecated_getter_factory("antecedent_", "history_"),
+                )
 
-        if not Token.has_extension("antecedent_"):
-            Token.set_extension(
-                "antecedent_",
-                getter=deprecated_getter_factory("antecedent_", "history_"),
-            )
-
-        if not Span.has_extension("history"):
-            Span.set_extension("history", default=False)
-
-        if not Span.has_extension("antecedents"):
-            Span.set_extension(
-                "antecedents",
-                getter=deprecated_getter_factory("antecedents", "history"),
-            )
-
-        if not Span.has_extension("antecedent"):
-            Span.set_extension(
-                "antecedent",
-                getter=deprecated_getter_factory("antecedent", "history"),
-            )
-
-        if not Span.has_extension("history_"):
-            Span.set_extension(
-                "history_",
-                getter=lambda span: "ATCD" if span._.history else "CURRENT",
-            )
-
-        if not Span.has_extension("antecedents_"):
-            Span.set_extension(
-                "antecedents_",
-                getter=deprecated_getter_factory("antecedents_", "history_"),
-            )
-
-        if not Span.has_extension("antecedent_"):
-            Span.set_extension(
-                "antecedent_",
-                getter=deprecated_getter_factory("antecedent_", "history_"),
-            )
         # Store history mentions responsible for the history entity's character
         if not Span.has_extension("history_cues"):
             Span.set_extension("history_cues", default=[])
@@ -218,20 +295,7 @@ class History(Qualifier):
             )
 
     def process(self, doc: Doc) -> Doc:
-        """
-        Finds entities related to history.
-
-        Parameters
-        ----------
-        doc:
-            spaCy Doc object
-
-        Returns
-        -------
-        doc:
-            spaCy Doc object, annotated for history
-        """
-
+        note_datetime = None
         if doc._.note_datetime is not None:
             try:
                 note_datetime = pendulum.instance(doc._.note_datetime)
@@ -243,6 +307,7 @@ class History(Qualifier):
                 )
                 note_datetime = None
 
+        birth_datetime = None
         if doc._.birth_datetime is not None:
             try:
                 birth_datetime = pendulum.instance(doc._.birth_datetime)
@@ -256,13 +321,13 @@ class History(Qualifier):
 
         matches = self.get_matches(doc)
 
-        terminations = get_spans(matches, "termination")
+        terminations = [m for m in matches if m.label_ == "termination"]
         boundaries = self._boundaries(doc, terminations)
 
         # Removes duplicate matches and pseudo-expressions in one statement
         matches = filter_spans(matches, label_to_remove="pseudo")
 
-        entities = self.get_spans(doc)
+        entities = list(get_spans(doc, self.span_getter))
         ents = None
         sub_sections = None
         sub_recent_dates = None
@@ -357,6 +422,9 @@ class History(Qualifier):
                 sub_sections, sections = consume_spans(
                     sections, lambda s: s.start < end <= s.end, sub_sections
                 )
+
+            close_recent_dates = []
+            close_history_dates = []
             if self.dates:
                 sub_recent_dates, recent_dates = consume_spans(
                     recent_dates,
@@ -371,8 +439,6 @@ class History(Qualifier):
 
                 # Filter dates inside the boundaries only
                 if self.closest_dates_only:
-                    close_recent_dates = []
-                    close_history_dates = []
                     if sub_recent_dates:
                         close_recent_dates = [
                             recent_date
@@ -438,7 +504,7 @@ class History(Qualifier):
             if self.on_ents_only and not ents:
                 continue
 
-            history_cues = get_spans(sub_matches, "history")
+            history_cues = [m for m in sub_matches if m.label_ == "history"]
             recent_cues = []
 
             if self.sections:
@@ -458,7 +524,7 @@ class History(Qualifier):
 
             if not self.on_ents_only:
                 for token in doc[start:end]:
-                    token._.history = history
+                    token._.history = token._.history or history
 
             for ent in ents:
                 ent._.history = ent._.history or history
@@ -466,7 +532,6 @@ class History(Qualifier):
                 if self.explain:
                     ent._.history_cues += history_cues
                     ent._.recent_cues += recent_cues
-
                 if not self.on_ents_only and ent._.history:
                     for token in ent:
                         token._.history = True

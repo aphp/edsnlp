@@ -4,25 +4,72 @@ from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
 
 from edsnlp.matchers.regex import RegexMatcher
-from edsnlp.pipelines.qualifiers.base import Qualifier
-from edsnlp.utils.filter import consume_spans, filter_spans, get_spans
+from edsnlp.pipelines.base import SpanGetterArg, get_spans
+from edsnlp.pipelines.qualifiers.base import RuleBasedQualifier
+from edsnlp.utils.filter import consume_spans, filter_spans
 from edsnlp.utils.inclusion import check_inclusion
 from edsnlp.utils.resources import get_verbs
 
-from .patterns import following, preceding, quotation, verbs
+from . import patterns
 
 
-class ReportedSpeech(Qualifier):
+class ReportedSpeechQualifier(RuleBasedQualifier):
     """
-    Implements a reported speech detection algorithm.
+    The `eds.reported_speech` component uses a simple rule-based algorithm to detect
+    spans that relate to reported speech (eg when the doctor quotes the patient).
+    It was designed at AP-HP's EDS.
 
-    The components looks for terms indicating patient statements,
-    and quotations to detect patient speech.
+    Examples
+    --------
+    The following snippet matches a simple terminology, and checks whether the extracted
+    entities are part of a reported speech. It is complete and can be run _as is_.
+
+    ```python
+    import spacy
+
+    nlp = spacy.blank("eds")
+    nlp.add_pipe("eds.sentences")
+    # Dummy matcher
+    nlp.add_pipe(
+        "eds.matcher",
+        config=dict(terms=dict(patient="patient", alcool="alcoolisé")),
+    )
+    nlp.add_pipe("eds.reported_speech")
+
+    text = (
+        "Le patient est admis aux urgences ce soir pour une douleur au bras. "
+        "Il nie être alcoolisé."
+    )
+
+    doc = nlp(text)
+
+    doc.ents
+    # Out: (patient, alcoolisé)
+
+    doc.ents[0]._.reported_speech
+    # Out: False
+
+    doc.ents[1]._.reported_speech
+    # Out: True
+    ```
+
+    Extensions
+    ----------
+    The `eds.reported_speech` component declares two extensions, on both `Span` and
+    `Token` objects :
+
+    1. The `reported_speech` attribute is a boolean, set to `True` if the component
+       predicts that the span/token is reported.
+    2. The `reported_speech_` property is a human-readable string, computed from the
+       `reported_speech` attribute. It implements a simple getter function that outputs
+       `DIRECT` or `REPORTED`, depending on the value of `reported_speech`.
 
     Parameters
     ----------
     nlp : Language
         spaCy nlp pipeline to use for matching.
+    name : Optional[str]
+        The component name.
     quotation : str
         String gathering all quotation cues.
     verbs : List[str]
@@ -47,35 +94,35 @@ class ReportedSpeech(Qualifier):
         Whether to consider cues within entities.
     explain : bool
         Whether to keep track of cues for each entity.
-    """
 
-    defaults = dict(
-        following=following,
-        preceding=preceding,
-        verbs=verbs,
-        quotation=quotation,
-    )
+    Authors and citation
+    --------------------
+    The `eds.reported_speech` component was developed by AP-HP's Data Science team.
+    """
 
     def __init__(
         self,
         nlp: Language,
-        attr: str,
-        pseudo: Optional[List[str]],
-        preceding: Optional[List[str]],
-        following: Optional[List[str]],
-        quotation: Optional[List[str]],
-        verbs: Optional[List[str]],
-        on_ents_only: Union[bool, str, List[str], Set[str]],
-        within_ents: bool,
-        explain: bool,
+        name: Optional[str] = "eds.reported_speech",
+        *,
+        pseudo: Optional[List[str]] = None,
+        preceding: Optional[List[str]] = None,
+        following: Optional[List[str]] = None,
+        quotation: Optional[List[str]] = None,
+        verbs: Optional[List[str]] = None,
+        attr: str = "NORM",
+        span_getter: SpanGetterArg = None,
+        on_ents_only: Union[bool, str, List[str], Set[str]] = True,
+        within_ents: bool = False,
+        explain: bool = False,
     ):
 
-        terms = self.get_defaults(
-            pseudo=pseudo,
-            preceding=preceding,
-            following=following,
-            quotation=quotation,
-            verbs=verbs,
+        terms = dict(
+            pseudo=pseudo or [],
+            preceding=patterns.preceding if preceding is None else preceding,
+            following=patterns.following if following is None else following,
+            quotation=patterns.quotation if quotation is None else quotation,
+            verbs=patterns.verbs if verbs is None else verbs,
         )
         terms["verbs"] = self.load_verbs(terms["verbs"])
 
@@ -83,47 +130,37 @@ class ReportedSpeech(Qualifier):
 
         super().__init__(
             nlp=nlp,
+            name=name,
             attr=attr,
-            on_ents_only=on_ents_only,
             explain=explain,
-            **terms,
+            terms=terms,
+            on_ents_only=on_ents_only,
+            span_getter=span_getter,
         )
 
         self.regex_matcher = RegexMatcher(attr=attr)
         self.regex_matcher.build_patterns(dict(quotation=quotation))
 
         self.within_ents = within_ents
-
         self.set_extensions()
 
-    @classmethod
-    def set_extensions(cls) -> None:
+    def set_extensions(self) -> None:
+        super().set_extensions()
 
-        if not Token.has_extension("reported_speech"):
-            Token.set_extension("reported_speech", default=False)
+        for cls in (Token, Span):
+            if not cls.has_extension("reported_speech"):
+                cls.set_extension("reported_speech", default=False)
 
-        if not Token.has_extension("reported_speech_"):
-            Token.set_extension(
-                "reported_speech_",
-                getter=lambda token: "REPORTED"
-                if token._.reported_speech
-                else "DIRECT",
-            )
-
-        if not Span.has_extension("reported_speech"):
-            Span.set_extension("reported_speech", default=False)
-
-        if not Span.has_extension("reported_speech_"):
-            Span.set_extension(
-                "reported_speech_",
-                getter=lambda span: "REPORTED" if span._.reported_speech else "DIRECT",
-            )
+            if not cls.has_extension("reported_speech_"):
+                cls.set_extension(
+                    "reported_speech_",
+                    getter=lambda token: "REPORTED"
+                    if token._.reported_speech
+                    else "DIRECT",
+                )
 
         if not Span.has_extension("reported_speech_cues"):
             Span.set_extension("reported_speech_cues", default=[])
-
-        if not Doc.has_extension("rspeechs"):
-            Doc.set_extension("rspeechs", default=[])
 
     def load_verbs(self, verbs: List[str]) -> List[str]:
         """
@@ -155,28 +192,16 @@ class ReportedSpeech(Qualifier):
         return list_rep_verbs
 
     def process(self, doc: Doc) -> Doc:
-        """
-        Finds entities related to reported speech.
-
-        Parameters
-        ----------
-        doc: spaCy Doc object
-
-        Returns
-        -------
-        doc: spaCy Doc object, annotated for negation
-        """
-
         matches = self.get_matches(doc)
         matches += list(self.regex_matcher(doc, as_spans=True))
 
         boundaries = self._boundaries(doc)
 
-        entities = self.get_spans(doc)
-        ents = None
-
         # Removes duplicate matches and pseudo-expressions in one statement
         matches = filter_spans(matches, label_to_remove="pseudo")
+
+        entities = list(get_spans(doc, self.span_getter))
+        ents = None
 
         for start, end in boundaries:
 
@@ -193,10 +218,10 @@ class ReportedSpeech(Qualifier):
             if self.on_ents_only and not ents:
                 continue
 
-            sub_preceding = get_spans(sub_matches, "preceding")
-            sub_following = get_spans(sub_matches, "following")
-            sub_verbs = get_spans(sub_matches, "verbs")
-            sub_quotation = get_spans(sub_matches, "quotation")
+            sub_preceding = [m for m in sub_matches if m.label_ == "preceding"]
+            sub_following = [m for m in sub_matches if m.label_ == "following"]
+            sub_verbs = [m for m in sub_matches if m.label_ == "verbs"]
+            sub_quotation = [m for m in sub_matches if m.label_ == "quotation"]
 
             if not sub_preceding + sub_following + sub_verbs + sub_quotation:
                 continue
@@ -212,7 +237,6 @@ class ReportedSpeech(Qualifier):
                         )
                     )
             for ent in ents:
-
                 if self.within_ents:
                     cues = [m for m in sub_preceding + sub_verbs if m.end <= ent.end]
                     cues += [m for m in sub_following if m.start >= ent.start]
@@ -229,10 +253,11 @@ class ReportedSpeech(Qualifier):
                 reported_speech = ent._.reported_speech or bool(cues)
                 ent._.reported_speech = reported_speech
 
-                if self.explain:
+                if self.explain and reported_speech:
                     ent._.reported_speech_cues += cues
 
                 if not self.on_ents_only and reported_speech:
                     for token in ent:
                         token._.reported_speech = True
+
         return doc

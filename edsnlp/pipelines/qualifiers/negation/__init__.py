@@ -1,1 +1,3 @@
-from .negation import Negation
+from .negation import NegationQualifier
+
+Negation = NegationQualifier

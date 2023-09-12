@@ -1,57 +1,28 @@
-from typing import List, Optional, Set, Union
-
 from spacy.language import Language
 
-from edsnlp.pipelines.qualifiers.negation import Negation
 from edsnlp.utils.deprecation import deprecated_factory
+
+from .negation import NegationQualifier
 
 DEFAULT_CONFIG = dict(
     pseudo=None,
     preceding=None,
     following=None,
-    termination=None,
     verbs=None,
+    termination=None,
     attr="NORM",
+    span_getter=None,
     on_ents_only=True,
     within_ents=False,
     explain=False,
 )
 
-
-@deprecated_factory(
+create_component = deprecated_factory(
     "negation",
     "eds.negation",
-    default_config=DEFAULT_CONFIG,
     assigns=["span._.negation"],
-)
-@Language.factory(
+)(NegationQualifier)
+create_component = Language.factory(
     "eds.negation",
-    default_config=DEFAULT_CONFIG,
     assigns=["span._.negation"],
-)
-def create_component(
-    nlp: Language,
-    name: str,
-    attr: str,
-    pseudo: Optional[List[str]],
-    preceding: Optional[List[str]],
-    following: Optional[List[str]],
-    termination: Optional[List[str]],
-    verbs: Optional[List[str]],
-    on_ents_only: Union[bool, str, List[str], Set[str]],
-    within_ents: bool,
-    explain: bool,
-):
-
-    return Negation(
-        nlp=nlp,
-        attr=attr,
-        pseudo=pseudo,
-        preceding=preceding,
-        following=following,
-        termination=termination,
-        verbs=verbs,
-        on_ents_only=on_ents_only,
-        within_ents=within_ents,
-        explain=explain,
-    )
+)(create_component)

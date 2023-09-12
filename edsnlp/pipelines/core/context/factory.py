@@ -9,14 +9,12 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@Language.factory(
-    "eds.context",
-    default_config=DEFAULT_CONFIG,
-)
+@Language.factory("eds.context")
 def create_component(
     nlp: Language,
     name: str,
-    context: List[str],
+    *,
+    context: List[str] = ["note_id"],
 ):
 
     return ContextAdder(

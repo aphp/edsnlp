@@ -1,4 +1,5 @@
 import re
+import warnings
 from collections import defaultdict
 from functools import lru_cache
 from operator import attrgetter
@@ -11,8 +12,7 @@ from spacy.tokens import Doc, Span
 from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher, create_span
 from edsnlp.matchers.utils import get_text
-from edsnlp.pipelines.base import BaseComponent
-from edsnlp.utils.filter import filter_spans
+from edsnlp.pipelines.base import BaseNERComponent, SpanSetterArg
 from edsnlp.utils.lists import flatten
 
 from . import models
@@ -31,7 +31,7 @@ def get_window(
     return doclike.doc[start:end]
 
 
-class ContextualMatcher(BaseComponent):
+class ContextualMatcher(BaseNERComponent):
     """
     Allows additional matching in the surrounding context of the main match group,
     for qualification/filtering.
@@ -40,9 +40,9 @@ class ContextualMatcher(BaseComponent):
     ----------
     nlp : Language
         spaCy `Language` object.
-    name : str
+    name : Optional[str]
         The name of the pipe
-    patterns: Union[Dict[str, Any], List[Dict[str, Any]]]
+    patterns : Union[Dict[str, Any], List[Dict[str, Any]]]
         The configuration dictionary
     assign_as_span : bool
         Whether to store eventual extractions defined via the `assign` key as Spans
@@ -51,7 +51,7 @@ class ContextualMatcher(BaseComponent):
         Attribute to match on, eg `TEXT`, `NORM`, etc.
     ignore_excluded : bool
         Whether to skip excluded tokens during matching.
-    ignore_space_tokens: bool
+    ignore_space_tokens : bool
         Whether to skip space tokens during matching.
     alignment_mode : str
         Overwrite alignment mode.
@@ -60,14 +60,20 @@ class ContextualMatcher(BaseComponent):
         [here](https://docs.python.org/3/library/re.html#flags))
     include_assigned : bool
         Whether to include (eventual) assign matches to the final entity
+    label_name : Optional[str]
+        Deprecated, use `label` instead. The label to assign to the matched entities
+    label : str
+        The label to assign to the matched entities
+    span_setter : SpanSetterArg
+        How to set matches on the doc
     """
 
     def __init__(
         self,
-        nlp: Language,
+        nlp: Optional[Language],
+        name: Optional[str] = None,
+        *,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]],
-        name: str = None,
-        label_name: Optional[str] = None,
         assign_as_span: bool = False,
         alignment_mode: str = "expand",
         attr: str = "NORM",
@@ -75,12 +81,22 @@ class ContextualMatcher(BaseComponent):
         ignore_excluded: bool = False,
         ignore_space_tokens: bool = False,
         include_assigned: bool = False,
+        label_name: Optional[str] = None,
+        label: Optional[str] = None,
+        span_setter: SpanSetterArg = {"ents": True},
     ):
-        self.name = name
-        if label_name is None:
-            label_name = name
-        self.label_name = label_name
-        self.nlp = nlp
+        if label is None and label_name is not None:
+            warnings.warn(
+                "`label_name` is deprecated, use `label` instead.",
+                DeprecationWarning,
+            )
+            label = label_name
+        if label is None:
+            raise ValueError("`label` parameter is required.")
+        self.label = label
+
+        super().__init__(nlp=nlp, name=name, span_setter=span_setter)
+
         self.attr = attr
         self.assign_as_span = assign_as_span
         self.ignore_excluded = ignore_excluded
@@ -205,8 +221,8 @@ class ContextualMatcher(BaseComponent):
 
         self.set_extensions()
 
-    @classmethod
-    def set_extensions(cls) -> None:
+    def set_extensions(self) -> None:
+        super().set_extensions()
         if not Span.has_extension("assigned"):
             Span.set_extension("assigned", default=dict())
         if not Span.has_extension("source"):
@@ -214,7 +230,7 @@ class ContextualMatcher(BaseComponent):
 
     def filter_one(self, span: Span) -> Span:
         """
-        Filter extracted entity based on the "exclusion filter" mentionned
+        Filter extracted entity based on the "exclusion filter" mentioned
         in the configuration
 
         Parameters
@@ -340,7 +356,6 @@ class ContextualMatcher(BaseComponent):
         if replace_key is None and self.replace_key[source] is not None:
             # There should have been a replacement, but none was found
             # So we discard the entity
-            yield from []
             return
 
         # Entity replacement
@@ -375,7 +390,7 @@ class ContextualMatcher(BaseComponent):
             for replaced in kept_ents:
                 # Propagating attributes from the anchor
                 replaced._.source = source
-                replaced.label_ = self.label_name
+                replaced.label_ = self.label
 
         else:
             # Entity expansion
@@ -390,7 +405,7 @@ class ContextualMatcher(BaseComponent):
                 )
 
             span._.source = source
-            span.label_ = self.label_name
+            span.label_ = self.label
             kept_ents = [span]
 
         key = "value_span" if self.assign_as_span else "value_text"
@@ -407,6 +422,7 @@ class ContextualMatcher(BaseComponent):
 
     def process_one(self, span):
         filtered = self.filter_one(span)
+        print("FILTERED", filtered)
         yield from self.assign_one(filtered)
 
     def process(self, doc: Doc) -> List[Span]:
@@ -425,7 +441,10 @@ class ContextualMatcher(BaseComponent):
         """
 
         matches = self.phrase_matcher(doc, as_spans=True)
-        regex_matches = self.regex_matcher(doc, as_spans=True)
+        regex_matches = list(self.regex_matcher(doc, as_spans=True))
+
+        print("MATCHES", matches)
+        print("REGEX_MATCHES", regex_matches)
 
         spans = (*matches, *regex_matches)
         for span in spans:
@@ -446,16 +465,6 @@ class ContextualMatcher(BaseComponent):
             spaCy Doc object, annotated for extracted terms.
         """
 
-        ents = list(self.process(doc))
-
-        doc.spans[self.label_name] = ents
-
-        ents, discarded = filter_spans(list(doc.ents) + ents, return_discarded=True)
-
-        doc.ents = ents
-
-        if "discarded" not in doc.spans:
-            doc.spans["discarded"] = []
-        doc.spans["discarded"].extend(discarded)
-
+        spans = list(self.process(doc))
+        self.set_spans(doc, spans)
         return doc

@@ -1,15 +1,15 @@
 from typing import Any, Dict, Union
 
-from spacy import registry
 from spacy.language import Language
 
 from edsnlp.utils.deprecation import deprecated_factory
 
-from .accents.factory import DEFAULT_CONFIG as accents_config
+from .accents.accents import AccentsConverter
 from .normalizer import Normalizer
-from .pollution.factory import DEFAULT_CONFIG as pollution_config
-from .quotes.factory import DEFAULT_CONFIG as quotes_config
-from .spaces.factory import DEFAULT_CONFIG as spaces_config
+from .pollution.patterns import default_enabled as default_enabled_pollution
+from .pollution.pollution import PollutionTagger
+from .quotes.quotes import QuotesConverter
+from .spaces.spaces import SpacesTagger
 
 DEFAULT_CONFIG = dict(
     accents=True,
@@ -23,15 +23,13 @@ DEFAULT_CONFIG = dict(
 @deprecated_factory(
     "normalizer",
     "eds.normalizer",
-    default_config=DEFAULT_CONFIG,
     assigns=["token.norm", "token.tag"],
 )
-@Language.factory(
-    "eds.normalizer", default_config=DEFAULT_CONFIG, assigns=["token.norm", "token.tag"]
-)
+@Language.factory("eds.normalizer", assigns=["token.norm", "token.tag"])
 def create_component(
     nlp: Language,
     name: str = "eds.normalizer",
+    *,
     accents: Union[bool, Dict[str, Any]] = True,
     lowercase: Union[bool, Dict[str, Any]] = True,
     quotes: Union[bool, Dict[str, Any]] = True,
@@ -50,6 +48,10 @@ def create_component(
 
     Parameters
     ----------
+    nlp: Language
+        The pipeline object.
+    name : str
+        The component name.
     lowercase : bool
         Whether to remove case.
     accents : Union[bool, Dict[str, Any]]
@@ -63,32 +65,39 @@ def create_component(
     """
 
     if accents:
-        config = dict(**accents_config)
-        if isinstance(accents, dict):
-            config.update(accents)
-        accents = registry.get("factories", "eds.accents")(nlp, "eds.accents", **config)
+        accents = AccentsConverter(
+            nlp=nlp,
+            name="eds.accents",
+            **(accents if accents is not True else {}),
+        )
 
     if quotes:
-        config = dict(**quotes_config)
-        if isinstance(quotes, dict):
-            config.update(quotes)
-        quotes = registry.get("factories", "eds.quotes")(nlp, "eds.quotes", **config)
+        quotes = QuotesConverter(
+            nlp=nlp,
+            name="eds.quotes",
+            **(quotes if quotes is not True else {}),
+        )
 
     if spaces:
-        config = dict(**spaces_config)
-        if isinstance(spaces, dict):
-            config.update(spaces)
-        spaces = registry.get("factories", "eds.spaces")(nlp, "eds.spaces", **config)
+        spaces = SpacesTagger(
+            nlp=nlp,
+            name="eds.spaces",
+            **(spaces if spaces is not True else {}),
+        )
 
     if pollution:
-        config = dict(**pollution_config["pollution"])
+        config = dict(default_enabled_pollution)
         if isinstance(pollution, dict):
             config.update(pollution)
-        pollution = registry.get("factories", "eds.pollution")(
-            nlp, "eds.pollution", pollution=config
+        pollution = PollutionTagger(
+            nlp=nlp,
+            name="eds.pollution",
+            pollution=config,
         )
 
     normalizer = Normalizer(
+        nlp=nlp,
+        name=name,
         lowercase=lowercase,
         accents=accents or None,
         quotes=quotes or None,

@@ -9,9 +9,10 @@ from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
 
 from . import patterns
+from .patterns import default_enabled
 
 
-class Pollution(BaseComponent):
+class PollutionTagger(BaseComponent):
     """
     Tags pollution tokens.
 
@@ -26,7 +27,9 @@ class Pollution(BaseComponent):
     Parameters
     ----------
     nlp : Language
-        Language pipeline object
+        The pipeline object
+    name : Optional[str]
+        The component name.
     pollution : Dict[str, Union[str, List[str]]]
         Dictionary containing regular expressions of pollution.
     """
@@ -35,14 +38,15 @@ class Pollution(BaseComponent):
     def __init__(
         self,
         nlp: Language,
-        pollution: Optional[Dict[str, Union[bool, str, List[str]]]],
+        name: Optional[str] = "eds.pollution",
+        *,
+        pollution: Dict[str, Union[bool, str, List[str]]] = default_enabled,
     ):
 
         self.nlp = nlp
+        self.name = name
         self.nlp.vocab.strings.add("EXCLUDED")
 
-        if pollution is None:
-            pollution = {k: True for k in patterns.pollution.keys()}
         self.pollution = dict()
 
         for k, v in pollution.items():

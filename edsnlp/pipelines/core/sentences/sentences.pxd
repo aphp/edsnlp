@@ -6,6 +6,7 @@ from spacy.typedefs cimport attr_t
 
 
 cdef class SentenceSegmenter(object):
+    cdef str name
     cdef bool ignore_excluded
     cdef attr_t newline_hash
     cdef attr_t excluded_hash

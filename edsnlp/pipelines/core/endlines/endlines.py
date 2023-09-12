@@ -6,43 +6,128 @@ import pandas as pd
 from spacy.language import Language
 from spacy.tokens import Doc, Span, Token
 
-from edsnlp.pipelines.core.matcher import GenericMatcher
+from edsnlp.pipelines.core.matcher.matcher import GenericMatcher
 from edsnlp.utils.filter import get_spans
 
-from .endlinesmodel import EndLinesModel
 from .functional import build_path
+from .model import EndLinesModel
 
 
-class EndLines(GenericMatcher):
-    """
-    spaCy Pipeline to detect whether a newline character should
-    be considered a space (ie introduced by the PDF).
+class EndLinesMatcher(GenericMatcher):
+    '''
+    The `eds.endlines` component classifies newline characters as actual end of lines
+    or mere spaces. In the latter case, the token is removed from the normalised
+    document.
 
-    The pipeline will add the extension `end_line` to spans
-    and tokens. The `end_line` attribute is a boolean or `None`,
-    set to `True` if the pipeline predicts that the new line
-    is an end line character. Otherwise, it is  set to `False`
-    if the new line is classified as a space. If no classification
-    has been done over that token, it will remain `None`.
+    Behind the scenes, it uses a `endlinesmodel` instance, which is an unsupervised
+    algorithm based on the work of [@zweigenbaum2016].
+
+    Training
+    --------
+    ```python
+    import spacy
+    from edsnlp.pipelines.core.endlines.model import EndLinesModel
+
+    nlp = spacy.blank("eds")
+
+    texts = [
+        """
+    Le patient est arrivé hier soir.
+    Il est accompagné par son fils
+
+    ANTECEDENTS
+    Il a fait une TS en 2010
+    Fumeur, il est arreté il a 5 mois
+    Chirurgie de coeur en 2011
+    CONCLUSION
+    Il doit prendre
+    le medicament indiqué 3 fois par jour. Revoir médecin
+    dans 1 mois.
+    DIAGNOSTIC :
+
+    Antecedents Familiaux:
+    - 1. Père avec diabete
+    """,
+        """
+    J'aime le
+    fromage...
+    """,
+    ]
+
+    docs = list(nlp.pipe(texts))
+
+    # Train and predict an EndLinesModel
+    endlines = EndLinesModel(nlp=nlp)
+
+    df = endlines.fit_and_predict(docs)
+    df.head()
+
+    PATH = "/tmp/path_to_save"
+    endlines.save(PATH)
+    ```
+
+    Examples
+    --------
+    ```python
+    import spacy
+    from spacy.tokens import Span
+    from spacy import displacy
+
+    nlp = spacy.blank("eds")
+
+    PATH = "/tmp/path_to_save"
+    nlp.add_pipe("eds.endlines", config=dict(model_path=PATH))
+
+    docs = list(nlp.pipe(texts))
+
+    doc_exemple = docs[1]
+
+    doc_exemple.ents = tuple(
+        Span(doc_exemple, token.i, token.i + 1, "excluded")
+        for token in doc_exemple
+        if token.tag_ == "EXCLUDED"
+    )
+
+    displacy.render(doc_exemple, style="ent", options={"colors": {"space": "red"}})
+    ```
+
+    Extensions
+    ----------
+    The `eds.endlines` pipeline declares one extension, on both `Span` and `Token`
+    objects. The `end_line` attribute is a boolean, set to `True` if the pipeline
+    predicts that the new line is an end line character. Otherwise, it is set to
+    `False` if the new line is classified as a space.
+
+    The pipeline also sets the `excluded` custom attribute on newlines that are
+    classified as spaces. It lets downstream matchers skip excluded tokens
+    (see [normalisation](/pipelines/core/normalisation/)) for more detail.
 
     Parameters
     ----------
     nlp : Language
-        spaCy nlp pipeline to use for matching.
+        The pipeline object.
+    name: str
+        The name of the component.
+    model_path : Optional[Union[str, EndLinesModel]]
+        Path to trained model. If None, it will use a default model
 
-    end_lines_model : Optional[Union[str, EndLinesModel]], by default None
-        path to trained model. If None, it will use a default model
-    """
+    Authors and citation
+    --------------------
+    The `eds.endlines` pipeline was developed by AP-HP's Data Science team based on
+    the work of [@zweigenbaum2016].
+    '''
 
     def __init__(
         self,
         nlp: Language,
-        end_lines_model: Optional[Union[str, EndLinesModel]],
-        **kwargs,
+        name: Optional[str] = "eds.endlines",
+        *,
+        model_path: Optional[Union[str, EndLinesModel]] = None,
     ):
 
         super().__init__(
-            nlp,
+            nlp=nlp,
+            name=name,
             terms=None,
             attr="TEXT",
             regex=dict(
@@ -50,10 +135,9 @@ class EndLines(GenericMatcher):
             ),
             ignore_excluded=False,
             ignore_space_tokens=False,
-            **kwargs,
         )
 
-        self._read_model(end_lines_model)
+        self._read_model(model_path)
 
     def _read_model(self, end_lines_model: Optional[Union[str, EndLinesModel]]):
         """
@@ -70,10 +154,10 @@ class EndLines(GenericMatcher):
 
             with open(path, "rb") as inp:
                 self.model = pickle.load(inp)
-        elif type(end_lines_model) == str:
+        elif isinstance(end_lines_model, str):
             with open(end_lines_model, "rb") as inp:
                 self.model = pickle.load(inp)
-        elif type(end_lines_model) == EndLinesModel:
+        elif isinstance(end_lines_model, EndLinesModel):
             self.model = end_lines_model
         else:
             raise TypeError(

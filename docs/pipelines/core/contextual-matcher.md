@@ -21,7 +21,7 @@ Let us see step by step how to build such a list using the example stated just a
 To do this, we can build either a set of `terms` or a set of `regex`. `terms` will be used to search for exact matches in the text. While less flexible,
 it is faster than using regex. In our case we could use the following lists (which are of course absolutely not exhaustives):
 
-```python3
+```python
 terms = [
     "cancer",
     "tumeur",
@@ -36,7 +36,7 @@ regex = [
 
 Maybe we want to exclude mentions of benign cancers:
 
-```python3
+```python
 benign = "benign|benin"
 ```
 
@@ -44,7 +44,7 @@ benign = "benign|benin"
 
 For this we will forge a RegEx with one capturing group (basically a pattern enclosed in parentheses):
 
-```python3
+```python
 stage = "stade (I{1,3}V?|[1234])"
 ```
 
@@ -52,7 +52,7 @@ This will extract stage between 1 and 4
 
 We can add a second regex to try to capture if the cancer is in a metastasis stage or not:
 
-```python3
+```python
 metastase = "(metasta)"
 ```
 
@@ -60,8 +60,7 @@ metastase = "(metasta)"
 
 We can now put everything together:
 
-```python3
-
+```python
 cancer = dict(
     source="Cancer solide",
     regex=regex,
@@ -75,8 +74,8 @@ cancer = dict(
         dict(
             name="stage",
             regex=stage,
-            window=(-10,10),
-            replace_entity=True,
+            window=(-10, 10),
+            replace_entity=False,
             reduce_mode=None,
         ),
         dict(
@@ -86,7 +85,7 @@ cancer = dict(
             replace_entity=False,
             reduce_mode="keep_last",
         ),
-    ]
+    ],
 )
 ```
 
@@ -108,7 +107,7 @@ lymphome = dict(
 
 In this case, the configuration can be concatenated in a list:
 
-```python3
+```python
 patterns = [cancer, lymphome]
 ```
 
@@ -143,12 +142,12 @@ This parameter can be se to `True` **only for a single assign key per dictionary
 **Please notice** that with `replace_entity` set to True, if the correponding assign key matches nothing, the entity will be discarded.
 
 
-## Usage
+## Examples
 
 ```python
 import spacy
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 
 nlp.add_pipe("sentences")
 nlp.add_pipe("normalizer")
@@ -158,6 +157,7 @@ nlp.add_pipe(
     name="Cancer",
     config=dict(
         patterns=patterns,
+        label="cancer",
     ),
 )
 ```
@@ -167,15 +167,13 @@ Let us see what we can get from this pipeline with a few examples
 
 === "Simple match"
 
-    <!-- no-check -->
-
-    ```python3
+    ```python
     txt = "Le patient a eu un cancer il y a 5 ans"
     doc = nlp(txt)
     ent = doc.ents[0]
 
     ent.label_
-    # Out: Cancer
+    # Out: cancer
 
     ent._.source
     # Out: Cancer solide
@@ -188,9 +186,7 @@ Let us see what we can get from this pipeline with a few examples
 
     Let us check that when a *benign* mention is present, the extraction is excluded:
 
-    <!-- no-check -->
-
-    ```python3
+    ```python
     txt = "Le patient a eu un cancer relativement bénin il y a 5 ans"
     doc = nlp(txt)
 
@@ -200,26 +196,16 @@ Let us see what we can get from this pipeline with a few examples
 
 === "Extracting additional infos"
 
-    <!-- no-check -->
-
     All informations extracted from the provided `assign` configuration can be found in the `assigned` attribute
     under the form of a dictionary:
 
-    ```python3
+    ```python
     txt = "Le patient a eu un cancer de stade 3."
     doc = nlp(txt)
 
     doc.ents[0]._.assigned
     # Out: {'stage': '3'}
     ```
-
-## Configuration
-
-The pipeline can be configured using the following parameters :
-
-::: edsnlp.pipelines.core.contextual_matcher.factory.create_component
-    options:
-        only_parameters: true
 
 However, most of the configuration is provided in the `patterns` key, as a **pattern dictionary** or a **list of pattern dictionaries**
 
@@ -293,7 +279,7 @@ A patterr is a nested dictionary with the following keys:
 
 ### A full pattern dictionary example
 
-```python3
+```python
 dict(
     source="AVC",
     regex=[
@@ -336,10 +322,13 @@ dict(
             expand_entity=False,
             window=-3,
         ),
-    ]
+    ],
 )
 ```
 
+::: edsnlp.pipelines.core.contextual_matcher.factory.create_component
+    options:
+        only_parameters: true
 
 ## Authors and citation
 

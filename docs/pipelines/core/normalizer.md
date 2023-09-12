@@ -1,10 +1,8 @@
-# Normalisation
+# Normalisation {: #edsnlp.pipelines.core.normalizer.factory.create_component }
 
 The normalisation scheme used by EDS-NLP adheres to the non-destructive doctrine. In other words,
 
-<!-- no-check -->
-
-```python
+```{ .python .no-check }
 nlp(text).text == text
 ```
 
@@ -39,7 +37,7 @@ The normalisation is handled by the single `eds.normalizer` pipeline. The follow
 import spacy
 from edsnlp.matchers.utils import get_text
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 nlp.add_pipe("eds.normalizer")
 
 # Notice the special character used for the apostrophe and the quotes
@@ -87,7 +85,7 @@ config = dict(
     pollution=False,
 )
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 nlp.add_pipe("eds.normalizer", config=config)
 
 text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
@@ -118,7 +116,7 @@ config = dict(
     pollution=False,
 )
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 nlp.add_pipe("eds.normalizer", config=config)
 
 text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
@@ -148,7 +146,7 @@ config = dict(
     pollution=False,
 )
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 nlp.add_pipe("eds.normalizer", config=config)
 
 text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
@@ -207,7 +205,7 @@ config = dict(
     pollution=True,
 )
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 nlp.add_pipe("eds.normalizer", config=config)
 
 text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
@@ -235,7 +233,7 @@ For instance, if we consider biology tables as pollution, we only need to instan
 ```python
 import spacy
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 nlp.add_pipe(
     "eds.normalizer",
     config=dict(
@@ -264,7 +262,7 @@ For instance, to consider text between "AAA" and "ZZZ" as pollution you might us
 ```python
 import spacy
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 nlp.add_pipe(
     "eds.normalizer",
     config=dict(

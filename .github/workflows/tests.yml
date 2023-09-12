@@ -7,22 +7,17 @@ on:
 
 jobs:
   Linting:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-      - name: Set PY variable
-        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
-      - uses: actions/cache@v2
+      - uses: actions/checkout@v3
         with:
-          path: ~/.cache/pre-commit
-          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
-      - name: Install pre-commit
-        run: |
-          pip install pre-commit
-          pre-commit install
-      - name: Run pre-commit
-        run: SKIP=no-commit-to-branch pre-commit run --all-files
+          # requites to grab the history of the PR
+          fetch-depth: 0
+      - uses: actions/setup-python@v3
+      - uses: pre-commit/action@v3.0.0
+        with:
+          extra_args: --color=always --from-ref ${{ github.event.pull_request.base.sha }} --to-ref ${{ github.event.pull_request.head.sha }}
 
   Pytest:
     runs-on: ubuntu-latest

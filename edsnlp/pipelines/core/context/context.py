@@ -13,7 +13,7 @@ class ContextAdder(BaseComponent):
     Parameters
     ----------
     nlp : Language
-        The spaCy object.
+        The pipeline object
     context : List[str]
         The list of extensions to add to the `Doc`
     """

@@ -1,17 +1,20 @@
-from typing import Optional
-
 from spacy.language import Language
 
 from edsnlp.utils.deprecation import deprecated_factory
 
-from .endlines import EndLines
+from .endlines import EndLinesMatcher
 
+DEFAULT_CONFIG = dict(
+    model_path=None,
+)
 
-@deprecated_factory("endlines", "eds.endlines")
-@Language.factory("eds.endlines")
-def create_component(
-    nlp: Language,
-    name: str,
-    model_path: Optional[str],
-):
-    return EndLines(nlp, end_lines_model=model_path)
+create_component = EndLinesMatcher
+create_component = deprecated_factory(
+    "endlines",
+    "eds.endlines",
+    assigns=["doc.ents", "doc.spans"],
+)(create_component)
+create_component = Language.factory(
+    "eds.endlines",
+    assigns=["doc.ents", "doc.spans"],
+)(create_component)

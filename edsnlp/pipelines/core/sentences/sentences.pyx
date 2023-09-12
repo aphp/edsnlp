@@ -1,43 +1,30 @@
+from spacy import Language
 from typing import Iterable, List, Optional
 
 from libcpp cimport bool
 
-# from spacy.typedefs cimport attr_t
 from spacy.attrs cimport IS_ALPHA, IS_ASCII, IS_DIGIT, IS_LOWER, IS_PUNCT, IS_SPACE
 from spacy.lexeme cimport Lexeme
 from spacy.tokens.doc cimport Doc
 from spacy.tokens.token cimport TokenC
-from spacy.vocab cimport Vocab
 
 from .terms import punctuation
 
-
-cdef class SentenceSegmenter(object):
-    """
-    Segments the Doc into sentences using a rule-based strategy,
-    specific to AP-HP documents.
-
-    Applies the same rule-based pipeline as spaCy's sentencizer,
-    and adds a simple rule on the new lines : if a new line is followed by a
-    capitalised word, then it is also an end of sentence.
-
-    DOCS: https://spacy.io/api/sentencizer
-
-    Arguments
-    ---------
-    punct_chars : Optional[List[str]]
-        Punctuation characters.
-    use_endlines : bool
-        Whether to use endlines prediction.
-    """
-
+cdef class SentenceSegmenter:
     def __init__(
-        self,
-        vocab: Vocab,
-        punct_chars: Optional[List[str]],
-        use_endlines: bool,
-        ignore_excluded: bool = True,
+          self,
+          nlp: Language,
+          name: Optional[str] = None,
+          *,
+          punct_chars: Optional[List[str]],
+          use_endlines: bool,
+          ignore_excluded: bool = True,
     ):
+        if isinstance(nlp, Language):
+            vocab = nlp.vocab
+        else:
+            vocab = nlp
+        self.name = name
 
         if punct_chars is None:
             punct_chars = punctuation
@@ -47,10 +34,14 @@ cdef class SentenceSegmenter(object):
         self.excluded_hash = vocab.strings["EXCLUDED"]
         self.endline_hash = vocab.strings["ENDLINE"]
         self.punct_chars_hash = {vocab.strings[c] for c in punct_chars}
-        self.capitalized_shapes_hash = {vocab.strings[shape] for shape in ("Xx", "Xxx", "Xxxx", "Xxxxx")}
+        self.capitalized_shapes_hash = {
+            vocab.strings[shape]
+            for shape in ("Xx", "Xxx", "Xxxx", "Xxxxx")
+        }
 
         if use_endlines:
-            print("The use_endlines is deprecated and has been replaced by the ignore_excluded parameter")
+            print("The use_endlines is deprecated and has been replaced by the "
+                  "ignore_excluded parameter")
 
     def __call__(self, doc: Doc):
         self.process(doc)
@@ -86,20 +77,35 @@ cdef class SentenceSegmenter(object):
             if self.ignore_excluded and token.tag == self.excluded_hash:
                 continue
 
-            is_in_punct_chars = self.punct_chars_hash.const_find(token.lex.orth) != self.punct_chars_hash.const_end()
-            is_newline = Lexeme.c_check_flag(token.lex, IS_SPACE) and token.lex.orth == self.newline_hash
+            is_in_punct_chars = (
+                  self.punct_chars_hash.const_find(token.lex.orth)
+                  != self.punct_chars_hash.const_end()
+            )
+            is_newline = (
+                  Lexeme.c_check_flag(token.lex, IS_SPACE)
+                  and token.lex.orth == self.newline_hash
+            )
 
             if seen_period or seen_newline:
                 if seen_period and Lexeme.c_check_flag(token.lex, IS_DIGIT):
                     continue
-                if is_in_punct_chars or is_newline or Lexeme.c_check_flag(token.lex, IS_PUNCT):
+                if (
+                      is_in_punct_chars
+                      or is_newline
+                      or Lexeme.c_check_flag(token.lex, IS_PUNCT)
+                ):
                     continue
                 if seen_period:
                     doc.c[i].sent_start = 1
                     seen_newline = False
                     seen_period = False
                 else:
-                    doc.c[i].sent_start = 1 if self.capitalized_shapes_hash.const_find(token.lex.shape) != self.capitalized_shapes_hash.const_end() else -1
+                    doc.c[i].sent_start = (
+                        1 if (
+                              self.capitalized_shapes_hash.const_find(token.lex.shape)
+                              != self.capitalized_shapes_hash.const_end()
+                        ) else -1
+                    )
                     seen_newline = False
                     seen_period = False
             elif is_in_punct_chars:

@@ -1,29 +1,21 @@
-from typing import List, Optional, Tuple
-
 from spacy.language import Language
 
 from edsnlp.utils.deprecation import deprecated_factory
 
-from .quotes import Quotes
+from .patterns import quotes_and_apostrophes
+from .quotes import QuotesConverter
 
 DEFAULT_CONFIG = dict(
-    quotes=None,
+    quotes=quotes_and_apostrophes,
 )
 
-
-@deprecated_factory(
-    "quotes", "eds.quotes", default_config=DEFAULT_CONFIG, assigns=["token.norm"]
-)
-@Language.factory(
+create_component = QuotesConverter
+create_component = deprecated_factory(
+    "quotes",
     "eds.quotes",
-    default_config=DEFAULT_CONFIG,
     assigns=["token.norm"],
-)
-def create_component(
-    nlp: Language,
-    name: str,
-    quotes: Optional[List[Tuple[str, str]]],
-):
-    return Quotes(
-        quotes=quotes,
-    )
+)(create_component)
+create_component = Language.factory(
+    "eds.quotes",
+    assigns=["token.norm"],
+)(create_component)

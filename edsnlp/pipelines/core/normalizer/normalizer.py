@@ -1,12 +1,13 @@
 from typing import Optional
 
+from spacy import Language
 from spacy.tokens import Doc
 
-from .accents import Accents
-from .lowercase import remove_lowercase
-from .pollution import Pollution
-from .quotes import Quotes
-from .spaces import Spaces
+from .accents.accents import AccentsConverter
+from .lowercase.factory import remove_lowercase
+from .pollution.pollution import PollutionTagger
+from .quotes.quotes import QuotesConverter
+from .spaces.spaces import SpacesTagger
 
 
 class Normalizer(object):
@@ -22,6 +23,10 @@ class Normalizer(object):
 
     Parameters
     ----------
+    nlp : Optional[Language]
+        The pipeline object.
+    name : Optional[str]
+        The name of the component.
     lowercase : bool
         Whether to remove case.
     accents : Optional[Accents]
@@ -36,12 +41,17 @@ class Normalizer(object):
 
     def __init__(
         self,
-        lowercase: bool,
-        accents: Optional[Accents],
-        quotes: Optional[Quotes],
-        spaces: Optional[Spaces],
-        pollution: Optional[Pollution],
+        nlp: Optional[Language],
+        name: Optional[str] = "eds.normalizer",
+        *,
+        lowercase: bool = False,
+        accents: Optional[AccentsConverter] = None,
+        quotes: Optional[QuotesConverter] = None,
+        spaces: Optional[SpacesTagger] = None,
+        pollution: Optional[PollutionTagger] = None,
     ):
+        self.nlp = nlp
+        self.name = name
         self.lowercase = lowercase
         self.accents = accents
         self.quotes = quotes

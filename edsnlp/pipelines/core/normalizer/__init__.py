@@ -1,11 +1,4 @@
-from functools import lru_cache
-from typing import Union
-
-from spacy.tokens import Doc, Span, Token
-
-from .accents import Accents
-from .pollution import Pollution
-from .quotes import Quotes
+from spacy.tokens import Token
 
 if not Token.has_extension("excluded"):
     Token.set_extension("excluded", default=False)

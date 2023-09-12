@@ -1,6 +1,5 @@
-from enum import Enum
 from itertools import chain
-from typing import List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from spacy.language import Language
 from spacy.tokens import Doc, Span
@@ -9,29 +8,69 @@ from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.matchers.simstring import SimstringMatcher
 from edsnlp.matchers.utils import Patterns
-from edsnlp.pipelines.base import BaseComponent
-from edsnlp.utils.filter import filter_spans
+from edsnlp.pipelines.base import BaseNERComponent, SpanSetterArg
 
 
-class TerminologyTermMatcher(str, Enum):
-    exact = "exact"
-    simstring = "simstring"
+class TerminologyMatcher(BaseNERComponent):
+    r"""
+    EDS-NLP simplifies the terminology matching process by exposing a `eds.terminology`
+    pipeline that can match on terms or regular expressions.
 
+    The terminology matcher is very similar to the
+    [generic matcher][edsnlp.pipelines.core.matcher.factory.create_component],
+    although the use case differs slightly. The generic matcher is designed to extract
+    any entity, while the terminology matcher is specifically tailored towards high
+    volume terminologies.
 
-class TerminologyMatcher(BaseComponent):
-    """
-    Provides a terminology matching component.
+    There are some key differences:
 
-    The terminology matching component differs from the simple matcher component in that
-    the `regex` and `terms` keys are used as spaCy's `kb_id`. All matched entities
-    have the same label, defined in the top-level constructor (argument `label`).
+    1. It labels every matched entity to the same value, provided to the pipeline
+    2. The keys provided in the `regex` and `terms` dictionaries are used as the
+       `kb_id_` of the entity, which handles fine-grained labelling
+
+    For instance, a terminology matcher could detect every drug mention under the
+    top-level label `drug`, and link each individual mention to a given drug through
+    its `kb_id_` attribute.
+
+    Examples
+    --------
+    Let us redefine the pipeline :
+
+    ```python
+    import spacy
+
+    nlp = spacy.blank("eds")
+
+    terms = dict(
+        covid=["coronavirus", "covid19"],  # (1)
+        flu=["grippe saisonnière"],  # (2)
+    )
+
+    regex = dict(
+        covid=r"coronavirus|covid[-\s]?19|sars[-\s]cov[-\s]2",  # (3)
+    )
+
+    nlp.add_pipe(
+        "eds.terminology",
+        config=dict(
+            label="disease",
+            terms=terms,
+            regex=regex,
+            attr="LOWER",
+        ),
+    )
+    ```
+
+    1. Every key in the `terms` dictionary is mapped to a concept.
+    2. The `eds.matcher` pipeline expects a list of expressions, or a single expression.
+    3. We can also define regular expression patterns.
+
+    This snippet is complete, and should run as is.
 
     Parameters
     ----------
     nlp : Language
-        The spaCy object.
-    label : str
-        Top-level label
+        The pipeline object
     terms : Optional[Patterns]
         A dictionary of terms.
     regex : Optional[Patterns]
@@ -44,33 +83,55 @@ class TerminologyMatcher(BaseComponent):
         pipeline to mark excluded tokens).
     ignore_space_tokens: bool
         Whether to skip space tokens during matching.
-    term_matcher: TerminologyTermMatcher
+    term_matcher: Literal["exact", "simstring"]
         The matcher to use for matching phrases ?
         One of (exact, simstring)
     term_matcher_config: Dict[str,Any]
         Parameters of the matcher class
+    label: str
+        Label name to use for the `Span` object and the extension
+    span_setter : SpanSetterArg
+        How to set matches on the doc
+
+    Patterns, be they `terms` or `regex`, are defined as dictionaries where keys become
+    the `kb_id_` of the extracted entities. Dictionary values are either a single
+    expression or a list of expressions that match the concept (see [example](#usage)).
+
+    Authors and citation
+    --------------------
+    The `eds.terminology` pipeline was developed by AP-HP's Data Science team.
     """
 
     def __init__(
         self,
         nlp: Language,
-        label: str,
-        terms: Optional[Patterns],
-        regex: Optional[Patterns],
-        attr: str,
-        ignore_excluded: bool,
+        name: Optional[str] = None,
+        *,
+        terms: Optional[Patterns] = None,
+        regex: Optional[Patterns] = None,
+        attr: str = "TEXT",
+        ignore_excluded: bool = False,
         ignore_space_tokens: bool = False,
-        term_matcher: TerminologyTermMatcher = TerminologyTermMatcher.exact,
-        term_matcher_config=None,
+        term_matcher: Literal["exact", "simstring"] = "exact",
+        term_matcher_config: Dict[str, Any] = None,
+        label,
+        span_setter: SpanSetterArg = {"ents": True},
     ):
-
-        self.nlp = nlp
-
         self.label = label
+
+        super().__init__(nlp=nlp, name=name, span_setter=span_setter)
+
+        if terms is None and regex is None:
+            raise ValueError(
+                "You must provide either `terms` or `regex` to the matcher."
+            )
+
+        terms = terms or {}
+        regex = regex or {}
 
         self.attr = attr
 
-        if term_matcher == TerminologyTermMatcher.exact:
+        if term_matcher == "exact":
             self.phrase_matcher = EDSPhraseMatcher(
                 self.nlp.vocab,
                 attr=attr,
@@ -78,7 +139,7 @@ class TerminologyMatcher(BaseComponent):
                 ignore_space_tokens=ignore_space_tokens,
                 **(term_matcher_config or {}),
             )
-        elif term_matcher == TerminologyTermMatcher.simstring:
+        elif term_matcher == "simstring":
             self.phrase_matcher = SimstringMatcher(
                 vocab=self.nlp.vocab,
                 attr=attr,
@@ -128,8 +189,6 @@ class TerminologyMatcher(BaseComponent):
         matches = self.phrase_matcher(doc, as_spans=True)
         regex_matches = self.regex_matcher(doc, as_spans=True)
 
-        spans = []
-
         for match in chain(matches, regex_matches):
             span = Span(
                 doc=match.doc,
@@ -139,9 +198,7 @@ class TerminologyMatcher(BaseComponent):
                 kb_id=match.label,
             )
             span._.set(self.label, match.label_)
-            spans.append(span)
-
-        return spans
+            yield span
 
     def __call__(self, doc: Doc) -> Doc:
         """
@@ -159,15 +216,6 @@ class TerminologyMatcher(BaseComponent):
         """
         matches = self.process(doc)
 
-        if self.label not in doc.spans:
-            doc.spans[self.label] = matches
-
-        ents, discarded = filter_spans(list(doc.ents) + matches, return_discarded=True)
-
-        doc.ents = ents
-
-        if "discarded" not in doc.spans:
-            doc.spans["discarded"] = []
-        doc.spans["discarded"].extend(discarded)
+        self.set_spans(doc, matches)
 
         return doc

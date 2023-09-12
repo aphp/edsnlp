@@ -1,29 +1,18 @@
 from spacy.language import Language
 
-from .spaces import Spaces
+from edsnlp.utils.deprecation import deprecated_factory
 
-DEFAULT_CONFIG = dict()
+from .spaces import SpacesTagger
 
+DEFAULT_CONFIG = dict(newline=True)
 
-@Language.factory(
+create_component = SpacesTagger
+create_component = deprecated_factory(
+    "spaces",
     "eds.spaces",
-    default_config=DEFAULT_CONFIG,
     assigns=["token.tag"],
-)
-def create_component(
-    nlp: Language,
-    name: str,
-    newline: bool = True,
-):
-    """
-    Create a new component to update the `tag_` attribute of tokens.
-
-    We assign "SPACE" to `token.tag` to be used by optimized components
-    such as the EDSPhraseMatcher
-
-    Parameters
-    ----------
-    newline : bool
-        Whether to update the newline tokens too
-    """
-    return Spaces(newline=newline)
+)(create_component)
+create_component = Language.factory(
+    "eds.spaces",
+    assigns=["token.tag"],
+)(create_component)

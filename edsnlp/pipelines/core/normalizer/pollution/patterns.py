@@ -49,3 +49,13 @@ pollution = dict(
     coding=coding,
     footer=footer,
 )
+
+default_enabled = dict(
+    information=True,
+    bars=True,
+    biology=False,
+    doctors=True,
+    web=True,
+    coding=False,
+    footer=True,
+)

@@ -24,7 +24,7 @@ $ python -m venv venv
 $ source venv/bin/activate
 
 # Install the package with common, dev, setup dependencies in editable mode
-$ pip install -e '.[dev,docs,setup]'
+$ pip install -e '.[dev,setup]'
 # And build resources
 $ python scripts/conjugate_verbs.py
 ```
@@ -113,7 +113,7 @@ We use `MkDocs` for EDS-NLP's documentation. You can checkout the changes you ma
 
 ```console
 # Install the requirements
-$ pip install -e '.[docs]'
+$ pip install -e '.[dev]'
 ---> 100%
 color:green Installation successful
 

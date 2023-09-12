@@ -41,12 +41,8 @@ dev = [
     "pytest-cov>=3.0.0,<4.0.0",
     "pytest-html>=3.1.1,<4.0.0",
     "torch>=1.0.0",
-]
-setup = [
-    "mlconjug3<3.9.0",
-    "typer"
-]
-docs = [
+
+    # docs
     "mike~=1.1.2",
     "mkdocs-charts-plugin==0.0.8",
     "mkdocs-img2fig-plugin==0.9.3",
@@ -58,6 +54,10 @@ docs = [
     "mkdocs-autolinks-plugin~=0.7.1",
     "pybtex~=0.24.0",
     "pathspec>=0.11.1",  # required by vendored mkdocs-autorefs PR
+]
+setup = [
+    "mlconjug3<3.9.0",
+    "typer"
 ]
 
 [project.urls]
@@ -150,6 +150,10 @@ where = ["."]
 
 [project.entry-points."spacy_languages"]
 "eds" = "edsnlp.language:EDSLanguage"
+
+[project.entry-points."mkdocs.plugins"]
+"bibtex" = "docs.scripts.bibtex:BibTexPlugin"
+"autorefs" = "docs.scripts.autorefs.plugin:AutorefsPlugin"
 
 [build-system]
 requires = [

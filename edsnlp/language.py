@@ -42,7 +42,7 @@ class EDSLanguage(French):
     default_config = Defaults
 
 
-TOKENIZER_EXCEPTIONS = [r"Dr\.", r"Pr\.", r"M\.", r"Mme\.", r"Mlle\.", r"(?i)(?:ep\.)"]
+TOKENIZER_EXCEPTIONS = [r"Dr\.", r"Pr\.", r"M\.", r"Mme\.", r"Mlle\.", r"(?i:(?:ep\.))"]
 
 
 class EDSTokenizer(DummyTokenizer):

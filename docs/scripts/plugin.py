@@ -13,7 +13,7 @@ def exclude_file(name):
 
 # Add the files from the project root
 
-REFERENCE_FILES = {}
+VIRTUAL_FILES = {}
 REFERENCE_TEMPLATE = """
 # `{ident}`
 ::: {ident}
@@ -60,7 +60,7 @@ def on_files(files: mkdocs.structure.files.Files, config: mkdocs.config.Config):
             current.append({parts[-1]: str(doc_path)})
         ident = ".".join(parts)
         os.makedirs(doc_path.parent, exist_ok=True)
-        REFERENCE_FILES[str(doc_path)] = REFERENCE_TEMPLATE.format(ident=ident)
+        VIRTUAL_FILES[str(doc_path)] = REFERENCE_TEMPLATE.format(ident=ident)
 
     for item in config["nav"]:
         if not isinstance(item, dict):
@@ -71,6 +71,9 @@ def on_files(files: mkdocs.structure.files.Files, config: mkdocs.config.Config):
         if item[key].strip("/") == "reference":
             item[key] = reference_nav
 
+    VIRTUAL_FILES["contributing.md"] = Path("contributing.md").read_text()
+    VIRTUAL_FILES["changelog.md"] = Path("changelog.md").read_text()
+
     return mkdocs.structure.files.Files(
         [file for file in files if not exclude_file(file.src_path)]
         + [
@@ -80,7 +83,7 @@ def on_files(files: mkdocs.structure.files.Files, config: mkdocs.config.Config):
                 config["site_dir"],
                 config["use_directory_urls"],
             )
-            for file in REFERENCE_FILES
+            for file in VIRTUAL_FILES
         ]
     )
 
@@ -112,6 +115,6 @@ def on_nav(nav, config, files):
 
 
 def on_page_read_source(page, config):
-    if page.file.src_path in REFERENCE_FILES:
-        return REFERENCE_FILES[page.file.src_path]
+    if page.file.src_path in VIRTUAL_FILES:
+        return VIRTUAL_FILES[page.file.src_path]
     return None

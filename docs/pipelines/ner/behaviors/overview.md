@@ -2,16 +2,15 @@
 
 ## Presentation
 
-At the moment, EDS-NLP exposes two pipelines extracting behavioral patterns, namely the tobacco and alcohol consumption status. Each component is based on the ContextualMatcher component.
+EDS-NLP offers two components to extract behavioral patterns, namely the tobacco and alcohol consumption status. Each component is based on the ContextualMatcher component.
 Some general considerations about those components:
 
-- Extracted entities are stored in the `doc.spans` dictionary. For instance, the `eds.tobacco` component stores matches in `doc.spans["tobacco"]`.
-- The comorbidity is also available under the `ent.label_` of each match.
-- Matches have an associated `_.status` attribute taking the value `0`, `1`, or `2`. A corresponding `_.detailled_status` attribute stores the human-readable status, which can be component-dependent. See each component documentation for more details.
+- Extracted entities are stored in `doc.ents` and `doc.spans`. For instance, the `eds.tobacco` component stores matches in `doc.spans["tobacco"]`.
+- The matched comorbidity is also available under the `ent.label_` of each match.
+- Matches have an associated `_.status` attribute taking the value `0`, `1`, or `2`. A corresponding `_.detailed_status` attribute stores the human-readable status, which can be component-dependent. See each component documentation for more details.
 - Some components add additional information to matches. For instance, the `tobacco` adds, if relevant, extracted *pack-year* (= *paquet-année*). Those information are available under the `ent._.assigned` attribute.
 - Those components work on **normalized** documents. Please use the `eds.normalizer` pipeline with the following parameters:
-  <!-- no-check -->
-  ```python
+  ```{ .python .no-check }
   nlp.add_pipe(
       "eds.normalizer",
       config=dict(
@@ -32,7 +31,7 @@ Some general considerations about those components:
   )
   ```
 
-- Those components **should be used with a qualification pipeline** to avoid extracted unwanted matches. At the very least, you can use available rule-based qualifiers (`eds.negation`, `eds.hypothesis` and `eds.family`). Better, a machine learning qualification component was developped and trained specificaly for those components. For privacy reason, the model isn't publicly available yet.
+- Those components **should be used with a qualification pipeline** to avoid extracted unwanted matches. At the very least, you can use available rule-based qualifiers (`eds.negation`, `eds.hypothesis` and `eds.family`). Better, a machine learning qualification component was developed and trained specifically for those components. For privacy reason, the model isn't publicly available yet.
 
     !!! aphp "Use the ML model"
 
@@ -40,9 +39,7 @@ Some general considerations about those components:
 
 ## Usage
 
-<!-- no-check -->
-
-```python
+```{ .python .no-check }
 import spacy
 
 nlp = spacy.blank("eds")
@@ -87,16 +84,16 @@ doc.spans
 # 'diabetes': [rétinopathie diabétique, diabète]
 # }
 
-tobacco = doc.spans["tobacco"]
-tobacco[0]._.detailled_status
+tobacco_matches = doc.spans["tobacco"]
+tobacco_matches[0]._.detailed_status
 # Out: "ABSTINENCE" #
 
-tobacco[0]._.assigned["PA"]  # paquet-année
+tobacco_matches[0]._.assigned["PA"]  # paquet-année
 # Out: 10 # (1)
 
 
 diabetes = doc.spans["diabetes"]
-(diabetes[0]._.detailled_status, diabetes[1]._.detailled_status)
+(diabetes[0]._.detailed_status, diabetes[1]._.detailed_status)
 # Out: ('WITH_COMPLICATION', 'WITHOUT_COMPLICATION') # (2)
 ```
 

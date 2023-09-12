@@ -1,20 +1,15 @@
-from typing import Any, Dict, Optional
+from spacy import Language
 
-from spacy.language import Language
+from .dementia import DementiaMatcher
+from .patterns import default_patterns
 
-from .dementia import Dementia
-
-DEFAULT_CONFIG = dict(patterns=None)
-
-
-@Language.factory(
-    "eds.dementia",
-    default_config=DEFAULT_CONFIG,
-    assigns=["doc.ents", "doc.spans"],
+DEFAULT_CONFIG = dict(
+    patterns=default_patterns,
+    label="dementia",
+    span_setter={"ents": True, "dementia": True},
 )
-def create_component(
-    nlp: Language,
-    name: str,
-    patterns: Optional[Dict[str, Any]],
-):
-    return Dementia(nlp, name=name, patterns=patterns)
+
+create_component = Language.factory(
+    "eds.dementia",
+    assigns=["doc.ents", "doc.spans"],
+)(DementiaMatcher)

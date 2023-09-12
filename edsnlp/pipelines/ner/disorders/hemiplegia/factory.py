@@ -1,20 +1,15 @@
-from typing import Any, Dict, Optional
+from spacy import Language
 
-from spacy.language import Language
+from .hemiplegia import HemiplegiaMatcher
+from .patterns import default_patterns
 
-from .hemiplegia import Hemiplegia
-
-DEFAULT_CONFIG = dict(patterns=None)
-
-
-@Language.factory(
-    "eds.hemiplegia",
-    default_config=DEFAULT_CONFIG,
-    assigns=["doc.ents", "doc.spans"],
+DEFAULT_CONFIG = dict(
+    patterns=default_patterns,
+    label="hemiplegia",
+    span_setter={"ents": True, "hemiplegia": True},
 )
-def create_component(
-    nlp: Language,
-    name: str,
-    patterns: Optional[Dict[str, Any]],
-):
-    return Hemiplegia(nlp, name=name, patterns=patterns)
+
+create_component = Language.factory(
+    "eds.hemiplegia",
+    assigns=["doc.ents", "doc.spans"],
+)(HemiplegiaMatcher)

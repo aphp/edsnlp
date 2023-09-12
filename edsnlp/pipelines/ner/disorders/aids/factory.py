@@ -1,28 +1,22 @@
-from typing import Any, Dict, Optional
-
-from spacy.language import Language
+from spacy import Language
 
 from edsnlp.utils.deprecation import deprecated_factory
 
-from .AIDS import AIDS
+from .aids import AIDSMatcher
+from .patterns import default_patterns
 
-DEFAULT_CONFIG = dict(patterns=None)
+DEFAULT_CONFIG = dict(
+    patterns=default_patterns,
+    label="aids",
+    span_setter={"ents": True, "aids": True},
+)
 
-
-@deprecated_factory(
+create_component = deprecated_factory(
     "eds.AIDS",
     "eds.aids",
-    default_config=DEFAULT_CONFIG,
     assigns=["doc.ents", "doc.spans"],
-)
-@Language.factory(
+)(AIDSMatcher)
+create_component = Language.factory(
     "eds.aids",
-    default_config=DEFAULT_CONFIG,
     assigns=["doc.ents", "doc.spans"],
-)
-def create_component(
-    nlp: Language,
-    name: str,
-    patterns: Optional[Dict[str, Any]],
-):
-    return AIDS(nlp, name=name, patterns=patterns)
+)(create_component)

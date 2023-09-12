@@ -1,20 +1,15 @@
-from typing import Any, Dict, Optional
+from spacy import Language
 
-from spacy.language import Language
+from .diabetes import DiabetesMatcher
+from .patterns import default_patterns
 
-from .diabetes import Diabetes
-
-DEFAULT_CONFIG = dict(patterns=None)
-
-
-@Language.factory(
-    "eds.diabetes",
-    default_config=DEFAULT_CONFIG,
-    assigns=["doc.ents", "doc.spans"],
+DEFAULT_CONFIG = dict(
+    patterns=default_patterns,
+    label="diabetes",
+    span_setter={"ents": True, "diabetes": True},
 )
-def create_component(
-    nlp: Language,
-    name: str,
-    patterns: Optional[Dict[str, Any]],
-):
-    return Diabetes(nlp, name=name, patterns=patterns)
+
+create_component = Language.factory(
+    "eds.diabetes",
+    assigns=["doc.ents", "doc.spans"],
+)(DiabetesMatcher)

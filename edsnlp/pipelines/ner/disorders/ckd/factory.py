@@ -1,28 +1,22 @@
-from typing import Any, Dict, Optional
-
-from spacy.language import Language
+from spacy import Language
 
 from edsnlp.utils.deprecation import deprecated_factory
 
-from .CKD import CKD
+from .ckd import CKDMatcher
+from .patterns import default_patterns
 
-DEFAULT_CONFIG = dict(patterns=None)
+DEFAULT_CONFIG = dict(
+    patterns=default_patterns,
+    label="ckd",
+    span_setter={"ents": True, "ckd": True},
+)
 
-
-@deprecated_factory(
+create_component = deprecated_factory(
     "eds.CKD",
     "eds.ckd",
-    default_config=DEFAULT_CONFIG,
     assigns=["doc.ents", "doc.spans"],
-)
-@Language.factory(
+)(CKDMatcher)
+create_component = Language.factory(
     "eds.ckd",
-    default_config=DEFAULT_CONFIG,
     assigns=["doc.ents", "doc.spans"],
-)
-def create_component(
-    nlp: Language,
-    name: str,
-    patterns: Optional[Dict[str, Any]],
-):
-    return CKD(nlp, name=name, patterns=patterns)
+)(create_component)

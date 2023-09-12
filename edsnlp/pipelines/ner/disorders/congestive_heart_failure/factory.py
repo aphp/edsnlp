@@ -1,20 +1,15 @@
-from typing import Any, Dict, Optional
+from spacy import Language
 
-from spacy.language import Language
+from .congestive_heart_failure import CongestiveHeartFailureMatcher
+from .patterns import default_patterns
 
-from .congestive_heart_failure import CongestiveHeartFailure
-
-DEFAULT_CONFIG = dict(patterns=None)
-
-
-@Language.factory(
-    "eds.congestive_heart_failure",
-    default_config=DEFAULT_CONFIG,
-    assigns=["doc.ents", "doc.spans"],
+DEFAULT_CONFIG = dict(
+    patterns=default_patterns,
+    label="congestive_heart_failure",
+    span_setter={"ents": True, "congestive_heart_failure": True},
 )
-def create_component(
-    nlp: Language,
-    name: str,
-    patterns: Optional[Dict[str, Any]],
-):
-    return CongestiveHeartFailure(nlp, name=name, patterns=patterns)
+
+create_component = Language.factory(
+    "eds.congestive_heart_failure",
+    assigns=["doc.ents", "doc.spans"],
+)(CongestiveHeartFailureMatcher)

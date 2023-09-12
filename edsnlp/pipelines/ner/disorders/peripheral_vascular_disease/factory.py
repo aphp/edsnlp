@@ -1,20 +1,15 @@
-from typing import Any, Dict, Optional
+from spacy import Language
 
-from spacy.language import Language
+from .patterns import default_patterns
+from .peripheral_vascular_disease import PeripheralVascularDiseaseMatcher
 
-from .peripheral_vascular_disease import PeripheralVascularDisease
-
-DEFAULT_CONFIG = dict(patterns=None)
-
-
-@Language.factory(
-    "eds.peripheral_vascular_disease",
-    default_config=DEFAULT_CONFIG,
-    assigns=["doc.ents", "doc.spans"],
+DEFAULT_CONFIG = dict(
+    patterns=default_patterns,
+    label="peripheral_vascular_disease",
+    span_setter={"ents": True, "peripheral_vascular_disease": True},
 )
-def create_component(
-    nlp: Language,
-    name: str,
-    patterns: Optional[Dict[str, Any]],
-):
-    return PeripheralVascularDisease(nlp, name, patterns=patterns)
+
+create_component = Language.factory(
+    "eds.peripheral_vascular_disease",
+    assigns=["doc.ents", "doc.spans"],
+)(PeripheralVascularDiseaseMatcher)

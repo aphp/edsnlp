@@ -1,20 +1,15 @@
-from typing import Any, Dict, Optional
+from spacy import Language
 
-from spacy.language import Language
+from .connective_tissue_disease import ConnectiveTissueDiseaseMatcher
+from .patterns import default_patterns
 
-from .connective_tissue_disease import ConnectiveTissueDisease
-
-DEFAULT_CONFIG = dict(patterns=None)
-
-
-@Language.factory(
-    "eds.connective_tissue_disease",
-    default_config=DEFAULT_CONFIG,
-    assigns=["doc.ents", "doc.spans"],
+DEFAULT_CONFIG = dict(
+    patterns=default_patterns,
+    label="connective_tissue_disease",
+    span_setter={"ents": True, "connective_tissue_disease": True},
 )
-def create_component(
-    nlp: Language,
-    name: str,
-    patterns: Optional[Dict[str, Any]],
-):
-    return ConnectiveTissueDisease(nlp, name=name, patterns=patterns)
+
+create_component = Language.factory(
+    "eds.connective_tissue_disease",
+    assigns=["doc.ents", "doc.spans"],
+)(ConnectiveTissueDiseaseMatcher)

@@ -1,55 +1,3 @@
-# Peripheral vascular disease
-
-The `eds.peripheral_vascular_disease` pipeline component extracts mentions of peripheral vascular disease.
-
-??? info "Details of the used patterns"
-    <!-- no-check -->
-    ```python
-    # fmt: off
-    --8<-- "edsnlp/pipelines/ner/disorders/peripheral_vascular_disease/patterns.py"
-    # fmt: on
-    ```
-
-## Extensions
-
-On each span `span` that match, the following attributes are available:
-
-- `span._.detailled_status`: set to `"PRESENT"`
-
-## Usage
-
-
-```python
-import spacy
-
-nlp = spacy.blank("eds")
-nlp.add_pipe("eds.sentences")
-nlp.add_pipe(
-    "eds.normalizer",
-    config=dict(
-        accents=True,
-        lowercase=True,
-        quotes=True,
-        spaces=True,
-        pollution=dict(
-            information=True,
-            bars=True,
-            biology=True,
-            doctors=True,
-            web=True,
-            coding=True,
-            footer=True,
-        ),
-    ),
-)
-nlp.add_pipe(f"eds.peripheral_vascular_disease")
-```
-
-Below are a few examples:
-
-
-
-
 === "1"
     ```python
     text = "Un AOMI"
@@ -208,7 +156,3 @@ Below are a few examples:
     spans
     # Out: []
     ```
-
-## Authors and citation
-
-The `eds.peripheral_vascular_disease` component was developed by AP-HP's Data Science team with a team of medical experts. A paper describing in details the development of those components is being drafted and will soon be available.

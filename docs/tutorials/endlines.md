@@ -25,9 +25,9 @@ Let's train the model using an example corpus of three documents:
 
 ```python
 import spacy
-from edsnlp.pipelines.core.endlines import EndLinesModel
+from edsnlp.pipelines.core.endlines.model import EndLinesModel
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 
 text1 = """Le patient est arrivé hier soir.
 Il est accompagné par son fils
@@ -70,18 +70,16 @@ PATH = "/tmp/path_to_model"
 endlines.save(PATH)
 ```
 
-1. Initialize the [`EndLinesModel`][edsnlp.pipelines.core.endlines.endlinesmodel.EndLinesModel]
+1. Initialize the [`EndLinesModel`][edsnlp.pipelines.core.endlines.model.EndLinesModel]
    object and then fit (and predict) in the training corpus.
 2. The corpus should be an iterable of spacy documents.
 
 ## Use a trained model for inference
 
-<!-- no-check -->
-
-```python
+```{ .python .no-check }
 import spacy
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 
 PATH = "/path_to_model"
 nlp.add_pipe("eds.endlines", config=dict(model_path=PATH))  # (1)
@@ -104,6 +102,6 @@ list(doc.sents)[0]
 
 ## Declared extensions
 
-It lets downstream matchers skip excluded tokens (see [normalisation](../pipelines/core/normalisation.md)) for more detail.
+It lets downstream matchers skip excluded tokens (see [normalisation](../pipelines/core/normalizer.md)) for more detail.
 
 \bibliography

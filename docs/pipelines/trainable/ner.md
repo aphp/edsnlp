@@ -37,8 +37,7 @@ CRF (Conditional Random Fields) layers, one per label during both training and p
 
 Let us define the pipeline and train it:
 
-<!-- no-check -->
-```python
+```{ .python .no-check }
 from pathlib import Path
 
 import spacy

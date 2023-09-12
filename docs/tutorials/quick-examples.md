@@ -8,9 +8,7 @@ If you are
 
 you might want to quickly apply a pipeline and display the output `doc` in a comprehensible way.
 
- <!-- no-check -->
-
-```python
+ ```{ .python .no-check }
 from edsnlp.viz import QuickExample
 
 E = QuickExample(nlp)  # (1)
@@ -20,9 +18,7 @@ E = QuickExample(nlp)  # (1)
 
 Next, simply call `E` with any string:
 
- <!-- no-check -->
-
-```python
+ ```{ .python .no-check }
 txt = "Le patient présente une anomalie."
 E(txt)
 ```
@@ -40,17 +36,13 @@ E(txt)
 
 By default, each `Qualifiers` in `nlp` adds a corresponding column to the output. Additionnal informations can be displayed by using the `extensions` parameter. For instance, if entities have a custom `ent._.custom_ext` extensions, it can be displayed by providing the extension when instantiating `QuickExample`:
 
- <!-- no-check -->
-
-```python
+ ```{ .python .no-check }
 E = QuickExample(nlp, extensions=["_.custom_ext"])
 ```
 
 Finally, if you prefer to output a DataFrame instead of displaying a table, set the `as_dataframe` parameter to True:
 
- <!-- no-check -->
-
-```python
+ ```{ .python .no-check }
 E = QuickExample(nlp)
 E(txt, as_dataframe=True)
 ```

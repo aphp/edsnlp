@@ -13,9 +13,7 @@ In some cases, you are not interested in individual extractions, but rather in d
 
 Below is a simple implementation of this aggregation rule (this can be adapted for other comorbidity components and other qualification methods):
 
-<!-- no-check -->
-
-```python
+```{ .python .no-check }
 MIN_NUMBER_ENTITIES = 2  # (1)!
 
 if not Doc.has_extension("aggregated"):
@@ -23,7 +21,7 @@ if not Doc.has_extension("aggregated"):
 
 spans = doc.spans["diabetes"]  # (3)!
 kept_spans = [
-    (span, span._.status, span._.detailled_status)
+    (span, span._.status, span._.detailed_status)
     for span in spans
     if not any([span._.negation, span._.hypothesis, span._.family])
 ]  # (4)!

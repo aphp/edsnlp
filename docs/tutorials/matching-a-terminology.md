@@ -35,7 +35,7 @@ terms = dict(
     respiratoire=["asthmatique", "respiratoire"],
 )
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 nlp.add_pipe("eds.matcher", config=dict(terms=terms))
 
 doc = nlp(text)
@@ -79,8 +79,6 @@ Let's focus on two:
 
 Matching on the lowercased version is extremely easy:
 
-<!--no-check-->
-
 ```python
 import spacy
 
@@ -95,7 +93,7 @@ terms = dict(
     respiratoire=["asthmatique", "respiratoire", "respiratoires"],
 )
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 nlp.add_pipe(
     "eds.matcher",
     config=dict(
@@ -152,7 +150,7 @@ terms = dict(
     respiratoire=["asthmatique", "respiratoire", "respiratoires"],
 )
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 
 # Add the normalisation component
 nlp.add_pipe("eds.normalizer")  # (3)
@@ -176,7 +174,7 @@ doc.ents
 2. We've added `pneumopathie à covid19` to the list of synonyms detected by the pipeline.
    Note that in the synonym we provide, we kept the accentuated `à`, whereas the example
    displays an unaccentuated `a`.
-3. The component can be configured. See the [specific documentation](../pipelines/core/normalisation.md) for detail.
+3. The component can be configured. See the [specific documentation](../pipelines/core/normalizer.md) for detail.
 4. The normalisation lives in the `NORM` attribute
 5. We can tell the matcher to ignore excluded tokens (tokens tagged as pollution by the normalisation component).
    This is not an obligation.
@@ -218,7 +216,7 @@ regex = dict(
 )
 terms = dict(respiratoire="asthmatique")
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 nlp.add_pipe(
     "eds.matcher",
     config=dict(

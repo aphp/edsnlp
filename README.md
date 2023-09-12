@@ -36,7 +36,7 @@ Once you've installed the library, let's begin with a very simple example that e
 ```python
 import spacy
 
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 
 terms = dict(
     covid=["covid", "coronavirus"],

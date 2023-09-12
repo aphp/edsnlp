@@ -17,9 +17,7 @@ T3	Drug 79 90	paracétamol
 
 The point of the BRAT connector is to go from the standoff annotation format to an annotated spaCy document :
 
-<!-- no-check -->
-
-```python
+```{ .python .no-check }
 import spacy
 from edsnlp.connectors.brat import BratConnector
 
@@ -27,7 +25,7 @@ from edsnlp.connectors.brat import BratConnector
 brat = BratConnector("path/to/brat")
 
 # Instantiate the spacy pipeline
-nlp = spacy.blank("fr")
+nlp = spacy.blank("eds")
 
 # Convert all BRAT files to a list of documents
 docs = brat.brat2docs(nlp)

@@ -137,6 +137,9 @@ class TNM(BaseModel):
 
         return "".join(norm)
 
+    def __str__(self):
+        return self.norm()
+
     def dict(
         self,
         *,

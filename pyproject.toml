@@ -85,60 +85,114 @@ version = { attr = "edsnlp.__version__" }
 where = ["."]
 
 [project.entry-points."spacy_factories"]
-"eds.matcher" = "edsnlp.pipelines.factories:matcher"
-"eds.terminology" = "edsnlp.pipelines.factories:terminology"
-"eds.contextual_matcher" = "edsnlp.pipelines.factories:contextual_matcher"
-"eds.endlines" = "edsnlp.pipelines.factories:endlines"
-"eds.sentences" = "edsnlp.pipelines.factories:sentences"
-"eds.normalizer" = "edsnlp.pipelines.factories:normalizer"
-"eds.accents" = "edsnlp.pipelines.factories:accents"
-"eds.spaces" = "edsnlp.pipelines.factories:spaces"
-"eds.lowercase" = "edsnlp.pipelines.factories:remove_lowercase"
-"eds.pollution" = "edsnlp.pipelines.factories:pollution"
-"eds.quotes" = "edsnlp.pipelines.factories:quotes"
-"eds.charlson" = "edsnlp.pipelines.factories:charlson"
-"eds.sofa" = "edsnlp.pipelines.factories:sofa"
-"eds.elston_ellis" = "edsnlp.pipelines.factories:elston_ellis"
-"eds.tnm" = "edsnlp.pipelines.factories:tnm"
-"eds.priority" = "edsnlp.pipelines.factories:priority"
-"eds.ccmu" = "edsnlp.pipelines.factories:ccmu"
-"eds.gemsa" = "edsnlp.pipelines.factories:gemsa"
-"eds.covid" = "edsnlp.pipelines.factories:covid"
-"eds.cim10" = "edsnlp.pipelines.factories:cim10"
-"eds.history" = "edsnlp.pipelines.factories:history"
-"eds.family" = "edsnlp.pipelines.factories:family"
-"eds.hypothesis" = "edsnlp.pipelines.factories:hypothesis"
-"eds.negation" = "edsnlp.pipelines.factories:negation"
-"eds.rspeech" = "edsnlp.pipelines.factories:rspeech"
-"eds.consultation_dates" = "edsnlp.pipelines.factories:consultation_dates"
-"eds.dates" = "edsnlp.pipelines.factories:dates"
-"eds.reason" = "edsnlp.pipelines.factories:reason"
-"eds.sections" = "edsnlp.pipelines.factories:sections"
-"eds.context" = "edsnlp.pipelines.factories:context"
-"eds.measurements" = "edsnlp.pipelines.factories:measurements"
-"eds.drugs" = "edsnlp.pipelines.factories:drugs"
-"eds.nested_ner" = "edsnlp.pipelines.factories:nested_ner"
-"eds.span_qualifier" = "edsnlp.pipelines.trainable.span_qualifier.factory:create_component"
-"eds.adicap" = "edsnlp.pipelines.factories:adicap"
-"eds.umls" = "edsnlp.pipelines.factories:umls"
-"eds.diabetes" = "edsnlp.pipelines.factories:diabetes"
-"eds.tobacco" = "edsnlp.pipelines.factories:tobacco"
-"eds.aids" = "edsnlp.pipelines.factories:aids"
-"eds.lymphoma" = "edsnlp.pipelines.factories:lymphoma"
-"eds.leukemia" = "edsnlp.pipelines.factories:leukemia"
-"eds.solid_tumor" = "edsnlp.pipelines.factories:solid_tumor"
-"eds.ckd" = "edsnlp.components:ckd"
-"eds.hemiplegia" = "edsnlp.components:hemiplegia"
-"eds.liver_disease" = "edsnlp.components:liver_disease"
-"eds.peptic_ulcer_disease" = "edsnlp.components:peptic_ulcer_disease"
-"eds.connective_tissue_disease" = "edsnlp.components:connective_tissue_disease"
-"eds.copd" = "edsnlp.components:copd"
-"eds.dementia" = "edsnlp.components:dementia"
-"eds.cerebrovascular_accident" = "edsnlp.components:cerebrovascular_accident"
-"eds.peripheral_vascular_disease" = "edsnlp.components:peripheral_vascular_disease"
-"eds.congestive_heart_failure" = "edsnlp.components:congestive_heart_failure"
-"eds.myocardial_infarction" = "edsnlp.components:myocardial_infarction"
-"eds.alcohol" = "edsnlp.components:alcohol"
+# Core
+"eds.accents"                     = "edsnlp.pipelines.core.normalizer.accents.factory:create_component"
+"eds.context"                     = "edsnlp.pipelines.core.context.factory:create_component"
+"eds.contextual_matcher"          = "edsnlp.pipelines.core.contextual_matcher.factory:create_component"
+"eds.endlines"                    = "edsnlp.pipelines.core.endlines.factory:create_component"
+"eds.matcher"                     = "edsnlp.pipelines.core.matcher.factory:create_component"
+"eds.normalizer"                  = "edsnlp.pipelines.core.normalizer.factory:create_component"
+"eds.pollution"                   = "edsnlp.pipelines.core.normalizer.pollution.factory:create_component"
+"eds.quotes"                      = "edsnlp.pipelines.core.normalizer.quotes.factory:create_component"
+"eds.remove_lowercase"            = "edsnlp.pipelines.core.normalizer.remove_lowercase.factory:create_component"
+"eds.sentences"                   = "edsnlp.pipelines.core.sentences.factory:create_component"
+"eds.spaces"                      = "edsnlp.pipelines.core.normalizer.spaces.factory:create_component"
+"eds.terminology"                 = "edsnlp.pipelines.core.terminology.factory:create_component"
+
+# NER
+"eds.adicap"                      = "edsnlp.pipelines.ner.adicap.factory:create_component"
+"eds.ccmu"                        = "edsnlp.pipelines.ner.scores.emergency.ccmu.factory:create_component"
+"eds.charlson"                    = "edsnlp.pipelines.ner.scores.charlson.factory:create_component"
+"eds.cim10"                       = "edsnlp.pipelines.ner.cim10.factory:create_component"
+"eds.covid"                       = "edsnlp.pipelines.ner.covid.factory:create_component"
+"eds.drugs"                       = "edsnlp.pipelines.ner.drugs.factory:create_component"
+"eds.elston_ellis"                = "edsnlp.pipelines.ner.scores.elston_ellis.factory:create_component"
+"eds.gemsa"                       = "edsnlp.pipelines.ner.scores.emergency.gemsa.factory:create_component"
+"eds.priority"                    = "edsnlp.pipelines.ner.scores.emergency.priority.factory:create_component"
+"eds.score"                       = "edsnlp.pipelines.ner.scores.factory:create_component"
+"eds.sofa"                        = "edsnlp.pipelines.ner.scores.sofa.factory:create_component"
+"eds.tnm"                         = "edsnlp.pipelines.ner.tnm.factory:create_component"
+"eds.umls"                        = "edsnlp.pipelines.ner.umls.factory:create_component"
+
+# NER/Comorbidities
+"eds.aids"                        = "edsnlp.pipelines.ner.disorders.aids.factory:create_component"
+"eds.alcohol"                     = "edsnlp.pipelines.ner.behaviors.alcohol.factory:create_component"
+"eds.cerebrovascular_accident"    = "edsnlp.pipelines.ner.disorders.cerebrovascular_accident.factory:create_component"
+"eds.ckd"                         = "edsnlp.pipelines.ner.disorders.ckd.factory:create_component"
+"eds.congestive_heart_failure"    = "edsnlp.pipelines.ner.disorders.congestive_heart_failure.factory:create_component"
+"eds.connective_tissue_disease"   = "edsnlp.pipelines.ner.disorders.connective_tissue_disease.factory:create_component"
+"eds.copd"                        = "edsnlp.pipelines.ner.disorders.copd.factory:create_component"
+"eds.dementia"                    = "edsnlp.pipelines.ner.disorders.dementia.factory:create_component"
+"eds.diabetes"                    = "edsnlp.pipelines.ner.disorders.diabetes.factory:create_component"
+"eds.hemiplegia"                  = "edsnlp.pipelines.ner.disorders.hemiplegia.factory:create_component"
+"eds.leukemia"                    = "edsnlp.pipelines.ner.disorders.leukemia.factory:create_component"
+"eds.liver_disease"               = "edsnlp.pipelines.ner.disorders.liver_disease.factory:create_component"
+"eds.lymphoma"                    = "edsnlp.pipelines.ner.disorders.lymphoma.factory:create_component"
+"eds.myocardial_infarction"       = "edsnlp.pipelines.ner.disorders.myocardial_infarction.factory:create_component"
+"eds.peptic_ulcer_disease"        = "edsnlp.pipelines.ner.disorders.peptic_ulcer_disease.factory:create_component"
+"eds.peripheral_vascular_disease" = "edsnlp.pipelines.ner.disorders.peripheral_vascular_disease.factory:create_component"
+"eds.solid_tumor"                 = "edsnlp.pipelines.ner.disorders.solid_tumor.factory:create_component"
+"eds.tobacco"                     = "edsnlp.pipelines.ner.behaviors.tobacco.factory:create_component"
+
+# Qualifiers
+"eds.family"                      = "edsnlp.pipelines.qualifiers.family.factory:create_component"
+"eds.history"                     = "edsnlp.pipelines.qualifiers.history.factory:create_component"
+"eds.hypothesis"                  = "edsnlp.pipelines.qualifiers.hypothesis.factory:create_component"
+"eds.negation"                    = "edsnlp.pipelines.qualifiers.negation.factory:create_component"
+"eds.reported_speech"             = "edsnlp.pipelines.qualifiers.reported_speech.factory:create_component"
+
+# Misc
+"eds.consultation_dates"          = "edsnlp.pipelines.misc.consultation_dates.factory:create_component"
+"eds.dates"                       = "edsnlp.pipelines.misc.dates.factory:create_component"
+"eds.measurements"                = "edsnlp.pipelines.misc.measurements.factory:create_component"
+"eds.reason"                      = "edsnlp.pipelines.misc.reason.factory:create_component"
+"eds.sections"                    = "edsnlp.pipelines.misc.sections.factory:create_component"
+"eds.tables"                      = "edsnlp.pipelines.misc.tables.factory:create_component"
+
+# Trainable
+"eds.nested_ner"                  = "edsnlp.pipelines.trainable.nested_ner.factory:create_component"
+"eds.span_qualifier"              = "edsnlp.pipelines.trainable.span_qualifier.factory:create_component"
+
+# Deprecated (links to the same factories as above)
+"SOFA"                   = "edsnlp.pipelines.ner.scores.sofa.factory:create_component"
+"accents"                = "edsnlp.pipelines.core.normalizer.accents.factory:create_component"
+"charlson"               = "edsnlp.pipelines.ner.scores.charlson.factory:create_component"
+"consultation_dates"     = "edsnlp.pipelines.misc.consultation_dates.factory:create_component"
+"contextual-matcher"     = "edsnlp.pipelines.core.contextual_matcher.factory:create_component"
+"dates"                  = "edsnlp.pipelines.misc.dates.factory:create_component"
+"eds.AIDS"               = "edsnlp.pipelines.ner.disorders.aids.factory:create_component"
+"eds.CKD"                = "edsnlp.pipelines.ner.disorders.ckd.factory:create_component"
+"eds.COPD"               = "edsnlp.pipelines.ner.disorders.copd.factory:create_component"
+"eds.SOFA"               = "edsnlp.pipelines.ner.scores.sofa.factory:create_component"
+"eds.TNM"                = "edsnlp.pipelines.ner.tnm.factory:create_component"
+"eds.elston-ellis"       = "edsnlp.pipelines.ner.scores.elston_ellis.factory:create_component"
+"eds.elstonellis"        = "edsnlp.pipelines.ner.scores.elston_ellis.factory:create_component"
+"eds.emergency.ccmu"     = "edsnlp.pipelines.ner.scores.emergency.ccmu.factory:create_component"
+"eds.emergency.gemsa"    = "edsnlp.pipelines.ner.scores.emergency.gemsa.factory:create_component"
+"eds.emergency.priority" = "edsnlp.pipelines.ner.scores.emergency.priority.factory:create_component"
+"eds.measures"           = "edsnlp.pipelines.misc.measurements.factory:create_component"
+"eds.remove-lowercase"   = "edsnlp.pipelines.core.normalizer.remove_lowercase.factory:create_component"
+"emergency.ccmu"         = "edsnlp.pipelines.ner.scores.emergency.ccmu.factory:create_component"
+"emergency.gemsa"        = "edsnlp.pipelines.ner.scores.emergency.gemsa.factory:create_component"
+"emergency.priority"     = "edsnlp.pipelines.ner.scores.emergency.priority.factory:create_component"
+"endlines"               = "edsnlp.pipelines.core.endlines.factory:create_component"
+"family"                 = "edsnlp.pipelines.qualifiers.family.factory:create_component"
+"hypothesis"             = "edsnlp.pipelines.qualifiers.hypothesis.factory:create_component"
+"matcher"                = "edsnlp.pipelines.core.matcher.factory:create_component"
+"negation"               = "edsnlp.pipelines.qualifiers.negation.factory:create_component"
+"normalizer"             = "edsnlp.pipelines.core.normalizer.factory:create_component"
+"pollution"              = "edsnlp.pipelines.core.normalizer.pollution.factory:create_component"
+"quotes"                 = "edsnlp.pipelines.core.normalizer.quotes.factory:create_component"
+"reason"                 = "edsnlp.pipelines.misc.reason.factory:create_component"
+"remove-lowercase"       = "edsnlp.pipelines.core.normalizer.remove_lowercase.factory:create_component"
+"reported_speech"        = "edsnlp.pipelines.qualifiers.reported_speech.factory:create_component"
+"rspeech"                = "edsnlp.pipelines.qualifiers.reported_speech.factory:create_component"
+"score"                  = "edsnlp.pipelines.ner.scores.factory:create_component"
+"sections"               = "edsnlp.pipelines.misc.sections.factory:create_component"
+"sentences"              = "edsnlp.pipelines.core.sentences.factory:create_component"
+"spaces"                 = "edsnlp.pipelines.core.normalizer.spaces.factory:create_component"
+"tables"                 = "edsnlp.pipelines.misc.tables.factory:create_component"
+"terminology"            = "edsnlp.pipelines.core.terminology.factory:create_component"
 
 [project.entry-points."spacy_architectures"]
 "eds.stack_crf_ner_model.v1" = "edsnlp.pipelines.trainable.nested_ner.stack_crf_ner:create_model"
@@ -239,16 +293,17 @@ omit-covered-files = false
 # badge-format = "svg"
 
 
-[tool.coverage]
+[tool.coverage.report]
 exclude_lines = [
+    "def __repr__",
     "if __name__ == .__main__.:",
-    "if TYPE_CHECKING:",
-    "if typing.TYPE_CHECKING:",
     "@overload",
     "pragma: no cover",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "def __repr__",
+    "raise .*Error",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
     "Span.set_extension.*",
     "Doc.set_extension.*",
     "Token.set_extension.*",

@@ -6,3 +6,7 @@ def test_pipelines(doc):
     assert anomalie._.negation
 
     assert not doc[0]._.history
+
+
+def test_import_all():
+    import edsnlp.pipelines.factories  # noqa: F401

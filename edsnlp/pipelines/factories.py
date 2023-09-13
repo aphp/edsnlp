@@ -6,9 +6,11 @@ from .core.endlines.factory import create_component as endlines
 from .core.matcher.factory import create_component as matcher
 from .core.normalizer.accents.factory import create_component as accents
 from .core.normalizer.factory import create_component as normalizer
-from .core.normalizer.lowercase.factory import remove_lowercase
 from .core.normalizer.pollution.factory import create_component as pollution
 from .core.normalizer.quotes.factory import create_component as quotes
+from .core.normalizer.remove_lowercase.factory import (
+    create_component as remove_lowercase,
+)
 from .core.normalizer.spaces.factory import create_component as spaces
 from .core.sentences.factory import create_component as sentences
 from .core.terminology.factory import create_component as terminology

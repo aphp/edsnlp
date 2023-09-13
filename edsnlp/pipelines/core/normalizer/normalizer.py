@@ -4,9 +4,9 @@ from spacy import Language
 from spacy.tokens import Doc
 
 from .accents.accents import AccentsConverter
-from .lowercase.factory import remove_lowercase
 from .pollution.pollution import PollutionTagger
 from .quotes.quotes import QuotesConverter
+from .remove_lowercase.factory import remove_lowercase
 from .spaces.spaces import SpacesTagger
 
 

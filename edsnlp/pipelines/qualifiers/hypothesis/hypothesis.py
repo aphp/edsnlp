@@ -115,7 +115,8 @@ class HypothesisQualifier(RuleBasedQualifier):
     attr : str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
-        we can also add a key for each regex.
+    span_getter : SpanGetterArg
+        Which entities should be classified. By default, `doc.ents`
     on_ents_only : Union[bool, str, List[str], Set[str]]
         Deprecated, use `span_getter` instead.
 

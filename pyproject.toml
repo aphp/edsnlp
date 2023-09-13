@@ -51,7 +51,6 @@ dev = [
     "mkdocs~=1.5.2",
     "mkdocstrings~=0.20",
     "mkdocstrings-python~=1.1",
-    "mkdocs-autolinks-plugin~=0.7.1",
     "pybtex~=0.24.0",
     "pathspec>=0.11.1",  # required by vendored mkdocs-autorefs PR
     "astunparse",

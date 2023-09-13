@@ -1,10 +1,13 @@
 import os
+import re
 from pathlib import Path
 
 import mkdocs.config
+import mkdocs.plugins
 import mkdocs.structure
 import mkdocs.structure.files
 import mkdocs.structure.nav
+import mkdocs.structure.pages
 
 
 def exclude_file(name):
@@ -118,3 +121,21 @@ def on_page_read_source(page, config):
     if page.file.src_path in VIRTUAL_FILES:
         return VIRTUAL_FILES[page.file.src_path]
     return None
+
+
+@mkdocs.plugins.event_priority(-1000)
+def on_page_content(
+    html: str,
+    page: mkdocs.structure.pages.Page,
+    config: mkdocs.config.Config,
+    files: mkdocs.structure.files.Files,
+):
+    def replace_link(match):
+        relative_path = path = match.group(1)
+        if path.startswith("/"):
+            relative_path = os.path.relpath(path, page.abs_url)
+            print("REL", path, "/", page.abs_url, "=", relative_path)
+        return f'href="{relative_path}"'
+
+    # Replace absolute paths with path relative to the rendered page
+    return re.sub(r'href="([^"]*)"', replace_link, html)

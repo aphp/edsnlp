@@ -46,8 +46,7 @@ class RuleBasedQualifier(BaseComponent):
         a string with the value "TEXT" or "NORM", or a dict with the key 'term_attr'
         we can also add a key for each regex.
     span_getter : SpanGetterArg
-        Where to look for dates in the doc. By default, look in the whole doc. You can
-        combine this with the `merge_mode` argument for interesting results.
+        Which entities should be classified. By default, `doc.ents`
     on_ents_only : Union[bool, str, List[str], Set[str]]
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.

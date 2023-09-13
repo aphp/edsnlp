@@ -83,6 +83,8 @@ class ReportedSpeechQualifier(RuleBasedQualifier):
         a string with the value "TEXT" or "NORM",
         or a dict with the key 'term_attr'
         we can also add a key for each regex.
+    span_getter : SpanGetterArg
+        Which entities should be classified. By default, `doc.ents`
     on_ents_only : Union[bool, str, List[str], Set[str]]
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.

@@ -79,8 +79,7 @@ class FamilyContextQualifier(RuleBasedQualifier):
     termination : Optional[List[str]]
         List of syntagms termination terms.
     span_getter : SpanGetterArg
-        Where to look for dates in the doc. By default, look in the whole doc. You can
-        combine this with the `merge_mode` argument for interesting results.
+        Which entities should be classified. By default, `doc.ents`
     on_ents_only : Union[bool, str, List[str], Set[str]]
         Deprecated, use `span_getter` instead.
 

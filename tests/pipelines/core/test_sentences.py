@@ -20,9 +20,7 @@ def test_sentences(nlp, endlines):
     nlp_blank = spacy.blank("fr")
 
     sentencizer = Sentencizer()
-    segmenter = SentenceSegmenter(
-        nlp.vocab, punct_chars=terms.punctuation, use_endlines=True
-    )
+    segmenter = SentenceSegmenter(nlp, punct_chars=terms.punctuation, use_endlines=True)
 
     doc = nlp(text)
     doc_blank = nlp_blank(text)

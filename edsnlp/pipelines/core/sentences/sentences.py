@@ -21,7 +21,7 @@ class SentenceSegmenter:
     def __init__(
         self,
         nlp: PipelineProtocol,
-        name: str,
+        name: Optional[str] = None,
         punct_chars: Optional[List[str]] = None,
         use_endlines: bool = None,
         ignore_excluded: bool = True,
@@ -31,7 +31,7 @@ class SentenceSegmenter:
         ----------
         nlp: PipelineProtocol
             The EDS-NLP pipeline
-        name: str
+        name: Optional[str]
             The name of the component
         punct_chars: Optional[List[str]]
             Punctuation characters.
@@ -44,11 +44,14 @@ class SentenceSegmenter:
         if punct_chars is None:
             punct_chars = punctuation
 
+        self.nlp = nlp
+        self.name = name
+
         self.fast_segmenter = FastSentenceSegmenter(
-            nlp.vocab,
-            punct_chars,
-            use_endlines,
-            ignore_excluded,
+            vocab=nlp.vocab,
+            punct_chars=punct_chars,
+            use_endlines=use_endlines,
+            ignore_excluded=ignore_excluded,
         )
 
     def __call__(self, doc: Doc):

@@ -31,19 +31,12 @@ cdef class FastSentenceSegmenter(object):
 
     def __init__(
           self,
-          nlp: PipelineProtocol,
-          name: Optional[str] = None,
+          vocab,
           *,
           punct_chars,
           use_endlines = None,
           ignore_excluded = True,
     ):
-        if hasattr(nlp, 'vocab'):
-            vocab = nlp.vocab
-        else:
-            vocab = nlp
-        self.name = name
-
         if punct_chars is None:
             punct_chars = punctuation
 

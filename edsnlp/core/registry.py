@@ -6,6 +6,7 @@ from weakref import WeakKeyDictionary
 import catalogue
 import spacy
 from confit import Config, Registry, RegistryCollection, set_default_registry
+from confit.errors import ConfitValidationError, ErrorWrapper, patch_errors
 from spacy.pipe_analysis import validate_attrs
 
 import edsnlp
@@ -56,6 +57,7 @@ class CurriedFactory:
         self.kwargs = kwargs
         self.factory = func
         self.instantiated = None
+        self.error = None
 
     def instantiate(
         obj: Any,
@@ -68,6 +70,9 @@ class CurriedFactory:
         nested, we need to add them to every factory in the config.
         """
         if isinstance(obj, CurriedFactory):
+            if obj.error is not None:
+                raise obj.error
+
             if obj.instantiated is not None:
                 return obj.instantiated
 
@@ -77,29 +82,70 @@ class CurriedFactory:
                 key: CurriedFactory.instantiate(value, nlp, (*path, key))
                 for key, value in obj.kwargs.items()
             }
-            obj.instantiated = obj.factory(
-                **{
-                    "nlp": nlp,
-                    "name": name,
-                    **kwargs,
-                }
-            )
+            try:
+                obj.instantiated = obj.factory(
+                    **{
+                        "nlp": nlp,
+                        "name": name,
+                        **kwargs,
+                    }
+                )
+            except ConfitValidationError as e:
+                obj.error = e
+                raise ConfitValidationError(
+                    patch_errors(e.raw_errors, path, model=e.model),
+                    model=e.model,
+                    name=obj.factory.__module__ + "." + obj.factory.__qualname__,
+                )  # .with_traceback(None)
+            except Exception as e:
+                obj.error = e
+                raise ConfitValidationError([ErrorWrapper(e, path)])
             return obj.instantiated
         elif isinstance(obj, dict):
-            return {
-                key: CurriedFactory.instantiate(value, nlp, (*path, key))
-                for key, value in obj.items()
-            }
+            instantiated = {}
+            errors = []
+            for key, value in obj.items():
+                try:
+                    instantiated[key] = CurriedFactory.instantiate(
+                        value, nlp, (*path, key)
+                    )
+                except KeyboardInterrupt:
+                    raise
+                except ConfitValidationError as e:
+                    errors.extend(e.raw_errors)
+            if errors:
+                raise ConfitValidationError(errors)
+            return instantiated
         elif isinstance(obj, tuple):
-            return tuple(
-                CurriedFactory.instantiate(value, nlp, (*path, str(i)))
-                for i, value in enumerate(obj)
-            )
+            instantiated = []
+            errors = []
+            for i, value in enumerate(obj):
+                try:
+                    instantiated.append(
+                        CurriedFactory.instantiate(value, nlp, (*path, str(i)))
+                    )
+                except KeyboardInterrupt:
+                    raise
+                except ConfitValidationError as e:
+                    errors.append(e.raw_errors)
+            if errors:
+                raise ConfitValidationError(errors)
+            return tuple(instantiated)
         elif isinstance(obj, list):
-            return [
-                CurriedFactory.instantiate(value, nlp, (*path, str(i)))
-                for i, value in enumerate(obj)
-            ]
+            instantiated = []
+            errors = []
+            for i, value in enumerate(obj):
+                try:
+                    instantiated.append(
+                        CurriedFactory.instantiate(value, nlp, (*path, str(i)))
+                    )
+                except KeyboardInterrupt:
+                    raise
+                except ConfitValidationError as e:
+                    errors.append(e.raw_errors)
+            if errors:
+                raise ConfitValidationError(errors)
+            return instantiated
         else:
             return obj
 
@@ -170,6 +216,8 @@ class FactoryRegistry(Registry):
         requires: Iterable[str] = FrozenList(),
         retokenizes: bool = False,
         default_score_weights: Dict[str, Optional[float]] = FrozenDict(),
+        invoker: Callable = None,
+        deprecated: Sequence[str] = (),
     ) -> Callable[[catalogue.InFunc], catalogue.InFunc]:
         """
         This is a convenience wrapper around `confit.Registry.register`, that
@@ -185,6 +233,8 @@ class FactoryRegistry(Registry):
         requires: Iterable[str]
         retokenizes: bool
         default_score_weights: Dict[str, Optional[float]]
+        invoker: Callable
+        deprecated: Sequence[str]
 
         Returns
         -------
@@ -197,16 +247,6 @@ class FactoryRegistry(Registry):
                 raise ValueError(
                     "Factory functions must accept nlp and name as arguments."
                 )
-
-            spacy.Language.factory(
-                name=name,
-                default_config=default_config,
-                assigns=assigns,
-                requires=requires,
-                default_score_weights=default_score_weights,
-                retokenizes=retokenizes,
-                func=fn,
-            )
 
             meta = FactoryMeta(
                 assigns=validate_attrs(assigns),
@@ -222,7 +262,11 @@ class FactoryRegistry(Registry):
                         .resolve(registry=self.registry)
                         .merge(kwargs)
                     )
-                instantiated = validated_fn(kwargs)
+                instantiated = (
+                    invoker(validated_fn, kwargs)
+                    if invoker is not None
+                    else validated_fn(kwargs)
+                )
                 PIPE_META[instantiated] = meta
                 return instantiated
 
@@ -233,7 +277,19 @@ class FactoryRegistry(Registry):
                 skip_save_params=["nlp", "name"],
                 func=fn,
                 invoker=invoke,
+                deprecated=deprecated,
             )
+
+            for spacy_pipe_name in (name, *deprecated):
+                spacy.Language.factory(
+                    name=spacy_pipe_name,
+                    default_config=default_config,
+                    assigns=assigns,
+                    requires=requires,
+                    default_score_weights=default_score_weights,
+                    retokenizes=retokenizes,
+                    func=registered_fn,
+                )
 
             return registered_fn
 

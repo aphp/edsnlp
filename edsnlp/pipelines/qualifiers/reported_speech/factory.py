@@ -1,5 +1,4 @@
 from edsnlp.core import registry
-from edsnlp.utils.deprecation import deprecated_factory
 
 from .reported_speech import ReportedSpeechQualifier
 
@@ -16,18 +15,11 @@ DEFAULT_CONFIG = dict(
     explain=False,
 )
 
-create_component = ReportedSpeechQualifier
-create_component = deprecated_factory(
-    "reported_speech",
-    "eds.reported_speech",
-    assigns=["span._.reported_speech"],
-)(create_component)
-create_component = deprecated_factory(
-    "rspeech",
-    "eds.reported_speech",
-    assigns=["span._.reported_speech"],
-)(create_component)
 create_component = registry.factory.register(
     "eds.reported_speech",
     assigns=["span._.reported_speech"],
-)(create_component)
+    deprecated=[
+        "reported_speech",
+        "rspeech",
+    ],
+)(ReportedSpeechQualifier)

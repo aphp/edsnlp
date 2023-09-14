@@ -1,5 +1,4 @@
 from edsnlp.core import registry
-from edsnlp.utils.deprecation import deprecated_factory
 
 from .negation import NegationQualifier
 
@@ -17,12 +16,8 @@ DEFAULT_CONFIG = dict(
     explain=False,
 )
 
-create_component = deprecated_factory(
-    "negation",
-    "eds.negation",
-    assigns=["span._.negation"],
-)(NegationQualifier)
 create_component = registry.factory.register(
     "eds.negation",
     assigns=["span._.negation"],
-)(create_component)
+    deprecated=["negation"],
+)(NegationQualifier)

@@ -1,5 +1,4 @@
 from edsnlp.core import registry
-from edsnlp.utils.deprecation import deprecated_factory
 
 from .family import FamilyContextQualifier
 
@@ -13,12 +12,8 @@ DEFAULT_CONFIG = dict(
     explain=False,
 )
 
-create_component = deprecated_factory(
-    "family",
-    "eds.family",
-    assigns=["span._.family"],
-)(FamilyContextQualifier)
 create_component = registry.factory.register(
     "eds.family",
     assigns=["span._.family"],
-)(create_component)
+    deprecated=["family"],
+)(FamilyContextQualifier)

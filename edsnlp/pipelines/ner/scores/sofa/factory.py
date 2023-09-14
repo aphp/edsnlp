@@ -3,7 +3,6 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 from edsnlp.core import PipelineProtocol, registry
 from edsnlp.pipelines.base import SpanSetterArg
-from edsnlp.utils.deprecation import deprecated_factory
 
 from .patterns import regex, score_normalization_str, value_extract
 from .sofa import SofaMatcher
@@ -22,19 +21,13 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@deprecated_factory(
-    "SOFA",
-    "eds.SOFA",
-    assigns=["doc.ents", "doc.spans"],
-)
-@deprecated_factory(
-    "eds.SOFA",
-    "eds.sofa",
-    assigns=["doc.ents", "doc.spans"],
-)
 @registry.factory.register(
     "eds.sofa",
     assigns=["doc.ents", "doc.spans"],
+    deprecated=[
+        "SOFA",
+        "eds.SOFA",
+    ],
 )
 def create_component(
     nlp: PipelineProtocol,

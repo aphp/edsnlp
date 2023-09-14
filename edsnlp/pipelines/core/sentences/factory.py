@@ -1,7 +1,6 @@
 from typing import List, Optional
 
 from edsnlp.core import PipelineProtocol, registry
-from edsnlp.utils.deprecation import deprecated_factory
 
 from .sentences import SentenceSegmenter
 
@@ -12,14 +11,10 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@deprecated_factory(
-    "sentences",
-    "eds.sentences",
-    assigns=["token.is_sent_start"],
-)
 @registry.factory.register(
     "eds.sentences",
     assigns=["token.is_sent_start"],
+    deprecated=["sentences"],
 )
 def create_component(
     nlp: PipelineProtocol,

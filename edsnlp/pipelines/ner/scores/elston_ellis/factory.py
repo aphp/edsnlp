@@ -4,7 +4,6 @@ from typing import Any, Callable, List, Optional, Union
 from edsnlp.core import PipelineProtocol, registry
 from edsnlp.pipelines.base import SpanSetterArg
 from edsnlp.pipelines.ner.scores.base_score import SimpleScoreMatcher
-from edsnlp.utils.deprecation import deprecated_factory
 
 from .patterns import regex, score_normalization_str, value_extract
 
@@ -22,19 +21,13 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@deprecated_factory(
-    "eds.elston-ellis",
-    "eds.elston_ellis",
-    assigns=["doc.ents", "doc.spans"],
-)
-@deprecated_factory(
-    "eds.elstonellis",
-    "eds.elston_ellis",
-    assigns=["doc.ents", "doc.spans"],
-)
 @registry.factory.register(
     "eds.elston_ellis",
     assigns=["doc.ents", "doc.spans"],
+    deprecated=[
+        "eds.elston-ellis",
+        "eds.elstonellis",
+    ],
 )
 def create_component(
     nlp: PipelineProtocol,

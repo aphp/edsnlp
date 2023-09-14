@@ -1,7 +1,7 @@
 from typing import Dict, List, Union
 
 ListOrStr = Union[List[str], str]
-DictOrPattern = Union[Dict[str, ListOrStr], ListOrStr]
+DictOrPattern = Union[str, List[str], Dict[str, Union[str, List[str]]]]
 Patterns = Dict[str, DictOrPattern]
 
 ATTRIBUTES = {
@@ -11,5 +11,5 @@ ATTRIBUTES = {
     "SHAPE": "shape_",
 }
 
-from .offset import alignment, offset
-from .text import get_text
+from .offset import alignment, offset  # noqa: E402, F401
+from .text import get_text  # noqa: E402, F401

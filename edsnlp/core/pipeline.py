@@ -28,6 +28,7 @@ from typing import (
 import spacy
 import srsly
 from confit import Config
+from confit.errors import ConfitValidationError, patch_errors
 from confit.utils.collections import join_path, split_path
 from confit.utils.xjson import Reference
 from spacy.language import BaseDefaults
@@ -209,13 +210,16 @@ class Pipeline:
         -------
         Pipe
         """
-        curried_factory: CurriedFactory = Config(
-            {
-                "@factory": factory,
-                **(config if config is not None else {}),
-            }
-        ).resolve()
-        pipe = curried_factory.instantiate(nlp=self, path=(name,))
+        try:
+            curried_factory: CurriedFactory = Config(
+                {
+                    "@factory": factory,
+                    **(config if config is not None else {}),
+                }
+            ).resolve()
+            pipe = curried_factory.instantiate(nlp=self, path=(name,))
+        except ConfitValidationError as e:
+            raise e.with_traceback(None) from None
         return pipe
 
     def add_pipe(
@@ -534,7 +538,19 @@ class Pipeline:
                     "config."
                 )
 
-        components = CurriedFactory.instantiate(components, nlp=nlp)
+        try:
+            components = CurriedFactory.instantiate(components, nlp=nlp)
+        except ConfitValidationError as e:
+            e = ConfitValidationError(
+                e.raw_errors,
+                model=cls,
+                name=cls.__module__ + "." + cls.__qualname__,
+            )
+            e.raw_errors = patch_errors(e.raw_errors, ("components",))
+            raise e  # from None
+        except Exception as e:
+            e._loc = ("components", *getattr(e, "_loc", ()))
+            raise e
 
         for name in pipeline:
             if name in exclude:
@@ -572,13 +588,7 @@ class Pipeline:
         Pydantic validator, used in the `validate_arguments` decorated functions
         """
         if isinstance(v, dict):
-            #            try:
             return cls.from_config(v)
-        #            except:
-        #                import traceback
-        #
-        #                traceback.print_exc()
-        #                raise
         return v
 
     def preprocess(self, doc: Doc, supervision: bool = False):
@@ -706,7 +716,12 @@ class Pipeline:
         for name, proc in self.torch_components():
             proc.train(was_training[name])
 
-    def score(self, docs: Sequence[Doc], batch_size: int = None) -> Dict[str, Any]:
+    def score(
+        self,
+        docs: Sequence[Doc],
+        targets: Optional[Sequence[Doc]] = None,
+        batch_size: int = None,
+    ) -> Dict[str, Any]:
         """
         Scores a pipeline against a sequence of annotated documents.
 
@@ -726,7 +741,10 @@ class Pipeline:
         Parameters
         ----------
         docs: Sequence[InputT]
-            The documents to score
+            The documents to apply the pipeline on
+        targets: Optional[Sequence[InputT]]
+            The gold documents to compare the pipeline's output to.
+            If None, the `docs` will be used as targets.
         batch_size: int
             The batch size to use for scoring
 
@@ -740,6 +758,8 @@ class Pipeline:
         """
         import torch
         from spacy.training import Example
+
+        targets = docs if targets is None else targets
 
         # Predicting intermediate steps
         preds = defaultdict(lambda: [])
@@ -783,7 +803,13 @@ class Pipeline:
                         if timed:
                             self._cache_is_writeonly = True
 
-                        batch = copy.deepcopy(gold_batch)
+                        batch = copy.deepcopy(
+                            gold_batch,
+                            memo={
+                                id(self.vocab): self.vocab,
+                                id(self): self,
+                            },
+                        )
 
                         t0 = time.time()
 
@@ -807,12 +833,12 @@ class Pipeline:
                 for scorer_name, scorer in scorers_by_pipes[pipe_names].items():
                     if scorer_name in speed_metric_names:
                         results[scorer_name] = scorer(
-                            [Example(p, g) for p, g in zip(preds, docs)],
+                            [Example(p, g) for p, g in zip(preds, targets)],
                             duration=pipes_to_duration[pipe_names],
                         )
                     else:
                         results[scorer_name] = scorer(
-                            [Example(p, g) for p, g in zip(preds, docs)],
+                            [Example(p, g) for p, g in zip(preds, targets)],
                         )
 
         return results

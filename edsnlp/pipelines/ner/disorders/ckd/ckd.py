@@ -4,23 +4,13 @@ from typing import Any, Dict, List, Optional, Union
 from loguru import logger
 from spacy.tokens import Doc, Span
 
-from edsnlp.core import PipelineProtocol, registry
+from edsnlp.core import PipelineProtocol
 from edsnlp.pipelines.base import SpanSetterArg
 from edsnlp.pipelines.ner.disorders.base import DisorderMatcher
-from edsnlp.utils.deprecation import deprecated_factory
 
 from .patterns import default_patterns
 
 
-@deprecated_factory(
-    "eds.CKD",
-    "eds.ckd",
-    assigns=["doc.ents", "doc.spans"],
-)
-@registry.factory.register(
-    "eds.ckd",
-    assigns=["doc.ents", "doc.spans"],
-)
 class CKDMatcher(DisorderMatcher):
     """
 

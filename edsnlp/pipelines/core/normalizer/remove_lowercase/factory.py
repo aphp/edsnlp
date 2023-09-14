@@ -1,3 +1,4 @@
+from spacy.language import Language
 from spacy.tokens import Doc
 
 from edsnlp.core import PipelineProtocol, registry

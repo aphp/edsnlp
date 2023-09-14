@@ -1,6 +1,5 @@
 from edsnlp.core import registry
 from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
-from edsnlp.utils.deprecation import deprecated_factory
 
 DEFAULT_CONFIG = dict(
     assign_as_span=False,
@@ -15,10 +14,7 @@ DEFAULT_CONFIG = dict(
     span_setter={"ents": True},
 )
 
-create_component = deprecated_factory(
-    "contextual-matcher",
-    "eds.contextual-matcher",
-)(ContextualMatcher)
 create_component = registry.factory.register(
     "eds.contextual-matcher",
-)(create_component)
+    deprecated=["contextual-matcher"],
+)(ContextualMatcher)

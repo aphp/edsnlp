@@ -7,6 +7,7 @@ from typing import (
     Callable,
     Dict,
     Iterable,
+    Optional,
     Sequence,
     Tuple,
     Union,
@@ -16,6 +17,7 @@ import torch
 from spacy.tokens import Doc
 
 from edsnlp import Pipeline
+from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.collections import batch_compress_dict, batchify, decompress_dict
 
 BatchInput = typing.TypeVar("BatchInput", bound=Dict[str, Any])
@@ -40,7 +42,7 @@ def hash_batch(batch):
 def cached_preprocess(fn):
     @wraps(fn)
     def wrapped(self: "TorchComponent", doc: Doc):
-        if self.nlp._cache is None:
+        if not self.nlp or self.nlp._cache is None:
             return fn(self, doc)
         cache_id = hash((id(self), "preprocess", id(doc)))
         if not self.nlp._cache_is_writeonly and cache_id in self.nlp._cache:
@@ -55,7 +57,7 @@ def cached_preprocess(fn):
 def cached_preprocess_supervised(fn):
     @wraps(fn)
     def wrapped(self: "TorchComponent", doc: Doc):
-        if self.nlp._cache is None:
+        if not self.nlp or self.nlp._cache is None:
             return fn(self, doc)
         cache_id = hash((id(self), "preprocess_supervised", id(doc)))
         if not self.nlp._cache_is_writeonly and cache_id in self.nlp._cache.setdefault(
@@ -75,7 +77,7 @@ def cached_collate(fn):
     @wraps(fn)
     def wrapped(self: "TorchComponent", batch: Dict, device: torch.device):
         cache_id = hash((id(self), "collate", hash_batch(batch)))
-        if self.nlp._cache is None or cache_id is None:
+        if not self.nlp or self.nlp._cache is None or cache_id is None:
             return fn(self, batch, device)
         if not self.nlp._cache_is_writeonly and cache_id in self.nlp._cache:
             return self.nlp._cache[cache_id]
@@ -92,7 +94,7 @@ def cached_forward(fn):
     def wrapped(self: "TorchComponent", batch):
         # Convert args and kwargs to a dictionary matching fn signature
         cache_id = hash((id(self), "collate", hash_batch(batch)))
-        if self.nlp._cache is None or cache_id is None:
+        if not self.nlp or self.nlp._cache is None or cache_id is None:
             return fn(self, batch)
         if not self.nlp._cache_is_writeonly and cache_id in self.nlp._cache:
             return self.nlp._cache[cache_id]
@@ -121,9 +123,11 @@ class TorchComponentMeta(ABCMeta):
 
 class TorchComponent(
     torch.nn.Module,
+    BaseComponent,
     typing.Generic[BatchOutput, BatchInput],
     metaclass=TorchComponentMeta,
 ):
+
     """
     A TorchComponent is a Component that can be trained and inherits `torch.nn.Module`.
     You can use it either as a torch module inside a more complex neural network, or as
@@ -134,9 +138,16 @@ class TorchComponent(
     for components that share a common subcomponent.
     """
 
-    def __init__(self, nlp: Pipeline, name: str):
-        super().__init__()
-        self.nlp = nlp
+    call_super_init = True
+
+    def __init__(
+        self,
+        nlp: Optional[Pipeline] = None,
+        name: Optional[str] = None,
+        *args,
+        **kwargs
+    ):
+        super().__init__(nlp, name, *args, **kwargs)
         self.cfg = {}
         self._preprocess_cache = {}
         self._preprocess_supervised_cache = {}

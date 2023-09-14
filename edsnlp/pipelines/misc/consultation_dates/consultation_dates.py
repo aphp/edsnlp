@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Optional, Union
 
 from loguru import logger
 from spacy.tokens import Doc, Span
@@ -104,11 +104,11 @@ class ConsultationDatesMatcher(GenericMatcher):
     def __init__(
         self,
         nlp: PipelineProtocol,
-        name: str = "eds.consultation_dates",
+        name: Optional[str] = "eds.consultation_dates",
         *,
-        consultation_mention: Union[List[str], bool] = True,
-        town_mention: Union[List[str], bool] = False,
-        document_date_mention: Union[List[str], bool] = False,
+        consultation_mention: Union[bool, List[str]] = True,
+        town_mention: Union[bool, List[str]] = False,
+        document_date_mention: Union[bool, List[str]] = False,
         attr: str = "NORM",
         ignore_excluded: bool = False,
         ignore_space_tokens: bool = False,

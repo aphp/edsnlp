@@ -1,5 +1,4 @@
 from edsnlp.core import registry
-from edsnlp.utils.deprecation import deprecated_factory
 
 from .history import HistoryQualifier
 
@@ -17,14 +16,12 @@ DEFAULT_CONFIG = dict(
     explain=False,
 )
 
-create_component = HistoryQualifier
-for name in ["history", "antecedents", "eds.antecedents"]:
-    create_component = deprecated_factory(
-        name,
-        "eds.history",
-        assigns=["span._.history"],
-    )(create_component)
 create_component = registry.factory.register(
     "eds.history",
     assigns=["span._.history"],
-)(create_component)
+    deprecated=[
+        "history",
+        "antecedents",
+        "eds.antecedents",
+    ],
+)(HistoryQualifier)

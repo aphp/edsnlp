@@ -1,7 +1,6 @@
 from typing import Any, Dict, Union
 
 from edsnlp.core import PipelineProtocol, registry
-from edsnlp.utils.deprecation import deprecated_factory
 
 from .accents.accents import AccentsConverter
 from .normalizer import Normalizer
@@ -19,12 +18,11 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@deprecated_factory(
-    "normalizer",
+@registry.factory.register(
     "eds.normalizer",
     assigns=["token.norm", "token.tag"],
+    deprecated=["normalizer"],
 )
-@registry.factory.register("eds.normalizer", assigns=["token.norm", "token.tag"])
 def create_component(
     nlp: PipelineProtocol,
     name: str = "eds.normalizer",
@@ -87,6 +85,9 @@ def create_component(
     if pollution:
         config = dict(default_enabled_pollution)
         if isinstance(pollution, dict):
+            pollution = (
+                pollution if "pollution" not in pollution else pollution["pollution"]
+            )
             config.update(pollution)
         pollution = PollutionTagger(
             nlp=nlp,

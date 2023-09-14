@@ -1,5 +1,4 @@
 from edsnlp.core import registry
-from edsnlp.utils.deprecation import deprecated_factory
 
 from .matcher import GenericMatcher
 
@@ -14,13 +13,8 @@ DEFAULT_CONFIG = dict(
     span_setter={"ents": True},
 )
 
-create_component = GenericMatcher
-create_component = deprecated_factory(
-    "matcher",
-    "eds.matcher",
-    assigns=["doc.ents", "doc.spans"],
-)(create_component)
 create_component = registry.factory.register(
     "eds.matcher",
     assigns=["doc.ents", "doc.spans"],
-)(create_component)
+    deprecated=["matcher"],
+)(GenericMatcher)

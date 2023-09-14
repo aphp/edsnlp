@@ -1,5 +1,4 @@
 from edsnlp.core import registry
-from edsnlp.utils.deprecation import deprecated_factory
 
 from .hypothesis import HypothesisQualifier
 
@@ -17,12 +16,8 @@ DEFAULT_CONFIG = dict(
     explain=False,
 )
 
-create_component = deprecated_factory(
-    "hypothesis",
-    "eds.hypothesis",
-    assigns=["span._.hypothesis"],
-)(HypothesisQualifier)
 create_component = registry.factory.register(
     "eds.hypothesis",
     assigns=["span._.hypothesis"],
-)(create_component)
+    deprecated=["hypothesis"],
+)(HypothesisQualifier)

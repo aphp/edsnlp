@@ -1,5 +1,4 @@
 from edsnlp.core import registry
-from edsnlp.utils.deprecation import deprecated_factory
 
 from .consultation_dates import ConsultationDatesMatcher
 
@@ -14,12 +13,8 @@ DEFAULT_CONFIG = dict(
     span_setter={"ents": True, "consultation_dates": True},
 )
 
-create_component = deprecated_factory(
-    "consultation_dates",
-    "eds.consultation_dates",
-    assigns=["doc.spans", "doc.ents"],
-)(ConsultationDatesMatcher)
 create_component = registry.factory.register(
     "eds.consultation_dates",
     assigns=["doc.spans", "doc.ents"],
-)(create_component)
+    deprecated=["consultation_dates"],
+)(ConsultationDatesMatcher)

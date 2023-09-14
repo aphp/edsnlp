@@ -1,5 +1,4 @@
 from edsnlp.core import registry
-from edsnlp.utils.deprecation import deprecated_factory
 
 from . import patterns
 from .measurements import MeasurementsMatcher
@@ -23,12 +22,8 @@ DEFAULT_CONFIG = dict(
     span_setter=None,
 )
 
-create_component = deprecated_factory(
-    "eds.measures",
-    "eds.measurements",
-    assigns=["doc.spans", "doc.ents"],
-)(MeasurementsMatcher)
 create_component = registry.factory.register(
     "eds.measurements",
     assigns=["doc.spans", "doc.ents"],
-)(create_component)
+    deprecated=["eds.measures"],
+)(MeasurementsMatcher)

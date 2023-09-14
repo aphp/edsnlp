@@ -1,6 +1,5 @@
 from edsnlp.core import registry
 from edsnlp.pipelines.ner.scores.base_score import SimpleScoreMatcher
-from edsnlp.utils.deprecation import deprecated_factory
 
 DEFAULT_CONFIG = dict(
     regex=None,
@@ -14,13 +13,8 @@ DEFAULT_CONFIG = dict(
     span_setter={"ents": True},
 )
 
-create_component = SimpleScoreMatcher
-create_component = deprecated_factory(
-    "score",
-    "eds.score",
-    assigns=["doc.ents", "doc.spans"],
-)(create_component)
 create_component = registry.factory.register(
     "eds.score",
     assigns=["doc.ents", "doc.spans"],
-)(create_component)
+    deprecated=["score"],
+)(SimpleScoreMatcher)

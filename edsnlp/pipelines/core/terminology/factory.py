@@ -1,5 +1,4 @@
 from edsnlp.core import registry
-from edsnlp.utils.deprecation import deprecated_factory
 
 from .terminology import TerminologyMatcher
 
@@ -14,13 +13,8 @@ DEFAULT_CONFIG = dict(
     span_setter={"ents": True},
 )
 
-create_component = TerminologyMatcher
-create_component = deprecated_factory(
-    "terminology",
-    "eds.terminology",
-    assigns=["doc.ents", "doc.spans"],
-)(create_component)
 create_component = registry.factory.register(
     "eds.terminology",
     assigns=["doc.ents", "doc.spans"],
-)(create_component)
+    deprecated=["terminology"],
+)(TerminologyMatcher)

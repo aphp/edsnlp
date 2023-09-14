@@ -19,6 +19,7 @@ from edsnlp.connectors.brat import BratConnector
 from edsnlp.core.pipeline import Pipeline
 from edsnlp.core.registry import registry
 from edsnlp.optimization import LinearSchedule, ScheduledOptimizer
+from edsnlp.pipelines.trainable.ner.ner import TrainableNER
 from edsnlp.utils.collections import batchify
 from edsnlp.utils.filter import filter_spans
 
@@ -71,7 +72,7 @@ def brat_dataset(path, limit: Optional[int] = None):
         sentencizer = nlp.get_pipe("sentencizer")
         docs = [sentencizer(doc) for doc in docs]
 
-        ner = nlp.get_pipe("ner")
+        ner: TrainableNER = nlp.get_pipe("ner")
 
         # Annotate entities from the raw data
         for doc, raw in zip(docs, raw_data):
@@ -104,7 +105,7 @@ def brat_dataset(path, limit: Optional[int] = None):
                         for span in doc.spans.get(group, ())
                         if span.start >= sent.start and span.end <= sent.end
                     ]
-                    if len(ner.get_target_spans(new_doc)):
+                    if len(list(ner.get_target_spans(new_doc))):
                         new_docs.append(new_doc)
         return new_docs
 
@@ -241,3 +242,10 @@ def test_train(run_in_test_dir, tmp_path):
         **config["train"].resolve(registry=registry, root=config),
         output_path=tmp_path,
     )
+
+
+if __name__ == "__main__":
+    import tempfile
+
+    tmp_path = tempfile.mkdtemp()
+    test_train(None, tmp_path)

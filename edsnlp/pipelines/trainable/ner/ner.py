@@ -3,24 +3,26 @@ from __future__ import annotations
 import warnings
 from collections import defaultdict
 from enum import Enum
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Union
+from typing import Callable, Iterable, List, Optional, Sequence, Union
 
 import torch
-from pydantic import StrictStr
 from spacy.tokens import Doc, Span
 from typing_extensions import Literal, NotRequired, TypedDict
 
 from edsnlp import Pipeline
 from edsnlp.core.component import TorchComponent
-from edsnlp.utils.filter import filter_spans
 from edsnlp.pipelines.base import (
-    SpanGetter,
+    BaseNERComponent,
+    SpanGetterArg,
     SpanGetterMapping,
+    SpanSetterArg,
     get_spans,
 )
-
-from ..embeddings.typing import BatchInput, WordEmbeddingBatchOutput
-from ..layers.crf import MultiLabelBIOULDecoder
+from edsnlp.pipelines.trainable.embeddings.typing import (
+    BatchInput,
+    WordEmbeddingBatchOutput,
+)
+from edsnlp.pipelines.trainable.layers.crf import MultiLabelBIOULDecoder
 
 NERBatchInput = TypedDict(
     "NERBatchInput",
@@ -43,20 +45,65 @@ class CRFMode(str, Enum):
     joint = "joint"
     marginal = "marginal"
 
-class TrainableNER(TorchComponent[NERBatchOutput, NERBatchInput]):
+
+class TrainableNER(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComponent):
+    """
+    Initialize a general named entity recognizer (with or without nested or
+    overlapping entities).
+
+    Parameters
+    ----------
+    nlp: PipelineProtocol
+        The current nlp object
+    name: str
+        Name of the component
+    embedding: TorchComponent[WordEmbeddingBatchOutput, BatchInput]
+        The word embedding component
+    target_span_getter: Callable[[Doc], Iterable[Span]]
+        Method to call to get the gold spans from a document, for scoring or training.
+        By default, takes all entities in `doc.ents`, but we recommend you specify
+        a given span group name instead.
+    labels: List[str]
+        The labels to predict. The labels can also be inferred from the data
+        during `nlp.post_init(...)`
+    span_setter: Optional[SpanSetterArg]
+        The span setter to use to set the predicted spans on the Doc object. If None,
+        the component will infer the span setter from the target_span_getter config.
+    infer_span_setter: Optional[bool]
+        Whether to complete the span setter from the target_span_getter config.
+        False by default, unless the span_setter is None.
+    mode: Literal["independent", "joint", "marginal"]
+        The CRF mode to use: independent, joint or marginal
+    """
+
     def __init__(
         self,
         nlp: Pipeline = None,
-        name: Optional[str] = None,
+        name: Optional[str] = "eds.ner",
         *,
         embedding: TorchComponent[WordEmbeddingBatchOutput, BatchInput],
-        target_span_getter: SpanGetter,
+        target_span_getter: SpanGetterArg,
         labels: Optional[List[str]] = None,
-        to_ents: Union[bool, List[str]] = None,
-        to_span_groups: Union[StrictStr, Dict[str, Union[bool, List[str]]]] = None,
+        span_setter: Optional[SpanSetterArg] = None,
+        infer_span_setter: Optional[bool] = None,
         mode: Literal["independent", "joint", "marginal"],
     ):
-        super().__init__(nlp, name)
+        if (
+            isinstance(target_span_getter, dict) and "labels" in target_span_getter
+        ) and labels is not None:
+            raise ValueError(
+                "You cannot set both the `labels` key of the `target_span_getter` "
+                "parameter and the `labels` parameter."
+            )
+
+        super().__init__(
+            nlp=nlp,
+            name=name,
+            span_setter=span_setter or {},
+        )
+        self.infer_span_setter = (
+            span_setter is None if infer_span_setter is None else infer_span_setter
+        )
 
         self.embedding = embedding
         self.labels = labels
@@ -70,26 +117,6 @@ class TrainableNER(TorchComponent[NERBatchOutput, NERBatchInput]):
             learnable_transitions=False,
         )
         self.mode = mode
-        self.to_ents = to_ents
-        self.to_span_groups: Dict[str, Union[bool, List[str]]] = (
-            {to_span_groups: True}
-            if isinstance(to_span_groups, str)
-            else to_span_groups
-        )
-        if callable(target_span_getter) and (
-            self.to_ents is None or self.to_span_groups is None
-        ):
-            raise ValueError(
-                "If `target_span_getter` is callable, `to_ents` or `to_span_groups` "
-                "cannot be inferred and must both be set manually"
-            )
-        if (
-            isinstance(target_span_getter, dict) and "labels" in target_span_getter
-        ) and self.labels is not None:
-            raise ValueError(
-                "You cannot set both the `labels` key of the `target_span_getter` "
-                "parameter and the `labels` parameter."
-            )
 
         if isinstance(target_span_getter, list):
             target_span_getter = {"span_groups": target_span_getter}
@@ -112,34 +139,32 @@ class TrainableNER(TorchComponent[NERBatchOutput, NERBatchInput]):
         -------
 
         """
-        if (
-            self.labels is not None
-            and self.to_ents is not None
-            and self.to_span_groups is not None
-        ):
+        if self.labels is not None and not self.infer_span_setter:
             return
 
         inferred_labels = set()
 
-        to_ents = []
-        to_span_groups = defaultdict(lambda: [])
+        span_setter = defaultdict(lambda: [])
 
         for doc in docs:
             if callable(self.target_span_getter):
                 for ent in self.target_span_getter(doc):
                     inferred_labels.add(ent.label_)
             else:
-                if "span_groups" in self.target_span_getter:
-                    for group in self.target_span_getter["span_groups"]:
-                        for span in doc.spans.get(group, ()):
-                            if self.labels is None or span.label_ in self.labels:
-                                inferred_labels.add(span.label_)
-                                to_span_groups[group].append(span.label_)
-                elif "ents" in self.target_span_getter:
-                    for span in doc.ents:
-                        if self.labels is None or span.label_ in self.labels:
-                            inferred_labels.add(span.label_)
-                            to_ents.append(span.label_)
+                for key, span_filter in self.target_span_getter.items():
+                    candidates = doc.spans.get(key, ()) if key != "ents" else doc.ents
+                    if span_filter is True:
+                        filtered_candidates = candidates
+                    else:
+                        filtered_candidates = [
+                            span
+                            for span in candidates
+                            if span.label_ in span_filter
+                            and (self.labels is None or span.label_ in self.labels)
+                        ]
+                    for span in filtered_candidates:
+                        inferred_labels.add(span.label_)
+                        span_setter[key].append(span.label_)
         if self.labels is not None:
             assert inferred_labels <= set(self.labels), (
                 "Some inferred labels are not present in the labels "
@@ -154,38 +179,51 @@ class TrainableNER(TorchComponent[NERBatchOutput, NERBatchInput]):
         else:
             self.update_labels(sorted(inferred_labels))
 
+        self.span_setter = {
+            **self.span_setter,
+            **{
+                key: value
+                for key, value in span_setter.items()
+                if key not in self.span_setter
+            },
+        }
+
         if not self.labels:
             raise ValueError(
                 "No labels were inferred from the data. Please check your data and "
                 "the `target_span_getter` parameter."
             )
 
-        if self.to_ents is None:
-            self.to_ents = to_ents
-            self.cfg["to_ents"] = self.to_ents
-        if self.to_span_groups is None:
-            self.to_span_groups = dict(to_span_groups)
-            self.cfg["to_span_groups"] = self.to_span_groups
-
     def update_labels(self, labels: Sequence[str]):
-        original_labels = self.labels if self.labels is not None else ()
-        n_old = len(original_labels)
-        label_indices = dict(
-            (
-                *zip(original_labels, range(n_old)),
-                *zip(labels, range(n_old, n_old + len(labels))),
+        old_labels = self.labels if self.labels is not None else ()
+        n_old = len(old_labels)
+        dict(
+            reversed(
+                (
+                    *zip(old_labels, range(n_old)),
+                    *zip(labels, range(n_old, n_old + len(labels))),
+                )
             )
         )
-        old_index = [label_indices[label] for label in original_labels]
-        new_linear = torch.nn.Linear(
-            self.embedding.output_size,
-            len(labels) * 5,
+        old_index = (
+            torch.arange(len(old_labels) * 5)
+            .view(-1, 5)[
+                [labels.index(label) for label in old_labels if label in labels]
+            ]
+            .view(-1)
         )
-        new_linear.weight.data.view(-1, 5)[old_index] = self.linear.weight.data.view(
-            -1, 5
+        new_index = (
+            torch.arange(len(labels) * 5)
+            .view(-1, 5)[
+                [old_labels.index(label) for label in old_labels if label in labels]
+            ]
+            .view(-1)
         )
-        new_linear.bias.data.view(-1, 5)[old_index] = self.linear.bias.data.view(-1, 5)
-        self.linear = new_linear
+        new_linear = torch.nn.Linear(self.embedding.output_size, len(labels) * 5)
+        new_linear.weight.data[new_index] = self.linear.weight.data[old_index]
+        new_linear.bias.data[new_index] = self.linear.bias.data[old_index]
+        self.linear.weight = new_linear.weight
+        self.linear.bias = new_linear.bias
 
         # Update initialization arguments
         self.labels = labels
@@ -272,7 +310,7 @@ class TrainableNER(TorchComponent[NERBatchOutput, NERBatchInput]):
             "tags": tags,
         }
 
-    def get_target_spans(self, doc):
+    def get_target_spans(self, doc) -> Iterable[Span]:
         return (
             self.target_span_getter(doc)
             if callable(self.target_span_getter)
@@ -280,30 +318,18 @@ class TrainableNER(TorchComponent[NERBatchOutput, NERBatchInput]):
         )
 
     def postprocess(self, docs: List[Doc], batch: NERBatchOutput):
-        spans = self.crf.tags_to_spans(batch["tags"].cpu()).tolist()
-        ents = [[] for _ in docs]
-        if self.to_span_groups is None or self.to_ents is None:
-            raise ValueError(
-                f"The {self.__class__.__name__} component still has to infer the "
-                f"`to_ents` and `to_span_groups` parameters. Please call "
-                f"`nlp.post_init(...)` before running it on some new data, or set "
-                f"both parameters manually."
+        spans: List[List[Span]] = [[] for _ in docs]
+        for doc_idx, start, end, label_idx in self.crf.tags_to_spans(
+            batch["tags"].cpu()
+        ).tolist():
+            spans[doc_idx].append(
+                Span(
+                    docs[doc_idx],
+                    start,
+                    end,
+                    self.labels[label_idx],
+                )
             )
-        span_groups = [{label: [] for label in self.to_span_groups} for _ in docs]
-        for doc_idx, start, end, label_idx in spans:
-            label = self.labels[label_idx]
-            span = Span(docs[doc_idx], start, end, label)
-            if self.to_ents is True or label in self.to_ents:
-                ents[doc_idx].append(span)
-            for group_name, group_spans in span_groups[doc_idx].items():
-                if (
-                    self.to_span_groups[group_name] is True
-                    or label in self.to_span_groups[group_name]
-                ):
-                    span_groups[doc_idx][group_name].append(span)
-        for doc, doc_ents, doc_span_groups in zip(docs, ents, span_groups):
-            if doc_ents:
-                doc.ents = filter_spans((*doc.ents, *doc_ents))
-            if self.to_span_groups:
-                doc.spans.update(doc_span_groups)
+        for doc, doc_spans in zip(docs, spans):
+            self.set_spans(doc, doc_spans)
         return docs

@@ -3,7 +3,7 @@ from typing import Any, Dict, Iterable
 from spacy.training import Example
 
 from edsnlp import registry
-from edsnlp.utils.span_getters import SpanGetter, get_spans
+from edsnlp.pipelines.base import SpanGetter, SpanGetterArg, get_spans
 
 
 def ner_exact_scorer(
@@ -42,8 +42,8 @@ def ner_exact_scorer(
     tp = len(pred_spans & gold_spans)
 
     return {
-        "ents_p": tp / len(pred_spans) if pred_spans else float(tp == len(pred_spans)),
-        "ents_r": tp / len(gold_spans) if gold_spans else float(tp == len(gold_spans)),
+        "ents_p": tp / len(pred_spans) if pred_spans else float(len(gold_spans) == 0),
+        "ents_r": tp / len(gold_spans) if gold_spans else float(len(gold_spans) == 0),
         "ents_f": 2 * tp / (len(pred_spans) + len(gold_spans))
         if pred_spans or gold_spans
         else float(len(pred_spans) == len(gold_spans)),
@@ -68,9 +68,6 @@ def ner_token_scorer(
     -------
     Dict[str, Any]
     """
-    set(span_getter["labels"]) if "labels" in span_getter is not None else None
-    span_getter.get("spans_labels", None)
-
     pred_spans = set()
     gold_spans = set()
     for eg_idx, eg in enumerate(examples):
@@ -104,13 +101,13 @@ def ner_token_scorer(
 
 @registry.scorers.register("eds.ner_exact_scorer")
 def create_ner_exact_scorer(
-    span_getter: SpanGetter,
+    span_getter: SpanGetterArg,
 ):
     return lambda examples: ner_exact_scorer(examples, span_getter)
 
 
 @registry.scorers.register("eds.ner_token_scorer")
 def create_ner_token_scorer(
-    span_getter: SpanGetter,
+    span_getter: SpanGetterArg,
 ):
     return lambda examples: ner_token_scorer(examples, span_getter)

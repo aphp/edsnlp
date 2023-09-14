@@ -1,1 +1,1 @@
-from .remove_lowercase import create_component, RemoveLowercase, DEFAULT_CONFIG
+from .factory import create_component

@@ -1,5 +1,4 @@
 from edsnlp.core import registry
-from edsnlp.utils.deprecation import deprecated_factory
 
 from .patterns import tnm_pattern
 from .tnm import TNMMatcher
@@ -11,13 +10,8 @@ DEFAULT_CONFIG = dict(
     span_setter={"ents": True, "tnm": True},
 )
 
-create_component = TNMMatcher
-create_component = deprecated_factory(
-    "eds.TNM",
-    "eds.tnm",
-    assigns=["doc.ents", "doc.spans"],
-)(create_component)
 create_component = registry.factory.register(
     "eds.tnm",
     assigns=["doc.ents", "doc.spans"],
-)(create_component)
+    deprecated=["eds.TNM"],
+)(TNMMatcher)

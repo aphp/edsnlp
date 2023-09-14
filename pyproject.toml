@@ -106,14 +106,14 @@ where = ["."]
 
 # NER
 "eds.adicap"                      = "edsnlp.pipelines.ner.adicap.factory:create_component"
-"eds.ccmu"                        = "edsnlp.pipelines.ner.scores.emergency.ccmu.factory:create_component"
+"eds.emergency_ccmu"              = "edsnlp.pipelines.ner.scores.emergency.ccmu.factory:create_component"
 "eds.charlson"                    = "edsnlp.pipelines.ner.scores.charlson.factory:create_component"
 "eds.cim10"                       = "edsnlp.pipelines.ner.cim10.factory:create_component"
 "eds.covid"                       = "edsnlp.pipelines.ner.covid.factory:create_component"
 "eds.drugs"                       = "edsnlp.pipelines.ner.drugs.factory:create_component"
 "eds.elston_ellis"                = "edsnlp.pipelines.ner.scores.elston_ellis.factory:create_component"
-"eds.gemsa"                       = "edsnlp.pipelines.ner.scores.emergency.gemsa.factory:create_component"
-"eds.priority"                    = "edsnlp.pipelines.ner.scores.emergency.priority.factory:create_component"
+"eds.emergency_gemsa"             = "edsnlp.pipelines.ner.scores.emergency.gemsa.factory:create_component"
+"eds.emergency_priority"          = "edsnlp.pipelines.ner.scores.emergency.priority.factory:create_component"
 "eds.score"                       = "edsnlp.pipelines.ner.scores.factory:create_component"
 "eds.sofa"                        = "edsnlp.pipelines.ner.scores.sofa.factory:create_component"
 "eds.tnm"                         = "edsnlp.pipelines.ner.tnm.factory:create_component"

@@ -5,7 +5,6 @@ from edsnlp.core import PipelineProtocol, registry
 from edsnlp.pipelines.base import SpanSetterArg
 from edsnlp.pipelines.ner.scores.base_score import SimpleScoreMatcher
 from edsnlp.pipelines.ner.scores.emergency.gemsa import patterns
-from edsnlp.utils.deprecation import deprecated_factory
 
 DEFAULT_CONFIG = dict(
     regex=patterns.regex,
@@ -21,19 +20,13 @@ DEFAULT_CONFIG = dict(
 )
 
 
-@deprecated_factory(
-    "emergency.gemsa",
-    "eds.emergency_gemsa",
-    assigns=["doc.ents", "doc.spans"],
-)
-@deprecated_factory(
-    "eds.emergency.gemsa",
-    "eds.emergency_gemsa",
-    assigns=["doc.ents", "doc.spans"],
-)
 @registry.factory.register(
     "eds.emergency_gemsa",
     assigns=["doc.ents", "doc.spans"],
+    deprecated=[
+        "emergency.gemsa",
+        "eds.emergency.gemsa",
+    ],
 )
 def create_component(
     nlp: PipelineProtocol,

@@ -2,9 +2,9 @@
 
 Most pipelines provided by EDS-NLP aim to qualify pre-extracted entities. To wit, the basic usage of the library:
 
-1. Implement a normaliser (see [`normalizer`](./core/normalisation.md))
-2. Add an entity recognition component (eg the simple but powerful [`matcher` pipeline](./core/matcher.md))
-3. Add zero or more entity qualification components, such as [`negation`](./qualifiers/negation.md), [`family`](./qualifiers/family.md) or [`hypothesis`](./qualifiers/hypothesis.md). These qualifiers typically help detect false-positives.
+1. Implement a normaliser (see `eds.normalizer`)
+2. Add an entity recognition component (eg the simple but powerful `eds.matcher`)
+3. Add zero or more entity qualification components, such as `eds.negation`, `eds.family` or `eds.hypothesis`. These qualifiers typically help detect false-positives.
 
 ## Scope
 
@@ -27,8 +27,8 @@ Note that spaCy prohibits overlapping entities within the `Doc.ents` attribute. 
 
 Some pipelines write their output to the `Doc.spans` dictionary. We enforce the following doctrine:
 
-- Should the pipe extract entities that are directly informative (typically the output of the [`eds.matcher`](./core/matcher.md) component), said entities are stashed in the `Doc.ents` attribute.
-- On the other hand, should the entity be useful to another pipe, but less so in itself (eg the output of the [`eds.sections`](./misc/sections.md) or [`eds.dates`](./misc/dates.md) component), it will be stashed in a specific key within the `Doc.spans` attribute.
+- Should the pipe extract entities that are directly informative (typically the output of the `eds.matcher` component), said entities are stashed in the `Doc.ents` attribute.
+- On the other hand, should the entity be useful to another pipe, but less so in itself (eg the output of the `eds.sections` or `eds.dates` component), it will be stashed in a specific key within the `Doc.spans` attribute.
 
 ### Entity tagging
 

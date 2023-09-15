@@ -1,12 +1,24 @@
 import ast
 import importlib
 import inspect
+import logging
 import sys
 from typing import Union
 
 import astunparse
-from griffe import Extension, Object, ObjectNode, get_logger
+from griffe import Extension, Object, ObjectNode
 from griffe.docstrings.dataclasses import DocstringSectionParameters
+from griffe.expressions import Expr
+from griffe.logger import patch_loggers
+
+
+def get_logger(name):
+    new_logger = logging.getLogger(name)
+    new_logger.setLevel("ERROR")
+    return new_logger
+
+
+patch_loggers(get_logger)
 
 logger = get_logger(__name__)
 
@@ -98,5 +110,7 @@ class EDSNLPDocstrings(Extension):
         for param in param_section.value:
             if param.name in defaults:
                 param.default = str(defaults[param.name])
+            if isinstance(param.default, Expr):
+                continue
             if param.default is not None and len(param.default) > 50:
                 param.default = param.default[: 50 - 3] + "..."

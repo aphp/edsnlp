@@ -173,7 +173,7 @@ plugins:
   - search
   - autorefs:
       priority:
-        - '*'
+        - .*
         - reference
   - mkdocstrings:
       enable_inventory: true

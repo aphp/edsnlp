@@ -1,5 +1,4 @@
 import os
-import re
 from pathlib import Path
 
 import mkdocs.config
@@ -8,9 +7,15 @@ import mkdocs.structure
 import mkdocs.structure.files
 import mkdocs.structure.nav
 import mkdocs.structure.pages
+import regex
 from mkdocs.config.defaults import MkDocsConfig
 
 from docs.scripts.autorefs.plugin import AutorefsPlugin
+
+try:
+    from importlib.metadata import entry_points
+except ImportError:
+    from importlib_metadata import entry_points
 
 
 def exclude_file(name):
@@ -142,6 +147,8 @@ def on_page_read_source(page, config):
 
 
 HREF_REGEX = r'href=(?:"([^"]*)"|\'([^\']*)|[ ]*([^ =>]*)(?![a-z]+=))'
+# Maybe find something less specific ?
+PIPE_REGEX = r"(?<=[^a-zA-Z0-9._-])eds[.][a-zA-Z0-9._-]*(?=[^a-zA-Z0-9._-])"
 
 
 @mkdocs.plugins.event_priority(-1000)
@@ -151,8 +158,9 @@ def on_post_page(
     config: mkdocs.config.Config,
 ):
     """
-    Replace absolute paths with path relative to the rendered page
-    This must be performed after all other plugins have run.
+    1. Replace absolute paths with path relative to the rendered page
+       This must be performed after all other plugins have run.
+    2. Replace component names with links to the component reference
 
     Parameters
     ----------
@@ -165,6 +173,24 @@ def on_post_page(
 
     """
 
+    autorefs: AutorefsPlugin = config["plugins"]["autorefs"]
+    spacy_factories_entry_points = {
+        ep.name: ep.value for ep in entry_points()["spacy_factories"]
+    }
+
+    def replace_component(match):
+        name = match.group(0)
+        ep = spacy_factories_entry_points.get(name)
+        preceding = output[match.start(0) - 50 : match.start(0)]
+        if ep is not None and "DEFAULT:" not in preceding:
+            try:
+                url = autorefs.get_item_url(ep.replace(":", "."))
+            except KeyError:
+                pass
+            else:
+                return "<a href={href}>{name}</a>".format(href=url, name=name)
+        return name
+
     def replace_link(match):
         relative_url = url = match.group(1) or match.group(2) or match.group(3)
         page_url = os.path.join("/", page.file.url)
@@ -173,4 +199,6 @@ def on_post_page(
         return f'href="{relative_url}"'
 
     # Replace absolute paths with path relative to the rendered page
-    return re.sub(HREF_REGEX, replace_link, output)
+    output = regex.sub(HREF_REGEX, replace_link, output)
+    output = regex.sub(PIPE_REGEX, replace_component, output)
+    return output

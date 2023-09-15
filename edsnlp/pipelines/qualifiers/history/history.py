@@ -28,7 +28,7 @@ class HistoryQualifier(RuleBasedQualifier):
 
     This component may also use the output of:
 
-    - the [`eds.sections` component](/pipelines/misc/sections/). In that case, the
+    - the `eds.sections` component In that case, the
     entire `antécédent` section is tagged as a medical history.
 
     !!! warning "Sections"
@@ -42,7 +42,7 @@ class HistoryQualifier(RuleBasedQualifier):
         To curb that possibility, using the output of the `eds.sections` component is
         deactivated by default.
 
-    - the [`eds.dates` component](/pipelines/misc/dates). In that case, it will take the
+    - the `eds.dates` component. In that case, it will take the
       dates into account to tag extracted entities as a medical history or not.
 
     !!! info "Dates"

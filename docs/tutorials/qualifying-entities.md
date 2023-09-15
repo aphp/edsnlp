@@ -147,10 +147,10 @@ their configuration options and validation performance.
 
 Recall the qualifier pipeline proposed by EDS-NLP:
 
-| Pipeline                                                            | Description                          |
-| ------------------------------------------------------------------- | ------------------------------------ |
-| [`eds.negation`](../pipelines/qualifiers/negation.md)               | Rule-based negation detection        |
-| [`eds.family`](../pipelines/qualifiers/family.md)                   | Rule-based family context detection  |
-| [`eds.hypothesis`](../pipelines/qualifiers/hypothesis.md)           | Rule-based speculation detection     |
-| [`eds.reported_speech`](../pipelines/qualifiers/reported-speech.md) | Rule-based reported speech detection |
-| [`eds.history`](../pipelines/qualifiers/history.md)                 | Rule-based history detection         |
+| Pipeline              | Description                          |
+|-----------------------|--------------------------------------|
+| `eds.negation`        | Rule-based negation detection        |
+| `eds.family`          | Rule-based family context detection  |
+| `eds.hypothesis`      | Rule-based speculation detection     |
+| `eds.reported_speech` | Rule-based reported speech detection |
+| `eds.history`         | Rule-based history detection         |

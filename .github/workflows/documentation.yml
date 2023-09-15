@@ -4,9 +4,10 @@ on:
   push:
     branches: [master, dev]
 
+env:
+  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+
 jobs:
-  env:
-    BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
   Documentation:
     runs-on: ubuntu-latest
     steps:

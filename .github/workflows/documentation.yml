@@ -2,9 +2,11 @@ name: Documentation
 
 on:
   push:
-    branches: [master]
+    branches: [master, dev]
 
 jobs:
+  env:
+    BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
   Documentation:
     runs-on: ubuntu-latest
     steps:
@@ -21,5 +23,5 @@ jobs:
     - name: Build documentation
       run: |
         git fetch origin gh-pages
-        mike delete master
-        mike deploy --push master
+        mike delete $BRANCH_NAME
+        mike deploy --push $BRANCH_NAME

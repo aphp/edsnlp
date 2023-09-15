@@ -46,7 +46,7 @@ dev = [
     "mike~=1.1.2",
     "mkdocs-charts-plugin==0.0.8",
     "mkdocs-img2fig-plugin==0.9.3",
-    "mkdocs-material~=9.1.0",
+    "mkdocs-material~=9.2.0",
     "mkdocs-section-index==0.3.4",
     "mkdocs~=1.5.2",
     "mkdocstrings~=0.20",

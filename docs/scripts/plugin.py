@@ -37,9 +37,7 @@ def on_config(config: MkDocsConfig):
                 events.remove(event)
     old_plugin = config["plugins"]["autorefs"]
     plugin_config = dict(old_plugin.config)
-    print("OLD PLUGIN CLASS:", type(old_plugin))
     plugin = AutorefsPlugin()
-    print("NEW PLUGIN CLASS:", type(plugin))
     config.plugins["autorefs"] = plugin
     config["plugins"]["autorefs"] = plugin
     plugin.load_config(plugin_config)
@@ -172,7 +170,6 @@ def on_post_page(
         page_url = os.path.join("/", page.file.url)
         if url.startswith("/"):
             relative_url = os.path.relpath(url, page_url)
-            print("REPLACING", url, "/", page_url, "with", relative_url)
         return f'href="{relative_url}"'
 
     # Replace absolute paths with path relative to the rendered page

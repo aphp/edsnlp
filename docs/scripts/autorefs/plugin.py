@@ -289,20 +289,37 @@ class AutorefsPlugin(BasePlugin):
             identifier: The HTML anchor (without '#') as a string.
         """
 
-        if identifier in self._url_map:
-            old_url = os.path.join("/", self._url_map[identifier])
+        new_url = f"{url}#{identifier}"
+        old_url = os.path.join("/", self._url_map.get(identifier, "")).split("#")[0]
+
+        if identifier in self._url_map and not old_url == new_url:
             rev_patterns = list(enumerate(self.priority_patterns))[::-1]
             old_priority_idx = next(
                 (i for i, pat in rev_patterns if re.match(pat, old_url)),
                 len(rev_patterns),
             )
             new_priority_idx = next(
-                (i for i, pat in rev_patterns if re.match(pat, url)),
+                (i for i, pat in rev_patterns if re.match(pat, new_url)),
                 len(rev_patterns),
             )
+            if "SpanGetterArg" in identifier:
+                print("IDENTIFIER", identifier, old_priority_idx, new_priority_idx)
+                print(
+                    " - old:",
+                    old_url,
+                    "KEEP" if new_priority_idx >= old_priority_idx else "——",
+                )
+                print(
+                    " - new:",
+                    new_url,
+                    "KEEP" if new_priority_idx < old_priority_idx else "——",
+                )
             if new_priority_idx >= old_priority_idx:
                 return
-        self._url_map[identifier] = f"{url}#{identifier}"
+            if "reference" not in new_url:
+                raise Exception("URL WTF", new_url)
+
+        self._url_map[identifier] = new_url
 
     def register_url(self, identifier: str, url: str):
         """Register that the identifier should be turned into a link to this URL.

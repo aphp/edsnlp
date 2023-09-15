@@ -2,7 +2,10 @@ name: Documentation
 
 on:
   push:
-    branches: [master]
+    branches: [master, dev]
+
+env:
+  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
 
 jobs:
   Documentation:
@@ -21,5 +24,5 @@ jobs:
     - name: Build documentation
       run: |
         git fetch origin gh-pages
-        mike delete master
-        mike deploy --push master
+        mike delete $BRANCH_NAME
+        mike deploy --push $BRANCH_NAME

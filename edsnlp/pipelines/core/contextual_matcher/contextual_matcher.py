@@ -5,6 +5,7 @@ from functools import lru_cache
 from operator import attrgetter
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from confit import VisibleDeprecationWarning
 from loguru import logger
 from spacy.tokens import Doc, Span
 
@@ -88,7 +89,7 @@ class ContextualMatcher(BaseNERComponent):
         if label is None and label_name is not None:
             warnings.warn(
                 "`label_name` is deprecated, use `label` instead.",
-                DeprecationWarning,
+                VisibleDeprecationWarning,
             )
             label = label_name
         if label is None:

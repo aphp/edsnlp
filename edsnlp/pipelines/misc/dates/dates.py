@@ -3,6 +3,7 @@ import warnings
 from itertools import chain
 from typing import Dict, Iterable, List, Optional, Tuple, Union
 
+from confit import VisibleDeprecationWarning
 from loguru import logger
 from spacy.tokens import Doc, Span
 from typing_extensions import Literal
@@ -200,7 +201,7 @@ class DatesMatcher(BaseNERComponent):
                     if isinstance(span_setter, dict)
                     else " Use the `span_setter` argument instead."
                 ),
-                DeprecationWarning,
+                VisibleDeprecationWarning,
             )
             span_setter = dict(span_setter)
             span_setter["ents"] = True
@@ -242,7 +243,7 @@ class DatesMatcher(BaseNERComponent):
             warnings.warn(
                 "The `on_ents_only` argument is deprecated."
                 " Use the `span_getter` argument instead.",
-                DeprecationWarning,
+                VisibleDeprecationWarning,
             )
         self.span_getter = validate_span_getter(span_getter, optional=True)
         self.merge_mode = merge_mode

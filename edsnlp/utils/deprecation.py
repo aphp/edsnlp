@@ -1,6 +1,7 @@
+import warnings
 from typing import Any, Callable, Union
 
-from loguru import logger
+from confit import VisibleDeprecationWarning
 from spacy.tokens import Doc, Span, Token
 
 
@@ -11,7 +12,7 @@ def deprecated_extension(name: str, new_name: str) -> None:
         f'Please use "{new_name}" instead.'
     )
 
-    logger.warning(msg)
+    warnings.warn(msg, VisibleDeprecationWarning)
 
 
 def deprecated_getter_factory(name: str, new_name: str) -> Callable:

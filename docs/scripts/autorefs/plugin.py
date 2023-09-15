@@ -16,17 +16,16 @@ Just before writing the final HTML to the disc, during the
 this plugin searches for references of the form `[identifier][]` or `[title][identifier]` that were not resolved,
 and fixes them using the previously stored identifier-URL mapping.
 """
-
 import contextlib
 import functools
 import logging
+import os
 import re
 from html import escape, unescape
 from typing import Any, Callable, Dict, List, Match, Optional, Sequence, Tuple, Union
 from urllib.parse import urlsplit
 from xml.etree.ElementTree import Element
 
-import pathspec
 from markdown import Markdown
 from markdown.extensions import Extension
 from markdown.inlinepatterns import REFERENCE_RE, ReferenceInlineProcessor
@@ -278,35 +277,37 @@ class AutorefsPlugin(BasePlugin):
     def priority_patterns(self):
         if self._priority_patterns is None:
             self._priority_patterns = [
-                pathspec.patterns.GitWildMatchPattern(pat)
-                for pat in self.config.get("priority")
+                os.path.join("/", pat) for pat in self.config.get("priority")
             ]
         return self._priority_patterns
 
-    def register_anchor(self, page: str, identifier: str):
+    def register_anchor(self, url: str, identifier: str):
         """Register that an anchor corresponding to an identifier was encountered when rendering the page.
 
         Arguments:
-            page: The relative URL of the current page. Examples: `'foo/bar/'`, `'foo/index.html'`
+            url: The relative URL of the current page. Examples: `'foo/bar/'`, `'foo/index.html'`
             identifier: The HTML anchor (without '#') as a string.
         """
-        if identifier in self._url_map:
+
+        new_url = os.path.join("/", f"{url}#{identifier}")
+        old_url = os.path.join("/", self._url_map.get(identifier, "")).split("#")[0]
+
+        if identifier in self._url_map and not old_url == new_url:
             rev_patterns = list(enumerate(self.priority_patterns))[::-1]
             old_priority_idx = next(
-                (
-                    i
-                    for i, pat in rev_patterns
-                    if pat.match_file(self._url_map[identifier])
-                ),
+                (i for i, pat in rev_patterns if re.match(pat, old_url)),
                 len(rev_patterns),
             )
             new_priority_idx = next(
-                (i for i, pat in rev_patterns if pat.match_file(page)),
+                (i for i, pat in rev_patterns if re.match(pat, new_url)),
                 len(rev_patterns),
             )
             if new_priority_idx >= old_priority_idx:
                 return
-        self._url_map[identifier] = f"{page}#{identifier}"
+            if "reference" not in new_url:
+                raise Exception("URL WTF", new_url)
+
+        self._url_map[identifier] = new_url
 
     def register_url(self, identifier: str, url: str):
         """Register that the identifier should be turned into a link to this URL.
@@ -352,12 +353,7 @@ class AutorefsPlugin(BasePlugin):
         Returns:
             A site-relative URL.
         """
-        url = self._get_item_url(identifier, fallback)
-        if from_url is not None:
-            parsed = urlsplit(url)
-            if not parsed.scheme and not parsed.netloc:
-                return relative_url(from_url, url)
-        return url
+        return self._get_item_url(identifier, fallback)
 
     def on_config(
         self, config: Config, **kwargs
@@ -418,10 +414,10 @@ class AutorefsPlugin(BasePlugin):
                 f"{__name__}: Mapping identifiers to URLs for page {page.file.src_path}"
             )
             for item in page.toc.items:
-                self.map_urls(page.url, item)
+                self.map_urls(page, item)
         return html
 
-    def map_urls(self, base_url: str, anchor: AnchorLink) -> None:
+    def map_urls(self, page: Page, anchor: AnchorLink) -> None:
         """Recurse on every anchor to map its ID to its absolute URL.
 
         This method populates `self.url_map` by side-effect.
@@ -430,9 +426,10 @@ class AutorefsPlugin(BasePlugin):
             base_url: The base URL to use as a prefix for each anchor's relative URL.
             anchor: The anchor to process and to recurse on.
         """
-        self.register_anchor(base_url, anchor.id)
+        abs_url = os.path.join("/", page.file.url)
+        self.register_anchor(abs_url, anchor.id)
         for child in anchor.children:
-            self.map_urls(base_url, child)
+            self.map_urls(page, child)
 
     def on_post_page(
         self, output: str, page: Page, **kwargs

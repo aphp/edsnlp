@@ -72,7 +72,6 @@ nav:
           - pipelines/qualifiers/history.md
       - Miscellaneous:
           - Overview: pipelines/misc/overview.md
-          - pipelines/misc/index.md
           - pipelines/misc/dates.md
           - pipelines/misc/measurements.md
           - pipelines/misc/consultation-dates.md
@@ -173,7 +172,7 @@ plugins:
   - search
   - autorefs:
       priority:
-        - '*'
+        - .*
         - reference
   - mkdocstrings:
       enable_inventory: true

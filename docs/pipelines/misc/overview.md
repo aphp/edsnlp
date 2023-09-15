@@ -8,13 +8,13 @@ For instance, the date detection and normalisation pipeline falls in this catego
 
 <!-- --8<-- [start:components] -->
 
-| Component                                                      | Description                                 |
-|----------------------------------------------------------------|---------------------------------------------|
-| [`eds.dates`](/pipelines/misc/dates)                           | Date extraction and normalisation           |
-| [`eds.consultation_dates`](/pipelines/misc/consultation-dates) | Identify consultation dates                 |
-| [`eds.measurements`](/pipelines/misc/measurements)             | Measure extraction and normalisation        |
-| [`eds.sections`](/pipelines/misc/sections)                     | Section detection                           |
-| [`eds.reason`](/pipelines/misc/reason)                         | Rule-based hospitalisation reason detection |
-| [`eds.tables`](/pipelines/misc/tables)                         | Tables detection                            |
+| Component                | Description                                 |
+|--------------------------|---------------------------------------------|
+| `eds.dates`              | Date extraction and normalisation           |
+| `eds.consultation_dates` | Identify consultation dates                 |
+| `eds.measurements`       | Measure extraction and normalisation        |
+| `eds.sections`           | Section detection                           |
+| `eds.reason`             | Rule-based hospitalisation reason detection |
+| `eds.tables`             | Tables detection                            |
 
 <!-- --8<-- [end:components] -->

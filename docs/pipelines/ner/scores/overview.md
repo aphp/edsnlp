@@ -9,14 +9,14 @@ To extract a score, the matcher:
 
 ## Available scores
 
-| Component                                        | Description                   |
-|--------------------------------------------------|-------------------------------|
-| [`eds.charlson`](./charlson)                     | A Charlson score extractor    |
-| [`eds.emergency_ccmu`](./emergency-ccmu)         | A CCMU score extractor        |
-| [`eds.emergency_gemsa`](./emergency-gemsa)       | A GEMSA score extractor       |
-| [`eds.emergency_priority`](./emergency-priority) | A priority score extractor    |
-| [`eds.sofa`](./sofa)                             | A SOFA score extractor        |
-| [`eds.tnm`](./tnm)                               | A TNM score extractor         |
+| Component                | Description                |
+|--------------------------|----------------------------|
+| `eds.charlson`           | A Charlson score extractor |
+| `eds.emergency_ccmu`     | A CCMU score extractor     |
+| `eds.emergency_gemsa`    | A GEMSA score extractor    |
+| `eds.emergency_priority` | A priority score extractor |
+| `eds.sofa`               | A SOFA score extractor     |
+| `eds.tnm`                | A TNM score extractor      |
 
 ## Implementing your own score
 

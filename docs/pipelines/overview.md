@@ -54,9 +54,9 @@ nlp.add_pipe("eds.tnm")
 
 Most components provided by EDS-NLP aim to qualify pre-extracted entities. To wit, the basic usage of the library:
 
-1. Implement a normaliser (see [`normalizer`](./core/normalizer.md))
-2. Add an entity recognition component (eg the simple but powerful [`matcher` component](./core/matcher.md))
-3. Add zero or more entity qualification components, such as [`negation`](./qualifiers/negation.md), [`family`](./qualifiers/family.md) or [`hypothesis`](./qualifiers/hypothesis.md). These qualifiers typically help detect false-positives.
+1. Implement a normaliser (see `eds.normalizer`)
+2. Add an entity recognition component (eg the simple but powerful `eds.matcher` component)
+3. Add zero or more entity qualification components, such as `eds.negation`, `eds.family` or `eds.hypothesis`. These qualifiers typically help detect false-positives.
 
 ## Extraction components
 

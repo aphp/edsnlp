@@ -1,5 +1,5 @@
 
-# Contextual Matcher
+# Contextual Matcher {: #edsnlp.pipelines.core.contextual_matcher.factory.create_component }
 
 During feature extraction, it may be necessary to search for additional patterns in their neighborhood, namely:
 

@@ -1,10 +1,10 @@
 # Detecting dates
 
 We now know how to match a terminology and qualify detected entities, which covers most use cases for a typical medical NLP project.
-In this tutorial, we'll see how to use EDS-NLP to detect and normalise date mentions using [`eds.dates`](../pipelines/misc/dates.md).
+In this tutorial, we'll see how to use EDS-NLP to detect and normalise date mentions using `eds.dates`.
 
 This can have many applications, for dating medical events in particular.
-The [`eds.consultation_dates`](../pipelines/misc/consultation-dates.md) component, for instance,
+The `eds.consultation_dates` component, for instance,
 combines the date detection capabilities with a few simple patterns to detect the date of the consultation, when mentioned in clinical reports.
 
 ## Dates in clinical notes
@@ -41,7 +41,7 @@ Clinical notes contain many different types of dates. To name a few examples:
 
 ## Extracting dates
 
-The followings snippet adds the `eds.date` component to the pipeline:
+The followings snippet adds the `eds.dates` component to the pipeline:
 
 ```python
 import spacy

@@ -57,11 +57,11 @@ doc.ents[0]._.negation  # (6)
 ```
 
 1. We only need spaCy's French tokenizer.
-1. This example terminology provides a very simple, and by no means exhaustive, list of synonyms for COVID19.
-1. In spaCy, pipelines are added via the [`nlp.add_pipe` method](https://spacy.io/api/language#add_pipe). EDS-NLP pipelines are automatically discovered by spaCy.
-1. See the [matching tutorial](tutorials/matching-a-terminology.md) for mode details.
-1. spaCy stores extracted entities in the [`Doc.ents` attribute](https://spacy.io/api/doc#ents).
-1. The [`eds.negation` pipeline](pipelines/qualifiers/negation.md) has added a `negation` custom attribute.
+2. This example terminology provides a very simple, and by no means exhaustive, list of synonyms for COVID19.
+3. In spaCy, pipelines are added via the [`nlp.add_pipe` method](https://spacy.io/api/language#add_pipe). EDS-NLP pipelines are automatically discovered by spaCy.
+4. See the [matching tutorial](tutorials/matching-a-terminology.md) for mode details.
+5. spaCy stores extracted entities in the [`Doc.ents` attribute](https://spacy.io/api/doc#ents).
+6. The `eds.negation` component has adds a `negation` custom attribute.
 
 This example is complete, it should run as-is. Check out the [spaCy 101 page](tutorials/spacy101.md) if you're not familiar with spaCy.
 

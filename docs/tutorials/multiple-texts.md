@@ -230,7 +230,7 @@ They share the same arguments:
 
     You might want to store some context information contained in the `note` DataFrame as an extension in the generated `Doc` object.
 
-    For instance, you may use the [`eds.dates` pipeline](../pipelines/misc/dates.md)
+    For instance, you may use the `eds.dates` component
     in coordination with the `note_datetime` field to normalise a relative date
     (eg `Le patient est venu il y a trois jours/The patient came three days ago`).
 

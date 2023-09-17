@@ -210,6 +210,10 @@ where = ["."]
 "simple" = "edsnlp.accelerators.simple:SimpleAccelerator"
 "multiprocessing" = "edsnlp.accelerators.multiprocessing:MultiprocessingAccelerator"
 
+[project.entry-points."edsnlp_accelerator"]
+"simple" = "edsnlp.accelerators.simple:SimpleAccelerator"
+"multiprocessing" = "edsnlp.accelerators.multiprocessing:MultiprocessingAccelerator"
+
 [project.entry-points."spacy_misc"]
 "eds.candidate_span_qualifier_getter" = "edsnlp.pipelines.trainable.span_qualifier.factory:create_candidate_getter"
 
@@ -316,6 +320,9 @@ exclude_lines = [
     "Doc.set_extension.*",
     "Token.set_extension.*",
 ]
+
+[tool.coverage.run]
+concurrency = ["multiprocessing"]
 
 [tool.cibuildwheel]
 skip = [

@@ -1,4 +1,3 @@
-import typing
 from abc import ABCMeta
 from enum import Enum
 from functools import wraps
@@ -6,10 +5,13 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Generic,
     Iterable,
     Optional,
     Sequence,
+    Set,
     Tuple,
+    TypeVar,
     Union,
 )
 
@@ -20,8 +22,8 @@ from edsnlp import Pipeline
 from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.collections import batch_compress_dict, batchify, decompress_dict
 
-BatchInput = typing.TypeVar("BatchInput", bound=Dict[str, Any])
-BatchOutput = typing.TypeVar("BatchOutput", bound=Dict[str, Any])
+BatchInput = TypeVar("BatchInput", bound=Dict[str, Any])
+BatchOutput = TypeVar("BatchOutput", bound=Dict[str, Any])
 Scorer = Callable[[Sequence[Tuple[Doc, Doc]]], Union[float, Dict[str, Any]]]
 
 
@@ -93,10 +95,10 @@ def cached_forward(fn):
     @wraps(fn)
     def wrapped(self: "TorchComponent", batch):
         # Convert args and kwargs to a dictionary matching fn signature
-        cache_id = hash((id(self), "collate", hash_batch(batch)))
-        if not self.nlp or self.nlp._cache is None or cache_id is None:
+        if not self.nlp or self.nlp._cache is None:
             return fn(self, batch)
-        if not self.nlp._cache_is_writeonly and cache_id in self.nlp._cache:
+        cache_id = (id(self), "collate", hash_batch(batch))
+        if cache_id in self.nlp._cache:
             return self.nlp._cache[cache_id]
         res = fn(self, batch)
         self.nlp._cache[cache_id] = res
@@ -106,7 +108,7 @@ def cached_forward(fn):
 
 
 class TorchComponentMeta(ABCMeta):
-    def __new__(meta, name, bases, class_dict):
+    def __new__(mcs, name, bases, class_dict):
         if "preprocess" in class_dict:
             class_dict["preprocess"] = cached_preprocess(class_dict["preprocess"])
         if "preprocess_supervised" in class_dict:
@@ -118,16 +120,15 @@ class TorchComponentMeta(ABCMeta):
         if "forward" in class_dict:
             class_dict["forward"] = cached_forward(class_dict["forward"])
 
-        return super().__new__(meta, name, bases, class_dict)
+        return super().__new__(mcs, name, bases, class_dict)
 
 
 class TorchComponent(
     torch.nn.Module,
     BaseComponent,
-    typing.Generic[BatchOutput, BatchInput],
+    Generic[BatchOutput, BatchInput],
     metaclass=TorchComponentMeta,
 ):
-
     """
     A TorchComponent is a Component that can be trained and inherits `torch.nn.Module`.
     You can use it either as a torch module inside a more complex neural network, or as
@@ -158,6 +159,33 @@ class TorchComponent(
     def device(self):
         return next((p.device for p in self.parameters()), torch.device("cpu"))
 
+    def named_component_children(self):
+        for name, module in self.named_children():
+            if isinstance(module, TorchComponent):
+                yield name, module
+
+    def post_init(self, gold_data: Iterable[Doc], exclude: Set[str]):
+        """
+        This method completes the attributes of the component, by looking at some
+        documents. It is especially useful to build vocabularies or detect the labels
+        of a classification task.
+
+        Parameters
+        ----------
+        gold_data: Iterable[PDFDoc]
+            The documents to use for initialization.
+        exclude: Optional[set]
+            The names of components to exclude from initialization.
+            This argument will be gradually updated  with the names of initialized
+            components
+        """
+        if self.name in exclude:
+            return
+        exclude.add(self.name)
+        for name, component in self.named_component_children():
+            if hasattr(component, "post_init"):
+                component.post_init(gold_data, exclude=exclude)
+
     def preprocess(self, doc: Doc) -> Dict[str, Any]:
         """
         Preprocess the document to extract features that will be used by the
@@ -174,7 +202,10 @@ class TorchComponent(
             Dictionary (optionally nested) containing the features extracted from
             the document.
         """
-        raise NotImplementedError()
+        return {
+            name: component.preprocess(doc)
+            for name, component in self.named_component_children()
+        }
 
     def collate(
         self, batch: Dict[str, Sequence[Any]], device: torch.device
@@ -326,5 +357,21 @@ class TorchComponent(
             Batch size to use when making batched to be process at once
         """
         for batch in batchify(docs, batch_size=batch_size):
-            self.reset_cache()
             yield from self.batch_process(batch)
+
+    def __call__(self, doc: Doc) -> Doc:
+        """
+        Applies the component on a single doc.
+        For multiple documents, prefer batch processing via the
+        [batch_process][edspdf.trainable_pipe.TrainablePipe.batch_process] method.
+        In general, prefer the [Pipeline][edspdf.pipeline.Pipeline] methods
+
+        Parameters
+        ----------
+        doc: PDFDoc
+
+        Returns
+        -------
+        PDFDoc
+        """
+        return self.batch_process([doc])[0]

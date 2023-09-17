@@ -1,10 +1,7 @@
 # ruff: noqa: E501
-import copy
 import functools
-import inspect
 import os
 import shutil
-import time
 import warnings
 from collections import defaultdict
 from contextlib import contextmanager
@@ -19,6 +16,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Type,
     TypeVar,
@@ -27,7 +25,7 @@ from typing import (
 
 import spacy
 import srsly
-from confit import Config
+from confit import Config, validate_arguments
 from confit.errors import ConfitValidationError, patch_errors
 from confit.utils.collections import join_path, split_path
 from confit.utils.xjson import Reference
@@ -36,15 +34,13 @@ from spacy.tokenizer import Tokenizer
 from spacy.tokens import Doc
 from spacy.util import get_lang_class
 from spacy.vocab import Vocab, create_vocab
-from tqdm import tqdm
-from typing_extensions import NotRequired, TypedDict
 
-from edsnlp.core.registry import PIPE_META, CurriedFactory, FactoryMeta
-from edsnlp.utils.collections import (
+from ..accelerators.base import Accelerator, FromDoc, ToDoc
+from ..core.registry import PIPE_META, CurriedFactory, FactoryMeta, registry
+from ..utils.collections import (
     FrozenDict,
     FrozenList,
     batch_compress_dict,
-    batchify,
     decompress_dict,
     multi_tee,
 )
@@ -52,7 +48,7 @@ from edsnlp.utils.collections import (
 if TYPE_CHECKING:
     import torch
 
-    import edsnlp
+import edsnlp
 
 EMPTY_LIST = FrozenList()
 
@@ -64,16 +60,6 @@ class CacheEnum(str, Enum):
 
 
 Pipe = TypeVar("Pipe", bound=Callable[[Doc], Doc])
-
-ScorerType = Union[
-    Callable[[Iterable[Doc]], Dict[str, Any]],
-    Callable[[Iterable[Doc], float], Dict[str, Any]],
-]
-
-
-class ScoringConfig(TypedDict):
-    pipes: NotRequired[Union[str, List[str]]]
-    scorer: ScorerType
 
 
 class Pipeline:
@@ -93,7 +79,6 @@ class Pipeline:
         batch_size: Optional[int] = 4,
         vocab_config: Type[BaseDefaults] = BaseDefaults,
         meta: Dict[str, Any] = None,
-        scorers: Dict[str, Union[ScoringConfig, ScorerType]] = None,
     ):
         """
         Parameters
@@ -138,7 +123,6 @@ class Pipeline:
         self._path: Optional[Path] = None
         self.meta = dict(meta) if meta is not None else {}
         self.lang: str = lang
-        self.scorers = scorers or {}
         self._cache: Optional[Dict] = None
         self._cache_is_writeonly = False
 
@@ -183,10 +167,7 @@ class Pipeline:
         -------
         bool
         """
-        for n, _ in self.pipeline:
-            if n == name:
-                return True
-        return False
+        return any(n == name for n, _ in self.pipeline)
 
     def create_pipe(
         self,
@@ -216,10 +197,10 @@ class Pipeline:
                     "@factory": factory,
                     **(config if config is not None else {}),
                 }
-            ).resolve()
+            ).resolve(registry=registry)
             pipe = curried_factory.instantiate(nlp=self, path=(name,))
         except ConfitValidationError as e:
-            raise e.with_traceback(None) from None
+            raise e.with_traceback(None)
         return pipe
 
     def add_pipe(
@@ -275,7 +256,9 @@ class Pipeline:
             pipe = factory
             if hasattr(pipe, "name"):
                 if name is not None and name != pipe.name:
-                    raise ValueError("The provided does not match name of component. ")
+                    raise ValueError(
+                        "The provided name does not match the name of the component."
+                    )
                 else:
                     name = pipe.name
             else:
@@ -362,6 +345,8 @@ class Pipeline:
 
         with self.cache():
             for name, pipe in self.pipeline:
+                if name in self._disabled:
+                    continue
                 # This is a hack to get around the ambiguity
                 # between the __call__ method of Pytorch modules
                 # and the __call__ methods of spacy components
@@ -372,11 +357,15 @@ class Pipeline:
 
         return doc
 
+    @validate_arguments
     def pipe(
         self,
-        texts: Iterable[Union[str, Doc]],
+        inputs: Any,
         batch_size: Optional[int] = None,
-        component_cfg: Dict[str, Dict[str, Any]] = None,
+        *,
+        accelerator: Optional[Union[str, Accelerator]] = None,
+        to_doc: Optional[ToDoc] = None,
+        from_doc: FromDoc = lambda doc: doc,
     ) -> Iterable[Doc]:
         """
         Process a stream of documents by applying each component successively on
@@ -384,54 +373,56 @@ class Pipeline:
 
         Parameters
         ----------
-        texts: Iterable[Union[str, Doc]]
-            The texts to create the Docs from, or Docs directly.
+        inputs: Iterable[Union[str, Doc]]
+            The inputs to create the Docs from, or Docs directly.
         batch_size: Optional[int]
-            The batch size to use. If not provided, the batch size of the nlp object
-            will be used.
-        component_cfg: Dict[str, Dict[str, Any]]
-            The arguments to pass to the components when processing the documents.
+            The batch size to use. If not provided, the batch size of the pipeline
+            object will be used.
+        accelerator: Optional[Union[str, Accelerator]]
+            The accelerator to use for processing the documents. If not provided,
+            the default accelerator will be used.
+        to_doc: ToDoc
+            The function to use to convert the inputs to PDFDoc objects. By default,
+            the `content` field of the inputs will be used if dict-like objects are
+            provided, otherwise the inputs will be passed directly to the pipeline.
+        from_doc: FromDoc
+            The function to use to convert the PDFDoc objects to outputs. By default,
+            the PDFDoc objects will be returned directly.
 
         Returns
         -------
         Iterable[Doc]
         """
-        import torch
 
-        if component_cfg is None:
-            component_cfg = {}
         if batch_size is None:
             batch_size = self.batch_size
 
-        docs = (self._ensure_doc(text) for text in texts)
+        if accelerator is None:
+            accelerator = {"@accelerator": "simple", "batch_size": batch_size}
+        if isinstance(accelerator, str):
+            accelerator = {"@accelerator": accelerator, "batch_size": batch_size}
+        if isinstance(accelerator, dict):
+            accelerator = Config(accelerator).resolve(registry=registry)
 
-        was_training = {name: proc.training for name, proc in self.torch_components()}
-        for name, proc in self.torch_components():
-            proc.train(False)
+        kwargs = {
+            "inputs": inputs,
+            "nlp": self,
+            "to_doc": to_doc,
+            "from_doc": from_doc,
+        }
+        for k, v in list(kwargs.items()):
+            if v is None:
+                del kwargs[k]
 
-        with torch.no_grad():
-            for batch in batchify(docs, batch_size=batch_size):
-                with self.cache():
-                    for name, pipe in self.pipeline:
-                        kwargs = component_cfg.get(name, {})
-                        if hasattr(pipe, "batch_process"):
-                            batch = pipe.batch_process(batch, **kwargs)
-                        else:
-                            batch = [
-                                pipe(doc, **kwargs) for doc in batch  # type: ignore
-                            ]
-
-                yield from batch
-
-        for name, proc in self.torch_components():
-            proc.train(was_training[name])
+        with self.train(False):
+            return accelerator(**kwargs)
 
     @contextmanager
     def cache(self):
         """
         Enable caching for all (trainable) components in the pipeline
         """
-        was_not_cached = not self._cache
+        was_not_cached = self._cache is None
         if was_not_cached:
             self._cache = {}
         yield
@@ -440,7 +431,7 @@ class Pipeline:
 
     def torch_components(
         self, disable: Sequence[str] = ()
-    ) -> Iterable[Tuple[str, "edsnlp.core.components.TorchComponent"]]:
+    ) -> Iterable[Tuple[str, "edsnlp.core.torch_component.TorchComponent"]]:
         """
         Yields components that are PyTorch modules.
 
@@ -451,13 +442,13 @@ class Pipeline:
 
         Returns
         -------
-        Iterable[Tuple[str, 'edsnlp.core.components.TorchComponent']]
+        Iterable[Tuple[str, 'edsnlp.core.torch_component.TorchComponent']]
         """
         for name, pipe in self.pipeline:
             if name not in disable and hasattr(pipe, "batch_process"):
                 yield name, pipe
 
-    def post_init(self, data: Iterable[Doc]):
+    def post_init(self, data: Iterable[Doc], exclude: Optional[Set] = None):
         """
         Completes the initialization of the pipeline by calling the post_init
         method of all components that have one.
@@ -469,11 +460,14 @@ class Pipeline:
         data: Iterable[Doc]
             The documents to use for initialization.
             Each component will not necessarily see all the data.
+        exclude: Optional[Container]
+            Components to exclude from post initialization on data
         """
+        exclude = set() if exclude is None else set(exclude)
         data = multi_tee(data)
         for name, pipe in self._components:
             if hasattr(pipe, "post_init"):
-                pipe.post_init(data)
+                pipe.post_init(data, exclude=exclude)
 
     @classmethod
     def from_config(
@@ -547,9 +541,6 @@ class Pipeline:
                 name=cls.__module__ + "." + cls.__qualname__,
             )
             e.raw_errors = patch_errors(e.raw_errors, ("components",))
-            raise e  # from None
-        except Exception as e:
-            e._loc = ("components", *getattr(e, "_loc", ()))
             raise e
 
         for name in pipeline:
@@ -583,12 +574,14 @@ class Pipeline:
         yield cls.validate
 
     @classmethod
-    def validate(cls, v):
+    def validate(cls, v, config=None):
         """
         Pydantic validator, used in the `validate_arguments` decorated functions
         """
         if isinstance(v, dict):
             return cls.from_config(v)
+        if not isinstance(v, cls):
+            raise ValueError("input is not a Pipeline or config dict")
         return v
 
     def preprocess(self, doc: Doc, supervision: bool = False):
@@ -612,12 +605,16 @@ class Pipeline:
         with self.cache():
             if supervision:
                 for name, component in self.pipeline:
-                    if hasattr(component, "preprocess_supervised"):
-                        prep[name] = component.preprocess_supervised(doc)
-            else:
-                for name, component in self.pipeline:
-                    if hasattr(component, "preprocess"):
-                        prep[name] = component.preprocess(doc)
+                    prep_comp = (
+                        component.preprocess_supervised(doc)
+                        if hasattr(component, "preprocess_supervised")
+                        else component.preprocess(doc)
+                        if hasattr(component, "preprocess")
+                        else None
+                    )
+                    if prep_comp is not None:
+                        prep[name] = prep_comp
+
         return prep
 
     def preprocess_many(self, docs: Iterable[Doc], compress=True, supervision=True):
@@ -683,22 +680,26 @@ class Pipeline:
     def parameters(self):
         """Returns an iterator over the Pytorch parameters of the components in the
         pipeline"""
+        return (p for n, p in self.named_parameters())
+
+    def named_parameters(self):
+        """Returns an iterator over the Pytorch parameters of the components in the
+        pipeline"""
         seen = set()
         for name, component in self.pipeline:
-            if hasattr(component, "parameters"):
-                for param in component.parameters():
+            if hasattr(component, "named_parameters"):
+                for param_name, param in component.named_parameters():
                     if param in seen:
                         continue
                     seen.add(param)
-                    yield param
+                    yield f"{name}.{param_name}", param
 
-    def to(self, device: Optional["torch.device"] = None):
+    def to(self, device: Union[str, Optional["torch.device"]] = None):  # noqa F821
         """Moves the pipeline to a given device"""
         for name, component in self.torch_components():
             component.to(device)
         return self
 
-    @contextmanager
     def train(self, mode=True):
         """
         Enables training mode on pytorch modules
@@ -709,139 +710,19 @@ class Pipeline:
             Whether to enable training or not
         """
 
+        class context:
+            def __enter__(self):
+                pass
+
+            def __exit__(ctx_self, type, value, traceback):
+                for name, proc in self.torch_components():
+                    proc.train(was_training[name])
+
         was_training = {name: proc.training for name, proc in self.torch_components()}
         for name, proc in self.torch_components():
             proc.train(mode)
-        yield
-        for name, proc in self.torch_components():
-            proc.train(was_training[name])
 
-    def score(
-        self,
-        docs: Sequence[Doc],
-        targets: Optional[Sequence[Doc]] = None,
-        batch_size: int = None,
-    ) -> Dict[str, Any]:
-        """
-        Scores a pipeline against a sequence of annotated documents.
-
-        This poses a few challenges:
-        - for a NER pipeline, if a component adds new entities instead of replacing
-          all entities altogether, documents need to be stripped of gold entities before
-          being passed to the component to avoid counting them.
-        - on the other hand, if a component uses existing entities to make a decision,
-          e.g. span classification, we must preserve the gold entities in documents
-          before evaluating the component.
-        Therefore, we must be able to define what a "clean" document is for each
-        component.
-        Can we do this automatically? If not, we should at least be able to define
-        it manually for each component.
-
-
-        Parameters
-        ----------
-        docs: Sequence[InputT]
-            The documents to apply the pipeline on
-        targets: Optional[Sequence[InputT]]
-            The gold documents to compare the pipeline's output to.
-            If None, the `docs` will be used as targets.
-        batch_size: int
-            The batch size to use for scoring
-
-        Returns
-        -------
-        Dict[str, Any]
-            A dictionary containing the metrics of the pipeline, as well as the speed of
-            the pipeline. Each component that has a scorer will also be scored and its
-            metrics will be included in the returned dictionary under a key named after
-            each component.
-        """
-        import torch
-        from spacy.training import Example
-
-        targets = docs if targets is None else targets
-
-        # Predicting intermediate steps
-        preds = defaultdict(lambda: [])
-        if batch_size is None:
-            batch_size = self.batch_size
-
-        scorers_by_pipes = defaultdict(lambda: {})
-        for scorer_name, scorer in self.scorers.items():
-            if isinstance(scorer, dict) and "scorer" in scorer:
-                pipe_names = scorer.get("pipes", self.pipe_names)
-                actual_scorer = scorer["scorer"]
-                if isinstance(pipe_names, str):
-                    pipe_names = [pipe_names]
-                if pipe_names is None:
-                    pipe_names = self.pipe_names
-            else:
-                pipe_names = self.pipe_names
-                actual_scorer = scorer
-            scorers_by_pipes[tuple(pipe_names)][scorer_name] = actual_scorer
-
-        speed_metric_names = {
-            name
-            for _, scorers_group in scorers_by_pipes.items()
-            for name, scorer in scorers_group.items()
-            if "duration" in inspect.signature(scorer).parameters
-        }
-        pipes_to_duration = {
-            pipe_names: 0.0
-            for pipe_names in scorers_by_pipes.keys()
-            if speed_metric_names & set(scorers_by_pipes[pipe_names])
-        }
-
-        with self.train(False), torch.no_grad():  # type: ignore
-            for gold_batch in batchify(
-                tqdm(docs, "Scoring components"), batch_size=batch_size
-            ):
-                with self.cache():
-                    for pipe_names in scorers_by_pipes.keys():
-                        timed = speed_metric_names & set(scorers_by_pipes[pipe_names])
-
-                        if timed:
-                            self._cache_is_writeonly = True
-
-                        batch = copy.deepcopy(
-                            gold_batch,
-                            memo={
-                                id(self.vocab): self.vocab,
-                                id(self): self,
-                            },
-                        )
-
-                        t0 = time.time()
-
-                        for pipe_name in pipe_names:
-                            pipe = self.get_pipe(pipe_name)
-                            if hasattr(pipe, "batch_process"):
-                                batch = pipe.batch_process(batch)
-                            else:
-                                batch = [pipe(doc) for doc in batch]
-
-                        t1 = time.time()
-
-                        if timed:
-                            pipes_to_duration[pipe_names] += t1 - t0
-                            self._cache_is_writeonly = False
-
-                        preds[pipe_names].extend(batch)
-
-            results: Dict[str, Any] = {}
-            for pipe_names, preds in preds.items():
-                for scorer_name, scorer in scorers_by_pipes[pipe_names].items():
-                    if scorer_name in speed_metric_names:
-                        results[scorer_name] = scorer(
-                            [Example(p, g) for p, g in zip(preds, targets)],
-                            duration=pipes_to_duration[pipe_names],
-                        )
-                    else:
-                        results[scorer_name] = scorer(
-                            [Example(p, g) for p, g in zip(preds, targets)],
-                        )
-
-        return results
+        return context()
 
     def to_disk(
         self, path: Union[str, Path], *, exclude: Sequence[str] = FrozenList()
@@ -860,7 +741,6 @@ class Pipeline:
             The names of the components, or attributes to exclude from the saving
             process.
         """
-        from spacy import util
 
         def save_tensors(path: Path):
             import safetensors.torch
@@ -896,7 +776,6 @@ class Pipeline:
         shutil.rmtree(path, ignore_errors=True)
         os.makedirs(path, exist_ok=True)
 
-        serializers = {}
         if "tokenizer" not in exclude:
             self.tokenizer.to_disk(path / "tokenizer", exclude=["vocab"])
         if "meta" not in exclude:
@@ -914,13 +793,12 @@ class Pipeline:
         if "tensors" not in exclude:
             save_tensors(path / "tensors")
 
-        util.to_disk(path, serializers, exclude)
-
     def from_disk(
         self,
         path: Union[str, Path],
         *,
-        exclude: Iterable[str] = FrozenList(),
+        exclude: Optional[Union[str, Sequence[str]]] = None,
+        device: Optional[Union[str, "torch.device"]] = "cpu",  # noqa F821
     ) -> "Pipeline":
         """
         Load the pipeline from a directory. Components will be updated in-place.
@@ -929,9 +807,11 @@ class Pipeline:
         ----------
         path: Union[str, Path]
             The path to the directory to load the pipeline from
-        exclude: Iterable[str]
+        exclude: Optional[Union[str, Sequence[str]]]
             The names of the components, or attributes to exclude from the loading
             process.
+        device: Optional[Union[str, "torch.device"]]
+            Device to use when loading the tensors
         """
 
         def deserialize_meta(path: Path) -> None:
@@ -957,7 +837,9 @@ class Pipeline:
                     # are expected to be shared
                     pipe = torch_components[pipe_names[0]]
                     tensor_dict = {}
-                    for keys, tensor in safetensors.torch.load_file(file_name).items():
+                    for keys, tensor in safetensors.torch.load_file(
+                        file_name, device=device
+                    ).items():
                         split_keys = [split_path(key) for key in keys.split("+")]
                         key = next(key for key in split_keys if key[0] == pipe_names[0])
                         tensor_dict[join_path(key[1:])] = tensor
@@ -974,6 +856,14 @@ class Pipeline:
                         )
                     pipe.load_state_dict(tensor_dict, strict=False)
 
+        exclude = (
+            set()
+            if exclude is None
+            else {exclude}
+            if isinstance(exclude, str)
+            else set(exclude)
+        )
+
         path = Path(path) if isinstance(path, str) else path
         if "meta" not in exclude:
             deserialize_meta(path / "meta.json")
@@ -983,9 +873,10 @@ class Pipeline:
             self.tokenizer.from_disk(path / "tokenizer", exclude=["vocab"])
         for name, proc in self._components:
             if hasattr(proc, "from_disk") and name not in exclude:
-                proc.from_disk(path / name, exclude=["vocab"])
+                proc.from_disk(path / name, exclude=exclude)
             # Convert to list here in case exclude is (default) tuple
-            exclude = list(exclude) + ["vocab"]
+            exclude.add(name)
+
         if "tensors" not in exclude:
             deserialize_tensors(path / "tensors")
 
@@ -1015,7 +906,6 @@ class Pipeline:
         config["components"] = config["nlp"].pop("components")
         return config.serialize()
 
-    @contextmanager
     def select_pipes(
         self,
         *,
@@ -1032,24 +922,42 @@ class Pipeline:
         enable: Optional[Union[str, Iterable[str]]]
             The name of the component to enable, or a list of names.
         """
+
+        class context:
+            def __enter__(self):
+                pass
+
+            def __exit__(ctx_self, type, value, traceback):
+                self._disabled = disabled_before
+
         if enable is None and disable is None:
             raise ValueError("Expected either `enable` or `disable`")
-        if isinstance(disable, str):
-            disable = [disable]
+        disable = [disable] if isinstance(disable, str) else disable
+        pipe_names = set(self.pipe_names)
         if enable is not None:
-            if isinstance(enable, str):
-                enable = [enable]
+            enable = [enable] if isinstance(enable, str) else enable
+            if set(enable) - pipe_names:
+                raise ValueError(
+                    "Enabled pipes {} not found in pipeline.".format(
+                        sorted(set(enable) - pipe_names)
+                    )
+                )
             to_disable = [pipe for pipe in self.pipe_names if pipe not in enable]
             # raise an error if the enable and disable keywords are not consistent
             if disable is not None and disable != to_disable:
                 raise ValueError("Inconsistent values for `enable` and `disable`")
             disable = to_disable
 
-        disabled_before = self._disabled
+        if set(disable) - pipe_names:
+            raise ValueError(
+                "Disabled pipes {} not found in pipeline.".format(
+                    sorted(set(disable) - pipe_names)
+                )
+            )
 
+        disabled_before = self._disabled
         self._disabled = disable
-        yield self
-        self._disabled = disabled_before
+        return context()
 
 
 def blank(
@@ -1057,11 +965,15 @@ def blank(
     config: Union[Dict[str, Any], Config] = {},
 ):
     """
-    Load an empty Pipeline.
-    You can then add components
+    Loads an empty EDS-NLP Pipeline, similarly to `spacy.blank`. In addition to
+    standard components, this pipeline supports EDS-NLP trainable torch components.
 
+    Examples
+    --------
     ```python
-    nlp = spacy.blank("eds")
+    import edsnlp
+
+    nlp = edsnlp.blank("eds")
     nlp.add_pipe("eds.covid")
     ```
 
@@ -1092,8 +1004,23 @@ def blank(
 
 def load(
     config: Union[Path, str, Config],
-    exclude: Union[str, Iterable[str]] = EMPTY_LIST,
+    exclude: Optional[Union[str, Iterable[str]]] = None,
 ):
+    """
+    Load a pipeline from a config file or a directory.
+
+    Parameters
+    ----------
+    config: Union[Path, str, Config]
+        The config to use for the pipeline, or the path to a config file or a directory.
+    exclude: Optional[Union[str, Iterable[str]]]
+        The names of the components, or attributes to exclude from the loading
+        process. :warning: The `exclude` argument will be mutated in place.
+
+    Returns
+    -------
+    Pipeline
+    """
     error = "The load function expects a Config or a path to a config file"
     if isinstance(config, (Path, str)):
         path = Path(config)

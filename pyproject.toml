@@ -167,6 +167,7 @@ where = ["."]
 "charlson"               = "edsnlp.pipelines.ner.scores.charlson.factory:create_component"
 "consultation_dates"     = "edsnlp.pipelines.misc.consultation_dates.factory:create_component"
 "contextual-matcher"     = "edsnlp.pipelines.core.contextual_matcher.factory:create_component"
+"eds.contextual-matcher" = "edsnlp.pipelines.core.contextual_matcher.factory:create_component"
 "dates"                  = "edsnlp.pipelines.misc.dates.factory:create_component"
 "eds.AIDS"               = "edsnlp.pipelines.ner.disorders.aids.factory:create_component"
 "eds.CKD"                = "edsnlp.pipelines.ner.disorders.ckd.factory:create_component"

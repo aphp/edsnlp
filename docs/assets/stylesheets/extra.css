@@ -36,7 +36,6 @@
 }
 
 
-
 :root {
     --md-code-font: Consolas, Roboto Mono, Roboto;
     --md-code-bg-color: rgba(175, 184, 193, .2);
@@ -45,11 +44,11 @@
 }
 
 
-:root,[data-md-color-scheme=default] {
+:root, [data-md-color-scheme=default] {
     --md-main-bg: #eef4f8;
 }
 
-:root,[data-md-color-scheme=slate] {
+:root, [data-md-color-scheme=slate] {
     --md-main-bg: hsl(232deg 15% 25%);;
 }
 
@@ -82,7 +81,7 @@ body, input {
     font-size: 0.95em;
 }
 
-.md-typeset pre>code, .termy > [data-termynal], .highlighttable .linenos {
+.md-typeset pre > code, .termy > [data-termynal], .highlighttable .linenos {
     font-size: .75rem;
 }
 
@@ -92,7 +91,7 @@ body, input {
     padding: 45px 45px 25px;
 }
 
-.termy > [data-termynal]  {
+.termy > [data-termynal] {
 
 }
 
@@ -106,18 +105,22 @@ body, input {
     padding-bottom: 0.3em;
 }
 
-.md-typeset pre>code, .highlight span.filename {
+.md-typeset pre > code, .highlight span.filename {
     border-top-left-radius: 5px;
     border-top-right-radius: 5px;
 }
 
-.md-typeset pre>code {
+.md-typeset pre > code {
     border-bottom-left-radius: 5px;
     border-bottom-right-radius: 5px;
 }
 
 .md-main__inner {
     margin-top: 0;
+}
+
+.md-typeset__table td > a {
+    white-space: nowrap;
 }
 
 @media screen and (min-width: 76.1875em) {
@@ -134,7 +137,7 @@ body, input {
 }
 
 @media screen and (min-width: 76.25em) {
-    .md-nav--primary .md-nav__title, .md-nav--secondary .md-nav__title, .md-nav--lifted>.md-nav__list>.md-nav__item--active>.md-nav__link {
+    .md-nav--primary .md-nav__title, .md-nav--secondary .md-nav__title, .md-nav--lifted > .md-nav__list > .md-nav__item--active > .md-nav__link {
         background: var(--md-main-bg) !important;
         box-shadow: 0 0 0.4rem 0.4rem var(--md-main-bg) !important;
     }
@@ -150,4 +153,8 @@ body, input {
 
 .md-content__inner {
     margin-top: 1.5rem;
+}
+
+.doc td > code {
+    word-break: normal;
 }

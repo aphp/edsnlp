@@ -1,12 +1,12 @@
 import inspect
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Callable, Dict, Iterable, Optional, Sequence
 from weakref import WeakKeyDictionary
 
 import catalogue
 import spacy
 from confit import Config, Registry, RegistryCollection, set_default_registry
-from confit.errors import ConfitValidationError, ErrorWrapper, patch_errors
+from confit.errors import ConfitValidationError, patch_errors
 from spacy.pipe_analysis import validate_attrs
 
 import edsnlp
@@ -18,7 +18,7 @@ PIPE_META = WeakKeyDictionary()
 def accepted_arguments(
     func: Callable,
     args: Sequence[str],
-) -> List[str]:
+) -> Sequence[str]:
     """
     Checks that a function accepts a list of keyword arguments
 
@@ -33,8 +33,6 @@ def accepted_arguments(
     -------
     List[str]
     """
-    if isinstance(args, str):
-        args = [args]
     sig = inspect.signature(func)
     has_kwargs = any(
         param.kind == param.VAR_KEYWORD for param in sig.parameters.values()
@@ -97,9 +95,9 @@ class CurriedFactory:
                     model=e.model,
                     name=obj.factory.__module__ + "." + obj.factory.__qualname__,
                 )  # .with_traceback(None)
-            except Exception as e:
-                obj.error = e
-                raise ConfitValidationError([ErrorWrapper(e, path)])
+            # except Exception as e:
+            #     obj.error = e
+            #     raise ConfitValidationError([ErrorWrapper(e, path)])
             return obj.instantiated
         elif isinstance(obj, dict):
             instantiated = {}
@@ -109,14 +107,12 @@ class CurriedFactory:
                     instantiated[key] = CurriedFactory.instantiate(
                         value, nlp, (*path, key)
                     )
-                except KeyboardInterrupt:
-                    raise
                 except ConfitValidationError as e:
                     errors.extend(e.raw_errors)
             if errors:
                 raise ConfitValidationError(errors)
             return instantiated
-        elif isinstance(obj, tuple):
+        elif isinstance(obj, (tuple, list)):
             instantiated = []
             errors = []
             for i, value in enumerate(obj):
@@ -124,30 +120,16 @@ class CurriedFactory:
                     instantiated.append(
                         CurriedFactory.instantiate(value, nlp, (*path, str(i)))
                     )
-                except KeyboardInterrupt:
-                    raise
-                except ConfitValidationError as e:
+                except ConfitValidationError as e:  # pragma: no cover
                     errors.append(e.raw_errors)
             if errors:
                 raise ConfitValidationError(errors)
-            return tuple(instantiated)
-        elif isinstance(obj, list):
-            instantiated = []
-            errors = []
-            for i, value in enumerate(obj):
-                try:
-                    instantiated.append(
-                        CurriedFactory.instantiate(value, nlp, (*path, str(i)))
-                    )
-                except KeyboardInterrupt:
-                    raise
-                except ConfitValidationError as e:
-                    errors.append(e.raw_errors)
-            if errors:
-                raise ConfitValidationError(errors)
-            return instantiated
+            return type(obj)(instantiated)
         else:
             return obj
+
+
+glob = []
 
 
 class FactoryRegistry(Registry):
@@ -193,16 +175,14 @@ class FactoryRegistry(Registry):
         if func is not None:
             return func
 
-        current_namespace = " -> ".join(self.namespace)
-        available_str = ", ".join(self.get_available()) or "none"
         raise catalogue.RegistryError(
             (
                 "Can't find '{name}' in registry {current_namespace}. "
                 "Available names: {available_str}"
             ).format(
                 name=name,
-                current_namespace=current_namespace,
-                available_str=available_str,
+                current_namespace=" -> ".join(self.namespace),
+                available_str=", ".join(self.get_available()) or "none",
             )
         )
 
@@ -270,6 +250,15 @@ class FactoryRegistry(Registry):
                 PIPE_META[instantiated] = meta
                 return instantiated
 
+            annotations = (
+                fn.__annotations__
+                if not isinstance(fn, type)
+                else fn.__init__.__annotations__
+            )
+            nlp_was_spacy_language = False
+            if "nlp" in annotations and annotations["nlp"] is spacy.Language:
+                nlp_was_spacy_language = True
+                annotations["nlp"] = edsnlp.core.PipelineProtocol
             registered_fn = Registry.register(
                 self,
                 name=name,
@@ -279,6 +268,8 @@ class FactoryRegistry(Registry):
                 invoker=invoke,
                 deprecated=deprecated,
             )
+            if nlp_was_spacy_language:
+                annotations["nlp"] = spacy.Language
 
             for spacy_pipe_name in (name, *deprecated):
                 spacy.Language.factory(
@@ -297,11 +288,15 @@ class FactoryRegistry(Registry):
 
 
 class registry(RegistryCollection):
-    factory = factories = FactoryRegistry(("spacy", "factories"), entry_points=True)
+    factory = factories = FactoryRegistry(
+        ("spacy", "factories"),
+        entry_points=True,
+    )
     misc = Registry(("spacy", "misc"), entry_points=True)
     languages = Registry(("spacy", "languages"), entry_points=True)
     tokenizers = Registry(("spacy", "tokenizers"), entry_points=True)
     scorers = Registry(("spacy", "scorers"), entry_points=True)
+    accelerator = Registry(("edsnlp", "accelerator"), entry_points=True)
 
 
 set_default_registry(registry)

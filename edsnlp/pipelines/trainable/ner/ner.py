@@ -3,18 +3,19 @@ from __future__ import annotations
 import warnings
 from collections import defaultdict
 from enum import Enum
-from typing import Callable, Iterable, List, Optional, Sequence, Union
+from typing import Callable, Iterable, List, Optional, Sequence, Set, Union
 
 import torch
 from spacy.tokens import Doc, Span
 from typing_extensions import Literal, NotRequired, TypedDict
 
 from edsnlp import Pipeline
-from edsnlp.core.component import TorchComponent
+from edsnlp.core.torch_component import TorchComponent
 from edsnlp.pipelines.base import (
     BaseNERComponent,
     SpanGetterArg,
     SpanGetterMapping,
+    SpanSetter,
     SpanSetterArg,
     get_spans,
 )
@@ -23,12 +24,15 @@ from edsnlp.pipelines.trainable.embeddings.typing import (
     WordEmbeddingBatchOutput,
 )
 from edsnlp.pipelines.trainable.layers.crf import MultiLabelBIOULDecoder
+from edsnlp.utils.torch import make_windows
 
 NERBatchInput = TypedDict(
     "NERBatchInput",
     {
         "embedding": BatchInput,
         "targets": NotRequired[torch.Tensor],
+        "window_indices": NotRequired[torch.Tensor],
+        "window_indexer": NotRequired[torch.Tensor],
     },
 )
 NERBatchOutput = TypedDict(
@@ -76,6 +80,8 @@ class TrainableNER(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERCompone
         The CRF mode to use: independent, joint or marginal
     """
 
+    span_setter: SpanSetter
+
     def __init__(
         self,
         nlp: Pipeline = None,
@@ -87,6 +93,8 @@ class TrainableNER(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERCompone
         span_setter: Optional[SpanSetterArg] = None,
         infer_span_setter: Optional[bool] = None,
         mode: Literal["independent", "joint", "marginal"],
+        window: int = 20,
+        stride: Optional[int] = None,
     ):
         if (
             isinstance(target_span_getter, dict) and "labels" in target_span_getter
@@ -117,28 +125,40 @@ class TrainableNER(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERCompone
             learnable_transitions=False,
         )
         self.mode = mode
-
-        if isinstance(target_span_getter, list):
-            target_span_getter = {"span_groups": target_span_getter}
+        if stride is None:
+            stride = window - 2
+        if window < stride:
+            raise ValueError(
+                "The window size must be greater than or equal to the stride."
+            )
+        if window == 1 and self.mode != "independent":
+            warnings.warn(
+                "The TrainableNerCrf module will be using a window size equals to 1"
+                "(i.e. assumes tags are independent) while trained in non "
+                "`independent` mode. This may lead to degraded performance."
+            )
+        self.window = window
+        self.stride = stride if window > 0 else 0
 
         self.target_span_getter: Union[
             SpanGetterMapping,
             Callable[[Doc], Iterable[Span]],
         ] = target_span_getter
 
-    def post_init(self, docs: Iterable[Doc]):
+    def post_init(self, docs: Iterable[Doc], exclude: Set[str]):
         """
         Update the labels based on the data and the span getter,
         and fills in the to_ents and to_span_groups if necessary
 
         Parameters
         ----------
-        docs
-
-        Returns
-        -------
-
+        docs: Iterable[Doc]
+            The documents to use to infer the labels
+        exclude: Set[str]
+            Components to exclude from the post initialization
         """
+        super().post_init(docs, exclude)
+
         if self.labels is not None and not self.infer_span_setter:
             return
 
@@ -153,40 +173,42 @@ class TrainableNER(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERCompone
             else:
                 for key, span_filter in self.target_span_getter.items():
                     candidates = doc.spans.get(key, ()) if key != "ents" else doc.ents
-                    if span_filter is True:
-                        filtered_candidates = candidates
-                    else:
-                        filtered_candidates = [
+                    filtered_candidates = (
+                        candidates
+                        if span_filter is True
+                        else [
                             span
                             for span in candidates
                             if span.label_ in span_filter
                             and (self.labels is None or span.label_ in self.labels)
                         ]
+                    )
                     for span in filtered_candidates:
                         inferred_labels.add(span.label_)
                         span_setter[key].append(span.label_)
         if self.labels is not None:
-            assert inferred_labels <= set(self.labels), (
-                "Some inferred labels are not present in the labels "
-                f"passed to the component: {inferred_labels - set(self.labels)}"
-            )
-            if inferred_labels < set(self.labels):
+            if inferred_labels != set(self.labels):
                 warnings.warn(
-                    "Some labels passed to the trainable NER component are not "
-                    "present in the inferred labels list: "
-                    f"{set(self.labels) - inferred_labels}"
+                    "The labels inferred from the data are different from the "
+                    "labels passed to the component. Differing labels are "
+                    f"{sorted(set(self.labels) ^ inferred_labels)}",
+                    UserWarning,
                 )
         else:
             self.update_labels(sorted(inferred_labels))
 
-        self.span_setter = {
-            **self.span_setter,
-            **{
-                key: value
-                for key, value in span_setter.items()
-                if key not in self.span_setter
-            },
-        }
+        self.span_setter = (
+            {
+                **self.span_setter,
+                **{
+                    key: value
+                    for key, value in span_setter.items()
+                    if key not in self.span_setter
+                },
+            }
+            if self.span_setter is None
+            else self.span_setter
+        )
 
         if not self.labels:
             raise ValueError(
@@ -230,6 +252,13 @@ class TrainableNER(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERCompone
         self.cfg["labels"] = labels
 
     def preprocess(self, doc):
+        if self.labels is None:
+            raise ValueError(
+                "The component was not initialized with any labels. Please "
+                "initialize it with the `labels` parameter, pass a list of "
+                "labels to the `update_labels` method, or call the `post_init` "
+                "method with a list of documents."
+            )
         return {
             "embedding": self.embedding.preprocess(doc),
             "length": len(doc),
@@ -255,8 +284,9 @@ class TrainableNER(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERCompone
         collated: NERBatchInput = {
             "embedding": self.embedding.collate(preps["embedding"], device=device),
         }
+        mask = collated["embedding"]["mask"]
+        max_len = mask.sum(-1).max().item()
         if "targets" in preps:
-            max_len = max(map(len, preps["targets"]), default=0)
             targets = torch.as_tensor(
                 [
                     row + [[-1] * len(self.labels)] * (max_len - len(row))
@@ -268,14 +298,25 @@ class TrainableNER(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERCompone
             # targets = (targets.unsqueeze(-1) == torch.arange(5)).to(device)
             # mask = (targets[:, 0] != -1).to(device)
             collated["targets"] = targets
+        else:
+            if self.window > 0:
+                win_indices, win_indexer = make_windows(
+                    mask,
+                    self.window,
+                    self.stride,
+                )
+                collated["window_indices"] = win_indices
+                collated["window_indexer"] = win_indexer
         return collated
 
     def forward(self, batch: NERBatchInput) -> NERBatchOutput:
-        encoded = self.embedding(batch["embedding"])
+        encoded = self.embedding.module_forward(batch["embedding"])
         embeddings = encoded["embeddings"]
         mask = encoded["mask"]
         # batch words (labels tags) -> batch words labels tags
-        scores = self.linear(embeddings).view((*embeddings.shape[:-1], -1, 5))
+        num_samples, num_words = embeddings.shape[:-1]
+        num_labels = len(self.labels)
+        scores = self.linear(embeddings).view((num_samples, num_words, num_labels, 5))
         loss = tags = None
         if "targets" in batch:
             if self.mode == "independent":
@@ -302,9 +343,22 @@ class TrainableNER(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERCompone
                     reduction="sum",
                 )
         else:
-            tags = self.crf.decode(
-                scores, mask
-            )  # tags = scores.argmax(-1).masked_fill(~mask.unsqueeze(-1), 0)
+            if self.window == 1:
+                tags = scores.argmax(-1).masked_fill(~mask.unsqueeze(-1), 0)
+            elif self.window <= 0:
+                tags = self.crf.decode(scores, mask)
+            else:
+                win_scores = scores.view(num_samples * num_words, num_labels, 5)[
+                    batch["window_indices"]
+                ]
+                win_tags = self.crf.decode(win_scores, batch["window_indices"] != -1)
+                tags = win_tags.view(win_tags.shape[0] * win_tags.shape[1], num_labels)[
+                    batch["window_indexer"]
+                ]
+                tags = tags.view(num_samples, num_words, num_labels)
+                tags = tags.masked_fill(~mask.unsqueeze(-1), 0)
+
+            # tags = scores.argmax(-1).masked_fill(~mask.unsqueeze(-1), 0)
         return {
             "loss": loss,
             "tags": tags,

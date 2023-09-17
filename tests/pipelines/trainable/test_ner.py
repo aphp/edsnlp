@@ -26,6 +26,7 @@ def test_ner(ner_mode):
             embedding=nlp.get_pipe("transformer"),
             mode=ner_mode,
             target_span_getter=["ents", "ner-preds"],
+            window=1 if ner_mode == "independent" else 5,
         ),
     )
     ner = nlp.get_pipe("ner")

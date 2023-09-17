@@ -37,6 +37,10 @@ theme:
 nav:
   - index.md
   - Demo: https://aphp.github.io/edsnlp/demo" target="_blank
+  - Concepts:
+      - concepts/pipeline.md
+      - concepts/torch-component.md
+      - concepts/inference.md
   - Tutorials:
       - Overview: tutorials/overview.md
       - tutorials/spacy101.md

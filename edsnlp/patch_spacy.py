@@ -52,10 +52,11 @@ def factory(
     if not isinstance(name, str):
         raise ValueError(Errors.E963.format(decorator="factory"))
     if not isinstance(default_config, dict):
-        err = Errors.E962.format(
-            style="default config", name=name, cfg_type=type(default_config)
+        raise ValueError(
+            Errors.E962.format(
+                style="default config", name=name, cfg_type=type(default_config)
+            )
         )
-        raise ValueError(err)
 
     def add_factory(factory_func: Callable) -> Callable:
         internal_name = cls.get_factory_name(name)
@@ -66,10 +67,11 @@ def factory(
             # if module is reloaded.
             existing_func = registry.factories.get(internal_name)
             if not util.is_same_func(factory_func, existing_func):
-                err = Errors.E004.format(
-                    name=name, func=existing_func, new_func=factory_func
+                raise ValueError(
+                    Errors.E004.format(
+                        name=name, func=existing_func, new_func=factory_func
+                    )
                 )
-                raise ValueError(err)
 
         util.get_arg_names(factory_func)
         if len(accepted_arguments(factory_func, ["nlp", "name"])) < 2:
@@ -156,9 +158,8 @@ def __init__(
     if vocab is True:
         vectors_name = meta.get("vectors", {}).get("name")
         vocab = create_vocab(self.lang, self.Defaults, vectors_name=vectors_name)
-    else:
-        if (self.lang and vocab.lang) and (self.lang != vocab.lang):
-            raise ValueError(Errors.E150.format(nlp=self.lang, vocab=vocab.lang))
+    if (self.lang and vocab.lang) and (self.lang != vocab.lang):
+        raise ValueError(Errors.E150.format(nlp=self.lang, vocab=vocab.lang))
     self.vocab: Vocab = vocab
     if self.lang is None:
         self.lang = self.vocab.lang
@@ -166,9 +167,12 @@ def __init__(
     self._disabled: Set[str] = set()
     self.max_length = max_length
     # Create the default tokenizer from the default config
-    if not create_tokenizer:
-        tokenizer_cfg = {"tokenizer": self._config["nlp"]["tokenizer"]}
-        create_tokenizer = registry.resolve(tokenizer_cfg)["tokenizer"]
+    create_tokenizer = (
+        create_tokenizer
+        or registry.resolve({"tokenizer": self._config["nlp"]["tokenizer"]})[
+            "tokenizer"
+        ]
+    )
     self.tokenizer = create_tokenizer(self)
     self.batch_size = batch_size
     self.default_error_handler = raise_error

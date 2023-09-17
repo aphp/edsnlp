@@ -1,17 +1,16 @@
 import math
 import random
 import shutil
+import time
 from collections import defaultdict
 from itertools import chain, count, repeat
 from pathlib import Path
 from typing import Callable, Iterable, List, Optional
 
-import torch
 from confit import Config
 from confit.registry import validate_arguments
 from confit.utils.random import set_seed
 from spacy.tokens import Doc, Span
-from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 import edsnlp
@@ -20,6 +19,7 @@ from edsnlp.core.pipeline import Pipeline
 from edsnlp.core.registry import registry
 from edsnlp.optimization import LinearSchedule, ScheduledOptimizer
 from edsnlp.pipelines.trainable.ner.ner import TrainableNER
+from edsnlp.scorers import Scorer
 from edsnlp.utils.collections import batchify
 from edsnlp.utils.filter import filter_spans
 
@@ -113,6 +113,30 @@ def brat_dataset(path, limit: Optional[int] = None):
 
 
 @validate_arguments
+class TestScorer:
+    def __init__(self, **scorers: Scorer):
+        self.scorers = scorers
+
+    def __call__(self, nlp, docs):
+        clean_docs = [d.copy() for d in docs]
+        for d in clean_docs:
+            d.ents = []
+            d.spans.clear()
+        t0 = time.time()
+        preds = list(nlp.pipe(clean_docs))
+        duration = time.time() - t0
+        scores = {
+            scorer_name: scorer(docs, preds)
+            for scorer_name, scorer in self.scorers.items()
+        }
+        scores["speed"] = dict(
+            wps=sum(len(d) for d in docs) / duration,
+            dps=len(docs) / duration,
+        )
+        return scores
+
+
+@validate_arguments
 def train(
     output_path: Path,
     nlp: Pipeline,
@@ -124,7 +148,10 @@ def train(
     lr: float = 8e-5,
     validation_interval: int = 10,
     device: str = "cpu",
+    scorer: TestScorer = TestScorer(),
 ):
+    import torch
+
     device = torch.device(device)
     set_seed(seed)
 
@@ -138,7 +165,7 @@ def train(
 
     # Preprocessing the training dataset into a dataloader
     preprocessed = list(nlp.preprocess_many(train_docs, supervision=True))
-    dataloader = DataLoader(
+    dataloader = torch.utils.data.DataLoader(
         preprocessed,
         batch_sampler=LengthSortedBatchSampler(preprocessed, batch_size),
         collate_fn=nlp.collate,
@@ -189,7 +216,7 @@ def train(
             print(acc_loss / max(acc_steps, 1))
             acc_loss = 0
             acc_steps = 0
-            last_scores = nlp.score(val_docs)
+            last_scores = scorer(nlp, val_docs)
             print(last_scores, "lr", optimizer.param_groups[0]["lr"])
         if step == max_steps:
             break

@@ -202,6 +202,10 @@ where = ["."]
 "tables"                 = "edsnlp.pipelines.misc.tables.factory:create_component"
 "terminology"            = "edsnlp.pipelines.core.terminology.factory:create_component"
 
+[project.entry-points."spacy_scorers"]
+"eds.ner_exact_scorer"   = "edsnlp.scorers.ner:create_ner_exact_scorer"
+"eds.ner_token_scorer"   = "edsnlp.scorers.ner:create_ner_token_scorer"
+
 [project.entry-points."edsnlp_accelerator"]
 "simple" = "edsnlp.accelerators.simple:SimpleAccelerator"
 "multiprocessing" = "edsnlp.accelerators.multiprocessing:MultiprocessingAccelerator"

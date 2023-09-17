@@ -306,12 +306,17 @@ omit-covered-files = false
 
 
 [tool.coverage.report]
+omit = [
+    "tests/*",
+]
 exclude_lines = [
     "def __repr__",
     "if __name__ == .__main__.:",
     "@overload",
     "pragma: no cover",
     "raise .*Error",
+    "raise .*Exception",
+    "warn\\(",
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
     "class .*\\bProtocol\\):",

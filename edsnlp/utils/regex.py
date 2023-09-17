@@ -59,7 +59,4 @@ def compile_regex(reg: str, flags: re.RegexFlag):
     try:
         return re.compile(reg, flags=flags)
     except re.error:
-        try:
-            return regex.compile(reg, flags=flags)
-        except regex.error:
-            raise Exception("Could not compile: {}".format(repr(reg)))
+        return regex.compile(reg, flags=flags)

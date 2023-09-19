@@ -79,6 +79,8 @@ class DisorderMatcher(ContextualMatcher):
 
         if not Span.has_extension("status"):
             Span.set_extension("status", default=1)
+        if not Span.has_extension("negation"):
+            Span.set_extension("negation", default=None)
         if not Span.has_extension("detailed_status"):
             Span.set_extension("detailed_status", default="PRESENT")
         if not Span.has_extension("detailled_status"):

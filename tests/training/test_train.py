@@ -18,7 +18,7 @@ from edsnlp.connectors.brat import BratConnector
 from edsnlp.core.pipeline import Pipeline
 from edsnlp.core.registry import registry
 from edsnlp.optimization import LinearSchedule, ScheduledOptimizer
-from edsnlp.pipelines.trainable.ner.ner import TrainableNER
+from edsnlp.pipelines.trainable.ner_crf.ner_crf import TrainableNerCrf
 from edsnlp.scorers import Scorer
 from edsnlp.utils.collections import batchify
 from edsnlp.utils.filter import filter_spans
@@ -72,7 +72,7 @@ def brat_dataset(path, limit: Optional[int] = None):
         sentencizer = nlp.get_pipe("sentencizer")
         docs = [sentencizer(doc) for doc in docs]
 
-        ner: TrainableNER = nlp.get_pipe("ner")
+        ner: TrainableNerCrf = nlp.get_pipe("ner")
 
         # Annotate entities from the raw data
         for doc, raw in zip(docs, raw_data):

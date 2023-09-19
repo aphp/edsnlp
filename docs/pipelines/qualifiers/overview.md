@@ -48,7 +48,7 @@ There is an obvious problem: none of these examples should lead us to include th
 
 To curb this issue, EDS-NLP proposes rule-based pipelines that qualify entities to help the user make an informed decision about which patient should be included in a real-world data cohort.
 
-## Which spans are qualified ? {: #edsnlp.pipelines.base.SpanGetterArg }
+## Where do we get our spans ? {: #edsnlp.pipelines.base.SpanGetterArg }
 
 A component get entities from a document by looking up `doc.ents` or `doc.spans[group]`. This behavior is set by the `span_getter` argument in components that support it.
 

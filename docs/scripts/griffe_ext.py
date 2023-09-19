@@ -67,12 +67,16 @@ class EDSNLPDocstrings(Extension):
                 logger.debug(f"Object {obj.path} does not have a __doc__ attribute")
                 return
 
-            spec = inspect.getfullargspec(runtime_obj)
+            callee = (
+                runtime_obj.__init__ if hasattr(runtime_obj, "__init__")
+                else runtime_obj
+            )
+            spec = inspect.getfullargspec(callee)
             func_defaults = dict(
-                zip(spec.args[-len(spec.defaults) :], spec.defaults)
-                if spec.defaults
+                zip(spec.args[-len(callee.__defaults__) :], callee.__defaults__)
+                if callee.__defaults__
                 else (),
-                **(spec.kwonlydefaults or {}),
+                **(callee.__kwdefaults__ or {}),
             )
             defaults = {**func_defaults, **default_config}
             self.FACT_MEM[obj.path] = (node, obj, defaults)

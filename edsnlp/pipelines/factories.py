@@ -68,5 +68,5 @@ from .qualifiers.history.factory import create_component as history
 from .qualifiers.hypothesis.factory import create_component as hypothesis
 from .qualifiers.negation.factory import create_component as negation
 from .qualifiers.reported_speech.factory import create_component as rspeech
-from .trainable.ner.factory import create_component as nested_ner
+from .trainable.ner_crf.factory import create_component as ner_crf
 from .trainable.span_qualifier.factory import create_component as span_qualifier

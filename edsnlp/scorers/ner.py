@@ -1,10 +1,10 @@
 from typing import Any, Dict, Iterable
 
-import spacy.training
 from spacy.training import Example
 
 from edsnlp import registry
 from edsnlp.pipelines.base import SpanGetter, SpanGetterArg, get_spans
+from edsnlp.scorers import make_examples
 
 
 def ner_exact_scorer(
@@ -114,14 +114,3 @@ def create_ner_token_scorer(
     span_getter: SpanGetterArg,
 ):
     return lambda *args: ner_token_scorer(make_examples(*args), span_getter)
-
-
-def make_examples(*args):
-    if len(args) == 2:
-        return (
-            [spacy.training.Example(reference=g, predicted=p) for g, p in zip(*args)]
-            if len(args) == 2
-            else args[0]
-        )
-    else:
-        raise ValueError("Expected either a list of examples or two lists of spans")

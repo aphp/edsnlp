@@ -1,17 +1,16 @@
-from typing import Any, Dict, Optional, Sequence
+from typing import Optional, Sequence
 
 import torch
 from typing_extensions import TypedDict
 
 from edsnlp import registry
 from edsnlp.core.torch_component import BatchInput, TorchComponent
+from edsnlp.pipelines.trainable.embeddings.typing import WordEmbeddingBatchOutput
+from edsnlp.pipelines.trainable.layers.text_cnn import NormalizationPlacement, TextCnn
 from edsnlp.utils.torch import ActivationFunction
 
-from ..layers.text_cnn import NormalizationPlacement, TextCNN
-from .typing import WordEmbeddingBatchOutput
-
-TextCNNBatchInput = TypedDict(
-    "TextCNNBatchInput",
+TextCnnBatchInput = TypedDict(
+    "TextCnnBatchInput",
     {
         "embeddings": torch.Tensor,
         "mask": torch.Tensor,
@@ -20,7 +19,7 @@ TextCNNBatchInput = TypedDict(
 
 
 @registry.factory.register("eds.text_cnn")
-class TextCNNEncoder(TorchComponent[WordEmbeddingBatchOutput, BatchInput]):
+class TextCnnEncoder(TorchComponent[WordEmbeddingBatchOutput, BatchInput]):
     def __init__(
         self,
         nlp,
@@ -60,7 +59,7 @@ class TextCNNEncoder(TorchComponent[WordEmbeddingBatchOutput, BatchInput]):
         self.name = name
         self.embedding = embedding
         self.output_size = output_size or embedding.output_size
-        self.module = TextCNN(
+        self.module = TextCnn(
             input_size=self.embedding.output_size,
             output_size=self.output_size,
             out_channels=out_channels,
@@ -70,13 +69,9 @@ class TextCNNEncoder(TorchComponent[WordEmbeddingBatchOutput, BatchInput]):
             normalize=normalize,
         )
 
-    def preprocess(self, doc: Dict[str, Any]) -> Dict[str, Any]:
-        return self.embedding.preprocess(doc)
-
-    def collate(
-        self, batch: Dict[str, Sequence[Any]], device: torch.device
-    ) -> BatchInput:
-        return self.embedding.collate(batch, device)
+    @property
+    def span_getter(self):
+        return self.embedding.span_getter
 
     def forward(self, batch: BatchInput) -> WordEmbeddingBatchOutput:
         """
@@ -105,4 +100,4 @@ class TextCNNEncoder(TorchComponent[WordEmbeddingBatchOutput, BatchInput]):
         }
 
 
-create_component = TextCNNEncoder
+create_component = TextCnnEncoder

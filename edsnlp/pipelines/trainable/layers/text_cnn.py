@@ -28,7 +28,7 @@ class Residual(torch.nn.Module):
         )
 
 
-class TextCNN(torch.nn.Module):
+class TextCnn(torch.nn.Module):
     def __init__(
         self,
         input_size: int,

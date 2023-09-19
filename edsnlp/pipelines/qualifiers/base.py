@@ -73,7 +73,6 @@ class RuleBasedQualifier(BaseComponent):
         on_ents_only: Union[bool, str, List[str], Set[str]],
         explain: bool,
         terms: Dict[str, Optional[List[str]]],
-        regex: Dict[str, Optional[List[str]]] = {},
     ):
         super().__init__(nlp=nlp, name=name)
 
@@ -83,13 +82,7 @@ class RuleBasedQualifier(BaseComponent):
         self.phrase_matcher = EDSPhraseMatcher(vocab=nlp.vocab, attr=attr)
         self.phrase_matcher.build_patterns(nlp=nlp, terms=terms)
 
-        self.regex_matcher = RegexMatcher(attr=attr)
-        self.regex_matcher.build_patterns(regex=regex)
-
         self.on_ents_only = on_ents_only
-
-        if span_getter is None and on_ents_only is None:
-            on_ents_only = True
 
         if on_ents_only:
             assert isinstance(on_ents_only, (list, str, set, bool)), (
@@ -100,6 +93,13 @@ class RuleBasedQualifier(BaseComponent):
             assert span_getter is None, (
                 "Cannot use both `on_ents_only` and " "`span_getter`"
             )
+        regex: Dict[str, Optional[List[str]]] = ({},)
+        self.regex_matcher = RegexMatcher(attr=attr)
+        self.regex_matcher.build_patterns(regex=regex)
+
+        if span_getter is None and on_ents_only is None:
+            on_ents_only = True
+
             span_getter = "ents" if on_ents_only is True else on_ents_only
         else:
             span_getter = "ents"

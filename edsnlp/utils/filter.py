@@ -261,7 +261,10 @@ def align_spans(
     aligned = [set() for _ in target]
     source_idx = 0
     for target_idx in range(len(target)):
-        while source[source_idx].end <= target[target_idx].start:
+        while (
+            source_idx < len(source)
+            and source[source_idx].end <= target[target_idx].start
+        ):
             source_idx += 1
         i = source_idx
         while i < len(source) and source[i].start <= target[target_idx].end:

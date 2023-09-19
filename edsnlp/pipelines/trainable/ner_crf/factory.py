@@ -1,6 +1,6 @@
 from edsnlp import registry
 
-from .ner import TrainableNER
+from .ner_crf import TrainableNerCrf
 
 create_component = registry.factory.register(
     "eds.ner_crf",
@@ -9,4 +9,4 @@ create_component = registry.factory.register(
         "eds.nested_ner",
         "nested_ner",
     ],
-)(TrainableNER)
+)(TrainableNerCrf)

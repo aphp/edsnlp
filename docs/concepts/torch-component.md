@@ -14,52 +14,51 @@ Building and running deep learning models usually requires to `preprocess` the i
 In the trainable pipes of EDS-NLP, preprocessing and postprocessing are decoupled from the deep learning code but collocated with the forward method. This is achieved by splitting the class of a trainable component into four methods, which allows us to keep the development of new deep-learning components simple while ensuring efficient models both during training and inference.
 
 
-/// details | Methods of a trainable component
+??? details "Methods of a trainable component"
 
-### `preprocess` {: #edsnlp.core.torch_component.TorchComponent.preprocess }
-
-::: edsnlp.core.torch_component.TorchComponent.preprocess
-    options:
-        heading_level: 4
-        show_source: false
-        show_toc: false
-
-### `collate` {: #edsnlp.core.torch_component.TorchComponent.collate }
-
-::: edsnlp.core.torch_component.TorchComponent.collate
-    options:
-        heading_level: 4
-        show_source: false
-        show_toc: false
-
-### `forward` {: #edsnlp.core.torch_component.TorchComponent.forward }
-
-::: edsnlp.core.torch_component.TorchComponent.forward
-    options:
-        heading_level: 4
-        show_source: false
-        show_toc: false
-
-### `postprocess` {: #edsnlp.core.torch_component.TorchComponent.postprocess }
-
-::: edsnlp.core.torch_component.TorchComponent.postprocess
-    options:
-        heading_level: 4
-        show_source: false
-        show_toc: false
-
-
-Additionally, there is a fifth method:
+    ### `preprocess` {: #edsnlp.core.torch_component.TorchComponent.preprocess }
+    
+    ::: edsnlp.core.torch_component.TorchComponent.preprocess
+        options:
+            heading_level: 4
+            show_source: false
+            show_toc: false
+    
+    ### `collate` {: #edsnlp.core.torch_component.TorchComponent.collate }
+    
+    ::: edsnlp.core.torch_component.TorchComponent.collate
+        options:
+            heading_level: 4
+            show_source: false
+            show_toc: false
+    
+    ### `forward` {: #edsnlp.core.torch_component.TorchComponent.forward }
+    
+    ::: edsnlp.core.torch_component.TorchComponent.forward
+        options:
+            heading_level: 4
+            show_source: false
+            show_toc: false
+    
+    ### `postprocess` {: #edsnlp.core.torch_component.TorchComponent.postprocess }
+    
+    ::: edsnlp.core.torch_component.TorchComponent.postprocess
+        options:
+            heading_level: 4
+            show_source: false
+            show_toc: false
 
 
-### `post_init` {: #edsnlp.core.torch_component.TorchComponent.post_init }
+    Additionally, there is a fifth method:
+    
+    
+    ### `post_init` {: #edsnlp.core.torch_component.TorchComponent.post_init }
+    
+    ::: edsnlp.core.torch_component.TorchComponent.post_init
+        options:
+            heading_level: 3
+            show_source: false
 
-::: edsnlp.core.torch_component.TorchComponent.post_init
-    options:
-        heading_level: 3
-        show_source: false
-
-///
 
 ## Nesting trainable pipes
 

@@ -167,6 +167,9 @@ class CPUWorker(mp.Process):
                             gpu_idx = batch_id % len(self.exchanger.gpu_worker_devices)
                         collated = gpu_pipe.collate(  # type: ignore
                             preprocessed,
+                        )
+                        collated = gpu_pipe.batch_to_device(
+                            collated,
                             device=self.exchanger.gpu_worker_devices[gpu_idx],
                         )
                         self.exchanger.put_gpu(

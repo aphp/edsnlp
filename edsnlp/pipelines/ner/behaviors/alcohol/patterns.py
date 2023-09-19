@@ -33,7 +33,7 @@ default_patterns = dict(
         ),
         dict(
             name="zero_after",
-            regex=r"^[a-z]*\s*:?[\s-]*(0|oui|non(?! sevr))",
+            regex=r"(?=^[a-z]*\s*:?[\s-]*(0|oui|non(?! sevr)))",
             window=6,
         ),
     ],

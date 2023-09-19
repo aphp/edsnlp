@@ -7,6 +7,7 @@ from .negation import NegationQualifier
 DEFAULT_CONFIG = dict(
     pseudo=None,
     preceding=None,
+    preceding_regex=None,
     following=None,
     verbs=None,
     termination=None,

@@ -1,6 +1,4 @@
-from typing import List
-
-pseudo: List[str] = [
+pseudo = [
     "aucun doute",
     "même si",
     "pas de condition",
@@ -10,7 +8,7 @@ pseudo: List[str] = [
     "sans risque",
 ]
 
-confirmation: List[str] = [
+confirmation = [
     "certain",
     "certaine",
     "certainement",
@@ -24,7 +22,7 @@ confirmation: List[str] = [
     "visiblement",
 ]
 
-preceding: List[str] = [
+preceding = [
     "à condition",
     "à la condition que",
     "à moins que",
@@ -75,7 +73,7 @@ preceding: List[str] = [
     "suspicion",
 ]
 
-following: List[str] = [
+following = [
     "?",
     "envisageable",
     "envisageables",
@@ -103,7 +101,7 @@ following: List[str] = [
     "probables",
 ]
 
-verbs_hyp: List[str] = [
+verbs_hyp = [
     "douter",
     "envisager",
     "explorer",
@@ -115,7 +113,7 @@ verbs_hyp: List[str] = [
     "suspecter",
 ]
 
-verbs_eds: List[str] = [
+verbs_eds = [
     "abandonner",
     "abolir",
     "aborder",

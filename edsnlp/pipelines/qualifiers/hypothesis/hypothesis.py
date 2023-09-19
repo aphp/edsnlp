@@ -149,7 +149,7 @@ class HypothesisQualifier(RuleBasedQualifier):
         termination: Optional[List[str]] = None,
         attr: str = "NORM",
         span_getter: SpanGetterArg = None,
-        on_ents_only: Union[bool, str, List[str], Set[str]] = True,
+        on_ents_only: Union[bool, str, List[str], Set[str]] = None,
         within_ents: bool = False,
         explain: bool = False,
     ):
@@ -183,12 +183,16 @@ class HypothesisQualifier(RuleBasedQualifier):
         super().set_extensions()
         for cls in (Token, Span):
             if not cls.has_extension("hypothesis"):
-                cls.set_extension("hypothesis", default=False)
+                cls.set_extension("hypothesis", default=None)
 
             if not cls.has_extension("hypothesis_"):
                 cls.set_extension(
                     "hypothesis_",
-                    getter=lambda token: "HYP" if token._.hypothesis else "CERT",
+                    getter=lambda token: "HYP"
+                    if token._.hypothesis is True
+                    else "CERT"
+                    if token._.hypothesis is False
+                    else None,
                 )
 
         if not Span.has_extension("hypothesis_cues"):
@@ -266,9 +270,6 @@ class HypothesisQualifier(RuleBasedQualifier):
             # Verbs following negated content
             sub_following += [m for m in sub_matches if m.label_ == "verbs_following"]
 
-            if not sub_preceding + sub_following:
-                continue
-
             if not self.on_ents_only:
                 for token in doc[start:end]:
                     token._.hypothesis = any(
@@ -283,15 +284,14 @@ class HypothesisQualifier(RuleBasedQualifier):
                     cues = [m for m in sub_preceding if m.end <= ent.start]
                     cues += [m for m in sub_following if m.start >= ent.end]
 
-                hypothesis = ent._.hypothesis or bool(cues)
-
-                ent._.hypothesis = hypothesis
+                hypothesis = bool(cues)
+                ent._.hypothesis = ent._.hypothesis or hypothesis
 
                 if self.explain and hypothesis:
                     ent._.hypothesis_cues += cues
 
                 if not self.on_ents_only and hypothesis:
                     for token in ent:
-                        token._.hypothesis = True
+                        token._.hypothesis = token._.hypothesis or hypothesis
 
         return doc

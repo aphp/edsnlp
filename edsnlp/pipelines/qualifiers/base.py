@@ -6,6 +6,7 @@ from spacy.language import Language
 from spacy.tokens import Doc, Span
 
 from edsnlp.matchers.phrase import EDSPhraseMatcher
+from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.pipelines.base import BaseComponent, SpanGetterArg, validate_span_getter
 
 
@@ -72,6 +73,7 @@ class RuleBasedQualifier(BaseComponent):
         on_ents_only: Union[bool, str, List[str], Set[str]],
         explain: bool,
         terms: Dict[str, Optional[List[str]]],
+        regex: Dict[str, Optional[List[str]]] = {},
     ):
         super().__init__(nlp=nlp, name=name)
 
@@ -81,7 +83,13 @@ class RuleBasedQualifier(BaseComponent):
         self.phrase_matcher = EDSPhraseMatcher(vocab=nlp.vocab, attr=attr)
         self.phrase_matcher.build_patterns(nlp=nlp, terms=terms)
 
+        self.regex_matcher = RegexMatcher(attr=attr)
+        self.regex_matcher.build_patterns(regex=regex)
+
         self.on_ents_only = on_ents_only
+
+        if span_getter is None and on_ents_only is None:
+            on_ents_only = True
 
         if on_ents_only:
             assert isinstance(on_ents_only, (list, str, set, bool)), (
@@ -115,12 +123,21 @@ class RuleBasedQualifier(BaseComponent):
         if self.on_ents_only:
             sents = set([ent.sent for ent in self.get_spans(doc)])
 
-            match_iterator = (self.phrase_matcher(s, as_spans=True) for s in sents)
+            match_iterator = (
+                (
+                    *self.phrase_matcher(s, as_spans=True),
+                    *self.regex_matcher(s, as_spans=True),
+                )
+                for s in sents
+            )
 
             matches = chain.from_iterable(match_iterator)
 
         else:
-            matches = self.phrase_matcher(doc, as_spans=True)
+            matches = (
+                *self.phrase_matcher(doc, as_spans=True),
+                *self.regex_matcher(doc, as_spans=True),
+            )
 
         return list(matches)
 

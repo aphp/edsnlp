@@ -109,7 +109,7 @@ class FamilyContextQualifier(RuleBasedQualifier):
         termination: Optional[List[str]] = None,
         use_sections: bool = True,
         span_getter: SpanGetterArg = None,
-        on_ents_only: Union[bool, str, List[str], Set[str]] = True,
+        on_ents_only: Union[bool, str, List[str], Set[str]] = None,
         explain: bool = False,
     ):
         terms = dict(
@@ -141,12 +141,16 @@ class FamilyContextQualifier(RuleBasedQualifier):
         super().set_extensions()
         for cls in (Token, Span):
             if not cls.has_extension("family"):
-                cls.set_extension("family", default=False)
+                cls.set_extension("family", default=None)
 
             if not cls.has_extension("family_"):
                 cls.set_extension(
                     "family_",
-                    getter=lambda token: "FAMILY" if token._.family else "PATIENT",
+                    getter=lambda token: "FAMILY"
+                    if token._.family is True
+                    else "PATIENT"
+                    if token._.family is False
+                    else None,
                 )
 
         if not Span.has_extension("family_cues"):
@@ -195,19 +199,15 @@ class FamilyContextQualifier(RuleBasedQualifier):
             cues = [m for m in sub_matches if m.label_ == "family"]
             cues.extend(sub_sections)
 
-            if not cues:
-                continue
+            family = bool(cues)
 
             if not self.on_ents_only:
                 for token in doc[start:end]:
-                    token._.family = True
+                    token._.family = token._.family or family
 
             for ent in ents:
-                ent._.family = True
+                ent._.family = family
                 if self.explain:
                     ent._.family_cues += cues
-                if not self.on_ents_only and ent._.family:
-                    for token in ent:
-                        token._.family = True
 
         return doc

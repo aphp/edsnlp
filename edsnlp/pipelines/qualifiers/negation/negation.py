@@ -109,6 +109,8 @@ class NegationQualifier(RuleBasedQualifier):
         List of pseudo negation cues.
     preceding : Optional[List[str]]
         List of preceding negation cues
+    preceding_regex : Optional[List[str]]
+        List of preceding negation cues, but as regexes.
     following : Optional[List[str]]
         List of following negation cues.
     verbs : Optional[List[str]]
@@ -143,12 +145,13 @@ class NegationQualifier(RuleBasedQualifier):
         *,
         pseudo: Optional[List[str]] = None,
         preceding: Optional[List[str]] = None,
+        preceding_regex: Optional[List[str]] = None,
         following: Optional[List[str]] = None,
         verbs: Optional[List[str]] = None,
         termination: Optional[List[str]] = None,
         attr: str = "NORM",
         span_getter: SpanGetterArg = None,
-        on_ents_only: Union[bool, str, List[str], Set[str]] = True,
+        on_ents_only: Union[bool, str, List[str], Set[str]] = None,
         within_ents: bool = False,
         explain: bool = False,
     ):
@@ -162,6 +165,11 @@ class NegationQualifier(RuleBasedQualifier):
         terms["verbs_preceding"], terms["verbs_following"] = self.load_verbs(
             terms["verbs"]
         )
+        regex = dict(
+            preceding=preceding_regex
+            if preceding_regex is not None
+            else patterns.preceding_regex,
+        )
 
         super().__init__(
             nlp=nlp,
@@ -169,6 +177,7 @@ class NegationQualifier(RuleBasedQualifier):
             attr=attr,
             explain=explain,
             terms=terms,
+            regex=regex,
             on_ents_only=on_ents_only,
             span_getter=span_getter,
         )
@@ -180,7 +189,7 @@ class NegationQualifier(RuleBasedQualifier):
         super().set_extensions()
         for cls in (Token, Span):
             if not cls.has_extension("negation"):
-                cls.set_extension("negation", default=False)
+                cls.set_extension("negation", default=None)
 
             if not cls.has_extension("negated"):
                 cls.set_extension(
@@ -190,7 +199,11 @@ class NegationQualifier(RuleBasedQualifier):
             if not cls.has_extension("negation_"):
                 cls.set_extension(
                     "negation_",
-                    getter=lambda token: "NEG" if token._.negation else "AFF",
+                    getter=lambda token: "NEG"
+                    if token._.negation is True
+                    else "AFF"
+                    if token._.negation is False
+                    else None,
                 )
 
             if not cls.has_extension("polarity_"):
@@ -264,14 +277,13 @@ class NegationQualifier(RuleBasedQualifier):
             # Verbs following negated content
             sub_following += [m for m in sub_matches if m.label_ == "verbs_following"]
 
-            if not sub_preceding + sub_following:
-                continue
-
             if not self.on_ents_only:
                 for token in doc[start:end]:
-                    token._.negation = any(
-                        m.end <= token.i for m in sub_preceding
-                    ) or any(m.start > token.i for m in sub_following)
+                    token._.negation = (
+                        token._.negation
+                        or any(m.end <= token.i for m in sub_preceding)
+                        or any(m.start > token.i for m in sub_following)
+                    )
 
             for ent in ents:
                 if self.within_ents:
@@ -281,9 +293,8 @@ class NegationQualifier(RuleBasedQualifier):
                     cues = [m for m in sub_preceding if m.end <= ent.start]
                     cues += [m for m in sub_following if m.start >= ent.end]
 
-                negation = ent._.negation or bool(cues)
-
-                ent._.negation = negation
+                negation = bool(cues)
+                ent._.negation = ent._.negation or negation
 
                 if self.explain and negation:
                     ent._.negation_cues += cues

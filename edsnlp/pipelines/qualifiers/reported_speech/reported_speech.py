@@ -114,7 +114,7 @@ class ReportedSpeechQualifier(RuleBasedQualifier):
         verbs: Optional[List[str]] = None,
         attr: str = "NORM",
         span_getter: SpanGetterArg = None,
-        on_ents_only: Union[bool, str, List[str], Set[str]] = True,
+        on_ents_only: Union[bool, str, List[str], Set[str]] = None,
         within_ents: bool = False,
         explain: bool = False,
     ):
@@ -151,14 +151,16 @@ class ReportedSpeechQualifier(RuleBasedQualifier):
 
         for cls in (Token, Span):
             if not cls.has_extension("reported_speech"):
-                cls.set_extension("reported_speech", default=False)
+                cls.set_extension("reported_speech", default=None)
 
             if not cls.has_extension("reported_speech_"):
                 cls.set_extension(
                     "reported_speech_",
                     getter=lambda token: "REPORTED"
-                    if token._.reported_speech
-                    else "DIRECT",
+                    if token._.reported_speech is True
+                    else "DIRECT"
+                    if token._.reported_speech is False
+                    else None,
                 )
 
         if not Span.has_extension("reported_speech_cues"):
@@ -225,9 +227,6 @@ class ReportedSpeechQualifier(RuleBasedQualifier):
             sub_verbs = [m for m in sub_matches if m.label_ == "verbs"]
             sub_quotation = [m for m in sub_matches if m.label_ == "quotation"]
 
-            if not sub_preceding + sub_following + sub_verbs + sub_quotation:
-                continue
-
             if not self.on_ents_only:
                 for token in doc[start:end]:
                     token._.reported_speech = (
@@ -252,8 +251,8 @@ class ReportedSpeechQualifier(RuleBasedQualifier):
                     if (m.start < ent.start) & (m.end > ent.end)
                 ]
 
-                reported_speech = ent._.reported_speech or bool(cues)
-                ent._.reported_speech = reported_speech
+                reported_speech = bool(cues)
+                ent._.reported_speech = ent._.reported_speech or reported_speech
 
                 if self.explain and reported_speech:
                     ent._.reported_speech_cues += cues

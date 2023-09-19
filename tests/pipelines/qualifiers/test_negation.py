@@ -24,6 +24,9 @@ negation_examples: List[str] = [
     "il n'y a pas d'<ent polarity_=NEG>métastases</ent>",
     "il n'y a pas d'amélioration de la <ent negated=false>maladie</ent>",
     "<ent negated=true>maladie écartée",
+    "Le patient ne <ent negated=true>fume</ent> pas.",
+    "Le patient ne <ent negated=true>fume vraiment vraiment</ent> pas.",
+    "Le patient ne <ent negated=false>fume</ent> que des cigares.",
 ]
 
 

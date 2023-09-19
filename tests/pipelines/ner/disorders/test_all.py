@@ -113,3 +113,26 @@ def test_disorder(normalized_nlp, disorder):
     )
 
     expect.check()
+
+
+def test_behavior_negation(blank_nlp):
+    blank_nlp.add_pipe("eds.normalizer")
+    blank_nlp.add_pipe("eds.tobacco")
+    blank_nlp.add_pipe("eds.alcohol")
+    blank_nlp.add_pipe("eds.negation")
+
+    negated_texts = [
+        "Le patient ne fume aucun truc.",
+        "Le patient fume 0 PA.",
+        "Il ne boit pas d'alcool." "Boit très rarement de l'alcool.",
+    ]
+
+    positive_texts = ["Le patient ne fume que le soir.", "Il ne boit plus d'alcool."]
+
+    for text in negated_texts:
+        doc = blank_nlp(text)
+        assert doc.ents[0]._.negation is True, text
+
+    for text in positive_texts:
+        doc = blank_nlp(text)
+        assert doc.ents[0]._.negation is False, text

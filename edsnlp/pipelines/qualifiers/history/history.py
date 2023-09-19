@@ -179,7 +179,7 @@ class HistoryQualifier(RuleBasedQualifier):
         closest_dates_only: bool = True,
         exclude_birthdate: bool = True,
         span_getter: SpanGetterArg = None,
-        on_ents_only: Union[bool, str, List[str], Set[str]] = True,
+        on_ents_only: Union[bool, str, List[str], Set[str]] = None,
         explain: bool = False,
     ):
 
@@ -241,7 +241,7 @@ class HistoryQualifier(RuleBasedQualifier):
     def set_extensions(self) -> None:
         for cls in (Token, Span):
             if not cls.has_extension("history"):
-                cls.set_extension("history", default=False)
+                cls.set_extension("history", default=None)
 
             if not cls.has_extension("antecedents"):
                 cls.set_extension(
@@ -258,7 +258,11 @@ class HistoryQualifier(RuleBasedQualifier):
             if not cls.has_extension("history_"):
                 cls.set_extension(
                     "history_",
-                    getter=lambda token: "ATCD" if token._.history else "CURRENT",
+                    getter=lambda token: "ATCD"
+                    if token._.history is True
+                    else "CURRENT"
+                    if token._.history is False
+                    else None,
                 )
 
             if not cls.has_extension("antecedents_"):
@@ -521,18 +525,14 @@ class HistoryQualifier(RuleBasedQualifier):
 
             history = bool(history_cues) and not bool(recent_cues)
 
-            if not self.on_ents_only:
-                for token in doc[start:end]:
-                    token._.history = token._.history or history
-
             for ent in ents:
                 ent._.history = ent._.history or history
 
                 if self.explain:
                     ent._.history_cues += history_cues
                     ent._.recent_cues += recent_cues
-                if not self.on_ents_only and ent._.history:
+                if not self.on_ents_only:
                     for token in ent:
-                        token._.history = True
+                        token._.history = token._.history or history
 
         return doc

@@ -86,6 +86,17 @@ class DisorderMatcher(ContextualMatcher):
                 "detailled_status",
                 getter=deprecated_getter_factory("detailed_status", "detailed_status"),
             )
+        if not Span.has_extension("negation"):
+            Span.set_extension("negation", default=None)
+        if not Span.has_extension("negation_"):
+            Span.set_extension(
+                "negation_",
+                getter=lambda item: "NEG"
+                if item._.negation is True
+                else "AFF"
+                if item._.negation is False
+                else None,
+            )
 
     def __call__(self, doc: Doc) -> Doc:
         """
@@ -104,6 +115,8 @@ class DisorderMatcher(ContextualMatcher):
         spans = list(self.process(doc))
         for span in spans:
             span._.detailed_status = self.detailed_status_mapping[span._.status]
+            if span._.status == 0:
+                span._.negation = True
 
         self.set_spans(doc, filter_spans(spans))
 

@@ -649,7 +649,6 @@ class Pipeline:
     def collate(
         self,
         batch: Dict[str, Any],
-        device: Optional["torch.device"] = None,  # noqa F821
     ):
         """
         Collates a batch of preprocessed samples into a single (maybe nested)
@@ -668,14 +667,13 @@ class Pipeline:
             The collated batch
         """
         batch = decompress_dict(batch)
-        if device is None:
-            device = next(p.device for p in self.parameters())
         with self.cache():
             for name, component in self.pipeline:
                 if name in batch:
                     component_inputs = batch[name]
-                    batch[name] = component.collate(component_inputs, device)
+                    batch[name] = component.collate(component_inputs)
         return batch
+
 
     def parameters(self):
         """Returns an iterator over the Pytorch parameters of the components in the

@@ -124,6 +124,7 @@ nav:
       - Trainable components:
           - Overview: pipelines/trainable/overview.md
           - pipelines/trainable/ner.md
+          - pipelines/trainable/embeddings/transformer.md
           - pipelines/trainable/span-qualifier.md
   - tokenizers.md
   - Connectors:
@@ -232,3 +233,4 @@ markdown_extensions:
 
 validation:
   absolute_links: ignore
+  unrecognized_links: ignore

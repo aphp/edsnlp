@@ -155,10 +155,10 @@ where = ["."]
 "eds.tables"                      = "edsnlp.pipelines.misc.tables.factory:create_component"
 
 # Trainable
-"eds.transformer"                 = "edsnlp.pipelines.trainable.embeddings.transformer:create_component"
+"eds.transformer"                 = "edsnlp.pipelines.trainable.embeddings.transformer.factory:create_component"
 "eds.text_cnn"                    = "edsnlp.pipelines.trainable.embeddings.text_cnn:create_component"
-"eds.ner_crf"                     = "edsnlp.pipelines.trainable.ner.factory:create_component"
-"eds.nested_ner"                  = "edsnlp.pipelines.trainable.ner.factory:create_component"
+"eds.ner_crf"                     = "edsnlp.pipelines.trainable.ner_crf.factory:create_component"
+"eds.nested_ner"                  = "edsnlp.pipelines.trainable.ner_crf.factory:create_component"
 "eds.span_qualifier"              = "edsnlp.pipelines.trainable.span_qualifier.factory:create_component"
 
 # Deprecated (links to the same factories as above)
@@ -206,10 +206,6 @@ where = ["."]
 [project.entry-points."spacy_scorers"]
 "eds.ner_exact_scorer"   = "edsnlp.scorers.ner:create_ner_exact_scorer"
 "eds.ner_token_scorer"   = "edsnlp.scorers.ner:create_ner_token_scorer"
-
-[project.entry-points."edsnlp_accelerator"]
-"simple" = "edsnlp.accelerators.simple:SimpleAccelerator"
-"multiprocessing" = "edsnlp.accelerators.multiprocessing:MultiprocessingAccelerator"
 
 [project.entry-points."edsnlp_accelerator"]
 "simple" = "edsnlp.accelerators.simple:SimpleAccelerator"

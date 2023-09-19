@@ -3,7 +3,7 @@ from __future__ import annotations
 import warnings
 from collections import defaultdict
 from enum import Enum
-from typing import Callable, Iterable, List, Optional, Sequence, Set, Union
+from typing import Callable, Dict, Iterable, List, Optional, Sequence, Set, Union
 
 import torch
 from spacy.tokens import Doc, Span
@@ -11,19 +11,20 @@ from typing_extensions import Literal, NotRequired, TypedDict
 
 from edsnlp import Pipeline
 from edsnlp.core.torch_component import TorchComponent
-from edsnlp.pipelines.base import (
-    BaseNERComponent,
+from edsnlp.pipelines.base import BaseNERComponent
+from edsnlp.pipelines.trainable.embeddings.typing import (
+    BatchInput,
+    EmbeddingComponent,
+)
+from edsnlp.pipelines.trainable.layers.crf import MultiLabelBIOULDecoder
+from edsnlp.utils.filter import align_spans
+from edsnlp.utils.span_getters import (
     SpanGetterArg,
     SpanGetterMapping,
     SpanSetter,
     SpanSetterArg,
     get_spans,
 )
-from edsnlp.pipelines.trainable.embeddings.typing import (
-    BatchInput,
-    WordEmbeddingBatchOutput,
-)
-from edsnlp.pipelines.trainable.layers.crf import MultiLabelBIOULDecoder
 from edsnlp.utils.torch import make_windows
 
 NERBatchInput = TypedDict(
@@ -50,45 +51,124 @@ class CRFMode(str, Enum):
     marginal = "marginal"
 
 
-class TrainableNER(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComponent):
+class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComponent):
     """
-    Initialize a general named entity recognizer (with or without nested or
-    overlapping entities).
+    The `eds.ner_crf` component is a general purpose trainable named entity recognizer. It
+    can extract:
+
+    - flat entities
+    - overlapping entities of different labels
+
+    However, at the moment, the model cannot currently extract entities that are
+    nested inside larger entities of the same label.
+
+    It is based on a CRF (Conditional Random Field) layer and should therefore work
+    well on dataset composed of entities will ill-defined boundaries. We offer a
+    compromise between speed and performance by allowing the user to specify a window
+    size for the CRF layer. The smaller the window, the faster the model will be, but
+    at the cost of degraded performance.
+
+    The pipeline assigns both `doc.ents` (in which overlapping entities are filtered
+    out) and `doc.spans`. These destinations can be inferred from the
+    `target_span_getter` parameter, combined with the `post_init` step.
+
+    Architecture
+    ------------
+    The model performs token classification using the BIOUL (Begin, Inside, Outside,
+    Unary, Last) tagging scheme. To extract overlapping entities, each label has its
+    own tag sequence, so the model predicts `n_labels` sequences of O, I, B, L, U tags.
+    The architecture is displayed in the figure below.
+
+    To enforce the tagging scheme, (ex: I cannot follow O but only B, ...), we use a
+    stack of CRF (Conditional Random Fields) layers, one per label during both training
+    and prediction.
+
+    <figure markdown>
+      ![Nested NER architecture](/assets/images/edsnlp-ner.svg)
+      <figcaption>Nested NER architecture</figcaption>
+    </figure>
+
+    Examples
+    --------
+    Let us define a pipeline composed of a transformer, and a NER component.
+
+    ```{ .python }
+    from pathlib import Path
+
+    import edsnlp
+
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(
+        "eds.transformer",
+        name="transformer",
+        config=dict(
+            model="prajjwal1/bert-tiny",
+            window=128,
+            stride=96,
+        ),
+    )
+    nlp.add_pipe(
+        "eds.ner_crf",
+        name="ner",
+        config=dict(
+            embedding=nlp.get_pipe("transformer"),
+            mode="joint",
+            target_span_getter=["ents", "ner-preds"],
+            window=10,
+        )
+    )
+    ```
+
+    To train the model, refer to the [Training](/tutorials/training.md) tutorial.
 
     Parameters
     ----------
-    nlp: PipelineProtocol
-        The current nlp object
-    name: str
+    nlp : PipelineProtocol
+        The pipeline object
+    name : str
         Name of the component
-    embedding: TorchComponent[WordEmbeddingBatchOutput, BatchInput]
+    embedding : EmbeddingComponent
         The word embedding component
-    target_span_getter: Callable[[Doc], Iterable[Span]]
+    target_span_getter : SpanGetterArg
         Method to call to get the gold spans from a document, for scoring or training.
         By default, takes all entities in `doc.ents`, but we recommend you specify
         a given span group name instead.
-    labels: List[str]
+    labels : List[str]
         The labels to predict. The labels can also be inferred from the data
         during `nlp.post_init(...)`
-    span_setter: Optional[SpanSetterArg]
+    span_setter : Optional[SpanSetterArg]
         The span setter to use to set the predicted spans on the Doc object. If None,
         the component will infer the span setter from the target_span_getter config.
-    infer_span_setter: Optional[bool]
+    infer_span_setter : Optional[bool]
         Whether to complete the span setter from the target_span_getter config.
         False by default, unless the span_setter is None.
-    mode: Literal["independent", "joint", "marginal"]
-        The CRF mode to use: independent, joint or marginal
+    mode : Literal["independent", "joint", "marginal"]
+        The CRF mode to use : independent, joint or marginal
+    window : int
+        The window size to use for the CRF. If 0, will use the whole document, at
+        the cost of a longer computation time. If 1, this is equivalent to assuming
+        that the tags are independent and will the component be faster, but with
+        degraded performance. Empirically, we found that a window size of 10 or 20
+        works well.
+    stride : Optional[int]
+        The stride to use for the CRF windows. Defaults to `window - 2`.
+
+    Authors and citation
+    --------------------
+    The `eds.ner_crf` pipeline was developed by AP-HP's Data Science team.
+
+    The deep learning model was adapted from [@wajsburt:tel-03624928].
     """
 
     span_setter: SpanSetter
 
     def __init__(
         self,
-        nlp: Pipeline = None,
-        name: Optional[str] = "eds.ner",
+        nlp: Optional[Pipeline] = None,
+        name: Optional[str] = "eds.ner_crf",
         *,
-        embedding: TorchComponent[WordEmbeddingBatchOutput, BatchInput],
-        target_span_getter: SpanGetterArg,
+        embedding: EmbeddingComponent,
+        target_span_getter: SpanGetterArg = {"ents": True},
         labels: Optional[List[str]] = None,
         span_setter: Optional[SpanSetterArg] = None,
         infer_span_setter: Optional[bool] = None,
@@ -206,7 +286,7 @@ class TrainableNER(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERCompone
                     if key not in self.span_setter
                 },
             }
-            if self.span_setter is None
+            if self.infer_span_setter
             else self.span_setter
         )
 
@@ -249,7 +329,10 @@ class TrainableNER(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERCompone
 
         # Update initialization arguments
         self.labels = labels
-        self.cfg["labels"] = labels
+
+    @property
+    def cfg(self):
+        return {"labels": self.labels}
 
     def preprocess(self, doc):
         if self.labels is None:
@@ -265,24 +348,36 @@ class TrainableNER(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERCompone
         }
 
     def preprocess_supervised(self, doc):
-        targets = [[0] * len(self.labels) for _ in doc]
-        for ent in self.get_target_spans(doc):
-            label_idx = self.labels.index(ent.label_)
-            if ent.start == ent.end - 1:
-                targets[ent.start][label_idx] = 4
-            else:
-                targets[ent.start][label_idx] = 2
-                targets[ent.end - 1][label_idx] = 3
-                for i in range(ent.start + 1, ent.end - 1):
-                    targets[i][label_idx] = 1
+        embedded_spans = list(get_spans(doc, self.embedding.span_getter))
+        tags = []
+
+        for embedded_span, target_ents in zip(
+            embedded_spans,
+            align_spans(
+                source=list(self.get_target_spans(doc)),
+                target=embedded_spans,
+            ),
+        ):
+            span_tags = [[0] * len(self.labels) for _ in range(len(embedded_span))]
+            start = embedded_span.start
+            for ent in target_ents:
+                label_idx = self.labels.index(ent.label_)
+                if ent.start == ent.end - 1:
+                    span_tags[ent.start - start][label_idx] = 4
+                else:
+                    span_tags[ent.start - start][label_idx] = 2
+                    span_tags[ent.end - 1 - start][label_idx] = 3
+                    for i in range(ent.start + 1 - start, ent.end - 1 - start):
+                        span_tags[i][label_idx] = 1
+            tags.append(span_tags)
         return {
             **self.preprocess(doc),
-            "targets": targets,
+            "targets": tags,
         }
 
-    def collate(self, preps, device) -> NERBatchInput:
+    def collate(self, preps) -> NERBatchInput:
         collated: NERBatchInput = {
-            "embedding": self.embedding.collate(preps["embedding"], device=device),
+            "embedding": self.embedding.collate(preps["embedding"]),
         }
         mask = collated["embedding"]["mask"]
         max_len = mask.sum(-1).max().item()
@@ -290,9 +385,9 @@ class TrainableNER(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERCompone
             targets = torch.as_tensor(
                 [
                     row + [[-1] * len(self.labels)] * (max_len - len(row))
-                    for row in preps["targets"]
+                    for sample_targets in preps["targets"]
+                    for row in sample_targets
                 ],
-                device=device,
                 dtype=torch.long,
             )
             # targets = (targets.unsqueeze(-1) == torch.arange(5)).to(device)
@@ -372,18 +467,20 @@ class TrainableNER(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERCompone
         )
 
     def postprocess(self, docs: List[Doc], batch: NERBatchOutput):
-        spans: List[List[Span]] = [[] for _ in docs]
-        for doc_idx, start, end, label_idx in self.crf.tags_to_spans(
+        spans: Dict[Doc, list[Span]] = defaultdict(list)
+        embedded_spans = [
+            span
+            for doc in docs
+            for span in list(get_spans(doc, self.embedding.span_getter))
+        ]
+        for embedded_span_idx, start, end, label_idx in self.crf.tags_to_spans(
             batch["tags"].cpu()
         ).tolist():
-            spans[doc_idx].append(
-                Span(
-                    docs[doc_idx],
-                    start,
-                    end,
-                    self.labels[label_idx],
-                )
-            )
-        for doc, doc_spans in zip(docs, spans):
+            span = embedded_spans[embedded_span_idx][start:end]
+            span.label_ = self.labels[label_idx]
+            print("MAKING SPAN", span, span.label_)
+            spans[span.doc].append(span)
+        for doc, doc_spans in spans.items():
+            print("SETTING SPANS", [(s.text, s.label_) for s in doc_spans], "on", doc)
             self.set_spans(doc, doc_spans)
         return docs

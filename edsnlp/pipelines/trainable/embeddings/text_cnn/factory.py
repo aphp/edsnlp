@@ -1,9 +1,9 @@
 from edsnlp import registry
 
-from .span_qualifier import TrainableSpanQualifier
+from .text_cnn import TextCnnEncoder
 
 create_component = registry.factory.register(
-    "eds.span_qualifier",
+    "eds.transformer",
     assigns=[],
     deprecated=[],
-)(TrainableSpanQualifier)
+)(TextCnnEncoder)

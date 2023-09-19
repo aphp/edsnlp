@@ -7,7 +7,6 @@ import edsnlp
 
 @mark.parametrize("ner_mode", ["independent", "joint", "marginal"])
 def test_ner(ner_mode):
-    import torch
 
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(
@@ -55,7 +54,7 @@ def test_ner(ner_mode):
     ner = nlp.get_pipe("ner")
     ner.update_labels(["PERSON", "GIFT"])
     batch = ner.make_batch([doc], supervision=True)
-    batch = ner.collate(batch, device=torch.device("cpu"))
+    batch = ner.collate(batch)
     batch = ner.module_forward(batch)
 
     list(ner.pipe([doc]))

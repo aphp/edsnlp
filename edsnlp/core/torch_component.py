@@ -74,16 +74,14 @@ def cached_preprocess_supervised(fn):
 
 
 def cached_collate(fn):
-    import torch
-
     @wraps(fn)
-    def wrapped(self: "TorchComponent", batch: Dict, device: torch.device):
+    def wrapped(self: "TorchComponent", batch: Dict):
         cache_id = hash((id(self), "collate", hash_batch(batch)))
         if not self.nlp or self.nlp._cache is None or cache_id is None:
-            return fn(self, batch, device)
+            return fn(self, batch)
         if not self.nlp._cache_is_writeonly and cache_id in self.nlp._cache:
             return self.nlp._cache[cache_id]
-        res = fn(self, batch, device)
+        res = fn(self, batch)
         self.nlp._cache[cache_id] = res
         res["cache_id"] = cache_id
         return res
@@ -97,10 +95,26 @@ def cached_forward(fn):
         # Convert args and kwargs to a dictionary matching fn signature
         if not self.nlp or self.nlp._cache is None:
             return fn(self, batch)
-        cache_id = (id(self), "collate", hash_batch(batch))
+        cache_id = (id(self), "forward", hash_batch(batch))
         if cache_id in self.nlp._cache:
             return self.nlp._cache[cache_id]
         res = fn(self, batch)
+        self.nlp._cache[cache_id] = res
+        return res
+
+    return wrapped
+
+
+def cached_move_to_device(fn):
+    @wraps(fn)
+    def wrapped(self: "TorchComponent", batch, device):
+        # Convert args and kwargs to a dictionary matching fn signature
+        if not self.nlp or self.nlp._cache is None:
+            return fn(self, batch, device)
+        cache_id = (id(self), "move_to_device", hash_batch(batch))
+        if cache_id in self.nlp._cache:
+            return self.nlp._cache[cache_id]
+        res = fn(self, batch, device)
         self.nlp._cache[cache_id] = res
         return res
 
@@ -117,6 +131,8 @@ class TorchComponentMeta(ABCMeta):
             )
         if "collate" in class_dict:
             class_dict["collate"] = cached_collate(class_dict["collate"])
+        if "move_to_device" in class_dict:
+            class_dict["move_to_device"] = cached_move_to_device(class_dict["collate"])
         if "forward" in class_dict:
             class_dict["forward"] = cached_forward(class_dict["forward"])
 
@@ -149,7 +165,6 @@ class TorchComponent(
         **kwargs
     ):
         super().__init__(nlp, name, *args, **kwargs)
-        self.cfg = {}
         self._preprocess_cache = {}
         self._preprocess_supervised_cache = {}
         self._collate_cache = {}
@@ -207,9 +222,7 @@ class TorchComponent(
             for name, component in self.named_component_children()
         }
 
-    def collate(
-        self, batch: Dict[str, Sequence[Any]], device: torch.device
-    ) -> BatchInput:
+    def collate(self, batch: Dict[str, Sequence[Any]]) -> BatchInput:
         """
         Collate the batch of features into a single batch of tensors that can be
         used by the forward method of the component.
@@ -226,7 +239,21 @@ class TorchComponent(
         BatchInput
             Dictionary (optionally nested) containing the collated tensors
         """
-        raise NotImplementedError()
+        return {
+            name: component.collate(batch)
+            for name, component in self.named_component_children()
+        }
+
+    def batch_to_device(self, batch, device: Optional[Union[str, torch.device]]):
+        def rec(x):
+            if isinstance(x, dict):
+                return {k: rec(v) for k, v in x.items()}
+            elif hasattr(x, "to"):
+                return x.to(device)
+            else:
+                return x
+
+        return rec(batch)
 
     def forward(self, batch: BatchInput) -> BatchOutput:
         """
@@ -296,7 +323,7 @@ class TorchComponent(
         """
         with torch.no_grad():
             batch = self.make_batch(docs)
-            inputs = self.collate(batch, device=self.device)
+            inputs = self.collate(batch)
             if hasattr(self, "compiled"):
                 res = self.compiled(inputs)
             else:

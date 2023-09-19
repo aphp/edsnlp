@@ -1,1 +1,1 @@
-from .factory import create_candidate_getter, create_component, create_scorer
+from .factory import create_component

@@ -32,10 +32,9 @@ EDS-NLP provides easy-to-use pipeline components (aka pipes).
 
 === "Trainable"
 
-    | Pipeline             | Description                                                          |
-    | -------------------- | -------------------------------------------------------------------- |
-    | `eds.nested-ner`     | A trainable component for nested (and classic) NER                   |
-    | `eds.span-qualifier` | A trainable component for multi-class multi-label span qualification |
+    See the [Trainable components overview](/pipelines/trainable/overview/) for more information.
+
+    --8<-- "docs/pipelines/trainable/overview.md:components"
 
 <!-- --8<-- [end:components] -->
 

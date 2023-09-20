@@ -17,7 +17,7 @@ dependencies = [
     "regex",
     "rich>=12.0.0",
     "scikit-learn>=1.0.0",
-    "spacy>=3.1,<3.5.0",
+    "spacy>=3.1,<3.7.0",
     "thinc>=8.1.10",
     "tqdm",
     "umls-downloader>=0.1.1",

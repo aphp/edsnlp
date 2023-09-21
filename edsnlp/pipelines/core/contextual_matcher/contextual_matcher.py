@@ -311,7 +311,7 @@ class ContextualMatcher(BaseNERComponent):
             assigned_list = list(matcher["matcher"].match(snippet))
 
             assigned_list = [
-                (span, span)
+                (span, span, matcher["matcher"].regex[0][0])
                 if not match.groups()
                 else (
                     span,
@@ -325,6 +325,7 @@ class ContextualMatcher(BaseNERComponent):
                         ignore_excluded=matcher["matcher"].regex[0][3],
                         ignore_space_tokens=matcher["matcher"].regex[0][4],
                     ),
+                    matcher["matcher"].regex[0][0],
                 )
                 for (span, match) in assigned_list
             ]
@@ -340,10 +341,10 @@ class ContextualMatcher(BaseNERComponent):
                 if assigned is None:
                     continue
                 if replace_entity:
-                    replace_key = assigned[1].label_
+                    replace_key = assigned[2]
 
                 # Using he overrid `__setitem__` method from AssignDict here:
-                assigned_dict[assigned[1].label_] = {
+                assigned_dict[assigned[2]] = {
                     "span": assigned[1],  # Full span
                     "value_span": assigned[0],  # Span of the group
                     "value_text": get_text(
@@ -394,13 +395,17 @@ class ContextualMatcher(BaseNERComponent):
 
         else:
             # Entity expansion
-            expandables = flatten([a["span"] for a in assigned_dict.values()])
+            expandables = [
+                s
+                for s in flatten([a["span"] for a in assigned_dict.values()])
+                if s is not None
+            ]
 
             if self.include_assigned and expandables:
                 span = Span(
                     span.doc,
-                    min(expandables + [span], key=attrgetter("start")).start,
-                    max(expandables + [span], key=attrgetter("end")).end,
+                    min(s.start for s in expandables + [span] if s is not None),
+                    max(s.end for s in expandables + [span] if s is not None),
                     span.label_,
                 )
 

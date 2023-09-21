@@ -168,7 +168,7 @@ class DatesMatcher(BaseNERComponent):
         relative: Optional[List[str]] = None,
         duration: Optional[List[str]] = None,
         false_positive: Optional[List[str]] = None,
-        on_ents_only: Union[bool, str, Iterable[str]] = False,
+        on_ents_only: Union[bool, str, Iterable[str]] = None,
         span_getter: Optional[SpanGetterArg] = None,
         merge_mode: Literal["intersect", "align"] = "intersect",
         detect_periods: bool = False,
@@ -226,6 +226,9 @@ class DatesMatcher(BaseNERComponent):
             relative = [duration]
         if isinstance(false_positive, str):
             false_positive = [false_positive]
+
+        if on_ents_only is None and span_getter is None:
+            on_ents_only = False
 
         if on_ents_only:
             assert span_getter is None, (

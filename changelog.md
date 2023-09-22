@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.9.1
+
+## Changed
+
+- Improve negation patterns
+- Abstent disorders now set the negation to True when matched as `ABSENT`
+- Default qualifier is now `None` instead of `False` (empty string)
+
+### Fixed
+
+- `span_getter` is not incompatible with on_ents_only anymore
+- `ContextualMatcher` now supports empty matches (e.g. lookahead/lookbehind) in `assign` patterns
+
 ## v0.9.0
 
 ### Added

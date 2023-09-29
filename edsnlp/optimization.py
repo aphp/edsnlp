@@ -89,7 +89,7 @@ class LinearSchedule:
         max_value=None,
         start_value=0.0,
         path="lr",
-        warmup_rate=0.1,
+        warmup_rate=0.0,
     ):
         self.path = path
         self.start_value = start_value

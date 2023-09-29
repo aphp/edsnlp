@@ -57,8 +57,7 @@ def mask_to_triangle(mask):
     return scores
 
 
-def make_windows(mask, size, stride):
-    lengths = mask.sum(1).tolist()
+def make_windows(lengths, size, stride):
     max_len = max(lengths)
     windows = pad_2d(
         [
@@ -75,7 +74,7 @@ def make_windows(mask, size, stride):
     )
     windows_mask = windows != -1
     windows[~windows_mask] = 0
-    indexer = torch.zeros_like(mask, dtype=torch.long).view(-1)
+    indexer = torch.zeros((len(lengths), max_len), dtype=torch.long).view(-1)
     scores = mask_to_triangle(windows_mask)
     scores = scores * len(scores) + torch.arange(len(scores))
     scores[~windows_mask.view(-1)] = -1

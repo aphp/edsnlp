@@ -151,8 +151,12 @@ stride = 96
 embedding = ${components.transformer}
 mode = "independent"
 target_span_getter = ["ents", "ner-preds"]
-span_setter = "ents"
 labels = ["PERSON", "GIFT"]
+window = 20
+stride = 18
+
+[components.ner.span_setter]
+ents = true
 
 """
 
@@ -184,7 +188,12 @@ def test_cache(frozen_pipeline: Pipeline):
 
     with frozen_pipeline.cache():
         frozen_pipeline(text)
-        assert len(frozen_pipeline._cache) > 0
+        trf_forward_cache_entries = [
+            key
+            for key in frozen_pipeline._cache
+            if isinstance(key, tuple) and key[:2] == ("transformer", "forward")
+        ]
+        assert len(trf_forward_cache_entries) == 1
 
     assert frozen_pipeline._cache is None
 
@@ -238,9 +247,7 @@ def test_config_validation_error():
         Pipeline.from_config(Config.from_str(fail_config))
 
     assert str(e.value) == (
-        "2 validation errors for edsnlp.core.pipeline.Pipeline()\n"
-        "-> components.ner.target_span_getter\n"
-        "   field required\n"
+        "1 validation error for edsnlp.core.pipeline.Pipeline()\n"
         "-> components.ner.mode\n"
         "   unexpected value; permitted: 'independent', 'joint', 'marginal', got "
         "'error-mode' (str)"
@@ -327,7 +334,7 @@ def test_multiprocessing_rb_error(pipeline):
         )
 
 
-def test_multiprocessing_ml_error(pipeline):
+try:
     import torch
 
     from edsnlp.core.torch_component import TorchComponent
@@ -339,9 +346,9 @@ def test_multiprocessing_ml_error(pipeline):
         def preprocess(self, doc):
             return {"num_words": len(doc), "doc_id": doc._.note_id}
 
-        def collate(self, batch, device):
+        def collate(self, batch):
             return {
-                "num_words": torch.tensor(batch["num_words"], device=device),
+                "num_words": torch.tensor(batch["num_words"]),
                 "doc_id": batch["doc_id"],
             }
 
@@ -350,6 +357,11 @@ def test_multiprocessing_ml_error(pipeline):
                 raise RuntimeError("Deep learning error")
             return {}
 
+except ImportError:
+    pass
+
+
+def test_multiprocessing_ml_error(pipeline):
     text1 = "Ceci est un exemple"
     text2 = "Ceci est un autre exemple"
     edsnlp.accelerators.multiprocessing.MAX_NUM_PROCESSES = 2

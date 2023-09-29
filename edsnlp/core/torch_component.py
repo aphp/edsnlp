@@ -179,6 +179,11 @@ class TorchComponent(
             if isinstance(module, TorchComponent):
                 yield name, module
 
+    def named_component_modules(self):
+        for name, module in self.named_modules():
+            if isinstance(module, TorchComponent):
+                yield name, module
+
     def post_init(self, gold_data: Iterable[Doc], exclude: Set[str]):
         """
         This method completes the attributes of the component, by looking at some
@@ -222,17 +227,15 @@ class TorchComponent(
             for name, component in self.named_component_children()
         }
 
-    def collate(self, batch: Dict[str, Sequence[Any]]) -> BatchInput:
+    def collate(self, batch: Dict[str, Any]) -> BatchInput:
         """
         Collate the batch of features into a single batch of tensors that can be
         used by the forward method of the component.
 
         Parameters
         ----------
-        batch: Dict[str, Sequence[Any]]
+        batch: Dict[str, Any]
             Batch of features
-        device: torch.device
-            Device on which the tensors should be moved
 
         Returns
         -------
@@ -240,20 +243,39 @@ class TorchComponent(
             Dictionary (optionally nested) containing the collated tensors
         """
         return {
-            name: component.collate(batch)
+            name: component.collate(batch[name])
             for name, component in self.named_component_children()
         }
 
-    def batch_to_device(self, batch, device: Optional[Union[str, torch.device]]):
-        def rec(x):
-            if isinstance(x, dict):
-                return {k: rec(v) for k, v in x.items()}
-            elif hasattr(x, "to"):
-                return x.to(device)
-            else:
-                return x
+    def batch_to_device(
+        self,
+        batch: BatchInput,
+        device: Optional[Union[str, torch.device]],
+    ) -> BatchInput:
+        """
+        Move the batch of tensors to the specified device.
 
-        return rec(batch)
+        Parameters
+        ----------
+        batch: BatchInput
+            Batch of tensors
+        device: Optional[Union[str, torch.device]]
+            Device to move the tensors to
+
+        Returns
+        -------
+        BatchInput
+        """
+        return {
+            name: (
+                value.to(device)
+                if hasattr(value, "to")
+                else getattr(self, name).batch_to_device(value, device=device)
+                if hasattr(self, name)
+                else value
+            )
+            for name, value in batch.items()
+        }
 
     def forward(self, batch: BatchInput) -> BatchOutput:
         """
@@ -321,9 +343,11 @@ class TorchComponent(
         Sequence[Doc]
             Batch of updated documents
         """
+        device = next(self.parameters()).device
         with torch.no_grad():
             batch = self.make_batch(docs)
             inputs = self.collate(batch)
+            inputs = self.batch_to_device(inputs, device=device)
             if hasattr(self, "compiled"):
                 res = self.compiled(inputs)
             else:
@@ -402,3 +426,17 @@ class TorchComponent(
         PDFDoc
         """
         return self.batch_process([doc])[0]
+
+    def to_disk(self, path, *, exclude: Optional[Set[str]]):
+        if self.name not in exclude:
+            exclude.add(self.name)
+            for name, component in self.named_component_children():
+                if hasattr(component, "to_disk"):
+                    component.to_disk(path / name, exclude=exclude)
+
+    def from_disk(self, path, exclude: Optional[Set[str]]):
+        if self.name not in exclude:
+            exclude.add(self.name)
+            for name, component in self.named_component_children():
+                if hasattr(component, "from_disk"):
+                    component.from_disk(path / name, exclude=exclude)

@@ -8,7 +8,7 @@ from transformers import AutoModel, AutoTokenizer
 from typing_extensions import TypedDict
 
 from edsnlp import Pipeline
-from edsnlp.pipelines.trainable.embeddings.typing import EmbeddingComponent
+from edsnlp.pipelines.trainable.embeddings.typing import WordEmbeddingComponent
 from edsnlp.utils.span_getters import SpanGetterArg, get_spans
 from edsnlp.utils.torch import pad_2d
 
@@ -24,7 +24,7 @@ TransformerBatchInput = TypedDict(
 )
 
 
-class Transformer(EmbeddingComponent[TransformerBatchInput]):
+class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
     """
     The `eds.transformer` component is a wrapper around HuggingFace's
     [transformers](https://huggingface.co/transformers/) library. If you are not
@@ -111,7 +111,7 @@ class Transformer(EmbeddingComponent[TransformerBatchInput]):
     ):
         super().__init__(nlp, name)
         self.name = name
-        self.transformer = AutoModel.from_pretrained(model)
+        self.transformer = AutoModel.from_pretrained(model, add_pooling_layer=False)
         self.tokenizer = AutoTokenizer.from_pretrained(model)
         self.window = window
         self.stride = stride
@@ -129,7 +129,6 @@ class Transformer(EmbeddingComponent[TransformerBatchInput]):
         word_lengths = []
         windows = []
         for span in get_spans(doc, self.span_getter):
-            print("SPAN", span)
             preps = self.tokenizer(
                 span.text,
                 is_split_into_words=False,
@@ -173,7 +172,9 @@ class Transformer(EmbeddingComponent[TransformerBatchInput]):
         all_windows = []
         mask = []
         offset = 0
-        window_max_size = max(len(w) for windows in input_ids for w in windows)
+        window_max_size = max(
+            (len(w) for windows in input_ids for w in windows), default=0
+        )
         window_count = sum(len(windows) for windows in input_ids)
         for windows, doc_words_tokens, doc_words_lengths in zip(
             input_ids,
@@ -222,26 +223,40 @@ class Transformer(EmbeddingComponent[TransformerBatchInput]):
             mask.append([True] * len(doc_words_lengths))
 
         token_window_indices = torch.as_tensor(token_window_indices, dtype=torch.long)
+        words_offsets = torch.as_tensor(words_offsets, dtype=torch.long)
 
         pad_id = self.tokenizer.pad_token_id
-        input_ids = pad_2d(all_windows, pad=pad_id, dtype=torch.long)
+        input_ids = pad_2d(all_windows, pad=pad_id, dtype=torch.long).view(
+            len(all_windows), 0 if len(all_windows) == 0 else -1
+        )
         return {
             "input_ids": input_ids,
             "attention_mask": input_ids != pad_id,
             "token_window_indices": token_window_indices,
-            "words_offsets": torch.as_tensor(words_offsets, dtype=torch.long),
-            "mask": pad_2d(mask, pad=False, dtype=torch.bool),
+            "words_offsets": words_offsets,
+            "mask": pad_2d(mask, pad=False, dtype=torch.bool).view(
+                len(mask), 0 if len(mask) == 0 else -1
+            ),
         }
 
     def forward(self, batch):
         device = batch["input_ids"].device
+        if len(batch["input_ids"]) == 0:
+            return {
+                "embeddings": torch.zeros(
+                    (*batch["mask"].shape, self.output_size),
+                    dtype=torch.float,
+                    device=device,
+                ),
+                "mask": batch["mask"].clone(),
+            }
 
         trf_result = self.transformer.base_model(
             input_ids=batch["input_ids"], attention_mask=batch["attention_mask"]
         )
         wordpiece_embeddings = trf_result.last_hidden_state
 
-        mask = batch["mask"]
+        mask = batch["mask"].clone()
         word_embeddings = torch.zeros(
             (mask.size(0), mask.size(1), wordpiece_embeddings.size(2)),
             dtype=torch.float,

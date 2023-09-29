@@ -156,10 +156,11 @@ where = ["."]
 
 # Trainable
 "eds.transformer"                 = "edsnlp.pipelines.trainable.embeddings.transformer.factory:create_component"
-"eds.text_cnn"                    = "edsnlp.pipelines.trainable.embeddings.text_cnn:create_component"
+"eds.text_cnn"                    = "edsnlp.pipelines.trainable.embeddings.text_cnn.factory:create_component"
+"eds.span_pooler"                 = "edsnlp.pipelines.trainable.embeddings.span_pooler.factory:create_component"
 "eds.ner_crf"                     = "edsnlp.pipelines.trainable.ner_crf.factory:create_component"
 "eds.nested_ner"                  = "edsnlp.pipelines.trainable.ner_crf.factory:create_component"
-"eds.span_qualifier"              = "edsnlp.pipelines.trainable.span_qualifier.factory:create_component"
+"eds.span_qualifier"               = "edsnlp.pipelines.trainable.span_qualifier.factory:create_component"
 
 # Deprecated (links to the same factories as above)
 "SOFA"                   = "edsnlp.pipelines.ner.scores.sofa.factory:create_component"
@@ -204,8 +205,9 @@ where = ["."]
 "terminology"            = "edsnlp.pipelines.core.terminology.factory:create_component"
 
 [project.entry-points."spacy_scorers"]
-"eds.ner_exact_scorer"   = "edsnlp.scorers.ner:create_ner_exact_scorer"
-"eds.ner_token_scorer"   = "edsnlp.scorers.ner:create_ner_token_scorer"
+"eds.ner_exact_scorer"            = "edsnlp.scorers.ner:create_ner_exact_scorer"
+"eds.ner_token_scorer"            = "edsnlp.scorers.ner:create_ner_token_scorer"
+"eds.span_classification_scorer"   = "edsnlp.scorers.span_classification:create_span_classification_scorer"
 
 [project.entry-points."edsnlp_accelerator"]
 "simple" = "edsnlp.accelerators.simple:SimpleAccelerator"

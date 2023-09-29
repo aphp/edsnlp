@@ -1,1 +1,6 @@
-T1	ENTITY 10 21	simple text
+T1	sosy 7 13	cancer
+A1	negation T1
+T2	sosy 58 64	nodule
+T3	measure 75 88	centimétrique
+T4	sosy 108 120	fibroanédome
+A2	unit T3 cm

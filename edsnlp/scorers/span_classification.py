@@ -1,17 +1,18 @@
 from collections import defaultdict
-from typing import Iterable
+from typing import Any, Iterable
 
 from spacy.training import Example
 
 from edsnlp import registry
 from edsnlp.scorers import make_examples
-from edsnlp.utils.bindings import BINDING_GETTERS, BindingCandidateGetterArg
-from edsnlp.utils.span_getters import SpanGetterArg
+from edsnlp.utils.bindings import BINDING_GETTERS, Qualifiers, QualifiersArg
+from edsnlp.utils.span_getters import SpanGetterArg, get_spans
 
 
 def span_classification_scorer(
     examples: Iterable[Example],
-    candidate_getter: BindingCandidateGetterArg,
+    span_getter: SpanGetterArg,
+    qualifiers: Qualifiers,
 ):
     """
     Scores the extracted entities that may be overlapping or nested
@@ -21,8 +22,10 @@ def span_classification_scorer(
     ----------
     examples : Iterable[Example]
         The examples to score
-    candidate_getter : BindingCandidateGetterArg
-        The configuration dict of the component
+    span_getter : SpanGetterArg
+        The span getter to use to extract the spans from the document
+    qualifiers : Sequence[str]
+        The qualifiers to use to score the spans
 
     Returns
     -------
@@ -30,24 +33,40 @@ def span_classification_scorer(
     """
     labels = defaultdict(lambda: ([], []))
     labels[None] = ([], [])
+    total_pred_count = 0
+    total_gold_count = 0
     for eg_idx, eg in enumerate(examples):
-        doc_spans, *_, doc_qlf = candidate_getter(eg.predicted)
-        for span_idx, (span, span_qualifiers) in enumerate(zip(doc_spans, doc_qlf)):
-            for qualifier in span_qualifiers:
+        doc_spans = get_spans(eg.predicted, span_getter)
+        for span_idx, span in enumerate(doc_spans):
+            total_pred_count += 1
+            for qualifier, span_filter in qualifiers.items():
+                if not (span_filter is True or span.label_ in span_filter):
+                    continue
                 value = BINDING_GETTERS[qualifier](span)
                 if value:
                     labels[None][0].append((eg_idx, span_idx, qualifier, value))
                     key_str = f"{qualifier}" if value is True else f"{value}"
                     labels[key_str][0].append((eg_idx, span_idx, value))
 
-        doc_spans, *_, doc_qlf = candidate_getter(eg.reference)
-        for span_idx, (span, span_qualifiers) in enumerate(zip(doc_spans, doc_qlf)):
-            for qualifier in span_qualifiers:
+        doc_spans = get_spans(eg.reference, span_getter)
+        for span_idx, span in enumerate(doc_spans):
+            total_gold_count += 1
+            for qualifier, span_filter in qualifiers.items():
+                if not (span_filter is True or span.label_ in span_filter):
+                    continue
                 value = BINDING_GETTERS[qualifier](span)
                 if value:
                     labels[None][1].append((eg_idx, span_idx, qualifier, value))
                     key_str = f"{qualifier}" if value is True else f"{value}"
                     labels[key_str][1].append((eg_idx, span_idx, value))
+
+    if total_pred_count != total_gold_count:
+        raise ValueError(
+            f"Number of predicted and gold spans differ: {total_pred_count} != "
+            f"{total_gold_count}. Make sure that you are running your span "
+            "qualifier pipe on the gold annotations, and not spans predicted by "
+            "another NER pipe in your model."
+        )
 
     def prf(pred, gold):
         tp = len(set(pred) & set(gold))
@@ -69,7 +88,20 @@ def span_classification_scorer(
 
 
 @registry.scorers.register("eds.span_classification_scorer")
-def create_span_classification_scorer(
-    span_getter: SpanGetterArg,
-):
-    return lambda *args: span_classification_scorer(make_examples(*args), span_getter)
+class create_span_classification_scorer:
+    qualifiers: Qualifiers
+
+    def __init__(
+        self,
+        span_getter: SpanGetterArg,
+        qualifiers: QualifiersArg = None,
+    ):
+        self.span_getter = span_getter
+        self.qualifiers = qualifiers  # type: ignore
+
+    def __call__(self, *examples: Any):
+        return span_classification_scorer(
+            make_examples(*examples),
+            self.span_getter,
+            self.qualifiers,
+        )

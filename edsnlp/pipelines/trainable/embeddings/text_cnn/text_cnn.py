@@ -3,9 +3,11 @@ from typing import Optional, Sequence
 import torch
 from typing_extensions import TypedDict
 
-from edsnlp import registry
-from edsnlp.core.torch_component import BatchInput, TorchComponent
-from edsnlp.pipelines.trainable.embeddings.typing import WordEmbeddingBatchOutput
+from edsnlp.core.torch_component import BatchInput
+from edsnlp.pipelines.trainable.embeddings.typing import (
+    WordEmbeddingBatchOutput,
+    WordEmbeddingComponent,
+)
 from edsnlp.pipelines.trainable.layers.text_cnn import NormalizationPlacement, TextCnn
 from edsnlp.utils.torch import ActivationFunction
 
@@ -18,13 +20,12 @@ TextCnnBatchInput = TypedDict(
 )
 
 
-@registry.factory.register("eds.text_cnn")
-class TextCnnEncoder(TorchComponent[WordEmbeddingBatchOutput, BatchInput]):
+class TextCnnEncoder(WordEmbeddingComponent):
     def __init__(
         self,
         nlp,
         name: str,
-        embedding: TorchComponent[WordEmbeddingBatchOutput, BatchInput],
+        embedding: WordEmbeddingComponent,
         output_size: Optional[int] = None,
         out_channels: Optional[int] = None,
         kernel_sizes: Sequence[int] = (3, 4, 5),
@@ -89,7 +90,10 @@ class TextCnnEncoder(TorchComponent[WordEmbeddingBatchOutput, BatchInput]):
             - embeddings: encoded embeddings of shape (batch_size, seq_len, input_size)
             - mask: (same) mask of shape (batch_size, seq_len)
         """
-        embedding_results = self.embedding.module_forward(batch)
+        embedding_results = self.embedding.module_forward(batch["embedding"])
+        if embedding_results["embeddings"].size(0) == 0:
+            return embedding_results
+
         convoluted = self.module(
             embedding_results["embeddings"],
             embedding_results["mask"],
@@ -98,6 +102,3 @@ class TextCnnEncoder(TorchComponent[WordEmbeddingBatchOutput, BatchInput]):
             "embeddings": convoluted,
             "mask": embedding_results["mask"],
         }
-
-
-create_component = TextCnnEncoder

@@ -377,7 +377,7 @@ class BratConnector(object):
         docs = []
 
         if run_pipe:
-            gold_docs = nlp.pipe(texts, batch_size=50, n_process=self.n_jobs)
+            gold_docs = nlp.pipe(texts, batch_size=50)  # , n_process=self.n_jobs)
         else:
             gold_docs = (nlp.make_doc(t) for t in texts)
 
@@ -421,7 +421,9 @@ class BratConnector(object):
                                 if self.attr_map is None
                                 else self.attr_map[a["label"]]
                             )
-                            span._.set(new_name, a["value"] if a is not None else True)
+                            span._.set(
+                                new_name, a["value"] if a["value"] is not None else True
+                            )
                     spans.append(span)
 
                     if self.span_groups is None or ent["label"] in self.span_groups:

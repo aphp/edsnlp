@@ -14,10 +14,10 @@ from edsnlp.core.torch_component import TorchComponent
 from edsnlp.pipelines.base import BaseNERComponent
 from edsnlp.pipelines.trainable.embeddings.typing import (
     BatchInput,
-    EmbeddingComponent,
+    WordEmbeddingComponent,
 )
 from edsnlp.pipelines.trainable.layers.crf import MultiLabelBIOULDecoder
-from edsnlp.utils.filter import align_spans
+from edsnlp.utils.filter import align_spans, filter_spans
 from edsnlp.utils.span_getters import (
     SpanGetterArg,
     SpanGetterMapping,
@@ -53,8 +53,8 @@ class CRFMode(str, Enum):
 
 class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComponent):
     """
-    The `eds.ner_crf` component is a general purpose trainable named entity recognizer. It
-    can extract:
+    The `eds.ner_crf` component is a general purpose trainable named entity recognizer.
+    It can extract:
 
     - flat entities
     - overlapping entities of different labels
@@ -127,7 +127,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         The pipeline object
     name : str
         Name of the component
-    embedding : EmbeddingComponent
+    embedding : WordEmbeddingComponent
         The word embedding component
     target_span_getter : SpanGetterArg
         Method to call to get the gold spans from a document, for scoring or training.
@@ -167,7 +167,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         nlp: Optional[Pipeline] = None,
         name: Optional[str] = "eds.ner_crf",
         *,
-        embedding: EmbeddingComponent,
+        embedding: WordEmbeddingComponent,
         target_span_getter: SpanGetterArg = {"ents": True},
         labels: Optional[List[str]] = None,
         span_setter: Optional[SpanSetterArg] = None,
@@ -281,7 +281,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
             {
                 **self.span_setter,
                 **{
-                    key: value
+                    key: sorted(set(value))
                     for key, value in span_setter.items()
                     if key not in self.span_setter
                 },
@@ -332,7 +332,13 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
 
     @property
     def cfg(self):
-        return {"labels": self.labels}
+        return {
+            "labels": self.labels,
+            "span_setter": self.span_setter,
+            "mode": self.mode,
+            "window": self.window,
+            "stride": self.stride,
+        }
 
     def preprocess(self, doc):
         if self.labels is None:
@@ -351,6 +357,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         embedded_spans = list(get_spans(doc, self.embedding.span_getter))
         tags = []
 
+        discarded = []
         for embedded_span, target_ents in zip(
             embedded_spans,
             align_spans(
@@ -360,7 +367,16 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         ):
             span_tags = [[0] * len(self.labels) for _ in range(len(embedded_span))]
             start = embedded_span.start
+            by_label = defaultdict(list)
             for ent in target_ents:
+                by_label[ent.label_].append(ent)
+            filtered = []
+            for label, spans in by_label.items():
+                filtered[len(filtered) :], discarded[len(discarded) :] = filter_spans(
+                    by_label[label], return_discarded=True
+                )
+
+            for ent in filtered:
                 label_idx = self.labels.index(ent.label_)
                 if ent.start == ent.end - 1:
                     span_tags[ent.start - start][label_idx] = 4
@@ -370,6 +386,14 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
                     for i in range(ent.start + 1 - start, ent.end - 1 - start):
                         span_tags[i][label_idx] = 1
             tags.append(span_tags)
+
+        if discarded:
+            warnings.warn(
+                f"Some spans in {doc._.note_id} were discarded ("
+                f"{', '.join(repr(d.text) for d in discarded)}) because they "
+                f"were overlapping with other spans with the same label."
+            )
+
         return {
             **self.preprocess(doc),
             "targets": tags,
@@ -379,8 +403,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         collated: NERBatchInput = {
             "embedding": self.embedding.collate(preps["embedding"]),
         }
-        mask = collated["embedding"]["mask"]
-        max_len = mask.sum(-1).max().item()
+        max_len = max(preps["length"])
         if "targets" in preps:
             targets = torch.as_tensor(
                 [
@@ -396,7 +419,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         else:
             if self.window > 0:
                 win_indices, win_indexer = make_windows(
-                    mask,
+                    preps["length"],
                     self.window,
                     self.stride,
                 )
@@ -454,6 +477,18 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
                 tags = tags.masked_fill(~mask.unsqueeze(-1), 0)
 
             # tags = scores.argmax(-1).masked_fill(~mask.unsqueeze(-1), 0)
+        if loss is not None and loss.item() > 100000:
+            warnings.warn("The loss is very high, this is likely a tag encoding issue.")
+            losses = self.crf(
+                scores,
+                mask,
+                batch["targets"].unsqueeze(-1) == torch.arange(5).to(scores.device),
+            ).view(-1)
+            print("LOSSES", losses.tolist())
+            print(
+                batch["targets"].transpose(1, 2).reshape(-1, num_words)[losses.argmax()]
+            )
+            print(batch["targets"])
         return {
             "loss": loss,
             "tags": tags,
@@ -478,9 +513,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         ).tolist():
             span = embedded_spans[embedded_span_idx][start:end]
             span.label_ = self.labels[label_idx]
-            print("MAKING SPAN", span, span.label_)
             spans[span.doc].append(span)
-        for doc, doc_spans in spans.items():
-            print("SETTING SPANS", [(s.text, s.label_) for s in doc_spans], "on", doc)
-            self.set_spans(doc, doc_spans)
+        for doc in docs:
+            self.set_spans(doc, spans.get(doc, []))
         return docs

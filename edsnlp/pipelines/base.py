@@ -50,7 +50,7 @@ class BaseComponent:
             force=True,
         )
 
-    def get_spans(self, doc: Doc):
+    def get_spans(self, doc: Doc):  # noqa: F811
         """
         Returns sorted spans of interest according to the
         possible value of `on_ents_only`.
@@ -124,7 +124,6 @@ class BaseNERComponent(BaseComponent):
         if callable(self.span_setter):
             self.span_setter(doc, matches)
         else:
-
             match_all = []
             label_to_group = defaultdict(list)
             for name, spans_filter in self.span_setter.items():

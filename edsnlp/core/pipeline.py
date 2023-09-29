@@ -11,6 +11,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Container,
     Dict,
     Iterable,
     List,
@@ -430,14 +431,14 @@ class Pipeline:
             self._cache = None
 
     def torch_components(
-        self, disable: Sequence[str] = ()
+        self, disable: Container[str] = ()
     ) -> Iterable[Tuple[str, "edsnlp.core.torch_component.TorchComponent"]]:
         """
         Yields components that are PyTorch modules.
 
         Parameters
         ----------
-        disable: Sequence[str]
+        disable: Container[str]
             The names of disabled components, which will be skipped.
 
         Returns
@@ -674,7 +675,6 @@ class Pipeline:
                     batch[name] = component.collate(component_inputs)
         return batch
 
-
     def parameters(self):
         """Returns an iterator over the Pytorch parameters of the components in the
         pipeline"""
@@ -723,7 +723,7 @@ class Pipeline:
         return context()
 
     def to_disk(
-        self, path: Union[str, Path], *, exclude: Sequence[str] = FrozenList()
+        self, path: Union[str, Path], *, exclude: Optional[Set[str]] = None
     ) -> None:
         """
         Save the pipeline to a directory.
@@ -739,6 +739,8 @@ class Pipeline:
             The names of the components, or attributes to exclude from the saving
             process.
         """
+        exclude = set() if exclude is None else exclude
+        tensor_exclude = set(exclude)
 
         def save_tensors(path: Path):
             import safetensors.torch
@@ -747,7 +749,7 @@ class Pipeline:
             os.makedirs(path, exist_ok=True)
             tensors = defaultdict(list)
             tensor_to_group = defaultdict(list)
-            for pipe_name, pipe in self.torch_components(disable=exclude):
+            for pipe_name, pipe in self.torch_components(disable=tensor_exclude):
                 for key, tensor in pipe.state_dict(keep_vars=True).items():
                     full_key = join_path((pipe_name, *split_path(key)))
                     tensors[tensor].append(full_key)
@@ -780,13 +782,12 @@ class Pipeline:
             srsly.write_json(path / "meta.json", self.meta)
         if "config" not in exclude:
             self.config.to_disk(path / "config.cfg")
+        if "vocab" not in exclude:
+            self.vocab.to_disk(path / "vocab")
 
         for pipe_name, pipe in self._components:
             if hasattr(pipe, "to_disk") and pipe_name not in exclude:
                 pipe.to_disk(path / pipe_name, exclude=exclude)
-
-        if "vocab" not in exclude:
-            self.vocab.to_disk(path / "vocab")
 
         if "tensors" not in exclude:
             save_tensors(path / "tensors")

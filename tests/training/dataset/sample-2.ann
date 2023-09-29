@@ -1,1 +1,7 @@
-T1	OTHER 24 28	text
+T1	sosy 22 27	rhume
+T2	sosy 34 40	fièvre
+T3	sosy 44 62	douleur thoracique
+A1	negation T2
+A2	negation T3
+T4	measure 74 79	30 kg
+A3	unit T4 kg

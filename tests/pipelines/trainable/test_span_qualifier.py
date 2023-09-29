@@ -3,6 +3,7 @@ from pytest import fixture
 from spacy.tokens import Span
 
 import edsnlp
+from edsnlp.utils.span_getters import get_spans
 
 if not Span.has_extension("label"):
     Span.set_extension("label", default=None)
@@ -62,18 +63,16 @@ def test_span_qualifier(gold, with_label_constraints):
     nlp.add_pipe(
         "eds.span_qualifier",
         name="qualifier",
-        config=dict(
-            embedding=nlp.get_pipe("transformer"),
-            candidate_getter={
+        config={
+            "embedding": {
+                "@factory": "eds.span_pooler",
+                "embedding": nlp.get_pipe("transformer"),
                 "span_getter": ["ents", "sc"],
-                "qualifiers": ["_.test_negated", "_.event_type"],
-                **(
-                    {"label_constraints": {"_.event_type": ("event",)}}
-                    if with_label_constraints
-                    else {}
-                ),
             },
-        ),
+            "qualifiers": {"_.event_type": ("event",), "_.test_negated": True}
+            if with_label_constraints
+            else ["_.test_negated", "_.event_type"],
+        },
     )
     qlf = nlp.get_pipe("qualifier")
     qlf.post_init(gold, set())
@@ -98,7 +97,7 @@ def test_span_qualifier(gold, with_label_constraints):
 
     pred = qlf.pipe([doc.copy() for doc in gold])
     for doc in pred:
-        for ent in qlf.get_candidate_spans(doc):
+        for ent in get_spans(doc, qlf.embedding.span_getter):
             assert ent._.test_negated is True
             if ent.label_ == "event":
                 if with_label_constraints is not None:

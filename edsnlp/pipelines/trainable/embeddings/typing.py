@@ -15,7 +15,24 @@ WordEmbeddingBatchOutput = TypedDict(
 )
 
 
-class EmbeddingComponent(
+class WordEmbeddingComponent(
     Generic[BatchInput], TorchComponent[WordEmbeddingBatchOutput, BatchInput]
 ):
     span_getter: Optional[SpanGetter]
+    output_size: int
+
+
+SpanEmbeddingBatchOutput = TypedDict(
+    "SpanEmbeddingBatchOutput",
+    {
+        "embeddings": torch.Tensor,
+        "mask": torch.Tensor,
+    },
+)
+
+
+class SpanEmbeddingComponent(
+    Generic[BatchInput], TorchComponent[SpanEmbeddingBatchOutput, BatchInput]
+):
+    span_getter: Optional[SpanGetter]
+    output_size: int

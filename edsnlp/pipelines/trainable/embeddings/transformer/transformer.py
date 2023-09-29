@@ -1,16 +1,16 @@
 import math
-from itertools import chain
 from pathlib import Path
-from typing import Optional, Union
+from typing import List, Optional, Tuple, Union
 
+import tokenizers
 import torch
+from foldedtensor import as_folded_tensor
 from transformers import AutoModel, AutoTokenizer
 from typing_extensions import TypedDict
 
 from edsnlp import Pipeline
-from edsnlp.pipelines.trainable.embeddings.typing import EmbeddingComponent
+from edsnlp.pipelines.trainable.embeddings.typing import WordEmbeddingComponent
 from edsnlp.utils.span_getters import SpanGetterArg, get_spans
-from edsnlp.utils.torch import pad_2d
 
 TransformerBatchInput = TypedDict(
     "TransformerBatchInput",
@@ -24,7 +24,17 @@ TransformerBatchInput = TypedDict(
 )
 
 
-class Transformer(EmbeddingComponent[TransformerBatchInput]):
+def compute_contextualization_scores(windows):
+    ramp = torch.arange(0, windows.shape[1], 1)
+    scores = (
+        torch.min(ramp, windows.mask.sum(1, keepdim=True) - 1 - ramp)
+        .clamp(min=0)
+        .view(-1)
+    )
+    return scores
+
+
+class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
     """
     The `eds.transformer` component is a wrapper around HuggingFace's
     [transformers](https://huggingface.co/transformers/) library. If you are not
@@ -108,10 +118,11 @@ class Transformer(EmbeddingComponent[TransformerBatchInput]):
         stride: int = 96,
         max_tokens_per_device: int = 128 * 128,
         span_getter: Optional[SpanGetterArg] = None,
+        new_tokens: Optional[List[Tuple[str, str]]] = [],
     ):
         super().__init__(nlp, name)
         self.name = name
-        self.transformer = AutoModel.from_pretrained(model)
+        self.transformer = AutoModel.from_pretrained(model, add_pooling_layer=False)
         self.tokenizer = AutoTokenizer.from_pretrained(model)
         self.window = window
         self.stride = stride
@@ -124,13 +135,35 @@ class Transformer(EmbeddingComponent[TransformerBatchInput]):
         self.max_tokens_per_device = max_tokens_per_device
         self.span_getter = span_getter
 
+        if new_tokens:
+            self.tokenizer.add_tokens(sorted(set(t[1] for t in new_tokens)))
+            original_normalizer = self.tokenizer.backend_tokenizer.normalizer
+            self.tokenizer.backend_tokenizer.normalizer = (
+                tokenizers.normalizers.Sequence(
+                    [
+                        *(
+                            tokenizers.normalizers.Replace(
+                                tokenizers.Regex(pattern), replacement
+                            )
+                            for pattern, replacement in new_tokens
+                        ),
+                        original_normalizer,
+                    ]
+                )
+            )
+            # and add a new entry to the model's embeddings
+            self.transformer.resize_token_embeddings(len(self.tokenizer))
+
     def preprocess(self, doc):
-        word_tokens = []
-        word_lengths = []
-        windows = []
+        res = {
+            "input_ids": [],
+            "word_tokens": [],
+            "word_lengths": [],
+        }
+
         for span in get_spans(doc, self.span_getter):
-            print("SPAN", span)
-            preps = self.tokenizer(
+            # Preprocess it using LayoutLMv3
+            prep = self.tokenizer(
                 span.text,
                 is_split_into_words=False,
                 return_offsets_mapping=True,
@@ -138,110 +171,145 @@ class Transformer(EmbeddingComponent[TransformerBatchInput]):
             )
 
             span_word_tokens, span_word_lengths = self.align_words_with_trf_tokens(
-                span, preps.pop("offset_mapping")[1:-1]
+                span, prep.pop("offset_mapping")
             )
-            word_tokens.append(span_word_tokens)
-            word_lengths.append(span_word_lengths)
+            res["input_ids"].append(prep["input_ids"])
+            res["word_tokens"].append(span_word_tokens)
+            res["word_lengths"].append(span_word_lengths)
 
-            bos, *input_ids, eos = preps["input_ids"]
-            span_windows = [
-                [
-                    bos,
-                    *input_ids[
-                        window_i * self.stride : window_i * self.stride + self.window
-                    ],
-                    eos,
-                ]
-                for window_i in range(
-                    0,
-                    1 + max(0, math.ceil((len(input_ids) - self.window) / self.stride)),
-                )
-            ]
-            windows.append(span_windows)
+        return res
 
-        return {
-            "word_tokens": word_tokens,
-            "word_lengths": word_lengths,
-            "input_ids": windows,
-        }
+    def collate(self, batch):
+        # Flatten most of these arrays to process batches page per page and
+        # not sample per sample
 
-    def collate(self, preps):
-        input_ids = [window for span in preps["input_ids"] for window in span]
-        token_window_indices = []
-        words_offsets = []
-        window_i = 0
-        all_windows = []
-        mask = []
+        S = self.stride
+        W = self.window
+
         offset = 0
-        window_max_size = max(len(w) for windows in input_ids for w in windows)
-        window_count = sum(len(windows) for windows in input_ids)
-        for windows, doc_words_tokens, doc_words_lengths in zip(
-            input_ids,
-            chain.from_iterable(preps["word_tokens"]),
-            chain.from_iterable(preps["word_lengths"]),
+        window_max_size = 0
+        window_count = 0
+        windows = []
+        windows_count_per_page = []
+        for sample_input_ids in batch["input_ids"]:
+            for span_input_ids in sample_input_ids:
+                span_size = len(span_input_ids)
+                num_span_windows = 1 + max(0, math.ceil((span_size - 2 - W) / S))
+                windows.append(
+                    [
+                        [
+                            offset + 0,
+                            *range(
+                                1 + offset + win_i * S,
+                                1 + offset + min(win_i * S + W, span_size - 2),
+                            ),
+                            offset + len(span_input_ids) - 1,
+                        ]
+                        for win_i in range(0, num_span_windows)
+                    ]
+                )
+                windows_count_per_page.append(len(windows[-1]))
+                offset += len(span_input_ids)
+                window_max_size = max(window_max_size, max(map(len, windows[-1])))
+                window_count += len(windows[-1])
+
+        windows = as_folded_tensor(
+            windows,
+            full_names=("sample", "window", "token"),
+            data_dims=("window", "token"),
+            dtype=torch.long,
+        )
+        indexer = torch.zeros(
+            (0 if 0 in windows.shape else windows.max()) + 1, dtype=torch.long
+        )
+
+        # Sort each occurrence of an initial token by its contextualization score:
+        # We can only use the amax reduction, so to retrieve the best occurrence, we
+        # insert the index of the token output by the transformer inside the score
+        # using a lexicographic approach
+        # (score + index / n_tokens) ~ (score * n_tokens + index), taking the max,
+        # and then retrieving the index of the token using the modulo operator.
+        scores = compute_contextualization_scores(windows)
+        scores = scores * len(scores) + torch.arange(len(scores))
+
+        indexer.index_reduce_(
+            dim=0,
+            source=scores,
+            index=windows.view(-1),
+            reduce="amax",
+        )
+        indexer %= max(len(scores), 1)
+        indexer = indexer.tolist()
+        # Indexer: flattened, unpadded mapping tensor, that for each wordpiece in the
+        # batch gives its position inside the flattened padded windows before/after the
+        # transformer
+
+        input_ids = as_folded_tensor(
+            batch["input_ids"],
+            data_dims=("subword",),
+            full_names=("sample", "span", "subword"),
+            dtype=torch.long,
+        ).as_tensor()[windows]
+        empty_id = input_ids.numel()
+
+        word_indices = []
+        word_offsets = []
+        offset = 0
+        indexer_offset = 0
+        mask = []
+        for sample_word_lengths, sample_word_tokens, sample_input_ids in zip(
+            batch["word_lengths"], batch["word_tokens"], batch["input_ids"]
         ):
-            all_windows.extend(windows)
+            for span_word_lengths, span_word_tokens, span_input_ids in zip(
+                sample_word_lengths, sample_word_tokens, sample_input_ids
+            ):
+                offset = 0
+                for length in span_word_lengths:
+                    word_offsets.append(len(word_indices))
+                    word_indices.extend(
+                        [
+                            indexer[indexer_offset + i] if i >= 0 else empty_id
+                            for i in span_word_tokens[offset : offset + length]
+                        ]
+                    )
+                    offset += length
+                indexer_offset += len(span_input_ids)
+                mask.append([True] * len(span_word_lengths))
 
-            cols = list(
-                range(
-                    1,
-                    min(1 + ((self.window - self.stride) // 2), len(windows[0]) - 1),
-                )
-            )
-            rows = [window_i] * len(cols)
-            window_i -= 1
-            for window in windows:
-                window_i += 1
-                col_start = 1 + (self.window - self.stride) // 2
-                last_cols = range(
-                    col_start,
-                    min(col_start + self.stride, len(window) - 1),
-                )
-                rows.extend([window_i] * len(last_cols))
-                cols.extend(last_cols)
-
-            last_cols = range(
-                len(window) - ((len(window) - 2 - self.stride + 2) // 2),
-                min(self.window + 1, len(window)),
-            )
-            cols.extend(last_cols)
-            rows.extend([window_i] * len(last_cols))
-            window_i += 1
-
-            token_window_indices.extend(
-                [
-                    cols[i] + rows[i] * window_max_size
-                    if i >= 0
-                    else window_max_size * window_count
-                    for i in doc_words_tokens
-                ]
-            )
-            for length in doc_words_lengths:
-                words_offsets.append(offset)
-                offset += length
-            mask.append([True] * len(doc_words_lengths))
-
-        token_window_indices = torch.as_tensor(token_window_indices, dtype=torch.long)
-
-        pad_id = self.tokenizer.pad_token_id
-        input_ids = pad_2d(all_windows, pad=pad_id, dtype=torch.long)
         return {
             "input_ids": input_ids,
-            "attention_mask": input_ids != pad_id,
-            "token_window_indices": token_window_indices,
-            "words_offsets": torch.as_tensor(words_offsets, dtype=torch.long),
-            "mask": pad_2d(mask, pad=False, dtype=torch.bool),
+            "word_indices": torch.as_tensor(word_indices),
+            "word_offsets": torch.as_tensor(word_offsets),
+            "mask": as_folded_tensor(
+                mask,
+                data_dims=(
+                    "span",
+                    "subword",
+                ),
+                full_names=("span", "subword"),
+                dtype=torch.bool,
+            ).as_tensor(),
         }
 
     def forward(self, batch):
         device = batch["input_ids"].device
+        if len(batch["input_ids"]) == 0:
+            return {
+                "embeddings": torch.zeros(
+                    (*batch["mask"].shape, self.output_size),
+                    dtype=torch.float,
+                    device=device,
+                ),
+                "mask": batch["mask"].clone(),
+            }
 
         trf_result = self.transformer.base_model(
-            input_ids=batch["input_ids"], attention_mask=batch["attention_mask"]
+            input_ids=batch["input_ids"].as_tensor(),
+            attention_mask=batch["input_ids"].mask,
         )
         wordpiece_embeddings = trf_result.last_hidden_state
 
-        mask = batch["mask"]
+        mask = batch["mask"].clone()
         word_embeddings = torch.zeros(
             (mask.size(0), mask.size(1), wordpiece_embeddings.size(2)),
             dtype=torch.float,
@@ -255,9 +323,9 @@ class Transformer(EmbeddingComponent[TransformerBatchInput]):
             dim=0,
         )
         word_embeddings[mask] = torch.nn.functional.embedding_bag(
-            input=batch["token_window_indices"],
+            input=batch["word_indices"],
             weight=embeddings_plus_empty,
-            offsets=batch["words_offsets"],
+            offsets=batch["word_offsets"],
         )
         return {
             "embeddings": word_embeddings,

@@ -1,9 +1,9 @@
 from edsnlp import registry
 
-from .text_cnn import TextCnnEncoder
+from .span_pooler import SpanPooler
 
 create_component = registry.factory.register(
-    "eds.text_cnn",
+    "eds.span_pooler",
     assigns=[],
     deprecated=[],
-)(TextCnnEncoder)
+)(SpanPooler)

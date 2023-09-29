@@ -2,18 +2,12 @@ from typing import (
     Any,
     Callable,
     Dict,
-    List,
-    Sequence,
     Tuple,
     TypeVar,
     Union,
 )
 
-from rich.text import Span
-from spacy.tokens import Doc
-from typing_extensions import NotRequired, TypedDict
-
-from edsnlp.utils.span_getters import SpanGetterArg, get_spans
+from edsnlp.utils.span_getters import SeqStr, SpanFilter
 
 Binding = Tuple[str, Any]
 
@@ -91,84 +85,60 @@ class keydefaultdict(dict):
 BINDING_GETTERS = keydefaultdict(make_binding_getter)
 BINDING_SETTERS = keydefaultdict(make_binding_setter)
 
-BindingCandidateGetter = TypedDict(
-    "BindingCandidateGetter",
-    {
-        "span_getter": SpanGetterArg,
-        "qualifiers": NotRequired[Sequence[str]],
-        "label_constraints": NotRequired[Dict[str, List[str]]],
-    },
-)
-
-BindingCandidateGetterArg = Union[
-    BindingCandidateGetter,
-    Callable[[Doc], Tuple[List[Span], List[List[Any]]]],
-]
-"""
-Either a dict with the keys described below, or a function that takes a `Doc` and
-returns a tuple of (spans, list of multiple attributes per span). One of `qualifiers`
-or `label_constraints` must be given.
-
-Parameters
-----------
-span_getter: SpanGetterMapping
-    Whether to look into `doc.ents` for spans to classify. If a list of strings
-qualifiers: Optional[Sequence[str]]
-    The qualifiers to predict or train on. If None, keys from the
-    `label_constraints` will be used
-label_constraints: Optional[Dict[str, List[str]]]
-    Constraints to select qualifiers for each span depending on their labels.
-    Keys of the dict are the qualifiers and values are the labels for which
-    the qualifier is allowed. If None, all qualifiers will be used for all spans
-"""
+Qualifiers = Union[SeqStr, Dict[str, SpanFilter]]
 
 
-def get_candidates(doc: Doc, candidate_getter: BindingCandidateGetterArg):
-    """
-    Make a span qualifier candidate getter function.
-
-    Parameters
-    ----------
-    doc: Doc
-        Document to get the candidates from
-    candidate_getter: BindingCandidateGetterArg
-        Options on how to get the qualification candidates
-        (span x attribute paths)
-
-    Returns
-    -------
-    Tuple[List[Span], List[List[Any]]]
-    """
-
-    if callable(candidate_getter):
-        return candidate_getter(doc)
-
-    qualifiers = candidate_getter.get("qualifiers")
-    label_constraints = candidate_getter.get("label_constraints")
-
-    if qualifiers is None and label_constraints is None:
-        raise ValueError(
-            "Either `qualifiers` or `label_constraints` must be given to "
-            "provide the qualifiers to predict / train on."
-        )
-    elif qualifiers is None:
-        qualifiers = list(label_constraints.keys())
-
-    label_constraints = label_constraints
-    qualifiers = qualifiers
-
-    flattened_spans = list(get_spans(doc, candidate_getter["span_getter"]))
-
-    if label_constraints:
-        span_qualifiers = [
-            [
-                qualifier
-                for qualifier in qualifiers
-                if qualifier not in label_constraints
-                or span.label_ in label_constraints[qualifier]
-            ]
-            for span in flattened_spans
-        ]
+def validate_qualifiers(value: Union[SeqStr, Dict[str, SpanFilter]]) -> Qualifiers:
+    if callable(value):
+        return value
+    if isinstance(value, str):
+        return {value: True}
+    if isinstance(value, list):
+        return {group: True for group in value}
+    elif isinstance(value, dict):
+        new_value = {}
+        for k, v in value.items():
+            if isinstance(v, bool):
+                new_value[k] = v
+            elif isinstance(v, str):
+                new_value[k] = [v]
+            elif isinstance(v, (list, tuple)) and all(isinstance(i, str) for i in v):
+                new_value[k] = list(v)
+            else:
+                raise TypeError(
+                    f"Invalid entry {value} ({type(value)}) for Qualifiers, "
+                    f"expected bool/string(s), dict of bool/string(s) or callable"
+                )
+        return new_value
     else:
-        span_qualifiers = [qualifiers] * len(flattened_spans)
-    return flattened_spans, span_qualifiers
+        raise TypeError(
+            f"Invalid entry {value} ({type(value)}) for SpanSetterArg, "
+            f"expected bool/string(s), dict of bool/string(s) or callable"
+        )
+
+
+class QualifiersArg:
+    """
+    Valid values for the `qualifiers` argument of a component can be :
+
+    - a (span) -> qualifier callable
+    - a qualifier name ("_.negated")
+    - a list of qualifier names (["_.negated", "_.event"])
+    - a dict of qualifier name to True or list of labels, to filter the qualifiers
+
+    Examples
+    --------
+    - `qualifiers="_.negated"` will use the `negated` extention of the span
+    - `qualifiers=["_.negated", "_.past"]` will use the `negated` and `past`
+       extensions of the span
+    - `qualifiers={"_.negated": True, "_.past": "DATE"}` will use the `negated`
+       extension of any span, and the `past` extension of spans with the `DATE` label
+    """
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, value: Union[SeqStr, Dict[str, SpanFilter]]) -> Qualifiers:
+        return validate_qualifiers(value)

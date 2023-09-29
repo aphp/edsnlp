@@ -81,8 +81,6 @@ preceding: List[str] = [
     "plus d'aspect de",
     "sans",
     "symptôme atypique",
-    "ne",
-    "n'",
 ]
 
 preceding_regex = [

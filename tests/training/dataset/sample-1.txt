@@ -1,1 +1,2 @@
-This is a simple text to train a NER model with EDS-NLP.
+Pas de cancer chez le patient ou sa famille.
+On trouve un nodule superieur centimétrique droit évocateur de fibroanédome.

@@ -62,29 +62,31 @@ def blank_nlp(lang):
     return model
 
 
-text = (
-    "Le patient est admis pour des douleurs dans le bras droit, "
-    "mais n'a pas de problème de locomotion. "
-    "Historique d'AVC dans la famille. pourrait être un cas de rhume.\n"
-    "NBNbWbWbNbWbNBNbNbWbWbNBNbWbNbNbWbNBNbWbNbNBWbWbNbNbNBWbNbWbNbWBNb"
-    "NbWbNbNBNbWbWbNbWBNbNbWbNBNbWbWbNb\n"
-    "Pourrait être un cas de rhume.\n"
-    "Motif :\n"
-    "Douleurs dans le bras droit.\n"
-    "ANTÉCÉDENTS\n"
-    "Le patient est déjà venu pendant les vacances\n"
-    "d'été.\n"
-    "Pas d'anomalie détectée."
-)
+@fixture()
+def text():
+    return (
+        "Le patient est admis pour des douleurs dans le bras droit, "
+        "mais n'a pas de problème de locomotion. "
+        "Historique d'AVC dans la famille. pourrait être un cas de rhume.\n"
+        "NBNbWbWbNbWbNBNbNbWbWbNBNbWbNbNbWbNBNbWbNbNBWbWbNbNbNBWbNbWbNbWBNb"
+        "NbWbNbNBNbWbWbNbWBNbNbWbNBNbWbWbNb\n"
+        "Pourrait être un cas de rhume.\n"
+        "Motif :\n"
+        "Douleurs dans le bras droit.\n"
+        "ANTÉCÉDENTS\n"
+        "Le patient est déjà venu pendant les vacances\n"
+        "d'été.\n"
+        "Pas d'anomalie détectée."
+    )
 
 
 @fixture
-def doc(nlp):
+def doc(nlp, text):
     return nlp(text)
 
 
 @fixture
-def blank_doc(blank_nlp):
+def blank_doc(blank_nlp, text):
     return blank_nlp(text)
 
 

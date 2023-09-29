@@ -2,7 +2,6 @@ import pytest
 from pytest import fixture
 
 from edsnlp.pipelines.core.matcher import GenericMatcher
-from tests.conftest import text
 
 
 @fixture
@@ -12,7 +11,7 @@ def nlp(blank_nlp):
 
 
 @fixture
-def doc(nlp):
+def doc(nlp, text):
     return nlp(text)
 
 

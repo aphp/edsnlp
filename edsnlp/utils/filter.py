@@ -256,18 +256,15 @@ def align_spans(
         Subset of `source` spans for each target span
     """
     source = sorted(source, key=lambda x: (x.start, x.end))
-    target = sorted(target, key=lambda x: (x.start, x.end))
+    targets_with_idx = sorted(enumerate(target), key=lambda x: (x[1].start, x[1].end))
 
     aligned = [set() for _ in target]
     source_idx = 0
-    for target_idx in range(len(target)):
-        while (
-            source_idx < len(source)
-            and source[source_idx].end <= target[target_idx].start
-        ):
+    for target_idx, target in targets_with_idx:
+        while source_idx < len(source) and source[source_idx].end <= target.start:
             source_idx += 1
         i = source_idx
-        while i < len(source) and source[i].start <= target[target_idx].end:
+        while i < len(source) and source[i].start <= target.end:
             aligned[target_idx].add(source[i])
             i += 1
 
@@ -277,7 +274,7 @@ def align_spans(
     if sort_by_overlap:
         aligned = [
             sorted(span_set, key=lambda x: span_f1(x, y), reverse=True)
-            for span_set, y in zip(aligned, target)
+            for span_set, (_, y) in zip(aligned, targets_with_idx)
         ]
 
     return aligned

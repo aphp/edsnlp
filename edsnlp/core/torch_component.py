@@ -46,8 +46,8 @@ def cached_preprocess(fn):
     def wrapped(self: "TorchComponent", doc: Doc):
         if not self.nlp or self.nlp._cache is None:
             return fn(self, doc)
-        cache_id = hash((id(self), "preprocess", id(doc)))
-        if not self.nlp._cache_is_writeonly and cache_id in self.nlp._cache:
+        cache_id = hash((self.name, "preprocess", id(doc)))
+        if cache_id in self.nlp._cache:
             return self.nlp._cache[cache_id]
         res = fn(self, doc)
         self.nlp._cache[cache_id] = res
@@ -61,10 +61,8 @@ def cached_preprocess_supervised(fn):
     def wrapped(self: "TorchComponent", doc: Doc):
         if not self.nlp or self.nlp._cache is None:
             return fn(self, doc)
-        cache_id = hash((id(self), "preprocess_supervised", id(doc)))
-        if not self.nlp._cache_is_writeonly and cache_id in self.nlp._cache.setdefault(
-            self, {}
-        ):
+        cache_id = hash((self.name, "preprocess_supervised", id(doc)))
+        if cache_id in self.nlp._cache:
             return self.nlp._cache[cache_id]
         res = fn(self, doc)
         self.nlp._cache[cache_id] = res
@@ -76,14 +74,13 @@ def cached_preprocess_supervised(fn):
 def cached_collate(fn):
     @wraps(fn)
     def wrapped(self: "TorchComponent", batch: Dict):
-        cache_id = hash((id(self), "collate", hash_batch(batch)))
+        cache_id = (self.name, "collate", hash_batch(batch))
         if not self.nlp or self.nlp._cache is None or cache_id is None:
             return fn(self, batch)
-        if not self.nlp._cache_is_writeonly and cache_id in self.nlp._cache:
+        if cache_id in self.nlp._cache:
             return self.nlp._cache[cache_id]
         res = fn(self, batch)
         self.nlp._cache[cache_id] = res
-        res["cache_id"] = cache_id
         return res
 
     return wrapped
@@ -95,7 +92,7 @@ def cached_forward(fn):
         # Convert args and kwargs to a dictionary matching fn signature
         if not self.nlp or self.nlp._cache is None:
             return fn(self, batch)
-        cache_id = (id(self), "forward", hash_batch(batch))
+        cache_id = (self.name, "forward", hash_batch(batch))
         if cache_id in self.nlp._cache:
             return self.nlp._cache[cache_id]
         res = fn(self, batch)
@@ -105,13 +102,13 @@ def cached_forward(fn):
     return wrapped
 
 
-def cached_move_to_device(fn):
+def cached_batch_to_device(fn):
     @wraps(fn)
     def wrapped(self: "TorchComponent", batch, device):
         # Convert args and kwargs to a dictionary matching fn signature
         if not self.nlp or self.nlp._cache is None:
             return fn(self, batch, device)
-        cache_id = (id(self), "move_to_device", hash_batch(batch))
+        cache_id = (self.name, "batch_to_device", hash_batch(batch))
         if cache_id in self.nlp._cache:
             return self.nlp._cache[cache_id]
         res = fn(self, batch, device)
@@ -131,8 +128,10 @@ class TorchComponentMeta(ABCMeta):
             )
         if "collate" in class_dict:
             class_dict["collate"] = cached_collate(class_dict["collate"])
-        if "move_to_device" in class_dict:
-            class_dict["move_to_device"] = cached_move_to_device(class_dict["collate"])
+        if "batch_to_device" in class_dict:
+            class_dict["batch_to_device"] = cached_batch_to_device(
+                class_dict["batch_to_device"]
+            )
         if "forward" in class_dict:
             class_dict["forward"] = cached_forward(class_dict["forward"])
 

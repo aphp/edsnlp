@@ -105,35 +105,41 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         begins = []
         ends = []
 
-        for i, (embedded_span, target_ents) in enumerate(
-            zip(
-                embedded_spans,
-                align_spans(
-                    source=spans,
-                    target=embedded_spans,
-                ),
-            )
+        embedded_spans_to_idx = {span: i for i, span in enumerate(embedded_spans)}
+        for i, (span, embedding_spans) in enumerate(
+            zip(spans, align_spans(embedded_spans, spans))
         ):
-            start = embedded_span.start
-            sequence_idx.extend([i] * len(spans))
-            begins.extend([span.start - start for span in spans])
-            ends.extend([span.end - start for span in spans])
+            if len(embedding_spans) != 1:
+                raise Exception(
+                    f"Span {span} is not aligned to exactly one embedding span: "
+                    f"{embedding_spans}"
+                )
+            start = embedding_spans[0].start
+            sequence_idx.append(embedded_spans_to_idx[embedding_spans[0]])
+            begins.append(span.start - start)
+            ends.append(span.end - start)
         return {
             "embedding": self.embedding.preprocess(doc),
             "begins": begins,
             "ends": ends,
             "sequence_idx": sequence_idx,
+            "num_sequences": len(embedded_spans),
             "$spans": spans,
+            "$embedded_spans": embedded_spans,
         }
 
     def collate(self, batch: Dict[str, Sequence[Any]]) -> SpanPoolerBatchInput:
+        sequence_idx = []
+        offset = 0
+        for indices, seq_length in zip(batch["sequence_idx"], batch["num_sequences"]):
+            sequence_idx.extend([offset + idx for idx in indices])
+            offset += seq_length
+
         collated: SpanPoolerBatchInput = {
             "embedding": self.embedding.collate(batch["embedding"]),
             "begins": torch.as_tensor([b for x in batch["begins"] for b in x]),
             "ends": torch.as_tensor([e for x in batch["ends"] for e in x]),
-            "sequence_idx": torch.as_tensor(
-                [e for x in batch["sequence_idx"] for e in x]
-            ),
+            "sequence_idx": torch.as_tensor(sequence_idx),
         }
         return collated
 

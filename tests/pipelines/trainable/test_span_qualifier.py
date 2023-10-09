@@ -76,7 +76,10 @@ def test_span_qualifier(gold, with_label_constraints):
     )
     qlf = nlp.get_pipe("qualifier")
     qlf.post_init(gold, set())
-    assert qlf.qualifiers == ["_.event_type", "_.test_negated"]
+    if with_label_constraints:
+        assert qlf.qualifiers == {"_.event_type": ["event"], "_.test_negated": True}
+    else:
+        assert qlf.qualifiers == {"_.event_type": True, "_.test_negated": True}
     if with_label_constraints:
         qlf.classifier.bias.data += torch.tensor([0, 1000, 1000, 0])
         assert qlf.bindings == [

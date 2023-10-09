@@ -31,7 +31,7 @@ def gold():
     doc1.spans["sc"][1]._.test_negated = True
     doc1.spans["sc"][2]._.test_negated = False
     doc1.spans["sc"][1]._.event_type = "stop"
-    doc1.spans["to_embed"] = [doc1[0:4], doc1[7:11]]
+    doc1.spans["to_embed"] = [doc1[0:5], doc1[7:11]]
 
     doc1.spans["sent"] = [Span(doc1, 0, 6, "sent")]
 
@@ -65,6 +65,8 @@ def test_span_getter(gold):
     prep = qlf.make_batch([doc.copy() for doc in gold], supervision=True)
     batch = qlf.collate(prep)
     input_ids = batch["embedding"]["embedding"]["input_ids"]
+    mask = input_ids.mask
+    tok = trf.tokenizer
     assert len(input_ids) == 2
-    assert trf.tokenizer.decode(input_ids[0]) == "[CLS] arret du ttt si [SEP]"
-    assert trf.tokenizer.decode(input_ids[1]) == "[CLS] une autre phrase. [SEP] [PAD]"
+    assert tok.decode(input_ids[0][mask[0]]) == "[CLS] arret du ttt si folfox [SEP]"
+    assert tok.decode(input_ids[1][mask[1]]) == "[CLS] une autre phrase. [SEP]"

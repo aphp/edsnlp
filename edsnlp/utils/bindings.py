@@ -102,8 +102,8 @@ def validate_qualifiers(value: Union[SeqStr, Dict[str, SpanFilter]]) -> Qualifie
                 new_value[k] = v
             elif isinstance(v, str):
                 new_value[k] = [v]
-            elif isinstance(v, list) and all(isinstance(i, str) for i in v):
-                new_value[k] = v
+            elif isinstance(v, (list, tuple)) and all(isinstance(i, str) for i in v):
+                new_value[k] = list(v)
             else:
                 raise TypeError(
                     f"Invalid entry {value} ({type(value)}) for Qualifiers, "

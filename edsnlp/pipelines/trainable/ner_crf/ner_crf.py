@@ -508,7 +508,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
             for doc in docs
             for span in list(get_spans(doc, self.embedding.span_getter))
         ]
-        for embedded_span_idx, start, end, label_idx in self.crf.tags_to_spans(
+        for embedded_span_idx, label_idx, start, end in self.crf.tags_to_spans(
             batch["tags"].cpu()
         ).tolist():
             span = embedded_spans[embedded_span_idx][start:end]

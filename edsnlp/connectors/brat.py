@@ -381,6 +381,8 @@ class BratConnector(object):
         else:
             gold_docs = (nlp.make_doc(t) for t in texts)
 
+        attr_map = dict(self.attr_map or {})
+
         for doc, doc_annotations in tqdm(
             zip(gold_docs, annotations),
             ascii=True,
@@ -399,13 +401,12 @@ class BratConnector(object):
                     if not Span.has_extension(dst):
                         Span.set_extension(dst, default=None)
 
-            encountered_attributes = set()
             for ent in doc_annotations["entities"]:
-                if self.attr_map is None:
+                if self.attr_map is None:  # attr_map unset by the user
                     for a in ent["attributes"]:
                         if not Span.has_extension(a["label"]):
                             Span.set_extension(a["label"], default=None)
-                        encountered_attributes.add(a["label"])
+                        attr_map[a["label"]] = a["label"]
 
                 for fragment in ent["fragments"]:
                     span = doc.char_span(
@@ -415,12 +416,8 @@ class BratConnector(object):
                         alignment_mode="expand",
                     )
                     for a in ent["attributes"]:
-                        if self.attr_map is None or a["label"] in self.attr_map:
-                            new_name = (
-                                a["label"]
-                                if self.attr_map is None
-                                else self.attr_map[a["label"]]
-                            )
+                        if a["label"] in attr_map:
+                            new_name = attr_map[a["label"]]
                             span._.set(
                                 new_name, a["value"] if a["value"] is not None else True
                             )
@@ -428,9 +425,6 @@ class BratConnector(object):
 
                     if self.span_groups is None or ent["label"] in self.span_groups:
                         span_groups[ent["label"]].append(span)
-
-            if self.attr_map is None:
-                self.attr_map = {k: k for k in encountered_attributes}
 
             if self.span_groups is None:
                 self.span_groups = sorted(span_groups.keys())

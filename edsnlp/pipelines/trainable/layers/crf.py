@@ -396,11 +396,12 @@ class MultiLabelBIOULDecoder(LinearChainCRF):
 
         # begins_indices = torch.nonzero((tags == 4) | (tags == 2))
         # ends_indices = torch.nonzero((tags == 4) | (tags == 3))
+        tags = tags.transpose(1, 2)
 
-        tags_after = tags.roll(-1, 1)
-        tags_after[:, -1] = 0
-        tags_before = tags.roll(1, 1)
-        tags_before[:, 0] = 0
+        tags_after = tags.roll(-1, 2)
+        tags_after[..., -1] = 0
+        tags_before = tags.roll(1, 2)
+        tags_before[..., 0] = 0
 
         # A span starts if:
         # - tags is B / U
@@ -424,9 +425,8 @@ class MultiLabelBIOULDecoder(LinearChainCRF):
 
         return torch.cat(
             [
-                begins_indices[..., :2],
-                ends_indices[..., [1]] + 1,
-                begins_indices[..., 2:],
+                begins_indices[..., :3],
+                ends_indices[..., [2]] + 1,
             ],
             dim=-1,
         )

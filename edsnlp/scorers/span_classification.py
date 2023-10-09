@@ -13,6 +13,7 @@ def span_classification_scorer(
     examples: Iterable[Example],
     span_getter: SpanGetterArg,
     qualifiers: Qualifiers,
+    include_falsy: bool = False,
 ):
     """
     Scores the extracted entities that may be overlapping or nested
@@ -26,6 +27,10 @@ def span_classification_scorer(
         The span getter to use to extract the spans from the document
     qualifiers : Sequence[str]
         The qualifiers to use to score the spans
+    include_falsy : bool
+        Whether to count predicted or gold occurences of falsy values when computing
+        the metrics. If `False`, only the non-falsy values will be counted and matched
+        together.
 
     Returns
     -------
@@ -43,7 +48,7 @@ def span_classification_scorer(
                 if not (span_filter is True or span.label_ in span_filter):
                     continue
                 value = BINDING_GETTERS[qualifier](span)
-                if value:
+                if value or include_falsy:
                     labels[None][0].append((eg_idx, span_idx, qualifier, value))
                     key_str = f"{qualifier}" if value is True else f"{value}"
                     labels[key_str][0].append((eg_idx, span_idx, value))
@@ -55,7 +60,7 @@ def span_classification_scorer(
                 if not (span_filter is True or span.label_ in span_filter):
                     continue
                 value = BINDING_GETTERS[qualifier](span)
-                if value:
+                if value or include_falsy:
                     labels[None][1].append((eg_idx, span_idx, qualifier, value))
                     key_str = f"{qualifier}" if value is True else f"{value}"
                     labels[key_str][1].append((eg_idx, span_idx, value))
@@ -76,13 +81,16 @@ def span_classification_scorer(
             "f": 2 * tp / max(1, np + ng),
             "p": 1 if tp == np else (tp / np),
             "r": 1 if tp == ng else (tp / ng),
+            "support": len(gold),
         }
 
     results = {name: prf(pred, gold) for name, (pred, gold) in labels.items()}
+    micro_results = results.pop(None)
     return {
-        "qual_f": results[None]["f"],
-        "qual_p": results[None]["p"],
-        "qual_r": results[None]["r"],
+        "qual_p": micro_results["p"],
+        "qual_r": micro_results["r"],
+        "qual_f": micro_results["f"],
+        "support": len(labels[None][1]),
         "qual_per_type": results,
     }
 

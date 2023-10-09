@@ -188,7 +188,12 @@ def test_cache(frozen_pipeline: Pipeline):
 
     with frozen_pipeline.cache():
         frozen_pipeline(text)
-        assert len(frozen_pipeline._cache) > 0
+        trf_forward_cache_entries = [
+            key
+            for key in frozen_pipeline._cache
+            if isinstance(key, tuple) and key[:2] == ("transformer", "forward")
+        ]
+        assert len(trf_forward_cache_entries) == 1
 
     assert frozen_pipeline._cache is None
 

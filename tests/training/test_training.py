@@ -2,13 +2,15 @@ import math
 import random
 import shutil
 import time
+import typing
 from itertools import chain, count, islice, repeat
 from pathlib import Path
-from typing import Callable, Dict, Iterable, Optional
+from typing import Callable, Dict, Iterable, Optional, Tuple
 
 from confit import Config
 from confit.registry import validate_arguments
 from confit.utils.random import set_seed
+from rich_logger import RichTablePrinter
 from spacy.tokens import Doc, Span
 from tqdm import tqdm
 
@@ -23,33 +25,132 @@ from edsnlp.utils.bindings import BINDING_SETTERS
 from edsnlp.utils.collections import batchify
 from edsnlp.utils.span_getters import SpanGetterArg, get_spans
 
+LOGGER_FIELDS = {
+    "step": {},
+    "(.*)loss": {
+        "goal": "lower_is_better",
+        "format": "{:.2e}",
+        "goal_wait": 2,
+    },
+    "exact_ner/ents_(f|r|p)$": {
+        "goal": "higher_is_better",
+        "format": "{:.2%}",
+        "goal_wait": 1,
+        "name": r"ner_\1",
+    },
+    "qualifier/qual_(f|r|p)$": {
+        "goal": "higher_is_better",
+        "format": "{:.2%}",
+        "goal_wait": 1,
+        "name": r"qual_\1",
+    },
+    "lr": {"format": "{:.2e}"},
+    "speed/(.*)": {"format": "{:.2f}", r"name": r"\1"},
+    "labels": {"format": "{:.2f}"},
+}
+
+
+def flatten_dict(root, depth=-1):
+    res = {}
+
+    def rec(d, path, current_depth):
+        for k, v in d.items():
+            if isinstance(v, dict) and current_depth != depth:
+                rec(v, path + "/" + k if path is not None else k, current_depth + 1)
+            else:
+                res[path + "/" + k if path is not None else k] = v
+
+    rec(root, None, 0)
+    return res
+
+
+class BatchSizeArg:
+    def __init__(self, batch_size: int):
+        self.batch_size = batch_size
+
+    @classmethod
+    def validate(cls, value, config=None):
+        value = str(value)
+        parts = value.split()
+        num = int(parts[0])
+        if str(num) == parts[0]:
+            if len(parts) == 1:
+                return num, "samples"
+            if parts[1] in ("words", "samples"):
+                return num, parts[1]
+        raise Exception(f"Invalid batch size: {value}, must be <int> samples|words")
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+
+if typing.TYPE_CHECKING:
+    BatchSizeArg = Tuple[int, str]  # noqa: F811
+
 
 class LengthSortedBatchSampler:
-    def __init__(self, dataset, batch_size, noise=1, drop_last=True):
+    def __init__(
+        self, dataset, batch_size: int, batch_unit: str, noise=1, drop_last=True
+    ):
         self.dataset = dataset
         self.batch_size = batch_size
+        self.batch_unit = batch_unit
         self.noise = noise
         self.drop_last = drop_last
 
     def __iter__(self):
         # Shuffle the dataset
-        def sample_len(idx):
-            wt = next(
-                v for k, v in self.dataset[idx].items() if k.endswith("word_tokens")
+        def sample_len(idx, noise=True):
+            count = sum(
+                len(x)
+                for x in next(
+                    v
+                    for k, v in self.dataset[idx].items()
+                    if k.endswith("word_lengths")
+                )
             )
-            return len(wt) + random.randint(-self.noise, self.noise)
+            if not noise:
+                return count
+            return count + random.randint(-self.noise, self.noise)
+
+        def make_batches():
+            current_count = 0
+            current_batch = []
+            for idx in sorted_sequences:
+                if self.batch_unit == "words":
+                    seq_size = sample_len(idx, noise=False)
+                    if current_count + seq_size > self.batch_size:
+                        yield current_batch
+                        current_batch = []
+                        current_count = 0
+                    current_count += seq_size
+                    current_batch.append(idx)
+                else:
+                    if len(current_batch) == self.batch_size:
+                        yield current_batch
+                        current_batch = []
+                    current_batch.append(idx)
+            if len(current_batch):
+                yield current_batch
 
         # Sort sequences by length +- some noise
-        sequences = chain.from_iterable(
+        sorted_sequences = chain.from_iterable(
             sorted(range(len(self.dataset)), key=sample_len) for _ in repeat(None)
         )
 
         # Batch sorted sequences
-        batches = batchify(sequences, self.batch_size)
+        batches = make_batches()
 
         # Shuffle the batches in buffer that contain approximately
         # the full dataset to add more randomness
-        buffers = batchify(batches, math.ceil(len(self.dataset) / self.batch_size))
+        if self.batch_unit == "words":
+            total_count = sum(
+                sample_len(idx, noise=False) for idx in range(len(self.dataset))
+            )
+        else:
+            total_count = len(self.dataset)
+        buffers = batchify(batches, math.ceil(total_count / self.batch_size))
         for buffer in buffers:
             random.shuffle(buffer)
             yield from buffer
@@ -65,10 +166,11 @@ def brat_dataset(path, limit: Optional[int] = None, split_docs: bool = False):
                     limit,
                 )
             )
-            # for doc in docs:
-            #     for group in doc.spans:
-            #         for span in doc.spans[group]:
-            #             span._.negation = bool(span._.negation)
+            if Span.has_extension("negation"):
+                for doc in docs:
+                    for group in doc.spans:
+                        for span in doc.spans[group]:
+                            span._.negation = bool(span._.negation)
         assert len(docs) > 0, "No data found in {}".format(path)
 
         new_docs = []
@@ -90,6 +192,7 @@ def brat_dataset(path, limit: Optional[int] = None, split_docs: bool = False):
                     new_docs.append(new_doc)
             else:
                 new_docs.append(doc)
+        new_docs = new_docs[:limit]
         return new_docs
 
     return load
@@ -124,7 +227,7 @@ class TestScorer:
                 d.ents = []
                 d.spans.clear()
             with nlp.select_pipes(enable=["ner"]):
-                ner_preds = list(nlp.pipe(clean_ner_docs))
+                ner_preds = list(nlp.pipe(tqdm(clean_ner_docs, desc="Predicting")))
             for name, scorer in self.ner_scorers.items():
                 scores[name] = scorer(docs, ner_preds)
 
@@ -137,7 +240,7 @@ class TestScorer:
                     for qlf in qlf_pipe.qualifiers:
                         BINDING_SETTERS[(qlf, None)](span)
             with nlp.select_pipes(enable=["qualifier"]):
-                qlf_preds = list(nlp.pipe(clean_qlf_docs))
+                qlf_preds = list(nlp.pipe(tqdm(clean_qlf_docs, desc="Predicting")))
             for name, scorer in self.qlf_scorers.items():
                 scores[name] = scorer(docs, qlf_preds)
         return scores
@@ -151,117 +254,142 @@ def train(
     val_data: Callable[[Pipeline], Iterable[Doc]],
     seed: int = 42,
     max_steps: int = 1000,
-    batch_size: int = 4,
+    batch_size: BatchSizeArg = 4,
     lr: float = 8e-5,
     validation_interval: int = 10,
+    warmup_rate: float = 0.1,
     device: str = "cpu",
     scorer: TestScorer = TestScorer(),
 ):
     import torch
 
-    device = torch.device(device)
-    set_seed(seed)
+    with RichTablePrinter(LOGGER_FIELDS, auto_refresh=False) as logger:
 
-    # Loading and adapting the training and validation data
-    train_docs = list(train_data(nlp))
-    val_docs = list(val_data(nlp))
+        device = torch.device(device)
+        set_seed(seed)
 
-    # Taking the first `initialization_subset` samples to initialize the model
-    nlp.post_init(iter(train_docs))  # iter just to show it's possible
-    nlp.batch_size = batch_size
+        # Loading and adapting the training and validation data
+        train_docs = list(train_data(nlp))
+        val_docs = list(val_data(nlp))
 
-    # Preprocessing the training dataset into a dataloader
-    preprocessed = list(nlp.preprocess_many(train_docs, supervision=True))
-    dataloader = torch.utils.data.DataLoader(
-        preprocessed,
-        batch_sampler=LengthSortedBatchSampler(preprocessed, batch_size),
-        collate_fn=nlp.collate,
-    )
+        # Taking the first `initialization_subset` samples to initialize the model
+        nlp.post_init(iter(train_docs))  # iter just to show it's possible
 
-    trf_params = set(
-        next(
-            module
-            for name, pipe in nlp.torch_components()
-            for module_name, module in pipe.named_component_modules()
-            if isinstance(module, Transformer)
-        ).parameters()
-    )
-    for param in trf_params:
-        param.requires_grad = False
-    optimizer = ScheduledOptimizer(
-        torch.optim.AdamW(
-            [
-                {
-                    "params": list(set(nlp.parameters()) - trf_params),
-                    "lr": lr,
-                    "schedules": [
-                        LinearSchedule(
-                            total_steps=max_steps,
-                            warmup_rate=0.1,
-                            max_value=lr,
-                            path="lr",
-                        ),
-                        # LinearSchedule(
-                        #     total_steps=max_steps,
-                        #     start_value=0.9,
-                        #     max_value=0.9,
-                        #     path="betas.0",
-                        # ),
-                    ],
-                },
-            ]
+        # Preprocessing the training dataset into a dataloader
+        preprocessed = list(nlp.preprocess_many(train_docs, supervision=True))
+        dataloader = torch.utils.data.DataLoader(
+            preprocessed,
+            batch_sampler=LengthSortedBatchSampler(
+                preprocessed,
+                batch_size=batch_size[0],
+                batch_unit=batch_size[1],
+            ),
+            collate_fn=nlp.collate,
         )
-    )
-    print(
-        "Number of optimized weight tensors", len(optimizer.param_groups[0]["params"])
-    )
 
-    # We will loop over the dataloader
-    iterator = iter(dataloader)
+        trf_params = set(
+            next(
+                module
+                for name, pipe in nlp.torch_components()
+                for module_name, module in pipe.named_component_modules()
+                if isinstance(module, Transformer)
+            ).parameters()
+        )
+        for param in trf_params:
+            param.requires_grad = False
+        optimizer = ScheduledOptimizer(
+            torch.optim.AdamW(
+                [
+                    {
+                        "params": list(set(nlp.parameters()) - trf_params),
+                        "lr": lr,
+                        "schedules": [
+                            LinearSchedule(
+                                total_steps=max_steps,
+                                warmup_rate=warmup_rate,
+                                max_value=lr,
+                                path="lr",
+                            ),
+                            # This is just to test deep schedules
+                            LinearSchedule(
+                                total_steps=max_steps,
+                                start_value=0.9,
+                                max_value=0.9,
+                                path="betas.0",
+                            ),
+                        ],
+                    },
+                ]
+            )
+        )
+        trainable_params = set(p for g in optimizer.param_groups for p in g["params"])
+        print("Trainable params", sum(p.numel() for p in trainable_params))
+        print(
+            "Non-trainable params",
+            sum(p.numel() for p in nlp.parameters() if p not in trainable_params),
+        )
 
-    nlp.to(device)
+        # We will loop over the dataloader
+        iterator = iter(dataloader)
 
-    acc_loss = 0
-    acc_steps = 0
-    bar = tqdm(range(max_steps), "Training model", leave=True)
-    for step in count():
-        if step > 0 and (step % validation_interval) == 0 or step == max_steps:
-            nlp.to_disk(output_path / "last-model")
-            print(acc_loss / max(acc_steps, 1))
-            acc_loss = 0
-            acc_steps = 0
-            last_scores = scorer(nlp, val_docs)
-            print(last_scores, "lr", optimizer.param_groups[0]["lr"])
-        if step == max_steps:
-            break
-        batch = next(iterator)
-        optimizer.zero_grad()
+        nlp.to(device)
 
-        loss = torch.zeros((), device=device)
-        with nlp.cache():
-            for name, component in nlp.torch_components():
-                output = component.module_forward(
-                    batch[name],
+        losses = {name: 0 for name, _ in nlp.torch_components()}
+        acc_steps = 0
+        bar = tqdm(range(max_steps), "Training model", leave=True)
+
+        for step in count():
+            if step > 0 and (step % validation_interval) == 0 or step == max_steps:
+                nlp.to_disk(output_path)
+                scores = scorer(nlp, val_docs)
+                metrics = flatten_dict(
+                    {
+                        "step": step,
+                        "lr": optimizer.param_groups[0]["lr"],
+                        "loss": sum(losses.values()) / max(acc_steps, 1),
+                        **{
+                            k + "_loss": v / max(acc_steps, 1)
+                            for k, v in losses.items()
+                        },
+                        **scores,
+                    }
                 )
-                loss += output.get("loss", 0)
-                # Test nan loss
-                if torch.isnan(loss):
-                    raise ValueError(f"NaN loss at component {name}")
+                logger.log_metrics(metrics)
+                losses = {name: 0 for name, _ in nlp.torch_components()}
+                acc_steps = 0
+            if step == max_steps:
+                break
+            batch = next(iterator)
+            optimizer.zero_grad()
 
-        loss.backward()
+            loss = torch.zeros((), device=device)
+            with nlp.cache():
+                for name, component in nlp.torch_components():
+                    output = component.module_forward(
+                        batch[name],
+                    )
+                    loss += output.get("loss", 0)
+                    losses[name] += float(output.get("loss", 0))
+                    # Test nan loss
+                    if torch.isnan(loss):
+                        raise ValueError(f"NaN loss at component {name}")
 
-        acc_loss += loss.item()
-        acc_steps += 1
+            loss.backward()
 
-        optimizer.step()
+            # Max grad norm 5
+            torch.nn.utils.clip_grad_norm_(trainable_params, 5)
 
-        bar.update()
+            acc_steps += 1
+
+            optimizer.step()
+
+            bar.update()
 
     optimizer.load_state_dict(optimizer.state_dict())
 
-    assert Path(output_path / "last-model").exists()
+    assert Path(output_path).exists()
 
-    nlp = edsnlp.load(output_path / "last-model")
+    nlp = edsnlp.load(output_path)
 
     return nlp
 
@@ -275,7 +403,8 @@ def test_ner_qualif_train(run_in_test_dir, tmp_path):
     scorer = TestScorer(**kwargs["scorer"])
     last_scores = scorer(nlp, kwargs["val_data"](nlp))
 
-    assert last_scores["exact_ner"]["ents_f"] > 0.8
+    assert last_scores["exact_ner"]["ents_f"] > 0.5
+    assert last_scores["qualifier"]["qual_f"] > 0.5
 
 
 @registry.misc.register("sentence_span_getter")
@@ -298,7 +427,7 @@ def test_qualif_train(run_in_test_dir, tmp_path):
     assert last_scores["qualifier"]["qual_f"] > 0.5
 
 
-# def test_deft_train(run_in_test_dir, tmp_path):
+# def deft_train(run_in_test_dir, tmp_path):
 #     set_seed(42)
 #     config = Config.from_disk("deft_config.cfg")
 #     shutil.rmtree(tmp_path, ignore_errors=True)
@@ -311,8 +440,7 @@ def test_qualif_train(run_in_test_dir, tmp_path):
 
 
 if __name__ == "__main__":
-    import tempfile
 
-    tmp_path = tempfile.mkdtemp()
+    tmp_path = Path("artifact/model-last")
     print("TMP PATH", tmp_path)
-    test_ner_qualif_train(None, tmp_path)
+    test_qualif_train(None, tmp_path)

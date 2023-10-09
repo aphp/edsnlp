@@ -237,6 +237,7 @@ class TrainableSpanQualifier(
 
     def set_extensions(self):
         super().set_extensions()
+        print("QLF", self.qualifiers)
         for qlf in self.qualifiers or ():
             if qlf.startswith("_."):
                 qlf = qlf[2:]
@@ -253,12 +254,19 @@ class TrainableSpanQualifier(
                 for qualifier, labels in self.qualifiers.items():
                     if labels is True or span.label_ in labels:
                         value = BINDING_GETTERS[qualifier](span)
-                        if value is not None:
-                            qualifier_values[qualifier].add(value)
+                        # if value is not None:
+                        qualifier_values[qualifier].add(value)
 
         qualifier_values = {
             key: sorted(values, key=str) for key, values in qualifier_values.items()
         }
+
+        for qualifier, values in qualifier_values.items():
+            if len(values) < 2:
+                raise ValueError(
+                    f"Qualifier {qualifier} should have at least 2 values, found "
+                    f"{len(values)}: {values}"
+                )
 
         # if self.qualifiers is not None and set(self.qualifiers) != set(
         #     qualifier_values.keys()

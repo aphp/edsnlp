@@ -41,7 +41,7 @@ We can use EDS-NLP's qualifier pipelines to achieve that. Let's add specific com
 Adding qualifier pipelines is straightforward:
 
 ```python hl_lines="25-29"
-import spacy
+import edsnlp
 
 text = (
     "Motif de prise en charge : probable pneumopathie à COVID19, "
@@ -55,7 +55,7 @@ regex = dict(
 )
 terms = dict(respiratoire="asthmatique")
 
-nlp = spacy.blank("fr")
+nlp = edsnlp.blank("fr")
 nlp.add_pipe(
     "eds.matcher",
     config=dict(
@@ -81,7 +81,7 @@ This code is complete, and should run as is.
 Let's output the results as a pandas DataFrame for better readability:
 
 ```python hl_lines="2 34-48"
-import spacy
+import edsnlp
 import pandas as pd
 
 text = (
@@ -96,7 +96,7 @@ regex = dict(
 )
 terms = dict(respiratoire="asthmatique")
 
-nlp = spacy.blank("fr")
+nlp = edsnlp.blank("fr")
 nlp.add_pipe(
     "eds.matcher",
     config=dict(
@@ -142,15 +142,5 @@ We get the following result:
 ## Conclusion
 
 The qualifier pipelines limits the number of false positives by detecting linguistic modulations such as negations or speculations.
-Go to the [full documentation](../pipelines/qualifiers/index.md) for a complete presentation of the different pipelines,
+Go to the [full documentation](/pipelines/qualifiers/overview) for a complete presentation of the different pipelines,
 their configuration options and validation performance.
-
-Recall the qualifier pipeline proposed by EDS-NLP:
-
-| Pipeline              | Description                          |
-|-----------------------|--------------------------------------|
-| `eds.negation`        | Rule-based negation detection        |
-| `eds.family`          | Rule-based family context detection  |
-| `eds.hypothesis`      | Rule-based speculation detection     |
-| `eds.reported_speech` | Rule-based reported speech detection |
-| `eds.history`         | Rule-based history detection         |

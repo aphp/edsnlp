@@ -52,11 +52,8 @@ nav:
       - tutorials/multiple-texts.md
       - tutorials/endlines.md
       - tutorials/reason.md
-  - Advanced tutorials:
-      - Overview: advanced-tutorials/overview.md
-      - advanced-tutorials/word-vectors.md
       - advanced-tutorials/fastapi.md
-      - Creating a pipeline: https://spacy.io/usage/processing-pipelines#custom-components" target="_blank
+      - tutorials/training-ner.md
   - Pipes:
       - Overview: pipelines/overview.md
       - Core Pipelines:
@@ -123,8 +120,10 @@ nav:
 
       - Trainable components:
           - Overview: pipelines/trainable/overview.md
-          - pipelines/trainable/ner.md
           - pipelines/trainable/embeddings/transformer.md
+          - pipelines/trainable/embeddings/text_cnn.md
+          - pipelines/trainable/embeddings/span_pooler.md
+          - pipelines/trainable/ner.md
           - pipelines/trainable/span-qualifier.md
   - tokenizers.md
   - Connectors:

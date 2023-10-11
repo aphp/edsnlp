@@ -21,15 +21,15 @@ To instantiate one of the two languages, you can call the `spacy.blank` method.
 === "EDSLanguage"
 
     ```python
-    import spacy
+    import edsnlp
 
-    nlp = spacy.blank("eds")
+    nlp = edsnlp.blank("eds")
     ```
 
 === "FrenchLanguage"
 
     ```python
-    import spacy
+    import edsnlp
 
-    nlp = spacy.blank("fr")
+    nlp = edsnlp.blank("fr")
     ```

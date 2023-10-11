@@ -17,10 +17,10 @@ have reimplemented the matching algorithm in Cython, like the original `spacy.Ph
 You can use it as described in the code below.
 
 ```python
-import spacy
+import edsnlp
 from edsnlp.matchers.phrase import EDSPhraseMatcher
 
-nlp = spacy.blank("eds")
+nlp = edsnlp.blank("eds")
 nlp.add_pipe("eds.normalizer")
 doc = nlp("On ne relève pas de signe du Corona =============== virus.")
 
@@ -48,10 +48,10 @@ lexical variations of the target phrases and feed them to the `PhraseMatcher` in
 You can use it as described in the code below.
 
 ```python
-import spacy
+import edsnlp
 from edsnlp.matchers.regex import RegexMatcher
 
-nlp = spacy.blank("eds")
+nlp = edsnlp.blank("eds")
 nlp.add_pipe("eds.normalizer")
 doc = nlp("On ne relève pas de signe du Corona =============== virus.")
 
@@ -88,10 +88,10 @@ and feed them to the `PhraseMatcher` instead.
 You can use it as described in the code below.
 
 ```python
-import spacy
+import edsnlp
 from edsnlp.matchers.simstring import SimstringMatcher
 
-nlp = spacy.blank("eds")
+nlp = edsnlp.blank("eds")
 nlp.add_pipe("eds.normalizer")
 doc = nlp(
     "On ne relève pas de signe du corona-virus. Historique d'un hepatocellulaire carcinome."

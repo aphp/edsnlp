@@ -10,9 +10,9 @@ These can drastically increase throughput.
 Consider this simple pipeline:
 
 ```python
-import spacy
+import edsnlp
 
-nlp = spacy.blank("fr")
+nlp = edsnlp.blank("eds")
 
 nlp.add_pipe("eds.sentences")
 nlp.add_pipe("eds.normalizer")

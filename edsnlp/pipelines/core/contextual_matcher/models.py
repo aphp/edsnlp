@@ -96,7 +96,7 @@ class SingleExcludeModel(BaseModel):
 
     @validator("regex")
     def exclude_regex_validation(cls, v):
-        if type(v) == str:
+        if isinstance(v, str):
             v = [v]
         return v
 

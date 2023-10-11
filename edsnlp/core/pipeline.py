@@ -125,7 +125,6 @@ class Pipeline:
         self.meta = dict(meta) if meta is not None else {}
         self.lang: str = lang
         self._cache: Optional[Dict] = None
-        self._cache_is_writeonly = False
 
     @property
     def pipeline(self) -> List[Tuple[str, Pipe]]:

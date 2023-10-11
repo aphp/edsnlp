@@ -68,7 +68,8 @@ class EDSNLPDocstrings(Extension):
                 return
 
             callee = (
-                runtime_obj.__init__ if hasattr(runtime_obj, "__init__")
+                runtime_obj.__init__
+                if hasattr(runtime_obj, "__init__")
                 else runtime_obj
             )
             spec = inspect.getfullargspec(callee)

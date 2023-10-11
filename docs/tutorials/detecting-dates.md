@@ -44,9 +44,9 @@ Clinical notes contain many different types of dates. To name a few examples:
 The followings snippet adds the `eds.dates` component to the pipeline:
 
 ```python
-import spacy
+import edsnlp
 
-nlp = spacy.blank("eds")
+nlp = edsnlp.blank("eds")
 nlp.add_pipe("eds.dates")  # (1)
 
 text = (
@@ -114,10 +114,10 @@ and we will post-process the output `Doc` object to determine
 whether a given entity can be linked to a date.
 
 ```python
-import spacy
+import edsnlp
 from datetime import datetime
 
-nlp = spacy.blank("eds")
+nlp = edsnlp.blank("eds")
 nlp.add_pipe("eds.sentences")
 nlp.add_pipe("eds.dates")
 
@@ -189,7 +189,7 @@ As a first heuristic, let's consider that an entity can be linked to a date if t
 sentence. In the case where multiple dates are present, we'll select the closest one.
 
 ```python title="utils.py"
-from spacy.tokens import Span
+from edsnlp.tokens import Span
 from typing import List, Optional
 
 
@@ -220,11 +220,11 @@ def get_event_date(ent: Span) -> Optional[Span]:
 We can apply this simple function:
 
 ```{ .python .no-check }
-import spacy
+import edsnlp
 from utils import get_event_date
 from datetime import datetime
 
-nlp = spacy.blank("eds")
+nlp = edsnlp.blank("eds")
 nlp.add_pipe("eds.sentences")
 nlp.add_pipe("eds.dates")
 

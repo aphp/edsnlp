@@ -1,7 +1,13 @@
+import sys
+
 import pytest
 from extract_docs_code import extract_docs_code
 
-url_to_code = dict(extract_docs_code())
+# We don't check documentation for Python <= 3.7:
+if sys.version_info < (3, 8):
+    url_to_code = {}
+else:
+    url_to_code = dict(extract_docs_code())
 
 
 def printer(code: str) -> None:

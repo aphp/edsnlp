@@ -41,7 +41,8 @@ def _discover_scheme(obj):
             keys[id(current)].append(path)
             return
         for key, value in current.items():
-            rec(value, (*path, key))
+            if not key.startswith("$"):
+                rec(value, (*path, key))
 
     rec(obj, ())
 

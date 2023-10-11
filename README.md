@@ -5,13 +5,16 @@
 [![Codecov](https://img.shields.io/codecov/c/github/aphp/edsnlp?logo=codecov&style=flat-square)](https://codecov.io/gh/aphp/edsnlp)
 [![DOI](https://zenodo.org/badge/467585436.svg)](https://zenodo.org/badge/latestdoi/467585436)
 
-# EDS-NLP
+EDS-NLP
+=======
 
-EDS-NLP provides a set of spaCy components that are used to extract information from clinical notes written in French.
+EDS-NLP is a collaborative NLP framework that aims at extracting information from French clinical notes.
+At its core, it is a collection of components or pipes, either rule-based functions or
+deep learning modules. These components are organized into a novel efficient and modular pipeline system, built for hybrid and multi-task models. We use [spaCy](https://spacy.io) to represent documents and their annotations, and [Pytorch](https://pytorch.org/) as a deep-learning backend for trainable components.
 
-Check out the interactive [demo](https://aphp.github.io/edsnlp/demo/)!
+EDS-NLP is versatile and can be used on any textual document. The rule-based components are fully compatible with spaCy's pipelines, and vice versa. This library is a product of collaborative effort, and we encourage further contributions to enhance its capabilities.
 
-If it's your first time with spaCy, we recommend you familiarise yourself with some of their key concepts by looking at the "[spaCy 101](https://aphp.github.io/edsnlp/latest/tutorials/spacy101/)" page in the documentation.
+Check out our interactive [demo](https://aphp.github.io/edsnlp/demo/) !
 
 ## Quick start
 
@@ -34,15 +37,15 @@ pip install edsnlp==0.9.1
 Once you've installed the library, let's begin with a very simple example that extracts mentions of COVID19 in a text, and detects whether they are negated.
 
 ```python
-import spacy
+import edsnlp
 
-nlp = spacy.blank("eds")
+nlp = edsnlp.blank("eds")
 
 terms = dict(
     covid=["covid", "coronavirus"],
 )
 
-# Sentencizer component, needed for negation detection
+# Split the documents into sentences, this isneeded for negation detection
 nlp.add_pipe("eds.sentences")
 # Matcher component
 nlp.add_pipe("eds.matcher", config=dict(terms=terms))
@@ -50,13 +53,13 @@ nlp.add_pipe("eds.matcher", config=dict(terms=terms))
 nlp.add_pipe("eds.negation")
 
 # Process your text in one call !
-doc = nlp("Le patient est atteint de covid")
+doc = nlp("Le patient n'est pas atteint de covid")
 
 doc.ents
 # Out: (covid,)
 
 doc.ents[0]._.negation
-# Out: False
+# Out: True
 ```
 
 ## Documentation

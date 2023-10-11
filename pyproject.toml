@@ -18,7 +18,8 @@ dependencies = [
     "rich>=12.0.0",
     "scikit-learn>=1.0.0",
     "spacy>=3.1,<4.0.0",
-    "confit~=0.5.0",
+    "confit>=0.5.2",
+    "foldedtensor>=0.3.2",
     "tqdm",
     "safetensors>=0.3.0",
     "umls-downloader>=0.1.1",
@@ -43,6 +44,7 @@ dev = [
     "pytest-html>=3.1.1,<4.0.0",
     "torch>=1.0.0",
     "transformers>=4.0.0,<5.0.0",
+    "rich-logger>=0.3.1",
 
     # docs
     "mike~=1.1.2",
@@ -57,9 +59,9 @@ dev = [
     "pybtex~=0.24.0",
     "pathspec>=0.11.1",  # required by vendored mkdocs-autorefs PR
     "astunparse",
+    "mlconjug3<3.9.0",
 ]
 setup = [
-    "mlconjug3<3.9.0",
     "typer"
 ]
 trainable = [
@@ -205,9 +207,9 @@ where = ["."]
 "terminology"            = "edsnlp.pipelines.core.terminology.factory:create_component"
 
 [project.entry-points."spacy_scorers"]
-"eds.ner_exact_scorer"            = "edsnlp.scorers.ner:create_ner_exact_scorer"
-"eds.ner_token_scorer"            = "edsnlp.scorers.ner:create_ner_token_scorer"
-"eds.span_classification_scorer"   = "edsnlp.scorers.span_classification:create_span_classification_scorer"
+"eds.ner_exact_scorer"           = "edsnlp.scorers.ner:create_ner_exact_scorer"
+"eds.ner_token_scorer"           = "edsnlp.scorers.ner:create_ner_token_scorer"
+"eds.span_classification_scorer" = "edsnlp.scorers.span_classification:create_span_classification_scorer"
 
 [project.entry-points."edsnlp_accelerator"]
 "simple" = "edsnlp.accelerators.simple:SimpleAccelerator"

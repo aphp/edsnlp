@@ -21,6 +21,33 @@ TextCnnBatchInput = TypedDict(
 
 
 class TextCnnEncoder(WordEmbeddingComponent):
+    """
+    The `eds.text_cnn` component is a simple 1D convolutional network to contextualize
+    word embeddings (as computed by the `embedding` component passed as argument).
+
+    Parameters
+    ----------
+    nlp : PipelineProtocol
+        The pipeline object
+    name : str
+        The name of the component
+    embedding : TorchComponent[WordEmbeddingBatchOutput, BatchInput]
+        Embedding module to apply to the input
+    output_size : Optional[int]
+        Size of the output embeddings
+        Defaults to the `input_size`
+    out_channels : int
+        Number of channels
+    kernel_sizes : Sequence[int]
+        Window size of each kernel
+    activation : str
+        Activation function to use
+    residual : bool
+        Whether to use residual connections
+    normalize : NormalizationPlacement
+        Whether to normalize before or after the residual connection
+    """
+
     def __init__(
         self,
         nlp,
@@ -33,29 +60,6 @@ class TextCnnEncoder(WordEmbeddingComponent):
         residual: bool = True,
         normalize: NormalizationPlacement = "pre",
     ):
-        """
-        Parameters
-        ----------
-        nlp: PipelineProtocol
-            The spaCy Language object
-        name: str
-            The name of the component
-        embedding: TorchComponent[WordEmbeddingBatchOutput, BatchInput]
-            Embedding module to apply to the input
-        output_size: Optional[int]
-            Size of the output embeddings
-            Defaults to the `input_size`
-        out_channels: int
-            Number of channels
-        kernel_sizes: Sequence[int]
-            Window size of each kernel
-        activation: str
-            Activation function to use
-        residual: bool
-            Whether to use residual connections
-        normalize: NormalizationPlacement
-            Whether to normalize before or after the residual connection
-        """
         super().__init__(nlp, name)
         self.name = name
         self.embedding = embedding

@@ -139,8 +139,8 @@ class TorchComponentMeta(ABCMeta):
 
 
 class TorchComponent(
-    torch.nn.Module,
     BaseComponent,
+    torch.nn.Module,
     Generic[BatchOutput, BatchInput],
     metaclass=TorchComponentMeta,
 ):

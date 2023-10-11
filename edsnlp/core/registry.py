@@ -297,6 +297,7 @@ class registry(RegistryCollection):
     tokenizers = Registry(("spacy", "tokenizers"), entry_points=True)
     scorers = Registry(("spacy", "scorers"), entry_points=True)
     accelerator = Registry(("edsnlp", "accelerator"), entry_points=True)
+    adapters = Registry(("edsnlp", "adapters"), entry_points=True)
 
 
 set_default_registry(registry)

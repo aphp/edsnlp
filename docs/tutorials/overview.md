@@ -2,12 +2,20 @@
 
 We provide step-by-step guides to get you started. We cover the following use-cases:
 
-- [Matching a terminology](./matching-a-terminology.md): you're looking for a concept within a corpus of texts.
-- [Qualifying entities](./qualifying-entities.md): you want to make sure that the concept you've extracted are not invalidated by linguistic modulation.
-- [Detecting dates](./detecting-dates.md), which could serve as the basis for an event ordering algorithm.
-- [Processing multiple texts](./multiple-texts.md): to improve the inference speed of your pipeline !
-- [Detecting Hospitalisation Reason](./reason.md): you want to look spans that mention the reason of hospitalisation or tag entities as the reason.
-- [Detecting false endlines](./endlines.md): classify each endline and add the attribute `excluded` to the these tokens.
+<!-- --8<-- [start:tutorials] -->
+
+- [SpaCy representations](/tutorials/spacy101): you want to learn the basics of how we represent documents with spaCy.
+- [Matching a terminology](/tutorials/matching-a-terminology.md): you're looking for a concept within a corpus of texts.
+- [Qualifying entities](/tutorials/qualifying-entities.md): you want to make sure that the concept you've extracted are not invalidated by linguistic modulation.
+- [Detecting dates](/tutorials/detecting-dates.md), which could serve as the basis for an event ordering algorithm.
+- [Processing multiple texts](/tutorials/multiple-texts.md): to improve the inference speed of your pipeline !
+- [Detecting Hospitalisation Reason](/tutorials/reason.md): you want to look spans that mention the reason of hospitalisation or tag entities as the reason.
+- [Detecting false endlines](/tutorials/endlines.md): classify each endline and add the attribute `excluded` to the these tokens.
+- [Aggregating results](/tutorials/aggregating-results.md): you want to aggregate the results of your pipeline at the document level.
+- [FastAPI](/advanced-tutorials/fastapi.md): you want to deploy your pipeline as an API.
+- [Training a NER pipeline](/tutorials/training-ner.md): you want to learn how to train a NER pipeline with EDS-NLP.
+
+<!-- --8<-- [end:tutorials] -->
 
 ## Rationale
 

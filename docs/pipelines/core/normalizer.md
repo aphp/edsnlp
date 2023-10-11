@@ -34,10 +34,10 @@ The normaliser can act on the input text in five dimensions :
 The normalisation is handled by the single `eds.normalizer` pipeline. The following code snippet is complete, and should run as is.
 
 ```python
-import spacy
+import edsnlp
 from edsnlp.matchers.utils import get_text
 
-nlp = spacy.blank("eds")
+nlp = edsnlp.blank("eds")
 nlp.add_pipe("eds.normalizer")
 
 # Notice the special character used for the apostrophe and the quotes
@@ -74,7 +74,7 @@ The `eds.lowercase` pipeline transforms every token to lowercase. It is not conf
 Consider the following example :
 
 ```python
-import spacy
+import edsnlp
 from edsnlp.matchers.utils import get_text
 
 config = dict(
@@ -85,7 +85,7 @@ config = dict(
     pollution=False,
 )
 
-nlp = spacy.blank("eds")
+nlp = edsnlp.blank("eds")
 nlp.add_pipe("eds.normalizer", config=config)
 
 text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
@@ -105,7 +105,7 @@ making it more predictable than using a library such as `unidecode`.
 Consider the following example :
 
 ```python
-import spacy
+import edsnlp
 from edsnlp.matchers.utils import get_text
 
 config = dict(
@@ -116,7 +116,7 @@ config = dict(
     pollution=False,
 )
 
-nlp = spacy.blank("eds")
+nlp = edsnlp.blank("eds")
 nlp.add_pipe("eds.normalizer", config=config)
 
 text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
@@ -135,7 +135,7 @@ Apostrophes and quotation marks can be encoded using unpredictable special chara
 Consider the following example :
 
 ```python
-import spacy
+import edsnlp
 from edsnlp.matchers.utils import get_text
 
 config = dict(
@@ -146,7 +146,7 @@ config = dict(
     pollution=False,
 )
 
-nlp = spacy.blank("eds")
+nlp = edsnlp.blank("eds")
 nlp.add_pipe("eds.normalizer", config=config)
 
 text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
@@ -169,7 +169,7 @@ matching.
       `ignore_space_tokens` parameter token to True in a downstream component.
 
 ```python
-import spacy
+import edsnlp
 
 config = dict(
     lowercase=False,
@@ -179,7 +179,7 @@ config = dict(
     pollution=False,
 )
 
-nlp = spacy.blank("eds")
+nlp = edsnlp.blank("eds")
 nlp.add_pipe("eds.normalizer", config=config)
 
 doc = nlp("Phrase    avec des espaces \n et un retour à la ligne")
@@ -194,7 +194,7 @@ The pollution pipeline uses a set of regular expressions to detect pollutions (i
 Consider the following example :
 
 ```python
-import spacy
+import edsnlp
 from edsnlp.matchers.utils import get_text
 
 config = dict(
@@ -205,7 +205,7 @@ config = dict(
     pollution=True,
 )
 
-nlp = spacy.blank("eds")
+nlp = edsnlp.blank("eds")
 nlp.add_pipe("eds.normalizer", config=config)
 
 text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
@@ -231,9 +231,9 @@ Pollution can come in various forms in clinical texts. We provide a small set of
 For instance, if we consider biology tables as pollution, we only need to instantiate the `normalizer` pipe as follows:
 
 ```python
-import spacy
+import edsnlp
 
-nlp = spacy.blank("eds")
+nlp = edsnlp.blank("eds")
 nlp.add_pipe(
     "eds.normalizer",
     config=dict(
@@ -260,9 +260,9 @@ If you want to exclude specific patterns, you can provide them as a RegEx (or a 
 For instance, to consider text between "AAA" and "ZZZ" as pollution you might use:
 
 ```python
-import spacy
+import edsnlp
 
-nlp = spacy.blank("eds")
+nlp = edsnlp.blank("eds")
 nlp.add_pipe(
     "eds.normalizer",
     config=dict(

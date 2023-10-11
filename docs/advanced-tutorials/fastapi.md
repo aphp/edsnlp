@@ -12,9 +12,9 @@ Let's create a simple NLP model, that can:
 You know the drill:
 
 ```python title="pipeline.py"
-import spacy
+import edsnlp
 
-nlp = spacy.blank('fr')
+nlp = edsnlp.blank('fr')
 
 nlp.add_pipe("eds.sentences")
 

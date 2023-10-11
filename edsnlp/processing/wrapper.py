@@ -90,7 +90,7 @@ def pipe(
                 **kwargs,
             )
 
-    if isinstance(extensions, dict):
+    if not isinstance(extensions, dict):
         if extensions:
             raise ValueError(
                 """

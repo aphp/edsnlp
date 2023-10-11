@@ -145,9 +145,9 @@ This parameter can be se to `True` **only for a single assign key per dictionary
 ## Examples
 
 ```python
-import spacy
+import edsnlp
 
-nlp = spacy.blank("eds")
+nlp = edsnlp.blank("eds")
 
 nlp.add_pipe("sentences")
 nlp.add_pipe("normalizer")

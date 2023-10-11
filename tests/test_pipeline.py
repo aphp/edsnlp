@@ -152,6 +152,7 @@ embedding = ${components.transformer}
 mode = "independent"
 target_span_getter = ["ents", "ner-preds"]
 labels = ["PERSON", "GIFT"]
+infer_span_setter = false
 window = 20
 stride = 18
 

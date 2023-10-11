@@ -17,31 +17,31 @@ In the trainable pipes of EDS-NLP, preprocessing and postprocessing are decouple
 ??? details "Methods of a trainable component"
 
     ### `preprocess` {: #edsnlp.core.torch_component.TorchComponent.preprocess }
-    
+
     ::: edsnlp.core.torch_component.TorchComponent.preprocess
         options:
             heading_level: 4
             show_source: false
             show_toc: false
-    
+
     ### `collate` {: #edsnlp.core.torch_component.TorchComponent.collate }
-    
+
     ::: edsnlp.core.torch_component.TorchComponent.collate
         options:
             heading_level: 4
             show_source: false
             show_toc: false
-    
+
     ### `forward` {: #edsnlp.core.torch_component.TorchComponent.forward }
-    
+
     ::: edsnlp.core.torch_component.TorchComponent.forward
         options:
             heading_level: 4
             show_source: false
             show_toc: false
-    
+
     ### `postprocess` {: #edsnlp.core.torch_component.TorchComponent.postprocess }
-    
+
     ::: edsnlp.core.torch_component.TorchComponent.postprocess
         options:
             heading_level: 4
@@ -50,10 +50,10 @@ In the trainable pipes of EDS-NLP, preprocessing and postprocessing are decouple
 
 
     Additionally, there is a fifth method:
-    
-    
+
+
     ### `post_init` {: #edsnlp.core.torch_component.TorchComponent.post_init }
-    
+
     ::: edsnlp.core.torch_component.TorchComponent.post_init
         options:
             heading_level: 3
@@ -136,11 +136,11 @@ from spacy.tokens import Doc
 class MyComponent(TorchComponent):
     def __init__(
         self,  # A subcomponent
-        pipeline: Pipeline,
+        nlp: Pipeline,
         name: str,
         embedding: TorchComponent,
     ):
-        super().__init__(pipeline=pipeline, name=name)
+        super().__init__(nlp=nlp, name=name)
         self.embedding = embedding
 
     def post_init(self, gold_data: Iterable[Doc], exclude: set):

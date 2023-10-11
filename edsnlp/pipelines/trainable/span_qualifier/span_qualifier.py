@@ -155,7 +155,7 @@ class TrainableSpanQualifier(
         Spacy vocabulary
     name: str
         Name of the component
-    embedding : WordEmbeddingComponent
+    embedding : SpanEmbeddingComponent
         The word embedding component
     qualifiers: QualifiersArg
         The qualifiers to predict or train on. If a dict is given, keys are the

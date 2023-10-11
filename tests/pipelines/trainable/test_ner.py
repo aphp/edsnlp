@@ -28,6 +28,7 @@ def test_ner(ner_mode):
             window=1 if ner_mode == "independent" else 5,
         ),
     )
+
     ner = nlp.get_pipe("ner")
     ner.update_labels([])
     doc = nlp(

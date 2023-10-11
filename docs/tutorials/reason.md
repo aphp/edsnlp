@@ -7,7 +7,7 @@ In this tutorial we will use the pipeline `eds.reason` to :
 - Check for all named entities if they are tagged `is_reason`
 
 ```python
-import spacy
+import edsnlp
 
 text = """COMPTE RENDU D'HOSPITALISATION du 11/07/2018 au 12/07/2018
 MOTIF D'HOSPITALISATION
@@ -18,7 +18,7 @@ ANTÉCÉDENTS
 Antécédents médicaux :
 Premier épisode d'asthme en mai 2018."""
 
-nlp = spacy.blank("fr")
+nlp = edsnlp.blank("eds")
 
 # Extraction d'entités nommées
 nlp.add_pipe(

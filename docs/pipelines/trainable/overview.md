@@ -12,6 +12,7 @@ All trainable components implement the [`TorchComponent`][edsnlp.core.torch_comp
 |----------------------|----------------------------------------------------------------------|
 | `eds.transformer`    | Embed text with a transformer model                                  |
 | `eds.text_cnn`       | Contextualize embeddings with a CNN                                  |
+| `eds.span_pooler`    | A span embedding component that aggregates word embeddings           |
 | `eds.ner_crf`        | A trainable component to extract entities                            |
 | `eds.span_qualifier` | A trainable component for multi-class multi-label span qualification |
 

@@ -335,6 +335,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         return {
             "labels": self.labels,
             "span_setter": self.span_setter,
+            "infer_span_setter": self.infer_span_setter,
             "mode": self.mode,
             "window": self.window,
             "stride": self.stride,

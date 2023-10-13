@@ -1,5 +1,40 @@
 # Changelog
 
+## v0.10.0.beta.1
+
+Large refacto of EDS-NLP to allow training models and performing inference using PyTorch
+as the deep-learning backend. Rather than a mere wrapper of Pytorch using spaCy, this is
+a new framework to build hybrid multi-task models.
+
+To achieve this, instead of patching spaCy's pipeline, a new pipeline was implemented in
+a similar fashion to aphp/edspdf#12. The new pipeline tries to preserve the existing API,
+especially for non-machine learning uses such as rule-based components. This means that
+users can continue to use the library in the same way as before, while also having the option to train models using PyTorch. We still
+use spaCy data structures such as Doc and Span to represent the texts and their annotations.
+
+Otherwise, changes should be transparent for users that still want to use spacy pipelines
+with `nlp = spacy.blank('eds')`. To benefit from the new features, users should use
+`nlp = edsnlp.blank('eds')` instead.
+
+### Added
+
+- New pipeline system available via `edsnlp.blank('eds')` (instead of `spacy.blank('eds')`)
+- Use the confit package to instantiate components
+- Training script with Pytorch only (`tests/training/`) and tutorial
+- New trainable embeddings: `eds.transformer`, `eds.text_cnn`, `eds.span_pooler`
+  embedding contextualizer pipes
+- Re-implemented the trainable NER component and trainable Span qualifier with the new
+  system under `eds.ner_crf` and `eds.span_classifier`
+- New efficient implementation for eds.transformer (to be used in place of
+  spacy-transformer)
+
+### Changed
+
+- Pipe registering: `Language.factory` -> `edsnlp.registry.factory.register` via confit
+- Lazy loading components from their entry point (had to patch spacy.Language.__init__)
+  to avoid having to wrap every import torch statement for pure rule-based use cases.
+  Hence, torch is not a required dependency
+
 ## v0.9.1
 
 ## Changed

@@ -2,30 +2,26 @@
 
 EDS-NLP is a collaborative NLP framework that aims at extracting information from French clinical notes.
 At its core, it is a collection of components or pipes, either rule-based functions or
-[deep learning modules](https://aphp.github.io/concepts/torch-component). These components are organized into a novel efficient and modular [pipeline system](https://aphp.github.io/concepts/pipeline), built for hybrid and multi-task models. We use [spaCy](https://spacy.io) to represent documents and their annotations, and [Pytorch](https://pytorch.org/) as a deep-learning backend for trainable components.
+deep learning modules. These components are organized into a novel efficient and modular pipeline system, built for hybrid and multitask models. We use [spaCy](https://spacy.io) to represent documents and their annotations, and [Pytorch](https://pytorch.org/) as a deep-learning backend for trainable components.
 
-Although initially designed for French clinical notes, the architecture of EDS-NLP is versatile and can be used on any document. The rule-based components are fully compatible with spaCy's pipelines, and vice versa, which makes it easy to integrate and extend with other NLP tools. This library is a product of collaborative effort, and we encourage further contributions to enhance its capabilities. Check out our interactive [demo](https://aphp.github.io/edsnlp/demo/) to see EDS-NLP in action.
+EDS-NLP is versatile and can be used on any textual document. The rule-based components are fully compatible with spaCy's pipelines, and vice versa. This library is a product of collaborative effort, and we encourage further contributions to enhance its capabilities.
+
+Check out our interactive [demo](https://aphp.github.io/edsnlp/demo/) !
 
 ## Quick start
 
 ### Installation
 
-You can install EDS-NLP via `pip`:
+You can install EDS-NLP via `pip`. We recommend pinning the library version in your projects, or use a strict package manager like [Poetry](https://python-poetry.org/).
 
-<div class="termy">
-
-```console
-$ pip install edsnlp
----> 100%
-color:green Successfully installed!
-```
-
-</div>
-
-We recommend pinning the library version in your projects, or use a strict package manager like [Poetry](https://python-poetry.org/).
-
-```
+```{: data-md-color-scheme="slate" }
 pip install edsnlp==0.9.1
+```
+
+or if you want to use the trainable components (using pytorch)
+
+```{: data-md-color-scheme="slate" }
+pip install "edsnlp[ml]==0.9.1"
 ```
 
 ### A first pipeline
@@ -83,7 +79,8 @@ The performances of an extraction pipeline may depend on the population and docu
 
 ## Contributing to EDS-NLP
 
-We welcome contributions ! Fork the project and propose a pull request. Take a look at the [dedicated page](contributing.md) for detail.
+We welcome contributions ! Fork the project and propose a pull request.
+Take a look at the [dedicated page](https://aphp.github.io/edsnlp/latest/contributing/) for detail.
 
 ## Citation
 
@@ -91,9 +88,9 @@ If you use EDS-NLP, please cite us as below.
 
 ```bibtex
 @misc{edsnlp,
-  author = {Dura, Basile and Wajsburt, Perceval and Petit-Jean, Thomas and Cohen, Ariel and Jean, Charline and Bey, Romain},
+  author = {Wajsburt, Perceval and Petit-Jean, Thomas and Dura, Basile and Cohen, Ariel and Jean, Charline and Bey, Romain},
   doi    = {10.5281/zenodo.6424993},
   title  = {EDS-NLP: efficient information extraction from French clinical notes},
-  url    = {http://aphp.github.io/edsnlp}
+  url    = {https://aphp.github.io/edsnlp}
 }
 ```

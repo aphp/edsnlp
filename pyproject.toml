@@ -2,7 +2,7 @@
 name = "edsnlp"
 description = "A set of spaCy components to extract information from clinical notes written in French"
 authors = [
-    { name = "Data Science - DSN APHP", email = "perceval.wajsburt-ext@aphp.fr" }
+    { name = "Data Science - DSN APHP", email = "perceval.wajsburt@aphp.fr" }
 ]
 license = { file = "LICENSE" }
 readme = "README.md"
@@ -19,9 +19,7 @@ dependencies = [
     "scikit-learn>=1.0.0",
     "spacy>=3.1,<4.0.0",
     "confit>=0.5.2",
-    "foldedtensor>=0.3.2",
     "tqdm",
-    "safetensors>=0.3.0",
     "umls-downloader>=0.1.1",
     "numpy>=1.15.0,<1.23.2; python_version<'3.8'",
     "numpy>=1.15.0; python_version>='3.8'",
@@ -60,12 +58,18 @@ dev = [
     "pathspec>=0.11.1",  # required by vendored mkdocs-autorefs PR
     "astunparse",
     "mlconjug3<3.9.0",
+
+    "torch>=1.0.0",
+    "foldedtensor>=0.3.2",
+    "safetensors>=0.3.0",
 ]
 setup = [
     "typer"
 ]
-trainable = [
+ml = [
     "torch>=1.0.0",
+    "foldedtensor>=0.3.2",
+    "safetensors>=0.3.0",
 ]
 
 [project.urls]

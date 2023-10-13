@@ -5,12 +5,13 @@
 [![Codecov](https://img.shields.io/codecov/c/github/aphp/edsnlp?logo=codecov&style=flat-square)](https://codecov.io/gh/aphp/edsnlp)
 [![DOI](https://zenodo.org/badge/467585436.svg)](https://zenodo.org/badge/latestdoi/467585436)
 
+
 EDS-NLP
 =======
 
 EDS-NLP is a collaborative NLP framework that aims at extracting information from French clinical notes.
 At its core, it is a collection of components or pipes, either rule-based functions or
-deep learning modules. These components are organized into a novel efficient and modular pipeline system, built for hybrid and multi-task models. We use [spaCy](https://spacy.io) to represent documents and their annotations, and [Pytorch](https://pytorch.org/) as a deep-learning backend for trainable components.
+deep learning modules. These components are organized into a novel efficient and modular pipeline system, built for hybrid and multitask models. We use [spaCy](https://spacy.io) to represent documents and their annotations, and [Pytorch](https://pytorch.org/) as a deep-learning backend for trainable components.
 
 EDS-NLP is versatile and can be used on any textual document. The rule-based components are fully compatible with spaCy's pipelines, and vice versa. This library is a product of collaborative effort, and we encourage further contributions to enhance its capabilities.
 
@@ -20,16 +21,16 @@ Check out our interactive [demo](https://aphp.github.io/edsnlp/demo/) !
 
 ### Installation
 
-You can install EDS-NLP via `pip`:
-
-```shell
-pip install edsnlp
-```
-
-We recommend pinning the library version in your projects, or use a strict package manager like [Poetry](https://python-poetry.org/).
+You can install EDS-NLP via `pip`. We recommend pinning the library version in your projects, or use a strict package manager like [Poetry](https://python-poetry.org/).
 
 ```shell
 pip install edsnlp==0.9.1
+```
+
+or if you want to use the trainable components (using pytorch)
+
+```shell
+pip install "edsnlp[ml]==0.9.1"
 ```
 
 ### A first pipeline
@@ -81,10 +82,10 @@ If you use EDS-NLP, please cite us as below.
 
 ```bibtex
 @misc{edsnlp,
-  author = {Dura, Basile and Wajsburt, Perceval and Petit-Jean, Thomas and Cohen, Ariel and Jean, Charline and Bey, Romain},
+  author = {Wajsburt, Perceval and Petit-Jean, Thomas and Dura, Basile and Cohen, Ariel and Jean, Charline and Bey, Romain},
   doi    = {10.5281/zenodo.6424993},
   title  = {EDS-NLP: efficient information extraction from French clinical notes},
-  url    = {http://aphp.github.io/edsnlp}
+  url    = {https://aphp.github.io/edsnlp}
 }
 ```
 

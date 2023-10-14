@@ -265,7 +265,7 @@ Let's wrap the training code in a function, and make it callable from the comman
             loss = torch.zeros((), device="cpu")
             with nlp.cache():
                 for name, component in nlp.torch_components():
-                    output = component.module_forward(batch[component.name])  # (1)
+                    output = component.module_forward(batch[component.name])
                     if "loss" in output:
                         loss += output["loss"]
 

@@ -37,10 +37,6 @@ theme:
 nav:
   - index.md
   - Demo: https://aphp.github.io/edsnlp/demo" target="_blank
-  - Concepts:
-      - concepts/pipeline.md
-      - concepts/torch-component.md
-      - concepts/inference.md
   - Tutorials:
       - Overview: tutorials/overview.md
       - tutorials/spacy101.md
@@ -130,6 +126,10 @@ nav:
       - Overview: utilities/connectors/overview.md
       - utilities/connectors/brat.md
       - utilities/connectors/omop.md
+  - Concepts:
+      - concepts/pipeline.md
+      - concepts/torch-component.md
+      - concepts/inference.md
   - Utilities:
       - Overview: utilities/overview.md
       - utilities/tests/blocs.md
@@ -155,6 +155,7 @@ extra:
 
 extra_css:
   - assets/stylesheets/extra.css
+  - assets/stylesheets/cards.css
   - assets/termynal/termynal.css
 
 extra_javascript:
@@ -229,6 +230,7 @@ markdown_extensions:
   - pymdownx.emoji:
       emoji_index: !!python/name:materialx.emoji.twemoji
       emoji_generator: !!python/name:materialx.emoji.to_svg
+  - docs.scripts.cards
 
 validation:
   absolute_links: ignore

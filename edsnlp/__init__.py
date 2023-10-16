@@ -11,6 +11,6 @@ from .core.pipeline import Pipeline, blank, load
 from .core.registry import registry
 from . import language
 
-__version__ = "0.9.1"
+__version__ = "0.10.0beta1"
 
 BASE_DIR = Path(__file__).parent

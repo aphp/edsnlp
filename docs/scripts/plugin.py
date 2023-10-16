@@ -199,6 +199,7 @@ def on_post_page(
         return f'href="{relative_url}"'
 
     # Replace absolute paths with path relative to the rendered page
-    output = regex.sub(HREF_REGEX, replace_link, output)
     output = regex.sub(PIPE_REGEX, replace_component, output)
+    output = regex.sub(HREF_REGEX, replace_link, output)
+
     return output

@@ -348,4 +348,5 @@ skip = [
 ]
 
 before-test = "pip install pytest"
+test-extras = "ml"
 test-command = "pytest {project}/tests/pipelines/test_pipelines.py"

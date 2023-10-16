@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.10.0.beta.1
+## v0.10.0beta1
 
 Large refacto of EDS-NLP to allow training models and performing inference using PyTorch
 as the deep-learning backend. Rather than a mere wrapper of Pytorch using spaCy, this is

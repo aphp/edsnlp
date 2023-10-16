@@ -426,9 +426,6 @@ class BratConnector(object):
                     if self.span_groups is None or ent["label"] in self.span_groups:
                         span_groups[ent["label"]].append(span)
 
-            if self.span_groups is None:
-                self.span_groups = sorted(span_groups.keys())
-
             doc.ents = filter_spans(spans)
             for group_name, group in span_groups.items():
                 doc.spans[group_name] = group

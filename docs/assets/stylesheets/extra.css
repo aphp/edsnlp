@@ -162,3 +162,7 @@ body, input {
 .md-typeset .card-set {
     grid-template-columns: repeat(auto-fit,minmax(12rem,1fr)) !important;
 }
+
+.md-typeset code a:not(.md-annotation__index) {
+    border-bottom: 1px dashed var(--md-typeset-a-color);
+}

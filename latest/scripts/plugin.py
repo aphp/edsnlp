@@ -146,7 +146,7 @@ def on_page_read_source(page, config):
     return None
 
 
-HREF_REGEX = r'href=(?:"([^"]*)"|\'([^\']*)|[ ]*([^ =>]*)(?![a-z]+=))'
+HREF_REGEX = r'(?<=<\s*(?:a[^>]*href|img[^>]*src)=)(?:"([^"]*)"|\'([^\']*)|[ ]*([^ =>]*)(?![a-z]+=))'
 # Maybe find something less specific ?
 PIPE_REGEX = r"(?<=[^a-zA-Z0-9._-])eds[.][a-zA-Z0-9._-]*(?=[^a-zA-Z0-9._-])"
 
@@ -196,7 +196,7 @@ def on_post_page(
         page_url = os.path.join("/", page.file.url)
         if url.startswith("/"):
             relative_url = os.path.relpath(url, page_url)
-        return f'href="{relative_url}"'
+        return f'"{relative_url}"'
 
     # Replace absolute paths with path relative to the rendered page
     output = regex.sub(PIPE_REGEX, replace_component, output)

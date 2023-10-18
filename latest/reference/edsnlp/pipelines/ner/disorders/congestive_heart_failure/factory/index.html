@@ -91,9 +91,9 @@
     <span class=n>with_minimum_severity</span><span class=p>,</span>
 <span class=p>]</span>
 <span class=c1># fmt: on</span>
-</code></pre></div> </details> <h3 id=edsnlp.pipelines.ner.disorders.congestive_heart_failure.factory.create_component--usage>Usage</h3> <div class=highlight><pre><span></span><code><span class=kn>import</span> <span class=nn>spacy</span>
+</code></pre></div> </details> <h3 id=edsnlp.pipelines.ner.disorders.congestive_heart_failure.factory.create_component--usage>Usage</h3> <div class=highlight><pre><span></span><code><span class=kn>import</span> <span class=nn>edsnlp</span>
 
-<span class=n>nlp</span> <span class=o>=</span> <span class=n>spacy</span><span class=o>.</span><span class=n>blank</span><span class=p>(</span><span class=s2>&quot;eds&quot;</span><span class=p>)</span>
+<span class=n>nlp</span> <span class=o>=</span> <span class=n>edsnlp</span><span class=o>.</span><span class=n>blank</span><span class=p>(</span><span class=s2>&quot;eds&quot;</span><span class=p>)</span>
 <span class=n>nlp</span><span class=o>.</span><span class=n>add_pipe</span><span class=p>(</span><span class=s2>&quot;<a href="../../../../../../../pipelines/core/sentences/#edsnlp.pipelines.core.sentences.factory.create_component">eds.sentences</a>&quot;</span><span class=p>)</span>
 <span class=n>nlp</span><span class=o>.</span><span class=n>add_pipe</span><span class=p>(</span>
     <span class=s2>&quot;<a href="../../../../../../../pipelines/core/normalizer/#edsnlp.pipelines.core.normalizer.factory.create_component">eds.normalizer</a>&quot;</span><span class=p>,</span>

@@ -146,7 +146,10 @@ def on_page_read_source(page, config):
     return None
 
 
-HREF_REGEX = r'(?<=<\s*(?:a[^>]*href|img[^>]*src)=)(?:"([^"]*)"|\'([^\']*)|[ ]*([^ =>]*)(?![a-z]+=))'
+HREF_REGEX = (
+    r"(?<=<\s*(?:a[^>]*href|img[^>]*src)=)"
+    r'(?:"([^"]*)"|\'([^\']*)|[ ]*([^ =>]*)(?![a-z]+=))'
+)
 # Maybe find something less specific ?
 PIPE_REGEX = r"(?<=[^a-zA-Z0-9._-])eds[.][a-zA-Z0-9._-]*(?=[^a-zA-Z0-9._-])"
 

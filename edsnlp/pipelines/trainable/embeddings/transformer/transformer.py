@@ -57,7 +57,8 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
     windows, the embedding of the "most contextualized" occurrence is used, i.e. the
     occurrence that is the closest to the center of its window.
 
-    Here is an overview how this works in a classifier model :
+    Here is an overview how this works to produce embeddings (shown in red) for each
+    word of the document :
 
     <figure style="text-align: center" markdown>
     ![Transformer windowing](/assets/images/transformer-windowing.svg)

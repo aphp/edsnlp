@@ -12,8 +12,7 @@ from spacy.tokens.token cimport Token
 from spacy.typedefs cimport attr_t
 from spacy.vocab cimport Vocab
 
-from edsnlp.matchers.utils import Patterns
-
+from edsnlp.matchers.utils import Patterns, normalize_token_attr
 
 def get_normalized_variant(doclike) -> str:
     tokens = [t.text + t.whitespace_ for t in doclike if not t._.excluded]
@@ -88,13 +87,15 @@ cdef class EDSPhraseMatcher(PhraseMatcher):
         if not terms:
             terms = dict()
 
+        matched_attr = normalize_token_attr(self.vocab.strings[self.attr])
+        assert matched_attr is not None, "Unsupported attribute for matching"
         token_pipelines = [
             name
             for name, pipe in nlp.pipeline
-            if any(
-                "token" in assign and not assign == "token.is_sent_start"
-                for assign in nlp.get_pipe_meta(name).assigns
-            )
+            if name not in nlp.disabled and matched_attr in {
+                normalize_token_attr(ass)
+                for ass in nlp.get_pipe_meta(name).assigns
+            }
         ]
         with nlp.select_pipes(enable=token_pipelines):
             for key, expressions in (tqdm(

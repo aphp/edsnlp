@@ -1,8 +1,14 @@
 # Changelog
 
+## v0.9.2
+
+### Changed
+
+- Fix matchers to skip pipes with assigned extensions that are not required by the matcher during the initialization
+
 ## v0.9.1
 
-## Changed
+### Changed
 
 - Improve negation patterns
 - Abstent disorders now set the negation to True when matched as `ABSENT`

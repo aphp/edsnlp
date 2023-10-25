@@ -17,9 +17,9 @@ class TablesMatcher(GenericMatcher):
     Examples
     --------
     ```python
-    import spacy
+    import edsnlp
 
-    nlp = spacy.blank("eds")
+    nlp = edsnlp.blank("eds")
     nlp.add_pipe("eds.normalizer")
     nlp.add_pipe("eds.tables")
 

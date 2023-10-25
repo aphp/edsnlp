@@ -31,9 +31,9 @@ class ConnectiveTissueDiseaseMatcher(DisorderMatcher):
     Examples
     --------
     ```python
-    import spacy
+    import edsnlp
 
-    nlp = spacy.blank("eds")
+    nlp = edsnlp.blank("eds")
     nlp.add_pipe("eds.sentences")
     nlp.add_pipe(
         "eds.normalizer",

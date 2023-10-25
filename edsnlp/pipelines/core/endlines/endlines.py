@@ -25,10 +25,10 @@ class EndLinesMatcher(GenericMatcher):
     Training
     --------
     ```python
-    import spacy
+    import edsnlp
     from edsnlp.pipelines.core.endlines.model import EndLinesModel
 
-    nlp = spacy.blank("eds")
+    nlp = edsnlp.blank("eds")
 
     texts = [
         """
@@ -69,11 +69,11 @@ class EndLinesMatcher(GenericMatcher):
     Examples
     --------
     ```python
-    import spacy
+    import edsnlp
     from spacy.tokens import Span
     from spacy import displacy
 
-    nlp = spacy.blank("eds")
+    nlp = edsnlp.blank("eds")
 
     PATH = "/tmp/path_to_save"
     nlp.add_pipe("eds.endlines", config=dict(model_path=PATH))

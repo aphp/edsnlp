@@ -4,7 +4,7 @@ from typing import Any, Iterable
 from spacy.training import Example
 
 from edsnlp import registry
-from edsnlp.scorers import make_examples
+from edsnlp.scorers import make_examples, prf
 from edsnlp.utils.bindings import BINDING_GETTERS, Qualifiers, QualifiersArg
 from edsnlp.utils.span_getters import SpanGetterArg, get_spans
 
@@ -14,6 +14,7 @@ def span_classification_scorer(
     span_getter: SpanGetterArg,
     qualifiers: Qualifiers,
     include_falsy: bool = False,
+    micro_key: str = "micro",
 ):
     """
     Scores the extracted entities that may be overlapping or nested
@@ -28,16 +29,18 @@ def span_classification_scorer(
     qualifiers : Sequence[str]
         The qualifiers to use to score the spans
     include_falsy : bool
-        Whether to count predicted or gold occurences of falsy values when computing
+        Whether to count predicted or gold occurrences of falsy values when computing
         the metrics. If `False`, only the non-falsy values will be counted and matched
         together.
+    micro_key : str
+        The key to use to store the micro-averaged results for spans of all types
 
     Returns
     -------
     Dict[str, float]
     """
-    labels = defaultdict(lambda: ([], []))
-    labels[None] = ([], [])
+    labels = defaultdict(lambda: (set(), set()))
+    labels["micro"] = (set(), set())
     total_pred_count = 0
     total_gold_count = 0
     for eg_idx, eg in enumerate(examples):
@@ -49,9 +52,8 @@ def span_classification_scorer(
                     continue
                 value = BINDING_GETTERS[qualifier](span)
                 if value or include_falsy:
-                    labels[None][0].append((eg_idx, span_idx, qualifier, value))
-                    key_str = f"{qualifier}" if value is True else f"{value}"
-                    labels[key_str][0].append((eg_idx, span_idx, value))
+                    labels[micro_key][0].add((eg_idx, span_idx, qualifier, value))
+                    labels[qualifier][0].add((eg_idx, span_idx, qualifier, value))
 
         doc_spans = get_spans(eg.reference, span_getter)
         for span_idx, span in enumerate(doc_spans):
@@ -61,9 +63,8 @@ def span_classification_scorer(
                     continue
                 value = BINDING_GETTERS[qualifier](span)
                 if value or include_falsy:
-                    labels[None][1].append((eg_idx, span_idx, qualifier, value))
-                    key_str = f"{qualifier}" if value is True else f"{value}"
-                    labels[key_str][1].append((eg_idx, span_idx, value))
+                    labels[micro_key][1].add((eg_idx, span_idx, qualifier, value))
+                    labels[qualifier][1].add((eg_idx, span_idx, qualifier, value))
 
     if total_pred_count != total_gold_count:
         raise ValueError(
@@ -73,26 +74,7 @@ def span_classification_scorer(
             "another NER pipe in your model."
         )
 
-    def prf(pred, gold):
-        tp = len(set(pred) & set(gold))
-        np = len(pred)
-        ng = len(gold)
-        return {
-            "f": 2 * tp / max(1, np + ng),
-            "p": 1 if tp == np else (tp / np),
-            "r": 1 if tp == ng else (tp / ng),
-            "support": len(gold),
-        }
-
-    results = {name: prf(pred, gold) for name, (pred, gold) in labels.items()}
-    micro_results = results.pop(None)
-    return {
-        "qual_p": micro_results["p"],
-        "qual_r": micro_results["r"],
-        "qual_f": micro_results["f"],
-        "support": len(labels[None][1]),
-        "qual_per_type": results,
-    }
+    return {name: prf(pred, gold) for name, (pred, gold) in labels.items()}
 
 
 @registry.scorers.register("eds.span_classification_scorer")

@@ -28,20 +28,24 @@ def gold_and_pred():
 def test_exact_ner_scorer(gold_and_pred):
     scorer = create_ner_exact_scorer("ents")
     ner_exact_score = scorer(*gold_and_pred)
-    assert ner_exact_score == {
-        "ents_p": 0.5,
-        "ents_r": 1 / 3,
-        "ents_f": 0.4,
+    assert ner_exact_score["micro"] == {
+        "p": 0.5,
+        "r": 1 / 3,
+        "f": 0.4,
         "support": 3,
+        "positives": 2,
+        "tp": 1,
     }
 
 
 def test_token_ner_scorer(gold_and_pred):
     scorer = create_ner_token_scorer("ents")
     ner_exact_score = scorer(*gold_and_pred)
-    assert ner_exact_score == {
-        "ents_f": 0.75,
-        "ents_p": 0.75,
-        "ents_r": 0.75,
+    assert ner_exact_score["micro"] == {
+        "f": 0.75,
+        "p": 0.75,
+        "r": 0.75,
         "support": 4,
+        "positives": 4,
+        "tp": 3,
     }

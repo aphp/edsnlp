@@ -21,9 +21,9 @@ class GenericMatcher(BaseNERComponent):
     Let us redefine the pipeline :
 
     ```python
-    import spacy
+    import edsnlp
 
-    nlp = spacy.blank("eds")
+    nlp = edsnlp.blank("eds")
 
     terms = dict(
         covid=["coronavirus", "covid19"],  # (1)

@@ -26,10 +26,9 @@ class ConsultationDatesMatcher(GenericMatcher):
         (`CR-CONS` at APHP), so please filter accordingly before proceeding.
 
     ```python
-    import spacy
+    import edsnlp
 
-    # HIHIHI
-    nlp = spacy.blank("eds")
+    nlp = edsnlp.blank("eds")
     nlp.add_pipe("eds.sentences")
     nlp.add_pipe(
         "eds.normalizer",

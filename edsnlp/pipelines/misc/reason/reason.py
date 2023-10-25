@@ -21,7 +21,7 @@ class ReasonMatcher(GenericMatcher):
     hospitalisation reasons. It is complete and can be run _as is_.
 
     ```python
-    import spacy
+    import edsnlp
 
     text = """COMPTE RENDU D'HOSPITALISATION du 11/07/2018 au 12/07/2018
     MOTIF D'HOSPITALISATION
@@ -32,7 +32,7 @@ class ReasonMatcher(GenericMatcher):
     Antécédents médicaux :
     Premier épisode d'asthme en mai 2018."""
 
-    nlp = spacy.blank("eds")
+    nlp = edsnlp.blank("eds")
 
     # Extraction of entities
     nlp.add_pipe(

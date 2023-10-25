@@ -47,9 +47,9 @@ def create_component(
     (ATC code: A10B).
 
     ```python
-    import spacy
+    import edsnlp
 
-    nlp = spacy.blank("eds")
+    nlp = edsnlp.blank("eds")
     nlp.add_pipe("eds.normalizer")
     nlp.add_pipe("eds.drugs", config=dict(term_matcher="exact"))
 

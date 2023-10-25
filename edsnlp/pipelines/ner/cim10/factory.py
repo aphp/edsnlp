@@ -48,9 +48,9 @@ def create_component(
     Examples
     --------
     ```python
-    import spacy
+    import edsnlp
 
-    nlp = spacy.blank("eds")
+    nlp = edsnlp.blank("eds")
     nlp.add_pipe("eds.cim10", config=dict(term_matcher="simstring"))
 
     text = "Le patient est suivi pour fièvres typhoïde et paratyphoïde."

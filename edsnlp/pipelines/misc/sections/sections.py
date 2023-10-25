@@ -61,9 +61,9 @@ class SectionsMatcher(GenericMatcher):
     The following snippet detects section titles. It is complete and can be run _as is_.
 
     ```python
-    import spacy
+    import edsnlp
 
-    nlp = spacy.blank("eds")
+    nlp = edsnlp.blank("eds")
     nlp.add_pipe("eds.normalizer")
     nlp.add_pipe("eds.sections")
 

@@ -45,11 +45,11 @@ class DatesMatcher(BaseNERComponent):
     ## Usage
 
     ```python
-    import spacy
+    import edsnlp
 
     import pendulum
 
-    nlp = spacy.blank("eds")
+    nlp = edsnlp.blank("eds")
     nlp.add_pipe("eds.dates")
 
     text = (

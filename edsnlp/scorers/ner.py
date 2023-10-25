@@ -1,14 +1,17 @@
+from collections import defaultdict
 from typing import Any, Dict, Iterable
 
 from spacy.training import Example
 
 from edsnlp import registry
 from edsnlp.pipelines.base import SpanGetter, SpanGetterArg, get_spans
-from edsnlp.scorers import make_examples
+from edsnlp.scorers import make_examples, prf
 
 
 def ner_exact_scorer(
-    examples: Iterable[Example], span_getter: SpanGetter
+    examples: Iterable[Example],
+    span_getter: SpanGetter,
+    micro_key: str = "micro",
 ) -> Dict[str, Any]:
     """
     Scores the extracted entities that may be overlapping or nested
@@ -17,43 +20,42 @@ def ner_exact_scorer(
     Parameters
     ----------
     examples: Iterable[Example]
+        The examples to score
     span_getter: SpanGetter
+        The span getter to use to extract the spans from the document
+    micro_key: str
+        The key to use to store the micro-averaged results for spans of all types
 
     Returns
     -------
     Dict[str, Any]
     """
-    pred_spans = set()
-    gold_spans = set()
+    labels = defaultdict(lambda: (set(), set()))
+    labels["micro"] = (set(), set())
     for eg_idx, eg in enumerate(examples):
         for span in (
             span_getter(eg.predicted)
             if callable(span_getter)
             else get_spans(eg.predicted, span_getter)
         ):
-            pred_spans.add((eg_idx, span.start, span.end, span.label_))
+            labels[span.label_][0].add((eg_idx, span.start, span.end, span.label_))
+            labels[micro_key][0].add((eg_idx, span.start, span.end, span.label_))
 
         for span in (
             span_getter(eg.reference)
             if callable(span_getter)
             else get_spans(eg.reference, span_getter)
         ):
-            gold_spans.add((eg_idx, span.start, span.end, span.label_))
+            labels[span.label_][1].add((eg_idx, span.start, span.end, span.label_))
+            labels[micro_key][1].add((eg_idx, span.start, span.end, span.label_))
 
-    tp = len(pred_spans & gold_spans)
-
-    return {
-        "ents_p": tp / len(pred_spans) if pred_spans else float(len(gold_spans) == 0),
-        "ents_r": tp / len(gold_spans) if gold_spans else float(len(gold_spans) == 0),
-        "ents_f": 2 * tp / (len(pred_spans) + len(gold_spans))
-        if pred_spans or gold_spans
-        else float(len(pred_spans) == len(gold_spans)),
-        "support": len(gold_spans),
-    }
+    return {name: prf(pred, gold) for name, (pred, gold) in labels.items()}
 
 
 def ner_token_scorer(
-    examples: Iterable[Example], span_getter: SpanGetter
+    examples: Iterable[Example],
+    span_getter: SpanGetter,
+    micro_key: str = "micro",
 ) -> Dict[str, Any]:
     """
     Scores the extracted entities that may be overlapping or nested
@@ -63,14 +65,19 @@ def ner_token_scorer(
     Parameters
     ----------
     examples: Iterable[Example]
+        The examples to score
     span_getter: SpanGetter
+        The span getter to use to extract the spans from the document
+    micro_key: str
+        The key to use to store the micro-averaged results for spans of all types
 
     Returns
     -------
     Dict[str, Any]
     """
-    pred_spans = set()
-    gold_spans = set()
+    # label -> pred, gold
+    labels = defaultdict(lambda: (set(), set()))
+    labels["micro"] = (set(), set())
     for eg_idx, eg in enumerate(examples):
         for span in (
             span_getter(eg.predicted)
@@ -78,7 +85,8 @@ def ner_token_scorer(
             else get_spans(eg.predicted, span_getter)
         ):
             for i in range(span.start, span.end):
-                pred_spans.add((eg_idx, i, span.label_))
+                labels[span.label_][0].add((eg_idx, i, span.label_))
+                labels[micro_key][0].add((eg_idx, i, span.label_))
 
         for span in (
             span_getter(eg.reference)
@@ -86,18 +94,10 @@ def ner_token_scorer(
             else get_spans(eg.reference, span_getter)
         ):
             for i in range(span.start, span.end):
-                gold_spans.add((eg_idx, i, span.label_))
+                labels[span.label_][1].add((eg_idx, i, span.label_))
+                labels[micro_key][1].add((eg_idx, i, span.label_))
 
-    tp = len(pred_spans & gold_spans)
-
-    return {
-        "ents_p": tp / len(pred_spans) if pred_spans else float(tp == len(pred_spans)),
-        "ents_r": tp / len(gold_spans) if gold_spans else float(tp == len(gold_spans)),
-        "ents_f": 2 * tp / (len(pred_spans) + len(gold_spans))
-        if pred_spans or gold_spans
-        else float(len(pred_spans) == len(gold_spans)),
-        "support": len(gold_spans),
-    }
+    return {name: prf(pred, gold) for name, (pred, gold) in labels.items()}
 
 
 @registry.scorers.register("eds.ner_exact_scorer")

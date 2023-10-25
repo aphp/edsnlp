@@ -403,8 +403,8 @@ def test_ner_qualif_train(run_in_test_dir, tmp_path):
     scorer = TestScorer(**kwargs["scorer"])
     last_scores = scorer(nlp, kwargs["val_data"](nlp))
 
-    assert last_scores["exact_ner"]["ents_f"] > 0.5
-    assert last_scores["qualifier"]["qual_f"] > 0.5
+    assert last_scores["exact_ner"]["micro"]["f"] > 0.5
+    assert last_scores["qualifier"]["micro"]["f"] > 0.5
 
 
 @registry.misc.register("sentence_span_getter")
@@ -424,7 +424,7 @@ def test_qualif_train(run_in_test_dir, tmp_path):
     scorer = TestScorer(**kwargs["scorer"])
     last_scores = scorer(nlp, kwargs["val_data"](nlp))
 
-    assert last_scores["qualifier"]["qual_f"] > 0.5
+    assert last_scores["qualifier"]["micro"]["f"] > 0.5
 
 
 # def deft_train(run_in_test_dir, tmp_path):

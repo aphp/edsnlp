@@ -37,9 +37,9 @@ def create_component(
     Examples
     --------
     ```python
-    import spacy
+    import edsnlp
 
-    nlp = spacy.blank("eds")
+    nlp = edsnlp.blank("eds")
     nlp.add_pipe("eds.covid")
 
     text = "Le patient est admis pour une infection au coronavirus."

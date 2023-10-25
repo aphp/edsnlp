@@ -36,9 +36,9 @@ class NegationQualifier(RuleBasedQualifier):
     extracted entities. It is complete and can be run _as is_.
 
     ```python
-    import spacy
+    import edsnlp
 
-    nlp = spacy.blank("eds")
+    nlp = edsnlp.blank("eds")
     nlp.add_pipe("eds.sentences")
     # Dummy matcher
     nlp.add_pipe(

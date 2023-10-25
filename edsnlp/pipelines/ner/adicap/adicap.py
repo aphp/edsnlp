@@ -22,7 +22,7 @@ class AdicapMatcher(ContextualMatcher):
     !!! warning "Document type"
 
         It was developped to work on anapathology reports.
-        We recommend also to use the `eds` language (`spacy.blank("eds")`)
+        We recommend also to use the `eds` language (`edsnlp.blank("eds")`)
 
     The compulsory characters of the ADICAP code are identified and decoded.
     These characters represent the following attributes:
@@ -51,9 +51,9 @@ Name=cgts_sem_adicap_fiche-detaillee.pdf).
     Examples
     --------
     ```{ .python .no-check }
-    import spacy
+    import edsnlp
 
-    nlp = spacy.blank("eds")
+    nlp = edsnlp.blank("eds")
     nlp.add_pipe("eds.sentences")
     nlp.add_pipe("eds.adicap")
 

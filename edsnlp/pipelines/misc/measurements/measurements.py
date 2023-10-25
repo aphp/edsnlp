@@ -295,9 +295,9 @@ class MeasurementsMatcher(BaseNERComponent):
     Examples
     --------
     ```python
-    import spacy
+    import edsnlp
 
-    nlp = spacy.blank("eds")
+    nlp = edsnlp.blank("eds")
     nlp.add_pipe(
         "eds.measurements",
         config=dict(
@@ -370,9 +370,9 @@ class MeasurementsMatcher(BaseNERComponent):
     You can declare custom measurements by altering the patterns:
 
     ```python
-    import spacy
+    import edsnlp
 
-    nlp = spacy.blank("eds")
+    nlp = edsnlp.blank("eds")
     nlp.add_pipe(
         "eds.measurements",
         config=dict(

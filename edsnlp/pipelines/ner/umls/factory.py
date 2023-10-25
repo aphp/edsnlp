@@ -58,9 +58,9 @@ def create_component(
     3. Set `UMLS_API_KEY` locally: `export UMLS_API_KEY=your_api_key`
 
     ```python
-    import spacy
+    import edsnlp
 
-    nlp = spacy.blank("eds")
+    nlp = edsnlp.blank("eds")
     nlp.add_pipe("eds.umls")
 
     text = "Grosse toux: le malade a été mordu par des Amphibiens " "sous le genou"

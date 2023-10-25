@@ -43,9 +43,9 @@ def create_component(
     === "EDS-NLP"
 
         ```{ .python .no-check }
-        import spacy
+        import edsnlp
 
-        nlp = spacy.blank("eds")
+        nlp = edsnlp.blank("eds")
         nlp.add_pipe("eds.sentences")
 
         text = """Le patient est admis le 23 août 2021 pour une douleur à l'estomac
@@ -64,9 +64,9 @@ def create_component(
     === "spaCy sentencizer"
 
         ```{ .python .no-check }
-        import spacy
+        import edsnlp
 
-        nlp = spacy.blank("eds")
+        nlp = edsnlp.blank("eds")
         nlp.add_pipe("sentencizer")
 
         text = """Le patient est admis le 23 août 2021 pour une douleur à l'estomac"

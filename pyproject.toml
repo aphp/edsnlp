@@ -26,25 +26,26 @@ dependencies = [
     "pandas>=1.1.0,<2.0.0; python_version<'3.8'",
     "pandas>=1.4.0,<2.0.0; python_version>='3.8'",
     "typing_extensions<4.6.0,>=4.0.0; python_version>='3.8'",  # https://github.com/explosion/spaCy/issues/12659
-    "typing_extensions>=4.0.0; python_version<'3.8'"
+    "typing_extensions>=4.0.0; python_version<'3.8'",
+
+    # Packaging
+    "dill",
+    "toml",
 ]
 [project.optional-dependencies]
 dev = [
     "black>=22.3.0,<23.0.0",
-    "fastapi",
-    "flake8==3.9.2",
-    "koalas>=1.8.1; python_version<='3.10'",
     "pre-commit>=2.0.0; python_version<'3.8'",
     "pre-commit>=2.21.0; python_version>='3.8'",
-    "pyspark",
     "pytest>=7.1.0,<8.0.0",
     "pytest-cov>=3.0.0,<4.0.0",
     "pytest-html>=3.1.1,<4.0.0",
-    "torch>=1.0.0",
-    "transformers>=4.0.0,<5.0.0",
-    "rich-logger>=0.3.1",
 
-    # docs
+    # Distributed inference
+    "koalas>=1.8.1; python_version<='3.10'",
+    "pyspark",
+
+    # Docs
     "mike~=1.1.2",
     "mkdocs-charts-plugin==0.0.8",
     "mkdocs-img2fig-plugin==0.9.3",
@@ -59,9 +60,15 @@ dev = [
     "astunparse",
     "mlconjug3<3.9.0",
 
+    # Machine Learning
+    "rich-logger>=0.3.1",
     "torch>=1.0.0",
     "foldedtensor>=0.3.2",
     "safetensors>=0.3.0",
+    "transformers>=4.0.0,<5.0.0",
+
+    # To test packaging
+    "poetry",
 ]
 setup = [
     "typer"

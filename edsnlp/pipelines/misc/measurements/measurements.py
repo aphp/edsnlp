@@ -529,10 +529,8 @@ class MeasurementsMatcher(BaseNERComponent):
         self.after_snippet_limit = after_snippet_limit
 
         # MEASURES
-        for measure_config in measurements:
-            name = measure_config["name"]
-            unit = measure_config["unit"]
-            self.measure_names[self.unit_registry.parse_unit(unit)[0]] = name
+        for m in measurements:
+            self.measure_names[self.unit_registry.parse_unit(m["unit"])[0]] = m["name"]
 
         if span_setter is None:
             span_setter = {

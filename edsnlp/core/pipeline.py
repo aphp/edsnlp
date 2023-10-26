@@ -15,6 +15,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Mapping,
     Optional,
     Sequence,
     Set,
@@ -35,6 +36,7 @@ from spacy.tokenizer import Tokenizer
 from spacy.tokens import Doc
 from spacy.util import get_lang_class
 from spacy.vocab import Vocab, create_vocab
+from typing_extensions import Literal
 
 from ..accelerators.base import Accelerator, FromDoc, ToDoc
 from ..core.registry import PIPE_META, CurriedFactory, FactoryMeta, registry
@@ -257,7 +259,7 @@ class Pipeline:
             if hasattr(pipe, "name"):
                 if name is not None and name != pipe.name:
                     raise ValueError(
-                        "The provided name does not match the name of the component."
+                        f"The provided name {name!r} does not match the name of the component {pipe.name!r}."
                     )
                 else:
                     name = pipe.name
@@ -828,6 +830,9 @@ class Pipeline:
             import safetensors.torch
 
             torch_components = dict(self.torch_components())
+            if len(torch_components) == 0 and not path.exists():
+                return
+
             for file_name in path.iterdir():
                 pipe_names = file_name.stem.split("+")
                 if any(pipe_name in torch_components for pipe_name in pipe_names):
@@ -956,6 +961,37 @@ class Pipeline:
         disabled_before = self._disabled
         self._disabled = disable
         return context()
+
+    def package(
+        self,
+        name: Optional[str] = None,
+        root_dir: Union[str, Path] = ".",
+        artifacts_name: str = "artifacts",
+        check_dependencies: bool = False,
+        project_type: Optional[Literal["poetry", "setuptools"]] = None,
+        version: str = "0.1.0",
+        metadata: Optional[Dict[str, Any]] = {},
+        distributions: Optional[Sequence[Literal["wheel", "sdist"]]] = ["wheel"],
+        config_settings: Optional[Mapping[str, Union[str, Sequence[str]]]] = None,
+        isolation: bool = True,
+        skip_build_dependency_check: bool = False,
+    ):
+        from edsnlp.utils.package import package
+
+        return package(
+            pipeline=self,
+            name=name,
+            root_dir=root_dir,
+            artifacts_name=artifacts_name,
+            check_dependencies=check_dependencies,
+            project_type=project_type,
+            version=version,
+            metadata=metadata,
+            distributions=distributions,
+            config_settings=config_settings,
+            isolation=isolation,
+            skip_build_dependency_check=skip_build_dependency_check,
+        )
 
 
 def blank(

@@ -1,6 +1,7 @@
 import glob
 import os
 import re
+import warnings
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Mapping, Optional, Sequence, Tuple, Union
@@ -9,10 +10,15 @@ import pandas as pd
 from joblib import Parallel, delayed
 from loguru import logger
 from spacy.tokens import Doc, Span
-from spacy.util import filter_spans
 from tqdm import tqdm
 
 from edsnlp.core import PipelineProtocol
+from edsnlp.utils.span_getters import (
+    SpanSetterArg,
+    get_spans,
+    set_spans,
+    validate_span_setter,
+)
 
 REGEX_ENTITY = re.compile(r"^(T\d+)\t([^\s]+)([^\t]+)\t(.*)$")
 REGEX_NOTE = re.compile(r"^(#\d+)\tAnnotatorNotes ([^\t]+)\t(.*)$")
@@ -290,8 +296,16 @@ class BratConnector(object):
         directory: Union[str, Path],
         n_jobs: int = 1,
         attributes: Optional[Union[Sequence[str], Mapping[str, str]]] = None,
+        span_setter: SpanSetterArg = ["ents", "*"],
         span_groups: Optional[Sequence[str]] = None,
     ):
+        if span_groups is not None:
+            warnings.warn("span_groups is deprecated, use span_setter instead")
+            assert (
+                span_setter is not None
+            ), "Cannot set both span_setter and span_groups"
+            span_setter = span_groups
+
         self.directory: Path = Path(directory)
         self.n_jobs = n_jobs
         if attributes is None:
@@ -304,7 +318,7 @@ class BratConnector(object):
             raise TypeError(
                 "`attributes` should be a list, tuple or mapping of strings"
             )
-        self.span_groups = None if span_groups is None else tuple(span_groups)
+        self.span_setter = validate_span_setter(span_setter)
 
     def full_path(self, filename: str) -> str:
         return os.path.join(self.directory, filename)
@@ -394,7 +408,6 @@ class BratConnector(object):
             doc._.note_id = doc_annotations["note_id"]
 
             spans = []
-            span_groups = defaultdict(lambda: [])
 
             if self.attr_map is not None:
                 for dst in self.attr_map.values():
@@ -423,12 +436,7 @@ class BratConnector(object):
                             )
                     spans.append(span)
 
-                    if self.span_groups is None or ent["label"] in self.span_groups:
-                        span_groups[ent["label"]].append(span)
-
-            doc.ents = filter_spans(spans)
-            for group_name, group in span_groups.items():
-                doc.spans[group_name] = group
+            set_spans(doc, spans, span_setter=self.span_setter)
 
             docs.append(doc)
 
@@ -450,6 +458,7 @@ class BratConnector(object):
         else:
             rattr_map = {v: k for k, v in self.attr_map.items()}
 
+        spans = get_spans(doc, self.span_setter)
         annotations = {
             "entities": [
                 {
@@ -467,19 +476,7 @@ class BratConnector(object):
                     ],
                     "label": ent.label_,
                 }
-                for i, ent in enumerate(
-                    sorted(
-                        {
-                            *doc.ents,
-                            *(
-                                span
-                                for name in doc.spans
-                                if self.span_groups is None or name in self.span_groups
-                                for span in doc.spans[name]
-                            ),
-                        }
-                    )
-                )
+                for i, ent in enumerate(sorted(dict.fromkeys(spans)))
             ],
             "text": doc.text,
         }

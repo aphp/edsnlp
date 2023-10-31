@@ -4,8 +4,8 @@ from typing import Any, Dict, Iterable
 from spacy.training import Example
 
 from edsnlp import registry
-from edsnlp.pipelines.base import SpanGetter, SpanGetterArg, get_spans
 from edsnlp.scorers import make_examples, prf
+from edsnlp.utils.span_getters import SpanGetter, SpanGetterArg, get_spans
 
 
 def ner_exact_scorer(

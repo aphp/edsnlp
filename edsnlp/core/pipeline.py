@@ -80,7 +80,7 @@ class Pipeline:
         create_tokenizer: Callable[["Pipeline"], Optional[Tokenizer]] = None,
         vocab: Union[bool, Vocab] = True,
         batch_size: Optional[int] = 4,
-        vocab_config: Type[BaseDefaults] = BaseDefaults,
+        vocab_config: Type[BaseDefaults] = None,
         meta: Dict[str, Any] = None,
     ):
         """
@@ -103,12 +103,12 @@ class Pipeline:
 
         self.Defaults = spacy_blank_cls.Defaults
         self.batch_size = batch_size
-        if (vocab is not True) == (vocab_config is not None):
+        if (vocab is not True) and (vocab_config is not None):
             raise ValueError(
                 "You must specify either vocab or vocab_config but not both."
             )
         if vocab is True:
-            vocab = create_vocab(lang, vocab_config)
+            vocab = create_vocab(lang, vocab_config or BaseDefaults)
 
         self.vocab = vocab
 

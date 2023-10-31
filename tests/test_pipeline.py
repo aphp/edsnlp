@@ -213,9 +213,10 @@ def test_different_names():
     with pytest.raises(ValueError) as exc_info:
         nlp.add_pipe(extractor, name="sentences")
 
-    assert "The provided name does not match the name of the component." in str(
-        exc_info.value
-    )
+    assert (
+        "The provided name 'sentences' does not "
+        "match the name of the component 'custom_name'."
+    ) in str(exc_info.value)
 
 
 fail_config = """

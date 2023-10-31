@@ -66,6 +66,7 @@ dev = [
     "foldedtensor>=0.3.2",
     "safetensors>=0.3.0",
     "transformers>=4.0.0,<5.0.0",
+    "accelerate>=0.20.3,<1.0.0",
 
     # To test packaging
     "poetry",
@@ -74,9 +75,12 @@ setup = [
     "typer"
 ]
 ml = [
+    "rich-logger>=0.3.1",
     "torch>=1.0.0",
     "foldedtensor>=0.3.2",
     "safetensors>=0.3.0",
+    "transformers>=4.0.0,<5.0.0",
+    "accelerate>=0.20.3,<1.0.0",
 ]
 
 [project.urls]

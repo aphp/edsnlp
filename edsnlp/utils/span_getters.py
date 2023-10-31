@@ -1,7 +1,10 @@
+from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Sequence, Union
 
 from rich.text import Span
 from spacy.tokens import Doc
+
+from edsnlp.utils.filter import filter_spans
 
 SeqStr = Union[str, Sequence[str]]
 SpanFilter = Union[bool, SeqStr]
@@ -27,13 +30,47 @@ def get_spans(doc, span_getter):
         yield from span_getter(doc)
         return
     for key, span_filter in span_getter.items():
-        candidates = doc.spans.get(key, ()) if key != "ents" else doc.ents
+        if key == "*":
+            candidates = (span for group in doc.spans.values() for span in group)
+        else:
+            candidates = doc.spans.get(key, ()) if key != "ents" else doc.ents
         if span_filter is True:
             yield from candidates
         else:
             for span in candidates:
                 if span.label_ in span_filter:
                     yield span
+
+
+def set_spans(doc, matches, span_setter):
+    if callable(span_setter):
+        span_setter(doc, matches)
+    else:
+        match_all = []
+        label_to_group = defaultdict(list)
+        for name, spans_filter in span_setter.items():
+            if name != "ents" and name != "*":
+                doc.spans.setdefault(name, [])
+            if spans_filter:
+                if spans_filter is True:
+                    match_all.append(name)
+                else:
+                    for label in spans_filter:
+                        label_to_group[label].append(name)
+
+        new_ents = [] if "ents" in span_setter else None
+
+        for span in matches:
+            for group in match_all + label_to_group[span.label_]:
+                if group == "ents":
+                    new_ents.append(span)
+                elif group == "*":
+                    doc.spans.setdefault(span.label_, []).append(span)
+                else:
+                    doc.spans[group].append(span)
+        if new_ents is not None:
+            doc.ents = filter_spans((*new_ents, *doc.ents))
+    return doc
 
 
 def validate_span_setter(value: Union[SeqStr, Dict[str, SpanFilter]]) -> SpanSetter:

@@ -1,4 +1,3 @@
-from collections import defaultdict
 from operator import attrgetter
 from typing import (
     List,
@@ -9,14 +8,12 @@ from typing import (
 from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
-from edsnlp.utils.filter import filter_spans
-from edsnlp.utils.span_getters import (
-    SpanGetter,  # noqa: F401
-    SpanGetterArg,  # noqa: F401
-    SpanSetter,
+from edsnlp.utils.span_getters import (  # noqa: F401
+    # noqa: F401
+    SpanSetter,  # noqa: F401
     SpanSetterArg,
-    get_spans,  # noqa: F401
-    validate_span_getter,  # noqa: F401
+    set_spans,
+    # noqa: F401
     validate_span_setter,
 )
 
@@ -121,29 +118,4 @@ class BaseNERComponent(BaseComponent):
         self.span_setter: SpanSetter = validate_span_setter(span_setter)  # type: ignore
 
     def set_spans(self, doc, matches):
-        if callable(self.span_setter):
-            self.span_setter(doc, matches)
-        else:
-            match_all = []
-            label_to_group = defaultdict(list)
-            for name, spans_filter in self.span_setter.items():
-                if name != "ents":
-                    doc.spans.setdefault(name, [])
-                if spans_filter:
-                    if spans_filter is True:
-                        match_all.append(name)
-                    else:
-                        for label in spans_filter:
-                            label_to_group[label].append(name)
-
-            new_ents = [] if "ents" in self.span_setter else None
-
-            for span in matches:
-                for group in match_all + label_to_group[span.label_]:
-                    if group == "ents":
-                        new_ents.append(span)
-                    else:
-                        doc.spans[group].append(span)
-            if new_ents is not None:
-                doc.ents = filter_spans((*new_ents, *doc.ents))
-        return doc
+        return set_spans(doc, matches, self.span_setter)

@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Sequence, Union
 from rich.text import Span
 from spacy.tokens import Doc
 
+from edsnlp import registry
 from edsnlp.utils.filter import filter_spans
 
 SeqStr = Union[str, Sequence[str]]
@@ -213,3 +214,34 @@ if TYPE_CHECKING:
         SpanSetterMapping,
         Callable[[Doc, Iterable[Span]], Any],
     ]
+
+
+@registry.misc.register("eds.span_sentence_getter")
+class make_span_sentence_getter:
+    def __init__(
+        self,
+        span_getter: SpanGetterArg,
+        min_context_words: int = 0,
+    ):
+        self.min_context_words = min_context_words
+        self.span_getter = span_getter
+
+    def __call__(self, doc: Doc):
+        ctx = self.min_context_words
+        spans = (
+            (
+                doc[
+                    min(e[0].sent.start, e.start - ctx) : max(
+                        e[-1].sent.end, e.end + ctx
+                    )
+                ]
+                for e in get_spans(doc, self.span_getter)
+            )
+            if doc.has_annotation("SENT_START")
+            else (
+                doc[e.start - ctx : e.end + ctx]
+                for e in get_spans(doc, self.span_getter)
+            )
+        )
+
+        return filter_spans(spans)

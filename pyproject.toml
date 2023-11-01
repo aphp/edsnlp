@@ -231,7 +231,7 @@ where = ["."]
 "multiprocessing" = "edsnlp.accelerators.multiprocessing:MultiprocessingAccelerator"
 
 [project.entry-points."spacy_misc"]
-"eds.candidate_span_qualifier_getter" = "edsnlp.pipelines.trainable.span_qualifier.factory:create_candidate_getter"
+"eds.span_sentence_getter" = "edsnlp.utils.span_getters:make_span_sentence_getter"
 
 [project.entry-points."spacy_languages"]
 "eds" = "edsnlp.language:EDSLanguage"

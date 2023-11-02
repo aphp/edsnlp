@@ -2,8 +2,6 @@
 import functools
 import os
 import shutil
-import warnings
-from collections import defaultdict
 from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
@@ -29,7 +27,6 @@ import spacy
 import srsly
 from confit import Config, validate_arguments
 from confit.errors import ConfitValidationError, patch_errors
-from confit.utils.collections import join_path, split_path
 from confit.utils.xjson import Reference
 from spacy.language import BaseDefaults
 from spacy.tokenizer import Tokenizer
@@ -740,30 +737,6 @@ class Pipeline:
             process.
         """
         exclude = set() if exclude is None else exclude
-        tensor_exclude = set(exclude)
-
-        def save_tensors(path: Path):
-            import safetensors.torch
-
-            shutil.rmtree(path, ignore_errors=True)
-            os.makedirs(path, exist_ok=True)
-            tensors = defaultdict(list)
-            tensor_to_group = defaultdict(list)
-            for pipe_name, pipe in self.torch_components(disable=tensor_exclude):
-                for key, tensor in pipe.state_dict(keep_vars=True).items():
-                    full_key = join_path((pipe_name, *split_path(key)))
-                    tensors[tensor].append(full_key)
-                    tensor_to_group[tensor].append(pipe_name)
-            group_to_tensors = defaultdict(set)
-            for tensor, group in tensor_to_group.items():
-                group_to_tensors["+".join(sorted(set(group)))].add(tensor)
-            for group, group_tensors in group_to_tensors.items():
-                sub_path = path / f"{group}.safetensors"
-                tensor_dict = {
-                    "+".join(tensors[p]): p
-                    for p in {p.data_ptr(): p for p in group_tensors}.values()
-                }
-                safetensors.torch.save_file(tensor_dict, sub_path)
 
         path = Path(path) if isinstance(path, str) else path
 
@@ -780,17 +753,20 @@ class Pipeline:
             self.tokenizer.to_disk(path / "tokenizer", exclude=["vocab"])
         if "meta" not in exclude:
             srsly.write_json(path / "meta.json", self.meta)
-        if "config" not in exclude:
-            self.config.to_disk(path / "config.cfg")
         if "vocab" not in exclude:
             self.vocab.to_disk(path / "vocab")
 
-        for pipe_name, pipe in self._components:
-            if hasattr(pipe, "to_disk") and pipe_name not in exclude:
-                pipe.to_disk(path / pipe_name, exclude=exclude)
+        pwd = os.getcwd()
+        try:
+            os.chdir(path)
+            for pipe_name, pipe in self._components:
+                if hasattr(pipe, "to_disk") and pipe_name not in exclude:
+                    pipe.to_disk(Path(pipe_name), exclude=exclude)
+        finally:
+            os.chdir(pwd)
 
-        if "tensors" not in exclude:
-            save_tensors(path / "tensors")
+        if "config" not in exclude:
+            self.config.to_disk(path / "config.cfg")
 
     def from_disk(
         self,
@@ -825,41 +801,6 @@ class Pipeline:
             if path.exists():
                 self.vocab.from_disk(path, exclude=exclude)
 
-        def deserialize_tensors(path: Path):
-            import safetensors.torch
-
-            torch_components = dict(self.torch_components())
-            if len(torch_components) == 0 and not path.exists():
-                return
-
-            for file_name in path.iterdir():
-                pipe_names = file_name.stem.split("+")
-                if any(pipe_name in torch_components for pipe_name in pipe_names):
-                    # We only load tensors in one of the pipes since parameters
-                    # are expected to be shared
-                    pipe = torch_components[pipe_names[0]]
-                    tensor_dict = {}
-                    for keys, tensor in safetensors.torch.load_file(
-                        file_name, device=device
-                    ).items():
-                        split_keys = [split_path(key) for key in keys.split("+")]
-                        key = next(key for key in split_keys if key[0] == pipe_names[0])
-                        tensor_dict[join_path(key[1:])] = tensor
-                    # Non-strict because tensors of a given pipeline can be shared
-                    # between multiple files
-                    print(
-                        f"Loading {len(tensor_dict)} tensors of {pipe_names[0]} from {file_name}"
-                    )
-                    extra_tensors = set(tensor_dict) - set(
-                        pipe.state_dict(keep_vars=True).keys()
-                    )
-                    if extra_tensors:
-                        warnings.warn(
-                            f"{file_name} contains tensors that are not in the state"
-                            f"dict of {pipe_names[0]}: {sorted(extra_tensors)}"
-                        )
-                    pipe.load_state_dict(tensor_dict, strict=False)
-
         exclude = (
             set()
             if exclude is None
@@ -868,21 +809,24 @@ class Pipeline:
             else set(exclude)
         )
 
-        path = Path(path) if isinstance(path, str) else path
+        path = (Path(path) if isinstance(path, str) else path).absolute()
         if "meta" not in exclude:
             deserialize_meta(path / "meta.json")
         if (path / "vocab").exists() and "vocab" not in exclude:
             deserialize_vocab(path / "vocab")
         if "tokenizer" not in exclude:
             self.tokenizer.from_disk(path / "tokenizer", exclude=["vocab"])
-        for name, proc in self._components:
-            if hasattr(proc, "from_disk") and name not in exclude:
-                proc.from_disk(path / name, exclude=exclude)
-            # Convert to list here in case exclude is (default) tuple
-            exclude.add(name)
 
-        if "tensors" not in exclude:
-            deserialize_tensors(path / "tensors")
+        pwd = os.getcwd()
+        try:
+            os.chdir(path)
+            for name, proc in self._components:
+                if hasattr(proc, "from_disk") and name not in exclude:
+                    proc.from_disk(Path(name), exclude=exclude)
+                # Convert to list here in case exclude is (default) tuple
+                exclude.add(name)
+        finally:
+            os.chdir(pwd)
 
         self._path = path  # type: ignore[assignment]
         return self
@@ -1060,10 +1004,15 @@ def load(
     if isinstance(config, (Path, str)):
         path = Path(config)
         if path.is_dir():
-            path = Path(path) if isinstance(path, str) else path
+            path = (Path(path) if isinstance(path, str) else path).absolute()
             config = Config.from_disk(path / "config.cfg")
-            nlp = Pipeline.from_config(config)
-            nlp.from_disk(path, exclude=exclude)
+            pwd = os.getcwd()
+            try:
+                os.chdir(path)
+                nlp = Pipeline.from_config(config)
+                nlp.from_disk(path, exclude=exclude)
+            finally:
+                os.chdir(pwd)
             return nlp
         elif path.is_file():
             config = Config.from_disk(path)

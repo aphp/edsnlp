@@ -1,6 +1,6 @@
 import math
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Set, Tuple, Union
 
 import tokenizers
 import torch
@@ -132,6 +132,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                 (1, self.output_size),
             )
         )
+        self.cfg = {}
         self.max_tokens_per_device = max_tokens_per_device
         self.span_getter = span_getter
 
@@ -153,6 +154,17 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
             )
             # and add a new entry to the model's embeddings
             self.transformer.resize_token_embeddings(len(self.tokenizer))
+
+    def to_disk(self, path, *, exclude: Optional[Set[str]]):
+        repr_id = object.__repr__(self)
+        if repr_id in exclude:
+            return
+        self.tokenizer.save_pretrained(path)
+        self.transformer.save_pretrained(path)
+        self.cfg["model"] = str(path)
+        for param in self.transformer.parameters():
+            exclude.add(object.__repr__(param))
+        super().to_disk(path, exclude=exclude)
 
     def preprocess(self, doc):
         res = {

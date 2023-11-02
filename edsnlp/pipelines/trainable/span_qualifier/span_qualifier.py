@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import pickle
+import warnings
 from collections import defaultdict
 from typing import (
     Any,
@@ -182,7 +183,10 @@ class TrainableSpanQualifier(
         super().__init__(nlp, name)
 
         self.embedding = embedding
-        self.classifier = torch.nn.Linear(embedding.output_size, 0)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            self.classifier = torch.nn.Linear(embedding.output_size, 0)
 
         self.bindings_indexer_per_group: List[slice] = []
         self.bindings_group_mask = None
@@ -198,8 +202,6 @@ class TrainableSpanQualifier(
         repr_id = object.__repr__(self)
         if repr_id in exclude:
             return
-        exclude.add(repr_id)
-        self.embedding.to_disk(path, exclude=exclude)
         # This will receive the directory path + /my_component
         # We save the bindings as a pickle file since values can be arbitrary objects
         os.makedirs(path, exist_ok=True)
@@ -215,9 +217,12 @@ class TrainableSpanQualifier(
                 },
                 f,
             )
+        super().to_disk(path, exclude=exclude)
 
     def from_disk(self, path, exclude=tuple()):
-        super().from_disk(path, exclude=exclude)
+        repr_id = object.__repr__(self)
+        if repr_id in exclude:
+            return
         # This will receive the directory path + /my_component
         data_path = path / "bindings.pkl"
         with open(data_path, "rb") as f:
@@ -237,9 +242,8 @@ class TrainableSpanQualifier(
                 f"combinations_{grp_idx}",
                 torch.tensor(combinations, dtype=torch.float),
             )
-
         self.set_extensions()
-        return self
+        super().from_disk(path, exclude=exclude)
 
     def set_extensions(self):
         super().set_extensions()

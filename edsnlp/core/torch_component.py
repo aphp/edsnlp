@@ -15,6 +15,7 @@ from typing import (
     Union,
 )
 
+import safetensors.torch
 import torch
 from spacy.tokens import Doc
 
@@ -430,17 +431,26 @@ class TorchComponent(
         return self.batch_process([doc])[0]
 
     def to_disk(self, path, *, exclude: Optional[Set[str]]):
-        repr_id = object.__repr__(self)
-        if repr_id not in exclude:
-            exclude.add(repr_id)
-            for name, component in self.named_component_children():
-                if hasattr(component, "to_disk"):
-                    component.to_disk(path / name, exclude=exclude)
+        if object.__repr__(self) in exclude:
+            return
+        exclude.add(object.__repr__(self))
+        for name, component in self.named_component_children():
+            if hasattr(component, "to_disk"):
+                component.to_disk(path / name, exclude=exclude)
+        tensor_dict = {
+            n: p
+            for n, p in self.named_parameters()
+            if object.__repr__(p) not in exclude
+        }
+        safetensors.torch.save_file(tensor_dict, path / "parameters.safetensors")
+        exclude.update(object.__repr__(p) for p in tensor_dict.values())
 
     def from_disk(self, path, exclude: Optional[Set[str]]):
-        repr_id = object.__repr__(self)
-        if repr_id not in exclude:
-            exclude.add(repr_id)
-            for name, component in self.named_component_children():
-                if hasattr(component, "from_disk"):
-                    component.from_disk(path / name, exclude=exclude)
+        if object.__repr__(self) in exclude:
+            return
+        exclude.add(object.__repr__(self))
+        for name, component in self.named_component_children():
+            if hasattr(component, "from_disk"):
+                component.from_disk(path / name, exclude=exclude)
+        tensor_dict = safetensors.torch.load_file(path / "parameters.safetensors")
+        self.load_state_dict(tensor_dict, strict=False)

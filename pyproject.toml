@@ -109,7 +109,6 @@ where = ["."]
 [project.entry-points."spacy_factories"]
 # Core
 "eds.accents"                     = "edsnlp.pipelines.core.normalizer.accents.factory:create_component"
-"eds.context"                     = "edsnlp.pipelines.core.context.factory:create_component"
 "eds.contextual_matcher"          = "edsnlp.pipelines.core.contextual_matcher.factory:create_component"
 "eds.endlines"                    = "edsnlp.pipelines.core.endlines.factory:create_component"
 "eds.matcher"                     = "edsnlp.pipelines.core.matcher.factory:create_component"

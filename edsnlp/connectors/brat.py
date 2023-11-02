@@ -298,6 +298,7 @@ class BratConnector(object):
         attributes: Optional[Union[Sequence[str], Mapping[str, str]]] = None,
         span_setter: SpanSetterArg = ["ents", "*"],
         span_groups: Optional[Sequence[str]] = None,
+        keep_raw_attribute_values: bool = False,
     ):
         if span_groups is not None:
             warnings.warn("span_groups is deprecated, use span_setter instead")
@@ -319,6 +320,7 @@ class BratConnector(object):
                 "`attributes` should be a list, tuple or mapping of strings"
             )
         self.span_setter = validate_span_setter(span_setter)
+        self.keep_raw_attribute_values = keep_raw_attribute_values
 
     def full_path(self, filename: str) -> str:
         return os.path.join(self.directory, filename)
@@ -396,6 +398,8 @@ class BratConnector(object):
             gold_docs = (nlp.make_doc(t) for t in texts)
 
         attr_map = dict(self.attr_map or {})
+        attr_values = defaultdict(set)
+        all_spans = []
 
         for doc, doc_annotations in tqdm(
             zip(gold_docs, annotations),
@@ -431,14 +435,28 @@ class BratConnector(object):
                     for a in ent["attributes"]:
                         if a["label"] in attr_map:
                             new_name = attr_map[a["label"]]
-                            span._.set(
-                                new_name, a["value"] if a["value"] is not None else True
-                            )
+                            value = a["value"] if a["value"] is not None else True
+                            if not self.keep_raw_attribute_values:
+                                if value in ("True", "true"):
+                                    value = True
+                                if value in ("False", "false"):
+                                    value = False
+                            attr_values[new_name].add(value)
+                            span._.set(new_name, value)
                     spans.append(span)
+                    all_spans.append(span)
 
             set_spans(doc, spans, span_setter=self.span_setter)
 
             docs.append(doc)
+
+        if not self.keep_raw_attribute_values:
+            for attr, values in attr_values.items():
+                if values <= {True, False}:
+                    logger.info(f"Filling false values of attribute {attr!r}")
+                    for span in all_spans:
+                        if span._.get(attr) is None:
+                            span._.set(attr, False)
 
         return docs
 

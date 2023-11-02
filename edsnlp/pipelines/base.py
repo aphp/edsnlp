@@ -8,12 +8,14 @@ from typing import (
 from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
-from edsnlp.utils.span_getters import (  # noqa: F401
-    # noqa: F401
-    SpanSetter,  # noqa: F401
+from edsnlp.utils.span_getters import (
+    SpanGetter,  # noqa: F401
+    SpanGetterArg,  # noqa: F401
+    SpanSetter,
     SpanSetterArg,
+    get_spans,  # noqa: F401
     set_spans,
-    # noqa: F401
+    validate_span_getter,  # noqa: F401
     validate_span_setter,
 )
 
@@ -29,10 +31,14 @@ class BaseComponent:
     imposes that the extensions be reset.
     """
 
-    def __init__(self, nlp: PipelineProtocol = None, name: str = None, *args, **kwargs):
+    def __init__(
+        self,
+        nlp: Optional[PipelineProtocol] = None,
+        name: Optional[str] = None,
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
-        self.nlp = nlp
-        self.name = name
         self.set_extensions()
 
     def set_extensions(self):

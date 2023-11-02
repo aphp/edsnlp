@@ -18,7 +18,6 @@ from typing import (
 import torch
 from spacy.tokens import Doc
 
-from edsnlp import Pipeline
 from edsnlp.pipelines.base import BaseComponent
 from edsnlp.utils.collections import batch_compress_dict, batchify, decompress_dict
 
@@ -44,13 +43,13 @@ def hash_batch(batch):
 def cached_preprocess(fn):
     @wraps(fn)
     def wrapped(self: "TorchComponent", doc: Doc):
-        if not self.nlp or self.nlp._cache is None:
+        if self._cache is None:
             return fn(self, doc)
-        cache_id = hash((self.name, "preprocess", id(doc)))
-        if cache_id in self.nlp._cache:
-            return self.nlp._cache[cache_id]
+        cache_id = ("preprocess", id(doc))
+        if cache_id in self._cache:
+            return self._cache[cache_id]
         res = fn(self, doc)
-        self.nlp._cache[cache_id] = res
+        self._cache[cache_id] = res
         return res
 
     return wrapped
@@ -59,13 +58,13 @@ def cached_preprocess(fn):
 def cached_preprocess_supervised(fn):
     @wraps(fn)
     def wrapped(self: "TorchComponent", doc: Doc):
-        if not self.nlp or self.nlp._cache is None:
+        if self._cache is None:
             return fn(self, doc)
-        cache_id = hash((self.name, "preprocess_supervised", id(doc)))
-        if cache_id in self.nlp._cache:
-            return self.nlp._cache[cache_id]
+        cache_id = ("preprocess_supervised", id(doc))
+        if cache_id in self._cache:
+            return self._cache[cache_id]
         res = fn(self, doc)
-        self.nlp._cache[cache_id] = res
+        self._cache[cache_id] = res
         return res
 
     return wrapped
@@ -74,13 +73,13 @@ def cached_preprocess_supervised(fn):
 def cached_collate(fn):
     @wraps(fn)
     def wrapped(self: "TorchComponent", batch: Dict):
-        cache_id = (self.name, "collate", hash_batch(batch))
-        if not self.nlp or self.nlp._cache is None or cache_id is None:
+        if self._cache is None:
             return fn(self, batch)
-        if cache_id in self.nlp._cache:
-            return self.nlp._cache[cache_id]
+        cache_id = ("collate", hash_batch(batch))
+        if cache_id in self._cache:
+            return self._cache[cache_id]
         res = fn(self, batch)
-        self.nlp._cache[cache_id] = res
+        self._cache[cache_id] = res
         return res
 
     return wrapped
@@ -90,13 +89,13 @@ def cached_forward(fn):
     @wraps(fn)
     def wrapped(self: "TorchComponent", batch):
         # Convert args and kwargs to a dictionary matching fn signature
-        if not self.nlp or self.nlp._cache is None:
+        if self._cache is None:
             return fn(self, batch)
-        cache_id = (self.name, "forward", hash_batch(batch))
-        if cache_id in self.nlp._cache:
-            return self.nlp._cache[cache_id]
+        cache_id = ("forward", hash_batch(batch))
+        if cache_id in self._cache:
+            return self._cache[cache_id]
         res = fn(self, batch)
-        self.nlp._cache[cache_id] = res
+        self._cache[cache_id] = res
         return res
 
     return wrapped
@@ -106,13 +105,13 @@ def cached_batch_to_device(fn):
     @wraps(fn)
     def wrapped(self: "TorchComponent", batch, device):
         # Convert args and kwargs to a dictionary matching fn signature
-        if not self.nlp or self.nlp._cache is None:
+        if self._cache is None:
             return fn(self, batch, device)
-        cache_id = (self.name, "batch_to_device", hash_batch(batch))
-        if cache_id in self.nlp._cache:
-            return self.nlp._cache[cache_id]
+        cache_id = ("batch_to_device", hash_batch(batch))
+        if cache_id in self._cache:
+            return self._cache[cache_id]
         res = fn(self, batch, device)
-        self.nlp._cache[cache_id] = res
+        self._cache[cache_id] = res
         return res
 
     return wrapped
@@ -156,18 +155,21 @@ class TorchComponent(
 
     call_super_init = True
 
-    def __init__(
-        self,
-        nlp: Optional[Pipeline] = None,
-        name: Optional[str] = None,
-        *args,
-        **kwargs
-    ):
-        super().__init__(nlp, name, *args, **kwargs)
-        self._preprocess_cache = {}
-        self._preprocess_supervised_cache = {}
-        self._collate_cache = {}
-        self._forward_cache = {}
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._cache = None
+
+    def enable_cache(self):
+        self._cache = {}
+        for name, component in self.named_component_children():
+            if hasattr(component, "enable_cache"):
+                component.enable_cache()
+
+    def disable_cache(self):
+        self._cache = None
+        for name, component in self.named_component_children():
+            if hasattr(component, "disable_cache"):
+                component.disable_cache()
 
     @property
     def device(self):
@@ -198,9 +200,10 @@ class TorchComponent(
             This argument will be gradually updated  with the names of initialized
             components
         """
-        if self.name in exclude:
+        repr_id = object.__repr__(self)
+        if repr_id in exclude:
             return
-        exclude.add(self.name)
+        exclude.add(repr_id)
         for name, component in self.named_component_children():
             if hasattr(component, "post_init"):
                 component.post_init(gold_data, exclude=exclude)
@@ -427,15 +430,17 @@ class TorchComponent(
         return self.batch_process([doc])[0]
 
     def to_disk(self, path, *, exclude: Optional[Set[str]]):
-        if self.name not in exclude:
-            exclude.add(self.name)
+        repr_id = object.__repr__(self)
+        if repr_id not in exclude:
+            exclude.add(repr_id)
             for name, component in self.named_component_children():
                 if hasattr(component, "to_disk"):
                     component.to_disk(path / name, exclude=exclude)
 
     def from_disk(self, path, exclude: Optional[Set[str]]):
-        if self.name not in exclude:
-            exclude.add(self.name)
+        repr_id = object.__repr__(self)
+        if repr_id not in exclude:
+            exclude.add(repr_id)
             for name, component in self.named_component_children():
                 if hasattr(component, "from_disk"):
                     component.from_disk(path / name, exclude=exclude)

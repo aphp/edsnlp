@@ -424,12 +424,11 @@ class Pipeline:
         """
         Enable caching for all (trainable) components in the pipeline
         """
-        was_not_cached = self._cache is None
-        if was_not_cached:
-            self._cache = {}
+        for name, pipe in self.torch_components():
+            pipe.enable_cache()
         yield
-        if was_not_cached:
-            self._cache = None
+        for name, pipe in self.torch_components():
+            pipe.disable_cache()
 
     def torch_components(
         self, disable: Container[str] = ()
@@ -848,7 +847,9 @@ class Pipeline:
                         tensor_dict[join_path(key[1:])] = tensor
                     # Non-strict because tensors of a given pipeline can be shared
                     # between multiple files
-                    print(f"Loading tensors of {pipe_names[0]} from {file_name}")
+                    print(
+                        f"Loading {len(tensor_dict)} tensors of {pipe_names[0]} from {file_name}"
+                    )
                     extra_tensors = set(tensor_dict) - set(
                         pipe.state_dict(keep_vars=True).keys()
                     )

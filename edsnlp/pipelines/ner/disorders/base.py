@@ -56,7 +56,6 @@ class DisorderMatcher(ContextualMatcher):
         regex_flags: Union[re.RegexFlag, int] = re.S,
         span_setter: SpanSetterArg,
     ):
-        self.nlp = nlp
         self.detailed_status_mapping = detailed_status_mapping
 
         super().__init__(

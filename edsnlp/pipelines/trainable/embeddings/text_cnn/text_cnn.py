@@ -61,7 +61,6 @@ class TextCnnEncoder(WordEmbeddingComponent):
         normalize: NormalizationPlacement = "pre",
     ):
         super().__init__(nlp, name)
-        self.name = name
         self.embedding = embedding
         self.output_size = output_size or embedding.output_size
         self.module = TextCnn(

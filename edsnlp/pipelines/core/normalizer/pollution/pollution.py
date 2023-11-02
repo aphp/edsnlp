@@ -42,10 +42,8 @@ class PollutionTagger(BaseComponent):
         *,
         pollution: Dict[str, Union[bool, str, List[str]]] = default_enabled,
     ):
-
-        self.nlp = nlp
-        self.name = name
-        self.nlp.vocab.strings.add("EXCLUDED")
+        super().__init__(nlp=nlp, name=name)
+        nlp.vocab.strings.add("EXCLUDED")
 
         self.pollution = dict()
 

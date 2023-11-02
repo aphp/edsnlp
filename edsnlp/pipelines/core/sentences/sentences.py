@@ -4,11 +4,12 @@ from spacy.tokens import Doc
 
 from edsnlp.core import PipelineProtocol
 
+from ...base import BaseComponent
 from .fast_sentences import FastSentenceSegmenter
 from .terms import punctuation
 
 
-class SentenceSegmenter:
+class SentenceSegmenter(BaseComponent):
     """
     Segments the Doc into sentences using a rule-based strategy,
     specific to AP-HP documents.
@@ -40,12 +41,10 @@ class SentenceSegmenter:
         ignore_excluded: bool
             Whether to ignore excluded tokens.
         """
+        super().__init__(nlp, name)
 
         if punct_chars is None:
             punct_chars = punctuation
-
-        self.nlp = nlp
-        self.name = name
 
         self.fast_segmenter = FastSentenceSegmenter(
             vocab=nlp.vocab,

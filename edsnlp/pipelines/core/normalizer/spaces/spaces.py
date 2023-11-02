@@ -3,9 +3,10 @@ from typing import Optional
 from spacy.tokens import Doc
 
 from edsnlp.core import PipelineProtocol
+from edsnlp.pipelines.base import BaseComponent
 
 
-class SpacesTagger:
+class SpacesTagger(BaseComponent):
     """
     We assign "SPACE" to `token.tag` to be used by optimized components
     such as the EDSPhraseMatcher
@@ -26,9 +27,8 @@ class SpacesTagger:
         name: Optional[str] = "eds.spaces",
         *,
         newline: bool = True,
-    ) -> None:
-        self.nlp = nlp
-        self.name = name
+    ):
+        super().__init__(nlp, name)
         self.newline = newline
 
     def __call__(self, doc: Doc) -> Doc:

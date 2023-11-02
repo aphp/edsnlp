@@ -3,13 +3,13 @@ from typing import List, Optional, Set, Union
 from spacy.tokens import Doc, Span, Token
 
 from edsnlp.core import PipelineProtocol
-from edsnlp.pipelines.base import SpanGetterArg, get_spans
 from edsnlp.pipelines.qualifiers.base import RuleBasedQualifier
 from edsnlp.pipelines.terminations import termination as default_termination
 from edsnlp.utils.deprecation import deprecated_getter_factory
 from edsnlp.utils.filter import consume_spans, filter_spans
 from edsnlp.utils.inclusion import check_inclusion
 from edsnlp.utils.resources import get_verbs
+from edsnlp.utils.span_getters import SpanGetterArg, get_spans
 
 from . import patterns
 

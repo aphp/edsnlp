@@ -3,11 +3,12 @@ from typing import List, Optional, Tuple
 from spacy.tokens import Doc
 
 from edsnlp.core import PipelineProtocol
+from edsnlp.pipelines.base import BaseComponent
 
 from .patterns import quotes_and_apostrophes
 
 
-class QuotesConverter:
+class QuotesConverter(BaseComponent):
     """
     We normalise quotes, following this
     `source <https://www.cl.cam.ac.uk/~mgk25/ucs/quotes.html>`_.
@@ -28,10 +29,8 @@ class QuotesConverter:
         name: Optional[str] = "eds.spaces",
         *,
         quotes: List[Tuple[str, str]] = quotes_and_apostrophes
-    ) -> None:
-        self.nlp = nlp
-        self.name = name
-
+    ):
+        super().__init__(nlp=nlp, name=name)
         self.translation_table = str.maketrans(
             "".join(quote_group for quote_group, _ in quotes),
             "".join(rep * len(quote_group) for quote_group, rep in quotes),

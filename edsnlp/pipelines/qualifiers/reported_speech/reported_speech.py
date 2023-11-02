@@ -4,11 +4,11 @@ from spacy.tokens import Doc, Span, Token
 
 from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.regex import RegexMatcher
-from edsnlp.pipelines.base import SpanGetterArg, get_spans
 from edsnlp.pipelines.qualifiers.base import RuleBasedQualifier
 from edsnlp.utils.filter import consume_spans, filter_spans
 from edsnlp.utils.inclusion import check_inclusion
 from edsnlp.utils.resources import get_verbs
+from edsnlp.utils.span_getters import SpanGetterArg, get_spans
 
 from . import patterns
 

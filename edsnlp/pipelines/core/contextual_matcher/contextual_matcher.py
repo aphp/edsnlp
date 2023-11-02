@@ -112,7 +112,7 @@ class ContextualMatcher(BaseNERComponent):
 
         # Matchers for the anchors
         self.phrase_matcher = EDSPhraseMatcher(
-            self.nlp.vocab,
+            nlp.vocab,
             attr=attr,
             ignore_excluded=ignore_excluded,
             ignore_space_tokens=ignore_space_tokens,

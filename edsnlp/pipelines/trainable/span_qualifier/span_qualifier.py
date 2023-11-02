@@ -190,9 +190,10 @@ class TrainableSpanQualifier(
         return self.embedding.span_getter
 
     def to_disk(self, path, *, exclude=set()):
-        if self.name in exclude:
+        repr_id = object.__repr__(self)
+        if repr_id in exclude:
             return
-        exclude.add(self.name)
+        exclude.add(repr_id)
         self.embedding.to_disk(path, exclude=exclude)
         # This will receive the directory path + /my_component
         # We save the bindings as a pickle file since values can be arbitrary objects

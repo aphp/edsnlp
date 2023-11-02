@@ -583,11 +583,11 @@ def train(
                 grad_accumulation_max_tokens=grad_accumulation_max_tokens,
             ),
         )
-        trained_pipes = list(nlp.torch_components())
-        print("Training", ", ".join([name for name, c in trained_pipes]))
+        pipe_names, trained_pipes = zip(*nlp.torch_components())
+        print("Training", ", ".join(pipe_names))
 
         trf_params = set(trf_pipe.parameters())
-        params = set(p for name, pipe in trained_pipes for p in pipe.parameters())
+        params = set(p for pipe in trained_pipes for p in pipe.parameters())
         optimizer = ScheduledOptimizer(
             torch.optim.AdamW(
                 [
@@ -626,7 +626,6 @@ def train(
             param.requires_grad_(False)
 
         accelerator = Accelerator(cpu=cpu)
-        trained_pipes = [pipe for name, pipe in nlp.torch_components()]
         print("Device:", accelerator.device)
         [dataloader, optimizer, *trained_pipes] = accelerator.prepare(
             dataloader,
@@ -670,15 +669,15 @@ def train(
                 for mini_batch in mini_batches:
                     loss = torch.zeros((), device=accelerator.device)
                     with nlp.cache():
-                        for pipe in trained_pipes:
-                            output = pipe.module_forward(mini_batch[pipe.name])
+                        for name, pipe in zip(pipe_names, trained_pipes):
+                            output = pipe.module_forward(mini_batch[name])
                             if "loss" in output:
                                 loss += output["loss"]
                             for key, value in output.items():
                                 if key.endswith("loss"):
                                     cumulated_data[key] += float(value)
                             if torch.isnan(loss):
-                                raise ValueError(f"NaN loss at component {pipe.name}")
+                                raise ValueError(f"NaN loss at component {name}")
 
                     accelerator.backward(loss)
 

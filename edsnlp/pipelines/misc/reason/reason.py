@@ -129,7 +129,7 @@ class ReasonMatcher(GenericMatcher):
         )
 
         self.use_sections = use_sections and (
-            "eds.sections" in self.nlp.pipe_names or "sections" in self.nlp.pipe_names
+            "eds.sections" in nlp.pipe_names or "sections" in nlp.pipe_names
         )
         if use_sections and not self.use_sections:
             logger.warning(

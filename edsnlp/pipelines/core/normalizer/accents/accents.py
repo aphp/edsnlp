@@ -3,11 +3,12 @@ from typing import List, Optional, Tuple
 from spacy.tokens import Doc
 
 from edsnlp.core import PipelineProtocol
+from edsnlp.pipelines.base import BaseComponent
 
 from . import patterns
 
 
-class AccentsConverter(object):
+class AccentsConverter(BaseComponent):
     """
     Normalises accents, using a same-length strategy.
 
@@ -27,9 +28,8 @@ class AccentsConverter(object):
         name: Optional[str] = "eds.spaces",
         *,
         accents: List[Tuple[str, str]] = patterns.accents,
-    ) -> None:
-        self.nlp = nlp
-        self.name = name
+    ):
+        super().__init__(nlp, name)
         self.translation_table = str.maketrans(
             "".join(accent_group for accent_group, _ in accents),
             "".join(rep * len(accent_group) for accent_group, rep in accents),

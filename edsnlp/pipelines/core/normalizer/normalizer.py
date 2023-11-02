@@ -4,6 +4,7 @@ from spacy.tokens import Doc
 
 from edsnlp.core import PipelineProtocol
 
+from ...base import BaseComponent
 from .accents.accents import AccentsConverter
 from .pollution.pollution import PollutionTagger
 from .quotes.quotes import QuotesConverter
@@ -11,7 +12,7 @@ from .remove_lowercase.factory import remove_lowercase
 from .spaces.spaces import SpacesTagger
 
 
-class Normalizer(object):
+class Normalizer(BaseComponent):
     """
     Normalisation pipeline. Modifies the `NORM` attribute,
     acting on five dimensions :
@@ -51,8 +52,8 @@ class Normalizer(object):
         spaces: Optional[SpacesTagger] = None,
         pollution: Optional[PollutionTagger] = None,
     ):
-        self.nlp = nlp
-        self.name = name
+        super().__init__(nlp, name)
+
         self.lowercase = lowercase
         self.accents = accents
         self.quotes = quotes

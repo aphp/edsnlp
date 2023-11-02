@@ -1,6 +1,5 @@
 # ruff: noqa: E501
 # flake8: noqa: F401, F811
-from .core.context.factory import create_component as context
 from .core.contextual_matcher.factory import create_component as contextual_matcher
 from .core.endlines.factory import create_component as endlines
 from .core.matcher.factory import create_component as matcher

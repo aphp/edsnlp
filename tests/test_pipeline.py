@@ -73,11 +73,11 @@ def test_add_pipe_factory():
 
 def test_add_pipe_component():
     model = edsnlp.blank("eds")
-    model.add_pipe(normalizer(nlp=model, name="normalizer"))
+    model.add_pipe(normalizer(nlp=model), name="normalizer")
     assert "normalizer" in model.pipe_names
     assert model.has_pipe("normalizer")
 
-    model.add_pipe(sentences(nlp=model, name="sentences"))
+    model.add_pipe(sentences(nlp=model), name="sentences")
     assert "sentences" in model.pipe_names
     assert model.has_pipe("sentences")
 
@@ -187,16 +187,24 @@ def test_cache(frozen_pipeline: Pipeline):
     text = "Ceci est un exemple"
     frozen_pipeline(text)
 
+    trf = frozen_pipeline.get_pipe("transformer")
+
+    doc = frozen_pipeline.make_doc(text)
     with frozen_pipeline.cache():
-        frozen_pipeline(text)
+        for name, pipe in frozen_pipeline.pipeline:
+            # This is a hack to get around the ambiguity
+            # between the __call__ method of Pytorch modules
+            # and the __call__ methods of spacy components
+            if hasattr(pipe, "batch_process"):
+                doc = next(iter(pipe.batch_process([doc])))
+            else:
+                doc = pipe(doc)
         trf_forward_cache_entries = [
-            key
-            for key in frozen_pipeline._cache
-            if isinstance(key, tuple) and key[:2] == ("transformer", "forward")
+            key for key in trf._cache if isinstance(key, tuple) and key[0] == "forward"
         ]
         assert len(trf_forward_cache_entries) == 1
 
-    assert frozen_pipeline._cache is None
+    assert trf._cache is None
 
 
 def test_select_pipes(pipeline: Pipeline):
@@ -205,6 +213,7 @@ def test_select_pipes(pipeline: Pipeline):
         assert not pipeline(text).has_annotation("SENT_START")
 
 
+@pytest.mark.skip(reason="Deprecated behavior")
 def test_different_names():
     nlp = edsnlp.blank("eds")
 
@@ -368,10 +377,8 @@ def test_multiprocessing_ml_error(pipeline):
     text2 = "Ceci est un autre exemple"
     edsnlp.accelerators.multiprocessing.MAX_NUM_PROCESSES = 2
     pipeline.add_pipe(
-        DeepLearningError(
-            pipeline=pipeline,
-            name="error",
-        ),
+        DeepLearningError(pipeline=pipeline),
+        name="error",
         after="sentences",
     )
     accelerator = edsnlp.accelerators.multiprocessing.MultiprocessingAccelerator(

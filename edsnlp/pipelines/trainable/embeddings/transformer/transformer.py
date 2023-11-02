@@ -122,7 +122,6 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         new_tokens: Optional[List[Tuple[str, str]]] = [],
     ):
         super().__init__(nlp, name)
-        self.name = name
         self.transformer = AutoModel.from_pretrained(model, add_pooling_layer=False)
         self.tokenizer = AutoTokenizer.from_pretrained(model)
         self.window = window

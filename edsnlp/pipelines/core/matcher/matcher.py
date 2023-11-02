@@ -118,7 +118,7 @@ class GenericMatcher(BaseNERComponent):
 
         if term_matcher == "exact":
             self.phrase_matcher = EDSPhraseMatcher(
-                self.nlp.vocab,
+                nlp.vocab,
                 attr=attr,
                 ignore_excluded=ignore_excluded,
                 ignore_space_tokens=ignore_space_tokens,
@@ -126,7 +126,7 @@ class GenericMatcher(BaseNERComponent):
             )
         elif term_matcher == "simstring":
             self.phrase_matcher = SimstringMatcher(
-                self.nlp.vocab,
+                nlp.vocab,
                 attr=attr,
                 ignore_excluded=ignore_excluded,
                 ignore_space_tokens=ignore_space_tokens,

@@ -134,7 +134,7 @@ class TerminologyMatcher(BaseNERComponent):
 
         if term_matcher == "exact":
             self.phrase_matcher = EDSPhraseMatcher(
-                self.nlp.vocab,
+                vocab=nlp.vocab,
                 attr=attr,
                 ignore_excluded=ignore_excluded,
                 ignore_space_tokens=ignore_space_tokens,
@@ -142,7 +142,7 @@ class TerminologyMatcher(BaseNERComponent):
             )
         elif term_matcher == "simstring":
             self.phrase_matcher = SimstringMatcher(
-                vocab=self.nlp.vocab,
+                vocab=nlp.vocab,
                 attr=attr,
                 ignore_excluded=ignore_excluded,
                 ignore_space_tokens=ignore_space_tokens,

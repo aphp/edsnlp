@@ -508,8 +508,6 @@ class MeasurementsMatcher(BaseNERComponent):
         elif isinstance(measurements, dict):
             measurements = [{"name": k, **m} for k, m in measurements.items()]
 
-        self.nlp = nlp
-        self.name = name
         self.unit_registry = UnitRegistry(units_config)
         self.unitless_patterns: Dict[str, UnitlessPatternConfigWithName] = {}
         self.unit_part_label_hashes: Set[int] = set()
@@ -544,6 +542,11 @@ class MeasurementsMatcher(BaseNERComponent):
 
         super().__init__(nlp=nlp, name=name, span_setter=span_setter)
 
+        self.hash_strings = {
+            "stopword": nlp.vocab.strings["stopword"],
+            "unitless_stopword": nlp.vocab.strings["unitless_stopword"],
+            "number": nlp.vocab.strings["number"],
+        }
         self.regex_matcher = RegexMatcher(
             attr=attr,
             ignore_excluded=True,
@@ -819,9 +822,9 @@ class MeasurementsMatcher(BaseNERComponent):
             doclike,
             matches,
             {
-                self.nlp.vocab.strings["stopword"]: ",",
-                self.nlp.vocab.strings["unitless_stopword"]: ":",
-                self.nlp.vocab.strings["number"]: "n",
+                self.hash_strings["stopword"]: ",",
+                self.hash_strings["unitless_stopword"]: ":",
+                self.hash_strings["number"]: "n",
                 **{name: "u" for name in unit_label_hashes},
                 **{name: "n" for name in self.number_label_hashes},
             },

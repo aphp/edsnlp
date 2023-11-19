@@ -8,6 +8,7 @@ from string import ascii_letters, ascii_lowercase
 
 import pytest
 
+import edsnlp
 from edsnlp.connectors.brat import BratConnector
 from edsnlp.core import PipelineProtocol
 
@@ -55,6 +56,9 @@ def brat_folder(tmpdir):
     return tmpdir
 
 
+# OLD BratConnector tests, deprecated
+
+
 @pytest.fixture
 def brat1(brat_folder) -> BratConnector:
     return BratConnector(brat_folder)
@@ -79,10 +83,6 @@ def brat_exporter(tmpdir):
 def test_empty_brat(brat2: BratConnector, blank_nlp: PipelineProtocol):
     with pytest.raises(AssertionError):
         brat2.brat2docs(blank_nlp)
-
-
-def test_brat2pandas(brat1: BratConnector):
-    brat1.get_brat()
 
 
 def test_brat2brat(
@@ -125,12 +125,7 @@ def test_docs2brat(nlp, brat2):
     brat2.docs2brat(docs)
 
 
-def test_brat(
-    brat_importer: BratConnector,
-    brat_exporter: BratConnector,
-    blank_nlp: PipelineProtocol,
-):
-    doc = brat_importer.brat2docs(blank_nlp)[0]
+def assert_doc_read(doc):
     assert doc._.note_id == "subfolder/doc-1"
 
     attrs = ("etat", "assertion")
@@ -185,33 +180,66 @@ def test_brat(
         ],
     }
 
+
+def assert_doc_write(exported_ann_text):
+    assert exported_ann_text == (
+        "T1	sosy 30 38	douleurs\n"
+        "A1	etat T1 test\n"
+        "T2	localisation 39 57	dans le bras droit\n"
+        "T3	anatomie 47 57	bras droit\n"
+        "T4	pathologie 75 83;85 98	problème de locomotion\n"
+        "A2	assertion T4 absent\n"
+        "T5	pathologie 114 117	AVC\n"
+        "A3	etat T5 passé\n"
+        "A4	assertion T5 non-associé\n"
+        "T6	pathologie 159 164	rhume\n"
+        "A5	etat T6 présent\n"
+        "A6	assertion T6 hypothétique\n"
+        "T7	pathologie 291 296	rhume\n"
+        "A7	etat T7 présent\n"
+        "A8	assertion T7 hypothétique\n"
+        "T8	sosy 306 314	Douleurs\n"
+        "T9	localisation 315 333	dans le bras droit\n"
+        "T10	anatomie 323 333	bras droit\n"
+        "T11	sosy 378 386	anomalie\n"
+        "A9	assertion T11 absent\n"
+    )
+
+
+def test_brat(
+    brat_importer: BratConnector,
+    brat_exporter: BratConnector,
+    blank_nlp: PipelineProtocol,
+):
+    doc = brat_importer.brat2docs(blank_nlp)[0]
+    assert_doc_read(doc)
     doc.ents[0]._.etat = "test"
 
     brat_exporter.docs2brat([doc])
     with open(brat_exporter.directory / "subfolder" / "doc-1.ann") as f:
         exported_ann_text = f.read()
-    assert (
-        exported_ann_text
-        == """\
-T1	sosy 30 38	douleurs
-A1	etat T1 test
-T2	localisation 39 57	dans le bras droit
-T3	anatomie 47 57	bras droit
-T4	pathologie 75 83;85 98	problème de locomotion
-A2	assertion T4 absent
-T5	pathologie 114 117	AVC
-A3	etat T5 passé
-A4	assertion T5 non-associé
-T6	pathologie 159 164	rhume
-A5	etat T6 présent
-A6	assertion T6 hypothétique
-T7	pathologie 291 296	rhume
-A7	etat T7 présent
-A8	assertion T7 hypothétique
-T8	sosy 306 314	Douleurs
-T9	localisation 315 333	dans le bras droit
-T10	anatomie 323 333	bras droit
-T11	sosy 378 386	anomalie
-A9	assertion T11 absent
-"""
+
+    assert_doc_write(exported_ann_text)
+
+
+# New `edsnlp.data.read_standoff` and `edsnlp.data.write_standoff` tests
+
+
+def test_read_to_standoff(blank_nlp, tmpdir):
+    input_dir = Path(__file__).parent.parent.resolve() / "resources" / "brat_data"
+    output_dir = Path(tmpdir)
+    doc = list(edsnlp.data.read_standoff(input_dir))[0]
+    assert_doc_read(doc)
+    doc.ents[0]._.etat = "test"
+
+    edsnlp.data.write_standoff(
+        [doc],
+        output_dir,
+        span_attributes=["etat", "assertion"],
+        span_getter=["ents", "sosy", "localisation", "anatomie", "pathologie"],
     )
+
+    with open(output_dir / "subfolder" / "doc-1.ann") as f:
+        exported_ann_text = f.read()
+
+    assert_doc_write(exported_ann_text)

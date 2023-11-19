@@ -31,6 +31,7 @@ theme:
     - navigation.indexes
     - navigation.prune
     - navigation.top
+    - navigation.footer
     - content.code.annotate
     - content.code.copy
 
@@ -40,16 +41,16 @@ nav:
   - Tutorials:
       - Overview: tutorials/overview.md
       - tutorials/spacy101.md
-      - tutorials/quick-examples.md
       - tutorials/matching-a-terminology.md
       - tutorials/qualifying-entities.md
-      - tutorials/aggregating-results.md
       - tutorials/detecting-dates.md
       - tutorials/multiple-texts.md
-      - tutorials/endlines.md
       - tutorials/reason.md
+      - tutorials/endlines.md
+      - tutorials/aggregating-results.md
       - advanced-tutorials/fastapi.md
       - tutorials/training-ner.md
+      - tutorials/quick-examples.md
   - Pipes:
       - Overview: pipelines/overview.md
       - Core Pipelines:
@@ -122,10 +123,13 @@ nav:
           - pipelines/trainable/ner.md
           - pipelines/trainable/span-qualifier.md
   - tokenizers.md
-  - Connectors:
-      - Overview: utilities/connectors/overview.md
-      - utilities/connectors/brat.md
-      - utilities/connectors/omop.md
+  - Data Connectors:
+      - data/index.md
+      - data/standoff.md
+      - data/json.md
+      - data/pandas.md
+      - data/spark.md
+      - data/schemas.md
   - Concepts:
       - concepts/pipeline.md
       - concepts/torch-component.md

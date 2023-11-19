@@ -229,6 +229,20 @@ where = ["."]
 "simple" = "edsnlp.accelerators.simple:SimpleAccelerator"
 "multiprocessing" = "edsnlp.accelerators.multiprocessing:MultiprocessingAccelerator"
 
+[project.entry-points."edsnlp_readers"]
+"spark" =    "edsnlp.data:from_spark"
+"pandas" =   "edsnlp.data:from_pandas"
+"json" =     "edsnlp.data:read_json"
+"standoff" = "edsnlp.data:read_standoff"
+"brat"     = "edsnlp.data:read_brat"  # alias for standoff
+
+[project.entry-points."edsnlp_writers"]
+"spark" =    "edsnlp.data:to_spark"
+"pandas" =   "edsnlp.data:to_pandas"
+"json" =     "edsnlp.data:write_json"
+"standoff" = "edsnlp.data:write_standoff"
+"brat"     = "edsnlp.data:write_brat"  # alias for standoff
+
 [project.entry-points."spacy_misc"]
 "eds.span_sentence_getter" = "edsnlp.utils.span_getters:make_span_sentence_getter"
 

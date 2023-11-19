@@ -75,19 +75,21 @@ class CurriedFactory:
                 return obj.instantiated
 
             name = ".".join(path)
-
+            parameters = (
+                inspect.signature(obj.factory.__init__).parameters
+                if isinstance(obj.factory, type)
+                else inspect.signature(obj.factory).parameters
+            )
             kwargs = {
                 key: CurriedFactory.instantiate(value, nlp, (*path, key))
                 for key, value in obj.kwargs.items()
             }
             try:
-                obj.instantiated = obj.factory(
-                    **{
-                        "nlp": nlp,
-                        "name": name,
-                        **kwargs,
-                    }
-                )
+                if nlp and "nlp" in parameters:
+                    kwargs["nlp"] = nlp
+                if name and "name" in parameters:
+                    kwargs["name"] = name
+                obj.instantiated = obj.factory(**kwargs)
             except ConfitValidationError as e:
                 obj.error = e
                 raise ConfitValidationError(
@@ -198,6 +200,7 @@ class FactoryRegistry(Registry):
         default_score_weights: Dict[str, Optional[float]] = FrozenDict(),
         invoker: Callable = None,
         deprecated: Sequence[str] = (),
+        spacy_compatible: bool = True,
     ) -> Callable[[catalogue.InFunc], catalogue.InFunc]:
         """
         This is a convenience wrapper around `confit.Registry.register`, that
@@ -215,6 +218,7 @@ class FactoryRegistry(Registry):
         default_score_weights: Dict[str, Optional[float]]
         invoker: Callable
         deprecated: Sequence[str]
+        spacy_compatible: bool
 
         Returns
         -------
@@ -223,10 +227,14 @@ class FactoryRegistry(Registry):
         save_params = {"@factory": name}
 
         def register(fn: catalogue.InFunc) -> catalogue.InFunc:
-            if len(accepted_arguments(fn, ["nlp", "name"])) < 2:
-                raise ValueError(
-                    "Factory functions must accept nlp and name as arguments."
-                )
+            assert (
+                not spacy_compatible
+                or len(accepted_arguments(fn, ["nlp", "name"])) == 2
+            ), (
+                "Spacy compatible factories functions must accept nlp and name as "
+                "arguments. Either set register(..., spacy_compatible=False) or "
+                "add nlp and name to the arguments."
+            )
 
             meta = FactoryMeta(
                 assigns=validate_attrs(assigns),
@@ -271,16 +279,17 @@ class FactoryRegistry(Registry):
             if nlp_was_spacy_language:
                 annotations["nlp"] = spacy.Language
 
-            for spacy_pipe_name in (name, *deprecated):
-                spacy.Language.factory(
-                    name=spacy_pipe_name,
-                    default_config=default_config,
-                    assigns=assigns,
-                    requires=requires,
-                    default_score_weights=default_score_weights,
-                    retokenizes=retokenizes,
-                    func=registered_fn,
-                )
+            if spacy_compatible:
+                for spacy_pipe_name in (name, *deprecated):
+                    spacy.Language.factory(
+                        name=spacy_pipe_name,
+                        default_config=default_config,
+                        assigns=assigns,
+                        requires=requires,
+                        default_score_weights=default_score_weights,
+                        retokenizes=retokenizes,
+                        func=registered_fn,
+                    )
 
             return registered_fn
 
@@ -298,6 +307,8 @@ class registry(RegistryCollection):
     scorers = Registry(("spacy", "scorers"), entry_points=True)
     accelerator = Registry(("edsnlp", "accelerator"), entry_points=True)
     adapters = Registry(("edsnlp", "adapters"), entry_points=True)
+    readers = Registry(("edsnlp", "readers"), entry_points=True)
+    writers = Registry(("edsnlp", "writers"), entry_points=True)
 
 
 set_default_registry(registry)

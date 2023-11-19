@@ -23,7 +23,24 @@ def ld_to_dl(ld: Iterable[Mapping[str, T]]) -> Dict[str, List[T]]:
         The dictionary of lists
     """
     ld = list(ld)
-    return {k: [dic[k] for dic in ld] for k in ld[0]}
+    return {k: [dic.get(k) for dic in ld] for k in ld[0]}
+
+
+def dl_to_ld(dl: Mapping[str, Sequence[Any]]) -> Iterable[Dict[str, Any]]:
+    """
+    Convert a dictionary of lists to a list of dictionaries
+
+    Parameters
+    ----------
+    dl: Mapping[str, Sequence[Any]]
+        The dictionary of lists
+
+    Returns
+    -------
+    List[Dict[str, Any]]
+        The list of dictionaries
+    """
+    return (dict(zip(dl, t)) for t in zip(*dl.values()))
 
 
 FLATTEN_TEMPLATE = """\
@@ -300,3 +317,19 @@ class FrozenList(list):
 
     def sort(self, *args, **kwargs):
         raise NotImplementedError(self.error)
+
+
+def flatten_once(items):
+    for item in items:
+        if isinstance(item, list):
+            yield from item
+        else:
+            yield item
+
+
+def flatten(items):
+    for item in items:
+        if isinstance(item, list):
+            yield from flatten(item)
+        else:
+            yield item

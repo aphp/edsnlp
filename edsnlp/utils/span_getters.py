@@ -43,6 +43,29 @@ def get_spans(doc, span_getter):
                     yield span
 
 
+def get_spans_with_group(doc, span_getter):
+    if span_getter is None:
+        yield doc[:], None
+        return
+    if callable(span_getter):
+        yield from span_getter(doc)
+        return
+    for key, span_filter in span_getter.items():
+        if key == "*":
+            candidates = (
+                (span, group) for group in doc.spans.values() for span in group
+            )
+        else:
+            candidates = doc.spans.get(key, ()) if key != "ents" else doc.ents
+            candidates = ((span, key) for span in candidates)
+        if span_filter is True:
+            yield from candidates
+        else:
+            for span, group in candidates:
+                if span.label_ in span_filter:
+                    yield span, group
+
+
 def set_spans(doc, matches, span_setter):
     if callable(span_setter):
         span_setter(doc, matches)

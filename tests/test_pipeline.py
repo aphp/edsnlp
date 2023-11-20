@@ -221,12 +221,8 @@ def test_config_validation_error():
     with pytest.raises(ConfitValidationError) as e:
         Pipeline.from_config(Config.from_str(fail_config))
 
-    assert str(e.value) == (
-        "1 validation error for edsnlp.core.pipeline.Pipeline()\n"
-        "-> components.ner.mode\n"
-        "   unexpected value; permitted: 'independent', 'joint', 'marginal', got "
-        "'error-mode' (str)"
-    )
+    assert "1 validation error for edsnlp.core.pipeline.Pipeline()" in str(e.value)
+    assert "got 'error-mode'" in str(e.value)
 
 
 def test_add_pipe_validation_error():

@@ -19,6 +19,8 @@ class Modifier(BaseModel):
 
     @validator("value")
     def optional_dict_parsing(cls, v):
+        if v in ["True", "False"]:
+            return v == "True"
         if isinstance(v, str):
             try:
                 return json.loads(v.replace("'", '"'))
@@ -108,7 +110,6 @@ def parse_example(example: str) -> Tuple[str, List[Entity]]:
     cursor = 0
 
     for match in matches:
-
         text += example[cursor : match.start_char]
         start_char = len(text)
         text += match.text

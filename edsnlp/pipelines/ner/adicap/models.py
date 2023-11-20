@@ -5,12 +5,12 @@ from pydantic import BaseModel
 
 class AdicapCode(BaseModel):
     code: str
-    sampling_mode: Optional[str]
-    technic: Optional[str]
-    organ: Optional[str]
-    pathology: Optional[str]
-    pathology_type: Optional[str]
-    behaviour_type: Optional[str]
+    sampling_mode: Optional[str] = None
+    technic: Optional[str] = None
+    organ: Optional[str] = None
+    pathology: Optional[str] = None
+    pathology_type: Optional[str] = None
+    behaviour_type: Optional[str] = None
 
     def norm(self) -> str:
         return self.code

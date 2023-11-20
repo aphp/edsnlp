@@ -5,6 +5,7 @@ from functools import lru_cache
 from operator import attrgetter
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+import pydantic
 from confit import VisibleDeprecationWarning
 from loguru import logger
 from spacy.tokens import Doc, Span
@@ -14,7 +15,7 @@ from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher, create_span
 from edsnlp.matchers.utils import get_text
 from edsnlp.pipelines.base import BaseNERComponent, SpanSetterArg
-from edsnlp.utils.lists import flatten
+from edsnlp.utils.collections import flatten_once
 
 from . import models
 
@@ -107,7 +108,7 @@ class ContextualMatcher(BaseNERComponent):
         self.include_assigned = include_assigned
 
         # Configuration parsing
-        patterns = models.FullConfig.parse_obj(patterns).__root__
+        patterns = pydantic.parse_obj_as(models.FullConfig, patterns)
         self.patterns = {pattern.source: pattern for pattern in patterns}
 
         # Matchers for the anchors
@@ -375,8 +376,14 @@ class ContextualMatcher(BaseNERComponent):
                 )
                 kept_ents.remove(closest)
 
-                expandables = flatten(
-                    [a["span"] for k, a in assigned_dict.items() if k != replace_key]
+                expandables = list(
+                    flatten_once(
+                        [
+                            a["span"]
+                            for k, a in assigned_dict.items()
+                            if k != replace_key
+                        ]
+                    )
                 ) + [span, closest]
 
                 closest = Span(
@@ -398,7 +405,7 @@ class ContextualMatcher(BaseNERComponent):
             # Entity expansion
             expandables = [
                 s
-                for s in flatten([a["span"] for a in assigned_dict.values()])
+                for s in flatten_once([a["span"] for a in assigned_dict.values()])
                 if s is not None
             ]
 

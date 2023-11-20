@@ -67,11 +67,11 @@ This example is complete, it should run as-is.
 
 To learn more about EDS-NLP, we have prepared a series of tutorials that should cover the main features of the library.
 
---8<-- "docs/tutorials/overview.md:tutorials"
+--8<-- "docs/tutorials/index.md:tutorials"
 
 ## Available pipeline components
 
---8<-- "docs/pipelines/overview.md:components"
+--8<-- "docs/pipelines/index.md:components"
 
 ## Disclaimer
 

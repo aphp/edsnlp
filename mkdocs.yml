@@ -39,7 +39,7 @@ nav:
   - index.md
   - Demo: https://aphp.github.io/edsnlp/demo" target="_blank
   - Tutorials:
-      - Overview: tutorials/overview.md
+      - Overview: tutorials/index.md
       - tutorials/spacy101.md
       - tutorials/matching-a-terminology.md
       - tutorials/qualifying-entities.md
@@ -52,9 +52,9 @@ nav:
       - tutorials/training-ner.md
       - tutorials/quick-examples.md
   - Pipes:
-      - Overview: pipelines/overview.md
+      - Overview: pipelines/index.md
       - Core Pipelines:
-          - Overview: pipelines/core/overview.md
+          - pipelines/core/index.md
           - pipelines/core/normalizer.md
           - pipelines/core/sentences.md
           - pipelines/core/matcher.md
@@ -62,14 +62,14 @@ nav:
           - pipelines/core/contextual-matcher.md
           - pipelines/core/endlines.md
       - Qualifiers:
-          - Overview: pipelines/qualifiers/overview.md
+          - pipelines/qualifiers/index.md
           - pipelines/qualifiers/negation.md
           - pipelines/qualifiers/family.md
           - pipelines/qualifiers/hypothesis.md
           - pipelines/qualifiers/reported-speech.md
           - pipelines/qualifiers/history.md
       - Miscellaneous:
-          - Overview: pipelines/misc/overview.md
+          - pipelines/misc/index.md
           - pipelines/misc/dates.md
           - pipelines/misc/measurements.md
           - pipelines/misc/consultation-dates.md
@@ -77,9 +77,9 @@ nav:
           - pipelines/misc/reason.md
           - pipelines/misc/tables.md
       - Named Entity Recognition:
-          - Overview: pipelines/ner/overview.md
+          - Overview: pipelines/ner/index.md
           - Scores:
-            - Overview: pipelines/ner/scores/overview.md
+            - pipelines/ner/scores/index.md
             - pipelines/ner/scores/charlson.md
             - pipelines/ner/scores/emergency-ccmu.md
             - pipelines/ner/scores/emergency-gemsa.md
@@ -87,7 +87,7 @@ nav:
             - pipelines/ner/scores/sofa.md
             - pipelines/ner/scores/elston-ellis.md
           - Disorders:
-            - Overview: pipelines/ner/disorders/overview.md
+            - pipelines/ner/disorders/index.md
             - pipelines/ner/disorders/aids.md
             - pipelines/ner/disorders/ckd.md
             - pipelines/ner/disorders/copd.md
@@ -106,7 +106,7 @@ nav:
             - pipelines/ner/disorders/solid-tumor.md
             - pipelines/ner/covid.md
           - Behaviors:
-            - Overview: pipelines/ner/behaviors/overview.md
+            - pipelines/ner/behaviors/index.md
             - pipelines/ner/behaviors/alcohol.md
             - pipelines/ner/behaviors/tobacco.md
           - pipelines/ner/adicap.md
@@ -116,7 +116,7 @@ nav:
           - pipelines/ner/drugs.md
 
       - Trainable components:
-          - Overview: pipelines/trainable/overview.md
+          - pipelines/trainable/index.md
           - pipelines/trainable/embeddings/transformer.md
           - pipelines/trainable/embeddings/text_cnn.md
           - pipelines/trainable/embeddings/span_pooler.md
@@ -135,7 +135,7 @@ nav:
       - concepts/torch-component.md
       - concepts/inference.md
   - Utilities:
-      - Overview: utilities/overview.md
+      - utilities/index.md
       - utilities/tests/blocs.md
       - utilities/tests/examples.md
       - utilities/matchers.md

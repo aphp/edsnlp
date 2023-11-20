@@ -1,4 +1,5 @@
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -17,6 +18,9 @@ def _check_path(path: str):
         "The label must be a path of valid python identifier to be used as a getter"
         "in the following template: span.[YOUR_LABEL], such as `label_` or `_.negated"
     )
+    if path[0].isalpha() or path[0] == "_":
+        return "." + path
+    return path
 
 
 def make_binding_getter(qualifier: Union[str, Binding]):
@@ -37,11 +41,31 @@ def make_binding_getter(qualifier: Union[str, Binding]):
     """
     if isinstance(qualifier, tuple):
         path, value = qualifier
-        _check_path(path)
-        return eval(f"lambda span: span.{path} == value", {"value": value}, {})
+        path = _check_path(path)
+        ctx = {"value": value}
+        exec(
+            f"def getter(span):\n"
+            f"    try:\n"
+            f"        return span{path} == value\n"
+            f"    except AttributeError:\n"
+            f"        return False\n",
+            ctx,
+            ctx,
+        )
+        return ctx["getter"]
     else:
-        _check_path(qualifier)
-        return eval(f"lambda span: span.{qualifier}")
+        path = _check_path(qualifier)
+        ctx = {}
+        exec(
+            f"def getter(span):\n"
+            f"    try:\n"
+            f"        return span{path}\n"
+            f"    except AttributeError:\n"
+            f"        return None\n",
+            ctx,
+            ctx,
+        )
+        return ctx["getter"]
 
 
 def make_binding_setter(binding: Binding):
@@ -140,5 +164,9 @@ class QualifiersArg:
         yield cls.validate
 
     @classmethod
-    def validate(cls, value: Union[SeqStr, Dict[str, SpanFilter]]) -> Qualifiers:
+    def validate(cls, value, config=None) -> Qualifiers:
         return validate_qualifiers(value)
+
+
+if TYPE_CHECKING:
+    QualifiersArg = Union[SeqStr, Dict[str, Union[bool, SeqStr]], Callable]  # noqa: F811

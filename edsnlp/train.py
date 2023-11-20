@@ -3,25 +3,33 @@ import json
 import math
 import random
 import time
-import typing
 from collections import defaultdict
 from collections.abc import Sized
 from itertools import chain, repeat
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, Optional, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+)
 
 import spacy
+import spacy.tokenizer
 import torch
 from accelerate import Accelerator
 from confit import Cli
 from confit.registry import validate_arguments
 from confit.utils.random import set_seed
+from pydantic import BaseModel
 from rich_logger import RichTablePrinter
 from spacy.tokens import Doc
 from tqdm import tqdm
 
 import edsnlp
-from edsnlp.connectors.brat import BratConnector
 from edsnlp.core.pipeline import Pipeline
 from edsnlp.core.registry import registry
 from edsnlp.optimization import LinearSchedule, ScheduledOptimizer
@@ -29,10 +37,9 @@ from edsnlp.pipelines.trainable.embeddings.transformer.transformer import Transf
 from edsnlp.scorers import Scorer
 from edsnlp.utils.bindings import BINDING_SETTERS
 from edsnlp.utils.collections import batchify
-from edsnlp.utils.span_getters import SpanSetterArg, get_spans, set_spans
+from edsnlp.utils.span_getters import get_spans
 
 app = Cli(pretty_exceptions_show_locals=False)
-
 
 LOGGER_FIELDS = {
     "step": {},
@@ -96,11 +103,13 @@ class BatchSizeArg:
         value = str(value)
         parts = value.split()
         num = int(parts[0])
-        if str(num) == parts[0]:
-            if len(parts) == 1:
-                return num, "samples"
-            if parts[1] in ("words", "samples", "spans"):
-                return num, parts[1]
+        unit = parts[1] if len(parts) == 2 else "samples"
+        if (
+            len(parts) == 2
+            and str(num) == parts[0]
+            and unit in ("words", "samples", "spans")
+        ):
+            return num, unit
         raise Exception(
             f"Invalid batch size: {value}, must be <int> samples|words|spans"
         )
@@ -110,7 +119,7 @@ class BatchSizeArg:
         yield cls.validate
 
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     BatchSizeArg = Tuple[int, str]  # noqa: F811
 
 
@@ -181,23 +190,18 @@ class LengthSortedBatchSampler:
                 )
 
         else:
-
-            def sample_len(idx, noise=True):
-                return 1
+            sample_len = lambda idx, noise=True: 1  # noqa: E731
 
         def make_batches():
-            current_count = 0
-            current_batch = []
-            for idx in sorted_sequences:
-                seq_size = sample_len(idx, noise=False)
-                if current_count + seq_size > self.batch_size:
-                    yield current_batch
-                    current_batch = []
-                    current_count = 0
-                current_count += seq_size
-                current_batch.append(idx)
-            if len(current_batch):
-                yield current_batch
+            total = 0
+            batch = []
+            for seq_size, idx in sorted_sequences:
+                if total and total + seq_size > self.batch_size:
+                    yield batch
+                    total = 0
+                    batch = []
+                total += seq_size
+                batch.append(idx)
 
         # Shuffle the batches in buffer that contain approximately
         # the full dataset to add more randomness
@@ -211,7 +215,8 @@ class LengthSortedBatchSampler:
 
         # Sort sequences by length +- some noise
         sorted_sequences = chain.from_iterable(
-            sorted(range(len(self.dataset)), key=sample_len) for _ in repeat(None)
+            sorted((sample_len(i), i) for i in range(len(self.dataset)))
+            for _ in repeat(None)
         )
 
         # Batch sorted sequences
@@ -299,188 +304,110 @@ def subset_doc(doc: Doc, start: int, end: int) -> Doc:
     return new_doc
 
 
-def split_doc(
-    doc: Doc,
-    max_length: int = 0,
-    randomize: bool = True,
-    multi_sentence: bool = True,
-) -> List[Doc]:
+class Reader(BaseModel, arbitrary_types_allowed=True):
     """
-    Split a doc into multiple docs of max_length tokens.
+    Reader that reads docs from a file or a generator, and adapts them to the pipeline.
 
     Parameters
     ----------
-    doc: Doc
-        The doc to split
+    reader: Callable[..., Iterable[Doc]]
+        The reader object
+    limit: Optional[int]
+        The maximum number of docs to read
     max_length: int
         The maximum length of the resulting docs
-    multi_sentence: bool
-        Whether to split sentences across multiple docs
     randomize: bool
         Whether to randomize the split
-
-    Returns
-    -------
-    Iterable[Doc]
+    multi_sentence: bool
+        Whether to split sentences across multiple docs
+    filter_expr: Optional[str]
+        An expression to filter the docs to generate
     """
-    if max_length <= 0:
-        yield doc
-    else:
-        start = 0
-        end = 0
-        for ent in doc.ents:
-            for token in ent:
-                token.is_sent_start = False
-        for sent in doc.sents if doc.has_annotation("SENT_START") else (doc[:],):
-            # If the sentence adds too many tokens
-            if sent.end - start > max_length:
-                # But the current buffer too large
-                while sent.end - start > max_length:
-                    subset_end = start + int(
-                        max_length * (random.random() ** 0.3 if randomize else 1)
-                    )
-                    yield subset_doc(doc, start, subset_end)
-                    start = subset_end
-                yield subset_doc(doc, start, sent.end)
-                start = sent.end
 
-            if not multi_sentence:
-                yield subset_doc(doc, start, sent.end)
-                start = sent.end
+    reader: Any
+    limit: Optional[int] = -1
+    max_length: int = 0
+    randomize: bool = False
+    multi_sentence: bool = True
+    filter_expr: Optional[str] = None
 
-            # Otherwise, extend the current buffer
-            end = sent.end
+    def __call__(self, nlp) -> List[Doc]:
+        filter_fn = eval(f"lambda doc:{self.filter_expr}") if self.filter_expr else None
 
-        yield subset_doc(doc, start, end)
-
-
-@registry.misc.register("jsonl_dataset")
-def jsonl_dataset(
-    path,
-    limit: Optional[int] = None,
-    max_length: int = 0,
-    randomize: bool = False,
-    multi_sentence: bool = True,
-    filter_expr: Optional[str] = None,
-    span_setter: SpanSetterArg = {"ents": True, "gold-spans": True},
-    note_id_field: str = "note_id",
-    note_text_field: str = "note_text",
-    entities_field: str = "entities",
-):
-    filter_fn = eval(f"lambda doc: {filter_expr}") if filter_expr else None
-    assert not (
-        limit is not None and isinstance(path, dict)
-    ), "Cannot use specify both global limit and path-wise limit"
-    if isinstance(path, (str, Path)):
-        path = [path]
-    if isinstance(path, list):
-        path = {single_path: (limit or -1) for single_path in path}
-
-    def load(nlp) -> List[Doc]:
-        blank_nlp = edsnlp.Pipeline(nlp.lang, vocab=nlp.vocab)
-        blank_nlp.add_pipe("eds.normalizer")
-        blank_nlp.add_pipe("eds.sentences")
-
-        # Load the jsonl data from path
-        for single_path, limit in path.items():
-            count = 0
-            with open(single_path, "r") as f:
-                lines = f
-                if randomize:
-                    lines = list(lines)
-                    random.shuffle(lines)
-
-                for line in lines:
-                    if limit >= 0 and count >= limit:
-                        break
-                    raw = json.loads(line)
-                    doc = nlp.make_doc(raw[note_text_field])
-                    if note_id_field in raw:
-                        doc._.note_id = raw[note_id_field]
-                    doc = blank_nlp(doc)
-                    if not (len(doc) and (filter_fn is None or filter_fn(doc))):
-                        continue
-
-                    count += 1
-
-                    # Annotate entities from the raw data
-                    set_spans(
-                        doc,
-                        [
-                            doc.char_span(
-                                ent["start"],
-                                ent["end"],
-                                label=ent["label"],
-                                alignment_mode="expand",
-                            )
-                            for ent in raw[entities_field]
-                        ],
-                        span_setter,
-                    )
-
-                    for subdoc in split_doc(doc, max_length, randomize, multi_sentence):
-                        if len(subdoc.text.strip()):
-                            yield subdoc
-                    else:
-                        continue
-
-                assert limit == 0 or count > 0, f"No data found in {single_path}"
-
-    return load
-
-
-@registry.misc.register("brat_dataset")
-def brat_dataset(
-    path,
-    limit: Optional[int] = None,
-    max_length: int = 0,
-    randomize: bool = False,
-    multi_sentence: bool = True,
-    filter_expr: Optional[str] = None,
-    span_setter: SpanSetterArg = {"ents": True, "gold-spans": True},
-):
-    filter_fn = eval(f"lambda doc: {filter_expr}") if filter_expr else None
-    assert not (
-        limit is not None and isinstance(path, dict)
-    ), "Cannot use specify both global limit and path-wise limit"
-    if isinstance(path, (str, Path)):
-        path = [path]
-    if isinstance(path, list):
-        path = {single_path: (limit or -1) for single_path in path}
-
-    def load(nlp) -> List[Doc]:
         blank_nlp = edsnlp.Pipeline(nlp.lang, vocab=nlp.vocab, vocab_config=None)
         blank_nlp.add_pipe("eds.normalizer")
         blank_nlp.add_pipe("eds.sentences")
 
+        docs = blank_nlp.pipe(self.reader)
+
+        count = 0
+
         # Load the jsonl data from path
-        for single_path, limit in path.items():
-            count = 0
-            docs = BratConnector(
-                directory=single_path,
-                span_setter=span_setter,
-            ).brat2docs(blank_nlp, run_pipe=True)
+        if self.randomize:
+            docs: List[Doc] = list(docs)
+            random.shuffle(docs)
 
-            if randomize:
-                docs = list(docs)
-                random.shuffle(docs)
+        for doc in docs:
+            if 0 <= self.limit <= count:
+                break
+            if not (len(doc) and (filter_fn is None or filter_fn(doc))):
+                continue
+            count += 1
 
-            for doc in docs:
-                if 0 <= limit <= count:
-                    break
-                if not (len(doc) and (filter_fn is None or filter_fn(doc))):
-                    continue
-                count += 1
+            for sub_doc in self.split_doc(doc):
+                if len(sub_doc.text.strip()):
+                    yield sub_doc
+            else:
+                continue
 
-                for subdoc in split_doc(doc, max_length, randomize, multi_sentence):
-                    if len(subdoc.text.strip()):
-                        yield subdoc
-                else:
-                    continue
+    def split_doc(
+        self,
+        doc: Doc,
+    ) -> Iterable[Doc]:
+        """
+        Split a doc into multiple docs of max_length tokens.
 
-            assert limit == 0 or count > 0, f"No data found in {single_path}"
+        Parameters
+        ----------
+        doc: Doc
+            The doc to split
 
-    return load
+        Returns
+        -------
+        Iterable[Doc]
+        """
+        max_length = self.max_length
+        randomize = self.randomize
+
+        if max_length <= 0:
+            yield doc
+        else:
+            start = 0
+            end = 0
+            for ent in doc.ents:
+                for token in ent:
+                    token.is_sent_start = False
+            for sent in doc.sents if doc.has_annotation("SENT_START") else (doc[:],):
+                # If the sentence adds too many tokens
+                if sent.end - start > max_length:
+                    # But the current buffer too large
+                    while sent.end - start > max_length:
+                        subset_end = start + int(
+                            max_length * (random.random() ** 0.3 if randomize else 1)
+                        )
+                        yield subset_doc(doc, start, subset_end)
+                        start = subset_end
+                    yield subset_doc(doc, start, sent.end)
+                    start = sent.end
+
+                if not self.multi_sentence:
+                    yield subset_doc(doc, start, sent.end)
+                    start = sent.end
+
+                # Otherwise, extend the current buffer
+                end = sent.end
+
+            yield subset_doc(doc, start, end)
 
 
 @validate_arguments
@@ -495,6 +422,7 @@ class GenericScorer:
 
     def __call__(self, nlp: Pipeline, docs):
         scores = {}
+        docs = list(docs)
 
         # Speed
         t0 = time.time()
@@ -536,8 +464,8 @@ def train(
     *,
     output_path: Path = Path("model"),
     nlp: Pipeline,
-    train_data: Callable[[Pipeline], Iterable[Doc]],
-    val_data: Callable[[Pipeline], Iterable[Doc]],
+    train_data: Reader,
+    val_data: Reader,
     seed: int = 42,
     data_seed: int = 42,
     max_steps: int = 1000,
@@ -562,8 +490,8 @@ def train(
     with RichTablePrinter(LOGGER_FIELDS, auto_refresh=False) as logger:
         # Loading and adapting the training and validation data
         with set_seed(data_seed):
-            train_docs: typing.List[spacy.tokens.Doc] = list(train_data(nlp))
-            val_docs: typing.List[spacy.tokens.Doc] = list(val_data(nlp))
+            train_docs: List[spacy.tokens.Doc] = list(train_data(nlp))
+            val_docs: List[spacy.tokens.Doc] = list(val_data(nlp))
 
         # Initialize pipeline with training documents
         nlp.post_init(train_docs)

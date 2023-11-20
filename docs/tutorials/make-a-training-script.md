@@ -25,14 +25,13 @@ nlp.add_pipe(
     name="ner",
     config={
         "mode": "joint",  # (2)
-        "target_span_getter": "ml-ner",
-        "window": 20,
+        "target_span_getter": "ml-ner", # (3)
         "embedding": {
-            "@factory": "eds.text_cnn",  # (3)
+            "@factory": "eds.text_cnn",  # (4)
             "kernel_sizes": [3],
             "embedding": {
-                "@factory": "eds.transformer",  # (4)
-                "model": "prajjwal1/bert-tiny",  # (5)
+                "@factory": "eds.transformer",  # (5)
+                "model": "prajjwal1/bert-tiny",  # (6)
                 "window": 128,
                 "stride": 96,
             },
@@ -43,9 +42,10 @@ nlp.add_pipe(
 
 1. We use the `eds.ner_crf` NER task module, which classifies word embeddings into NER labels (BIOUL scheme) using a CRF.
 2. Each component of the pipeline can be configured with a dictionary, using the parameter described in the component's page.
-3. The word embeddings used by the CRF are computed by a CNN, which builds on top of another embedding layer.
-4. The base embedding layer is a pretrained transformer, which computes contextualized word embeddings.
-5. We chose the `prajjwal1/bert-tiny` model in this tutorial for testing purposes, but we recommend using a larger model like `bert-base-cased` or `camembert-base` (French) for real-world applications.
+3. The `target_span_getter` parameter defines the name of the span group used to train the NER model. We will need to make sure the entities from the training dataset are assigned to this span group (next section).
+4. The word embeddings used by the CRF are computed by a CNN, which builds on top of another embedding layer.
+5. The base embedding layer is a pretrained transformer, which computes contextualized word embeddings.
+6. We chose the `prajjwal1/bert-tiny` model in this tutorial for testing purposes, but we recommend using a larger model like `bert-base-cased` or `camembert-base` (French) for real-world applications.
 
 ### 2. Adapting a dataset
 
@@ -57,21 +57,26 @@ data.
 
 ```python
 from pydantic import DirectoryPath
-from edsnlp import registry
-from edsnlp.connectors.brat import BratConnector
+import edsnlp
 
 
-@registry.adapters.register("ner_adapter")
+@edsnlp.registry.adapters.register("ner_adapter")
 def ner_adapter(
     path: DirectoryPath,
     skip_empty: bool = False,  # (1)
 ):
     def generator(nlp):
-        docs = BratConnector(path).brat2docs(nlp)
+        # Read the data from the brat directory and convert it into Docs,
+        docs = edsnlp.data.read_standoff(
+            path,
+            # Store spans in default "ents", and "ml-ner" for the training (prev. section)
+            span_setter=["ents", "ml-ner"],
+            # Tokenize the training docs with the same tokenizer as the trained model
+            tokenizer=nlp.tokenizer,
+        )
         for doc in docs:
             if skip_empty and len(doc.ents) == 0:
                 continue
-            doc.spans["ml-ner"] = doc.ents
             yield doc
 
     return generator
@@ -216,7 +221,6 @@ Let's wrap the training code in a function, and make it callable from the comman
 
     import edsnlp
     from edsnlp import registry, Pipeline
-    from edsnlp.connectors.brat import BratConnector
     from edsnlp.scorers.ner import create_ner_exact_scorer
 
 
@@ -226,7 +230,14 @@ Let's wrap the training code in a function, and make it callable from the comman
         skip_empty: bool = False,
     ):
         def generator(nlp):
-            docs = BratConnector(path).brat2docs(nlp)
+            # Read the data from the brat directory and convert it into Docs,
+            docs = edsnlp.data.read_standoff(
+               path,
+               # Store spans in default "ents", and "ml-ner" for the training
+               span_setter=["ents", "ml-ner"],
+               # Tokenize the training docs with the same tokenizer as the trained model
+               tokenizer=nlp.tokenizer,
+            )
             for doc in docs:
                 if skip_empty and len(doc.ents) == 0:
                     continue

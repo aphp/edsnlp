@@ -293,7 +293,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         if not self.labels:
             raise ValueError(
                 "No labels were inferred from the data. Please check your data and "
-                "the `target_span_getter` parameter."
+                f"the `target_span_getter` parameter ({self.target_span_getter})."
             )
 
     def update_labels(self, labels: Sequence[str]):

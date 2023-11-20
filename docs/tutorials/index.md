@@ -47,7 +47,7 @@ We provide step-by-step guides to get you started. We cover the following use-ca
 === card {: href=/tutorials/reason }
 
     :fontawesome-regular-hospital:
-    **Detecting Hospitalisation Reason**
+    **Detecting hospitalisation reason**
 
     ---
     Identify spans mentioning the reason for hospitalisation or tag entities as the reason.
@@ -75,10 +75,10 @@ We provide step-by-step guides to get you started. We cover the following use-ca
     ---
     Deploy your pipeline as an API.
 
-=== card {: href=/tutorials/training-ner }
+=== card {: href=/tutorials/make-a-training-script }
 
     :fontawesome-solid-brain:
-    **Training a NER pipeline**
+    **Make a training script**
 
     ---
     Learn how to train a NER pipeline with EDS-NLP.

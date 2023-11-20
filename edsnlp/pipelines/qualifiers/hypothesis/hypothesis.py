@@ -13,6 +13,15 @@ from edsnlp.utils.resources import get_verbs
 from . import patterns
 
 
+def hypothesis_getter(token: Union[Token, Span]) -> Optional[str]:
+    if token._.hypothesis is True:
+        return "HYP"
+    elif token._.hypothesis is False:
+        return "CERT"
+    else:
+        return None
+
+
 class HypothesisQualifier(RuleBasedQualifier):
     """
     The `eds.hypothesis` pipeline uses a simple rule-based algorithm to detect spans
@@ -186,14 +195,7 @@ class HypothesisQualifier(RuleBasedQualifier):
                 cls.set_extension("hypothesis", default=None)
 
             if not cls.has_extension("hypothesis_"):
-                cls.set_extension(
-                    "hypothesis_",
-                    getter=lambda token: "HYP"
-                    if token._.hypothesis is True
-                    else "CERT"
-                    if token._.hypothesis is False
-                    else None,
-                )
+                cls.set_extension("hypothesis_", getter=hypothesis_getter)
 
         if not Span.has_extension("hypothesis_cues"):
             Span.set_extension("hypothesis_cues", default=[])
@@ -249,7 +251,6 @@ class HypothesisQualifier(RuleBasedQualifier):
         ents = None
 
         for start, end in boundaries:
-
             ents, entities = consume_spans(
                 entities,
                 filter=lambda s: check_inclusion(s, start, end),

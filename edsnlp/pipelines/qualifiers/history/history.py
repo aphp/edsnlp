@@ -17,6 +17,15 @@ from . import patterns
 from .patterns import sections_history
 
 
+def history_getter(token: Union[Token, Span]) -> Optional[str]:
+    if token._.history is True:
+        return "ATCD"
+    elif token._.history is False:
+        return "CURRENT"
+    else:
+        return None
+
+
 class HistoryQualifier(RuleBasedQualifier):
     """
     The `eds.history` pipeline uses a simple rule-based algorithm to detect spans that
@@ -182,7 +191,6 @@ class HistoryQualifier(RuleBasedQualifier):
         on_ents_only: Union[bool, str, List[str], Set[str]] = None,
         explain: bool = False,
     ):
-
         terms = dict(
             history=patterns.history if history is None else history,
             termination=default_termination if termination is None else termination,
@@ -256,14 +264,7 @@ class HistoryQualifier(RuleBasedQualifier):
                 )
 
             if not cls.has_extension("history_"):
-                cls.set_extension(
-                    "history_",
-                    getter=lambda token: "ATCD"
-                    if token._.history is True
-                    else "CURRENT"
-                    if token._.history is False
-                    else None,
-                )
+                cls.set_extension("history_", getter=history_getter)
 
             if not cls.has_extension("antecedents_"):
                 cls.set_extension(

@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Callable, Union
+from typing import Any, Union
 
 from confit import VisibleDeprecationWarning
 from spacy.tokens import Doc, Span, Token
@@ -15,13 +15,15 @@ def deprecated_extension(name: str, new_name: str) -> None:
     warnings.warn(msg, VisibleDeprecationWarning)
 
 
-def deprecated_getter_factory(name: str, new_name: str) -> Callable:
-    def getter(toklike: Union[Token, Span, Doc]) -> Any:
-        n = f"{type(toklike).__name__}._.{name}"
-        nn = f"{type(toklike).__name__}._.{new_name}"
+class deprecated_getter_factory:
+    def __init__(self, name: str, new_name: str):
+        self.name = name
+        self.new_name = new_name
+
+    def __call__(self, toklike: Union[Token, Span, Doc]) -> Any:
+        n = f"{type(toklike).__name__}._.{self.name}"
+        nn = f"{type(toklike).__name__}._.{self.new_name}"
 
         deprecated_extension(n, nn)
 
-        return getattr(toklike._, new_name)
-
-    return getter
+        return getattr(toklike._, self.new_name)

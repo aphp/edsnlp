@@ -1,5 +1,4 @@
 from io import BytesIO
-from itertools import chain
 
 import pytest
 from confit import Config
@@ -8,7 +7,6 @@ from confit.registry import validate_arguments
 from spacy.tokens import Doc
 
 import edsnlp
-import edsnlp.accelerators.multiprocessing
 from edsnlp import Pipeline, registry
 from edsnlp.pipelines.factories import normalizer, sentences
 
@@ -18,43 +16,6 @@ class CustomClass:
 
     def __call__(self, doc: Doc) -> Doc:
         return doc
-
-
-def make_pipeline():
-    nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.sentences", name="sentences")
-    nlp.add_pipe(
-        "eds.transformer",
-        name="transformer",
-        config=dict(
-            model="prajjwal1/bert-tiny",
-            window=128,
-            stride=96,
-        ),
-    )
-    nlp.add_pipe(
-        "eds.ner_crf",
-        name="ner",
-        config=dict(
-            embedding=nlp.get_pipe("transformer"),
-            mode="independent",
-            target_span_getter=["ents", "ner-preds"],
-            span_setter="ents",
-        ),
-    )
-    ner = nlp.get_pipe("ner")
-    ner.update_labels(["PERSON", "GIFT"])
-    return nlp
-
-
-@pytest.fixture()
-def pipeline():
-    return make_pipeline()
-
-
-@pytest.fixture(scope="session")
-def frozen_pipeline():
-    return make_pipeline()
 
 
 def test_add_pipe_factory():
@@ -91,21 +52,21 @@ def test_add_pipe_component():
         model.add_pipe(CustomClass())
 
 
-def test_sequence(frozen_pipeline: Pipeline):
-    assert len(frozen_pipeline.pipeline) == 3
-    assert list(frozen_pipeline.pipeline) == [
-        ("sentences", frozen_pipeline.get_pipe("sentences")),
-        ("transformer", frozen_pipeline.get_pipe("transformer")),
-        ("ner", frozen_pipeline.get_pipe("ner")),
+def test_sequence(frozen_ml_nlp: Pipeline):
+    assert len(frozen_ml_nlp.pipeline) == 3
+    assert list(frozen_ml_nlp.pipeline) == [
+        ("sentences", frozen_ml_nlp.get_pipe("sentences")),
+        ("transformer", frozen_ml_nlp.get_pipe("transformer")),
+        ("ner", frozen_ml_nlp.get_pipe("ner")),
     ]
-    assert list(frozen_pipeline.torch_components()) == [
-        ("transformer", frozen_pipeline.get_pipe("transformer")),
-        ("ner", frozen_pipeline.get_pipe("ner")),
+    assert list(frozen_ml_nlp.torch_components()) == [
+        ("transformer", frozen_ml_nlp.get_pipe("transformer")),
+        ("ner", frozen_ml_nlp.get_pipe("ner")),
     ]
 
 
-def test_disk_serialization(tmp_path, pipeline):
-    nlp = pipeline
+def test_disk_serialization(tmp_path, ml_nlp):
+    nlp = ml_nlp
 
     ner = nlp.get_pipe("ner")
     ner.update_labels(["PERSON", "GIFT"])
@@ -171,27 +132,27 @@ def test_validate_config():
     function(Config.from_str(config_str).resolve(registry=registry)["nlp"])
 
 
-def test_torch_module(frozen_pipeline: Pipeline):
-    with frozen_pipeline.train(True):
-        for name, component in frozen_pipeline.torch_components():
+def test_torch_module(frozen_ml_nlp: Pipeline):
+    with frozen_ml_nlp.train(True):
+        for name, component in frozen_ml_nlp.torch_components():
             assert component.training is True
 
-    with frozen_pipeline.train(False):
-        for name, component in frozen_pipeline.torch_components():
+    with frozen_ml_nlp.train(False):
+        for name, component in frozen_ml_nlp.torch_components():
             assert component.training is False
 
-    frozen_pipeline.to("cpu")
+    frozen_ml_nlp.to("cpu")
 
 
-def test_cache(frozen_pipeline: Pipeline):
+def test_cache(frozen_ml_nlp: Pipeline):
     text = "Ceci est un exemple"
-    frozen_pipeline(text)
+    frozen_ml_nlp(text)
 
-    trf = frozen_pipeline.get_pipe("transformer")
+    trf = frozen_ml_nlp.get_pipe("transformer")
 
-    doc = frozen_pipeline.make_doc(text)
-    with frozen_pipeline.cache():
-        for name, pipe in frozen_pipeline.pipeline:
+    doc = frozen_ml_nlp.make_doc(text)
+    with frozen_ml_nlp.cache():
+        for name, pipe in frozen_ml_nlp.pipeline:
             # This is a hack to get around the ambiguity
             # between the __call__ method of Pytorch modules
             # and the __call__ methods of spacy components
@@ -207,10 +168,12 @@ def test_cache(frozen_pipeline: Pipeline):
     assert trf._cache is None
 
 
-def test_select_pipes(pipeline: Pipeline):
+def test_select_pipes(frozen_ml_nlp: Pipeline):
     text = "Ceci est un exemple"
-    with pipeline.select_pipes(enable=["transformer", "ner"]):
-        assert not pipeline(text).has_annotation("SENT_START")
+    with frozen_ml_nlp.select_pipes(enable=["transformer", "ner"]):
+        assert len(frozen_ml_nlp.disabled) == 1
+        assert not frozen_ml_nlp(text).has_annotation("SENT_START")
+    assert len(frozen_ml_nlp.disabled) == 0
 
 
 @pytest.mark.skip(reason="Deprecated behavior")
@@ -278,132 +241,6 @@ def test_add_pipe_validation_error():
     )
 
 
-def test_multiprocessing_accelerator(frozen_pipeline):
-    texts = ["Ceci est un exemple", "Ceci est un autre exemple"]
-    edsnlp.accelerators.multiprocessing.MAX_NUM_PROCESSES = 2
-    docs = list(
-        frozen_pipeline.pipe(
-            texts * 20,
-            accelerator="multiprocessing",
-            batch_size=2,
-        )
-    )
-    assert len(docs) == 40
-
-
-def error_pipe(doc: Doc):
-    if doc._.note_id == "text-3":
-        raise ValueError("error")
-    return doc
-
-
-def test_multiprocessing_gpu_stub(frozen_pipeline):
-    text1 = "Ceci est un exemple"
-    text2 = "Ceci est un autre exemple"
-    edsnlp.accelerators.multiprocessing.MAX_NUM_PROCESSES = 2
-    accelerator = edsnlp.accelerators.multiprocessing.MultiprocessingAccelerator(
-        batch_size=2,
-        num_gpu_workers=1,
-        num_cpu_workers=1,
-        gpu_worker_devices=["cpu"],
-    )
-    list(
-        frozen_pipeline.pipe(
-            chain.from_iterable(
-                [
-                    {"content": text1},
-                    {"content": text2},
-                ]
-                for i in range(5)
-            ),
-            accelerator=accelerator,
-            to_doc="content",
-            from_doc={"ents": "ents"},
-        )
-    )
-
-
-def test_multiprocessing_rb_error(pipeline):
-    text1 = "Ceci est un exemple"
-    text2 = "Ceci est un autre exemple"
-    edsnlp.accelerators.multiprocessing.MAX_NUM_PROCESSES = 2
-    pipeline.add_pipe(error_pipe, name="error", after="sentences")
-    with pytest.raises(ValueError):
-        list(
-            pipeline.pipe(
-                chain.from_iterable(
-                    [
-                        {"content": text1, "id": f"text-{i}"},
-                        {"content": text2, "id": f"other-text-{i}"},
-                    ]
-                    for i in range(5)
-                ),
-                accelerator="multiprocessing",
-                batch_size=2,
-                to_doc={"text_field": "content", "id_field": "id"},
-            )
-        )
-
-
-try:
-    import torch
-
-    from edsnlp.core.torch_component import TorchComponent
-
-    class DeepLearningError(TorchComponent):
-        def __init__(self, *args, **kwargs):
-            super().__init__()
-
-        def preprocess(self, doc):
-            return {"num_words": len(doc), "doc_id": doc._.note_id}
-
-        def collate(self, batch):
-            return {
-                "num_words": torch.tensor(batch["num_words"]),
-                "doc_id": batch["doc_id"],
-            }
-
-        def forward(self, batch):
-            if "text-1" in batch["doc_id"]:
-                raise RuntimeError("Deep learning error")
-            return {}
-
-except ImportError:
-    pass
-
-
-def test_multiprocessing_ml_error(pipeline):
-    text1 = "Ceci est un exemple"
-    text2 = "Ceci est un autre exemple"
-    edsnlp.accelerators.multiprocessing.MAX_NUM_PROCESSES = 2
-    pipeline.add_pipe(
-        DeepLearningError(pipeline=pipeline),
-        name="error",
-        after="sentences",
-    )
-    accelerator = edsnlp.accelerators.multiprocessing.MultiprocessingAccelerator(
-        batch_size=2,
-        num_gpu_workers=1,
-        num_cpu_workers=1,
-        gpu_worker_devices=["cpu"],
-    )
-    with pytest.raises(RuntimeError) as e:
-        list(
-            pipeline.pipe(
-                chain.from_iterable(
-                    [
-                        {"content": text1, "id": f"text-{i}"},
-                        {"content": text2, "id": f"other-text-{i}"},
-                    ]
-                    for i in range(5)
-                ),
-                accelerator=accelerator,
-                to_doc={"text_field": "content", "id_field": "id"},
-            )
-        )
-    assert "Deep learning error" in str(e.value)
-
-
 def test_spacy_component():
     nlp = edsnlp.blank("fr")
     nlp.add_pipe("sentencizer")
@@ -433,12 +270,12 @@ def test_rule_based_pipeline():
     assert nlp.get_pipe_meta("eds.covid").assigns == ["doc.ents", "doc.spans"]
 
 
-def test_torch_save(pipeline):
+def test_torch_save(ml_nlp):
     import torch
 
-    pipeline.get_pipe("ner").update_labels(["LOC", "PER"])
+    ml_nlp.get_pipe("ner").update_labels(["LOC", "PER"])
     buffer = BytesIO()
-    torch.save(pipeline, buffer)
+    torch.save(ml_nlp, buffer)
     buffer.seek(0)
     nlp = torch.load(buffer)
     assert nlp.get_pipe("ner").labels == ["LOC", "PER"]

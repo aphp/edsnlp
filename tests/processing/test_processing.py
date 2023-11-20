@@ -1,13 +1,13 @@
 from datetime import datetime
+from typing import Any, Dict, List
 
-import databricks.koalas  # noqa F401
 import pandas as pd
 import pytest
 from pyspark.sql import types as T
 from pyspark.sql.session import SparkSession
+from spacy.tokens import Doc
 
 from edsnlp.processing import pipe
-from edsnlp.processing.helpers import DataFrameModules
 
 text = """
 Motif :
@@ -26,11 +26,10 @@ Possible infection au coronavirus
 """
 
 
-def note(module: DataFrameModules):
-
+def note(module):
     data = [(i, i // 5, text, datetime(2021, 1, 1)) for i in range(20)]
 
-    if module == DataFrameModules.PANDAS:
+    if module == "pandas":
         return pd.DataFrame(
             data=data, columns=["note_id", "person_id", "note_text", "note_datetime"]
         )
@@ -49,10 +48,10 @@ def note(module: DataFrameModules):
 
     spark = SparkSession.builder.getOrCreate()
     notes = spark.createDataFrame(data=data, schema=note_schema)
-    if module == DataFrameModules.PYSPARK:
+    if module == "pyspark":
         return notes
 
-    if module == DataFrameModules.KOALAS:
+    if module == "koalas":
         return notes.to_koalas()
 
 
@@ -96,16 +95,21 @@ def model(blank_nlp):
 
 
 params = [
-    dict(module=DataFrameModules.PANDAS, n_jobs=1),
-    dict(module=DataFrameModules.PANDAS, n_jobs=-2),
-    dict(module=DataFrameModules.PYSPARK, n_jobs=None),
-    dict(module=DataFrameModules.KOALAS, n_jobs=None),
+    dict(module="pandas", n_jobs=1),
+    dict(module="pandas", n_jobs=-2),
+    dict(module="pyspark", n_jobs=None),
 ]
+
+try:
+    import databricks.koalas  # noqa F401
+
+    params.append(dict(module="koalas", n_jobs=None))
+except ImportError:
+    pass
 
 
 @pytest.mark.parametrize("param", params)
 def test_pipelines(param, model):
-
     module = param["module"]
 
     note_nlp = pipe(
@@ -125,9 +129,9 @@ def test_pipelines(param, model):
         additional_spans=["dates"],
     )
 
-    if module == DataFrameModules.PYSPARK:
+    if module == "pyspark":
         note_nlp = note_nlp.toPandas()
-    elif module == DataFrameModules.KOALAS:
+    elif module == "koalas":
         note_nlp = note_nlp.to_pandas()
 
     assert len(note_nlp) == 140
@@ -151,20 +155,30 @@ def test_pipelines(param, model):
 
 
 def test_spark_missing_types(model):
-
-    with pytest.raises(ValueError):
+    with pytest.warns(Warning) as warned:
         pipe(
-            note(module=DataFrameModules.PYSPARK),
+            note(module="pyspark"),
             nlp=model,
             extensions={"negation", "hypothesis", "family"},
         )
+    assert any(
+        "The following schema was inferred" in str(warning.message)
+        for warning in warned
+    )
 
 
 @pytest.mark.parametrize("param", params)
 def test_arbitrary_callback(param, model):
-
     # We need to test PySpark with an installed function
-    from edsnlp.processing.utils import dummy_extractor
+    def dummy_extractor(doc: Doc) -> List[Dict[str, Any]]:
+        return [
+            dict(
+                snippet=ent.text,
+                length=len(ent.text),
+                note_datetime=doc._.note_datetime,
+            )
+            for ent in doc.ents
+        ]
 
     module = param["module"]
 
@@ -180,14 +194,14 @@ def test_arbitrary_callback(param, model):
         },
     )
 
-    if module == DataFrameModules.PANDAS:
+    if module == "pandas":
         assert set(note_nlp.columns) == {"snippet", "length", "note_datetime"}
         assert (note_nlp.snippet.str.len() == note_nlp.length).all()
 
     else:
-        if module == DataFrameModules.PYSPARK:
+        if module == "pyspark":
             note_nlp = note_nlp.toPandas()
-        elif module == DataFrameModules.KOALAS:
+        elif module == "koalas":
             note_nlp = note_nlp.to_pandas()
 
         assert set(note_nlp.columns) == {

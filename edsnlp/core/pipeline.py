@@ -1,4 +1,3 @@
-# ruff: noqa: E501
 import functools
 import os
 import shutil
@@ -25,7 +24,7 @@ from typing import (
 
 import spacy
 import srsly
-from confit import Config, validate_arguments
+from confit import Config
 from confit.errors import ConfitValidationError, patch_errors
 from confit.utils.xjson import Reference
 from spacy.language import BaseDefaults
@@ -35,7 +34,6 @@ from spacy.util import get_lang_class
 from spacy.vocab import Vocab, create_vocab
 from typing_extensions import Literal
 
-from ..accelerators.base import Accelerator, FromDoc, ToDoc
 from ..core.registry import PIPE_META, CurriedFactory, FactoryMeta, registry
 from ..utils.collections import (
     FrozenDict,
@@ -44,6 +42,7 @@ from ..utils.collections import (
     decompress_dict,
     multi_tee,
 )
+from .lazy_collection import LazyCollection
 
 if TYPE_CHECKING:
     import torch
@@ -76,7 +75,7 @@ class Pipeline:
         lang: str,
         create_tokenizer: Callable[["Pipeline"], Optional[Tokenizer]] = None,
         vocab: Union[bool, Vocab] = True,
-        batch_size: Optional[int] = 4,
+        batch_size: Optional[int] = 128,
         vocab_config: Type[BaseDefaults] = None,
         meta: Dict[str, Any] = None,
     ):
@@ -253,19 +252,11 @@ class Pipeline:
                     "Can't pass config or name with an instantiated component",
                 )
             pipe = factory
-            if hasattr(pipe, "name"):
-                if name is not None and name != pipe.name:
-                    raise ValueError(
-                        f"The provided name {name!r} does not match the name of the component {pipe.name!r}."
-                    )
-                else:
-                    name = pipe.name
-            else:
-                if name is None:
-                    raise ValueError(
-                        "The component does not have a name, so you must provide one",
-                    )
-                pipe.name = name
+            name = getattr(pipe, "name", None) or name
+            if name is None:
+                raise ValueError(
+                    "The component does not have a name, so you must provide one",
+                )
         assert sum([before is not None, after is not None, first]) <= 1, (
             "You can only use one of before, after, or first",
         )
@@ -356,15 +347,11 @@ class Pipeline:
 
         return doc
 
-    @validate_arguments
     def pipe(
         self,
         inputs: Any,
         batch_size: Optional[int] = None,
-        *,
-        accelerator: Optional[Union[str, Accelerator]] = None,
-        to_doc: Optional[ToDoc] = None,
-        from_doc: FromDoc = lambda doc: doc,
+        n_process: int = None,
     ) -> Iterable[Doc]:
         """
         Process a stream of documents by applying each component successively on
@@ -377,44 +364,29 @@ class Pipeline:
         batch_size: Optional[int]
             The batch size to use. If not provided, the batch size of the pipeline
             object will be used.
-        accelerator: Optional[Union[str, Accelerator]]
-            The accelerator to use for processing the documents. If not provided,
-            the default accelerator will be used.
-        to_doc: ToDoc
-            The function to use to convert the inputs to PDFDoc objects. By default,
-            the `content` field of the inputs will be used if dict-like objects are
-            provided, otherwise the inputs will be passed directly to the pipeline.
-        from_doc: FromDoc
-            The function to use to convert the PDFDoc objects to outputs. By default,
-            the PDFDoc objects will be returned directly.
+        n_process: int
+            Deprecated. Use the ".set(num_cpu_workers=n_process)" method on the returned
+            data lazy collection instead.
+            The number of parallel workers to use. If 0, the operations will be
+            executed sequentially.
 
         Returns
         -------
-        Iterable[Doc]
+        LazyCollection
         """
 
         if batch_size is None:
             batch_size = self.batch_size
 
-        if accelerator is None:
-            accelerator = {"@accelerator": "simple", "batch_size": batch_size}
-        if isinstance(accelerator, str):
-            accelerator = {"@accelerator": accelerator, "batch_size": batch_size}
-        if isinstance(accelerator, dict):
-            accelerator = Config(accelerator).resolve(registry=registry)
+        lazy_collection = (
+            LazyCollection.ensure_lazy(inputs)
+            .map_pipeline(self)
+            .set_processing(batch_size=batch_size)
+        )
+        if n_process is not None:
+            lazy_collection = lazy_collection.set_processing(num_cpu_workers=n_process)
 
-        kwargs = {
-            "inputs": inputs,
-            "nlp": self,
-            "to_doc": to_doc,
-            "from_doc": from_doc,
-        }
-        for k, v in list(kwargs.items()):
-            if v is None:
-                del kwargs[k]
-
-        with self.train(False):
-            return accelerator(**kwargs)
+        return lazy_collection
 
     @contextmanager
     def cache(self):
@@ -656,8 +628,6 @@ class Pipeline:
         ----------
         batch: Dict[str, Any]
             The batch of preprocessed samples
-        device: Optional[torch.device]
-            The device to move the tensors to before returning them
 
         Returns
         -------

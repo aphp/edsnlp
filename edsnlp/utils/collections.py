@@ -1,6 +1,7 @@
 import copy
 import itertools
 import math
+import sys
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Mapping, Sequence, TypeVar, Union
 
@@ -167,6 +168,32 @@ class batchify(Iterable[List[T]]):
         if len(batch) == 0 or (self.drop_last and len(batch) < self.batch_size):
             raise StopIteration()
         return batch
+
+
+def batchify_with_count(iterable: Iterable[T], batch_size: int):
+    """
+    Yields batch that contain at most `batch_size` elements.
+    If an item contains more than `batch_size` elements, it will be yielded as a single
+    batch.
+
+    Parameters
+    ----------
+    iterable
+    batch_size
+    """
+    batch = []
+    total = 0
+    for item, count in iterable:
+        # -1 counts as infinite (max integer)
+        count_ = ((count - 1) % sys.maxsize) + 1
+        if total + count_ > batch_size and len(batch) > 0:
+            yield batch, total
+            batch = []
+            total = 0
+        batch.append(item)
+        total += count_
+    if len(batch) > 0:
+        yield batch, total
 
 
 def get_attr_item(base, attr):

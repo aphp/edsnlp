@@ -162,9 +162,9 @@ class TrainableSpanQualifier(
         The qualifiers to predict or train on. If a dict is given, keys are the
         qualifiers and values are the labels for which the qualifier is allowed, or True
         if the qualifier is allowed for all labels.
-    skip_none: bool
-        If True, skip spans for which a qualifier returns None. If False, the None
-        values will be learned and predicted, just as any other value.
+    keep_none: bool
+        If False, skip spans for which a qualifier returns None. If True (default), the
+        None values will be learned and predicted, just as any other value.
     """
 
     qualifiers: Qualifiers
@@ -176,7 +176,7 @@ class TrainableSpanQualifier(
         *,
         embedding: SpanEmbeddingComponent,
         qualifiers: QualifiersArg,
-        skip_none: bool = False,
+        keep_none: bool = False,
     ):
         self.qualifiers = qualifiers  # type: ignore
 
@@ -192,7 +192,7 @@ class TrainableSpanQualifier(
         self.bindings_group_mask = None
         self.bindings: List[Binding] = []
         self.group_qualifiers: List[set] = []
-        self.skip_none = skip_none
+        self.keep_none = keep_none
 
     @property
     def span_getter(self):
@@ -263,7 +263,7 @@ class TrainableSpanQualifier(
                 for qualifier, labels in self.qualifiers.items():
                     if labels is True or span.label_ in labels:
                         value = BINDING_GETTERS[qualifier](span)
-                        if value is not None or self.skip_none:
+                        if value is not None or self.keep_none:
                             qualifier_values[qualifier].add(value)
 
         qualifier_values = {
@@ -272,7 +272,7 @@ class TrainableSpanQualifier(
 
         for qualifier, values in qualifier_values.items():
             if len(values) < 2:
-                raise ValueError(
+                warnings.warn(
                     f"Qualifier {qualifier} should have at least 2 values, found "
                     f"{len(values)}: {values}"
                 )

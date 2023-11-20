@@ -10,31 +10,31 @@ EDS-NLP provides easy-to-use pipeline components (aka pipes).
 
     See the [Core components overview](/pipelines/misc/overview/) for more information.
 
-    --8<-- "docs/pipelines/core/overview.md:components"
+    --8<-- "docs/pipelines/core/index.md:components"
 
 === "Qualifiers"
 
     See the [Qualifiers overview](/pipelines/qualifiers/overview/) for more information.
 
-    --8<-- "docs/pipelines/qualifiers/overview.md:components"
+    --8<-- "docs/pipelines/qualifiers/index.md:components"
 
 === "Miscellaneous"
 
     See the [Miscellaneous components overview](/pipelines/misc/overview/) for more information.
 
-    --8<-- "docs/pipelines/misc/overview.md:components"
+    --8<-- "docs/pipelines/misc/index.md:components"
 
 === "NER"
 
     See the [NER overview](/pipelines/ner/overview/) for more information.
 
-    --8<-- "docs/pipelines/ner/overview.md:components"
+    --8<-- "docs/pipelines/ner/index.md:components"
 
 === "Trainable"
 
     See the [Trainable components overview](/pipelines/trainable/overview/) for more information.
 
-    --8<-- "docs/pipelines/trainable/overview.md:components"
+    --8<-- "docs/pipelines/trainable/index.md:components"
 
 <!-- --8<-- [end:components] -->
 

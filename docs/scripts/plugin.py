@@ -126,7 +126,7 @@ def on_nav(nav, config, files):
             if (
                 len(node.children)
                 and node.children[0].is_page
-                and not node.children[0].is_index
+                and node.children[0].is_index
             ):
                 first = node.children[0]
                 link = mkdocs.structure.nav.Link(
@@ -134,7 +134,8 @@ def on_nav(nav, config, files):
                     url=first.url,
                 )
                 link.is_index = True
-                node.children.append(link)
+                first.title = "Overview"
+                node.children.insert(0, link)
             return rec(node.children)
 
     rec(nav.items)

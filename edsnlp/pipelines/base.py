@@ -108,6 +108,10 @@ class BaseComponent:
 
         return boundaries
 
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.set_extensions()
+
 
 class BaseNERComponent(BaseComponent):
     span_setter: SpanSetter

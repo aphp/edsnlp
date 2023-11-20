@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import sys
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -12,6 +13,8 @@ from typing import (
     Optional,
     Tuple,
 )
+
+from typing_extensions import Literal
 
 import edsnlp.data
 
@@ -25,7 +28,19 @@ if TYPE_CHECKING:
 INFER = type("INFER", (), {"__repr__": lambda self: "INFER"})()
 
 
-class LazyCollection:
+class MetaLazyCollection(type):
+    def __getattr__(self, item):
+        if item in edsnlp.data.__all__:
+            fn = getattr(edsnlp.data, item)
+            setattr(self, item, fn)
+            return fn
+        raise AttributeError(item)
+
+    def __dir__(self):  # pragma: no cover
+        return (*super().__dir__(), *edsnlp.data.__all__)
+
+
+class LazyCollection(metaclass=MetaLazyCollection):
     def __init__(
         self,
         reader: Optional[BaseReader] = None,
@@ -37,6 +52,116 @@ class LazyCollection:
         self.writer = writer
         self.pipeline: List[Tuple[str, Callable, Dict, Any]] = pipeline
         self.config = config
+
+    @property
+    def batch_size(self):
+        return self.config.get("batch_size", 1)
+
+    @property
+    def num_cpu_workers(self):
+        return self.config.get("num_cpu_workers")
+
+    @property
+    def num_gpu_workers(self):
+        return self.config.get("num_gpu_workers")
+
+    @property
+    def gpu_pipe_names(self):
+        return self.config.get("gpu_pipe_names")
+
+    @property
+    def gpu_worker_devices(self):
+        return self.config.get("gpu_worker_devices")
+
+    @property
+    def cpu_worker_devices(self):
+        return self.config.get("cpu_worker_devices")
+
+    @property
+    def backend(self):
+        return self.config.get("backend")
+
+    @property
+    def show_progress(self):
+        return self.config.get("show_progress")
+
+    @property
+    def process_start_method(self):
+        return self.config.get("process_start_method")
+
+    def set_processing(
+        self,
+        batch_size: int = INFER,
+        num_cpu_workers: int = INFER,
+        num_gpu_workers: int = INFER,
+        backend: Literal["simple", "multiprocessing", "spark"] = INFER,
+        gpu_pipe_names: List[str] = INFER,
+        show_progress: bool = INFER,
+        process_start_method: bool = INFER,
+        gpu_worker_devices: List[str] = INFER,
+        cpu_worker_devices: List[str] = INFER,
+    ) -> "LazyCollection":
+        """
+        Parameters
+        ----------
+        batch_size: int
+            Number of documents to process at a time in a CPU/GPU worker (or in the
+            main process if no workers are used).
+        num_cpu_workers: int
+            Number of CPU workers. A CPU worker handles the non deep-learning components
+            and the preprocessing, collating and postprocessing of deep-learning
+            components. If no GPU workers are used, the CPU workers also handle the
+            forward call of the deep-learning components.
+        num_gpu_workers: Optional[int]
+            Number of GPU workers. A GPU worker handles the forward call of the
+            deep-learning components. Only used with "multiprocessing" backend.
+        gpu_pipe_names: Optional[List[str]]
+            List of pipe names to accelerate on a GPUWorker, defaults to all pipes
+            that inherit from TorchComponent. Only used with "multiprocessing" backend.
+        backend: Optional[Literal["simple", "multiprocessing", "spark"]]
+            The backend to use for parallel processing. If not set, the backend is
+            automatically selected based on the input data and the number of workers.
+
+            - "simple" is the default backend and is used when `num_cpu_workers` is 1
+                and `num_gpu_workers` is 0.
+            - "multiprocessing" is used when `num_cpu_workers` is greater than 1 or
+                `num_gpu_workers` is greater than 0.
+            - "spark" is used when the input data is a Spark dataframe and the output
+                writer is a Spark writer.
+        show_progress: Optional[bool]
+            Whether to show progress bars (only applicable with "simple" and
+            "multiprocessing" backends).
+        process_start_method: Optional[bool]
+            Whether to use "fork" or "spawn" as the start method for the multiprocessing
+            backend.
+
+            - "fork" is the default start method on Unix systems and is the fastest
+                start method, but it is not available on Windows, can cause issues
+                with CUDA and is not safe when using multiple threads.
+            - "spawn" is the default start method on Windows and is the safest start
+                method, but it is not available on Unix systems and is slower than
+                "fork".
+        gpu_worker_devices: Optional[List[str]]
+            List of GPU devices to use for the GPU workers. Defaults to all available
+            devices, one worker per device. Only used with "multiprocessing" backend.
+        cpu_worker_devices: Optional[List[str]]
+            List of GPU devices to use for the CPU workers. Used for debugging purposes.
+
+        Returns
+        -------
+        LazyCollection
+        """
+        kwargs = dict(locals())
+        kwargs.pop("self")
+        return LazyCollection(
+            reader=self.reader,
+            writer=self.writer,
+            pipeline=self.pipeline,
+            config={
+                **self.config,
+                **{k: v for k, v in kwargs.items() if v is not INFER},
+            },
+        )
 
     @classmethod
     def ensure_lazy(cls, data):
@@ -54,7 +179,7 @@ class LazyCollection:
             config=self.config,
         )
 
-    def map_model(self, model: Pipeline) -> "LazyCollection":
+    def map_pipeline(self, model: Pipeline) -> "LazyCollection":
         new_steps = []
         tokenizer = model.tokenizer
         for name, pipe, kwargs, pipe_tokenizer in self.pipeline:
@@ -85,7 +210,35 @@ class LazyCollection:
         return lc.execute() if execute else lc
 
     def execute(self):
-        raise NotImplementedError()
+        import edsnlp.processing
+
+        backend = self.backend
+        if backend is None:
+            try:
+                SparkReader = sys.modules.get("edsnlp.data.spark").SparkReader
+                SparkWriter = sys.modules.get("edsnlp.data.spark").SparkWriter
+            except (KeyError, AttributeError):  # pragma: no cover
+                SparkReader = SparkWriter = None
+            if (
+                SparkReader
+                and isinstance(self.reader, SparkReader)
+                and SparkWriter
+                and (self.writer is None or isinstance(self.writer, SparkWriter))
+            ):
+                backend = "spark"
+            elif (
+                self.num_cpu_workers is not None or self.num_gpu_workers is not None
+            ) and (
+                self.num_cpu_workers is not None
+                and self.num_cpu_workers > 1
+                or self.num_gpu_workers is not None
+                and self.num_gpu_workers > 0
+            ):
+                backend = "multiprocessing"
+            else:
+                backend = "simple"
+        execute = getattr(edsnlp.processing, f"execute_{backend}_backend")
+        return execute(self)
 
     def __iter__(self):
         return iter(self.execute())
@@ -132,6 +285,12 @@ class LazyCollection:
             pipeline=self.pipeline,
             config=self.config,
         )
+
+    def __dir__(self):  # pragma: no cover
+        return (*super().__dir__(), *edsnlp.data.__all__)
+
+    def __getattr__(self, item):
+        return getattr(LazyCollection, item).__get__(self)
 
 
 if TYPE_CHECKING:

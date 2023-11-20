@@ -27,9 +27,9 @@ dependencies = [
     "pandas>=1.4.0,<2.0.0; python_version>='3.8'",
     "typing_extensions<4.6.0,>=4.0.0; python_version>='3.8'",  # https://github.com/explosion/spaCy/issues/12659
     "typing_extensions>=4.0.0; python_version<'3.8'",
-
-    # Packaging
     "dill",
+    "multiprocess",
+    # Packaging
     "toml",
 ]
 [project.optional-dependencies]
@@ -224,10 +224,6 @@ where = ["."]
 "eds.ner_exact_scorer"           = "edsnlp.scorers.ner:create_ner_exact_scorer"
 "eds.ner_token_scorer"           = "edsnlp.scorers.ner:create_ner_token_scorer"
 "eds.span_classification_scorer" = "edsnlp.scorers.span_classification:create_span_classification_scorer"
-
-[project.entry-points."edsnlp_accelerator"]
-"simple" = "edsnlp.accelerators.simple:SimpleAccelerator"
-"multiprocessing" = "edsnlp.accelerators.multiprocessing:MultiprocessingAccelerator"
 
 [project.entry-points."edsnlp_readers"]
 "spark" =    "edsnlp.data:from_spark"

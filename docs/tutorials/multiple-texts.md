@@ -4,8 +4,7 @@ In the previous tutorials, we've seen how to apply a spaCy NLP pipeline to a sin
 Once the pipeline is tested and ready to be applied on an entire corpus, we'll want to deploy it efficiently.
 
 In this tutorial, we'll cover a few best practices and some _caveats_ to avoid.
-Then, we'll explore methods that EDS-NLP provides to use a spaCy pipeline directly on a pandas or Spark DataFrame.
-These can drastically increase throughput.
+Then, we'll explore methods that EDS-NLP provides perform inference on multiple texts.
 
 Consider this simple pipeline:
 
@@ -52,36 +51,74 @@ corpus = [text] * 10000  # (1)
 
 You _could_ just apply the pipeline document by document.
 
-```python title="A naive approach"
+```python
 # ↑ Omitted code above ↑
 
 docs = [nlp(text) for text in corpus]
 ```
 
-It turns out spaCy has a powerful parallelisation engine for an efficient processing of multiple texts.
-So the first step for writing more efficient spaCy code is to use `nlp.pipe` when processing multiple texts:
+Next, you might want to convert these documents to a DataFrame for further analysis:
 
-```diff
-- docs = [nlp(text) for text in corpus]
-+ docs = list(nlp.pipe(corpus))
+```python
+import edsnlp.data
+
+df = edsnlp.data.to_pandas(docs, converter="omop")
 ```
 
-The `nlp.pipe` method takes an iterable as input, and outputs a generator of `Doc` object. Under the hood, texts are processed in batches, which is often much more efficient.
+There are a few issues with this approach:
 
-!!! info "Batch processing and EDS-NLP"
+- If our model contains deep learning components (which it does not in this tutorial), we don't benefit from optimized batched matrix operations : ideally, we'd like to process multiple documents at
+  once.
+- We may have multiple cores available but we don't use them to apply the pipes of our model to multiple documents at the same time.
+- We would also like to perform the conversion step (`converter="omop"` which extracts the annotations of our Doc object into dictionaries) in parallel.
 
-    For now, EDS-NLP does not natively parallelise its components, so the gain from using `nlp.pipe` will not be that significant.
+## Lazy inference and parallelization
 
-    Nevertheless, it's good practice to avoid using `for` loops when possible. Moreover, you will benefit from the batched tokenisation step.
+To efficiently perform the same operations on multiple documents at once, EDS-NLP uses [lazy collections][edsnlp.core.lazy_collection.LazyCollection], which record the operations to perform on the documents without actually executing them directly. This allows EDS-NLP to distribute these operations on multiple cores or machines when it is time to execute them. We can configure how the collection operations are run (how many jobs/workers, how many gpus, whether to use the spark engine) via the lazy collection [`.set_processing(...)`][edsnlp.core.lazy_collection.LazyCollection.set_processing] method.
 
-The way EDS-NLP is used may depend on how many documents you are working with.
-Once working with tens of thousands of them,
-parallelising the processing can be really efficient (up to 20x faster), but will require a (tiny) bit more work.
-Here are shown 4 ways to analyse texts depending on your needs
+For instance,
 
-A [wrapper](#one-function-to-rule-them-all) is available to simply switch between those use cases.
+```python
+docs = edsnlp.data.from_iterable(corpus)
+```
 
-## Processing a pandas DataFrame
+as well as any `edsnlp.data.read_*` or `edsnlp.data.from_*` return a lazy collection, that we can iterate over or complete with more operations. To apply the model on our collection of documents, we can simply do:
+
+```python
+docs = docs.map_pipeline(nlp)
+# or à la spaCy :
+# docs = nlp.pipe(docs)
+```
+
+!!! warning "SpaCy vs EDS-NLP"
+
+    SpaCy's `nlp.pipe` method is not the same as EDS-NLP's `nlp.pipe` method, and will iterate over anything you pass to it, therefore executing the operations scheduled in our lazy collection.
+
+    We recommend you instantiate your models using `nlp = edsnlp.blank(...)` or `nlp = edsnlp.load(...)`.
+
+    Otherwise, use the following to apply a spaCy model on a lazy collection `docs` without triggering its execution:
+
+    ```{ .python .no-check }
+    docs = docs.map_pipeline(nlp)
+    ```
+
+Finally, we can convert the documents to a DataFrame (or other formats / files) using the `edsnlp.data.to_*` or `edsnlp.data.write_*` methods. This triggers the execution of the operations scheduled in the lazy collection and produces the rows of the DataFrame.
+
+```python
+df = docs.to_pandas(converter="omop")
+# or equivalently:
+# df = edsnlp.data.to_pandas(docs, converter="omop")
+```
+
+We can also iterate over the documents, which also triggers the execution of the operations scheduled in the lazy collection.
+
+```python
+for doc in docs:
+    # do something with the doc
+    pass
+```
+
+## Processing a DataFrame
 
 Processing text within a pandas DataFrame is a very common use case. In many applications, you'll select a corpus of documents over a distributed cluster, load it in memory and process all texts.
 
@@ -141,9 +178,106 @@ To make sure we can follow along, we propose three recipes for getting the DataF
 
 We'll see in what follows how we can efficiently deploy our pipeline on the `#!python data` object.
 
-## "By hand"
+### Locally without parallelization
 
-We can deploy the pipeline using `nlp.pipe` directly, but we'll need some work to format the results in a usable way. Let's see how this might go, before using EDS-NLP's helper function to avoid the boilerplate code.
+```python
+# Read from a dataframe & use the omop converter
+docs = edsnlp.data.from_pandas(data, converter="omop")
+
+# Add the pipeline to operations that will be run
+docs = nlp.pipe(docs)
+
+# Convert each doc to a list of dicts (one by entity)
+# and store the result in a pandas DataFrame
+note_nlp = edsnlp.data.to_pandas(
+    docs,
+    converter="ents",
+    # Below are the arguments to the converter
+    span_getter=["ents", "dates"],
+    span_attributes={  # (1)
+        "negation": "negation",
+        "hypothesis": "hypothesis",
+        "family": "family",
+        "date.day": "date_day",  # slugified name
+        "date.month": "date_month",
+        "date.year": "date_year",
+    },
+)
+```
+
+1. You can just pass a list if you don't want to rename the attributes.
+
+The result on the first note:
+
+| note_id | start | end | label      | lexical_variant   | negation | hypothesis | family | key   |
+|--------:|------:|----:|:-----------|:------------------|---------:|-----------:|-------:|:------|
+|       0 |     0 |   7 | patient    | Patient           |        0 |          0 |      0 | ents  |
+|       0 |   114 | 121 | patient    | patient           |        0 |          0 |      1 | ents  |
+|       0 |    17 |  34 | 2021-09-25 | 25 septembre 2021 |      nan |        nan |    nan | dates |
+
+### Locally, using multiple parallel workers
+
+```{ .python hl_lines="8" }
+# Read from a dataframe & use the omop converter
+docs = edsnlp.data.from_pandas(data, converter="omop")
+
+# Add the pipeline to operations that will be run
+docs = nlp.pipe(docs)
+
+# The operations of our lazy collection will be distributed on multiple workers
+docs = docs.set_processing(backend="multiprocessing")
+
+# Convert each doc to a list of dicts (one by entity)
+# and store the result in a pandas DataFrame
+note_nlp = edsnlp.data.to_pandas(
+    docs,
+    converter="ents",
+    span_getter=["ents", "dates"],
+    span_attributes={
+        "negation": "negation",
+        "hypothesis": "hypothesis",
+        "family": "family",
+        "date.day": "date_day",  # slugify the extension name
+        "date.month": "date_month",
+        "date.year": "date_year"
+    },
+)
+```
+
+### In a distributed fashion with spark
+
+To use the Spark engine to distribute the computation, we create our lazy collection from the Spark dataframe directly and write the result to a new Spark dataframe. EDS-NLP will automatically distribute the operations on the cluster (setting `backend="spark"` behind the scenes), but you can change the backend (for instance to `multiprocessing` to run locally).
+
+```{ .python hl_lines="2 9" .no-check }
+# Read from the pyspark dataframe & use the omop converter
+docs = edsnlp.data.from_spark(df, converter="omop")
+
+# Add the pipeline to operations that will be run
+docs = nlp.pipe(docs)
+
+# Convert each doc to a list of dicts (one by entity)
+# and store the result in a pyspark DataFrame
+note_nlp = edsnlp.data.to_spark(
+    docs,
+    converter="ents",
+    span_getter=["ents", "dates"],
+    span_attributes={
+        "negation": "negation",
+        "hypothesis": "hypothesis",
+        "family": "family",
+        "date.day": "date_day",  # slugify the extension name
+        "date.month": "date_month",
+        "date.year": "date_year"
+    },
+    dtypes=None,  # (1)
+)
+```
+
+1. If you don't pass a `dtypes` argument, EDS-NLP will print the inferred schema it such that you can copy-paste it in your code.
+
+### Using a custom converter
+
+To customize the conversion of a Doc object to dictionaries, you can pass a `converter` argument. It will either be a string (the name of a converter) or a callable, that should return either a dictionary or a list of dictionaries.
 
 ```python
 from spacy.tokens import Doc
@@ -157,321 +291,46 @@ def get_entities(doc: Doc) -> List[Dict[str, Any]]:
 
     for ent in doc.ents:
         d = dict(
-            start=ent.start_char,
+            begin=ent.start_char,
             end=ent.end_char,
             label=ent.label_,
-            lexical_variant=ent.text,
+            entity_text=ent.text,
             negation=ent._.negation,
             hypothesis=ent._.hypothesis,
             family=ent._.family,
-            key="ents",
         )
         entities.append(d)
 
     for date in doc.spans.get("dates", []):
         d = dict(
-            start=date.start_char,
+            begin=date.start_char,
             end=date.end_char,
-            label=date._.date,
-            lexical_variant=date.text,
-            key="dates",
+            label="date",
+            entity_text=date.text,
         )
         entities.append(d)
 
     return entities
-```
 
-<!-- no-check -->
 
-```{ .python .no-check }
-# ↑ Omitted code above ↑
-import pandas as pd
+docs = edsnlp.data.from_pandas(data, converter="omop")
 
-data["doc"] = list(nlp.pipe(data.note_text))  # (1)
-data["entities"] = data.doc.apply(get_entities)  # (2)
+# Add the pipeline to operations that will be run
+docs = nlp.pipe(docs)
 
-# "Explode" the dataframe
-data = data[["note_id", "entities"]].explode("entities")
-data = data.dropna()
-
-data = data.reset_index(drop=True)
-
-data = data[["note_id"]].join(pd.json_normalize(data.entities))
-```
-
-1. We use spaCy's efficient `nlp.pipe` method
-2. This part is far from optimal, since it uses apply... But the computationally heavy part is in the previous line,
-   since `get_entities` merely _reads_ pre-computed values from the document.
-
-The result on the first note:
-
-| note_id | start |  end | label      | lexical_variant   | negation | hypothesis | family | key   |
-| ------: | ----: | ---: | :--------- | :---------------- | -------: | ---------: | -----: | :---- |
-|       0 |     0 |    7 | patient    | Patient           |        0 |          0 |      0 | ents  |
-|       0 |   114 |  121 | patient    | patient           |        0 |          0 |      1 | ents  |
-|       0 |    17 |   34 | 2021-09-25 | 25 septembre 2021 |      nan |        nan |    nan | dates |
-
-## Using EDS-NLP's helper functions
-
-Let's see how we can efficiently deploy our pipeline using EDS-NLP's utility methods.
-
-They share the same arguments:
-
-| Argument            | Description                                                                   | Default                 |
-| ------------------- | ----------------------------------------------------------------------------- | ----------------------- |
-| `note`              | A DataFrame, with two required columns, `note_id` and `note_text`             | Required                |
-| `nlp`               | The pipeline object                                                           | Required                |
-| `context`           | A list of column names to add context to the generate `Doc`                   | `[]`                    |
-| `additional_spans`  | Keys in `doc.spans` to include besides `doc.ents`                             | `[]`                    |
-| `extensions`        | Custom extensions to use                                                      | `[]`                    |
-| `results_extractor` | An arbitrary callback function that turns a `Doc` into a list of dictionaries | `None` (use extensions) |
-
-!!! tip "Adding context"
-
-    You might want to store some context information contained in the `note` DataFrame as an extension in the generated `Doc` object.
-
-    For instance, you may use the `eds.dates` component
-    in coordination with the `note_datetime` field to normalise a relative date
-    (eg `Le patient est venu il y a trois jours/The patient came three days ago`).
-
-    In this case, you can use the `context` parameter and provide a list of column names you want to add:
-
-    ```{ .python .no-check }
-    note_nlp = single_pipe(
-        data,
-        nlp,
-        context=["note_datetime"],
-        additional_spans=["dates"],
-        extensions=["date.day", "date.month", "date.year"],
-    )
-    ```
-
-    In this example, the `note_datetime` field becomes available as `doc._.note_datetime`.
-
-Depending on your pipeline, you may want to extract other extensions.
-To do so, simply provide those extension names (without the leading underscore) to the `extensions` argument.
-**This should cover most use-cases**.
-
-In case you need more fine-grained control over how you want to process the results of your pipeline,
-you can provide an arbitrary `results_extractor` function. Said function is expected to take a spaCy `Doc`
-object as input, and return a list of dictionaries that will be used to construct the `note_nlp` table.
-For instance, the `get_entities` function defined earlier could be distributed directly:
-
-<!-- no-check -->
-
-```{ .python .no-check }
-# ↑ Omitted code above ↑
-from edsnlp.processing.simple import pipe as single_pipe
-from processing import get_entities
-
-note_nlp = single_pipe(
-    data,
-    nlp,
-    results_extractor=get_entities,
+# Convert each doc to a list of dicts (one by entity)
+# and store the result in a pyspark DataFrame
+note_nlp = edsnlp.data.to_pandas(
+    docs,
+    converter=get_entities,
+    # no keyword args here since our converter expects none
 )
 ```
 
-!!! danger "A few caveats on using an arbitrary function"
-
-    Should you use multiprocessing, your arbitrary function needs to be serialisable
-    as a pickle object in order to be distributed. That implies a few limitations on the way your
-    function can be defined.
-
-    Namely, your **function needs to be discoverable** (see the [pickle documentation on the subject](https://docs.python.org/3/library/pickle.html#what-can-be-pickled-and-unpickled)). When deploying it should be defined such a way that can be accessed by the worker processes.
-
-    For that reason, **arbitrary functions can only be distributed via Spark/Koalas if their source code is advertised to the Spark workers**.
-    To that end, you should define your custom function in a pip-installed Python package.
-
-### Single process
-
-EDS-NLP provides a [`single_pipe`][edsnlp.processing.simple.pipe] helper function that avoids the hassle we just went through in the previous section. Using it is trivial:
-
-```python
-# ↑ Omitted code above ↑
-from edsnlp.processing.simple import pipe as single_pipe
-
-note_nlp = single_pipe(
-    data,
-    nlp,
-    additional_spans=["dates"],
-    extensions=["date.day", "date.month", "date.year"],
-)
-```
-
-In just two Python statements, we get the exact same result as before!
-
-### Multiple processes
-
-Depending on the size of your corpus, and if you have CPU cores to spare, you may want to distribute the computation. Again, EDS-NLP makes it extremely easy for you, through the [`parallel_pipe`][edsnlp.processing.parallel.pipe] helper:
-
-```python
-# ↑ Omitted code above ↑
-from edsnlp.processing.parallel import pipe as parallel_pipe
-
-note_nlp = parallel_pipe(
-    data,
-    nlp,
-    additional_spans=["dates"],
-    extensions=["date.day", "date.month", "date.year"],
-    n_jobs=-2,  # (1)
-)
-```
-
-1. The `n_jobs` parameter controls the number of workers that you deploy in parallel. Negative inputs means "all cores minus `#!python abs(n_jobs + 1)`"
-
-!!! danger "Using a large number of workers and memory use"
-
-    In spaCy, even a rule-based pipeline is a memory intensive object.
-    Be wary of using too many workers, lest you get a memory error.
-
-Depending on your machine, you should get a significant speed boost (we got 20x acceleration on a shared cluster using 62 cores).
-
-## Deploying EDS-NLP on Spark/Koalas
-
-Should you need to deploy spaCy on a distributed DataFrame such as a [Spark](https://spark.apache.org/) or a [Koalas](https://koalas.readthedocs.io/en/latest/index.html) DataFrame, EDS-NLP has you covered.
-The procedure for those two types of DataFrame is virtually the same. Under the hood, EDS-NLP automatically deals with the necessary conversions.
-
-Suppose you have a Spark DataFrame:
-
-=== "Using a dummy example"
-
-    ```python
-    from pyspark.sql.session import SparkSession
-    from pyspark.sql import types as T
-
-    spark = SparkSession.builder.getOrCreate()
-
-    schema = T.StructType(
-        [
-            T.StructField("note_id", T.IntegerType()),
-            T.StructField("note_text", T.StringType()),
-        ]
-    )
-
-    text = (
-        "Patient admis le 25 septembre 2021 pour suspicion de Covid.\n"
-        "Pas de cas de coronavirus dans ce service.\n"
-        "Le père du patient est atteint du covid."
-    )
-
-    data = [(i, text) for i in range(1000)]
-
-    df = spark.createDataFrame(data=data, schema=schema)
-    ```
-
-=== "Loading a pre-existing table"
-
-    ```{ .python .no-check }
-    from pyspark.sql.session import SparkSession
-
-    spark = SparkSession.builder.getOrCreate()
-
-    df = spark.sql("SELECT * FROM note")
-    df = df.select("note_id", "note_text")
-    ```
-
-=== "Using a Koalas DataFrame"
-
-    ```{ .python .no-check }
-    from pyspark.sql.session import SparkSession
-    import databricks.koalas
-
-    spark = SparkSession.builder.getOrCreate()
-
-    df = spark.sql("SELECT note_id, note_text FROM note").to_koalas()
-    ```
-
-### Declaring types
-
-There is a minor twist, though: Spark (or Koalas) needs to know in advance the type of each extension you want to save. Thus, if you need additional extensions to be saved, you'll have to provide a dictionary to the `extensions` argument instead of a list of strings. This dictionary will have the name of the extension as keys and its PySpark type as value.
-
-Accepted types are the ones present in [`pyspark.sql.types`](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql.html#data-types){ target="\_blank"}.
-
-EDS-NLP provides a helper function, [`pyspark_type_finder`][edsnlp.processing.distributed.pyspark_type_finder], is available to get the correct type for most Python objects. You just need to provide an example of the type you wish to collect:
-
-```{ .python .no-check }
-int_type = pyspark_type_finder(1)
-
-# Out: IntegerType()
-```
-
-!!! danger "Be careful when providing the example"
-
-    **Do not blindly provide the first entity matched by your pipeline**: it might be ill-suited. For instance, the `Span._.date` makes sense for a date span,
-    but will be `None` if you use an entity...
-
-### Deploying the pipeline
-
-Once again, using the helper is trivial:
-
-=== "Spark"
-
-    ```{ .python .no-check }
-    # ↑ Omitted code above ↑
-    from edsnlp.processing.distributed import pipe as distributed_pipe
-
-    note_nlp = distributed_pipe(
-        df,
-        nlp,
-        additional_spans=["dates"],
-        extensions={"date.year": int_type, "date.month": int_type, "date.day": int_type},
-    )
-
-    # Check that the pipeline was correctly distributed:
-    note_nlp.show(5)
-    ```
-
-=== "Koalas"
-
-    ```{ .python .no-check }
-    # ↑ Omitted code above ↑
-    from edsnlp.processing.distributed import pipe as distributed_pipe
-
-    note_nlp = distributed_pipe(
-        df,
-        nlp,
-        additional_spans=["dates"],
-        extensions={"date.year": int_type, "date.month": int_type, "date.day": int_type},
-    )
-
-    # Check that the pipeline was correctly distributed:
-    note_nlp.head()
-    ```
-
-Using Spark or Koalas, you can deploy EDS-NLP pipelines on tens of millions of documents with ease!
-
-## One function to rule them all
-
-EDS-NLP provides a wrapper to simplify deployment even further:
-
-```{ .python .no-check }
-# ↑ Omitted code above ↑
-from edsnlp.processing import pipe
-
-### Small pandas DataFrame
-note_nlp = pipe(
-    note=df.limit(1000).toPandas(),
-    nlp=nlp,
-    n_jobs=1,
-    additional_spans=["dates"],
-    extensions=["date.day", "date.month", "date.year"],
-)
-
-### Larger pandas DataFrame
-note_nlp = pipe(
-    note=df.limit(10000).toPandas(),
-    nlp=nlp,
-    n_jobs=-2,
-    additional_spans=["dates"],
-    extensions=["date.day", "date.month", "date.year"],
-)
-
-### Huge Spark or Koalas DataFrame
-note_nlp = pipe(
-    note=df,
-    nlp=nlp,
-    how="spark",
-    additional_spans=["dates"],
-    extensions={"date.year": int_type, "date.month": int_type, "date.day": int_type},
-)
-```
+| begin | end |   label | entity_text | negation | hypothesis | family |
+|------:|----:|--------:|------------:|---------:|-----------:|-------:|
+|     0 |   7 | patient |     Patient |    False |      False |  False |
+|   114 | 121 | patient |     patient |    False |      False |   True |
+|    17 |  34 |    date |  25 sept... |          |            |        |
+|     0 |   7 | patient |     Patient |    False |      False |  False |
+|   114 | 121 | patient |     patient |    False |      False |   True |

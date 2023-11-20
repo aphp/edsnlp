@@ -252,19 +252,8 @@ class make_span_sentence_getter:
     def __call__(self, doc: Doc):
         ctx = self.min_context_words
         spans = (
-            (
-                doc[
-                    min(e[0].sent.start, e.start - ctx) : max(
-                        e[-1].sent.end, e.end + ctx
-                    )
-                ]
-                for e in get_spans(doc, self.span_getter)
-            )
-            if doc.has_annotation("SENT_START")
-            else (
-                doc[e.start - ctx : e.end + ctx]
-                for e in get_spans(doc, self.span_getter)
-            )
+            doc[min(e[0].sent.start, e.start - ctx) : max(e[-1].sent.end, e.end + ctx)]
+            for e in get_spans(doc, self.span_getter)
         )
 
         return filter_spans(spans)

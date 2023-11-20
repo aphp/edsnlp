@@ -52,8 +52,8 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
     feeding them to the model. This is done to avoid hitting the maximum number of
     tokens that can be processed by the model on a single device. The window size and
     stride can be configured using the `window` and `stride` parameters. The default
-    values are 510 and 255 respectively, which means that the model will process windows
-    of 510 tokens, each separated by 255 tokens. Whenever a token appears in multiple
+    values are 512 and 256 respectively, which means that the model will process windows
+    of 512 tokens, each separated by 256 tokens. Whenever a token appears in multiple
     windows, the embedding of the "most contextualized" occurrence is used, i.e. the
     occurrence that is the closest to the center of its window.
 
@@ -96,10 +96,10 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         The Huggingface model name or path
     window: int
         The window size to use when splitting long documents into smaller windows
-        before feeding them to the Transformer model (default: 510 = 512 - 2)
+        before feeding them to the Transformer model (default: 512 = 512 - 2)
     stride: int
         The stride (distance between windows) to use when splitting long documents into
-        smaller windows: (default: 510 / 2 = 255)
+        smaller windows: (default: 96)
     max_tokens_per_device: int
         The maximum number of tokens that can be processed by the model on a single
         device. This does not affect the results but can be used to reduce the memory
@@ -161,10 +161,11 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
             return
         self.tokenizer.save_pretrained(path)
         self.transformer.save_pretrained(path)
-        self.cfg["model"] = str(path)
         for param in self.transformer.parameters():
             exclude.add(object.__repr__(param))
-        super().to_disk(path, exclude=exclude)
+        cfg = super().to_disk(path, exclude=exclude) or {}
+        cfg["model"] = f"./{path.as_posix()}"
+        return cfg
 
     def preprocess(self, doc):
         res = {

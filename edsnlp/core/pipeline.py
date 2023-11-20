@@ -727,16 +727,20 @@ class Pipeline:
             self.vocab.to_disk(path / "vocab")
 
         pwd = os.getcwd()
+        overrides = {"components": {}}
         try:
             os.chdir(path)
             for pipe_name, pipe in self._components:
                 if hasattr(pipe, "to_disk") and pipe_name not in exclude:
-                    pipe.to_disk(Path(pipe_name), exclude=exclude)
+                    pipe_overrides = pipe.to_disk(Path(pipe_name), exclude=exclude)
+                    overrides["components"][pipe_name] = pipe_overrides
         finally:
             os.chdir(pwd)
 
+        config = self.config.merge(overrides)
+
         if "config" not in exclude:
-            self.config.to_disk(path / "config.cfg")
+            config.to_disk(path / "config.cfg")
 
     def from_disk(
         self,

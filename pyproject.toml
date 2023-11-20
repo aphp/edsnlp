@@ -245,6 +245,9 @@ where = ["."]
 [project.entry-points."spacy_languages"]
 "eds" = "edsnlp.language:EDSLanguage"
 
+[project.entry-points."spacy_tokenizers"]
+"eds.tokenizer" = "edsnlp.language:create_eds_tokenizer"
+
 [project.entry-points."mkdocs.plugins"]
 "bibtex" = "docs.scripts.bibtex:BibTexPlugin"
 "autorefs" = "docs.scripts.autorefs.plugin:AutorefsPlugin"

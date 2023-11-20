@@ -190,7 +190,7 @@ class SpanSetterArg:
         yield cls.validate
 
     @classmethod
-    def validate(cls, value: Union[SeqStr, Dict[str, SpanFilter]]) -> SpanSetter:
+    def validate(cls, value, config=None) -> SpanSetter:
         return validate_span_setter(value)
 
 
@@ -220,7 +220,7 @@ class SpanGetterArg:
         yield cls.validate
 
     @classmethod
-    def validate(cls, value: Union[SeqStr, Dict[str, SpanFilter]]) -> SpanSetter:
+    def validate(cls, value, config=None) -> SpanSetter:
         return validate_span_setter(value)
 
 

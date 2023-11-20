@@ -47,17 +47,6 @@ class BaseDate(BaseModel):
             return v.replace(" ", "")
         return v
 
-    @root_validator(pre=True)
-    def validate_strings(cls, d: Dict[str, str]) -> Dict[str, str]:
-        result = d.copy()
-
-        for k, v in d.items():
-            if v is not None and "_" in k:
-                key, value = k.split("_")
-                result.update({key: value})
-
-        return result
-
 
 class AbsoluteDate(BaseDate):
     mode: Mode = Mode.ABSOLUTE
@@ -155,7 +144,6 @@ class AbsoluteDate(BaseDate):
         note_datetime: Optional[Union[pendulum.datetime, datetime.datetime]] = None,
         **kwargs,
     ) -> Optional[pendulum.Duration]:
-
         if note_datetime and not isinstance(note_datetime, NaTType):
             note_datetime = pendulum.instance(note_datetime)
             dt = self.to_datetime(note_datetime=note_datetime, **kwargs)
@@ -165,7 +153,6 @@ class AbsoluteDate(BaseDate):
             return None
 
     def norm(self) -> str:
-
         year = str(self.year) if self.year else "????"
         month = f"{self.month:02}" if self.month else "??"
         day = f"{self.day:02}" if self.day else "??"
@@ -256,7 +243,6 @@ class RelativeDate(Relative):
         note_datetime: Optional[Union[pendulum.datetime, datetime.datetime]] = None,
         **kwargs,
     ) -> Optional[pendulum.datetime]:
-
         if note_datetime is not None and not isinstance(note_datetime, NaTType):
             note_datetime = pendulum.instance(note_datetime)
 
@@ -277,7 +263,6 @@ class RelativeDate(Relative):
         return None
 
     def norm(self) -> str:
-
         if self.direction == Direction.CURRENT:
             d = self.dict(exclude_none=True)
             d.pop("direction", None)

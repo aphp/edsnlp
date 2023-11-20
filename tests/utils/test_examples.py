@@ -1,7 +1,7 @@
 from edsnlp.utils.examples import find_matches, parse_example, parse_match
 
 example = (
-    "Le <ent int_value=1 float_value=.3>patient</ent> "
+    "Le <ent int_value=1 float_value=0.3>patient</ent> "
     "n'est pas <ent polarity_=NEG negation=true>malade</ent>."
 )
 
@@ -13,7 +13,7 @@ def test_find_matches():
 
     match1, match2 = matches
 
-    assert match1.group() == "<ent int_value=1 float_value=.3>patient</ent>"
+    assert match1.group() == "<ent int_value=1 float_value=0.3>patient</ent>"
     assert match2.group() == "<ent polarity_=NEG negation=true>malade</ent>"
 
 
@@ -22,7 +22,7 @@ def test_parse_match():
     match = parse_match(matches[0])
 
     assert match.text == "patient"
-    assert match.modifiers == "int_value=1 float_value=.3"
+    assert match.modifiers == "int_value=1 float_value=0.3"
 
 
 def test_parse_example():

@@ -366,16 +366,21 @@ class DatesMatcher(BaseNERComponent):
         """
 
         for span, groupdict in matches:
+            date_cfg = groupdict
+            for k, v in list(groupdict.items()):
+                if v is not None and "_" in k:
+                    key, value = k.split("_")
+                    date_cfg.update({key: value})
             if span.label_ == "relative":
-                parsed = RelativeDate.parse_obj(groupdict)
+                parsed = RelativeDate.parse_obj(date_cfg)
                 span.label_ = self.date_label
                 span._.date = parsed
             elif span.label_ == "absolute":
-                parsed = AbsoluteDate.parse_obj(groupdict)
+                parsed = AbsoluteDate.parse_obj(date_cfg)
                 span.label_ = self.date_label
                 span._.date = parsed
             else:
-                parsed = Duration.parse_obj(groupdict)
+                parsed = Duration.parse_obj(date_cfg)
                 span.label_ = self.duration_label
                 span._.duration = parsed
 

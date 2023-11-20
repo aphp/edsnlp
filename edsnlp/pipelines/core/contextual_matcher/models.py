@@ -1,6 +1,7 @@
 import re
 from typing import List, Optional, Tuple, Union
 
+import pydantic
 import regex
 from pydantic import BaseModel, Extra, validator
 
@@ -103,18 +104,16 @@ class SingleExcludeModel(BaseModel):
     _normalize_window = validator("window", allow_reuse=True)(normalize_window)
 
 
-class ExcludeModel(BaseModel, extra=Extra.forbid):
-
-    __root__: Union[
-        List[SingleExcludeModel],
-        SingleExcludeModel,
-    ]
-
-    @validator("__root__", pre=True)
-    def item_to_list(cls, v):
+class ExcludeModel:
+    @classmethod
+    def item_to_list(cls, v, config):
         if not isinstance(v, list):
-            return [v]
-        return v
+            v = [v]
+        return [pydantic.parse_obj_as(SingleExcludeModel, x) for x in v]
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.item_to_list
 
 
 class SingleAssignModel(BaseModel):
@@ -145,36 +144,35 @@ class SingleAssignModel(BaseModel):
     _normalize_window = validator("window", allow_reuse=True)(normalize_window)
 
 
-class AssignModel(BaseModel, extra=Extra.forbid):
-
-    __root__: Union[
-        List[SingleAssignModel],
-        SingleAssignModel,
-    ]
-
-    @validator("__root__", pre=True)
-    def item_to_list(cls, v):
+class AssignModel:
+    @classmethod
+    def item_to_list(cls, v, config):
         if not isinstance(v, list):
-            return [v]
-        return v
+            v = [v]
+        return [pydantic.parse_obj_as(SingleAssignModel, x) for x in v]
 
-    @validator("__root__")
-    def name_uniqueness(cls, v):
+    @classmethod
+    def name_uniqueness(cls, v, config):
         names = [item.name for item in v]
         assert len(names) == len(set(names)), "Each `name` field should be unique"
         return v
 
-    @validator("__root__")
-    def replace_uniqueness(cls, v):
+    @classmethod
+    def replace_uniqueness(cls, v, config):
         replace = [item for item in v if item.replace_entity]
         assert (
             len(replace) <= 1
         ), "Only 1 assign element can be set with `replace_entity=True`"
         return v
 
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.item_to_list
+        yield cls.name_uniqueness
+        yield cls.replace_uniqueness
+
 
 class SingleConfig(BaseModel, extra=Extra.forbid):
-
     source: str
     terms: ListOrStr = []
     regex: ListOrStr = []
@@ -184,21 +182,20 @@ class SingleConfig(BaseModel, extra=Extra.forbid):
     assign: Optional[AssignModel] = []
 
 
-class FullConfig(BaseModel, extra=Extra.forbid):
-
-    __root__: Union[
-        List[SingleConfig],
-        SingleConfig,
-    ]
-
-    @validator("__root__", pre=True)
-    def pattern_to_list(cls, v):
+class FullConfig:
+    @classmethod
+    def pattern_to_list(cls, v, config):
         if not isinstance(v, list):
-            return [v]
-        return v
+            v = [v]
+        return [pydantic.parse_obj_as(SingleConfig, item) for item in v]
 
-    @validator("__root__", pre=True)
-    def source_uniqueness(cls, v):
-        sources = [item["source"] for item in v]
+    @classmethod
+    def source_uniqueness(cls, v, config):
+        sources = [item.source for item in v]
         assert len(sources) == len(set(sources)), "Each `source` field should be unique"
         return v
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.pattern_to_list
+        yield cls.source_uniqueness

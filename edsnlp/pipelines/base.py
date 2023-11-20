@@ -20,6 +20,10 @@ from edsnlp.utils.span_getters import (
 )
 
 
+def value_getter(span: Span):
+    return span._.get(span.label_) if span._.has(span.label_) else None
+
+
 class BaseComponent:
     """
     The `BaseComponent` adds a `set_extensions` method,
@@ -47,9 +51,7 @@ class BaseComponent:
         """
         Span.set_extension(
             "value",
-            getter=lambda span: span._.get(span.label_)
-            if span._.has(span.label_)
-            else None,
+            getter=value_getter,
             force=True,
         )
 

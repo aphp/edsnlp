@@ -73,16 +73,17 @@ def test_disk_serialization(tmp_path, ml_nlp):
     nlp.to_disk(tmp_path / "model")
 
     assert (tmp_path / "model" / "config.cfg").exists()
-    assert (tmp_path / "model" / "tensors" / "ner+transformer.safetensors").exists()
+    assert (tmp_path / "model" / "ner" / "parameters.safetensors").exists()
+    assert (tmp_path / "model" / "transformer" / "parameters.safetensors").exists()
+    assert (tmp_path / "model" / "transformer" / "pytorch_model.bin").exists()
 
-    assert (tmp_path / "model" / "config.cfg").read_text() == config_str.replace(
-        "components = ${components}\n", ""
+    assert (tmp_path / "model" / "config.cfg").read_text() == (
+        config_str.replace("components = ${components}\n", "").replace(
+            "prajjwal1/bert-tiny", "./transformer"
+        )
     )
 
-    nlp = edsnlp.blank(
-        "eds", config=Config.from_disk(tmp_path / "model" / "config.cfg")
-    )
-    nlp.from_disk(tmp_path / "model")
+    nlp = edsnlp.load(tmp_path / "model")
     assert nlp.get_pipe("ner").labels == ["PERSON", "GIFT"]
 
 

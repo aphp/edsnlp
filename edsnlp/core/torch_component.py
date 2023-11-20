@@ -1,3 +1,4 @@
+import os
 from abc import ABCMeta
 from enum import Enum
 from functools import wraps
@@ -194,7 +195,7 @@ class TorchComponent(
 
         Parameters
         ----------
-        gold_data: Iterable[PDFDoc]
+        gold_data: Iterable[Doc]
             The documents to use for initialization.
         exclude: Optional[set]
             The names of components to exclude from initialization.
@@ -346,7 +347,7 @@ class TorchComponent(
         Sequence[Doc]
             Batch of updated documents
         """
-        device = next(self.parameters()).device
+        device = next((p.device for p in self.parameters()), "cpu")
         with torch.no_grad():
             batch = self.make_batch(docs)
             inputs = self.collate(batch)
@@ -422,11 +423,11 @@ class TorchComponent(
 
         Parameters
         ----------
-        doc: PDFDoc
+        doc: Doc
 
         Returns
         -------
-        PDFDoc
+        Doc
         """
         return self.batch_process([doc])[0]
 
@@ -434,16 +435,21 @@ class TorchComponent(
         if object.__repr__(self) in exclude:
             return
         exclude.add(object.__repr__(self))
+        overrides = {}
         for name, component in self.named_component_children():
             if hasattr(component, "to_disk"):
-                component.to_disk(path / name, exclude=exclude)
+                pipe_overrides = component.to_disk(path / name, exclude=exclude)
+                if pipe_overrides:
+                    overrides[name] = pipe_overrides
         tensor_dict = {
             n: p
             for n, p in self.named_parameters()
             if object.__repr__(p) not in exclude
         }
+        os.makedirs(path, exist_ok=True)
         safetensors.torch.save_file(tensor_dict, path / "parameters.safetensors")
         exclude.update(object.__repr__(p) for p in tensor_dict.values())
+        return overrides
 
     def from_disk(self, path, exclude: Optional[Set[str]]):
         if object.__repr__(self) in exclude:

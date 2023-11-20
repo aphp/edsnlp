@@ -6,6 +6,8 @@ Once you have obtained a pipeline, either by composing rule-based components, tr
 
 > How do we connect to various data sources to retrieve documents?
 
+Be sure to check out the [Processing multiple texts](/tutorials/multiple-texts) tutorial for a practical example of how to use EDS-NLP to process large datasets.
+
 ## Inference on a single document
 
 In EDS-NLP, computing the prediction on a single document is done by calling the pipeline on the document. The input can be either:
@@ -21,45 +23,68 @@ text = "... my text ..."
 doc = nlp(text)
 ```
 
-If you're lucky enough to have a GPU, you can use it to speed up inference by moving the model to the GPU before calling the pipeline. To leverage multiple GPUs, refer to the [multiprocessing accelerator][edsnlp.accelerators.multiprocessing.MultiprocessingAccelerator] description below.
+If you're lucky enough to have a GPU, you can use it to speed up inference by moving the model to the GPU before calling the pipeline.
 
 ```{ .python .no-check }
 nlp.to("cuda")  # same semantics as pytorch
 doc = nlp(text)
 ```
 
-## Inference on multiple documents
+To leverage multiple GPUs when processing multiple documents, refer to the [multiprocessing backend][edsnlp.processing.multiprocessing.execute_multiprocessing] description below.
 
-When processing multiple documents, it is usually more efficient to use the `nlp.pipe(...)` method, especially when using deep learning components, since this allow matrix multiplications to be batched together. Depending on your computational resources and requirements, EDS-NLP comes with various "accelerators" to speed up inference (see the [Accelerators](#accelerators) section for more details). By default, the `.pipe()` method uses the [`simple` accelerator][edsnlp.accelerators.simple.SimpleAccelerator] but you can switch to a different one by passing the `accelerator` argument.
+## Inference on multiple documents {: #edsnlp.core.lazy_collection.LazyCollection }
 
-```{ .python .no-check }
-nlp = ...
-docs = nlp.pipe(
-    [text1, text2, ...],
-    batch_size=16,  # optional, default to the one defined in the pipeline
-    accelerator=my_accelerator,
-)
-```
+When processing multiple documents, we can optimize the inference by parallelizing the computation on a single core, multiple cores and GPUs or even multiple machines.
 
-The `pipe` method supports the following arguments :
+### Lazy collection
 
-::: edsnlp.core.pipeline.Pipeline.pipe
+These optimizations are enabled by performing *lazy inference* : the operations (e.g., reading a document, converting it to a Doc, running the different pipes of a model or writing the result somewhere) are not executed immediately but are instead scheduled in a [LazyCollection][edsnlp.core.lazy_collection.LazyCollection] object. It can then be executed by calling the `execute` method, iterating over it or calling a writing method (e.g., `to_pandas`). In fact, data connectors like `edsnlp.data.read_json` return a lazy collection, as well as the `nlp.pipe` method.
+
+A lazy collection contains :
+
+- a `reader`: the source of the data (e.g., a file, a database, a list of strings, etc.)
+- the list of operations to perform under a `pipeline` attribute containing the name if any, function / pipe, keyword arguments and context for each operation
+- an optional `writer`: the destination of the data (e.g., a file, a database, a list of strings, etc.)
+- the execution `config`, containing the backend to use and its configuration such as the number of workers, the batch size, etc.
+
+All methods (`.map`, `.map_pipeline`, `.set_processing`) of the lazy collection are chainable, meaning that they return a new object (no in-place modification).
+
+### Applying operations to a lazy collection
+
+To apply an operation to a lazy collection, you can use the `.map` method. It takes a callable as input and an optional dictionary of keyword arguments. The function will be applied to each element of the collection.
+
+To apply a model, you can use the `.map_pipeline` method. It takes a model as input and will add every pipe of the model to the scheduled operations.
+
+In both cases, the operations will not be executed immediately but will be scheduled to be executed when iterating of the collection, or calling the `.execute`, `.to_*` or `.write_*` methods.
+
+### Execution of a lazy collection {: #edsnlp.core.lazy_collection.LazyCollection.set_processing }
+
+You can configure how the operations performed in the lazy collection is executed by calling its `set_processing(...)` method. The following options are available :
+
+::: edsnlp.core.lazy_collection.LazyCollection.set_processing
     options:
         heading_level: 3
-        only_parameters: true
+        only_parameters: "no-header"
 
-## Accelerators
+## Backends
 
-### Simple accelerator {: #edsnlp.accelerators.simple.SimpleAccelerator }
+### Simple backend {: #edsnlp.processing.simple.execute_simple_backend }
 
-::: edsnlp.accelerators.simple.SimpleAccelerator
+::: edsnlp.processing.simple.execute_simple_backend
     options:
         heading_level: 3
-        only_class_level: true
+        show_source: false
 
-### Multiprocessing (GPU) accelerator {: #edsnlp.accelerators.multiprocessing.MultiprocessingAccelerator }
+### Multiprocessing backend {: #edsnlp.processing.multiprocessing.execute_multiprocessing_backend }
 
-::: edsnlp.accelerators.multiprocessing.MultiprocessingAccelerator
+::: edsnlp.processing.multiprocessing.execute_multiprocessing_backend
     options:
         heading_level: 3
-        only_class_level: true
+        show_source: false
+
+### Spark backend {: #edsnlp.processing.spark.execute_spark_backend }
+
+::: edsnlp.processing.spark.execute_spark_backend
+    options:
+        heading_level: 3
+        show_source: false

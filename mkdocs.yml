@@ -49,7 +49,7 @@ nav:
       - tutorials/endlines.md
       - tutorials/aggregating-results.md
       - advanced-tutorials/fastapi.md
-      - tutorials/training-ner.md
+      - tutorials/make-a-training-script.md
       - tutorials/quick-examples.md
   - Pipes:
       - Overview: pipelines/index.md

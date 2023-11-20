@@ -14,6 +14,15 @@ from edsnlp.utils.span_getters import SpanGetterArg, get_spans
 from . import patterns
 
 
+def negation_getter(token: Union[Token, Span]) -> Optional[str]:
+    if token._.negation is True:
+        return "NEG"
+    elif token._.negation is False:
+        return "AFF"
+    else:
+        return None
+
+
 class NegationQualifier(RuleBasedQualifier):
     """
     The `eds.negation` component uses a simple rule-based algorithm to detect negated
@@ -199,11 +208,7 @@ class NegationQualifier(RuleBasedQualifier):
             if not cls.has_extension("negation_"):
                 cls.set_extension(
                     "negation_",
-                    getter=lambda token: "NEG"
-                    if token._.negation is True
-                    else "AFF"
-                    if token._.negation is False
-                    else None,
+                    getter=negation_getter,
                 )
 
             if not cls.has_extension("polarity_"):
@@ -256,7 +261,6 @@ class NegationQualifier(RuleBasedQualifier):
         ents = None
 
         for start, end in boundaries:
-
             ents, entities = consume_spans(
                 entities,
                 filter=lambda s: check_inclusion(s, start, end),

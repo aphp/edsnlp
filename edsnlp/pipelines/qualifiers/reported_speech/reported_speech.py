@@ -13,6 +13,15 @@ from edsnlp.utils.span_getters import SpanGetterArg, get_spans
 from . import patterns
 
 
+def reported_speech_getter(token: Union[Token, Span]) -> Optional[str]:
+    if token._.reported_speech is True:
+        return "REPORTED"
+    elif token._.rspeech is False:
+        return "DIRECT"
+    else:
+        return None
+
+
 class ReportedSpeechQualifier(RuleBasedQualifier):
     """
     The `eds.reported_speech` component uses a simple rule-based algorithm to detect
@@ -118,7 +127,6 @@ class ReportedSpeechQualifier(RuleBasedQualifier):
         within_ents: bool = False,
         explain: bool = False,
     ):
-
         terms = dict(
             pseudo=pseudo or [],
             preceding=patterns.preceding if preceding is None else preceding,
@@ -154,14 +162,7 @@ class ReportedSpeechQualifier(RuleBasedQualifier):
                 cls.set_extension("reported_speech", default=None)
 
             if not cls.has_extension("reported_speech_"):
-                cls.set_extension(
-                    "reported_speech_",
-                    getter=lambda token: "REPORTED"
-                    if token._.reported_speech is True
-                    else "DIRECT"
-                    if token._.reported_speech is False
-                    else None,
-                )
+                cls.set_extension("reported_speech_", getter=reported_speech_getter)
 
         if not Span.has_extension("reported_speech_cues"):
             Span.set_extension("reported_speech_cues", default=[])
@@ -208,7 +209,6 @@ class ReportedSpeechQualifier(RuleBasedQualifier):
         ents = None
 
         for start, end in boundaries:
-
             ents, entities = consume_spans(
                 entities,
                 filter=lambda s: check_inclusion(s, start, end),

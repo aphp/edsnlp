@@ -13,6 +13,15 @@ from edsnlp.utils.inclusion import check_inclusion
 from . import patterns
 
 
+def family_getter(token: Union[Token, Span]) -> Optional[str]:
+    if token._.family is True:
+        return "FAMILY"
+    elif token._.family is False:
+        return "PATIENT"
+    else:
+        return None
+
+
 class FamilyContextQualifier(RuleBasedQualifier):
     """
     The `eds.family` component uses a simple rule-based algorithm to detect spans that
@@ -144,14 +153,7 @@ class FamilyContextQualifier(RuleBasedQualifier):
                 cls.set_extension("family", default=None)
 
             if not cls.has_extension("family_"):
-                cls.set_extension(
-                    "family_",
-                    getter=lambda token: "FAMILY"
-                    if token._.family is True
-                    else "PATIENT"
-                    if token._.family is False
-                    else None,
-                )
+                cls.set_extension("family_", getter=family_getter)
 
         if not Span.has_extension("family_cues"):
             Span.set_extension("family_cues", default=[])

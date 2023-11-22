@@ -1,5 +1,5 @@
 """
-Adapted from pymdownx.tabbed by Isaac Muse <isaacmuse@gmail.com>
+Adapted from pymdownx.tabbed (https://github.com/facelessuser/pymdown-extensions/)
 """
 import re
 import xml.etree.ElementTree as etree
@@ -100,7 +100,6 @@ class CardProcessor(BlockProcessor):
                         or (last_child.tag == "div" and child_class == card_content)
                     )
                 ):
-
                     # Handle nested card content
                     if last_child.tag == "div" and child_class == card_content:
                         temp_child = self.lastChild(last_child)

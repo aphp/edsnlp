@@ -38,6 +38,7 @@ from edsnlp.scorers import Scorer
 from edsnlp.utils.bindings import BINDING_SETTERS
 from edsnlp.utils.collections import batchify
 from edsnlp.utils.span_getters import get_spans
+from edsnlp.utils.typing import AsList
 
 app = Cli(pretty_exceptions_show_locals=False)
 
@@ -464,8 +465,8 @@ def train(
     *,
     output_path: Path = Path("model"),
     nlp: Pipeline,
-    train_data: Reader,
-    val_data: Reader,
+    train_data: AsList[Reader],
+    val_data: AsList[Reader],
     seed: int = 42,
     data_seed: int = 42,
     max_steps: int = 1000,
@@ -490,8 +491,12 @@ def train(
     with RichTablePrinter(LOGGER_FIELDS, auto_refresh=False) as logger:
         # Loading and adapting the training and validation data
         with set_seed(data_seed):
-            train_docs: List[spacy.tokens.Doc] = list(train_data(nlp))
-            val_docs: List[spacy.tokens.Doc] = list(val_data(nlp))
+            train_docs: List[spacy.tokens.Doc] = list(
+                chain.from_iterable(td(nlp) for td in train_data)
+            )
+            val_docs: List[spacy.tokens.Doc] = list(
+                chain.from_iterable(td(nlp) for td in val_data)
+            )
 
         # Initialize pipeline with training documents
         nlp.post_init(train_docs)

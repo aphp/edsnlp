@@ -19,10 +19,8 @@ from typing import (
     Union,
 )
 
-import build
 import dill
 import toml
-from build.__main__ import build_package, build_package_via_sdist
 from confit import Cli
 from dill._dill import save_function as dill_save_function
 from dill._dill import save_type as dill_save_type
@@ -31,7 +29,9 @@ from importlib_metadata import version as get_version
 from loguru import logger
 from typing_extensions import Literal
 
+import build
 import edsnlp
+from build.__main__ import build_package, build_package_via_sdist
 
 py_version = f"{sys.version_info.major}.{sys.version_info.minor}"
 
@@ -218,7 +218,6 @@ class PoetryPackager:
         self.out_dir = self.root_dir / out_dir
 
         with self.ensure_pyproject(metadata):
-
             python_executable = (
                 Path(self.poetry_bin_path).read_text().split("\n")[0][2:]
             )
@@ -296,6 +295,7 @@ class PoetryPackager:
             yield
         except Exception:
             if new_pyproject:
+                print("Removing", self.root_dir / "pyproject.toml")
                 os.remove(self.root_dir / "pyproject.toml")
             raise
 

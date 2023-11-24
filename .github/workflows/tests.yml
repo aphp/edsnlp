@@ -42,9 +42,13 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           architecture: x64
+          cache: 'pip'
+
       - name: Install dependencies
         run: |
           pip install --upgrade pip
+          pip install pipx
+          pipx install poetry
           pip install -e '.[dev,setup]'
 
       - name: Test with Pytest on Python ${{ matrix.python-version }}

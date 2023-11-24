@@ -19,8 +19,10 @@ from typing import (
     Union,
 )
 
+import build
 import dill
 import toml
+from build.__main__ import build_package, build_package_via_sdist
 from confit import Cli
 from dill._dill import save_function as dill_save_function
 from dill._dill import save_type as dill_save_type
@@ -29,9 +31,7 @@ from importlib_metadata import version as get_version
 from loguru import logger
 from typing_extensions import Literal
 
-import build
 import edsnlp
-from build.__main__ import build_package, build_package_via_sdist
 
 py_version = f"{sys.version_info.major}.{sys.version_info.minor}"
 
@@ -132,6 +132,8 @@ poetry = Factory().create_poetry("__root_dir__")
 # Initialize the builder
 try:
     builder = SdistBuilder(poetry, None, None)
+    # Get the list of files to include
+    files = builder.find_files_to_add()
 except ModuleOrPackageNotFound:
     if not poetry.package.packages:
         print([])
@@ -146,8 +148,6 @@ print([
     for include in builder._module.includes
 ])
 
-# Get the list of files to include
-files = builder.find_files_to_add()
 
 # Print the list of files
 for file in files:
@@ -295,7 +295,6 @@ class PoetryPackager:
             yield
         except Exception:
             if new_pyproject:
-                print("Removing", self.root_dir / "pyproject.toml")
                 os.remove(self.root_dir / "pyproject.toml")
             raise
 

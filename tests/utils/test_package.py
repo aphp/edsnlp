@@ -18,7 +18,7 @@ def test_blank_package(nlp, tmp_path):
         package(
             pipeline=nlp,
             root_dir=tmp_path,
-            name="test-model",
+            name="test-model-fail",
             metadata={},
             project_type="poetry",
         )
@@ -68,9 +68,7 @@ authors = ["Test Author <test.author@mail.com>"]
 [tool.poetry.dependencies]
 python = "^3.7"
 torch = "^{}"
-""".format(
-            torch.__version__.split("+")[0]
-        )
+""".format(torch.__version__.split("+")[0])
     )
 
     with pytest.raises(ValueError):

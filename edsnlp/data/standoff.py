@@ -278,6 +278,9 @@ class StandoffReader(BaseReader):
             and (keep_txt_only_docs or glob.glob(str(path).replace(".txt", ".a*")))
         ]
         assert len(self.files), f"No .txt files found in the BRAT directory {path}"
+        for file in self.files:
+            if not file.exists():
+                raise FileNotFoundError(f"File {file} does not exist")
         logger.info(f"The BRAT directory contains {len(self.files)} .txt files.")
 
     def read_main(self):

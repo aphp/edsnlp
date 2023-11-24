@@ -39,6 +39,9 @@ class JsonReader(BaseReader):
             if self.path.is_dir()
             else [self.path]
         )
+        for file in self.files:
+            if not file.exists():
+                raise FileNotFoundError(f"File {file} does not exist")
         assert len(self.files), f"No .json* file found under {path}"
         logger.info(
             f"Found {len(self.files)} file{'s' if len(self.files) > 1 else ''} "

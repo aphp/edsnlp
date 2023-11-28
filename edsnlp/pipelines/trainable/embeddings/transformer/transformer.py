@@ -350,7 +350,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         n_trf_tokens = len(trf_char_indices)
         word_tokens = []
         word_lengths = [0] * (len(doc))
-        doc_start = doc[0].idx
+        doc_start = doc[0].idx if len(doc) else 0
 
         for word_i, word in enumerate(doc):
             length = 0

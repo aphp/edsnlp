@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.10.0beta2
+
+### Added
+
+- New add unified `edsnlp.data` api (json, brat, spark, pandas) and LazyCollection object
+  to efficiently read / write data from / to different formats & sources.
+- New unified processing API to select the execution execution backends via `docs.configure(...)`
+- The training scripts can now use data from multiple concatenated adapters
+- Support quantized transformers (compatible with multiprocessing as well !)
+
+### Changed
+
+- Pipes (in edsnlp/pipelines) are now lazily loaded, which should improve the loading time of the library.
+- `to_disk` methods can now return a config to override the initial config of the pipeline (e.g., to load a transformer directly from the path storing its fine-tuned weights)
+- The `eds.tokenizer` tokenizer has been added to entry points, making it accessible from the outside
+- Deprecate old connectors (e.g. BratDataConnector) in favor of the new `edsnlp.data` API
+- Deprecate old `pipe` wrapper in favor of the new processing API
+
+### Fixed
+
+- Support for pydantic v2
+- Support for python 3.11 (not ci-tested yet)
+
 ## v0.10.0beta1
 
 Large refacto of EDS-NLP to allow training models and performing inference using PyTorch

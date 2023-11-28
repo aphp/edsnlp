@@ -912,6 +912,17 @@ class Pipeline:
             skip_build_dependency_check=skip_build_dependency_check,
         )
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["_pipe_meta"] = [PIPE_META.get(pipe, {}) for _, pipe in self.pipeline]
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        for (name, pipe), meta in zip(self.pipeline, state["_pipe_meta"]):
+            PIPE_META[pipe] = meta
+        del state["_pipe_meta"]
+
 
 def blank(
     lang: str,

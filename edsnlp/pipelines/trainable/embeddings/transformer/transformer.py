@@ -4,8 +4,10 @@ from typing import List, Optional, Set, Tuple, Union
 
 import tokenizers
 import torch
+from confit import validate_arguments
 from foldedtensor import as_folded_tensor
 from transformers import AutoModel, AutoTokenizer
+from transformers import BitsAndBytesConfig as BitsAndBytesConfig_
 from typing_extensions import TypedDict
 
 from edsnlp import Pipeline
@@ -22,6 +24,8 @@ TransformerBatchInput = TypedDict(
         "mask": torch.BoolTensor,
     },
 )
+
+BitsAndBytesConfig = validate_arguments(BitsAndBytesConfig_)
 
 
 def compute_contextualization_scores(windows):
@@ -120,9 +124,12 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         max_tokens_per_device: int = 128 * 128,
         span_getter: Optional[SpanGetterArg] = None,
         new_tokens: Optional[List[Tuple[str, str]]] = [],
+        quantization: Optional[BitsAndBytesConfig] = None,
     ):
         super().__init__(nlp, name)
-        self.transformer = AutoModel.from_pretrained(model, add_pooling_layer=False)
+        self.transformer = AutoModel.from_pretrained(
+            model, add_pooling_layer=False, quantization_config=quantization
+        )
         self.tokenizer = AutoTokenizer.from_pretrained(model)
         self.window = window
         self.stride = stride

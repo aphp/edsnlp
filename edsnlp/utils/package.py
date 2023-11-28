@@ -6,7 +6,7 @@ import subprocess
 import sys
 from contextlib import contextmanager
 from pathlib import Path
-from types import FunctionType
+from types import FunctionType, ModuleType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -25,9 +25,13 @@ import toml
 from build.__main__ import build_package, build_package_via_sdist
 from confit import Cli
 from dill._dill import save_function as dill_save_function
+from dill._dill import save_module as dill_save_module
 from dill._dill import save_type as dill_save_type
-from importlib_metadata import PackageNotFoundError
-from importlib_metadata import version as get_version
+
+try:
+    import importlib_metadata
+except ImportError:  # pragma: no cover
+    import importlib.metadata as importlib_metadata
 from loguru import logger
 from typing_extensions import Literal
 
@@ -36,22 +40,25 @@ import edsnlp
 py_version = f"{sys.version_info.major}.{sys.version_info.minor}"
 
 
-def get_package(obj_type: Type):
+def get_package(obj: Type):
     # Retrieve the __package__ attribute of the module of a type, if possible.
     # And returns the package version as well
     try:
-        module_name = obj_type.__module__
+        if isinstance(obj, ModuleType):
+            module_name = obj.__name__
+        else:
+            module_name = obj.__module__
         if module_name == "__main__":
-            raise Exception(f"Could not find package of type {obj_type}")
+            raise Exception(f"Could not find package of {obj}")
         module = __import__(module_name, fromlist=["__package__"])
-        package = module.__package__
+        package = module.__package__.split(".")[0]
         try:
-            version = get_version(package)
-        except (PackageNotFoundError, ValueError):
+            version = importlib_metadata.version(package)
+        except (importlib_metadata.PackageNotFoundError, ValueError):
             return None
         return package, version
     except (ImportError, AttributeError):
-        raise Exception(f"Cound not find package of type {obj_type}")
+        raise Exception(f"Cound not find package of type {obj}")
 
 
 def save_type(pickler, obj, *args, **kwargs):
@@ -68,11 +75,19 @@ def save_function(pickler, obj, *args, **kwargs):
     return dill_save_function(pickler, obj, *args, **kwargs)
 
 
+def save_module(pickler, obj, *args, **kwargs):
+    package_name = get_package(obj)
+    if package_name is not None:
+        pickler.packages.add(package_name)
+    return dill_save_module(pickler, obj, *args, **kwargs)
+
+
 class PackagingPickler(dill.Pickler):
     dispatch = dill.Pickler.dispatch.copy()
 
     dispatch[FunctionType] = save_function
     dispatch[type] = save_type
+    dispatch[ModuleType] = save_module
 
     def __init__(self, *args, **kwargs):
         self.file = io.BytesIO()
@@ -81,7 +96,7 @@ class PackagingPickler(dill.Pickler):
 
 
 def get_deep_dependencies(obj):
-    pickler = PackagingPickler()
+    pickler = PackagingPickler(byref=True)
     pickler.dump(obj)
     return sorted(pickler.packages)
 

@@ -28,7 +28,6 @@ dependencies = [
     "typing_extensions<4.6.0,>=4.0.0; python_version>='3.8'",  # https://github.com/explosion/spaCy/issues/12659
     "typing_extensions>=4.0.0; python_version<'3.8'",
     "dill",
-    "multiprocess",
     # Packaging
     "build>=1.0.0",
     "toml",

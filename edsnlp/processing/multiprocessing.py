@@ -1,35 +1,26 @@
 from __future__ import annotations
 
+import copyreg
 import gc
+import io
+import logging
+import multiprocessing
+import multiprocessing.reduction
+import os
 import sys
+import tempfile
 import warnings
 from contextlib import nullcontext
 from multiprocessing.connection import wait
 from random import shuffle
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
 
 import dill
 from typing_extensions import TypedDict
 
-from ..data.converters import set_current_tokenizer
-
-try:
-    import multiprocess as mp
-except ImportError:  # pragma: no cover
-    import multiprocessing as mp
-
+from edsnlp.core.lazy_collection import LazyCollection
+from edsnlp.data.converters import set_current_tokenizer
 from edsnlp.utils.collections import batchify, batchify_with_count, flatten_once
-
-from ..core.lazy_collection import LazyCollection
 
 if TYPE_CHECKING:
     import torch
@@ -44,7 +35,98 @@ Stage = TypedDict(
     },
 )
 
-DEBUG = True
+
+class ForkingPickler(dill.Pickler):
+    """
+    ForkingPickler that uses dill instead of pickle to transfer objects between
+    processes.
+    """
+
+    _extra_reducers = {}
+    _copyreg_dispatch_table = copyreg.dispatch_table
+
+    def __new__(cls, *args, **kwargs):
+        result = dill.Pickler.__new__(ForkingPickler)
+        # Python would not call __init__ if the original
+        # multiprocessing.reduction.ForkingPickler called, leading to a call to this
+        # monkey-patched __new__ method, because [original cls] != [type of result]
+        # (see https://docs.python.org/3/reference/datamodel.html#basic-customization)
+        # so we force the call to __init__ here
+        if not isinstance(result, cls):
+            result.__init__(*args, **kwargs)
+        return result
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+        self.dispatch_table = self._copyreg_dispatch_table.copy()
+        self.dispatch_table.update(self._extra_reducers)
+
+    @classmethod
+    def register(cls, type, reduce):
+        """Register a reduce function for a type."""
+        cls._extra_reducers[type] = reduce
+
+    @classmethod
+    def dumps(cls, obj, protocol=None, *args, **kwds):
+        buf = io.BytesIO()
+        cls(buf, protocol, *args, **kwds).dump(obj)
+        return buf.getbuffer()
+
+    loads = dill.loads
+
+
+def replace_pickler():
+    """
+    Replace the default pickler used by multiprocessing with dill.
+    "multiprocess" didn't work for obscure reasons (maybe the reducers / dispatchers
+    are not propagated between multiprocessing and multiprocess => torch specific
+    reducers might be missing ?), so this patches multiprocessing directly.
+    directly.
+
+    For some reason I do not explain, this has a massive impact on the performance of
+    the multiprocessing backend. With the original pickler, the performance can be
+    up to 2x slower than with our custom one.
+    """
+    old_pickler = multiprocessing.reduction.ForkingPickler
+
+    before = (
+        dict(ForkingPickler._extra_reducers),
+        old_pickler.__new__,
+        old_pickler.dumps,
+        old_pickler.loads,
+        old_pickler.register,
+    )
+
+    old_pickler.__new__ = ForkingPickler.__new__
+    old_pickler.dumps = ForkingPickler.dumps
+    old_pickler.loads = ForkingPickler.loads
+    old_pickler.register = ForkingPickler.register
+    ForkingPickler._extra_reducers.update(
+        multiprocessing.reduction.ForkingPickler._extra_reducers
+    )
+
+    def revert():
+        (
+            ForkingPickler._extra_reducers,
+            old_pickler.__new__,
+            old_pickler.dumps,
+            old_pickler.loads,
+            old_pickler.register,
+        ) = before
+
+    return revert
+
+
+# Should we check if the multiprocessing module of edsnlp
+# is responsible for this child process before replacing the pickler ?
+if (
+    multiprocessing.current_process() != "MainProcess"
+    or hasattr(multiprocessing, "parent_process")
+    and multiprocessing.parent_process() is not None
+):
+    replace_pickler()
+
+DEBUG = False
 
 debug = (
     (lambda *args, flush=False, **kwargs: print(*args, **kwargs, flush=True))
@@ -52,14 +134,74 @@ debug = (
     else lambda *args, **kwargs: None
 )
 
+try:
+    import torch
+
+    MAP_LOCATION = None
+
+    try:
+        from accelerate.hooks import AlignDevicesHook
+
+        # We need to replace the "execution_device" attribute of the AlignDevicesHook
+        # using map_location when unpickling the lazy collection
+
+        def save_align_devices_hook(pickler: Any, obj: Any):
+            pickler.save_reduce(load_align_devices_hook, (obj.__dict__,), obj=obj)
+
+        def load_align_devices_hook(state):
+            state["execution_device"] = MAP_LOCATION
+            new_obj = AlignDevicesHook.__new__(AlignDevicesHook)
+            new_obj.__dict__.update(state)
+            return new_obj
+
+    except ImportError:
+        AlignDevicesHook = None
+
+    def dump(*args, **kwargs):
+        # We need to replace the "execution_device" attribute of the AlignDevicesHook
+        # using map_location when pickling the lazy collection
+        old = None
+        try:
+            if AlignDevicesHook is not None:
+                old = dill.Pickler.dispatch.get(AlignDevicesHook)
+                dill.Pickler.dispatch[AlignDevicesHook] = save_align_devices_hook
+            dill.settings["recurse"] = True
+            return torch.save(*args, pickle_module=dill, **kwargs)
+        finally:
+            dill.settings["recurse"] = False
+            if AlignDevicesHook is not None:
+                del dill.Pickler.dispatch[AlignDevicesHook]
+                if old is not None:
+                    dill.Pickler.dispatch[AlignDevicesHook] = old
+
+    def load(*args, map_location=None, **kwargs):
+        global MAP_LOCATION
+        MAP_LOCATION = map_location
+        if torch.__version__ >= "2.1.2":
+            kwargs["mmap"] = True
+        result = torch.load(
+            *args,
+            pickle_module=dill,
+            map_location=map_location,
+            **kwargs,
+        )
+        MAP_LOCATION = None
+        return result
+
+except ImportError:
+
+    def load(*args, map_location=None, **kwargs):
+        return dill.load(*args, **kwargs)
+
 
 class Exchanger:
     def __init__(
         self,
+        mp: multiprocessing.context.BaseContext,
         num_stages: int,
         num_gpu_workers: int,
         num_cpu_workers: int,
-        gpu_worker_devices: int,
+        gpu_worker_devices: List[Any],
     ):
         # queue for cpu input tasks
         self.gpu_worker_devices = gpu_worker_devices
@@ -127,13 +269,13 @@ class Exchanger:
             yield out
 
 
-class CPUWorker(mp.Process):
+class CPUWorker:
     def __init__(
         self,
         cpu_idx: int,
         exchanger: Exchanger,
         gpu_pipe_names: List[str],
-        lazy_collection: LazyCollection,
+        lazy_collection_path: str,
         device: Union[str, "torch.device"],
     ):
         super(CPUWorker, self).__init__()
@@ -141,7 +283,7 @@ class CPUWorker(mp.Process):
         self.cpu_idx = cpu_idx
         self.exchanger = exchanger
         self.gpu_pipe_names = gpu_pipe_names
-        self.lazy_collection = lazy_collection
+        self.lazy_collection_path = lazy_collection_path
         self.device = device
 
     def _run(self):
@@ -169,7 +311,11 @@ class CPUWorker(mp.Process):
                 else:
                     yield stage, task
 
-        lc = self.lazy_collection.to(self.device)
+        with open(self.lazy_collection_path, "rb") as f:
+            lc = load(f, map_location=self.device)
+        # for name, pipe, *rest in lc.pipeline:
+        #    move_to_device(pipe, self.device)
+
         stages: List[Stage] = [{"cpu_components": [], "gpu_component": None}]
         for name, pipe, *rest in lc.pipeline:
             if name in self.gpu_pipe_names:
@@ -181,6 +327,8 @@ class CPUWorker(mp.Process):
         next_batch_id = 0
         active_batches = {}
 
+        logging.info(f"Starting cpu {self.cpu_idx}")
+        self.exchanger.outputs_queue.put(None)
         had_error = False
         for stage, (gpu_idx, batch_id, result) in read_tasks():
             if had_error:
@@ -242,18 +390,17 @@ class CPUWorker(mp.Process):
 
     def run(self):
         self._run()
-        self.lazy_collection = None
         gc.collect()
         sys.modules["torch"].cuda.empty_cache()
 
 
-class GPUWorker(mp.Process):
+class GPUWorker:
     def __init__(
         self,
         gpu_idx,
         exchanger: Exchanger,
         gpu_pipe_names: List[str],
-        lazy_collection: Any,
+        lazy_collection_path: str,
         device: Union[str, "torch.device"],
     ):
         super().__init__()
@@ -263,7 +410,7 @@ class GPUWorker(mp.Process):
         self.exchanger = exchanger
 
         self.gpu_pipe_names = gpu_pipe_names
-        self.lazy_collection = lazy_collection
+        self.lazy_collection_path = lazy_collection_path
         self.device = device
 
     def _run(self):
@@ -272,11 +419,17 @@ class GPUWorker(mp.Process):
         # mp._prctl_pr_set_pdeathsig(signal.SIGINT)
         had_error = False
 
-        lc = self.lazy_collection.to(self.device)
+        with open(self.lazy_collection_path, "rb") as f:
+            lc = load(f, map_location=self.device)
         stage_components = [
-            pipe for name, pipe, *_ in lc.pipeline if name in self.gpu_pipe_names
+            pipe
+            # move_to_device(pipe, self.device)
+            for name, pipe, *_ in lc.pipeline
+            if name in self.gpu_pipe_names
         ]
         del lc
+        logging.info(f"Starting cpu {self.gpu_idx}")
+        self.exchanger.outputs_queue.put(None)
         with torch.no_grad():
             for stage, task in self.exchanger.get_gpu_tasks(self.gpu_idx):
                 if had_error:
@@ -287,10 +440,10 @@ class GPUWorker(mp.Process):
                     res = component.module_forward(batch)
                     del batch, task
                     # TODO set non_blocking=True here
-                    res = {
-                        key: val.to("cpu") if hasattr(val, "to") else val
-                        for key, val in res.items()
-                    }
+                    # res = {
+                    #     key: val.to("cpu") if hasattr(val, "to") else val
+                    #     for key, val in res.items()
+                    # }
                     self.exchanger.put_cpu(
                         item=(self.gpu_idx, batch_id, res),
                         stage=stage + 1,
@@ -310,7 +463,6 @@ class GPUWorker(mp.Process):
 
     def run(self):
         self._run()
-        self.lazy_collection = None
         gc.collect()
         sys.modules["torch"].cuda.empty_cache()
 
@@ -395,7 +547,7 @@ def execute_multiprocessing_backend(
         import torch
 
         num_devices = torch.cuda.device_count()
-        print(f"Number of available devices: {num_devices}", flush=True)
+        logging.info(f"Number of available devices: {num_devices}")
 
         if num_gpu_workers is None:
             num_gpu_workers = num_devices
@@ -410,19 +562,17 @@ def execute_multiprocessing_backend(
     else:
         num_gpu_workers = 0
 
-    if (
-        process_start_method is not None
-        and mp.get_start_method() != process_start_method
-    ):
-        print("Switching process start method to", process_start_method)
-        mp.set_start_method(process_start_method, force=True)
+    default_method = multiprocessing.get_start_method()
+    if process_start_method is not None and default_method != process_start_method:
+        logging.info("Switching process start method to", process_start_method)
 
+    mp = multiprocessing.get_context(process_start_method)
     max_workers = max(min(mp.cpu_count() - num_gpu_workers, DEFAULT_MAX_CPU_WORKERS), 0)
     num_cpu_workers = (
         (num_gpu_workers or max_workers)
         if num_cpu_workers is None
-        else max_workers + num_cpu_workers
-        if num_cpu_workers <= 0
+        else max_workers + num_cpu_workers + 1
+        if num_cpu_workers < 0
         else num_cpu_workers
     )
 
@@ -442,8 +592,6 @@ def execute_multiprocessing_backend(
     cpu_worker_devices = (
         ["cpu"] * num_cpu_workers
         if lc.cpu_worker_devices is None
-        else []
-        if lc.cpu_worker_devices is None
         else lc.cpu_worker_devices
     )
     assert len(cpu_worker_devices) == num_cpu_workers
@@ -458,6 +606,7 @@ def execute_multiprocessing_backend(
         ) = (num_gpu_workers, 0, gpu_worker_devices, [], [])
 
     exchanger = Exchanger(
+        mp,
         num_stages=len(gpu_pipe_names),
         num_cpu_workers=num_cpu_workers,
         num_gpu_workers=num_gpu_workers,
@@ -469,29 +618,37 @@ def execute_multiprocessing_backend(
     cpu_workers = []
     gpu_workers = []
 
+    with tempfile.NamedTemporaryFile(delete=False) as fp:
+        dump(lc.worker_copy(), fp)
+        fp.close()
+
+    revert_pickler = replace_pickler()
+
     for gpu_idx in range(num_gpu_workers):
         gpu_workers.append(
-            GPUWorker(
-                gpu_idx=gpu_idx,
-                exchanger=exchanger,
-                gpu_pipe_names=gpu_pipe_names,
-                lazy_collection=lc.worker_copy(),
-                device=gpu_worker_devices[gpu_idx],
+            mp.Process(
+                target=GPUWorker(
+                    gpu_idx=gpu_idx,
+                    exchanger=exchanger,
+                    gpu_pipe_names=gpu_pipe_names,
+                    lazy_collection_path=fp.name,
+                    device=gpu_worker_devices[gpu_idx],
+                ).run
             )
         )
 
     for cpu_idx in range(num_cpu_workers):
         cpu_workers.append(
-            CPUWorker(
-                cpu_idx=cpu_idx,
-                exchanger=exchanger,
-                gpu_pipe_names=gpu_pipe_names,
-                lazy_collection=lc.worker_copy(),
-                device=cpu_worker_devices[cpu_idx],
+            mp.Process(
+                target=CPUWorker(
+                    cpu_idx=cpu_idx,
+                    exchanger=exchanger,
+                    gpu_pipe_names=gpu_pipe_names,
+                    lazy_collection_path=fp.name,
+                    device=cpu_worker_devices[cpu_idx],
+                ).run
             )
         )
-
-    dill.settings["recurse"] = True
 
     debug(
         f"Starting {num_cpu_workers} cpu workers and {num_gpu_workers} gpu workers, "
@@ -501,7 +658,13 @@ def execute_multiprocessing_backend(
 
     for worker in (*cpu_workers, *gpu_workers):
         worker.start()
-    dill.settings["recurse"] = False
+
+    for i in range(len((*cpu_workers, *gpu_workers))):
+        assert exchanger.outputs_queue.get() is None
+
+    os.unlink(fp.name)
+
+    logging.info("Workers are ready")
 
     def process():
         try:
@@ -543,6 +706,7 @@ def execute_multiprocessing_backend(
                         cpu_worker_indices,
                         key=lambda i: sum(workloads[i].values()),
                     )
+                    debug("Putting a new task for cpu", cpu_idx)
                     exchanger.put_cpu((input_task_id, batch), stage=0, idx=cpu_idx)
                     workloads[cpu_idx][input_task_id] = batch_size
 
@@ -556,6 +720,8 @@ def execute_multiprocessing_backend(
                     workloads[cpu_idx].pop(output_task_id)
 
         finally:
+            revert_pickler()
+
             # Send gpu and cpu process the order to stop processing data
             # We use the prioritized queue to ensure the stop signal is processed
             # before the next batch of data
@@ -582,11 +748,11 @@ def execute_multiprocessing_backend(
             # with the cleanup of these processes ?
             for i, worker in enumerate(gpu_workers):  # pragma: no cover
                 if worker.is_alive():
-                    print("Killing gpu worker", i)
+                    logging.error("Killing gpu worker", i)
                     worker.kill()
             for i, worker in enumerate(cpu_workers):  # pragma: no cover
                 if worker.is_alive():
-                    print("Killing cpu worker", i)
+                    logging.error("Killing cpu worker", i)
                     worker.kill()
 
     gen = process()

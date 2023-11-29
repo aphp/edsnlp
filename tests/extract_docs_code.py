@@ -153,4 +153,6 @@ def extract_docs_code():
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
-    return plugin.docs_code_blocks
+    docs_code_blocks = plugin.docs_code_blocks
+    # Deduplicate both keys and values
+    return {k: v for v, k in {v: k for k, v in docs_code_blocks}.items()}

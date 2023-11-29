@@ -233,7 +233,10 @@ class Exchanger:
             except BaseException:
                 # Shouldn't we quit instead here ? I can't remember why we continue
                 continue
-            if item is None:
+
+            # Prioritized STOP signal (something bad happened in another process)
+            # -> stop listening to input queues and raise StopIteration (return)
+            if item is None and stage == len(self.cpu_inputs_queues[idx]) - 1:
                 return
             yield stage, item
 
@@ -291,9 +294,25 @@ class CPUWorker:
         # ValueError: bad value(s) in fds_to_keep
         # mp._prctl_pr_set_pdeathsig(signal.SIGINT)
 
+        had_error = False
+        expect_new_tasks = True
+
         def read_tasks():
-            nonlocal next_batch_id
-            for stage, task in self.exchanger.get_cpu_tasks(self.cpu_idx):
+            nonlocal next_batch_id, expect_new_tasks, had_error
+            iterator = self.exchanger.get_cpu_tasks(self.cpu_idx)
+            while expect_new_tasks or len(active_batches) > 0:
+                try:
+                    stage, task = next(iterator)
+                except StopIteration:
+                    had_error = True
+                    return
+                # Non prioritized STOP signal: there are no more tasks to process and
+                # we should smoothly stop (wait that there are no more active tasks,
+                # and finalize the writer)
+                if stage == 0 and task is None:
+                    expect_new_tasks = False
+                    continue
+
                 # If first stage, we receive tasks that may require batching
                 # again => we split them into subtasks
                 if stage == 0:
@@ -329,7 +348,6 @@ class CPUWorker:
 
         logging.info(f"Starting cpu {self.cpu_idx}")
         self.exchanger.outputs_queue.put(None)
-        had_error = False
         for stage, (gpu_idx, batch_id, result) in read_tasks():
             if had_error:
                 continue  # pragma: no cover
@@ -383,6 +401,12 @@ class CPUWorker:
 
                 print(traceback.format_exc(), flush=True)
                 self.exchanger.put_results((e, 0, self.cpu_idx, None))
+
+        if not had_error:
+            if lc.writer is not None:
+                results, count = lc.writer.finalize()
+                if count > 0:
+                    self.exchanger.put_results((results, count, self.cpu_idx, None))
         # We need to drain the queues of GPUWorker fed inputs (pre-moved to GPU)
         # to ensure no tensor allocated on producer processes (CPUWorker via
         # collate) are left in consumer processes
@@ -428,7 +452,7 @@ class GPUWorker:
             if name in self.gpu_pipe_names
         ]
         del lc
-        logging.info(f"Starting cpu {self.gpu_idx}")
+        logging.info(f"Starting gpu {self.gpu_idx}")
         self.exchanger.outputs_queue.put(None)
         with torch.no_grad():
             for stage, task in self.exchanger.get_gpu_tasks(self.gpu_idx):
@@ -710,6 +734,10 @@ def execute_multiprocessing_backend(
                     exchanger.put_cpu((input_task_id, batch), stage=0, idx=cpu_idx)
                     workloads[cpu_idx][input_task_id] = batch_size
 
+                # Inform the CPU workers that there are no more tasks to process
+                for i, worker in enumerate(cpu_workers):
+                    exchanger.cpu_inputs_queues[i][0].put(None)
+
                 while any(workloads):
                     outputs, count, cpu_idx, output_task_id = next(outputs_iterator)
                     if isinstance(outputs, BaseException):
@@ -718,7 +746,6 @@ def execute_multiprocessing_backend(
                         bar.update(count)
                     yield outputs
                     workloads[cpu_idx].pop(output_task_id)
-
         finally:
             revert_pickler()
 
@@ -748,11 +775,11 @@ def execute_multiprocessing_backend(
             # with the cleanup of these processes ?
             for i, worker in enumerate(gpu_workers):  # pragma: no cover
                 if worker.is_alive():
-                    logging.error("Killing gpu worker", i)
+                    logging.error(f"Killing gpu worker {i}")
                     worker.kill()
             for i, worker in enumerate(cpu_workers):  # pragma: no cover
                 if worker.is_alive():
-                    logging.error("Killing cpu worker", i)
+                    logging.error(f"Killing cpu worker {i}")
                     worker.kill()
 
     gen = process()

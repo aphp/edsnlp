@@ -26,9 +26,9 @@ T2	Disease 31 58	pneumopathie au coronavirus
 T3	Drug 79 90	paracétamol
 ```
 
-## Reading Standoff files {: #edsnlp.data.standoff.StandoffReader }
+## Reading Standoff files {: #edsnlp.data.standoff.read_standoff }
 
-::: edsnlp.data.standoff.StandoffReader
+::: edsnlp.data.standoff.read_standoff
     options:
         heading_level: 3
         show_source: false

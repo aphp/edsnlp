@@ -7,6 +7,7 @@ from typing import Optional
 import dill
 
 from edsnlp.core.lazy_collection import LazyCollection
+from edsnlp.data.base import BaseWriter
 from edsnlp.data.converters import set_current_tokenizer
 from edsnlp.data.spark import SparkReader, SparkWriter
 from edsnlp.utils.collections import batchify, flatten_once
@@ -74,6 +75,15 @@ def execute_spark_backend(
 
     reader = lc.reader
     writer = lc.writer
+
+    if (
+        writer is not None
+        # check if finalize has been overridden
+        and writer.finalize.__func__ is not BaseWriter.finalize
+    ):
+        raise ValueError(
+            "The Spark backend does not support writers that need to be finalized."
+        )
 
     if isinstance(lc.reader, SparkReader):
         df = lc.reader.data

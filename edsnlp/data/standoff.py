@@ -464,7 +464,7 @@ def write_standoff(
     overwrite: bool
         Whether to overwrite existing directories.
     converter: Optional[Union[str, Callable]]
-        Converter to use to convert the documents to JSON objects.
+        Converter to use to convert the documents to dictionary objects.
         Defaults to the "standoff" format converter.
     """
     data = LazyCollection.ensure_lazy(data)

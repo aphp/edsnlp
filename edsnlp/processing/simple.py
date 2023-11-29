@@ -59,6 +59,12 @@ def execute_simple_backend(
                     if show_progress:
                         bar.update(len(batch))
                     yield batch
+            if writer is not None:
+                result, count = writer.finalize()
+                if show_progress:
+                    bar.update(count)
+                if count:
+                    yield result
 
     gen = process()
     return flatten_once(gen) if writer is None else writer.write_main(gen)

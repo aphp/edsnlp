@@ -64,6 +64,9 @@ class BaseWriter:
     def write_main(self, fragments: Iterable[T]):
         raise NotImplementedError()
 
+    def finalize(self):
+        return None, 0
+
 
 class IterableReader(BaseReader):
     DATA_FIELDS = ("data",)
@@ -164,8 +167,7 @@ def to_iterable(
     data: Union[Any, LazyCollection],
         The data to write (either a list of documents or a LazyCollection).
     converter: Optional[Union[str, Callable]]
-        Converter to use to convert the documents to JSON objects.
-        Defaults to the "standoff" format converter.
+        Converter to use to convert the documents to dictionary objects.
     kwargs:
         Additional keyword arguments passed to the converter. These are documented
         on the [Data schemas](/data/schemas) page.

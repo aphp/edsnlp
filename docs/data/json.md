@@ -22,9 +22,9 @@ As an example, imagine that we have the following document that uses the OMOP sc
 
 You could also have multiple `.json` files in a directory, the reader will read them all.
 
-## Reading JSON files {: #edsnlp.data.json.JsonReader }
+## Reading JSON files {: #edsnlp.data.json.read_json }
 
-::: edsnlp.data.json.JsonReader
+::: edsnlp.data.json.read_json
     options:
         heading_level: 3
         show_source: false

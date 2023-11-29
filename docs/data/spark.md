@@ -18,9 +18,9 @@ As an example, imagine that we have the following OMOP dataframe (we'll name it 
 |--------:|:----------------------------------------------|:--------------|
 |       0 | Le patient est admis pour une pneumopathie... | 2021-10-23    |
 
-## Reading from a Spark Dataframe {: #edsnlp.data.spark.SparkReader }
+## Reading from a Spark Dataframe {: #edsnlp.data.spark.from_spark }
 
-::: edsnlp.data.spark.SparkReader
+::: edsnlp.data.spark.from_spark
     options:
         heading_level: 3
         show_source: false

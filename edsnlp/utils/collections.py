@@ -3,7 +3,17 @@ import itertools
 import math
 import sys
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Mapping, Sequence, TypeVar, Union
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Mapping,
+    Sequence,
+    TypeVar,
+    Union,
+)
 
 It = TypeVar("It", bound=Iterable)
 T = TypeVar("T")
@@ -27,7 +37,7 @@ def ld_to_dl(ld: Iterable[Mapping[str, T]]) -> Dict[str, List[T]]:
     return {k: [dic.get(k) for dic in ld] for k in ld[0]}
 
 
-def dl_to_ld(dl: Mapping[str, Sequence[Any]]) -> Iterable[Dict[str, Any]]:
+def dl_to_ld(dl: Mapping[str, Sequence[Any]]) -> Iterator[Dict[str, Any]]:
     """
     Convert a dictionary of lists to a list of dictionaries
 

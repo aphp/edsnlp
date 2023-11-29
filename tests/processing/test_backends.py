@@ -1,4 +1,5 @@
 from itertools import chain
+from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -38,24 +39,45 @@ docs = [
 ]
 
 
-@pytest.mark.parametrize("reader_format", ["pandas"])
-@pytest.mark.parametrize("reader_converter", ["omop"])
-@pytest.mark.parametrize("backend", ["simple", "multiprocessing", "spark"])
-@pytest.mark.parametrize("writer_format", ["pandas"])
-@pytest.mark.parametrize("writer_converter", ["omop"])
+@pytest.mark.parametrize(
+    "reader_format,reader_converter,backend,writer_format,writer_converter,worker_io",
+    [
+        ("pandas", "omop", "simple", "pandas", "omop", False),
+        ("pandas", "omop", "multiprocessing", "pandas", "omop", False),
+        ("pandas", "omop", "spark", "pandas", "omop", False),
+        ("parquet", "omop", "simple", "parquet", "omop", False),
+        ("parquet", "omop", "multiprocessing", "parquet", "omop", False),
+        ("parquet", "omop", "spark", "parquet", "omop", False),
+        ("parquet", "omop", "multiprocessing", "parquet", "omop", True),
+        ("parquet", "omop", "spark", "parquet", "omop", True),
+    ],
+)
 def test_end_to_end(
     reader_format,
     reader_converter,
-    nlp,
     backend,
     writer_format,
     writer_converter,
+    worker_io,
+    nlp_eds,
+    tmp_path,
 ):
+    nlp = nlp_eds
+    rsrc = Path(__file__).parent.parent.resolve() / "resources"
     if reader_format == "pandas":
         pandas_dataframe = pd.DataFrame(docs)
-        data = edsnlp.data.from_pandas(pandas_dataframe, converter=reader_converter)
+        data = edsnlp.data.from_pandas(
+            pandas_dataframe,
+            converter=reader_converter,
+        )
+    elif reader_format == "parquet":
+        data = edsnlp.data.read_parquet(
+            rsrc / "docs.pq",
+            converter=reader_converter,
+            read_in_worker=worker_io,
+        )
     else:
-        raise Exception()
+        raise ValueError(reader_format)
 
     data = data.map_pipeline(nlp)
 
@@ -63,8 +85,28 @@ def test_end_to_end(
 
     if writer_format == "pandas":
         data.to_pandas(converter=writer_converter)
+    elif writer_format == "parquet":
+        if backend == "spark":
+            with pytest.raises(ValueError):
+                data.write_parquet(
+                    tmp_path,
+                    converter=writer_converter,
+                    write_in_worker=worker_io,
+                )
+            data.write_parquet(
+                tmp_path,
+                converter=writer_converter,
+                accumulate=False,
+                write_in_worker=worker_io,
+            )
+        else:
+            data.write_parquet(
+                tmp_path,
+                converter=writer_converter,
+                write_in_worker=worker_io,
+            )
     else:
-        raise Exception()
+        raise ValueError(writer_format)
 
 
 def test_multiprocessing_backend(frozen_ml_nlp):

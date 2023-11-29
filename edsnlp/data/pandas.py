@@ -139,8 +139,8 @@ def to_pandas(
     data: Union[Any, LazyCollection],
         The data to write (either a list of documents or a LazyCollection).
     converter: Optional[Union[str, Callable]]
-        Converter to use to convert the documents to JSON objects.
-        Defaults to the "standoff" format converter.
+        Converter to use to convert the documents to dictionary objects before storing
+        them in the dataframe.
     dtypes: Optional[dict]
         Dictionary of column names to dtypes. This is passed to `pd.DataFrame.astype`.
     kwargs:

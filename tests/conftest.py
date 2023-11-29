@@ -12,8 +12,7 @@ def lang(request):
     return request.param
 
 
-@fixture(scope="session")
-def nlp(lang):
+def make_nlp(lang):
     if lang == "eds":
         model = spacy.blank("eds")
     else:
@@ -50,6 +49,16 @@ def nlp(lang):
     model.add_pipe("eds.measurements")
 
     return model
+
+
+@fixture(scope="session")
+def nlp(lang):
+    return make_nlp(lang)
+
+
+@fixture(scope="session")
+def nlp_eds():
+    return make_nlp("eds")
 
 
 @fixture

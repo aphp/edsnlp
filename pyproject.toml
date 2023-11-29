@@ -31,6 +31,7 @@ dependencies = [
     # Packaging
     "build>=1.0.0",
     "toml",
+    "pyarrow>=3.0.0",  # support for fragment.metadata.num_rows
 ]
 [project.optional-dependencies]
 dev = [
@@ -226,6 +227,7 @@ where = ["."]
 "spark" =    "edsnlp.data:from_spark"
 "pandas" =   "edsnlp.data:from_pandas"
 "json" =     "edsnlp.data:read_json"
+"parquet" =  "edsnlp.data:read_parquet"
 "standoff" = "edsnlp.data:read_standoff"
 "brat"     = "edsnlp.data:read_brat"  # alias for standoff
 

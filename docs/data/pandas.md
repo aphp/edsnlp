@@ -18,14 +18,15 @@ As an example, imagine that we have the following OMOP dataframe (we'll name it 
 |--------:|:----------------------------------------------|:--------------|
 |       0 | Le patient est admis pour une pneumopathie... | 2021-10-23    |
 
-## Reading from a Pandas Dataframe {: #edsnlp.data.pandas.PandasReader }
+## Reading from a Pandas Dataframe {: #edsnlp.data.pandas.from_pandas }
 
-::: edsnlp.data.pandas.PandasReader
+::: edsnlp.data.pandas.from_pandas
     options:
         heading_level: 3
         show_source: false
         show_toc: false
         show_bases: false
+
 
 ## Writing to a Pandas DataFrame {: #edsnlp.data.pandas.to_pandas }
 

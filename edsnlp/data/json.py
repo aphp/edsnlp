@@ -223,10 +223,11 @@ def write_json(
     **kwargs,
 ) -> None:
     """
-    `edsnlp.data.write_json` writes a list of documents as using the JSON/Standoff
-    format in a directory. The JSON files will be named after the `note_id` attribute of
-    the documents, and subdirectories will be created if the name contains `/`
-    characters.
+    `edsnlp.data.write_json` writes a list of documents using the JSON
+    format in a directory. If `lines` is false, each document will be stored in its
+    own JSON file, named after the FILENAME field returned by the converter (commonly
+    the `note_id` attribute of the documents), and subdirectories will be created if the
+    name contains `/` characters.
 
     Example
     -------
@@ -260,8 +261,8 @@ def write_json(
     overwrite: bool
         Whether to overwrite existing directories.
     converter: Optional[Union[str, Callable]]
-        Converter to use to convert the documents to JSON objects.
-        Defaults to the "standoff" format converter.
+        Converter to use to convert the documents to dictionary objects before writing
+        them.
     kwargs:
         Additional keyword arguments to pass to the converter. These are documented
         on the [Data schemas](/data/schemas) page.

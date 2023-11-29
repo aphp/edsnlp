@@ -150,9 +150,9 @@ def to_spark(
     **kwargs,
 ):
     """
-    `edsnlp.data.to_spark` writes a list of documents as using the BRAT/Standoff format
-    in a directory. The BRAT files will be named after the `note_id` attribute of the
-    documents, and subdirectories will be created if the name contains `/` characters.
+    `edsnlp.data.to_spark` converts a list of documents into a Spark DataFrame, usually
+    one row per document, unless the converter returns a list in which case each entry
+    of the resulting list will be stored in its own row.
 
     Example
     -------
@@ -194,7 +194,8 @@ def to_spark(
     data: Union[Any, LazyCollection],
         The data to write (either a list of documents or a LazyCollection).
     converter: Optional[Union[str, Callable]]
-        Converter to use to convert the documents to the pre-spark JSON objects.
+        Converter to use to convert the documents to dictionary objects before storing
+        them in the dataframe.
     dtypes: pyspark.sql.types.StructType
         The schema to use for the DataFrame.
     show_dtypes: bool

@@ -269,7 +269,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
         Iterable[Tuple[str, 'edsnlp.core.torch_component.TorchComponent']]
         """
         for name, pipe, *_ in self.pipeline:
-            if name not in disable and hasattr(pipe, "batch_process"):
+            if name not in disable and hasattr(pipe, "forward"):
                 yield name, pipe
 
     def to(self, device: Union[str, Optional["torch.device"]] = None):  # noqa F821

@@ -239,7 +239,7 @@ def test_add_pipe_validation_error():
 
     assert str(e.value) == (
         "1 validation error for "
-        "edsnlp.pipelines.ner.covid.factory.create_component()\n"
+        "edsnlp.pipes.ner.covid.factory.create_component()\n"
         "-> extractor.foo\n"
         "   unexpected keyword argument"
     )
@@ -284,3 +284,7 @@ def test_torch_save(ml_nlp):
     nlp = torch.load(buffer)
     assert nlp.get_pipe("ner").labels == ["LOC", "PER"]
     assert len(list(nlp("Une phrase. Deux phrases.").sents)) == 2
+
+
+def test_parameters(frozen_ml_nlp):
+    assert len(list(frozen_ml_nlp.parameters())) == 40

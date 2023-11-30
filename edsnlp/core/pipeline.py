@@ -968,15 +968,32 @@ def blank(
 
 def load(
     config: Union[Path, str, Config],
+    overrides: Optional[Dict[str, Any]] = None,
+    *,
     exclude: Optional[Union[str, Iterable[str]]] = None,
 ):
     """
     Load a pipeline from a config file or a directory.
 
+    Examples
+    --------
+
+    ```{ .python .no-check }
+    import edsnlp
+
+    nlp = edsnlp.load(
+        "path/to/config.cfg",
+        overrides={"components": {"my_component": {"arg": "value"}}},
+    )
+    ```
+
     Parameters
     ----------
     config: Union[Path, str, Config]
         The config to use for the pipeline, or the path to a config file or a directory.
+    overrides: Optional[Dict[str, Any]]
+        Overrides to apply to the config when loading the pipeline. These are the
+        same parameters as the ones used when initializing the pipeline.
     exclude: Optional[Union[str, Iterable[str]]]
         The names of the components, or attributes to exclude from the loading
         process. :warning: The `exclude` argument will be mutated in place.
@@ -991,6 +1008,8 @@ def load(
         if path.is_dir():
             path = (Path(path) if isinstance(path, str) else path).absolute()
             config = Config.from_disk(path / "config.cfg")
+            if overrides:
+                config = config.merge(overrides)
             pwd = os.getcwd()
             try:
                 os.chdir(path)

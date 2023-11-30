@@ -68,6 +68,7 @@ def test_sequence(frozen_ml_nlp: Pipeline):
 def test_disk_serialization(tmp_path, ml_nlp):
     nlp = ml_nlp
 
+    assert nlp.get_pipe("transformer").stride == 96
     ner = nlp.get_pipe("ner")
     ner.update_labels(["PERSON", "GIFT"])
     nlp.to_disk(tmp_path / "model")
@@ -90,8 +91,12 @@ def test_disk_serialization(tmp_path, ml_nlp):
         )
     )
 
-    nlp = edsnlp.load(tmp_path / "model")
+    nlp = edsnlp.load(
+        tmp_path / "model",
+        overrides={"components": {"transformer": {"stride": 64}}},
+    )
     assert nlp.get_pipe("ner").labels == ["PERSON", "GIFT"]
+    assert nlp.get_pipe("transformer").stride == 64
 
 
 config_str = """\

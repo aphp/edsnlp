@@ -176,12 +176,15 @@ INIT_PY = """
 
 import edsnlp
 from pathlib import Path
+from typing import Optional, Dict, Any
 
 __version__ = {__version__}
 
-def load(device: "torch.device" = "cpu") -> edsnlp.Pipeline:
+def load(
+    overrides: Optional[Dict[str, Any]] = None,
+) -> edsnlp.Pipeline:
     artifacts_path = Path(__file__).parent / "{artifacts_dir}"
-    model = edsnlp.load(artifacts_path).to(device)
+    model = edsnlp.load(artifacts_path, overrides=overrides)
     return model
 """
 

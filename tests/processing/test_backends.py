@@ -1,3 +1,4 @@
+import time
 from itertools import chain
 from pathlib import Path
 
@@ -115,7 +116,7 @@ def test_multiprocessing_backend(frozen_ml_nlp):
         frozen_ml_nlp.pipe(
             texts * 20,
             batch_size=2,
-        ).set_processing(backend="multiprocessing")
+        ).set_processing(backend="multiprocessing", num_cpu_workers=-1)
     )
     assert len(docs) == 40
 
@@ -168,10 +169,10 @@ def test_multiprocessing_rb_error(ml_nlp):
                 for i in range(5)
             ),
             converter=simple_converter,
-        )
+        ).map(lambda x: time.sleep(0.2) or x)
         docs = ml_nlp.pipe(
             docs,
-            n_process=-1,
+            n_process=2,
             batch_size=2,
         )
         list(docs)

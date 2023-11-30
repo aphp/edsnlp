@@ -171,7 +171,7 @@ try:
             dill.settings["recurse"] = False
             if AlignDevicesHook is not None:
                 del dill.Pickler.dispatch[AlignDevicesHook]
-                if old is not None:
+                if old is not None:  # pragma: no cover
                     dill.Pickler.dispatch[AlignDevicesHook] = old
 
     def load(*args, map_location=None, **kwargs):
@@ -188,7 +188,7 @@ try:
         MAP_LOCATION = None
         return result
 
-except ImportError:
+except ImportError:  # pragma: no cover
 
     def load(*args, map_location=None, **kwargs):
         return dill.load(*args, **kwargs)
@@ -207,14 +207,13 @@ class Exchanger:
         self.gpu_worker_devices = gpu_worker_devices
         # We add prioritized queue at the end for STOP signals
         self.cpu_inputs_queues = [
-            [mp.SimpleQueue()] + [mp.SimpleQueue() for _ in range(num_stages + 1)]
+            [mp.Queue()] + [mp.SimpleQueue() for _ in range(num_stages + 1)]
             # The input queue is not shared between processes, since calling `wait`
             # on a queue reader from multiple processes may lead to a deadlock
             for _ in range(num_cpu_workers)
         ]
         self.gpu_inputs_queues = [
-            [mp.SimpleQueue() for _ in range(num_stages + 1)]
-            for _ in range(num_gpu_workers)
+            [mp.Queue() for _ in range(num_stages + 1)] for _ in range(num_gpu_workers)
         ]
         self.outputs_queue = mp.Queue()
 
@@ -346,7 +345,7 @@ class CPUWorker:
         next_batch_id = 0
         active_batches = {}
 
-        logging.info(f"Starting cpu {self.cpu_idx}")
+        logging.info(f"Starting cpu {self.cpu_idx}, PID {os.getpid()}")
         self.exchanger.outputs_queue.put(None)
         for stage, (gpu_idx, batch_id, result) in read_tasks():
             if had_error:
@@ -588,7 +587,7 @@ def execute_multiprocessing_backend(
 
     default_method = multiprocessing.get_start_method()
     if process_start_method is not None and default_method != process_start_method:
-        logging.info("Switching process start method to", process_start_method)
+        logging.info(f"Switching process start method to {process_start_method}")
 
     mp = multiprocessing.get_context(process_start_method)
     max_workers = max(min(mp.cpu_count() - num_gpu_workers, DEFAULT_MAX_CPU_WORKERS), 0)
@@ -620,7 +619,7 @@ def execute_multiprocessing_backend(
     )
     assert len(cpu_worker_devices) == num_cpu_workers
     assert len(gpu_worker_devices) == num_gpu_workers
-    if num_cpu_workers == 0:
+    if num_cpu_workers == 0:  # pragma: no cover
         (
             num_cpu_workers,
             num_gpu_workers,
@@ -674,10 +673,11 @@ def execute_multiprocessing_backend(
             )
         )
 
-    debug(
-        f"Starting {num_cpu_workers} cpu workers and {num_gpu_workers} gpu workers, "
-        f"with accelerated pipes: {gpu_pipe_names}",
-        flush=True,
+    logging.info(f"Main PID {os.getpid()}")
+
+    logging.info(
+        f"Starting {num_cpu_workers} cpu workers and {num_gpu_workers} gpu workers on "
+        f"{gpu_worker_devices}, with accelerated pipes: {gpu_pipe_names}",
     )
 
     for worker in (*cpu_workers, *gpu_workers):
@@ -704,14 +704,14 @@ def execute_multiprocessing_backend(
             if show_progress:
                 from tqdm import tqdm
 
-                bar = tqdm()
+                bar = tqdm(smoothing=0.1)
 
             with bar:
                 for input_task_id, (batch, batch_size) in enumerate(
                     batchify_with_count(inputs_iterator, lc.batch_size)
                 ):
                     if all(
-                        sum(wl.values()) > lc.batch_size * num_max_enqueued
+                        sum(wl.values()) >= lc.batch_size * num_max_enqueued
                         for wl in workloads
                     ):
                         outputs, count, cpu_idx, output_task_id = next(outputs_iterator)
@@ -721,7 +721,7 @@ def execute_multiprocessing_backend(
                             bar.update(count)
                         yield outputs
                         if output_task_id is not None:
-                            workloads[cpu_idx].pop(output_task_id)
+                            workloads[cpu_idx].pop(output_task_id, None)
 
                     # Shuffle to ensure the first process does not receive all the
                     # documents in case of workload equality
@@ -730,7 +730,6 @@ def execute_multiprocessing_backend(
                         cpu_worker_indices,
                         key=lambda i: sum(workloads[i].values()),
                     )
-                    debug("Putting a new task for cpu", cpu_idx)
                     exchanger.put_cpu((input_task_id, batch), stage=0, idx=cpu_idx)
                     workloads[cpu_idx][input_task_id] = batch_size
 
@@ -745,7 +744,7 @@ def execute_multiprocessing_backend(
                     if show_progress:
                         bar.update(count)
                     yield outputs
-                    workloads[cpu_idx].pop(output_task_id)
+                    workloads[cpu_idx].pop(output_task_id, None)
         finally:
             revert_pickler()
 

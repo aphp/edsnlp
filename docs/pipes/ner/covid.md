@@ -1,6 +1,6 @@
-# COVID {: #edsnlp.pipelines.ner.covid.factory.create_component }
+# COVID {: #edsnlp.pipes.ner.covid.factory.create_component }
 
-::: edsnlp.pipelines.ner.covid.factory.create_component
+::: edsnlp.pipes.ner.covid.factory.create_component
     options:
         heading_level: 2
         show_bases: false

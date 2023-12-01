@@ -9,7 +9,7 @@ In some cases, you are not interested in individual extractions, but rather in d
 - Set a threshold on the minimal number of entities that should be present in the document to aggregate them.
 
 
-## An example for the [disorders][disorders] pipelines
+## An example for the [disorders][disorders] pipes
 
 Below is a simple implementation of this aggregation rule (this can be adapted for other comorbidity components and other qualification methods):
 

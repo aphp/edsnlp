@@ -1,6 +1,6 @@
-# Leukemia {: #edsnlp.pipelines.ner.disorders.leukemia.factory.create_component }
+# Leukemia {: #edsnlp.pipes.ner.disorders.leukemia.factory.create_component }
 
-::: edsnlp.pipelines.ner.disorders.leukemia.factory.create_component
+::: edsnlp.pipes.ner.disorders.leukemia.factory.create_component
     options:
         heading_level: 2
         show_bases: false

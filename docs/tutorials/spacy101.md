@@ -16,7 +16,7 @@ To obtain a doc, run the following code:
 ```python
 import edsnlp  # (1)
 
-# Initialise a pipeline
+# Initialize a pipeline
 nlp = edsnlp.blank("eds")  # (2)
 
 text = "Michel est un penseur latéral."  # (3)
@@ -75,12 +75,12 @@ text = "Le 5 mai 2005, Jimothé a été invité à une fête organisée par Mich
 doc = nlp(text)
 ```
 
-1. Like the name suggests, this pipeline is declared by EDS-NLP.
+1. Like the name suggests, this pipeline component is declared by EDS-NLP.
    `eds.sentences` is a rule-based sentence boundary prediction.
-   See [its documentation](/pipelines/core/sentences) for detail.
-2. Like the name suggests, this pipeline is declared by EDS-NLP.
+   See [its documentation](/pipes/core/sentences) for detail.
+2. Like the name suggests, this pipeline component is declared by EDS-NLP.
    `eds.dates` is a date extraction and normalisation component.
-   See [its documentation](/pipelines/misc/dates) for detail.
+   See [its documentation](/pipes/misc/dates) for detail.
 
 The `doc` object just became more interesting!
 

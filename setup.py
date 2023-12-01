@@ -21,7 +21,7 @@ else:
     }
     MOD_NAMES = [
         "edsnlp.matchers.phrase",
-        "edsnlp.pipelines.core.sentences.fast_sentences",
+        "edsnlp.pipes.core.sentences.fast_sentences",
     ]
 
     include_dirs = [

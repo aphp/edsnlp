@@ -1,6 +1,6 @@
-# UMLS {: #edsnlp.pipelines.ner.umls.factory.create_component }
+# UMLS {: #edsnlp.pipes.ner.umls.factory.create_component }
 
-::: edsnlp.pipelines.ner.umls.factory.create_component
+::: edsnlp.pipes.ner.umls.factory.create_component
     options:
         heading_level: 2
         show_bases: false

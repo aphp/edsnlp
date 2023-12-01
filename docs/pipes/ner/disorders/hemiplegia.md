@@ -1,6 +1,6 @@
-# Hemiplegia  {: #edsnlp.pipelines.ner.disorders.hemiplegia.factory.create_component }
+# Hemiplegia  {: #edsnlp.pipes.ner.disorders.hemiplegia.factory.create_component }
 
-::: edsnlp.pipelines.ner.disorders.hemiplegia.factory.create_component
+::: edsnlp.pipes.ner.disorders.hemiplegia.factory.create_component
     options:
         heading_level: 2
         show_bases: false

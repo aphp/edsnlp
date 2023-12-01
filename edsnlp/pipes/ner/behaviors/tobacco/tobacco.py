@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
-from edsnlp.pipelines.base import SpanSetterArg
+from edsnlp.pipes.base import SpanSetterArg
 from edsnlp.utils.numbers import parse_digit
 
 from ...disorders.base import DisorderMatcher
@@ -18,7 +18,7 @@ class TobaccoMatcher(DisorderMatcher):
     ??? info "Details of the used patterns"
         ```{ .python .no-check }
         # fmt: off
-        --8<-- "edsnlp/pipelines/ner/behaviors/tobacco/patterns.py"
+        --8<-- "edsnlp/pipes/ner/behaviors/tobacco/patterns.py"
         # fmt: on
         ```
 

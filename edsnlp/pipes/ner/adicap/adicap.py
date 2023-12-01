@@ -5,8 +5,8 @@ from typing import List, Optional, Union
 from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
-from edsnlp.pipelines.base import SpanSetterArg
-from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
+from edsnlp.pipes.base import SpanSetterArg
+from edsnlp.pipes.core.contextual_matcher import ContextualMatcher
 from edsnlp.utils.resources import get_adicap_dict
 
 from . import patterns

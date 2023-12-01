@@ -1,6 +1,6 @@
-# Span Pooler {: #edsnlp.pipelines.trainable.embeddings.span_pooler.factory.create_component }
+# Span Pooler {: #edsnlp.pipes.trainable.embeddings.span_pooler.factory.create_component }
 
-::: edsnlp.pipelines.trainable.embeddings.span_pooler.factory.create_component
+::: edsnlp.pipes.trainable.embeddings.span_pooler.factory.create_component
     options:
         heading_level: 2
         show_bases: false

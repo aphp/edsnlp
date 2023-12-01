@@ -4,13 +4,13 @@ We provide several Named Entity Recognition (NER) components.
 Named Entity Recognition is the task of identifying short relevant spans of text, named entities, and classifying them into pre-defined categories.
 In the case of clinical documents, these entities can be scores, disorders, behaviors, codes, dates, measurements, etc.
 
-## Span setters: where are stored extracted entities ? {: #edsnlp.pipelines.base.SpanSetterArg }
+## Span setters: where are stored extracted entities ? {: #edsnlp.pipes.base.SpanSetterArg }
 
 A component assigns entities to a document by adding them to the `doc.ents` or `doc.spans[group]` attributes. `doc.ents` only supports non overlapping
 entities, therefore, if two entities overlap, the longest one will be kept. `doc.spans[group]` on the other hand, can contain overlapping entities.
 To control where entities are added, you can use the `span_setter` argument in any of these component.
 
-::: edsnlp.pipelines.base.SpanSetterArg
+::: edsnlp.pipes.base.SpanSetterArg
     options:
         heading_level: 2
         show_bases: false

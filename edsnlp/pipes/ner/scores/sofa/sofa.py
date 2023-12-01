@@ -2,7 +2,7 @@ from typing import Iterable
 
 from spacy.tokens import Doc, Span
 
-from edsnlp.pipelines.ner.scores.base_score import SimpleScoreMatcher
+from edsnlp.pipes.ner.scores.base_score import SimpleScoreMatcher
 
 
 class SofaMatcher(SimpleScoreMatcher):

@@ -56,7 +56,7 @@ doc.ents[0]._.negation  # (6)
 
 1. 'eds' is the name of the language, which defines the [tokenizer](/tokenizers).
 2. This example terminology provides a very simple, and by no means exhaustive, list of synonyms for COVID19.
-3. In spaCy, pipelines are added via the [`nlp.add_pipe` method](https://spacy.io/api/language#add_pipe). EDS-NLP pipelines are automatically discovered by spaCy.
+3. Similarly to spaCy, pipes are added via the [`nlp.add_pipe` method](https://spacy.io/api/language#add_pipe).
 4. See the [matching tutorial](tutorials/matching-a-terminology.md) for mode details.
 5. spaCy stores extracted entities in the [`Doc.ents` attribute](https://spacy.io/api/doc#ents).
 6. The `eds.negation` component has adds a `negation` custom attribute.
@@ -71,7 +71,7 @@ To learn more about EDS-NLP, we have prepared a series of tutorials that should 
 
 ## Available pipeline components
 
---8<-- "docs/pipelines/index.md:components"
+--8<-- "docs/pipes/index.md:components"
 
 ## Disclaimer
 

@@ -1,7 +1,7 @@
 from typing import Dict, List, Union
 
 from edsnlp.core import PipelineProtocol, registry
-from edsnlp.pipelines.core.matcher.matcher import GenericMatcher
+from edsnlp.pipes.core.matcher.matcher import GenericMatcher
 
 from ...base import SpanSetterArg
 from .patterns import patterns

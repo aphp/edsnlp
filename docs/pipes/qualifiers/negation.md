@@ -1,6 +1,6 @@
-# Negation {: #edsnlp.pipelines.qualifiers.negation.factory.create_component }
+# Negation {: #edsnlp.pipes.qualifiers.negation.factory.create_component }
 
-::: edsnlp.pipelines.qualifiers.negation.factory.create_component
+::: edsnlp.pipes.qualifiers.negation.factory.create_component
     options:
         heading_level: 2
         show_bases: false

@@ -1,5 +1,5 @@
 
-# Contextual Matcher {: #edsnlp.pipelines.core.contextual_matcher.factory.create_component }
+# Contextual Matcher {: #edsnlp.pipes.core.contextual_matcher.factory.create_component }
 
 During feature extraction, it may be necessary to search for additional patterns in their neighborhood, namely:
 
@@ -13,7 +13,7 @@ The ContextualMatcher allows to perform this extraction in a clear and concise w
 
 ## The configuration file
 
-The whole ContextualMatcher pipeline is basically defined as a list of **pattern dictionaries**.
+The whole ContextualMatcher pipeline component is basically defined as a list of **pattern dictionaries**.
 Let us see step by step how to build such a list using the example stated just above.
 
 ### a. Finding mentions of cancer
@@ -326,10 +326,10 @@ dict(
 )
 ```
 
-::: edsnlp.pipelines.core.contextual_matcher.factory.create_component
+::: edsnlp.pipes.core.contextual_matcher.factory.create_component
     options:
         only_parameters: true
 
 ## Authors and citation
 
-The `eds.matcher` pipeline was developed by AP-HP's Data Science team.
+The `eds.matcher` pipeline component was developed by AP-HP's Data Science team.

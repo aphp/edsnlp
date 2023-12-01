@@ -1,4 +1,4 @@
-# Normalisation {: #edsnlp.pipelines.core.normalizer.factory.create_component }
+# Normalisation {: #edsnlp.pipes.core.normalizer.factory.create_component }
 
 The normalisation scheme used by EDS-NLP adheres to the non-destructive doctrine. In other words,
 
@@ -10,8 +10,8 @@ is always true.
 
 To achieve this, the input text is never modified. Instead, our normalisation strategy focuses on two axes:
 
-1. Only the `NORM` and `tag_` attributes are modified by the `normalizer` pipeline ;
-2. Pipelines (eg the [`pollution`](#pollution) pipeline) can mark tokens as _excluded_ by setting the extension `Token.tag_` to `EXCLUDED` or as _space_ by setting the extension `Token.tag_` to `SPACE`.
+1. Only the `NORM` and `tag_` attributes are modified by the `normalizer` pipeline component ;
+2. Pipes (e.g., [`pollution`](#pollution)) can mark tokens as _excluded_ by setting the extension `Token.tag_` to `EXCLUDED` or as _space_ by setting the extension `Token.tag_` to `SPACE`.
    It enables downstream matchers to skip excluded tokens.
 
 The normaliser can act on the input text in five dimensions :
@@ -26,12 +26,12 @@ The normaliser can act on the input text in five dimensions :
 
     We recommend you also **add an end-of-line classifier to remove excess new line characters** (introduced by the PDF layout).
 
-    We provide a `endlines` pipeline, which requires training an unsupervised model.
+    We provide a `endlines` pipeline component, which requires training an unsupervised model.
     Refer to [the dedicated page for more information](./endlines.md).
 
 ## Usage
 
-The normalisation is handled by the single `eds.normalizer` pipeline. The following code snippet is complete, and should run as is.
+The normalisation is handled by the single `eds.normalizer` pipeline component. The following code snippet is complete, and should run as is.
 
 ```python
 import edsnlp
@@ -57,19 +57,19 @@ Moreover, every span exposes a `normalized_variant` extension getter, which comp
 
 ## Configuration
 
-The pipeline can be configured using the following parameters :
+The pipeline component can be configured using the following parameters :
 
-::: edsnlp.pipelines.core.normalizer.factory.create_component
+::: edsnlp.pipes.core.normalizer.factory.create_component
     options:
        only_parameters: true
 
-## Pipelines
+## Pipes
 
 Let's review each subcomponent.
 
 ### Lowercase
 
-The `eds.lowercase` pipeline transforms every token to lowercase. It is not configurable.
+The `eds.lowercase` pipeline component transforms every token to lowercase. It is not configurable.
 
 Consider the following example :
 
@@ -98,7 +98,7 @@ get_text(doc, attr="NORM", ignore_excluded=False)
 
 ### Accents
 
-The `eds.accents` pipeline removes accents. To avoid edge cases,
+The `eds.accents` pipeline component removes accents. To avoid edge cases,
 the component uses a specified list of accentuated characters and their unaccented representation,
 making it more predictable than using a library such as `unidecode`.
 
@@ -189,7 +189,7 @@ doc = nlp("Phrase    avec des espaces \n et un retour à la ligne")
 
 ### Pollution
 
-The pollution pipeline uses a set of regular expressions to detect pollutions (irrelevant non-medical text that hinders text processing). Corresponding tokens are marked as excluded (by setting `Token._.excluded` to `True`), enabling the use of the phrase matcher.
+The pollution pipeline component uses a set of regular expressions to detect pollutions (irrelevant non-medical text that hinders text processing). Corresponding tokens are marked as excluded (by setting `Token._.excluded` to `True`), enabling the use of the phrase matcher.
 
 Consider the following example :
 
@@ -248,7 +248,7 @@ nlp.add_pipe(
 |---------------|---------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|---------------------|
 | `information` | Footnote present in a lot of notes, providing information to the patient about the use of its data                        | "L'AP-HP collecte vos données administratives à des fins ..."                                              | `True`              |
 | `bars`        | Barcodes wrongly parsed as text                                                                                           | "...NBNbWbWbNbWbNBNbNbWbW..."                                                                              | `True`              |
-| `biology`     | Parsed biology results table. It often contains disease names that often leads to *false positives* with NER pipelines.   | "...¦UI/L ¦20 ¦ ¦ ¦20-70 Polyarthrite rhumatoïde Facteur rhumatoide ¦UI/mL ¦ ¦<10 ¦ ¦ ¦ ¦0-14..."          | `False`             |
+| `biology`     | Parsed biology results table. It often contains disease names that often leads to *false positives* with NER pipes.       | "...¦UI/L ¦20 ¦ ¦ ¦20-70 Polyarthrite rhumatoïde Facteur rhumatoide ¦UI/mL ¦ ¦<10 ¦ ¦ ¦ ¦0-14..."          | `False`             |
 | `doctors`     | List of doctor names and specialities, often found in left-side note margins. Also source of potential *false positives*. | "... Dr ABC - Diabète/Endocrino ..."                                                                       | `True`              |
 | `web`         | Webpages URL and email adresses. Also source of potential *false positives*.                                              | "... www.vascularites.fr ..."                                                                              | `True`              |
 | `coding`      | Subsection containing ICD-10 codes along with their description. Also source of potential *false positives*.              | "... (2) E112 + Oeil (2) E113 + Neuro (2) E114 Démence (2) F03 MA (2) F001+G301 DCL G22+G301 Vasc (2) ..." | `False`             |
@@ -275,4 +275,4 @@ nlp.add_pipe(
 
 ## Authors and citation
 
-The `eds.normalizer` pipeline was developed by AP-HP's Data Science team.
+The `eds.normalizer` pipeline component was developed by AP-HP's Data Science team.

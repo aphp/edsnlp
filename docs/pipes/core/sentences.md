@@ -1,6 +1,6 @@
-# Sentences {: #edsnlp.pipelines.core.sentences.factory.create_component }
+# Sentences {: #edsnlp.pipes.core.sentences.factory.create_component }
 
-::: edsnlp.pipelines.core.sentences.factory.create_component
+::: edsnlp.pipes.core.sentences.factory.create_component
     options:
         heading_level: 2
         show_bases: false

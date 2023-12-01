@@ -4,9 +4,9 @@ from loguru import logger
 from spacy.tokens import Doc, Span, Token
 
 from edsnlp.core import PipelineProtocol
-from edsnlp.pipelines.base import SpanGetterArg, get_spans
-from edsnlp.pipelines.qualifiers.base import RuleBasedQualifier
-from edsnlp.pipelines.terminations import termination as default_termination
+from edsnlp.pipes.base import SpanGetterArg, get_spans
+from edsnlp.pipes.qualifiers.base import RuleBasedQualifier
+from edsnlp.pipes.terminations import termination as default_termination
 from edsnlp.utils.filter import consume_spans, filter_spans
 from edsnlp.utils.inclusion import check_inclusion
 

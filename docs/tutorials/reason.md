@@ -1,6 +1,6 @@
 # Detecting Reason of Hospitalisation
 
-In this tutorial we will use the pipeline `eds.reason` to :
+In this tutorial we will use the pipe `eds.reason` to :
 
 - Identify spans that corresponds to the reason of hospitalisation
 - Check if there are named entities overlapping with my span of 'reason of hospitalisation'
@@ -42,7 +42,7 @@ nlp.add_pipe("eds.reason", config=dict(use_sections=True))
 doc = nlp(text)
 ```
 
-The pipeline `reason` will add a key of spans called `reasons`. We check the first item in this list.
+The pipe `reason` will add a key of spans called `reasons`. We check the first item in this list.
 
 ```python
 # ↑ Omitted code above ↑

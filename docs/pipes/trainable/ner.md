@@ -1,6 +1,6 @@
-# Trainable NER {: #edsnlp.pipelines.trainable.ner_crf.factory.create_component }
+# Trainable NER {: #edsnlp.pipes.trainable.ner_crf.factory.create_component }
 
-::: edsnlp.pipelines.trainable.ner_crf.factory.create_component
+::: edsnlp.pipes.trainable.ner_crf.factory.create_component
     options:
         heading_level: 2
         show_bases: false

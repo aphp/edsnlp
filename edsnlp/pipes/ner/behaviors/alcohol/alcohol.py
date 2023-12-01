@@ -17,7 +17,7 @@ class AlcoholMatcher(DisorderMatcher):
     ??? info "Details of the used patterns"
         ```{ .python .no-check }
         # fmt: off
-        --8<-- "edsnlp/pipelines/ner/behaviors/alcohol/patterns.py"
+        --8<-- "edsnlp/pipes/ner/behaviors/alcohol/patterns.py"
         # fmt: on
         ```
 

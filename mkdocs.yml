@@ -52,76 +52,76 @@ nav:
       - tutorials/make-a-training-script.md
       - tutorials/quick-examples.md
   - Pipes:
-      - Overview: pipelines/index.md
+      - Overview: pipes/index.md
       - Core Pipelines:
-          - pipelines/core/index.md
-          - pipelines/core/normalizer.md
-          - pipelines/core/sentences.md
-          - pipelines/core/matcher.md
-          - pipelines/core/terminology.md
-          - pipelines/core/contextual-matcher.md
-          - pipelines/core/endlines.md
+          - pipes/core/index.md
+          - pipes/core/normalizer.md
+          - pipes/core/sentences.md
+          - pipes/core/matcher.md
+          - pipes/core/terminology.md
+          - pipes/core/contextual-matcher.md
+          - pipes/core/endlines.md
       - Qualifiers:
-          - pipelines/qualifiers/index.md
-          - pipelines/qualifiers/negation.md
-          - pipelines/qualifiers/family.md
-          - pipelines/qualifiers/hypothesis.md
-          - pipelines/qualifiers/reported-speech.md
-          - pipelines/qualifiers/history.md
+          - pipes/qualifiers/index.md
+          - pipes/qualifiers/negation.md
+          - pipes/qualifiers/family.md
+          - pipes/qualifiers/hypothesis.md
+          - pipes/qualifiers/reported-speech.md
+          - pipes/qualifiers/history.md
       - Miscellaneous:
-          - pipelines/misc/index.md
-          - pipelines/misc/dates.md
-          - pipelines/misc/measurements.md
-          - pipelines/misc/consultation-dates.md
-          - pipelines/misc/sections.md
-          - pipelines/misc/reason.md
-          - pipelines/misc/tables.md
+          - pipes/misc/index.md
+          - pipes/misc/dates.md
+          - pipes/misc/measurements.md
+          - pipes/misc/consultation-dates.md
+          - pipes/misc/sections.md
+          - pipes/misc/reason.md
+          - pipes/misc/tables.md
       - Named Entity Recognition:
-          - Overview: pipelines/ner/index.md
+          - Overview: pipes/ner/index.md
           - Scores:
-            - pipelines/ner/scores/index.md
-            - pipelines/ner/scores/charlson.md
-            - pipelines/ner/scores/emergency-ccmu.md
-            - pipelines/ner/scores/emergency-gemsa.md
-            - pipelines/ner/scores/emergency-priority.md
-            - pipelines/ner/scores/sofa.md
-            - pipelines/ner/scores/elston-ellis.md
+            - pipes/ner/scores/index.md
+            - pipes/ner/scores/charlson.md
+            - pipes/ner/scores/emergency-ccmu.md
+            - pipes/ner/scores/emergency-gemsa.md
+            - pipes/ner/scores/emergency-priority.md
+            - pipes/ner/scores/sofa.md
+            - pipes/ner/scores/elston-ellis.md
           - Disorders:
-            - pipelines/ner/disorders/index.md
-            - pipelines/ner/disorders/aids.md
-            - pipelines/ner/disorders/ckd.md
-            - pipelines/ner/disorders/copd.md
-            - pipelines/ner/disorders/cerebrovascular-accident.md
-            - pipelines/ner/disorders/congestive-heart-failure.md
-            - pipelines/ner/disorders/connective-tissue-disease.md
-            - pipelines/ner/disorders/dementia.md
-            - pipelines/ner/disorders/diabetes.md
-            - pipelines/ner/disorders/hemiplegia.md
-            - pipelines/ner/disorders/leukemia.md
-            - pipelines/ner/disorders/liver-disease.md
-            - pipelines/ner/disorders/lymphoma.md
-            - pipelines/ner/disorders/myocardial-infarction.md
-            - pipelines/ner/disorders/peptic-ulcer-disease.md
-            - pipelines/ner/disorders/peripheral-vascular-disease.md
-            - pipelines/ner/disorders/solid-tumor.md
-            - pipelines/ner/covid.md
+            - pipes/ner/disorders/index.md
+            - pipes/ner/disorders/aids.md
+            - pipes/ner/disorders/ckd.md
+            - pipes/ner/disorders/copd.md
+            - pipes/ner/disorders/cerebrovascular-accident.md
+            - pipes/ner/disorders/congestive-heart-failure.md
+            - pipes/ner/disorders/connective-tissue-disease.md
+            - pipes/ner/disorders/dementia.md
+            - pipes/ner/disorders/diabetes.md
+            - pipes/ner/disorders/hemiplegia.md
+            - pipes/ner/disorders/leukemia.md
+            - pipes/ner/disorders/liver-disease.md
+            - pipes/ner/disorders/lymphoma.md
+            - pipes/ner/disorders/myocardial-infarction.md
+            - pipes/ner/disorders/peptic-ulcer-disease.md
+            - pipes/ner/disorders/peripheral-vascular-disease.md
+            - pipes/ner/disorders/solid-tumor.md
+            - pipes/ner/covid.md
           - Behaviors:
-            - pipelines/ner/behaviors/index.md
-            - pipelines/ner/behaviors/alcohol.md
-            - pipelines/ner/behaviors/tobacco.md
-          - pipelines/ner/adicap.md
-          - pipelines/ner/tnm.md
-          - pipelines/ner/umls.md
-          - pipelines/ner/cim10.md
-          - pipelines/ner/drugs.md
+            - pipes/ner/behaviors/index.md
+            - pipes/ner/behaviors/alcohol.md
+            - pipes/ner/behaviors/tobacco.md
+          - pipes/ner/adicap.md
+          - pipes/ner/tnm.md
+          - pipes/ner/umls.md
+          - pipes/ner/cim10.md
+          - pipes/ner/drugs.md
 
       - Trainable components:
-          - pipelines/trainable/index.md
-          - pipelines/trainable/embeddings/transformer.md
-          - pipelines/trainable/embeddings/text_cnn.md
-          - pipelines/trainable/embeddings/span_pooler.md
-          - pipelines/trainable/ner.md
-          - pipelines/trainable/span-qualifier.md
+          - pipes/trainable/index.md
+          - pipes/trainable/embeddings/transformer.md
+          - pipes/trainable/embeddings/text_cnn.md
+          - pipes/trainable/embeddings/span_pooler.md
+          - pipes/trainable/ner.md
+          - pipes/trainable/span-qualifier.md
   - tokenizers.md
   - Data Connectors:
       - data/index.md

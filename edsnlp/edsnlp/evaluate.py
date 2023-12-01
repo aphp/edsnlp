@@ -1,12 +1,14 @@
-from typing import Optional, Any, Dict, List, Iterable
 import time
+from copy import deepcopy
+from timeit import default_timer as timer
+from typing import Any, Dict, Iterable, List, Optional
+
+import numpy as np
 from spacy.language import _copy_examples
 from spacy.tokens import Doc
-from spacy.training import validate_examples, Example
-from copy import deepcopy
+from spacy.training import Example, validate_examples
 from tqdm import tqdm
-import numpy as np
-from timeit import default_timer as timer
+
 
 def get_annotation(docs):
     full_annot = []
@@ -31,8 +33,16 @@ def overlap(start_g, end_g, start_p, end_p, exact):
             return 1
         else:
             return 0
+
+
 def compute_scores(
-    ents_gold, ents_pred, boostrap_level="entity", exact=True, n_draw=500, alpha=0.05, digits=2
+    ents_gold,
+    ents_pred,
+    boostrap_level="entity",
+    exact=True,
+    n_draw=500,
+    alpha=0.05,
+    digits=2,
 ):
     docs = [doc[0] for doc in ents_gold]
     gold_labels = [
@@ -55,8 +65,8 @@ def compute_scores(
         results[label]["TP"] = 0
         results[label]["FP"] = 0
         results[label]["FN"] = 0
-    results_by_doc = {doc : deepcopy(results) for doc in docs}
-       
+    results_by_doc = {doc: deepcopy(results) for doc in docs}
+
     for i in range(len(ents_gold)):  # iterate through doc
         # list of doc, inside each of them is a quadrupet ['text','label','start_char','stop_char']
         doc_id = ents_gold[i][0]
@@ -120,7 +130,7 @@ def compute_scores(
     for key, value in results_list.items():
         for k, v in value.items():
             results_list[key][k] = [v]
-                
+
     total_words = 0
     for entity in results_list.keys():
         total_words += results[entity]["TP"]
@@ -138,19 +148,21 @@ def compute_scores(
         "FN": [sum(results[entity]["FN"] for entity in results.keys())],
         "FP": [sum(results[entity]["FP"] for entity in results.keys())],
     }
-    
+
     # Bootstrap per doc
-    if boostrap_level == 'doc':
+    if boostrap_level == "doc":
         for i in tqdm(range(1, n_draw)):
             draw = np.random.choice(
-                    docs,
-                    size=len(docs),
-                    replace=True,
-                )
-            micro_avg_draw = {"TP":0, "FN": 0, "FP": 0}
-            results_draw = {  # we create a dic with the labels of the dataset (CHEM, BIO...)
-                label: {} for label in pred_labels.union(gold_labels)
-            }
+                docs,
+                size=len(docs),
+                replace=True,
+            )
+            micro_avg_draw = {"TP": 0, "FN": 0, "FP": 0}
+            results_draw = (
+                {  # we create a dic with the labels of the dataset (CHEM, BIO...)
+                    label: {} for label in pred_labels.union(gold_labels)
+                }
+            )
             for label in results_draw.keys():
                 results_draw[label]["Precision"] = 0
                 results_draw[label]["TP"] = 0
@@ -158,28 +170,22 @@ def compute_scores(
                 results_draw[label]["FN"] = 0
             for doc in draw:
                 for label in results_by_doc[doc].keys():
-                    micro_avg_draw["TP"]+=results_by_doc[doc][label]["TP"]
-                    results_draw[label]["TP"]+=results_by_doc[doc][label]["TP"]
-                    micro_avg_draw["FN"]+=results_by_doc[doc][label]["FN"]
-                    results_draw[label]["FN"]+=results_by_doc[doc][label]["FN"]
-                    micro_avg_draw["FP"]+=results_by_doc[doc][label]["FP"]
-                    results_draw[label]["FP"]+=results_by_doc[doc][label]["FP"]
+                    micro_avg_draw["TP"] += results_by_doc[doc][label]["TP"]
+                    results_draw[label]["TP"] += results_by_doc[doc][label]["TP"]
+                    micro_avg_draw["FN"] += results_by_doc[doc][label]["FN"]
+                    results_draw[label]["FN"] += results_by_doc[doc][label]["FN"]
+                    micro_avg_draw["FP"] += results_by_doc[doc][label]["FP"]
+                    results_draw[label]["FP"] += results_by_doc[doc][label]["FP"]
             for entity in results_list.keys():
-                results_list[entity]["TP"].append(
-                    results_draw[entity]["TP"]
-                )
-                results_list[entity]["FN"].append(
-                    results_draw[entity]["FN"]
-                )
-                results_list[entity]["FP"].append(
-                    results_draw[entity]["FP"]
-                )
+                results_list[entity]["TP"].append(results_draw[entity]["TP"])
+                results_list[entity]["FN"].append(results_draw[entity]["FN"])
+                results_list[entity]["FP"].append(results_draw[entity]["FP"])
             micro_avg["TP"].append(micro_avg_draw["TP"])
             micro_avg["FN"].append(micro_avg_draw["FN"])
             micro_avg["FP"].append(micro_avg_draw["FP"])
-            
+
     # Bootstrap per entities
-    if boostrap_level == 'entity':
+    if boostrap_level == "entity":
         for i in tqdm(range(1, n_draw)):
             draw = np.random.choice(
                 label_to_draw,
@@ -212,30 +218,33 @@ def compute_scores(
         results_list[entity]["Recall"] = []
         results_list[entity]["F1"] = []
         for i in range(n_draw):
-            results_list[entity]["N_entity"].append(results_list[entity]["TP"][i] + results_list[entity]["FP"][i] + results_list[entity]["FN"][i])
+            results_list[entity]["N_entity"].append(
+                results_list[entity]["TP"][i]
+                + results_list[entity]["FP"][i]
+                + results_list[entity]["FN"][i]
+            )
             if results_list[entity]["TP"][i] + results_list[entity]["FP"][i] != 0:
                 results_list[entity]["Precision"].append(
                     results_list[entity]["TP"][i]
-                    / (
-                        results_list[entity]["TP"][i]
-                        + results_list[entity]["FP"][i]
-                    ) * 100
+                    / (results_list[entity]["TP"][i] + results_list[entity]["FP"][i])
+                    * 100
                 )
             else:
-                results_list[entity]["Precision"].append(int(results_list[entity]["TP"][i] == 0) * 100)
+                results_list[entity]["Precision"].append(
+                    int(results_list[entity]["TP"][i] == 0) * 100
+                )
             if (results_list[entity]["TP"][i] + results_list[entity]["FN"][i]) != 0:
                 results_list[entity]["Recall"].append(
                     results_list[entity]["TP"][i]
-                    / (
-                        results_list[entity]["TP"][i]
-                        + results_list[entity]["FN"][i]
-                    ) * 100
+                    / (results_list[entity]["TP"][i] + results_list[entity]["FN"][i])
+                    * 100
                 )
             else:
-                results_list[entity]["Recall"].append(int(results_list[entity]["TP"][i] == 0) * 100)
+                results_list[entity]["Recall"].append(
+                    int(results_list[entity]["TP"][i] == 0) * 100
+                )
             if (
-                results_list[entity]["Precision"][i]
-                + results_list[entity]["Recall"][i]
+                results_list[entity]["Precision"][i] + results_list[entity]["Recall"][i]
             ) != 0:
                 results_list[entity]["F1"].append(
                     2
@@ -314,7 +323,12 @@ def compute_scores(
             str(round(f1, digits)) + " (" + str(f1_down) + "-" + str(f1_up) + ")"
         )
         result_panel[key]["N_entity"] = (
-            str(n_entity) + " (" + str(int(n_entity_up)) + "-" + str(int(n_entity_down)) + ")"
+            str(n_entity)
+            + " ("
+            + str(int(n_entity_up))
+            + "-"
+            + str(int(n_entity_down))
+            + ")"
         )
     print(f"With alpha = {alpha} and {n_draw} draws")
     output = f"With alpha = {alpha} and {n_draw} draws\n"
@@ -326,8 +340,17 @@ def compute_scores(
             output += "-" * 30
 
     # print(output)
-    result_panel["ents_per_type"] = {label: {"p": value["Precision"], "r": value["Recall"], "f": value["F1"], "n_entity": value["N_entity"]} for label, value in result_panel.items()}
+    result_panel["ents_per_type"] = {
+        label: {
+            "p": value["Precision"],
+            "r": value["Recall"],
+            "f": value["F1"],
+            "n_entity": value["N_entity"],
+        }
+        for label, value in result_panel.items()
+    }
     return result_panel
+
 
 def evaluate_test(
     gold_docs: List[Doc],
@@ -356,7 +379,7 @@ def evaluate_test(
     ents_pred, ents_gold = get_annotation(pred_docs), get_annotation(gold_docs)
     ents_pred.sort(key=lambda l: l[0])
     ents_gold.sort(key=lambda l: l[0])
-    
+
     scores = compute_scores(
         ents_gold,
         ents_pred,

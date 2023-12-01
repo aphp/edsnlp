@@ -1,6 +1,6 @@
 import torch
-from torch.utils.data import Dataset, DataLoader
-from torch.utils.data.sampler import Sampler, RandomSampler
+from torch.utils.data import DataLoader, Dataset
+from torch.utils.data.sampler import RandomSampler, Sampler
 
 """
 class TmpDataset(Dataset):
@@ -14,6 +14,7 @@ class TmpDataset(Dataset):
         return self.len
 """
 
+
 class FixedLengthBatchSampler(Sampler):
     def __init__(self, sampler, fixed_length, drop_last):
         self.sampler = sampler
@@ -25,10 +26,10 @@ class FixedLengthBatchSampler(Sampler):
         batch = []
         now_length = 0
         for idx in self.sampler:
-            #print(batch, now_length)
+            # print(batch, now_length)
             sample_length = len(self.sampler.data_source[idx][-1]) * 3
             if now_length + sample_length > self.fixed_length:
-                #print(batch, now_length)
+                # print(batch, now_length)
                 yield batch
                 batch = []
                 now_length = 0
@@ -37,6 +38,7 @@ class FixedLengthBatchSampler(Sampler):
             self.rel_sampler_count += 1
         if len(batch) > 0 and not self.drop_last:
             yield batch
+
 
 def my_collate_fn(batch):
     type_count = len(batch[0])

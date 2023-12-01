@@ -1,21 +1,24 @@
-from gensim import models
 import os
-import sys
-import torch
-import numpy as np
-from transformers import AutoTokenizer, AutoModel, AutoConfig
-import tqdm
 import pickle
-import pandas as pd
-from unidecode import unidecode
 import re
+import sys
+
+import numpy as np
+import pandas as pd
+import torch
+import tqdm
+from gensim import models
+from transformers import AutoConfig, AutoModel, AutoTokenizer
+from unidecode import unidecode
 
 batch_size = 128
 device = "cuda:0"
 
 # Defining the model
 # coder_eds
-model_checkpoint = "/export/home/cse200093/Jacques_Bio/data_bio/coder_output/model_150000.pth"
+model_checkpoint = (
+    "/export/home/cse200093/Jacques_Bio/data_bio/coder_output/model_150000.pth"
+)
 tokenizer_path = "/export/home/cse200093/word-embedding/finetuning-camembert-2021-07-29"
 model = torch.load(model_checkpoint).to(device)
 tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)

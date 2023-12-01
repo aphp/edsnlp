@@ -1,9 +1,9 @@
 import pytest
 from pytest import fixture
+from tests.conftest import text
 from thinc.config import ConfigValidationError
 
 from edsnlp.pipelines.core.matcher import GenericMatcher
-from tests.conftest import text
 
 
 @fixture

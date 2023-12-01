@@ -41,7 +41,7 @@ def nested_ner_scorer(examples: Iterable[Example], **cfg):
     """
     labels = set(cfg["labels"]) if "labels" in cfg is not None else None
     spans_labels = cfg["spans_labels"]
-    
+
     total_pred_spans = set()
     total_gold_spans = set()
     if labels is not None:

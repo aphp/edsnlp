@@ -1,5 +1,12 @@
-from edsnlp.pipelines.misc.measurements.patterns import common_measurements, number_terms, value_range_terms, units_config, unit_divisors, stopwords_unitless, stopwords_measure_unit
-
+from edsnlp.pipelines.misc.measurements.patterns import (
+    common_measurements,
+    number_terms,
+    stopwords_measure_unit,
+    stopwords_unitless,
+    unit_divisors,
+    units_config,
+    value_range_terms,
+)
 
 #######################################
 # ## CONFIG TO PRETREAT THE BRAT DIR ###
@@ -202,7 +209,8 @@ positive_terms_from_tables = [
 positive_symbols_from_tables = ("\+", "p")
 # To match symbols, we create regex
 positive_regex_from_tables = [
-    r"^[^a-zA-Z0-9]*(?:% s)" % "|".join(positive_symbols_from_tables) + r"[^a-zA-Z0-9]*$"
+    r"^[^a-zA-Z0-9]*(?:% s)" % "|".join(positive_symbols_from_tables)
+    + r"[^a-zA-Z0-9]*$"
 ]
 
 # Terms which will make the measurements pipe match a negative measurement
@@ -224,7 +232,8 @@ negative_terms_from_tables = [
 negative_symbols_from_tables = ("\-", "n")
 # To match symbols, we create regex
 negative_regex_from_tables = [
-    r"^[^a-zA-Z0-9]*(?:% s)" % "|".join(negative_symbols_from_tables) + r"[^a-zA-Z0-9]*$"
+    r"^[^a-zA-Z0-9]*(?:% s)" % "|".join(negative_symbols_from_tables)
+    + r"[^a-zA-Z0-9]*$"
 ]
 
 # Terms which will make the measurements pipe match a normal measurement

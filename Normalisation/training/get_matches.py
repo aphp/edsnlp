@@ -1,12 +1,13 @@
-from gensim import models
 import os
-import sys
-import torch
-import numpy as np
-from transformers import AutoTokenizer, AutoModel, AutoConfig
-import tqdm
 import pickle
+import sys
+
+import numpy as np
 import pandas as pd
+import torch
+import tqdm
+from gensim import models
+from transformers import AutoConfig, AutoModel, AutoTokenizer
 
 device = "cpu"
 EMBEDDINGS_DIR = "/export/home/cse200093/Jacques_Bio/data_bio/normalisation_embeddings/umls_normalized_embeddings_coder_eds.pt"
@@ -21,10 +22,10 @@ res_embeddings = torch.load(RES_EMBEDDINGS_DIR, map_location=torch.device(device
 
 # LOAD CORRESPONDANCE FILE BETWEEN EMBEDDINGS AND CUIS AND DES
 with open(LABEL_DIR, "rb") as f:
-    umls_labels= pickle.load(f)
-    
+    umls_labels = pickle.load(f)
+
 with open(DES_DIR, "rb") as f:
-    umls_des= pickle.load(f)
+    umls_des = pickle.load(f)
 
 sim = torch.matmul(res_embeddings, umls_embeddings.t())
 most_similar = torch.max(sim, dim=1)[1].tolist()

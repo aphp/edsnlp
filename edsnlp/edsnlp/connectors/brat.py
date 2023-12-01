@@ -425,7 +425,7 @@ class BratConnector(object):
                 doc.spans[group_name] = group
 
             docs.append(doc)
-            
+
         if self.span_groups is None:
             self.span_groups = sorted(list(encountered_span_groups))
         if self.attr_map is None:
@@ -542,4 +542,3 @@ class BratConnector(object):
         )
 
         return texts, annotations
-    

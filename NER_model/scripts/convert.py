@@ -5,10 +5,11 @@ from typing import Dict, List, Union
 import spacy
 import srsly
 import typer
-from edsnlp.connectors.brat import BratConnector
 from spacy.language import Language
 from spacy.tokens import Doc, DocBin
 from spacy.util import filter_spans
+
+from edsnlp.connectors.brat import BratConnector
 
 if not Doc.has_extension("context"):
     Doc.set_extension("context", default=dict())
@@ -58,7 +59,7 @@ def convert_jsonl(
     n_limit: int,
 ) -> spacy.tokens.DocBin:
     db = DocBin(store_user_data=True)
-    
+
     if n_limit is not None:
         nb_docs = 0
     for annot in srsly.read_jsonl(input_path):
@@ -95,7 +96,6 @@ def convert_jsonl(
 
         db.add(doc)
 
-
     return db
 
 
@@ -113,7 +113,6 @@ def convert_brat(
     for doc in docs:
         if hasattr(doc, "text"):
             db.add(doc)
-
 
     return db
 
@@ -137,17 +136,18 @@ def convert(
     ),
 ) -> None:
     nlp = get_nlp(lang)
-    
+
     if os.path.isdir(input_path):
         db = convert_brat(nlp, input_path, n_limit)
     else:
         db = convert_jsonl(nlp, input_path, n_limit)
-    
+
     typer.echo(f"The saved dataset contains {len(db)} documents.")
     if not os.path.exists(output_path.parent):
         os.makedirs(output_path.parent)
         print(f"Folder: {output_path.parent} has been created")
     db.to_disk(output_path)
+
 
 if __name__ == "__main__":
     typer.run(convert)

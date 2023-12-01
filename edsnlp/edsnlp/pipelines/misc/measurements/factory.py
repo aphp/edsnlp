@@ -1,11 +1,10 @@
-from typing import Dict, List, Optional, Union, Tuple
-from typing_extensions import Literal
+from typing import Dict, List, Optional, Tuple, Union
+
 from spacy.language import Language
-from edsnlp.pipelines.base import (
-    SpanGetterArg,
-    SpanSetterArg,
-)
+from typing_extensions import Literal
+
 import edsnlp.pipelines.misc.measurements.patterns as patterns
+from edsnlp.pipelines.base import SpanGetterArg, SpanSetterArg
 from edsnlp.pipelines.misc.measurements.measurements import (
     MeasureConfig,
     MeasurementsMatcher,

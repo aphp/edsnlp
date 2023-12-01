@@ -147,7 +147,7 @@ def get_docs_df(cim10_list, min_len=1000):
 
 def get_bio_df(summary_docs):
     bio = sql(
-        """SELECT bio.instance_num AS bio_id, bio.concept_cd, bio.units_cd, bio.nval_num, bio.tval_char, bio.quantity_num, bio.confidence_num, bio.encounter_num, bio.patient_num, bio.start_date, concept.name_char 
+        """SELECT bio.instance_num AS bio_id, bio.concept_cd, bio.units_cd, bio.nval_num, bio.tval_char, bio.quantity_num, bio.confidence_num, bio.encounter_num, bio.patient_num, bio.start_date, concept.name_char
         FROM i2b2_observation_lab AS bio JOIN i2b2_concept AS concept ON bio.concept_cd = concept.concept_cd"""
     )
     bio_dfs = {}
@@ -171,7 +171,7 @@ def get_bio_df(summary_docs):
 
 def get_med_df(summary_docs):
     med = sql(
-        """SELECT med.instance_num AS med_id, med.concept_cd, med.valueflag_cd, med.encounter_num, med.patient_num, med.start_date, concept.name_char 
+        """SELECT med.instance_num AS med_id, med.concept_cd, med.valueflag_cd, med.encounter_num, med.patient_num, med.start_date, concept.name_char
         FROM i2b2_observation_med AS med JOIN i2b2_concept AS concept ON med.concept_cd = concept.concept_cd"""
     )
     med_dfs = {}
@@ -1369,7 +1369,7 @@ plt.show()
 ## Lupus
 
 FAN/AAN (C0587178), Anti-DNA Natif (C1262035)
-Anti-Sm (C0201357) 
+Anti-Sm (C0201357)
 
 ```python
 disease = "lupus_erythemateux_dissemine"

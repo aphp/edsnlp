@@ -1,6 +1,6 @@
-#!/bin/bash 
+#!/bin/bash
 #SBATCH --job-name=ner_med_training
-#SBATCH -t 1:00:00 
+#SBATCH -t 1:00:00
 #SBATCH --gres=gpu:v100:1
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=20000

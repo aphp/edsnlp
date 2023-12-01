@@ -5,8 +5,6 @@ from typing import Any, Dict, Optional
 
 import srsly
 import typer
-from spacy.scorer import Scorer
-from spacy.training import Example
 from spacy import util
 from spacy.cli._util import Arg, Opt, import_code, setup_gpu
 from spacy.cli.evaluate import (
@@ -14,10 +12,14 @@ from spacy.cli.evaluate import (
     print_textcats_auc_per_cat,
     render_parses,
 )
+from spacy.scorer import Scorer
 from spacy.tokens import DocBin
+from spacy.training import Example
 from thinc.api import fix_random_seed
 from wasabi import Printer
+
 from edsnlp.evaluate import evaluate_test
+
 
 # fmt: off
 def evaluate_cli(
@@ -103,15 +105,15 @@ def evaluate(
         }
         pred_docs.append(doc)
     pred_docs.sort(key=lambda doc: doc._.note_id)
-    
+
     if docbin is not None:
         output_db = DocBin(store_user_data=True)
         for doc in pred_docs:
             output_db.add(doc)
         output_db.to_disk(docbin)
-    
+
     scores = evaluate_test(gold_docs, pred_docs)
-    
+
     metrics = {
         "TOK": "token_acc",
         "TAG": "tag_acc",
@@ -187,7 +189,7 @@ def print_prf_per_type(
         aligns=("l", "r", "r", "r", "r"),
         title=f"{name} (per {type})",
     )
-    
+
 def handle_scores_per_type(
     scores: Dict[str, Any],
     data: Dict[str, Any] = {},

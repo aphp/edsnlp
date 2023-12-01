@@ -1,6 +1,6 @@
-#!/bin/bash 
+#!/bin/bash
 #SBATCH --job-name=ner_med_training
-#SBATCH -t 24:00:00 
+#SBATCH -t 24:00:00
 #SBATCH --gres=gpu:v100:1
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=20000
@@ -32,9 +32,9 @@ do
     echo -----------------
     echo REMOVE MODEL LAST
     echo -----------------
-    
+
     rm -rf ./training/expe_data_size/model_$i/model-last
-    
+
     echo -----------------
     echo INFER TEST DOCS WITH MODEL TRAINED ON $i DOCS
     echo -----------------

@@ -1,17 +1,27 @@
+import argparse
 import os
+import pathlib
 import sys
 import time
-import pathlib
-import argparse
+
+import numpy as np
 import torch
 from torch import nn
-import numpy as np
-from transformers import AutoTokenizer, AutoModel, AutoConfig, AdamW, get_linear_schedule_with_warmup, get_cosine_schedule_with_warmup, get_constant_schedule_with_warmup
 from tqdm import tqdm, trange
-import sys
+from transformers import (
+    AdamW,
+    AutoConfig,
+    AutoModel,
+    AutoTokenizer,
+    get_constant_schedule_with_warmup,
+    get_cosine_schedule_with_warmup,
+    get_linear_schedule_with_warmup,
+)
+
 sys.path.append("/export/home/cse200093/scratch/BioMedics/normalisation/training")
 
-class CoderNormalizer():
+
+class CoderNormalizer:
     def __init__(
         self,
         model_name_or_path: str,
@@ -27,7 +37,7 @@ class CoderNormalizer():
             self.model = torch.load(model_name_or_path).to(self.device)
             self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
             self.model_from_transformers = False
-    
+
     def get_bert_embed(
         self,
         phrase_list,
@@ -83,14 +93,9 @@ class CoderNormalizer():
             if tqdm_bar:
                 pbar.close()
         return output
-    
+
     def get_sim_results(
-        self,
-        res_embeddings,
-        umls_embeddings,
-        umls_labels,
-        umls_des,
-        split_size=200
+        self, res_embeddings, umls_embeddings, umls_labels, umls_des, split_size=200
     ):
         label_matches = []
         des_matches = []
@@ -103,23 +108,29 @@ class CoderNormalizer():
             label_matches.extend(label_matches_split)
             des_matches.extend(des_matches_split)
         return label_matches, des_matches
-    
+
     def __call__(
         self,
         umls_labels_list,
         umls_des_list,
         data_list,
-        save_umls_embeddings_dir = False,
-        save_data_embeddings_dir = False,
+        save_umls_embeddings_dir=False,
+        save_data_embeddings_dir=False,
         normalize=True,
         summary_method="CLS",
         tqdm_bar=False,
-        coder_batch_size = 128,
+        coder_batch_size=128,
     ):
-        umls_embeddings = self.get_bert_embed(umls_des_list, normalize, summary_method, tqdm_bar, coder_batch_size)
-        res_embeddings = self.get_bert_embed(data_list, normalize, summary_method, tqdm_bar, coder_batch_size)
+        umls_embeddings = self.get_bert_embed(
+            umls_des_list, normalize, summary_method, tqdm_bar, coder_batch_size
+        )
+        res_embeddings = self.get_bert_embed(
+            data_list, normalize, summary_method, tqdm_bar, coder_batch_size
+        )
         if save_umls_embeddings_dir:
             torch.save(umls_embeddings, save_umls_embeddings_dir)
         if save_data_embeddings_dir:
             torch.save(res_embeddings, save_data_embeddings_dir)
-        return self.get_sim_results(res_embeddings, umls_embeddings, umls_labels_list, umls_des_list)
+        return self.get_sim_results(
+            res_embeddings, umls_embeddings, umls_labels_list, umls_des_list
+        )

@@ -1,6 +1,6 @@
-#!/bin/bash 
+#!/bin/bash
 #SBATCH --job-name=ner_med_training
-#SBATCH -t 48:00:00 
+#SBATCH -t 48:00:00
 #SBATCH --gres=gpu:v100:1
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=20000
@@ -24,7 +24,7 @@ echo -----------------
 echo NORMALIZE MALADIE TAKAYASU DOCS
 echo -----------------
 
-python normalisation/inference/main.py data/bio_results/maladie_de_takayasu/pred_with_extraction.json data/bio_results/maladie_de_takayasu/norm_coder_all.json 
+python normalisation/inference/main.py data/bio_results/maladie_de_takayasu/pred_with_extraction.json data/bio_results/maladie_de_takayasu/norm_coder_all.json
 
 echo -----------------
 echo NORMALIZE SCLERODERMIE SYSTEMIQUE DOCS

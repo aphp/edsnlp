@@ -1,7 +1,7 @@
 TO_BE_MATCHED = {
     "lupus_erythemateux_dissemine": {
         "CIM10": ["M320", "M321", "M328", "M329"],
-        "ATC_codes" : {
+        "ATC_codes": {
             "Corticothérapie systémique": ["H02AB"],
             "Endoxan": ["L01AA01"],
             "Cellcept": ["L04AA06"],
@@ -151,7 +151,7 @@ TO_BE_MATCHED = {
     },
     "syndrome_des_anti-phospholipides": {
         "CIM10": ["D686"],
-        "ATC_codes" : {
+        "ATC_codes": {
             "Héparine": ["B01AB01"],
             "Anticoagulants oraux": ["B01AF02"],
         },
@@ -465,7 +465,7 @@ TO_BE_MATCHED = {
     },
     "sclerodermie_systemique": {
         "CIM10": ["M340", "M341", "M348", "M349"],
-        "ATC_codes" : {
+        "ATC_codes": {
             "IgIV": ["J06BA02"],
             "Corticothérapie systémique": ["H02AB"],
             "Endoxan": ["L01AA01"],
@@ -571,7 +571,7 @@ TO_BE_MATCHED = {
     },
     "maladie_de_takayasu": {
         "CIM10": ["M314"],
-        "ATC_codes" : {
+        "ATC_codes": {
             "Corticothérapie systémique": ["H02AB"],
             "Endoxan": ["L01AA01"],
             "Tocilizumab": ["L04AC07"],

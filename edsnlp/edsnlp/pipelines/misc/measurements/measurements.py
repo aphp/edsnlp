@@ -13,7 +13,6 @@ from typing_extensions import Literal, NotRequired, TypedDict
 
 from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher
-from edsnlp.pipelines.misc.measurements.patterns import common_measurements
 from edsnlp.pipelines.base import (
     BaseNERComponent,
     SpanGetterArg,
@@ -22,6 +21,7 @@ from edsnlp.pipelines.base import (
     validate_span_getter,
 )
 from edsnlp.pipelines.misc.measurements import patterns
+from edsnlp.pipelines.misc.measurements.patterns import common_measurements
 from edsnlp.utils.filter import align_spans, filter_spans
 
 __all__ = ["MeasurementsMatcher"]
@@ -228,8 +228,8 @@ class SimpleMeasurement(Measurement):
     @classmethod
     def verify(cls, ent):
         return True
-    
-    
+
+
 class RangeMeasurement(Measurement):
     def __init__(self, from_value, to_value, unit, registry):
         super().__init__()
@@ -293,6 +293,7 @@ class RangeMeasurement(Measurement):
     def verify(cls, ent):
         return True
 
+
 class MeasurementsMatcher(BaseNERComponent):
     def __init__(
         self,
@@ -315,7 +316,9 @@ class MeasurementsMatcher(BaseNERComponent):
         span_getter: Optional[SpanGetterArg] = None,
         merge_mode: Literal["intersect", "align", "union"] = "intersect",
         extract_ranges: bool = False,
-        range_patterns: List[Tuple[Optional[str], Optional[str]]] = patterns.range_patterns,  # noqa: E501
+        range_patterns: List[
+            Tuple[Optional[str], Optional[str]]
+        ] = patterns.range_patterns,  # noqa: E501
         as_ents: bool = False,
     ):
         """
@@ -454,27 +457,21 @@ class MeasurementsMatcher(BaseNERComponent):
         self.parse_tables = parse_tables
         self.parse_doc = parse_doc
         self.span_getter = (
-            validate_span_getter(span_getter)
-            if span_getter is not None
-            else None
+            validate_span_getter(span_getter) if span_getter is not None else None
         )
         self.merge_mode = merge_mode
         self.extract_ranges = extract_ranges
         self.range_patterns = range_patterns
-        
+
         if span_setter is None:
             span_setter = {
                 "ents": as_ents,
                 "measurements": True,
-                **{
-                    name: [name]
-                    for name in self.measure_names.values()
-                }
+                **{name: [name] for name in self.measure_names.values()},
             }
 
         super().__init__(nlp=nlp, name=name, span_setter=span_setter)
 
-        
         # INTERVALS
         self.regex_matcher.add(
             "interval",
@@ -1468,7 +1465,7 @@ class MeasurementsMatcher(BaseNERComponent):
                 merged.append(ent)
 
         return merged
-    
+
     def merge_measurements_in_ranges(self, measurements: List[Span]) -> List[Span]:
         """
         Aggregates extracted measurements together when they are adjacent to handle
@@ -1492,7 +1489,7 @@ class MeasurementsMatcher(BaseNERComponent):
             last = merged[-1]
 
             from_text = last.doc[last.start - 1].norm_ if last.start > 0 else None
-            to_text = get_text(last.doc[last.end: ent.start], "NORM", True)
+            to_text = get_text(last.doc[last.end : ent.start], "NORM", True)
             matching_patterns = [
                 (a, b)
                 for a, b in self.range_patterns
@@ -1504,10 +1501,10 @@ class MeasurementsMatcher(BaseNERComponent):
                         last._.value, ent._.value
                     )
                     merged[-1] = last = last.doc[
-                                        last.start
-                                        if matching_patterns[0][0] is None
-                                        else last.start - 1: ent.end
-                                        ]
+                        last.start
+                        if matching_patterns[0][0] is None
+                        else last.start - 1 : ent.end
+                    ]
                     last.label_ = ent.label_
                     last._.set(last.label_, new_value)
                 except (AttributeError, TypeError):
@@ -1516,11 +1513,11 @@ class MeasurementsMatcher(BaseNERComponent):
                 merged.append(ent)
 
         return merged
-    
+
     def merge_with_existing(
-          self,
-          extracted: List[Span],
-          existing: List[Span],
+        self,
+        extracted: List[Span],
+        existing: List[Span],
     ) -> List[Span]:
         """
         Merges the extracted measurements with the existing measurements in the
@@ -1555,9 +1552,9 @@ class MeasurementsMatcher(BaseNERComponent):
 
         elif self.merge_mode == "union":
             extracted = [*extracted, *existing]
-            
+
         return extracted
-    
+
     def __call__(self, doc):
         """
         Adds measurements to document's "measurements" SpanGroup.
@@ -1575,11 +1572,11 @@ class MeasurementsMatcher(BaseNERComponent):
         measurements = self.extract_measurements(doc)
         measurements = self.merge_adjacent_measurements(measurements)
         measurements = self.merge_measurements_in_ranges(measurements)
-        
+
         if self.span_getter is not None:
             existing = list(get_spans(doc, self.span_getter))
             measurements = self.merge_with_existing(measurements, existing)
-            
+
         doc.spans["measurements"] = measurements
 
         # for backward compatibility

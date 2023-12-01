@@ -15,9 +15,9 @@ vars:
   train: "data/NLP_diabeto/train"
   test: "data/NLP_diabeto/test"
   dev: "data/NLP_diabeto/val"
-# jeu suyr lequel tester le modèle : 
+# jeu suyr lequel tester le modèle :
 # brat_data/QUAERO_FrenchMed/corpus/train/EMEA/
-  
+
   corpus: "corpus"
   training: "training"
   seed: 0
@@ -94,7 +94,7 @@ commands:
   #   outputs:
   #     - "${vars.corpus}/output.spacy"
   #     - "${vars.training}/test_metrics.json"
-  
+
   - name: "evaluate"
     help: "Evaluate the model and export metrics"
     script:

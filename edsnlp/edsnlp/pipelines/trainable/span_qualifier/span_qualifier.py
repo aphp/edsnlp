@@ -58,7 +58,11 @@ def make_span_qualifier_scorer(candidate_getter: Callable):
                     value = BINDING_GETTERS[qualifier](span)
                     if value:
                         labels["ALL"][0].append((eg_idx, span_idx, qualifier, value))
-                        key_str = f"{qualifier[2:]}" if value is True else f"{qualifier[2:]}-{value}"
+                        key_str = (
+                            f"{qualifier[2:]}"
+                            if value is True
+                            else f"{qualifier[2:]}-{value}"
+                        )
                         labels[key_str][0].append((eg_idx, span_idx, value))
 
             doc_spans, *_, doc_qlf = candidate_getter(eg.reference)
@@ -67,7 +71,11 @@ def make_span_qualifier_scorer(candidate_getter: Callable):
                     value = BINDING_GETTERS[qualifier](span)
                     if value:
                         labels["ALL"][1].append((eg_idx, span_idx, qualifier, value))
-                        key_str = f"{qualifier[2:]}" if value is True else f"{qualifier[2:]}-{value}"
+                        key_str = (
+                            f"{qualifier[2:]}"
+                            if value is True
+                            else f"{qualifier[2:]}-{value}"
+                        )
                         labels[key_str][1].append((eg_idx, span_idx, value))
 
         def prf(pred, gold):
@@ -79,6 +87,7 @@ def make_span_qualifier_scorer(candidate_getter: Callable):
                 "p": 1 if tp == np else (tp / np),
                 "r": 1 if tp == ng else (tp / ng),
             }
+
         results = {name: prf(pred, gold) for name, (pred, gold) in labels.items()}
         results = dict(sorted(results.items()))
         return {"qual_f": results["ALL"]["f"], "qual_per_type": results}

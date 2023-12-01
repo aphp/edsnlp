@@ -1,29 +1,30 @@
-import pandas as pd
-import numpy as np
 import re
-import spacy
-import Levenshtein
-from unidecode import unidecode
-from tqdm import tqdm
-import duckdb
-from edsnlp.connectors import BratConnector
 from collections import defaultdict
-from exception import exception_list
 
-from sklearn.preprocessing import MultiLabelBinarizer
+import duckdb
+import Levenshtein
 import numpy as np
-from sklearn.metrics import precision_score, recall_score, f1_score
+import pandas as pd
+import spacy
+from exception import exception_list
 from levenpandas import fuzzymerge
+from sklearn.metrics import f1_score, precision_score, recall_score
+from sklearn.preprocessing import MultiLabelBinarizer
+from tqdm import tqdm
+from unidecode import unidecode
+
+from edsnlp.connectors import BratConnector
+
 
 class DrugNormaliser:
-    def __init__(self, df_path, drug_dict, method="exact", max_pred=5, atc_len = 7):
-        if df_path.endswith('json'):
+    def __init__(self, df_path, drug_dict, method="exact", max_pred=5, atc_len=7):
+        if df_path.endswith("json"):
             self.df = pd.read_json(df_path)
         else:
             self.df = self.gold_generation(df_path)
         self.drug_dict = drug_dict
         # self.df['drug'] = self.df['drug'].apply(lambda x: re.sub(r'\W+', '',x.lower()))
-        self.df['norm_term'] = self.df['norm_term'].apply(lambda x: unidecode(x))
+        self.df["norm_term"] = self.df["norm_term"].apply(lambda x: unidecode(x))
         # self.df['score'] = None
 
         merged_dict = {}
@@ -34,60 +35,70 @@ class DrugNormaliser:
             # Check if the shortened ATC code already exists in the merged dictionary
             if shortened_code in merged_dict:
                 # Merge the arrays
-                merged_dict[shortened_code] = list(set(merged_dict[shortened_code] + values))                    
+                merged_dict[shortened_code] = list(
+                    set(merged_dict[shortened_code] + values)
+                )
 
             else:
                 # Add a new entry for the shortened ATC code
                 merged_dict[shortened_code] = values
 
-        merged_dict = pd.DataFrame.from_dict({"norm_term": merged_dict}, "index").T.explode("norm_term").reset_index().rename(columns={"index": "label"})
+        merged_dict = (
+            pd.DataFrame.from_dict({"norm_term": merged_dict}, "index")
+            .T.explode("norm_term")
+            .reset_index()
+            .rename(columns={"index": "label"})
+        )
         merged_dict.norm_term = merged_dict.norm_term.str.split(",")
         merged_dict = merged_dict.explode("norm_term").reset_index(drop=True)
         self.drug_dict = merged_dict
         self.method = method
         self.max_pred = max_pred
-       
-        
-        
-    
+
     def get_gold(self):
         return self.df
-    
+
     def get_dict(self):
         return self.drug_dict
-    
+
     def gold_generation(self, df_path):
         doc_list = BratConnector(df_path).brat2docs(spacy.blank("fr"))
         drug_list = []
         for doc in doc_list:
             for ent in doc.ents:
-                if ent.label_ == 'Chemical_and_drugs':
+                if ent.label_ == "Chemical_and_drugs":
                     if not ent._.Tech:
-                        drug_list.append([ent.text, doc._.note_id, [ent.start, ent.end], ent.text.lower().strip()])
+                        drug_list.append(
+                            [
+                                ent.text,
+                                doc._.note_id,
+                                [ent.start, ent.end],
+                                ent.text.lower().strip(),
+                            ]
+                        )
 
-        drug_list_df = pd.DataFrame(drug_list, columns=['term', 'source', 'span_converted', 'norm_term'])
+        drug_list_df = pd.DataFrame(
+            drug_list, columns=["term", "source", "span_converted", "norm_term"]
+        )
         drug_list_df.span_converted = drug_list_df.span_converted.astype(str)
         return drug_list_df
-        
 
-    
-#     def exact_match(self, drug_name, atc, names):
-#         matching_atc = []
-#         matching_names = []
-#         for name in names:
-#             if drug_name == name:
-#                 matching_atc.append(atc)
-#                 matching_names.append(name)
-#         return matching_atc, matching_names
+    #     def exact_match(self, drug_name, atc, names):
+    #         matching_atc = []
+    #         matching_names = []
+    #         for name in names:
+    #             if drug_name == name:
+    #                 matching_atc.append(atc)
+    #                 matching_names.append(name)
+    #         return matching_atc, matching_names
 
-#     def levenshtein_match(self, drug_name, name):
-#         return Levenshtein.ratio(drug_name, name)
-    
-#     def dice_match(self, word1, word2):
-#         intersection = len(set(word1) & set(word2))
-#         coefficient = (2 * intersection) / (len(word1) + len(word2))
-#         return coefficient
+    #     def levenshtein_match(self, drug_name, name):
+    #         return Levenshtein.ratio(drug_name, name)
 
+    #     def dice_match(self, word1, word2):
+    #         intersection = len(set(word1) & set(word2))
+    #         coefficient = (2 * intersection) / (len(word1) + len(word2))
+    #         return coefficient
 
     def normalize(self, threshold=0.85):
         # self.df['pred_atc'] = [None]*len(self.df)
@@ -117,7 +128,8 @@ class DrugNormaliser:
             ["term", "source", "span_converted", "norm_term"], as_index=False
         ).agg({"label": list})
         return self.df
-        
+
+
 #         if self.method =='lev':
 #             for index, row in self.df.iterrows():
 #                 drug_name = row['drug']
@@ -153,7 +165,6 @@ class DrugNormaliser:
 #                     self.df.at[index, 'score'] = matching_scores[:self.max_pred]
 #             return self.df
 
-    
 
 #     def acc(self, verbose = False):
 #         correct_predictions = self.df.apply(lambda row: row['ATC'][:len(row['ATC'])] in [x[:len(row['ATC'])] for x in row['pred_atc']], axis=1).sum()
@@ -167,15 +178,15 @@ class DrugNormaliser:
 #     def get_good_predictions(self):
 #         good_predictions = self.df.apply(lambda row: row['ATC'][:len(row['ATC'])] in [x[:len(row['ATC'])] for x in row['pred_atc']], axis=1)
 #         return self.df[good_predictions]
-    
+
 #     def get_bad_predictions(self):
 #         bad_predictions = self.df.apply(lambda row: row['ATC'][:len(row['ATC'])] not in [x[:len(row['ATC'])] for x in row['pred_atc']], axis=1)
 #         return self.df[bad_predictions]
-    
+
 #     def get_no_predictions(self):
 #         no_predictions = self.df.apply(lambda row: len(row['pred_atc'])==0, axis=1)
 #         return self.df[no_predictions]
-            
+
 
 #     def metrics(self, verbose = True):
 #         y_true = self.df['ATC']
@@ -204,7 +215,7 @@ class DrugNormaliser:
 #             results[atc]['TP'] = TP
 #             results[atc]['FP'] = FP
 #             results[atc]['FN'] = FN
-        
+
 #         #we get the micro_average
 #         total_TP = sum([results[atc]['TP'] for atc in unique_atc])
 #         total_FP = sum([results[atc]['FP'] for atc in unique_atc])
@@ -232,7 +243,7 @@ class DrugNormaliser:
 #                 f1 = 2*precision*recall/(precision+recall)
 #             else:
 #                 f1 = 0
-            
+
 #             total_precision += precision
 #             total_recall += recall
 #             total_f1 += f1
@@ -241,6 +252,6 @@ class DrugNormaliser:
 #         total_recall = total_recall/len(unique_atc)
 #         total_f1 = total_f1/len(unique_atc)
 
-       
+
 #         print(f' MICRO : The precision is {precision_micro}, the recall is {recall_micro} and the f1 score is {f1_micro}')
 #         print(f' MACRO : The precision is {total_precision}, the recall is {total_recall} and the f1 score is {total_f1}')

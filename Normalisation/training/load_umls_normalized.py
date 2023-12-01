@@ -1,13 +1,16 @@
 import os
-from tqdm import tqdm
 import re
 from random import shuffle
-#import ipdb
+
+from tqdm import tqdm
+
+# import ipdb
 
 ### THIS LOADING PROCESS DEFERS FROM load_umls.py IN THE WAY THAT source_range LETS YOU
 ### SELECT ALL SYNONYMS FROM ONE CUI IF THIS CUI HAVE AT LEAST ONE SYNONYM
 ### FROM A SOURCE OF source_range
 ### THUS, ALL SYNONYMS ARE NOT FROM THE SOURCES OF source_range
+
 
 def byLineReader(filename):
     with open(filename, "r", encoding="utf-8") as f:
@@ -19,7 +22,9 @@ def byLineReader(filename):
 
 
 class UMLS(object):
-    def __init__(self, umls_path, source_range=None, lang_range=['ENG'], only_load_dict=False):
+    def __init__(
+        self, umls_path, source_range=None, lang_range=["ENG"], only_load_dict=False
+    ):
         self.umls_path = umls_path
         self.source_range = source_range
         self.lang_range = lang_range
@@ -41,14 +46,14 @@ class UMLS(object):
         self.cui2str = {}
         self.str2cui = {}
         self.code2cui = {}
-        #self.lui_status = {}
-        
+        # self.lui_status = {}
+
         # Select all CUIs which have at least one synonym in source_range
         cuis2keep = []
         if self.source_range is not None:
             for line in tqdm(reader, ascii=True):
                 if self.type == "txt":
-                    l = [t.replace("\"", "") for t in line.split(",")]
+                    l = [t.replace('"', "") for t in line.split(",")]
                 else:
                     l = line.strip().split("|")
                 if len(l) < 3:
@@ -57,12 +62,12 @@ class UMLS(object):
                 source = l[11]
                 if source in self.source_range:
                     cuis2keep.append(cui)
-                    
+
         reader = byLineReader(os.path.join(self.umls_path, "MRCONSO." + self.type))
         read_count = 0
         for line in tqdm(reader, ascii=True):
             if self.type == "txt":
-                l = [t.replace("\"", "") for t in line.split(",")]
+                l = [t.replace('"', "") for t in line.split(",")]
             else:
                 l = line.strip().split("|")
             if len(l) < 3:
@@ -75,7 +80,9 @@ class UMLS(object):
             code = l[13]
             string = l[14]
 
-            if (self.source_range is None or source in cuis2keep) and (self.lang_range is None or lang in self.lang_range):
+            if (self.source_range is None or source in cuis2keep) and (
+                self.lang_range is None or lang in self.lang_range
+            ):
                 if not lui in self.lui_set:
                     read_count += 1
                     self.str2cui[string] = cui
@@ -106,7 +113,7 @@ class UMLS(object):
         self.rel = set()
         for line in tqdm(reader, ascii=True):
             if self.type == "txt":
-                l = [t.replace("\"", "") for t in line.split(",")]
+                l = [t.replace('"', "") for t in line.split(",")]
             else:
                 l = line.strip().split("|")
             cui0 = l[0]
@@ -130,7 +137,7 @@ class UMLS(object):
         self.cui2sty = {}
         for line in tqdm(reader, ascii=True):
             if self.type == "txt":
-                l = [t.replace("\"", "") for t in line.split(",")]
+                l = [t.replace('"', "") for t in line.split(",")]
             else:
                 l = line.strip().split("|")
             cui = l[0]
@@ -140,14 +147,16 @@ class UMLS(object):
 
         print("sty count:", len(self.cui2sty))
 
-    def clean(self, term, lower=True, clean_NOS=True, clean_bracket=True, clean_dash=True):
+    def clean(
+        self, term, lower=True, clean_NOS=True, clean_bracket=True, clean_dash=True
+    ):
         term = " " + term + " "
         if lower:
             term = term.lower()
         if clean_NOS:
             term = term.replace(" NOS ", " ").replace(" nos ", " ")
         if clean_bracket:
-            term = re.sub(u"\\(.*?\\)", "", term)
+            term = re.sub("\\(.*?\\)", "", term)
         if clean_dash:
             term = term.replace("-", " ")
         term = " ".join([w for w in term.split() if w])
@@ -174,13 +183,13 @@ class UMLS(object):
         result_by_code = self.search_by_code(code)
         if result_by_code is not None:
             if max_number > 0:
-                return result_by_code[0:min(len(result_by_code), max_number)]
+                return result_by_code[0 : min(len(result_by_code), max_number)]
             return result_by_code
         return None
         result_by_string = self.search_by_string_list(string_list)
         if result_by_string is not None:
             if max_number > 0:
-                return result_by_string[0:min(len(result_by_string), max_number)]
+                return result_by_string[0 : min(len(result_by_string), max_number)]
             return result_by_string
         return None
 
@@ -188,8 +197,8 @@ class UMLS(object):
 if __name__ == "__main__":
     umls = UMLS("E:\\code\\research\\umls")
     # print(umls.search_by_code("282299006"))
-    #print(umls.search_by_string_list(["Backache", "aching muscles in back"]))
-    #print(umls.search(code="95891005", max_number=10))
+    # print(umls.search_by_string_list(["Backache", "aching muscles in back"]))
+    # print(umls.search(code="95891005", max_number=10))
     # ipdb.set_trace()
 
 """

@@ -1,6 +1,6 @@
-#!/bin/bash 
+#!/bin/bash
 #SBATCH --job-name=ner_med_training
-#SBATCH -t 24:00:00 
+#SBATCH -t 24:00:00
 #SBATCH --gres=gpu:v100:1
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=20000
@@ -37,9 +37,9 @@ do
     echo -----------------
     echo REMOVE $lang_model MODEL LAST
     echo -----------------
-    
+
     rm -rf ./training/expe_lang_model/model_$lang_model/model-last
-    
+
     echo -----------------
     echo INFER $lang_model TEST DOCS
     echo -----------------
@@ -52,7 +52,7 @@ do
     echo -----------------
 
     python ./scripts/evaluate.py ./training/expe_lang_model/model_$lang_model/model-best ./corpus/test.spacy --output ./training/expe_lang_model/model_$lang_model/test_metrics.json --docbin ./data/NLP_diabeto/expe_lang_model/pred_model_$lang_model.spacy --gpu-id 0
-    
+
 done
 
 echo --Training_done---

@@ -1,5 +1,7 @@
-import pandas as pd
 import re
+
+import pandas as pd
+
 
 def export_pandas_to_brat(
     ann_path,
@@ -8,7 +10,7 @@ def export_pandas_to_brat(
     label_column_name,
     span_column_name,
     term_column_name,
-    annotation_column_name = None,
+    annotation_column_name=None,
 ):
     """
     - ann_path: str path where to write the ann file.
@@ -21,35 +23,68 @@ def export_pandas_to_brat(
     - annotation_column_name: OPTIONAL str name of the column in df_to_convert containing the annotations. This column should be filled with str only.
     If None, no annotation will be saved.
     """
-    
+
     SEP = "\t"
     ANNOTATION_LABEL = "AnnotatorNotes"
     brat_raw = ""
     n_annotation = 0
-    
+
     with open(txt_path, "r") as f:
         txt_raw = f.read()
-    
+
     if annotation_column_name:
-        df_to_convert = df_to_convert[[label_column_name, span_column_name, term_column_name, annotation_column_name]]
+        df_to_convert = df_to_convert[
+            [
+                label_column_name,
+                span_column_name,
+                term_column_name,
+                annotation_column_name,
+            ]
+        ]
     else:
         # Create an empty annotation column so that we can iter
         # In a generic pandas dataframe
-        df_to_convert = df_to_convert[[label_column_name, span_column_name, term_column_name]]
+        df_to_convert = df_to_convert[
+            [label_column_name, span_column_name, term_column_name]
+        ]
         df_to_convert[annotation_column_name] = ""
-        
+
     # Iter through df to write each line of ann file
     for index, (label, span, term, annotation) in df_to_convert.iterrows():
-        term_raw = txt_raw[span[0]:span[1]]
+        term_raw = txt_raw[span[0] : span[1]]
         if "\n" in term_raw:
-            span_str = str(span[0]) + "".join(" " + str(span[0] + newline_index.start()) + ";" + str(span[0] + newline_index.start() + 1) for newline_index in re.finditer("\n", term_raw)) + " " + str(span[1])
+            span_str = (
+                str(span[0])
+                + "".join(
+                    " "
+                    + str(span[0] + newline_index.start())
+                    + ";"
+                    + str(span[0] + newline_index.start() + 1)
+                    for newline_index in re.finditer("\n", term_raw)
+                )
+                + " "
+                + str(span[1])
+            )
         else:
             span_str = str(span[0]) + " " + str(span[1])
-        brat_raw += "T" + str(index+1) + SEP + label + " " + span_str + SEP + term + "\n"
+        brat_raw += (
+            "T" + str(index + 1) + SEP + label + " " + span_str + SEP + term + "\n"
+        )
         if len(annotation):
             n_annotation += 1
-            brat_raw += "#" + str(n_annotation) + SEP + ANNOTATION_LABEL + " " + "T" + str(index+1) + SEP + annotation + "\n"
-    
+            brat_raw += (
+                "#"
+                + str(n_annotation)
+                + SEP
+                + ANNOTATION_LABEL
+                + " "
+                + "T"
+                + str(index + 1)
+                + SEP
+                + annotation
+                + "\n"
+            )
+
     brat_raw = brat_raw[:-2]
     with open(ann_path, "w") as f:
         print(brat_raw, file=f)

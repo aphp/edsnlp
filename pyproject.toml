@@ -289,7 +289,7 @@ extend-exclude = [
     ".pytest_cache",
     ".venv",
     "build",
-    "edsnlp/pipelines/factories.py",
+    "edsnlp/pipes/factories.py",
 ]
 line-length = 88
 select = [

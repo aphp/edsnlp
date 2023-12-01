@@ -1,0 +1,3 @@
+# `edsnlp.models`
+
+::: edsnlp.models

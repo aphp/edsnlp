@@ -1,0 +1,108 @@
+convert:
+  cmd: python -m spacy run convert
+  script:
+    - python scripts/convert.py --lang eds --input-path data/NLP_diabeto/train --output-path
+      corpus/train.spacy
+    - python scripts/convert.py --lang eds --input-path data/NLP_diabeto/val --output-path
+      corpus/dev.spacy
+    - python scripts/convert.py --lang eds --input-path data/NLP_diabeto/test --output-path
+      corpus/test.spacy
+  deps:
+    - path: data/NLP_diabeto/train
+      md5: 30f19f2f900601d4ba8be1732ff81279
+    - path: data/NLP_diabeto/val
+      md5: 98194594382fa1039782f651ad0110af
+    - path: data/NLP_diabeto/test
+      md5: ddec584923d06f2685a232976a5a0eca
+    - path: scripts/convert.py
+      md5: 951ecd34bc4ef64d218a90225a5c2aca
+  outs:
+    - path: corpus/train.spacy
+      md5: bd6c7c646cf288ee49f855177841c399
+    - path: corpus/dev.spacy
+      md5: 97ad6c031ae1b3522131d2675a1464a0
+    - path: corpus/test.spacy
+      md5: 0812cf1d19ab475be07eb65162e0ce2c
+  spacy_version: 3.5.1
+  spacy_git_version: Unknown
+train:
+  cmd: python -m spacy run train
+  script:
+    - python -m spacy train configs/config.cfg --output training --paths.train corpus/train.spacy
+      --paths.dev corpus/dev.spacy --nlp.lang eds --gpu-id 0
+  deps:
+    - path: configs/config.cfg
+      md5: 0714cebf0e60346234c2a244d1924198
+    - path: corpus/train.spacy
+      md5: bd6c7c646cf288ee49f855177841c399
+    - path: corpus/dev.spacy
+      md5: 97ad6c031ae1b3522131d2675a1464a0
+  outs:
+    - path: training/model-best
+      md5: dc2f4b221dc791390bc17c84aeae714d
+  spacy_version: 3.5.1
+  spacy_git_version: Unknown
+evaluate:
+  cmd: python -m spacy run evaluate
+  script:
+    - python scripts/evaluate.py training/model-best corpus/test.spacy --output training/test_metrics.json
+      --docbin corpus/output.spacy --gpu-id 0
+  deps:
+    - path: corpus/test.spacy
+      md5: 0812cf1d19ab475be07eb65162e0ce2c
+    - path: training/model-best
+      md5: dc2f4b221dc791390bc17c84aeae714d
+  outs:
+    - path: corpus/output.spacy
+      md5: aa7d595acc52e9ff79323f24fd0f106c
+    - path: training/test_metrics.json
+      md5: b7c84305723d1917301506545e41f5db
+  spacy_version: 3.5.1
+  spacy_git_version: Unknown
+package:
+  cmd: python -m spacy run package
+  script:
+    - python scripts/package.py training/model-best packages --name medic --version
+      0.1.0 --force --build wheel --code eds_medic
+  deps:
+    - path: training/model-best
+      md5: dc2f4b221dc791390bc17c84aeae714d
+  outs:
+    - path: packages/eds_medic-0.1.0/dist/eds_medic-0.1.0-py3-none-any.whl
+      md5: 1b491e3d4ce4f7822f381adc6525f0ba
+  spacy_version: 3.5.1
+  spacy_git_version: Unknown
+save:
+  cmd: python -m spacy run save
+  script:
+    - python scripts/save_to_brat.py training/model-best corpus/test.spacy --output
+      training/test_metrics.json --docbin corpus/output.spacy --gpu-id 0
+  deps:
+    - path: corpus/test.spacy
+      md5: 6f167a761337976d4cc34309a1dccbf2
+    - path: training/model-best
+      md5: 36b40cd2d45edf99e9bc14b4e8080b17
+  outs:
+    - path: corpus/output.spacy
+      md5: null
+    - path: training/test_metrics.json
+      md5: null
+  spacy_version: 3.5.1
+  spacy_git_version: Unknown
+save_to_brat:
+  cmd: python -m spacy run save_to_brat
+  script:
+    - python scripts/save_to_brat.py training/model-best corpus/test.spacy --output
+      training/test_metrics.json --docbin corpus/output.spacy --gpu-id 0
+  deps:
+    - path: corpus/test.spacy
+      md5: a5390dbbaa344bac5c71c7cdc3141849
+    - path: training/model-best
+      md5: c9319bca2767deb0868c641da5302bb5
+  outs:
+    - path: corpus/output.spacy
+      md5: 25794a6a530648bd92bd82882de9e730
+    - path: training/test_metrics.json
+      md5: de7b607948f789e8069088592314eb0d
+  spacy_version: 3.5.1
+  spacy_git_version: Unknown

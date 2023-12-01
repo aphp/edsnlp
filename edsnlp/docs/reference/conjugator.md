@@ -1,0 +1,3 @@
+# `edsnlp.conjugator`
+
+::: edsnlp.conjugator

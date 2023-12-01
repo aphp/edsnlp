@@ -1,0 +1,3 @@
+# `edsnlp.matchers`
+
+::: edsnlp.matchers

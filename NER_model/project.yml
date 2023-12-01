@@ -1,0 +1,138 @@
+title: "EDS-Medic"
+description: |
+  EDS-Medic is a spaCy-based project used at APHP to extract drug prescriptions from clinical reports
+
+  To run the full pipeline (download, split and format the dataset, train the pipeline and package it), simply run :
+  ```shell
+  spacy project run all
+  ```
+
+# Variables can be referenced across the project.yml using ${vars.var_name}
+vars:
+  name: "medic"
+  lang: "eds"
+  version: "0.1.0"
+  train: "data/NLP_diabeto/train"
+  test: "data/NLP_diabeto/test"
+  dev: "data/NLP_diabeto/val"
+# jeu suyr lequel tester le modèle : 
+# brat_data/QUAERO_FrenchMed/corpus/train/EMEA/
+  
+  corpus: "corpus"
+  training: "training"
+  seed: 0
+  fraction: 200
+  gpu_id: 0
+
+env:
+  registry_token: GITLAB_REGISTRY_TOKEN
+
+# These are the directories that the project needs. The project CLI will make
+# sure that they always exist.
+directories:
+  ["data", "corpus", "configs", "training", "scripts", "packages", "output"]
+
+# Workflows are sequences of commands (see below) executed in order. You can
+# run them via "spacy project run [workflow]". If a commands's inputs/outputs
+# haven't changed, it won't be re-run.
+workflows:
+  all:
+    - train
+    - evaluate
+    - package
+  xp:
+    - convert
+    - train
+    - evaluate
+
+# Project commands, specified in a style similar to CI config files (e.g. Azure
+# pipelines). The name is the command name that lets you trigger the command
+# via "spacy project run [command] [path]". The help message is optional and
+# shown when executing "spacy project run [optional command] [path] --help".
+commands:
+  - name: "convert"
+    help: "Convert the data to spaCy's binary format"
+    script:
+      - "python scripts/convert.py --lang ${vars.lang} --input-path ${vars.train} --output-path ${vars.corpus}/train.spacy"
+      - "python scripts/convert.py --lang ${vars.lang} --input-path ${vars.dev} --output-path ${vars.corpus}/dev.spacy"
+      - "python scripts/convert.py --lang ${vars.lang} --input-path ${vars.test} --output-path ${vars.corpus}/test.spacy"
+    deps:
+      - "${vars.train}"
+      - "${vars.dev}"
+      - "${vars.test}"
+      - "scripts/convert.py"
+    outputs:
+      - "${vars.corpus}/train.spacy"
+      - "${vars.corpus}/dev.spacy"
+      - "${vars.corpus}/test.spacy"
+
+  - name: "create-config"
+    help: "Create a new config with an NER pipeline component"
+    script:
+      - "python -m spacy init config --lang ${vars.lang} --pipeline ner configs/config.cfg --force --gpu"
+    outputs:
+      - "configs/config.cfg"
+
+  - name: "train"
+    help: "Train the NER model"
+    script:
+      - "python -m spacy train configs/config.cfg --output ${vars.training} --paths.train ${vars.corpus}/train.spacy --paths.dev ${vars.corpus}/dev.spacy --nlp.lang ${vars.lang} --gpu-id ${vars.gpu_id}"
+    deps:
+      - "configs/config.cfg"
+      - "${vars.corpus}/train.spacy"
+      - "${vars.corpus}/dev.spacy"
+    outputs:
+      - "${vars.training}/model-best"
+
+  # - name: "evaluate"
+  #   help: "Evaluate the model and export metrics"
+  #   script:
+  #     - "python scripts/new_evaluate.py ${vars.training}/model-best ${vars.corpus}/test.spacy --output ${vars.training}/test_metrics.json --docbin ${vars.corpus}/output.spacy --gpu-id ${vars.gpu_id}"
+  #   deps:
+  #     - "${vars.corpus}/test.spacy"
+  #     - "${vars.training}/model-best"
+  #   outputs:
+  #     - "${vars.corpus}/output.spacy"
+  #     - "${vars.training}/test_metrics.json"
+  
+  - name: "evaluate"
+    help: "Evaluate the model and export metrics"
+    script:
+      - "python scripts/evaluate.py ${vars.training}/model-best ${vars.corpus}/test.spacy --output ${vars.training}/test_metrics.json --docbin ${vars.corpus}/output.spacy --gpu-id ${vars.gpu_id}"
+    deps:
+      - "${vars.corpus}/test.spacy"
+      - "${vars.training}/model-best"
+    outputs:
+      - "${vars.corpus}/output.spacy"
+      - "${vars.training}/test_metrics.json"
+
+
+  - name: "infer"
+    help: "Infer the model on test documents"
+    script:
+      - "python scripts/infer.py --model ${vars.training}/model-best --data ${vars.corpus}/test.spacy --output ${vars.corpus}/output.spacy"
+    deps:
+      - "${vars.corpus}/test.spacy"
+      - "${vars.training}/model-best"
+    outputs:
+      - "${vars.corpus}/output.spacy"
+
+  - name: "package"
+    help: "Package the trained model as a pip package"
+    script:
+      - "python scripts/package.py ${vars.training}/model-best packages --name ${vars.name} --version ${vars.version} --force --build wheel --code eds_medic"
+    deps:
+      - "${vars.training}/model-best"
+    outputs_no_cache:
+      - "packages/${vars.lang}_${vars.name}-${vars.version}/dist/${vars.lang}_${vars.name}-${vars.version}-py3-none-any.whl"
+
+  - name: "save_to_brat"
+    help: "Save the test set with prediction on a BRAT format"
+    script:
+      - "python scripts/save_to_brat.py ${vars.training}/model-best ${vars.corpus}/test.spacy --output ${vars.training}/test_metrics.json --docbin ${vars.corpus}/output.spacy --gpu-id ${vars.gpu_id}"
+    deps:
+      - "${vars.corpus}/test.spacy"
+      - "${vars.training}/model-best"
+    outputs:
+      - "${vars.corpus}/output.spacy"
+      - "${vars.training}/test_metrics.json"

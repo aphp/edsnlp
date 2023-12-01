@@ -1,0 +1,3 @@
+# `edsnlp.viz`
+
+::: edsnlp.viz

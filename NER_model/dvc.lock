@@ -1,0 +1,75 @@
+schema: '2.0'
+stages:
+  convert:
+    cmd: python -m spacy project run convert
+    deps:
+    - path: data/NLP_diabeto/test
+      md5: 3c83eeee1f827072761e56c3b135d56b.dir
+      size: 214537
+      nfiles: 20
+    - path: data/NLP_diabeto/train
+      md5: 02f70168761f49b871c0fae54f4cbd2a.dir
+      size: 1903044
+      nfiles: 166
+    - path: data/NLP_diabeto/val
+      md5: cba6c8166b223f5f007c9f51caefa124.dir
+      size: 213280
+      nfiles: 20
+    - path: scripts/convert.py
+      md5: 4cc6b87c58ddf5320123fde3fc04ac03
+      size: 3268
+    outs:
+    - path: corpus/dev.spacy
+      md5: 8ed7e6e2ebbbdde02f52e115c81a3c3b
+      size: 200671
+    - path: corpus/test.spacy
+      md5: 64a9905aae87723375427b0fe0885472
+      size: 212753
+    - path: corpus/train.spacy
+      md5: 46d25cdcdcb64a19d02fb130a67f1090
+      size: 1751413
+  train:
+    cmd: python -m spacy project run train
+    deps:
+    - path: configs/config.cfg
+      md5: 0714cebf0e60346234c2a244d1924198
+      size: 4450
+    - path: corpus/dev.spacy
+      md5: 97ad6c031ae1b3522131d2675a1464a0
+      size: 215568
+    - path: corpus/train.spacy
+      md5: bd6c7c646cf288ee49f855177841c399
+      size: 1741469
+    outs:
+    - path: training/model-best
+      md5: 7342ebecce870db3e5435d9c5ad27967.dir
+      size: 474900558
+      nfiles: 14
+  package:
+    cmd: python -m spacy project run package
+    deps:
+    - path: training/model-best
+      md5: 7342ebecce870db3e5435d9c5ad27967.dir
+      size: 474900558
+      nfiles: 14
+    outs:
+    - path: packages/eds_medic-0.1.0/dist/eds_medic-0.1.0-py3-none-any.whl
+      md5: 1b491e3d4ce4f7822f381adc6525f0ba
+      size: 438563366
+  evaluate:
+    cmd: python -m spacy project run evaluate
+    deps:
+    - path: corpus/test.spacy
+      md5: 0812cf1d19ab475be07eb65162e0ce2c
+      size: 180628
+    - path: training/model-best
+      md5: 7342ebecce870db3e5435d9c5ad27967.dir
+      size: 474900558
+      nfiles: 14
+    outs:
+    - path: corpus/output.spacy
+      md5: 43bb5d78ab495c8be01f30b106cd2c3c
+      size: 176719
+    - path: training/test_metrics.json
+      md5: 81d641b7c91e4b88587693f30364a092
+      size: 1357

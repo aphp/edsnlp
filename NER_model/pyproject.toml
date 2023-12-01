@@ -1,0 +1,121 @@
+[tool.poetry]
+name = "NER_model"
+version = "0.1.0"
+description = ""
+authors = ["Perceval Wajsburt <perceval.wajsburt-ext@aphp.fr>"]
+
+[tool.poetry.dependencies]
+python = ">3.7.6,<4.0,!=3.8.1"
+spacy = "^3.2.4"
+spacy-transformers = "^1.1.5"
+thinc = "^8.0.13"
+sentencepiece = "^0.1.96"
+cupy = {version = "^11.0.0", optional = true}
+cupy-cuda80 = {version = "^7.8.0", optional = true}
+cupy-cuda90 = {version = "^8.6.0", optional = true}
+cupy-cuda91 = {version = "^7.8.0", optional = true}
+cupy-cuda92 = {version = "^8.6.0", optional = true}
+cupy-cuda100 = {version = "^9.6.0", optional = true}
+cupy-cuda101 = {version = "^9.6.0", optional = true}
+cupy-cuda102 = {version = "^11.0.0", optional = true}
+cupy-cuda110 = {version = "^11.0.0", optional = true}
+cupy-cuda111 = {version = "^10.6.0", optional = true}
+cupy-cuda112 = {version = "^10.6.0", optional = true}
+cupy-cuda113 = {version = "^10.6.0", optional = true}
+cupy-cuda114 = {version = "^10.6.0", optional = true}
+cupy-cuda115 = {version = "^10.6.0", optional = true}
+cupy-cuda116 = {version = "^10.6.0", optional = true}
+cupy-cuda117 = {version = "^10.6.0", optional = true}
+thinc-apple-ops = {version = "^0.1.0", optional = true}
+torch = "<1.13"
+
+[tool.poetry.group.dev.dependencies]
+dvc = {version = "^2.37.0", markers="python_version >= '3.8'"}
+loguru = "^0.6.0"
+typer = "^0.4.1"
+fsspec = "^2022.3.0"
+pre-commit = "^2.18.1"
+pytest = "^7.1.1"
+pytest-cov = "^3.0.0"
+mypy = "^0.950"
+coverage = "^6.5.0"
+jupyter_black = "0.3.4"
+
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
+mike = "^1.1.2"
+mkdocs-bibtex = "^2.0.3"
+mkdocs-gen-files = "^0.3.4"
+mkdocs-literate-nav = "^0.4.1"
+mkdocs-material = "^8.2.8"
+mkdocstrings = "^0.18.1"
+mkdocstrings-python = "^0.6.6"
+mkdocs-glightbox = "^0.1.6"
+mkdocs-autorefs = "^0.4.1"
+
+[tool.poetry.extras]
+cuda = ["cupy"]
+cuda80 = ["cupy-cuda80"]
+cuda90 = ["cupy-cuda90"]
+cuda91 = ["cupy-cuda91"]
+cuda92 = ["cupy-cuda92"]
+cuda100 = ["cupy-cuda100"]
+cuda101 = ["cupy-cuda101"]
+cuda102 = ["cupy-cuda102"]
+cuda110 = ["cupy-cuda110"]
+cuda111 = ["cupy-cuda111"]
+cuda112 = ["cupy-cuda112"]
+cuda113 = ["cupy-cuda113"]
+cuda114 = ["cupy-cuda114"]
+cuda115 = ["cupy-cuda115"]
+cuda116 = ["cupy-cuda116"]
+cuda117 = ["cupy-cuda117"]
+apple = ["thinc-apple-ops"]
+
+[tool.poetry.group.spark]
+optional = true
+
+[tool.poetry.group.spark.dependencies]
+pyspark = "2.4.3"
+
+[tool.interrogate]
+ignore-init-method = true
+ignore-init-module = true
+ignore-magic = false
+ignore-semiprivate = true
+ignore-private = true
+ignore-property-decorators = false
+ignore-module = true
+ignore-nested-functions = true
+ignore-nested-classes = true
+ignore-setters = false
+fail-under = 10
+exclude = ["docs", "build", "tests", "packages", "setup.py"]
+verbose = 0
+quiet = false
+whitelist-regex = []
+color = true
+omit-covered-files = false
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]
+
+[tool.mypy]
+plugins = "pydantic.mypy"
+
+[tool.ruff]
+exclude = [".git", "__pycache__", "__init__.py", ".mypy_cache", ".pytest_cache", ".venv", "build", "packages"]
+ignore = []
+line-length = 88
+select = ["E", "F", "W"]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[build-system]
+requires = ["poetry-core>=1.0.0", "pypandoc<1.8.0"]
+build-backend = "poetry.core.masonry.api"

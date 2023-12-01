@@ -1,0 +1,3 @@
+# `edsnlp.components`
+
+::: edsnlp.components

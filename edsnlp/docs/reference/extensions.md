@@ -1,0 +1,3 @@
+# `edsnlp.extensions`
+
+::: edsnlp.extensions

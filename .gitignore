@@ -53,6 +53,9 @@ _build/
 *.tar.gz
 *.tsv
 *.ann
+*.spacy
+*.RRF
+*.pkl
 
 # Editors
 .idea
@@ -71,3 +74,6 @@ _build/
 docs/reference
 docs/changelog.md
 docs/contributing.md
+
+# Logs
+*.log

@@ -58,7 +58,7 @@ arbitrarily chain static components or trained deep learning components. Static 
 
 <div style="text-align: center" markdown="1">
 
-![Example of a hybrid pipeline](/assets/images/hybrid-pipeline-example.svg){: style="height:150px" }
+![Example of a hybrid pipeline](/assets/images/hybrid-pipeline-example.png){: style="height:150px" }
 
 </div>
 

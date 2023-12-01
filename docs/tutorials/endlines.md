@@ -25,7 +25,7 @@ Let's train the model using an example corpus of three documents:
 
 ```python
 import edsnlp
-from edsnlp.pipelines.core.endlines.model import EndLinesModel
+from edsnlp.pipes.core.endlines.model import EndLinesModel
 
 nlp = edsnlp.blank("eds")
 
@@ -70,7 +70,7 @@ PATH = "/tmp/path_to_model"
 endlines.save(PATH)
 ```
 
-1. Initialize the [`EndLinesModel`][edsnlp.pipelines.core.endlines.model.EndLinesModel]
+1. Initialize the [`EndLinesModel`][edsnlp.pipes.core.endlines.model.EndLinesModel]
    object and then fit (and predict) in the training corpus.
 2. The corpus should be an iterable of edsnlp documents.
 
@@ -102,4 +102,4 @@ list(doc.sents)[0]
 
 ## Declared extensions
 
-It lets downstream matchers skip excluded tokens (see [normalisation](../pipelines/core/normalizer.md)) for more detail.
+It lets downstream matchers skip excluded tokens (see [normalisation](../pipes/core/normalizer.md)) for more detail.

@@ -1,6 +1,6 @@
-# Family Context {: #edsnlp.pipelines.qualifiers.family.factory.create_component }
+# Family Context {: #edsnlp.pipes.qualifiers.family.factory.create_component }
 
-::: edsnlp.pipelines.qualifiers.family.factory.create_component
+::: edsnlp.pipes.qualifiers.family.factory.create_component
     options:
         heading_level: 2
         show_bases: false

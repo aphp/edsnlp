@@ -1,6 +1,6 @@
-# Matcher {: #edsnlp.pipelines.core.matcher.factory.create_component }
+# Matcher {: #edsnlp.pipes.core.matcher.factory.create_component }
 
-::: edsnlp.pipelines.core.matcher.factory.create_component
+::: edsnlp.pipes.core.matcher.factory.create_component
     options:
         heading_level: 2
         show_bases: false

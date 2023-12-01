@@ -14,7 +14,7 @@ from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher, create_span
 from edsnlp.matchers.utils import get_text
-from edsnlp.pipelines.base import BaseNERComponent, SpanSetterArg
+from edsnlp.pipes.base import BaseNERComponent, SpanSetterArg
 from edsnlp.utils.collections import flatten_once
 
 from . import models

@@ -1,6 +1,6 @@
-# Alcohol consumption {: #edsnlp.pipelines.ner.behaviors.alcohol.factory.create_component }
+# Alcohol consumption {: #edsnlp.pipes.ner.behaviors.alcohol.factory.create_component }
 
-::: edsnlp.pipelines.ner.behaviors.alcohol.factory.create_component
+::: edsnlp.pipes.ner.behaviors.alcohol.factory.create_component
     options:
         heading_level: 2
         show_bases: false

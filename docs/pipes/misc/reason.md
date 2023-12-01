@@ -1,6 +1,6 @@
-# Reasons {: #edsnlp.pipelines.misc.reason.factory.create_component }
+# Reasons {: #edsnlp.pipes.misc.reason.factory.create_component }
 
-::: edsnlp.pipelines.misc.reason.factory.create_component
+::: edsnlp.pipes.misc.reason.factory.create_component
     options:
         heading_level: 2
         show_bases: false

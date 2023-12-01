@@ -2,9 +2,9 @@ import re
 from typing import Any, Callable, List, Optional, Union
 
 from edsnlp.core import PipelineProtocol, registry
-from edsnlp.pipelines.base import SpanSetterArg
-from edsnlp.pipelines.ner.scores.base_score import SimpleScoreMatcher
-from edsnlp.pipelines.ner.scores.emergency.gemsa import patterns
+from edsnlp.pipes.base import SpanSetterArg
+from edsnlp.pipes.ner.scores.base_score import SimpleScoreMatcher
+from edsnlp.pipes.ner.scores.emergency.gemsa import patterns
 
 DEFAULT_CONFIG = dict(
     regex=patterns.regex,

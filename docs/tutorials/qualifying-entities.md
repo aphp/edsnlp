@@ -34,11 +34,11 @@ None of these expressions should be used to build a cohort: the detected entity 
 
 ## The solution
 
-We can use EDS-NLP's qualifier pipelines to achieve that. Let's add specific components to our pipeline to detect these three modalities.
+We can use EDS-NLP's qualifier pipes to achieve that. Let's add specific components to our pipeline to detect these three modalities.
 
 ### Adding qualifiers
 
-Adding qualifier pipelines is straightforward:
+Adding qualifier pipes is straightforward:
 
 ```python hl_lines="25-29"
 import edsnlp
@@ -68,11 +68,11 @@ nlp.add_pipe(
 nlp.add_pipe("eds.sentences")  # (1)
 
 nlp.add_pipe("eds.negation")  # Negation component
-nlp.add_pipe("eds.hypothesis")  # Speculation pipeline
+nlp.add_pipe("eds.hypothesis")  # Speculation pipe
 nlp.add_pipe("eds.family")  # Family context detection
 ```
 
-1. Qualifiers pipelines need sentence boundaries to be set (see the [specific documentation](../pipelines/qualifiers/index.md) for detail).
+1. Qualifiers pipes need sentence boundaries to be set (see the [specific documentation](../pipes/qualifiers/index.md) for detail).
 
 This code is complete, and should run as is.
 
@@ -109,7 +109,7 @@ nlp.add_pipe(
 nlp.add_pipe("eds.sentences")
 
 nlp.add_pipe("eds.negation")  # Negation component
-nlp.add_pipe("eds.hypothesis")  # Speculation pipeline
+nlp.add_pipe("eds.hypothesis")  # Speculation pipe
 nlp.add_pipe("eds.family")  # Family context detection
 
 doc = nlp(text)
@@ -141,6 +141,6 @@ We get the following result:
 
 ## Conclusion
 
-The qualifier pipelines limits the number of false positives by detecting linguistic modulations such as negations or speculations.
-Go to the [full documentation](/pipelines/qualifiers/overview) for a complete presentation of the different pipelines,
+The qualifier pipes limits the number of false positives by detecting linguistic modulations such as negations or speculations.
+Go to the [full documentation](/pipes/qualifiers/overview) for a complete presentation of the different pipes,
 their configuration options and validation performance.

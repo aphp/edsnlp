@@ -8,7 +8,7 @@ from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.matchers.simstring import SimstringMatcher
 from edsnlp.matchers.utils import Patterns
-from edsnlp.pipelines.base import BaseNERComponent, SpanSetterArg
+from edsnlp.pipes.base import BaseNERComponent, SpanSetterArg
 
 
 class GenericMatcher(BaseNERComponent):

@@ -2,7 +2,7 @@ import re
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from edsnlp.core import PipelineProtocol, registry
-from edsnlp.pipelines.base import SpanSetterArg
+from edsnlp.pipes.base import SpanSetterArg
 
 from .patterns import regex, score_normalization_str, value_extract
 from .sofa import SofaMatcher

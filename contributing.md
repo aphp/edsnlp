@@ -4,12 +4,12 @@ We welcome contributions ! There are many ways to help. For example, you can:
 
 1. Help us track bugs by filing issues
 2. Suggest and help prioritise new functionalities
-3. Develop a new pipeline ! Fork the project and propose a new functionality through a pull request
+3. Develop a new pipe ! Fork the project and propose a new functionality through a pull request
 4. Help us make the library as straightforward as possible, by simply asking questions on whatever does not seem clear to you.
 
 ## Development installation
 
-To be able to run the test suite, run the example notebooks and develop your own pipeline, you should clone the repo and install it locally.
+To be able to run the test suite, run the example notebooks and develop your own pipeline component, you should clone the repo and install it locally.
 
 <div class="termy">
 
@@ -80,15 +80,15 @@ python -m pytest
 
 Should your contribution propose a bug fix, we require the bug be thoroughly tested.
 
-### Architecture of a pipeline
+### Architecture of a pipeline component
 
-Pipelines should follow the same pattern :
+Pipes should follow the same pattern :
 
 ```
-edsnlp/pipelines/<pipeline>
-   |-- <pipeline>.py                # Defines the component logic
+edsnlp/pipes/<pipe>
+   |-- <pipe>.py                # Defines the component logic
    |-- patterns.py                  # Defines matched patterns
-   |-- factory.py                   # Declares the pipeline to spaCy
+   |-- factory.py                   # Declares the component to spaCy
 ```
 
 ### Style Guide

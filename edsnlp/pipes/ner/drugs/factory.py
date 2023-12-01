@@ -3,8 +3,8 @@ from typing import Any, Dict
 from typing_extensions import Literal
 
 from edsnlp.core import PipelineProtocol, registry
-from edsnlp.pipelines.base import SpanSetterArg
-from edsnlp.pipelines.core.terminology.terminology import TerminologyMatcher
+from edsnlp.pipes.base import SpanSetterArg
+from edsnlp.pipes.core.terminology.terminology import TerminologyMatcher
 
 from .patterns import get_patterns
 

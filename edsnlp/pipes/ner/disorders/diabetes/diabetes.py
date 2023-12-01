@@ -6,8 +6,8 @@ from spacy.tokens import Doc, Span
 from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.matchers.utils import get_text
-from edsnlp.pipelines.base import SpanSetterArg
-from edsnlp.pipelines.core.contextual_matcher.contextual_matcher import (
+from edsnlp.pipes.base import SpanSetterArg
+from edsnlp.pipes.core.contextual_matcher.contextual_matcher import (
     get_window,
 )
 
@@ -22,7 +22,7 @@ class DiabetesMatcher(DisorderMatcher):
     ??? info "Details of the used patterns"
         ```{ .python .no-check }
         # fmt: off
-        --8<-- "edsnlp/pipelines/ner/disorders/diabetes/patterns.py"
+        --8<-- "edsnlp/pipes/ner/disorders/diabetes/patterns.py"
         # fmt: on
         ```
 

@@ -1,6 +1,6 @@
-# TNM {: #edsnlp.pipelines.ner.tnm.factory.create_component }
+# TNM {: #edsnlp.pipes.ner.tnm.factory.create_component }
 
-::: edsnlp.pipelines.ner.tnm.factory.create_component
+::: edsnlp.pipes.ner.tnm.factory.create_component
     options:
         heading_level: 2
         show_bases: false

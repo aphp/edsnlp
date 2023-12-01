@@ -2,8 +2,8 @@
 
 If you are
 
-- Developping a new pipeline
-- Testing various inputs on an existing pipeline
+- Developping a new component
+- Testing various inputs on an existing component
 - ...
 
 you might want to quickly apply a pipeline and display the output `doc` in a comprehensible way.

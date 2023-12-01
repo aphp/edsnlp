@@ -1,6 +1,6 @@
-# Trainable Span Qualifier {: #edsnlp.pipelines.trainable.span_qualifier.factory.create_component }
+# Trainable Span Qualifier {: #edsnlp.pipes.trainable.span_qualifier.factory.create_component }
 
-::: edsnlp.pipelines.trainable.span_qualifier.factory.create_component
+::: edsnlp.pipes.trainable.span_qualifier.factory.create_component
     options:
         heading_level: 2
         show_bases: false

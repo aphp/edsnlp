@@ -6,7 +6,7 @@ import pandas as pd
 from spacy.tokens import Doc, Span, Token
 
 from edsnlp.core import PipelineProtocol
-from edsnlp.pipelines.core.matcher.matcher import GenericMatcher
+from edsnlp.pipes.core.matcher.matcher import GenericMatcher
 from edsnlp.utils.filter import get_spans
 
 from .functional import build_path
@@ -26,7 +26,7 @@ class EndLinesMatcher(GenericMatcher):
     --------
     ```python
     import edsnlp
-    from edsnlp.pipelines.core.endlines.model import EndLinesModel
+    from edsnlp.pipes.core.endlines.model import EndLinesModel
 
     nlp = edsnlp.blank("eds")
 
@@ -100,7 +100,7 @@ class EndLinesMatcher(GenericMatcher):
 
     The pipeline also sets the `excluded` custom attribute on newlines that are
     classified as spaces. It lets downstream matchers skip excluded tokens
-    (see [normalisation](/pipelines/core/normalisation/)) for more detail.
+    (see [normalisation](/pipes/core/normalisation/)) for more detail.
 
     Parameters
     ----------

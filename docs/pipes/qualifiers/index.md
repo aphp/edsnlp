@@ -46,13 +46,13 @@ There is an obvious problem: none of these examples should lead us to include th
     We show an English example just to explain the issue.
     EDS-NLP remains a **French-language** medical NLP library.
 
-To curb this issue, EDS-NLP proposes rule-based pipelines that qualify entities to help the user make an informed decision about which patient should be included in a real-world data cohort.
+To curb this issue, EDS-NLP proposes rule-based pipes that qualify entities to help the user make an informed decision about which patient should be included in a real-world data cohort.
 
-## Where do we get our spans ? {: #edsnlp.pipelines.base.SpanGetterArg }
+## Where do we get our spans ? {: #edsnlp.pipes.base.SpanGetterArg }
 
 A component get entities from a document by looking up `doc.ents` or `doc.spans[group]`. This behavior is set by the `span_getter` argument in components that support it.
 
-::: edsnlp.pipelines.base.SpanGetterArg
+::: edsnlp.pipes.base.SpanGetterArg
     options:
         heading_level: 2
         show_bases: false
@@ -61,7 +61,7 @@ A component get entities from a document by looking up `doc.ents` or `doc.spans[
 
 ## Under the hood
 
-Our _qualifier_ pipelines all follow the same basic pattern:
+Our _qualifier_ pipes all follow the same basic pattern:
 
 1.  The pipeline extracts cues. We define three (possibly overlapping) kinds :
 

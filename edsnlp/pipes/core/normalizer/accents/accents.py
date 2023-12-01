@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple
 from spacy.tokens import Doc
 
 from edsnlp.core import PipelineProtocol
-from edsnlp.pipelines.base import BaseComponent
+from edsnlp.pipes.base import BaseComponent
 
 from . import patterns
 

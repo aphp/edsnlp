@@ -5,8 +5,8 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol, registry
-from edsnlp.pipelines.base import SpanSetterArg
-from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
+from edsnlp.pipes.base import SpanSetterArg
+from edsnlp.pipes.core.contextual_matcher import ContextualMatcher
 
 
 class SimpleScoreMatcher(ContextualMatcher):

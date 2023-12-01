@@ -11,12 +11,12 @@ from typing_extensions import Literal, NotRequired, TypedDict
 
 from edsnlp import Pipeline
 from edsnlp.core.torch_component import TorchComponent
-from edsnlp.pipelines.base import BaseNERComponent
-from edsnlp.pipelines.trainable.embeddings.typing import (
+from edsnlp.pipes.base import BaseNERComponent
+from edsnlp.pipes.trainable.embeddings.typing import (
     BatchInput,
     WordEmbeddingComponent,
 )
-from edsnlp.pipelines.trainable.layers.crf import MultiLabelBIOULDecoder
+from edsnlp.pipes.trainable.layers.crf import MultiLabelBIOULDecoder
 from edsnlp.utils.filter import align_spans, filter_spans
 from edsnlp.utils.span_getters import (
     SpanGetterArg,

@@ -4,8 +4,8 @@ from typing import Any, Dict, List, Union
 from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
-from edsnlp.pipelines.base import SpanSetterArg
-from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
+from edsnlp.pipes.base import SpanSetterArg
+from edsnlp.pipes.core.contextual_matcher import ContextualMatcher
 from edsnlp.utils.deprecation import deprecated_getter_factory
 from edsnlp.utils.filter import filter_spans
 

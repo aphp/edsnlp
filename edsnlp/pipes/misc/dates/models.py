@@ -7,7 +7,7 @@ from pandas._libs.tslibs.nattype import NaTType
 from pydantic import BaseModel, root_validator, validator
 from spacy.tokens import Span
 
-from edsnlp.pipelines.misc.dates.patterns.relative import specific_dict
+from edsnlp.pipes.misc.dates.patterns.relative import specific_dict
 
 
 class Direction(str, Enum):

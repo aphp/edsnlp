@@ -14,14 +14,14 @@ from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.matchers.utils import get_text
-from edsnlp.pipelines.base import (
+from edsnlp.pipes.base import (
     BaseNERComponent,
     SpanGetterArg,
     SpanSetterArg,
     get_spans,
     validate_span_getter,
 )
-from edsnlp.pipelines.misc.measurements import patterns
+from edsnlp.pipes.misc.measurements import patterns
 from edsnlp.utils.filter import align_spans, filter_spans, get_span_group
 
 __all__ = ["MeasurementsMatcher"]

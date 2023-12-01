@@ -1,6 +1,6 @@
-# Tables {: #edsnlp.pipelines.misc.tables.factory.create_component }
+# Tables {: #edsnlp.pipes.misc.tables.factory.create_component }
 
-::: edsnlp.pipelines.misc.tables.factory.create_component
+::: edsnlp.pipes.misc.tables.factory.create_component
     options:
         heading_level: 2
         show_bases: false

@@ -1,6 +1,6 @@
-# Medical History {: #edsnlp.pipelines.qualifiers.history.factory.create_component }
+# Medical History {: #edsnlp.pipes.qualifiers.history.factory.create_component }
 
-::: edsnlp.pipelines.qualifiers.history.factory.create_component
+::: edsnlp.pipes.qualifiers.history.factory.create_component
     options:
         heading_level: 2
         show_bases: false

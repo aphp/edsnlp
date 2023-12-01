@@ -1,5 +1,5 @@
 from edsnlp.core import registry
-from edsnlp.pipelines.ner.scores.base_score import SimpleScoreMatcher
+from edsnlp.pipes.ner.scores.base_score import SimpleScoreMatcher
 
 DEFAULT_CONFIG = dict(
     regex=None,

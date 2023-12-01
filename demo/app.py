@@ -48,7 +48,7 @@ nlp = spacy.blank("eds")
 nlp.add_pipe("eds.normalizer")
 nlp.add_pipe("eds.sentences")
 {pipes}
-# Qualifier pipelines
+# Qualifier pipes
 nlp.add_pipe("eds.negation")
 nlp.add_pipe("eds.family")
 nlp.add_pipe("eds.hypothesis")
@@ -109,7 +109,6 @@ def load_model(custom_regex: str, **enabled):
     nlp.add_pipe("eds.sentences")
 
     for title, name in PIPES.items():
-
         if name == "drugs":
             if enabled["drugs"]:
                 if enabled["fuzzy_drugs"]:
@@ -128,7 +127,7 @@ def load_model(custom_regex: str, **enabled):
                 pipes.append(f'nlp.add_pipe("eds.{name}")')
 
     if pipes:
-        pipes.insert(0, "# Entity extraction pipelines")
+        pipes.insert(0, "# Entity extraction pipes")
 
     if custom_regex:
         nlp.add_pipe(
@@ -169,7 +168,7 @@ st.sidebar.markdown(
     "EDS-NLP is a contributive effort maintained by AP-HP's Data Science team. "
     "Have a look at the "
     "[documentation](https://aphp.github.io/edsnlp/) for "
-    "more information on the available pipelines."
+    "more information on the available components."
 )
 
 st.sidebar.header("Pipeline")
@@ -201,8 +200,8 @@ for title, name in PIPES.items():
         continue
     st_pipes[name] = st.sidebar.checkbox(title, value=True)
 st.sidebar.markdown(
-    "These are just a few of the pipelines provided out-of-the-box by EDS-NLP. "
-    "See the [documentation](https://aphp.github.io/edsnlp/latest/pipelines/) "
+    "These are just a few of the components provided out-of-the-box by EDS-NLP. "
+    "See the [documentation](https://aphp.github.io/edsnlp/latest/pipes/) "
     "for detail."
 )
 

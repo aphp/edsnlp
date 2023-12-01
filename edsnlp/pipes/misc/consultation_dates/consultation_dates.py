@@ -4,8 +4,8 @@ from loguru import logger
 from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
-from edsnlp.pipelines.core.matcher.matcher import GenericMatcher
-from edsnlp.pipelines.misc.dates.factory import DEFAULT_CONFIG, DatesMatcher
+from edsnlp.pipes.core.matcher.matcher import GenericMatcher
+from edsnlp.pipes.misc.dates.factory import DEFAULT_CONFIG, DatesMatcher
 
 from ...base import SpanSetterArg
 from . import patterns as consult_regex

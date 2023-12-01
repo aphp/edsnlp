@@ -5,7 +5,7 @@ from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.regex import RegexMatcher
-from edsnlp.pipelines.base import BaseComponent
+from edsnlp.pipes.base import BaseComponent
 from edsnlp.utils.filter import filter_spans
 
 from . import patterns

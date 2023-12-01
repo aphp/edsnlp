@@ -20,7 +20,7 @@ import safetensors.torch
 import torch
 from spacy.tokens import Doc
 
-from edsnlp.pipelines.base import BaseComponent
+from edsnlp.pipes.base import BaseComponent
 from edsnlp.utils.collections import batch_compress_dict, batchify, decompress_dict
 
 BatchInput = TypeVar("BatchInput", bound=Dict[str, Any])

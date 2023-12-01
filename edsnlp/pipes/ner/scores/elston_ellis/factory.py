@@ -2,8 +2,8 @@ import re
 from typing import Any, Callable, List, Optional, Union
 
 from edsnlp.core import PipelineProtocol, registry
-from edsnlp.pipelines.base import SpanSetterArg
-from edsnlp.pipelines.ner.scores.base_score import SimpleScoreMatcher
+from edsnlp.pipes.base import SpanSetterArg
+from edsnlp.pipes.ner.scores.base_score import SimpleScoreMatcher
 
 from .patterns import regex, score_normalization_str, value_extract
 

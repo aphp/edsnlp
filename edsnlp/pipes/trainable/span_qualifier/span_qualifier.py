@@ -22,8 +22,8 @@ from typing_extensions import NotRequired, TypedDict
 
 from edsnlp.core import PipelineProtocol
 from edsnlp.core.torch_component import BatchInput, BatchOutput, TorchComponent
-from edsnlp.pipelines.base import BaseComponent
-from edsnlp.pipelines.trainable.embeddings.typing import (
+from edsnlp.pipes.base import BaseComponent
+from edsnlp.pipes.trainable.embeddings.typing import (
     SpanEmbeddingComponent,
 )
 from edsnlp.utils.bindings import (

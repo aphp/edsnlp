@@ -1,6 +1,6 @@
-# AIDS {: #edsnlp.pipelines.ner.disorders.aids.factory.create_component }
+# AIDS {: #edsnlp.pipes.ner.disorders.aids.factory.create_component }
 
-::: edsnlp.pipelines.ner.disorders.aids.factory.create_component
+::: edsnlp.pipes.ner.disorders.aids.factory.create_component
     options:
         heading_level: 2
         show_bases: false

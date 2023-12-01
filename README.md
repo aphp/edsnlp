@@ -9,13 +9,23 @@
 EDS-NLP
 =======
 
-EDS-NLP is a collaborative NLP framework that aims at extracting information from French clinical notes.
+EDS-NLP is a collaborative NLP framework that aims primarily at extracting information from French clinical notes.
 At its core, it is a collection of components or pipes, either rule-based functions or
 deep learning modules. These components are organized into a novel efficient and modular pipeline system, built for hybrid and multitask models. We use [spaCy](https://spacy.io) to represent documents and their annotations, and [Pytorch](https://pytorch.org/) as a deep-learning backend for trainable components.
 
-EDS-NLP is versatile and can be used on any textual document. The rule-based components are fully compatible with spaCy's pipelines, and vice versa. This library is a product of collaborative effort, and we encourage further contributions to enhance its capabilities.
+EDS-NLP is versatile and can be used on any textual document. The rule-based components are fully compatible with spaCy's components, and vice versa. This library is a product of collaborative effort, and we encourage further contributions to enhance its capabilities.
 
 Check out our interactive [demo](https://aphp.github.io/edsnlp/demo/) !
+
+## Features
+
+- [Rule-based components](https://aphp.github.io/edsnlp/latest/pipes/) for French clinical notes
+- [Trainable components](https://aphp.github.io/edsnlp/latest/pipes/trainable): NER, Span classification
+- Support for multitask deep-learning models with [weights sharing](https://aphp.github.io/edsnlp/latest/concepts/torch-component/#sharing-subcomponents)
+- [Fast inference](https://aphp.github.io/edsnlp/latest/concepts/inference/), with multi-GPU support out of the box
+- Easy to use, with a spaCy-like API
+- Compatible with rule-based spaCy components
+- Support for various io formats like [BRAT](https://aphp.github.io/edsnlp/latest/data/standoff/), [JSON](https://aphp.github.io/edsnlp/latest/data/json/), [Parquet](https://aphp.github.io/edsnlp/latest/data/parquet/), [Pandas](https://aphp.github.io/edsnlp/latest/data/pandas/) or [Spark](https://aphp.github.io/edsnlp/latest/data/spark/)
 
 ## Quick start
 
@@ -24,13 +34,13 @@ Check out our interactive [demo](https://aphp.github.io/edsnlp/demo/) !
 You can install EDS-NLP via `pip`. We recommend pinning the library version in your projects, or use a strict package manager like [Poetry](https://python-poetry.org/).
 
 ```shell
-pip install edsnlp==0.10.0beta1
+pip install edsnlp
 ```
 
 or if you want to use the trainable components (using pytorch)
 
 ```shell
-pip install "edsnlp[ml]==0.10.0beta1"
+pip install "edsnlp[ml]"
 ```
 
 ### A first pipeline
@@ -63,7 +73,7 @@ doc.ents[0]._.negation
 # Out: True
 ```
 
-## Documentation
+## Documentation & Tutorials
 
 Go to the [documentation](https://aphp.github.io/edsnlp) for more information.
 

@@ -30,7 +30,7 @@ nlp.to("cuda")  # same semantics as pytorch
 doc = nlp(text)
 ```
 
-To leverage multiple GPUs when processing multiple documents, refer to the [multiprocessing backend][edsnlp.processing.multiprocessing.execute_multiprocessing] description below.
+To leverage multiple GPUs when processing multiple documents, refer to the [multiprocessing backend][edsnlp.processing.multiprocessing.execute_multiprocessing_backend] description below.
 
 ## Inference on multiple documents {: #edsnlp.core.lazy_collection.LazyCollection }
 
@@ -48,6 +48,33 @@ A lazy collection contains :
 - the execution `config`, containing the backend to use and its configuration such as the number of workers, the batch size, etc.
 
 All methods (`.map`, `.map_pipeline`, `.set_processing`) of the lazy collection are chainable, meaning that they return a new object (no in-place modification).
+
+For instance, the following code will load a model, read a folder of JSON files, apply the model to each document and write the result in a Parquet folder, using 4 CPUs and 2 GPUs.
+
+```{ .python .no-check }
+import edsnlp
+
+# Load or create a model
+nlp = edsnlp.load("path/to/model")
+
+# Read some data (this is lazy, no data will be read until the end of of this snippet)
+data = edsnlp.data.read_json("path/to/json_folder", converter="...")
+
+# Apply each pipe of the model to our documents
+data = data.map_pipeline(nlp)
+# or equivalently : data = nlp.pipe(data)
+
+# Configure the execution
+data = data.set_processing(
+    # 4 CPUs to parallelize rule-based pipes, IO and preprocessing
+    num_cpu_workers=4,
+    # 2 GPUs to accelerate deep-learning pipes
+    num_gpu_workers=2,
+)
+
+# Write the result, this will execute the lazy collection
+data.write_parquet("path/to/output_folder", converter="...", write_in_worker=True)
+```
 
 ### Applying operations to a lazy collection
 

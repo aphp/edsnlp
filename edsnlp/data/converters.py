@@ -2,8 +2,6 @@
 Converters are used to convert documents between python dictionaries and Doc objects.
 There are two types of converters: readers and writers. Readers convert dictionaries to
 Doc objects, and writers convert Doc objects to dictionaries.
-
-Why are these classes instead of functions?
 """
 import contextlib
 import inspect

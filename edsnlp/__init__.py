@@ -14,7 +14,7 @@ from .core.registry import registry
 import edsnlp.data  # noqa: F401
 import edsnlp.pipes
 
-__version__ = "0.10.0beta2"
+__version__ = "0.10.0"
 
 BASE_DIR = Path(__file__).parent
 

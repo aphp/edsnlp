@@ -1,6 +1,6 @@
 [project]
 name = "edsnlp"
-description = "A set of spaCy components to extract information from clinical notes written in French"
+description = "Modular, fast NLP framework, compatible with Pytorch and spaCy, offering tailored support for French clinical notes."
 authors = [
     { name = "Data Science - DSN APHP", email = "perceval.wajsburt@aphp.fr" }
 ]

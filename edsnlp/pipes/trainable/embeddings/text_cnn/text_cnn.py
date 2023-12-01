@@ -4,11 +4,11 @@ import torch
 from typing_extensions import TypedDict
 
 from edsnlp.core.torch_component import BatchInput
-from edsnlp.pipelines.trainable.embeddings.typing import (
+from edsnlp.pipes.trainable.embeddings.typing import (
     WordEmbeddingBatchOutput,
     WordEmbeddingComponent,
 )
-from edsnlp.pipelines.trainable.layers.text_cnn import NormalizationPlacement, TextCnn
+from edsnlp.pipes.trainable.layers.text_cnn import NormalizationPlacement, TextCnn
 from edsnlp.utils.torch import ActivationFunction
 
 TextCnnBatchInput = TypedDict(

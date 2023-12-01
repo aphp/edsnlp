@@ -8,33 +8,33 @@ EDS-NLP provides easy-to-use pipeline components (aka pipes).
 
 === "Core"
 
-    See the [Core components overview](/pipelines/misc/overview/) for more information.
+    See the [Core components overview](/pipes/misc/overview/) for more information.
 
-    --8<-- "docs/pipelines/core/index.md:components"
+    --8<-- "docs/pipes/core/index.md:components"
 
 === "Qualifiers"
 
-    See the [Qualifiers overview](/pipelines/qualifiers/overview/) for more information.
+    See the [Qualifiers overview](/pipes/qualifiers/overview/) for more information.
 
-    --8<-- "docs/pipelines/qualifiers/index.md:components"
+    --8<-- "docs/pipes/qualifiers/index.md:components"
 
 === "Miscellaneous"
 
-    See the [Miscellaneous components overview](/pipelines/misc/overview/) for more information.
+    See the [Miscellaneous components overview](/pipes/misc/overview/) for more information.
 
-    --8<-- "docs/pipelines/misc/index.md:components"
+    --8<-- "docs/pipes/misc/index.md:components"
 
 === "NER"
 
-    See the [NER overview](/pipelines/ner/overview/) for more information.
+    See the [NER overview](/pipes/ner/overview/) for more information.
 
-    --8<-- "docs/pipelines/ner/index.md:components"
+    --8<-- "docs/pipes/ner/index.md:components"
 
 === "Trainable"
 
-    See the [Trainable components overview](/pipelines/trainable/overview/) for more information.
+    See the [Trainable components overview](/pipes/trainable/overview/) for more information.
 
-    --8<-- "docs/pipelines/trainable/index.md:components"
+    --8<-- "docs/pipes/trainable/index.md:components"
 
 <!-- --8<-- [end:components] -->
 

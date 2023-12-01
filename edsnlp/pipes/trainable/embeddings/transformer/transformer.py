@@ -11,7 +11,7 @@ from transformers import BitsAndBytesConfig as BitsAndBytesConfig_
 from typing_extensions import TypedDict
 
 from edsnlp import Pipeline
-from edsnlp.pipelines.trainable.embeddings.typing import WordEmbeddingComponent
+from edsnlp.pipes.trainable.embeddings.typing import WordEmbeddingComponent
 from edsnlp.utils.span_getters import SpanGetterArg, get_spans
 
 TransformerBatchInput = TypedDict(

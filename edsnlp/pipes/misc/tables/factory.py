@@ -1,5 +1,5 @@
 from edsnlp.core import registry
-from edsnlp.pipelines.misc.tables import TablesMatcher
+from edsnlp.pipes.misc.tables import TablesMatcher
 
 DEFAULT_CONFIG = dict(
     tables_pattern=None,

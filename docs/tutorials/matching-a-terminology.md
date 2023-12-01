@@ -7,15 +7,15 @@ In this tutorial, we will cover :
 - Matching a terminology using spaCy's matchers, as well as RegExps
 - Matching on a specific attribute
 
-You should consider reading the [matcher's specific documentation](../pipelines/core/matcher.md) for a description.
+You should consider reading the [matcher's specific documentation](../pipes/core/matcher.md) for a description.
 
 !!! note "Comparison to spaCy's matcher"
 
-    spaCy's `Matcher` and `PhraseMatcher` use a very efficient algorithm that compare a hashed representation token by token. **They are not components** by themselves, but can underpin rule-based pipelines.
+    spaCy's `Matcher` and `PhraseMatcher` use a very efficient algorithm that compare a hashed representation token by token. **They are not components** by themselves, but can underpin rule-based pipes.
 
     EDS-NLP's [`RegexMatcher`][edsnlp.matchers.regex.RegexMatcher] lets the user match entire expressions using regular expressions. To achieve this, the matcher has to get to the text representation, match on it, and get back to spaCy's abstraction.
 
-    The `EDSPhraseMatcher` lets EDS-NLP reuse spaCy's efficient algorithm, while adding the ability to skip pollution tokens (see the [normalisation documentation](../pipelines/core/normalisation.md) for detail)
+    The `EDSPhraseMatcher` lets EDS-NLP reuse spaCy's efficient algorithm, while adding the ability to skip pollution tokens (see the [normalisation documentation](../pipes/core/normalisation.md) for detail)
 
 ## A simple use case : finding COVID19
 
@@ -174,7 +174,7 @@ doc.ents
 2. We've added `pneumopathie à covid19` to the list of synonyms detected by the pipeline.
    Note that in the synonym we provide, we kept the accentuated `à`, whereas the example
    displays an unaccentuated `a`.
-3. The component can be configured. See the [specific documentation](../pipelines/core/normalizer.md) for detail.
+3. The component can be configured. See the [specific documentation](../pipes/core/normalizer.md) for detail.
 4. The normalisation lives in the `NORM` attribute
 5. We can tell the matcher to ignore excluded tokens (tokens tagged as pollution by the normalisation component).
    This is not an obligation.

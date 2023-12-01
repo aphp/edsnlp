@@ -1,6 +1,6 @@
-# Endlines {: #edsnlp.pipelines.core.endlines.factory.create_component }
+# Endlines {: #edsnlp.pipes.core.endlines.factory.create_component }
 
-::: edsnlp.pipelines.core.endlines.factory.create_component
+::: edsnlp.pipes.core.endlines.factory.create_component
     options:
         heading_level: 2
         show_bases: false

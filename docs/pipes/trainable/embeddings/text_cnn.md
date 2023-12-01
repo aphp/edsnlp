@@ -1,6 +1,6 @@
-# Text CNN {: #edsnlp.pipelines.trainable.embeddings.text_cnn.factory.create_component }
+# Text CNN {: #edsnlp.pipes.trainable.embeddings.text_cnn.factory.create_component }
 
-::: edsnlp.pipelines.trainable.embeddings.text_cnn.factory.create_component
+::: edsnlp.pipes.trainable.embeddings.text_cnn.factory.create_component
     options:
         heading_level: 2
         show_bases: false

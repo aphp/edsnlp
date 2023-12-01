@@ -4,8 +4,8 @@ from loguru import logger
 from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
-from edsnlp.pipelines.core.matcher.matcher import GenericMatcher
-from edsnlp.pipelines.misc.reason import patterns
+from edsnlp.pipes.core.matcher.matcher import GenericMatcher
+from edsnlp.pipes.misc.reason import patterns
 from edsnlp.utils.filter import get_spans
 from edsnlp.utils.inclusion import check_inclusion
 

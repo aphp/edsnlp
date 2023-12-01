@@ -6,7 +6,7 @@ We implemented three pattern matchers that are fit to clinical documents:
 - the `RegexMatcher`
 - the `SimstringMatcher`
 
-However, note that for most use-cases, you should instead use the `eds.matcher` pipeline that wraps these classes to annotate documents.
+However, note that for most use-cases, you should instead use the `eds.matcher` pipe that wraps these classes to annotate documents.
 
 ## EDSPhraseMatcher
 

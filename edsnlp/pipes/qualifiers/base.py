@@ -7,7 +7,7 @@ from spacy.tokens import Doc, Span
 from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher
-from edsnlp.pipelines.base import BaseComponent, SpanGetterArg, validate_span_getter
+from edsnlp.pipes.base import BaseComponent, SpanGetterArg, validate_span_getter
 
 
 def check_normalizer(nlp: PipelineProtocol) -> None:

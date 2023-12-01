@@ -1,6 +1,6 @@
-# Cerebrovascular accident {: #edsnlp.pipelines.ner.disorders.cerebrovascular_accident.factory.create_component }
+# Cerebrovascular accident {: #edsnlp.pipes.ner.disorders.cerebrovascular_accident.factory.create_component }
 
-::: edsnlp.pipelines.ner.disorders.cerebrovascular_accident.factory.create_component
+::: edsnlp.pipes.ner.disorders.cerebrovascular_accident.factory.create_component
     options:
         heading_level: 2
         show_bases: false

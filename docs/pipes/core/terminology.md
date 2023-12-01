@@ -1,6 +1,6 @@
-# Terminology {: #edsnlp.pipelines.core.terminology.factory.create_component }
+# Terminology {: #edsnlp.pipes.core.terminology.factory.create_component }
 
-::: edsnlp.pipelines.core.terminology.factory.create_component
+::: edsnlp.pipes.core.terminology.factory.create_component
     options:
         heading_level: 2
         show_bases: false

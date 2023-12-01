@@ -3,16 +3,16 @@ import itertools
 from typing import Any, Dict, List, Optional, Union
 
 from edsnlp.core import PipelineProtocol
-from edsnlp.pipelines.base import SpanSetterArg
-from edsnlp.pipelines.ner.disorders.base import DisorderMatcher
-from edsnlp.pipelines.qualifiers.hypothesis import HypothesisQualifier
-from edsnlp.pipelines.qualifiers.hypothesis.factory import (
+from edsnlp.pipes.base import SpanSetterArg
+from edsnlp.pipes.ner.disorders.base import DisorderMatcher
+from edsnlp.pipes.qualifiers.hypothesis import HypothesisQualifier
+from edsnlp.pipes.qualifiers.hypothesis.factory import (
     DEFAULT_CONFIG as DEFAULT_CONFIG_HYP,
 )
-from edsnlp.pipelines.qualifiers.negation.factory import (
+from edsnlp.pipes.qualifiers.negation.factory import (
     DEFAULT_CONFIG as DEFAULT_CONFIG_NEG,
 )
-from edsnlp.pipelines.qualifiers.negation.negation import NegationQualifier
+from edsnlp.pipes.qualifiers.negation.negation import NegationQualifier
 
 from .patterns import default_patterns
 
@@ -27,7 +27,7 @@ class AIDSMatcher(DisorderMatcher):
     ??? info "Details of the used patterns"
         ```{ .python .no-check }
         # fmt: off
-        --8<-- "edsnlp/pipelines/ner/disorders/AIDS/patterns.py"
+        --8<-- "edsnlp/pipes/ner/disorders/AIDS/patterns.py"
         # fmt: on
         ```
 

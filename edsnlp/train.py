@@ -33,7 +33,7 @@ import edsnlp
 from edsnlp.core.pipeline import Pipeline
 from edsnlp.core.registry import registry
 from edsnlp.optimization import LinearSchedule, ScheduledOptimizer
-from edsnlp.pipelines.trainable.embeddings.transformer.transformer import Transformer
+from edsnlp.pipes.trainable.embeddings.transformer.transformer import Transformer
 from edsnlp.scorers import Scorer
 from edsnlp.utils.bindings import BINDING_SETTERS
 from edsnlp.utils.collections import batchify

@@ -9,7 +9,7 @@ from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.matchers.simstring import SimstringMatcher
 from edsnlp.matchers.utils import Patterns
-from edsnlp.pipelines.base import BaseNERComponent, SpanSetterArg
+from edsnlp.pipes.base import BaseNERComponent, SpanSetterArg
 
 
 class TerminologyMatcher(BaseNERComponent):
@@ -18,7 +18,7 @@ class TerminologyMatcher(BaseNERComponent):
     pipeline that can match on terms or regular expressions.
 
     The terminology matcher is very similar to the
-    [generic matcher][edsnlp.pipelines.core.matcher.factory.create_component],
+    [generic matcher][edsnlp.pipes.core.matcher.factory.create_component],
     although the use case differs slightly. The generic matcher is designed to extract
     any entity, while the terminology matcher is specifically tailored towards high
     volume terminologies.

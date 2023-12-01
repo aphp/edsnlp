@@ -1,6 +1,6 @@
-# Emergency CCMU {: #edsnlp.pipelines.ner.scores.emergency.ccmu.factory.create_component }
+# Emergency CCMU {: #edsnlp.pipes.ner.scores.emergency.ccmu.factory.create_component }
 
-::: edsnlp.pipelines.ner.scores.emergency.ccmu.factory.create_component
+::: edsnlp.pipes.ner.scores.emergency.ccmu.factory.create_component
     options:
         heading_level: 2
         show_bases: false

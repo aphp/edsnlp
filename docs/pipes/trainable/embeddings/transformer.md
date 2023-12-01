@@ -1,6 +1,6 @@
-# Transformer {: #edsnlp.pipelines.trainable.embeddings.transformer.factory.create_component }
+# Transformer {: #edsnlp.pipes.trainable.embeddings.transformer.factory.create_component }
 
-::: edsnlp.pipelines.trainable.embeddings.transformer.factory.create_component
+::: edsnlp.pipes.trainable.embeddings.transformer.factory.create_component
     options:
         heading_level: 2
         show_bases: false

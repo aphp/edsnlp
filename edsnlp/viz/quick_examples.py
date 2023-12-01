@@ -8,7 +8,7 @@ from spacy.tokens import Doc, Token
 
 from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.utils import get_text
-from edsnlp.pipelines.qualifiers.base import get_qualifier_extensions
+from edsnlp.pipes.qualifiers.base import get_qualifier_extensions
 from edsnlp.utils.extensions import rgetattr
 
 
@@ -47,7 +47,6 @@ class QuickExample:
         return self.display(as_dataframe=as_dataframe)
 
     def get_ents(self):
-
         all_spans = {k: list(s) for k, s in self.doc.spans.items() if s}
         all_spans["ents"] = list(self.doc.ents)
 

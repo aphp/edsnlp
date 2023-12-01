@@ -10,7 +10,7 @@ from typing_extensions import Literal
 
 from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.regex import RegexMatcher
-from edsnlp.pipelines.base import (
+from edsnlp.pipes.base import (
     BaseNERComponent,
     SpanGetterArg,
     SpanSetterArg,

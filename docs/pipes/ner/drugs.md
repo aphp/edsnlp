@@ -1,6 +1,6 @@
-# Drugs {: #edsnlp.pipelines.ner.drugs.factory.create_component }
+# Drugs {: #edsnlp.pipes.ner.drugs.factory.create_component }
 
-::: edsnlp.pipelines.ner.drugs.factory.create_component
+::: edsnlp.pipes.ner.drugs.factory.create_component
     options:
         heading_level: 2
         show_bases: false

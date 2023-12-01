@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
-from edsnlp.pipelines.base import SpanSetterArg
+from edsnlp.pipes.base import SpanSetterArg
 from edsnlp.utils.numbers import parse_digit
 
 from ..base import DisorderMatcher
@@ -19,7 +19,7 @@ class SolidTumorMatcher(DisorderMatcher):
     ??? info "Details of the used patterns"
         ```{ .python .no-check }
         # fmt: off
-        --8<-- "edsnlp/pipelines/ner/disorders/solid_tumor/patterns.py"
+        --8<-- "edsnlp/pipes/ner/disorders/solid_tumor/patterns.py"
         # fmt: on
         ```
 
@@ -113,7 +113,7 @@ class SolidTumorMatcher(DisorderMatcher):
         self.use_tnm = use_tnm
 
         if use_tnm:
-            from edsnlp.pipelines.ner.tnm import TNM
+            from edsnlp.pipes.ner.tnm import TNM
 
             self.tnm = TNM(nlp, pattern=None, attr="TEXT")
 

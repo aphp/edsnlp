@@ -1,5 +1,5 @@
 from edsnlp.core import registry
-from edsnlp.pipelines.core.contextual_matcher import ContextualMatcher
+from edsnlp.pipes.core.contextual_matcher import ContextualMatcher
 
 DEFAULT_CONFIG = dict(
     assign_as_span=False,

@@ -1,6 +1,6 @@
-# Dates {: #edsnlp.pipelines.misc.dates.factory.create_component }
+# Dates {: #edsnlp.pipes.misc.dates.factory.create_component }
 
-::: edsnlp.pipelines.misc.dates.factory.create_component
+::: edsnlp.pipes.misc.dates.factory.create_component
     options:
         heading_level: 2
         show_bases: false

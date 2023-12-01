@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
-from edsnlp.pipelines.base import SpanSetterArg
+from edsnlp.pipes.base import SpanSetterArg
 
 from ..base import DisorderMatcher
 from .patterns import default_patterns
@@ -17,7 +17,7 @@ class LiverDiseaseMatcher(DisorderMatcher):
     ??? info "Details of the used patterns"
         ```{ .python .no-check }
         # fmt: off
-        --8<-- "edsnlp/pipelines/ner/disorders/liver_disease/patterns.py"
+        --8<-- "edsnlp/pipes/ner/disorders/liver_disease/patterns.py"
         # fmt: on
         ```
 

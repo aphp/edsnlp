@@ -85,9 +85,10 @@ class BatchSizeArg:
     Examples
     --------
 
-    ```python
+    ```{ .python .no-check }
     def fn(batch_size: BatchSizeArg):
         return batch_size
+
 
     print(fn("10 samples"))
     # Out: (10, "samples")
@@ -97,6 +98,7 @@ class BatchSizeArg:
 
     print(fn(10))
     # Out: (10, "samples")
+    ```
     """
 
     @classmethod

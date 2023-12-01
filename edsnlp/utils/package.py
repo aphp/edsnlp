@@ -156,10 +156,10 @@ except ModuleOrPackageNotFound:
 
 print([
     {k: v for k, v in {
-    "include": include._include,
-    "from": include.source,
-    "formats": include.formats,
-    }.items()}
+    "include": getattr(include, '_include'),
+    "from": getattr(include, 'source', None),
+    "formats": getattr(include, 'formats', None),
+    }.items() if v}
     for include in builder._module.includes
 ])
 
@@ -212,11 +212,11 @@ class PoetryPackager:
         self,
         pyproject: Optional[Dict[str, Any]],
         pipeline: Union[Path, "edsnlp.Pipeline"],
-        version: str,
+        version: Optional[str],
         name: Optional[ModuleName],
         root_dir: Path = ".",
-        build_name: Path = "build",
-        out_dir: Path = "dist",
+        build_dir: Path = "build",
+        dist_dir: Path = "dist",
         artifacts_name: ModuleName = "artifacts",
         dependencies: Optional[Sequence[Tuple[str, str]]] = None,
         metadata: Optional[Dict[str, Any]] = {},
@@ -233,7 +233,9 @@ class PoetryPackager:
         self.dependencies = dependencies
         self.pipeline = pipeline
         self.artifacts_name = artifacts_name
-        self.out_dir = self.root_dir / out_dir
+        self.dist_dir = (
+            dist_dir if Path(dist_dir).is_absolute() else self.root_dir / dist_dir
+        )
 
         with self.ensure_pyproject(metadata):
             python_executable = (
@@ -253,7 +255,9 @@ class PoetryPackager:
             out = result.stdout.decode().strip().split("\n")
 
         self.poetry_packages = eval(out[0])
-        self.build_dir = root_dir / build_name / self.name
+        self.build_dir = (
+            build_dir if Path(build_dir).is_absolute() else root_dir / build_dir
+        ) / self.name
         self.file_paths = [self.root_dir / file_path for file_path in out[1:]]
 
         logger.info(f"root_dir: {self.root_dir}")
@@ -279,7 +283,7 @@ class PoetryPackager:
                         "poetry": {
                             **metadata,
                             "name": self.name,
-                            "version": self.version,
+                            "version": self.version or "0.1.0",
                             "dependencies": {
                                 "python": f">={py_version},<4.0",
                                 **{
@@ -336,7 +340,7 @@ class PoetryPackager:
             distributions = ["wheel"]
         build_call(
             srcdir=self.build_dir,
-            outdir=self.out_dir,
+            outdir=self.dist_dir,
             distributions=distributions,
             config_settings=config_settings,
             isolation=isolation,
@@ -352,12 +356,13 @@ class PoetryPackager:
             f"project"
         )
 
-        old_version = self.pyproject["tool"]["poetry"]["version"]
-        self.pyproject["tool"]["poetry"]["version"] = self.version
-        logger.info(
-            f"Replaced project version {old_version!r} with {self.version!r} in poetry "
-            f"based project"
-        )
+        if self.version is not None:
+            old_version = self.pyproject["tool"]["poetry"]["version"]
+            self.pyproject["tool"]["poetry"]["version"] = self.version
+            logger.info(
+                f"Replaced project version {old_version!r} with {self.version!r} in "
+                f"poetry based project"
+            )
 
         # Adding artifacts to include in pyproject.toml
         snake_name = snake_case(self.name.lower())
@@ -383,7 +388,7 @@ class PoetryPackager:
                     "remove it from the pyproject.toml metadata."
                 )
             os.makedirs(new_file_path.parent, exist_ok=True)
-            logger.info(f"COPY {file_path} TO {new_file_path}")
+            logger.info(f"COPY {file_path}" f"TO {new_file_path}")
             shutil.copy(file_path, new_file_path)
 
         self.update_pyproject()
@@ -414,10 +419,12 @@ def package(
     pipeline: Union[Path, "edsnlp.Pipeline"],
     name: Optional[ModuleName] = None,
     root_dir: Path = ".",
+    build_dir: Path = "build",
+    dist_dir: Path = "dist",
     artifacts_name: ModuleName = "artifacts",
     check_dependencies: bool = False,
     project_type: Optional[Literal["poetry", "setuptools"]] = None,
-    version: str = "0.1.0",
+    version: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = {},
     distributions: Optional[Sequence[Literal["wheel", "sdist"]]] = ["wheel"],
     config_settings: Optional[Mapping[str, Union[str, Sequence[str]]]] = None,
@@ -459,6 +466,8 @@ def package(
             name=name,
             version=version,
             root_dir=root_dir,
+            build_dir=build_dir,
+            dist_dir=dist_dir,
             artifacts_name=artifacts_name,
             dependencies=dependencies,
             metadata=metadata,

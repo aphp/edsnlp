@@ -153,7 +153,6 @@ def test_dates_component(blank_nlp: PipelineProtocol):
 
 
 def test_periods(blank_nlp: PipelineProtocol):
-
     period_examples = [
         "à partir de <ent>juin 2017 pendant trois semaines</ent>",
         "du <ent>5 juin au 6 juillet</ent>",
@@ -200,7 +199,6 @@ def test_time(with_time: bool):
 
 
 def test_false_positives(blank_nlp: PipelineProtocol):
-
     counter_examples = [
         "page 1/1",  # Often found in the form `1/1` only
         "40 00",
@@ -225,7 +223,6 @@ def test_false_positives(blank_nlp: PipelineProtocol):
 
 
 def test_dates_on_ents_only():
-
     text = (
         "Le patient est venu hier (le 04/09/2021) pour un test PCR.\n"
         "Il est cas contact <ent>depuis la semaine dernière</ent>, "

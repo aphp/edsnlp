@@ -38,7 +38,6 @@ class EDSNLPDocstrings(Extension):
             and isinstance(node.value, ast.Call)
             and isinstance(node.value.func, ast.Call)
         ):
-
             module_name = obj.path.rsplit(".", 1)[0]
             for name, mod in list(sys.modules.items()):
                 if name.startswith("edspdf"):

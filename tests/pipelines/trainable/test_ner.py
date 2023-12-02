@@ -7,7 +7,6 @@ import edsnlp
 
 @mark.parametrize("ner_mode", ["independent", "joint", "marginal"])
 def test_ner(ner_mode):
-
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(
         "eds.transformer",

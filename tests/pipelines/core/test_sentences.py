@@ -40,7 +40,6 @@ def test_sentences(nlp, endlines):
 
 
 def test_false_positives(blank_nlp):
-
     false_positives = [
         "02.04.2018",
     ]

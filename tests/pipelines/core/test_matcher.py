@@ -23,7 +23,6 @@ def matcher_factory(nlp):
     )
 
     def factory(terms=None, regex=None, **kwargs):
-
         assert terms or regex
 
         config = dict(**default_config)

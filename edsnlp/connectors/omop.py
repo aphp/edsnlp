@@ -60,7 +60,6 @@ def omop2docs(
 
     # Process documents
     for _, row in note.iterrows():
-
         doc = row.doc
         doc._.note_id = row.note_id
         doc._.note_datetime = row.get("note_datetime")
@@ -71,7 +70,6 @@ def omop2docs(
             continue
 
         for ent in row.ents:
-
             span = doc.char_span(
                 ent["start_char"],
                 ent["end_char"],
@@ -141,7 +139,6 @@ def docs2omop(
     def ent2dict(
         ent: Span,
     ) -> Dict[str, Any]:
-
         d = dict(
             start_char=ent.start_char,
             end_char=ent.end_char,
@@ -204,7 +201,6 @@ class OmopConnector(object):
         start_char: str = "start_char",
         end_char: str = "end_char",
     ):
-
         self.start_char = start_char
         self.end_char = end_char
 

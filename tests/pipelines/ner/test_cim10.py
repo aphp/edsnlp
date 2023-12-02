@@ -8,7 +8,6 @@ examples = [
 
 
 def test_cim10(blank_nlp: PipelineProtocol):
-
     blank_nlp.add_pipe("eds.cim10")
 
     for text, entities in map(parse_example, examples):

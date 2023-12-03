@@ -160,7 +160,9 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                 )
             )
             # and add a new entry to the model's embeddings
-            self.transformer.resize_token_embeddings(len(self.tokenizer))
+            self.transformer.resize_token_embeddings(
+                max(self.tokenizer.vocab.values()) + 1
+            )
 
     def to_disk(self, path, *, exclude: Optional[Set[str]]):
         repr_id = object.__repr__(self)

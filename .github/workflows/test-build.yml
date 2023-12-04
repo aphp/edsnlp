@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
   pull_request:
     branches:
-      - v*.*.*
-      - build-*
+    - v*.*.*
+    - build-*
 
 jobs:
   build_wheels:

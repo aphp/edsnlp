@@ -39,10 +39,10 @@ nlp.add_pipe(
 """
 
 CODE = """
-import spacy
+import edsnlp
 
 # Declare the pipeline
-nlp = spacy.blank("eds")
+nlp = edsnlp.blank("eds")
 
 # General-purpose components
 nlp.add_pipe("eds.normalizer")
@@ -75,8 +75,6 @@ PIPES = {
     "CCMU": "emergency_ccmu",
     "GEMSA": "emergency_gemsa",
     "Covid": "covid",
-    "CIM10": "cim10",
-    "Drugs": "drugs",
     "Adicap": "adicap",
     "Diabetes": "diabetes",
     "Tobacco": "tobacco",
@@ -99,7 +97,7 @@ PIPES = {
 }
 
 
-@st.cache(allow_output_mutation=True)
+@st.cache_resource()
 def load_model(custom_regex: str, **enabled):
     pipes = []
 

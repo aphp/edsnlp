@@ -12,18 +12,19 @@ examples = [
     "TNM: <ent norm=pT1mN1M0>pT1(m)N1 M0</ent>",
     "TNM: <ent norm=pT1bN0sn>pT1bN0(sn)</ent>",
     "TNM: <ent norm=pT1N1M0>pT1 pN1 M0</ent>",
+    "TNM: <ent norm=aTxN1M0>aTxN1M0</ent> ",
 ]
 
 
 def test_scores(blank_nlp):
-
     blank_nlp.add_pipe("eds.tnm")
 
     for example in examples:
-
         text, entities = parse_example(example=example)
 
         doc = blank_nlp(text)
+
+        assert len(entities) == len(doc.ents)
 
         for entity, ent in zip(entities, doc.ents):
             norm = entity.modifiers[0].value

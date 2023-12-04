@@ -117,8 +117,8 @@ class FamilyContextQualifier(RuleBasedQualifier):
         family: Optional[List[str]] = None,
         termination: Optional[List[str]] = None,
         use_sections: bool = True,
-        span_getter: SpanGetterArg = None,
-        on_ents_only: Union[bool, str, List[str], Set[str]] = None,
+        span_getter: Optional[SpanGetterArg] = None,
+        on_ents_only: Optional[Union[bool, str, List[str], Set[str]]] = None,
         explain: bool = False,
     ):
         terms = dict(

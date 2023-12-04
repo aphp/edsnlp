@@ -187,8 +187,8 @@ class HistoryQualifier(RuleBasedQualifier):
         history_limit: int = 14,
         closest_dates_only: bool = True,
         exclude_birthdate: bool = True,
-        span_getter: SpanGetterArg = None,
-        on_ents_only: Union[bool, str, List[str], Set[str]] = None,
+        span_getter: Optional[SpanGetterArg] = None,
+        on_ents_only: Optional[Union[bool, str, List[str], Set[str]]] = None,
         explain: bool = False,
     ):
         terms = dict(

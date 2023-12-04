@@ -1,3 +1,4 @@
+import warnings
 from operator import attrgetter
 from typing import (
     List,
@@ -21,6 +22,9 @@ from edsnlp.utils.span_getters import (
 
 
 def value_getter(span: Span):
+    key = span._._get_key("value")
+    if key in span.doc.user_data:
+        return span.doc.user_data[key]
     return span._.get(span.label_) if span._.has(span.label_) else None
 
 
@@ -49,10 +53,17 @@ class BaseComponent:
         """
         Set `Doc`, `Span` and `Token` extensions.
         """
+        if Span.has_extension("value"):
+            if Span.get_extension("value")[2] is not value_getter:
+                warnings.warn(
+                    "A Span extension 'value' already exists with a different getter. "
+                    "Keeping the existing extension, but some components of edsnlp may "
+                    "not work as expected."
+                )
+            return
         Span.set_extension(
             "value",
             getter=value_getter,
-            force=True,
         )
 
     def get_spans(self, doc: Doc):  # noqa: F811

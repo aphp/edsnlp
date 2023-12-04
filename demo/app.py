@@ -39,10 +39,10 @@ nlp.add_pipe(
 """
 
 CODE = """
-import spacy
+import edsnlp
 
 # Declare the pipeline
-nlp = spacy.blank("eds")
+nlp = edsnlp.blank("eds")
 
 # General-purpose components
 nlp.add_pipe("eds.normalizer")
@@ -65,6 +65,8 @@ doc.ents
 """
 
 PIPES = {
+    "Drugs": "drugs",
+    "CIM10": "cim10",
     "Dates": "dates",
     "Measurements": "measurements",
     "Charlson": "charlson",
@@ -75,8 +77,6 @@ PIPES = {
     "CCMU": "emergency_ccmu",
     "GEMSA": "emergency_gemsa",
     "Covid": "covid",
-    "CIM10": "cim10",
-    "Drugs": "drugs",
     "Adicap": "adicap",
     "Diabetes": "diabetes",
     "Tobacco": "tobacco",
@@ -99,7 +99,7 @@ PIPES = {
 }
 
 
-@st.cache(allow_output_mutation=True)
+@st.cache_resource()
 def load_model(custom_regex: str, **enabled):
     pipes = []
 
@@ -196,7 +196,7 @@ st_fuzzy_drugs = st_drugs_container[1].checkbox(
     "Fuzzy drugs search", value=True, disabled=not st_pipes["drugs"]
 )
 for title, name in PIPES.items():
-    if name == "drugs":
+    if name == "drugs" or name == "cim10":
         continue
     st_pipes[name] = st.sidebar.checkbox(title, value=True)
 st.sidebar.markdown(
@@ -291,7 +291,7 @@ for ent in doc.ents:
         end=ent.end_char,
         text=ent.text,
         label=ent.label_,
-        normalized_value=ent._.value or "",
+        normalized_value=str(ent._.value or ""),
         negation="YES" if ent._.negation else "NO",
         family="YES" if ent._.family else "NO",
         hypothesis="YES" if ent._.hypothesis else "NO",

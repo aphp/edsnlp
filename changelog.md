@@ -7,6 +7,7 @@
 - Microgram scale is now correctly 1/1000g and inverse meter now 1/100 inverse cm.
 - We now isolate some of edsnlp components (trainable pipes that require ml dependencies)
   in a new `edsnlp_factories` entry points to prevent spacy from auto-importing them.
+- TNM scores followed by a space are now correctly detected
 
 ## v0.10.0
 

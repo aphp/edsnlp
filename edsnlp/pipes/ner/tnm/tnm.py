@@ -85,7 +85,7 @@ class TNMMatcher(BaseNERComponent):
         if isinstance(pattern, str):
             pattern = [pattern]
 
-        self.regex_matcher = RegexMatcher(attr=attr, alignment_mode="strict")
+        self.regex_matcher = RegexMatcher(attr=attr, alignment_mode="expand")
         self.regex_matcher.add(self.label, pattern)
 
     def set_extensions(self) -> None:

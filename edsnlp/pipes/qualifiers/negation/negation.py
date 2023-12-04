@@ -159,8 +159,8 @@ class NegationQualifier(RuleBasedQualifier):
         verbs: Optional[List[str]] = None,
         termination: Optional[List[str]] = None,
         attr: str = "NORM",
-        span_getter: SpanGetterArg = None,
-        on_ents_only: Union[bool, str, List[str], Set[str]] = None,
+        span_getter: Optional[SpanGetterArg] = None,
+        on_ents_only: Optional[Union[bool, str, List[str], Set[str]]] = None,
         within_ents: bool = False,
         explain: bool = False,
     ):

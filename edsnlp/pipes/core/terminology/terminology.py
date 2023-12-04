@@ -114,7 +114,7 @@ class TerminologyMatcher(BaseNERComponent):
         ignore_excluded: bool = False,
         ignore_space_tokens: bool = False,
         term_matcher: Literal["exact", "simstring"] = "exact",
-        term_matcher_config: Dict[str, Any] = None,
+        term_matcher_config: Optional[Dict[str, Any]] = None,
         label,
         span_setter: SpanSetterArg = {"ents": True},
     ):

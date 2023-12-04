@@ -259,7 +259,7 @@ class StandoffDoc2DictConverter:
     def __init__(
         self,
         *,
-        span_getter: SpanGetterArg = None,
+        span_getter: Optional[SpanGetterArg] = None,
         span_attributes: AttributesMappingArg = {},
     ):
         self.span_getter = span_getter

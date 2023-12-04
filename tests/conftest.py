@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pandas as pd
+import pytest
 import spacy
 from pytest import fixture
 
@@ -151,7 +152,6 @@ def df_notes():
 
 
 def make_df_note(text, module):
-    import databricks.koalas  # noqa F401
     from pyspark.sql import types as T
     from pyspark.sql.session import SparkSession
 
@@ -180,6 +180,10 @@ def make_df_note(text, module):
         return notes
 
     if module == "koalas":
+        try:
+            import databricks.koalas  # noqa F401
+        except ImportError:
+            pytest.skip("Koalas not installed")
         return notes.to_koalas()
 
 

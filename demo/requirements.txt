@@ -1,2 +1,3 @@
+pydantic-core==2.14.4
 git+https://github.com/aphp/edsnlp.git
 streamlit

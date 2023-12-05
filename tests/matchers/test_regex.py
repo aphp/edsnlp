@@ -1,8 +1,11 @@
+import re
+
 import pytest
 from pytest import mark
 
-from edsnlp.matchers.regex import RegexMatcher
+from edsnlp.matchers.regex import RegexMatcher, create_span
 from edsnlp.matchers.utils import get_text
+from tests.conftest import make_nlp
 
 
 def test_regex(doc):
@@ -53,7 +56,6 @@ def test_regex(doc):
     ],
 )
 def test_regex_with_groups(blank_nlp, pattern, txt, span_from_group, result):
-
     doc = blank_nlp(txt)
     matcher = RegexMatcher(span_from_group=span_from_group)
     matcher.add("test", [pattern])
@@ -99,7 +101,6 @@ def test_regex_with_norm_on_span(blank_nlp):
 
 
 def test_offset(blank_nlp):
-
     text = "Ceci est un test de matching"
 
     doc = blank_nlp(text)
@@ -123,7 +124,6 @@ def test_offset(blank_nlp):
 
 
 def test_remove():
-
     matcher = RegexMatcher(attr="TEXT")
 
     matcher.add("test", ["pattern"])
@@ -140,7 +140,6 @@ def test_remove():
 
 
 def test_norm_alignment(blank_nlp):
-
     text = "test " + "bla… " * 4 + "test " + "bla" * 10
 
     blank_nlp.add_pipe(
@@ -176,7 +175,6 @@ def test_wrong_extraction(
     trailing_pollution: bool,
     pollution: str,
 ):
-
     if pollution_within:
         example = f"transplantation {pollution} cardiaque en 2000."
     else:
@@ -250,3 +248,108 @@ def test_regex_with_space(blank_nlp):
     match = list(matcher(doc, as_spans=True))[0]
     assert match.text == text
     assert match._.normalized_variant == "pneumopathie à coronavirus"
+
+
+@pytest.fixture(scope="session")
+def doc(lang):
+    blank_nlp = make_nlp(lang)
+    blank_nlp.add_pipe("eds.pollution")
+    blank_nlp.add_pipe("eds.spaces")
+
+    text = (
+        "-----------------------------------------------------------------------\n"
+        "La ………… valeur est NBNbWbWbNbWbNBNb de 24 / 30 milli\n"
+        "grammes."
+    )
+
+    doc = blank_nlp(text)
+
+    return doc
+
+
+@mark.parametrize("ignore_excluded", [True, False])
+@mark.parametrize("ignore_space_tokens", [True, False])
+@mark.parametrize("attr", ["TEXT", "NORM"])
+@mark.parametrize("full_doc", [True, False])
+def test_create_span(
+    doc,
+    ignore_excluded: bool,
+    ignore_space_tokens: bool,
+    attr: str,
+    full_doc: bool,
+):
+    sent = list(doc.sents)[1]
+    doclike = doc if full_doc else sent
+
+    matched_text = get_text(
+        doclike,
+        attr=attr,
+        ignore_excluded=ignore_excluded,
+        ignore_space_tokens=ignore_space_tokens,
+    )
+    clean_tokens = [
+        t
+        for t in doclike
+        if not (
+            (ignore_excluded and t.tag_ == "EXCLUDED")
+            or (ignore_space_tokens and t.tag_ == "SPACE")
+        )
+    ]
+    filtered_original = doc[clean_tokens[0].i : clean_tokens[-1].i + 1].text
+    for pattern, result, alignment_mode in [
+        (r"4 / 3", "24 / 30", "expand"),
+        (r"4 / 3", None, "strict"),
+        (r"4 / 3", "/", "contract"),
+        (r"24 / 30", "24 / 30", "expand"),
+        (r"24 / 30", "24 / 30", "strict"),
+        (r"24 / 30", "24 / 30", "contract"),
+        (r"24 / 30 milli\s?gra", "24 / 30 milli\ngrammes", "expand"),
+        (r"24 / 30 milli\s?gra", None, "strict"),
+        (r"24 / 30 milli\s?gra", "24 / 30 milli\n", "contract"),
+        (r" 24 / 30 ", "24 / 30", "expand"),
+        (r" 24 / 30 ", None, "strict"),
+        (r" 24 / 30 ", "24 / 30", "contract"),
+        (matched_text, filtered_original, "expand"),
+        (matched_text, filtered_original, "contract"),
+        (matched_text, filtered_original, "strict"),
+        ("(?=4 / 3)", "24", "expand"),
+        ("(?=4 / 3)", None, "contract"),  # spacy behavior, but it's not ideal
+        ("(?=4 / 3)", None, "strict"),
+        ("(?=24)", "", "expand"),
+        ("(?=24)", None, "contract"),  # spacy behavior, but it's not ideal
+        ("(?=24)", None, "strict"),
+    ]:
+        match = re.search(pattern, matched_text)
+        span = create_span(
+            doclike,
+            start_char=match.start(),
+            end_char=match.end(),
+            key="value",
+            attr=attr,
+            alignment_mode=alignment_mode,
+            ignore_excluded=ignore_excluded,
+            ignore_space_tokens=ignore_space_tokens,
+        )
+        assert (None if span is None else span.text) == result, (
+            pattern,
+            result,
+            alignment_mode,
+        )
+
+
+def test_create_empty_span(blank_nlp):
+    blank_nlp.add_pipe("eds.pollution")
+    blank_nlp.add_pipe("eds.spaces")
+    doc = blank_nlp("plan des addictions:\ntabac :0")
+
+    span = create_span(
+        doc[5:],
+        0,
+        0,
+        "empty",
+        attr="NORM",
+        alignment_mode="expand",
+        ignore_excluded=True,
+        ignore_space_tokens=True,
+    )
+    assert span.start == 5 and span.end == 5

@@ -1,22 +1,14 @@
 import re
-from bisect import bisect_left
-from functools import lru_cache
+from bisect import bisect_left, bisect_right
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from loguru import logger
-from spacy.tokens import Doc, Span, Token
+from spacy.tokens import Doc, Span
 
+from edsnlp.utils.doc_to_text import get_char_offsets, get_text
 from edsnlp.utils.regex import compile_regex
 
-from .utils import Patterns, alignment, get_text, offset
-
-
-@lru_cache(32)
-def get_first_included(doclike: Union[Doc, Span]) -> Token:
-    for token in doclike:
-        if token.tag_ != "EXCLUDED":
-            return token
-    raise IndexError("The provided Span does not include any token")
+from .utils import Patterns
 
 
 def get_normalized_variant(doclike) -> str:
@@ -82,7 +74,7 @@ def create_span(
     alignment_mode: str,
     ignore_excluded: bool,
     ignore_space_tokens: bool,
-) -> Span:
+) -> Optional[Span]:
     """
     spaCy only allows strict alignment mode for char_span on Spans.
     This method circumvents this.
@@ -121,55 +113,54 @@ def create_span(
             alignment_mode=alignment_mode,
         )
 
-    # If doclike is a Span, we need to get the clean
-    # index of the first included token
-    if ignore_excluded or ignore_space_tokens:
-        original, clean = alignment(
-            doc=doc,
-            attr=attr,
-            ignore_excluded=ignore_excluded,
-            ignore_space_tokens=ignore_space_tokens,
-        )
+    clean_starts, clean_ends = get_char_offsets(
+        doc,
+        attr=attr,
+        ignore_excluded=ignore_excluded,
+        ignore_space_tokens=ignore_space_tokens,
+    )
 
-        first_included = get_first_included(doclike)
-        i = bisect_left(original, first_included.idx)
-        first = clean[i]
+    first = clean_starts[doclike[0].i]
 
+    start_char += first
+    end_char += first
+
+    # (rightmost token that starts right after the start_char, but not at it)
+    start_i = bisect_right(clean_starts, start_char)
+    # (leftmost token that ends before or at the end_char) + 1
+    end_i = bisect_left(clean_ends, end_char)
+
+    if alignment_mode == "expand":
+        # if the start_char is inside the previous token (<end), we want to include it
+        if start_i > 0 and start_char < clean_ends[start_i - 1]:
+            start_i -= 1
+        # if the end_char is inside the next token (>start), we want to include it
+        if end_i < len(clean_starts) and end_char > clean_starts[end_i]:
+            end_i += 1
+    elif alignment_mode == "strict":
+        start_i -= 1
+        if (
+            start_i >= 0
+            and start_char != clean_starts[start_i]
+            or end_char != clean_ends[end_i]
+        ):
+            return None
+        end_i += 1
+    elif alignment_mode == "contract":
+        # if start_char is before the previous token (<=start), we want to include it
+        if start_i > 0 and start_char <= clean_starts[start_i - 1]:
+            start_i -= 1
+        # if end_char is after the next token (>=end), we want to include it
+        if end_i < len(clean_ends) and clean_ends[end_i] <= end_char:
+            end_i += 1
+
+        # Compatibility with spacy behavior, but ideally we would return an empty span
+        if end_i <= start_i:
+            return None
     else:
-        first = doclike[0].idx
+        raise ValueError(f"Invalid alignment mode: {alignment_mode}")
 
-    start_char = (
-        first
-        + start_char
-        + offset(
-            doc,
-            attr=attr,
-            ignore_excluded=ignore_excluded,
-            ignore_space_tokens=ignore_space_tokens,
-            index=first + start_char,
-        )
-    )
-
-    end_char = (
-        first
-        + end_char
-        + offset(
-            doc,
-            attr=attr,
-            ignore_excluded=ignore_excluded,
-            ignore_space_tokens=ignore_space_tokens,
-            index=first + end_char,
-        )
-    )
-
-    span = doc.char_span(
-        start_char,
-        end_char,
-        label=key,
-        alignment_mode=alignment_mode,
-    )
-
-    return span
+    return Span(doc, start_i, max(start_i, end_i), label=key)
 
 
 class RegexMatcher(object):

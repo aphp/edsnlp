@@ -20,5 +20,5 @@ ATTRIBUTES = {
     "SHAPE": "shape_",
 }
 
-from .offset import alignment, offset  # noqa: E402, F401
+from .offset import alignment  # noqa: E402, F401
 from .text import get_text  # noqa: E402, F401

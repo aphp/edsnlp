@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Union
+from typing import List, Tuple, Union
 
 import spacy.attrs
 from spacy.tokens import Doc, Span
@@ -11,7 +11,28 @@ def aggregate_tokens(
     attr: str,
     ignore_excluded: bool = False,
     ignore_space_tokens: bool = False,
-):
+) -> Tuple[str, List[int], List[int], bytes]:
+    """
+    Aggregate tokens strings, computed from their `attr` attribute, into a single
+    string, possibly ignoring excluded tokens (like pollution tokens) and/or space
+    tokens. This also returns the start and end offsets of each token in the
+    aggregated string, as well as a bytes array indicating which tokens were kept.
+    The reason for the bytes array is that it is faster to index, and allows reverse
+    indexing as well.
+
+    Parameters
+    ----------
+    doc: Doc
+    attr: str
+    ignore_excluded: bool
+    ignore_space_tokens: bool
+
+    Returns
+    -------
+    Tuple[str, List[int], List[int], bytes]
+        The aggregated text, the start offsets, the end offsets, and the bytes array
+        indicating which tokens were kept.
+    """
     idx_to_strings = doc.vocab.strings
     exclude_hash = idx_to_strings["EXCLUDED"]
     space_hash = idx_to_strings["SPACE"]
@@ -28,6 +49,7 @@ def aggregate_tokens(
             text_parts[i] = idx_to_strings[str_hash] + (" " if space else "")
         begins = arr[:, 2].tolist()
         ends = (arr[:, 2] + arr[:, 3]).tolist()
+        keep_list = [True] * len(arr)
     else:
         if hasattr(spacy.attrs, spacy_attr):
             arr = doc.to_array(
@@ -40,11 +62,11 @@ def aggregate_tokens(
             tokens_space = arr[:, 0].tolist()
             tokens_tag = arr[:, 1]
             tokens_text = arr[:, 2].tolist()
-        else:
-            arr = doc.to_array([spacy.attrs.SPACY, spacy.attrs.TAG])
-            tokens_space = arr[:, 0].tolist()
-            tokens_tag = arr[:, 1]
-            tokens_text = [token._.get(spacy_attr) for token in doc]
+        # else:
+        #     arr = doc.to_array([spacy.attrs.SPACY, spacy.attrs.TAG])
+        #     tokens_space = arr[:, 0].tolist()
+        #     tokens_tag = arr[:, 1]
+        #     tokens_text = [token._.get(spacy_attr) for token in doc]
 
         text_parts = [""] * len(arr)
         begins = [0] * len(arr)
@@ -83,7 +105,7 @@ def aggregate_tokens(
     text = "".join(text_parts)
     if attr == "LOWER":
         text = text.lower()
-    return text, begins, ends
+    return text, begins, ends, bytes(keep_list)
 
 
 def get_text(
@@ -112,19 +134,24 @@ def get_text(
         Extracted text.
     """
     is_doc = isinstance(doclike, Doc)
-    text, starts, ends = aggregate_tokens(
+    text, starts, ends, keep = aggregate_tokens(
         doclike if is_doc else doclike.doc,
         attr,
         ignore_excluded=ignore_excluded,
         ignore_space_tokens=ignore_space_tokens,
     )
-    return (
-        text
-        if is_doc
-        else text[starts[doclike[0].i] : ends[doclike[-1].i]]
-        if len(doclike)
-        else ""
-    )
+    try:
+        return (
+            text[
+                starts[keep.index(1, doclike[0].i)] : ends[
+                    keep.rindex(1, None, doclike[-1].i + 1)
+                ]
+            ]
+            if len(doclike)
+            else ""
+        )
+    except ValueError:
+        return ""
 
 
 def get_char_offsets(
@@ -157,4 +184,4 @@ def get_char_offsets(
         attr,
         ignore_excluded=ignore_excluded,
         ignore_space_tokens=ignore_space_tokens,
-    )[1:]
+    )[1:3]

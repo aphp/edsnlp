@@ -1,11 +1,11 @@
 import re
 
 import pytest
+from helpers import make_nlp
 from pytest import mark
 
 from edsnlp.matchers.regex import RegexMatcher, create_span
 from edsnlp.matchers.utils import get_text
-from tests.conftest import make_nlp
 
 
 def test_regex(doc):
@@ -167,7 +167,7 @@ def test_norm_alignment(blank_nlp):
     "pollution",
     ["==================", "======= ======= =======", "Nnnnnnnnnnnnn nnnnnn nnnnnnnn"],
 )
-def test_wrong_extraction(
+def text_get_text(
     blank_nlp,
     leading_text: str,
     leading_pollution: bool,
@@ -251,7 +251,7 @@ def test_regex_with_space(blank_nlp):
 
 
 @pytest.fixture(scope="session")
-def doc(lang):
+def doc2(lang):
     blank_nlp = make_nlp(lang)
     blank_nlp.add_pipe("eds.pollution")
     blank_nlp.add_pipe("eds.spaces")
@@ -272,14 +272,14 @@ def doc(lang):
 @mark.parametrize("attr", ["TEXT", "NORM"])
 @mark.parametrize("full_doc", [True, False])
 def test_create_span(
-    doc,
+    doc2,
     ignore_excluded: bool,
     ignore_space_tokens: bool,
     attr: str,
     full_doc: bool,
 ):
-    sent = list(doc.sents)[1]
-    doclike = doc if full_doc else sent
+    sent = list(doc2.sents)[1]
+    doclike = doc2 if full_doc else sent
 
     matched_text = get_text(
         doclike,
@@ -295,7 +295,7 @@ def test_create_span(
             or (ignore_space_tokens and t.tag_ == "SPACE")
         )
     ]
-    filtered_original = doc[clean_tokens[0].i : clean_tokens[-1].i + 1].text
+    filtered_original = doc2[clean_tokens[0].i : clean_tokens[-1].i + 1].text
     for pattern, result, alignment_mode in [
         (r"4 / 3", "24 / 30", "expand"),
         (r"4 / 3", None, "strict"),
@@ -353,3 +353,11 @@ def test_create_empty_span(blank_nlp):
         ignore_space_tokens=True,
     )
     assert span.start == 5 and span.end == 5
+
+
+def test_empty_get_text(blank_nlp):
+    blank_nlp.add_pipe("eds.pollution")
+    blank_nlp.add_pipe("eds.spaces")
+    doc = blank_nlp("==================================")
+    clean = get_text(doc, attr="NORM", ignore_excluded=True, ignore_space_tokens=True)
+    assert clean == ""

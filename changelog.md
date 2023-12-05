@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- Small regex matching performance improvement, up to 1.25x faster (e.g. `eds.measurements`)
+
 ### Fixed
 
 - Microgram scale is now correctly 1/1000g and inverse meter now 1/100 inverse cm.

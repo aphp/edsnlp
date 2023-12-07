@@ -86,7 +86,7 @@ units_config = {
     "µg": {
         "dim": "mass",
         "degree": 1,
-        "scale": 1e-1,
+        "scale": 1e-3,
         "terms": [
             "microgramme",
             "microgrammes",

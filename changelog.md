@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Microgram scale is now correctly 1/1000, instead of 1/10mg before
+
 ## v0.10.0
 
 ### Added

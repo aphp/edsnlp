@@ -250,14 +250,14 @@ units_config = {
     "cac": {
         "dim": "length",
         "degree": 3,
-        "scale": 5e-3,
+        "scale": 5e0,
         "terms": ["cac", "c.a.c", "cuillere à café", "cuillères à café"],
         "followed_by": None,
     },
     "goutte": {
         "dim": "length",
         "degree": 3,
-        "scale": 5e-5,
+        "scale": 5e-2,
         "terms": ["gt", "goutte", "gouttes"],
         "followed_by": None,
     },

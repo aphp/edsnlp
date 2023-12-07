@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Microgram scale is now correctly 1/1000g and inverse meter now 1/100 inverse cm.
+
 ## v0.10.0
 
 ### Added

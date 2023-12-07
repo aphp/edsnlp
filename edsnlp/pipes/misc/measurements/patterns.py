@@ -386,7 +386,7 @@ units_config = {
     "per_m": {
         "dim": "length",
         "degree": -1,
-        "scale": 1e-3,
+        "scale": 1e-2,
         "terms": ["m-1"],
         "followed_by": None,
     },

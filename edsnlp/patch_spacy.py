@@ -114,9 +114,10 @@ def __init__(
     max_length: int = 10**6,
     meta: Dict[str, Any] = {},
     create_tokenizer: Optional[Callable[["Language"], Callable[[str], Doc]]] = None,
+    create_vectors: Optional[Callable[["Vocab"], Any]] = None,
     batch_size: int = 1000,
     **kwargs,
-) -> None:
+) -> None:  # pragma: no cover
     """
     EDS-NLP: Patched from spaCy do enable lazy-loading components
 
@@ -142,8 +143,7 @@ def __init__(
 
     # EDS-NLP: disable spacy default call to load every factory
     # since some of them may be missing dependencies (like torch)
-    # util.registry._entry_point_factories.get_all()
-    util.registry.factories = util.registry._entry_point_factories
+    util.registry._entry_point_factories.get_all()
 
     self._config = DEFAULT_CONFIG.merge(self.default_config)
     self._meta = dict(meta)
@@ -158,8 +158,18 @@ def __init__(
     if vocab is True:
         vectors_name = meta.get("vectors", {}).get("name")
         vocab = create_vocab(self.lang, self.Defaults, vectors_name=vectors_name)
-    if (self.lang and vocab.lang) and (self.lang != vocab.lang):
-        raise ValueError(Errors.E150.format(nlp=self.lang, vocab=vocab.lang))
+        if (
+            not create_vectors
+            and "vectors" in self._config["nlp"]
+            and "@vectors" in self._config["nlp"]["vectors"]
+        ):
+            vectors_cfg = {"vectors": self._config["nlp"]["vectors"]}
+            create_vectors = registry.resolve(vectors_cfg)["vectors"]
+        if create_vectors:
+            vocab.vectors = create_vectors(vocab)
+    else:
+        if (self.lang and vocab.lang) and (self.lang != vocab.lang):
+            raise ValueError(Errors.E150.format(nlp=self.lang, vocab=vocab.lang))
     self.vocab: Vocab = vocab
     if self.lang is None:
         self.lang = self.vocab.lang
@@ -167,12 +177,9 @@ def __init__(
     self._disabled: Set[str] = set()
     self.max_length = max_length
     # Create the default tokenizer from the default config
-    create_tokenizer = (
-        create_tokenizer
-        or registry.resolve({"tokenizer": self._config["nlp"]["tokenizer"]})[
-            "tokenizer"
-        ]
-    )
+    if not create_tokenizer:
+        tokenizer_cfg = {"tokenizer": self._config["nlp"]["tokenizer"]}
+        create_tokenizer = registry.resolve(tokenizer_cfg)["tokenizer"]
     self.tokenizer = create_tokenizer(self)
     self.batch_size = batch_size
     self.default_error_handler = raise_error

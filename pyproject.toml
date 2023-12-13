@@ -170,14 +170,6 @@ where = ["."]
 "eds.sections"                    = "edsnlp.pipes.misc.sections.factory:create_component"
 "eds.tables"                      = "edsnlp.pipes.misc.tables.factory:create_component"
 
-# Trainable
-"eds.transformer"                 = "edsnlp.pipes.trainable.embeddings.transformer.factory:create_component"
-"eds.text_cnn"                    = "edsnlp.pipes.trainable.embeddings.text_cnn.factory:create_component"
-"eds.span_pooler"                 = "edsnlp.pipes.trainable.embeddings.span_pooler.factory:create_component"
-"eds.ner_crf"                     = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
-"eds.nested_ner"                  = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
-"eds.span_qualifier"               = "edsnlp.pipes.trainable.span_qualifier.factory:create_component"
-
 # Deprecated (links to the same factories as above)
 "SOFA"                   = "edsnlp.pipes.ner.scores.sofa.factory:create_component"
 "accents"                = "edsnlp.pipes.core.normalizer.accents.factory:create_component"
@@ -219,6 +211,20 @@ where = ["."]
 "spaces"                 = "edsnlp.pipes.core.normalizer.spaces.factory:create_component"
 "tables"                 = "edsnlp.pipes.misc.tables.factory:create_component"
 "terminology"            = "edsnlp.pipes.core.terminology.factory:create_component"
+
+# We could use spacy_factories in principle, but spacy auto-imports all entry points
+# by default, when some of ours require optional dependencies (on the other hand,
+# edsnlp only import an entrypoint if it is requested). By splitting our pipes between
+# spacy_factories and edsnlp_factories, spacy will only look in the dict above and
+# edsnlp will look both in the above dict and in the one below.
+[project.entry-points."edsnlp_factories"]
+# Trainable
+"eds.transformer"                 = "edsnlp.pipes.trainable.embeddings.transformer.factory:create_component"
+"eds.text_cnn"                    = "edsnlp.pipes.trainable.embeddings.text_cnn.factory:create_component"
+"eds.span_pooler"                 = "edsnlp.pipes.trainable.embeddings.span_pooler.factory:create_component"
+"eds.ner_crf"                     = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
+"eds.nested_ner"                  = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
+"eds.span_qualifier"               = "edsnlp.pipes.trainable.span_qualifier.factory:create_component"
 
 [project.entry-points."spacy_scorers"]
 "eds.ner_exact_scorer"           = "edsnlp.scorers.ner:create_ner_exact_scorer"

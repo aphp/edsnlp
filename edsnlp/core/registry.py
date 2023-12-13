@@ -140,39 +140,63 @@ class FactoryRegistry(Registry):
     """
 
     def get(self, name: str) -> Any:
-        """Get the registered function for a given name.
+        """
+        Get the registered function for a given name.
+        Since we want to be able to get functions registered under spacy namespace,
+        and functions defined in memory but not accessible via entry points (spacy
+        internal namespace), we need to check multiple registries.
+
+        The strategy is the following:
+
+        1. If the function exists in the edsnlp_factories namespace, return it as a
+           curried function.
+        2. Otherwise, check spacy namespaces and re-register it under edsnlp_factories
+           namespace, then return it as a curried function.
+        3. Otherwise, search in edsnlp's entry points and redo steps 1 & 2
+        4. Otherwise, search in spacy's points and redo steps 1 & 2
+        5. Fail
 
         name (str): The name.
         RETURNS (Any): The registered function.
         """
 
-        namespace = list(self.namespace) + [name]
-        spacy_namespace = ["spacy", "internal_factories", name]
+        registry_path = list(self.namespace) + [name]
+        registry_spacy_path = ["spacy", "factories", name]
+        registry_internal_spacy_path = ["spacy", "internal_factories", name]
 
         def check_and_return():
-            if not catalogue.check_exists(*namespace) and catalogue.check_exists(
-                *spacy_namespace
-            ):
-                func = catalogue._get(spacy_namespace)
-                meta = spacy.Language.get_factory_meta(name)
+            if not catalogue.check_exists(*registry_path):
+                for path in (registry_spacy_path, registry_internal_spacy_path):
+                    if catalogue.check_exists(*path):
+                        func = catalogue._get(path)
+                        meta = spacy.Language.get_factory_meta(name)
 
-                self.register(
-                    name,
-                    func=func,
-                    assigns=meta.assigns,
-                    requires=meta.requires,
-                    retokenizes=meta.retokenizes,
-                    default_config=meta.default_config,
-                )
+                        self.register(
+                            name,
+                            func=func,
+                            assigns=meta.assigns,
+                            requires=meta.requires,
+                            retokenizes=meta.retokenizes,
+                            default_config=meta.default_config,
+                        )
 
-            if catalogue.check_exists(*namespace):
-                func = catalogue._get(namespace)
+            if catalogue.check_exists(*registry_path):
+                func = catalogue._get(registry_path)
                 return lambda **kwargs: CurriedFactory(func, kwargs=kwargs)
 
+        # Steps 1 & 2
         func = check_and_return()
         if func is None and self.entry_points:
+            # Otherwise, step 3
             self.get_entry_point(name)
+            # Then redo steps 1 & 2
             func = check_and_return()
+        if func is None and spacy.registry.factories.entry_points:
+            # Otherwise, step 4
+            if hasattr(spacy.registry, "_entry_point_factories"):
+                spacy.registry._entry_point_factories.get_entry_point(name)
+                # Then redo steps 1 & 2
+                func = check_and_return()
 
         if func is not None:
             return func
@@ -297,10 +321,8 @@ class FactoryRegistry(Registry):
 
 
 class registry(RegistryCollection):
-    factory = factories = FactoryRegistry(
-        ("spacy", "factories"),
-        entry_points=True,
-    )
+    factories = FactoryRegistry(("edsnlp", "factories"), entry_points=True)
+    factory = factories
     misc = Registry(("spacy", "misc"), entry_points=True)
     languages = Registry(("spacy", "languages"), entry_points=True)
     tokenizers = Registry(("spacy", "tokenizers"), entry_points=True)

@@ -8,6 +8,8 @@
 - We now isolate some of edsnlp components (trainable pipes that require ml dependencies)
   in a new `edsnlp_factories` entry points to prevent spacy from auto-importing them.
 - TNM scores followed by a space are now correctly detected
+- Removed various short TNM false positives (e.g., "PT" or "a   T")
+- The Span value extension is not more forcibly overwritten, and user assigned values are returned by `Span._.value` in priority, before the aggregated `span._.get(span.label_)` getter result (#220)
 
 ## v0.10.0
 

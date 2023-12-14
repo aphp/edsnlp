@@ -118,7 +118,20 @@ class TNMMatcher(BaseNERComponent):
             return_groupdict=True,
         )
 
-        spans = filter_spans(spans)
+        filtered_spans = []
+        for span, gd in spans:
+            text = span.text
+            clean = text.replace(" ", "").replace("\n", "")
+            if (
+                # we keep it if it's longer than 2 chars
+                len(clean) > 2
+                # or shorter but there is no space, and it starts w/ a lowercase letter
+                # to avoid cases like "a  T" or "PT"
+                or (not text[1:2].isspace() and text[0:1].islower())
+            ):
+                filtered_spans.append((span, gd))
+
+        spans = filter_spans(filtered_spans)
 
         return spans
 

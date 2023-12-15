@@ -16,6 +16,7 @@
 - The Span value extension is not more forcibly overwritten, and user assigned values are returned by `Span._.value` in priority, before the aggregated `span._.get(span.label_)` getter result (#220)
 - Enable mmap during multiprocessing model transfers
 - `RegexMatcher` now supports all alignment modes (`strict`, `expand`, `contract`) and better handles partial doc matching (#201).
+- `on_ent_only=False/True` is now supported again in qualifier pipes (e.g., "eds.negation", "eds.hypothesis", ...)
 
 ## v0.10.0
 

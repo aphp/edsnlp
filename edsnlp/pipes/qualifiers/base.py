@@ -92,13 +92,13 @@ class RuleBasedQualifier(BaseComponent):
             on_ents_only = True
 
         if on_ents_only:
+            assert span_getter is None or on_ents_only is True, (
+                "Cannot use both `span_getter` and `on_ents_only` as a span selection "
+                "argument."
+            )
             assert isinstance(on_ents_only, (list, str, set, bool)), (
                 "The `on_ents_only` argument should be a "
                 "string, a bool, a list or a set of string"
-            )
-
-            assert span_getter is None, (
-                "Cannot use both `on_ents_only` and " "`span_getter`"
             )
             span_getter = "ents" if on_ents_only is True else on_ents_only
         else:

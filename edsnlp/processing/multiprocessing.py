@@ -126,7 +126,7 @@ if (
 ):
     replace_pickler()
 
-DEBUG = False
+DEBUG = True
 
 debug = (
     (lambda *args, flush=False, **kwargs: print(*args, **kwargs, flush=True))
@@ -177,7 +177,7 @@ try:
     def load(*args, map_location=None, **kwargs):
         global MAP_LOCATION
         MAP_LOCATION = map_location
-        if torch.__version__ >= "2.1.2":
+        if torch.__version__ >= "2.1" and isinstance(args[0], str):
             kwargs["mmap"] = True
         result = torch.load(
             *args,
@@ -329,8 +329,7 @@ class CPUWorker:
                 else:
                     yield stage, task
 
-        with open(self.lazy_collection_path, "rb") as f:
-            lc = load(f, map_location=self.device)
+        lc = load(self.lazy_collection_path, map_location=self.device)
         # for name, pipe, *rest in lc.pipeline:
         #    move_to_device(pipe, self.device)
 
@@ -442,8 +441,7 @@ class GPUWorker:
         # mp._prctl_pr_set_pdeathsig(signal.SIGINT)
         had_error = False
 
-        with open(self.lazy_collection_path, "rb") as f:
-            lc = load(f, map_location=self.device)
+        lc = load(self.lazy_collection_path, map_location=self.device)
         stage_components = [
             pipe
             # move_to_device(pipe, self.device)

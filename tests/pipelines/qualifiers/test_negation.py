@@ -2,7 +2,7 @@ from typing import List
 
 from pytest import fixture, mark
 
-from edsnlp.pipelines.qualifiers.negation import Negation
+from edsnlp.pipes.qualifiers.negation import Negation
 from edsnlp.utils.examples import parse_example
 
 negation_examples: List[str] = [
@@ -32,7 +32,6 @@ negation_examples: List[str] = [
 
 @fixture
 def negation_factory(blank_nlp):
-
     default_config = dict(
         pseudo=None,
         preceding=None,
@@ -42,10 +41,10 @@ def negation_factory(blank_nlp):
         attr="NORM",
         within_ents=False,
         explain=True,
+        span_getter="ents",
     )
 
     def factory(on_ents_only, **kwargs) -> Negation:
-
         config = dict(**default_config)
         config.update(kwargs)
 
@@ -60,7 +59,6 @@ def negation_factory(blank_nlp):
 
 @mark.parametrize("on_ents_only", [True, False])
 def test_negation(blank_nlp, negation_factory, on_ents_only):
-
     negation = negation_factory(on_ents_only=on_ents_only)
 
     for example in negation_examples:
@@ -74,9 +72,7 @@ def test_negation(blank_nlp, negation_factory, on_ents_only):
         doc = negation(doc)
 
         for entity, ent in zip(entities, doc.ents):
-
             for modifier in entity.modifiers:
-
                 assert bool(ent._.negation_cues) == (modifier.value in {True, "NEG"})
 
                 assert (
@@ -91,7 +87,6 @@ def test_negation(blank_nlp, negation_factory, on_ents_only):
 
 
 def test_negation_within_ents(blank_nlp, negation_factory):
-
     negation = negation_factory(on_ents_only=True, within_ents=True)
 
     examples = [
@@ -109,9 +104,7 @@ def test_negation_within_ents(blank_nlp, negation_factory):
         doc = negation(doc)
 
         for entity, ent in zip(entities, doc.ents):
-
             for modifier in entity.modifiers:
-
                 assert bool(ent._.negation_cues) == (modifier.value in {True, "NEG"})
 
                 assert (

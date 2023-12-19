@@ -71,7 +71,7 @@ class AbsoluteDate(BaseDate):
 
         Parameters
         ----------
-        tz : Optional[Union[str, pendulum.tz.timezone]]
+        tz : Optional[Union[str, pendulum.timezone]]
             The timezone to use. Defaults to "Europe/Paris".
         note_datetime : Optional[Union[pendulum.datetime, datetime.datetime]]
             The datetime of the note. Used to infer missing parts of the date.

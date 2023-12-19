@@ -5,6 +5,7 @@
 ### Fixed
 
 - Fix imports of components declared in `spacy_factories` entry points
+- Support `pendulum` v3
 
 ## v0.10.1
 

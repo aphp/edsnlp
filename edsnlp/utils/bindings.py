@@ -118,7 +118,7 @@ def validate_qualifiers(value: Union[SeqStr, Dict[str, SpanFilter]]) -> Qualifie
     if isinstance(value, str):
         return {value: True}
     if isinstance(value, list):
-        return {group: True for group in value}
+        return {qlf: True for qlf in value}
     elif isinstance(value, dict):
         new_value = {}
         for k, v in value.items():

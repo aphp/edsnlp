@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.10.2
+
+### Fixed
+
+- Fix imports of components declared in `spacy_factories` entry points
+
 ## v0.10.1
 
 ### Changed

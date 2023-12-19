@@ -191,7 +191,7 @@ class FactoryRegistry(Registry):
             self.get_entry_point(name)
             # Then redo steps 1 & 2
             func = check_and_return()
-        if func is None and spacy.registry.factories.entry_points:
+        if func is None:
             # Otherwise, step 4
             if hasattr(spacy.registry, "_entry_point_factories"):
                 spacy.registry._entry_point_factories.get_entry_point(name)

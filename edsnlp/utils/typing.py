@@ -24,7 +24,9 @@ class MetaAsList(type):
         try:
             return pydantic.parse_obj_as(List[cls.item], value)
         except pydantic.ValidationError as e:
-            raise patch_errors(e, offset=1).set_model(cls)
+            e = patch_errors(e, drop_names=("__root__",))
+            e.model = cls
+            raise e
 
     def __get_validators__(cls):
         yield cls.validate

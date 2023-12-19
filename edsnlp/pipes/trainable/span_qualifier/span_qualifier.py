@@ -178,7 +178,9 @@ class TrainableSpanQualifier(
         qualifiers: QualifiersArg,
         keep_none: bool = False,
     ):
-        self.qualifiers = qualifiers  # type: ignore
+        self.qualifiers = {
+            (k if k.startswith("_.") else f"_.{k}"): v for k, v in qualifiers.items()
+        }
 
         super().__init__(nlp, name)
 

@@ -87,7 +87,9 @@ class create_span_classification_scorer:
         qualifiers: QualifiersArg = None,
     ):
         self.span_getter = span_getter
-        self.qualifiers = qualifiers  # type: ignore
+        self.qualifiers = {
+            (k if k.startswith("_.") else f"_.{k}"): v for k, v in qualifiers.items()
+        }
 
     def __call__(self, *examples: Any):
         return span_classification_scorer(

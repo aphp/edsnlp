@@ -60,7 +60,7 @@ class AbsoluteDate(BaseDate):
     def to_datetime(
         self,
         note_datetime: Optional[Union[pendulum.datetime, datetime.datetime]] = None,
-        tz: Union[str, pendulum.tz.timezone] = "Europe/Paris",
+        tz: Union[str, pendulum.timezone] = "Europe/Paris",
         infer_from_context: Optional[bool] = None,
         default_day=1,
         default_month=1,

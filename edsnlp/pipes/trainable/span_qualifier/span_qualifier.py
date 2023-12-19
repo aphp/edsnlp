@@ -219,7 +219,7 @@ class TrainableSpanQualifier(
                 },
                 f,
             )
-        super().to_disk(path, exclude=exclude)
+        return super().to_disk(path, exclude=exclude)
 
     def from_disk(self, path, exclude=tuple()):
         repr_id = object.__repr__(self)

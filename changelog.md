@@ -2,10 +2,16 @@
 
 ## v0.10.2
 
+### Changed
+
+- `eds.span_qualifier` qualifiers argument now automatically adds the underscore prefix if not present
+
 ### Fixed
 
 - Fix imports of components declared in `spacy_factories` entry points
 - Support `pendulum` v3
+- `AsList` errors are now correctly reported
+- `eds.span_qualifier` saved configuration during `to_disk` is now longer null
 
 ## v0.10.1
 

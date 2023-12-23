@@ -179,7 +179,11 @@ def on_post_page(
 
     autorefs: AutorefsPlugin = config["plugins"]["autorefs"]
     spacy_factories_entry_points = {
-        ep.name: ep.value for ep in entry_points()["spacy_factories"]
+        ep.name: ep.value
+        for ep in (
+            *entry_points()["spacy_factories"],
+            *entry_points()["edsnlp_factories"],
+        )
     }
 
     def replace_component(match):

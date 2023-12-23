@@ -5,16 +5,16 @@
 
 <span class=n>nlp</span> <span class=o>=</span> <span class=n>edsnlp</span><span class=o>.</span><span class=n>blank</span><span class=p>(</span><span class=s2>&quot;eds&quot;</span><span class=p>)</span>
 <span class=n>nlp</span><span class=o>.</span><span class=n>add_pipe</span><span class=p>(</span>
-    <span class=s2>&quot;eds.ner_crf&quot;</span><span class=p>,</span>  <span class=c1># (1)</span>
+    <span class=s2>&quot;<a href="../../pipes/trainable/ner/#edsnlp.pipes.trainable.ner_crf.factory.create_component">eds.ner_crf</a>&quot;</span><span class=p>,</span>  <span class=c1># (1)</span>
     <span class=n>name</span><span class=o>=</span><span class=s2>&quot;ner&quot;</span><span class=p>,</span>
     <span class=n>config</span><span class=o>=</span><span class=p>{</span>
         <span class=s2>&quot;mode&quot;</span><span class=p>:</span> <span class=s2>&quot;joint&quot;</span><span class=p>,</span>  <span class=c1># (2)</span>
         <span class=s2>&quot;target_span_getter&quot;</span><span class=p>:</span> <span class=s2>&quot;ml-ner&quot;</span><span class=p>,</span> <span class=c1># (3)</span>
         <span class=s2>&quot;embedding&quot;</span><span class=p>:</span> <span class=p>{</span>
-            <span class=s2>&quot;@factory&quot;</span><span class=p>:</span> <span class=s2>&quot;eds.text_cnn&quot;</span><span class=p>,</span>  <span class=c1># (4)</span>
+            <span class=s2>&quot;@factory&quot;</span><span class=p>:</span> <span class=s2>&quot;<a href="../../pipes/trainable/embeddings/text_cnn/#edsnlp.pipes.trainable.embeddings.text_cnn.factory.create_component">eds.text_cnn</a>&quot;</span><span class=p>,</span>  <span class=c1># (4)</span>
             <span class=s2>&quot;kernel_sizes&quot;</span><span class=p>:</span> <span class=p>[</span><span class=mi>3</span><span class=p>],</span>
             <span class=s2>&quot;embedding&quot;</span><span class=p>:</span> <span class=p>{</span>
-                <span class=s2>&quot;@factory&quot;</span><span class=p>:</span> <span class=s2>&quot;eds.transformer&quot;</span><span class=p>,</span>  <span class=c1># (5)</span>
+                <span class=s2>&quot;@factory&quot;</span><span class=p>:</span> <span class=s2>&quot;<a href="../../pipes/trainable/embeddings/transformer/#edsnlp.pipes.trainable.embeddings.transformer.factory.create_component">eds.transformer</a>&quot;</span><span class=p>,</span>  <span class=c1># (5)</span>
                 <span class=s2>&quot;model&quot;</span><span class=p>:</span> <span class=s2>&quot;prajjwal1/bert-tiny&quot;</span><span class=p>,</span>  <span class=c1># (6)</span>
                 <span class=s2>&quot;window&quot;</span><span class=p>:</span> <span class=mi>128</span><span class=p>,</span>
                 <span class=s2>&quot;stride&quot;</span><span class=p>:</span> <span class=mi>96</span><span class=p>,</span>
@@ -22,7 +22,7 @@
         <span class=p>},</span>
     <span class=p>},</span>
 <span class=p>)</span>
-</code></pre></div> <ol> <li>We use the <code>eds.ner_crf</code> NER task module, which classifies word embeddings into NER labels (BIOUL scheme) using a CRF.</li> <li>Each component of the pipeline can be configured with a dictionary, using the parameter described in the component's page.</li> <li>The <code>target_span_getter</code> parameter defines the name of the span group used to train the NER model. We will need to make sure the entities from the training dataset are assigned to this span group (next section).</li> <li>The word embeddings used by the CRF are computed by a CNN, which builds on top of another embedding layer.</li> <li>The base embedding layer is a pretrained transformer, which computes contextualized word embeddings.</li> <li>We chose the <code>prajjwal1/bert-tiny</code> model in this tutorial for testing purposes, but we recommend using a larger model like <code>bert-base-cased</code> or <code>camembert-base</code> (French) for real-world applications.</li> </ol> <h3 id=2-adapting-a-dataset>2. Adapting a dataset</h3> <p>To train a pipeline, we must convert our annotated data into documents that will be either used as training samples or a evaluation samples. This is done by designing a function to convert the dataset into a list of spaCy Doc objects. We will assume the dataset has been annotated using <a href="https://brat.nlplab.org">Brat</a>, but any format can be used.</p> <p>At this step, we might also want to perform data augmentation, filtering, splitting or any other data transformation. Note that this function will be used to load both the training data and the test data.</p> <div class=highlight><pre><span></span><code><span class=kn>from</span> <span class=nn>pydantic</span> <span class=kn>import</span> <span class=n>DirectoryPath</span>
+</code></pre></div> <ol> <li>We use the <code><a href="../../pipes/trainable/ner/#edsnlp.pipes.trainable.ner_crf.factory.create_component">eds.ner_crf</a></code> NER task module, which classifies word embeddings into NER labels (BIOUL scheme) using a CRF.</li> <li>Each component of the pipeline can be configured with a dictionary, using the parameter described in the component's page.</li> <li>The <code>target_span_getter</code> parameter defines the name of the span group used to train the NER model. We will need to make sure the entities from the training dataset are assigned to this span group (next section).</li> <li>The word embeddings used by the CRF are computed by a CNN, which builds on top of another embedding layer.</li> <li>The base embedding layer is a pretrained transformer, which computes contextualized word embeddings.</li> <li>We chose the <code>prajjwal1/bert-tiny</code> model in this tutorial for testing purposes, but we recommend using a larger model like <code>bert-base-cased</code> or <code>camembert-base</code> (French) for real-world applications.</li> </ol> <h3 id=2-adapting-a-dataset>2. Adapting a dataset</h3> <p>To train a pipeline, we must convert our annotated data into documents that will be either used as training samples or a evaluation samples. This is done by designing a function to convert the dataset into a list of spaCy Doc objects. We will assume the dataset has been annotated using <a href="https://brat.nlplab.org">Brat</a>, but any format can be used.</p> <p>At this step, we might also want to perform data augmentation, filtering, splitting or any other data transformation. Note that this function will be used to load both the training data and the test data.</p> <div class=highlight><pre><span></span><code><span class=kn>from</span> <span class=nn>pydantic</span> <span class=kn>import</span> <span class=n>DirectoryPath</span>
 <span class=kn>import</span> <span class=nn>edsnlp</span>
 
 
@@ -349,17 +349,17 @@
 <span class=k>if</span> <span class=vm>__name__</span> <span class=o>==</span> <span class=s2>&quot;__main__&quot;</span><span class=p>:</span>
     <span class=n>nlp</span> <span class=o>=</span> <span class=n>edsnlp</span><span class=o>.</span><span class=n>blank</span><span class=p>(</span><span class=s2>&quot;eds&quot;</span><span class=p>)</span>
     <span class=n>nlp</span><span class=o>.</span><span class=n>add_pipe</span><span class=p>(</span>
-        <span class=s2>&quot;eds.ner_crf&quot;</span><span class=p>,</span>
+        <span class=s2>&quot;<a href="../../pipes/trainable/ner/#edsnlp.pipes.trainable.ner_crf.factory.create_component">eds.ner_crf</a>&quot;</span><span class=p>,</span>
         <span class=n>name</span><span class=o>=</span><span class=s2>&quot;ner&quot;</span><span class=p>,</span>
         <span class=n>config</span><span class=o>=</span><span class=p>{</span>
             <span class=s2>&quot;mode&quot;</span><span class=p>:</span> <span class=s2>&quot;joint&quot;</span><span class=p>,</span>
             <span class=s2>&quot;target_span_getter&quot;</span><span class=p>:</span> <span class=s2>&quot;ml-ner&quot;</span><span class=p>,</span>
             <span class=s2>&quot;window&quot;</span><span class=p>:</span> <span class=mi>20</span><span class=p>,</span>
             <span class=s2>&quot;embedding&quot;</span><span class=p>:</span> <span class=p>{</span>
-                <span class=s2>&quot;@factory&quot;</span><span class=p>:</span> <span class=s2>&quot;eds.text_cnn&quot;</span><span class=p>,</span>
+                <span class=s2>&quot;@factory&quot;</span><span class=p>:</span> <span class=s2>&quot;<a href="../../pipes/trainable/embeddings/text_cnn/#edsnlp.pipes.trainable.embeddings.text_cnn.factory.create_component">eds.text_cnn</a>&quot;</span><span class=p>,</span>
                 <span class=s2>&quot;kernel_sizes&quot;</span><span class=p>:</span> <span class=p>[</span><span class=mi>3</span><span class=p>],</span>
                 <span class=s2>&quot;embedding&quot;</span><span class=p>:</span> <span class=p>{</span>
-                    <span class=s2>&quot;@factory&quot;</span><span class=p>:</span> <span class=s2>&quot;eds.transformer&quot;</span><span class=p>,</span>
+                    <span class=s2>&quot;@factory&quot;</span><span class=p>:</span> <span class=s2>&quot;<a href="../../pipes/trainable/embeddings/transformer/#edsnlp.pipes.trainable.embeddings.transformer.factory.create_component">eds.transformer</a>&quot;</span><span class=p>,</span>
                     <span class=s2>&quot;model&quot;</span><span class=p>:</span> <span class=s2>&quot;prajjwal1/bert-tiny&quot;</span><span class=p>,</span>
                     <span class=s2>&quot;window&quot;</span><span class=p>:</span> <span class=mi>128</span><span class=p>,</span>
                     <span class=s2>&quot;stride&quot;</span><span class=p>:</span> <span class=mi>96</span><span class=p>,</span>
@@ -388,19 +388,19 @@
 <span class=k>[components]</span>
 
 <span class=k>[components.ner]</span>
-<span class=err>@</span><span class=n>factory</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;eds.ner_crf&quot;</span>
+<span class=err>@</span><span class=n>factory</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;<a href="../../pipes/trainable/ner/#edsnlp.pipes.trainable.ner_crf.factory.create_component">eds.ner_crf</a>&quot;</span>
 <span class=n>mode</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;joint&quot;</span>
 <span class=n>target_span_getter</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;ml-ner&quot;</span>
 <span class=n>window</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>20</span>
 <span class=n>embedding</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=err>$</span><span class=p>{</span><span class=w> </span><span class=n>cnn</span><span class=w> </span><span class=p>}</span>
 
 <span class=k>[cnn]</span>
-<span class=err>@</span><span class=n>factory</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;eds.text_cnn&quot;</span>
+<span class=err>@</span><span class=n>factory</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;<a href="../../pipes/trainable/embeddings/text_cnn/#edsnlp.pipes.trainable.embeddings.text_cnn.factory.create_component">eds.text_cnn</a>&quot;</span>
 <span class=n>kernel_sizes</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=p>[</span><span class=mi>3</span><span class=p>]</span>
 <span class=n>embedding</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=err>$</span><span class=p>{</span><span class=w> </span><span class=n>transformer</span><span class=w> </span><span class=p>}</span>
 
 <span class=k>[transformer]</span>
-<span class=err>@</span><span class=n>factory</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;eds.transformer&quot;</span>
+<span class=err>@</span><span class=n>factory</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;<a href="../../pipes/trainable/embeddings/transformer/#edsnlp.pipes.trainable.embeddings.transformer.factory.create_component">eds.transformer</a>&quot;</span>
 <span class=n>model</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;prajjwal1/bert-tiny&quot;</span>
 <span class=n>window</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=mi>128</span>
 <span class=n>stride</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=err>$</span><span class=p>{</span><span class=w> </span><span class=n>transformer</span><span class=p>.</span><span class=n>window</span><span class=err>//</span><span class=n>2</span><span class=w> </span><span class=p>}</span>

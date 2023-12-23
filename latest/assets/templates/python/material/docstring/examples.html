@@ -1,8 +1,16 @@
-{{ "# Examples\n"|convert_markdown(heading_level, html_id) }}
-{% for section_type, sub_section in section.value %}
-  {% if section_type.value == "text" %}
-    {{ sub_section|convert_markdown(heading_level, html_id) }}
-  {% elif section_type.value == "examples" %}
-    {{ sub_section|convert_markdown(heading_level, html_id) }}
-  {% endif %}
-{% endfor %}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Redirecting</title>
+  <noscript>
+    <meta http-equiv="refresh" content="1; url=../../../../../../v0.10.2/assets/templates/python/material/docstring/examples.html" />
+  </noscript>
+  <script>
+    window.location.replace("../../../../../../v0.10.2/assets/templates/python/material/docstring/examples.html" + window.location.hash);
+  </script>
+</head>
+<body>
+  Redirecting to <a href="../../../../../../v0.10.2/assets/templates/python/material/docstring/examples.html">../../../../../../v0.10.2/assets/templates/python/material/docstring/examples.html</a>...
+</body>
+</html>

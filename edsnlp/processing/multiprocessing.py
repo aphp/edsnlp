@@ -137,6 +137,11 @@ debug = (
 try:
     import torch
 
+    # Torch may still be imported as a namespace package, so we can access the
+    # torch.save and torch.load functions
+    torch_save = torch.save
+    torch_load = torch.load
+
     MAP_LOCATION = None
 
     try:
@@ -166,7 +171,7 @@ try:
                 old = dill.Pickler.dispatch.get(AlignDevicesHook)
                 dill.Pickler.dispatch[AlignDevicesHook] = save_align_devices_hook
             dill.settings["recurse"] = True
-            return torch.save(*args, pickle_module=dill, **kwargs)
+            return torch_save(*args, pickle_module=dill, **kwargs)
         finally:
             dill.settings["recurse"] = False
             if AlignDevicesHook is not None:
@@ -179,7 +184,7 @@ try:
         MAP_LOCATION = map_location
         if torch.__version__ >= "2.1" and isinstance(args[0], str):
             kwargs["mmap"] = True
-        result = torch.load(
+        result = torch_load(
             *args,
             pickle_module=dill,
             map_location=map_location,
@@ -188,10 +193,16 @@ try:
         MAP_LOCATION = None
         return result
 
-except ImportError:  # pragma: no cover
+except (ImportError, AttributeError):  # pragma: no cover
 
-    def load(*args, map_location=None, **kwargs):
-        return dill.load(*args, **kwargs)
+    def load(file, *args, map_location=None, **kwargs):
+        # check if path
+        if isinstance(file, str):
+            with open(file, "rb") as f:
+                return dill.load(f, *args, **kwargs)
+        return dill.load(file, *args, **kwargs)
+
+    dump = dill.dump
 
 
 class Exchanger:
@@ -413,7 +424,10 @@ class CPUWorker:
     def run(self):
         self._run()
         gc.collect()
-        sys.modules["torch"].cuda.empty_cache()
+        try:
+            sys.modules["torch"].cuda.empty_cache()
+        except (AttributeError, KeyError):  # pragma: no cover
+            pass
 
 
 class GPUWorker:

@@ -102,7 +102,7 @@ def execute_spark_backend(
         lc: LazyCollection = bc.value
         try:
             sys.modules["torch"].set_grad_enabled(False)
-        except KeyError:
+        except (AttributeError, KeyError):
             pass
 
         results = []

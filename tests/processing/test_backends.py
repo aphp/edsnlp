@@ -201,7 +201,7 @@ try:
                 raise RuntimeError("Deep learning error")
             return {}
 
-except ImportError:
+except (ImportError, AttributeError):
     pass
 
 

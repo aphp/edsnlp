@@ -1,2 +1,2 @@
-from .registry import registry
+from .registries import registry
 from .pipeline import PipelineProtocol

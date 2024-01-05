@@ -7,7 +7,7 @@ from spacy.tokens import Doc
 from spacy.util import SimpleFrozenDict, SimpleFrozenList, raise_error
 from spacy.vocab import create_vocab
 
-from edsnlp.core.registry import accepted_arguments
+from edsnlp.core.registries import accepted_arguments
 
 
 @classmethod

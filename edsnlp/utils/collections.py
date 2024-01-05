@@ -34,7 +34,7 @@ def ld_to_dl(ld: Iterable[Mapping[str, T]]) -> Dict[str, List[T]]:
         The dictionary of lists
     """
     ld = list(ld)
-    return {k: [dic.get(k) for dic in ld] for k in ld[0]}
+    return {k: [dic.get(k) for dic in ld] for k in (ld[0] if len(ld) else ())}
 
 
 def dl_to_ld(dl: Mapping[str, Sequence[Any]]) -> Iterator[Dict[str, Any]]:

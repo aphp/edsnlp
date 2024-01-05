@@ -17,7 +17,7 @@ from edsnlp.utils.collections import flatten_once
 
 
 class JsonReader(BaseReader):
-    DATA_FIELDS = ("path",)
+    DATA_FIELDS = ()
 
     def __init__(
         self,

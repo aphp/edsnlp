@@ -34,7 +34,7 @@ from spacy.util import get_lang_class
 from spacy.vocab import Vocab, create_vocab
 from typing_extensions import Literal
 
-from ..core.registry import PIPE_META, CurriedFactory, FactoryMeta, registry
+from ..core.registries import PIPE_META, CurriedFactory, FactoryMeta, registry
 from ..utils.collections import (
     FrozenDict,
     FrozenList,

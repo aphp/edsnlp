@@ -10,7 +10,7 @@ from confit import Config
 from confit.utils.random import set_seed
 from spacy.tokens import Span
 
-from edsnlp.core.registry import registry
+from edsnlp.core.registries import registry
 from edsnlp.data.converters import AttributesMappingArg, get_current_tokenizer
 from edsnlp.train import GenericScorer, Reader, train
 from edsnlp.utils.span_getters import SpanSetterArg, set_spans

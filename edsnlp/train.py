@@ -31,7 +31,7 @@ from tqdm import tqdm
 
 import edsnlp
 from edsnlp.core.pipeline import Pipeline
-from edsnlp.core.registry import registry
+from edsnlp.core.registries import registry
 from edsnlp.optimization import LinearSchedule, ScheduledOptimizer
 from edsnlp.pipes.trainable.embeddings.transformer.transformer import Transformer
 from edsnlp.scorers import Scorer

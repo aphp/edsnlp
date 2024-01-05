@@ -260,7 +260,7 @@ def dump_standoff_file(doc, txt_filename, overwrite_txt=False, overwrite_ann=Fal
 
 
 class StandoffReader(BaseReader):
-    DATA_FIELDS = ("path",)
+    DATA_FIELDS = ()
 
     def __init__(
         self,

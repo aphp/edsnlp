@@ -581,7 +581,7 @@ class MeasurementsMatcher(BaseNERComponent):
                 rf"(?<![0-9][.,]?){one_plus}([ ]\d{{3}})*[ ]+(?:[,.][ ]+\d+)?",
                 rf"(?<![0-9][.,]?){one_plus}([ ]\d{{3}})*(?:[,.]\d+)?",
                 rf"(?<![0-9][.,]?){one_plus}([ ]/[ ]|/){one_plus}",
-                r"(?<![0-9][.,]?)00?",
+                r"(?<![0-9][.,]?)00?([,.]\d+)?",                
             ],
         )
         self.number_label_hashes = {nlp.vocab.strings["number"]}

@@ -38,6 +38,25 @@ number_terms = {
     "1000": ["mille", "milles"],
 }
 
+
+number_regex = r"""(?x)
+# no digit or floating point number prefix before
+(?<![0-9][.,]?)
+# integer part like 123 or 1 234
+(?:
+    0
+    |[1-9][0-9]*(?:\ \d{3})*
+)
+(?:
+    # floating point surounded by spaces
+    \ +[,.]\ +\d+
+    # floating point w/o space
+    | [,.]\d+
+    # fractions
+    | (?:\ /\ |/)[1-9][0-9]*(?:\ \d{3})*
+)?"""
+
+
 units_config = {
     # Lengths
     "µm": {

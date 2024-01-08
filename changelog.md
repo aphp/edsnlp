@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Measurements now correctly match "0.X", "0.XX", ... numbers
+- Typo in "celsius" measurement unit
+
 ## v0.10.2
 
 ### Changed

@@ -481,6 +481,7 @@ class MeasurementsMatcher(BaseNERComponent):
           measurements: Union[str, List[Union[str, MsrConfig]], Dict[str, MsrConfig]] = list(patterns.common_measurements.keys()),  # noqa: E501
           units_config: Dict[str, UnitConfig] = patterns.units_config,
           number_terms: Dict[str, List[str]] = patterns.number_terms,
+          number_regex: str = patterns.number_regex,
           stopwords: List[str] = patterns.stopwords,
           unit_divisors: List[str] = patterns.unit_divisors,
           ignore_excluded: bool = True,
@@ -574,16 +575,7 @@ class MeasurementsMatcher(BaseNERComponent):
                     self.unitless_patterns[pattern_name] = {"name": name, **pattern}
 
         # NUMBER PATTERNS
-        one_plus = "[1-9][0-9]*"
-        self.regex_matcher.add(
-            "number",
-            [
-                rf"(?<![0-9][.,]?){one_plus}([ ]\d{{3}})*[ ]+(?:[,.][ ]+\d+)?",
-                rf"(?<![0-9][.,]?){one_plus}([ ]\d{{3}})*(?:[,.]\d+)?",
-                rf"(?<![0-9][.,]?){one_plus}([ ]/[ ]|/){one_plus}",
-                r"(?<![0-9][.,]?)00?([,.]\d+)?",                
-            ],
-        )
+        self.regex_matcher.add("number",[number_regex])
         self.number_label_hashes = {nlp.vocab.strings["number"]}
         for number, terms in number_terms.items():
             self.term_matcher.build_patterns(nlp, {number: terms})

@@ -167,7 +167,7 @@ training loop
     with nlp.cache():
         loss = torch.zeros((), device="cpu")
         for name, component in nlp.torch_components():
-            output = component.module_forward(batch[component.name])  # (1)
+            output = component.module_forward(batch[name])  # (1)
             if "loss" in output:
                 loss += output["loss"]
 
@@ -194,13 +194,13 @@ scorer = create_ner_exact_scorer(nlp.get_pipe('ner').target_span_getter)
         with nlp.select_pipes(enable=["ner"]):  # (1)
             print(scorer(val_docs, nlp.pipe(deepcopy(val_docs))))  # (2)
 
-    nlp.save("model")  # (3)
+    nlp.to_disk("model")  # (3)
 ```
 
 1. In the case we have multiple pipes in our model, we may want to selectively evaluate each pipe, thus we use the `select_pipes` method to disable every pipe except "ner".
 2. We use the `pipe` method to run the "ner" component on the validation dataset. This method is similar to the `__call__` method of EDS-NLP components, but it is used to run a component on a list of
    spaCy Docs.
-3. We could also have saved the model with `torch.save(model, "model.pt")`, but `nlp.save` avoids pickling and allows to inspect the model's files by saving them into a structured directory.
+3. We could also have saved the model with `torch.save(model, "model.pt")`, but `nlp.to_disk` avoids pickling and allows to inspect the model's files by saving them into a structured directory.
 
 ## Full example
 
@@ -298,7 +298,7 @@ Let's wrap the training code in a function, and make it callable from the comman
             loss = torch.zeros((), device="cpu")
             with nlp.cache():
                 for name, component in nlp.torch_components():
-                    output = component.module_forward(batch[component.name])
+                    output = component.module_forward(batch[name])
                     if "loss" in output:
                         loss += output["loss"]
 

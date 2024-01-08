@@ -1,4 +1,5 @@
 import json
+import warnings
 from collections import Counter
 from pathlib import Path
 from typing import Any, Callable, Iterable, List, Optional, TypeVar, Union
@@ -98,22 +99,51 @@ class JsonWriter(BaseWriter):
         self,
         path: Union[str, Path],
         *,
-        lines: bool = True,
+        lines: Optional[bool] = None,
         overwrite: bool = False,
     ):
         self.path = Path(path)
+
+        might_be_file = self.path.suffix != "" or self.path.is_file()
+
+        lines = lines if lines is not None else might_be_file
         self.lines = lines
 
-        if self.path.exists() and self.path.is_dir():
-            exts = Counter(f.suffix for f in self.path.iterdir())
-            unsafe_exts = {s[1:]: v for s, v in exts.items() if s.startswith(".json")}
-            if unsafe_exts and not overwrite:
+        if self.path.exists():
+            assert self.path.is_file() == lines, (
+                f"To save as a single jsonl file, the path must be a file and lines "
+                f"must be True. To save as a directory of json files, the path must "
+                f"be a directory and lines must be False. "
+                f"Got path={path} and lines={lines}."
+            )
+            if self.path.is_dir():
+                exts = Counter(f.suffix for f in self.path.iterdir())
+                unsafe_exts = {
+                    s[1:]: v for s, v in exts.items() if s.startswith(".json")
+                }
+                if unsafe_exts and not overwrite:
+                    raise FileExistsError(
+                        f"Directory {self.path} already exists and appear to contain "
+                        "annotations:"
+                        + "".join(
+                            f"\n - {s}: {v} files" for s, v in unsafe_exts.items()
+                        )
+                        + "\nUse overwrite=True to write anyway."
+                    )
+            elif not overwrite:
                 raise FileExistsError(
-                    f"Directory {self.path} already exists and appear to contain "
-                    "annotations:"
-                    + "".join(f"\n - {s}: {v} files" for s, v in unsafe_exts.items())
-                    + "\nUse overwrite=True to write files anyway."
+                    f"File {self.path} already exists. Use overwrite=True to write "
+                    "anyway."
                 )
+
+        if might_be_file != lines:
+            warnings.warn(
+                f"You set lines to {lines} but the path ({path}) you provided look "
+                f"like a {'file' if might_be_file else 'directory'}. "
+                f"To save your documents as a single jsonl file, the path must be a "
+                f"file and lines must be True. To save as a directory of json files, "
+                f"the path must be a directory and lines must be False. "
+            )
 
         super().__init__()
 
@@ -128,7 +158,15 @@ class JsonWriter(BaseWriter):
         else:
             results = []
             for rec in records:
-                file_path = self.path / f"{str(rec.pop(FILENAME))}.json"
+                filename = rec.pop(FILENAME, None)
+                if filename is None:
+                    raise KeyError(
+                        "Cannot write to a directory of json files if the "
+                        "FILENAME field is not present in the records. This is likely "
+                        "caused by the `note_id` attribute (used as the filename stem) "
+                        "not being set on the doc."
+                    )
+                file_path = self.path / f"{filename}.json"
                 file_path.parent.mkdir(parents=True, exist_ok=True)
                 with open(file_path, "w") as f:
                     json.dump(rec, f)
@@ -217,7 +255,7 @@ def write_json(
     data: Union[Any, LazyCollection],
     path: Union[str, Path],
     *,
-    lines: bool = True,
+    lines: bool = None,
     overwrite: bool = False,
     converter: Optional[Union[str, Callable]],
     **kwargs,
@@ -240,7 +278,10 @@ def write_json(
 
     doc = nlp("My document with entities")
 
-    edsnlp.data.write_json([doc], "path/to/json/dir", converter="omop")
+    edsnlp.data.write_json([doc], "path/to/json/file", converter="omop", lines=True)
+    # or to write a directory of JSON files, ensure that each doc has a doc._.note_id
+    # attribute, since this will be used as a filename:
+    edsnlp.data.write_json([doc], "path/to/json/dir", converter="omop", lines=False)
     ```
 
     !!! warning "Overwriting files"
@@ -254,10 +295,15 @@ def write_json(
     data: Union[Any, LazyCollection],
         The data to write (either a list of documents or a LazyCollection).
     path: Union[str, Path]
-        Path to the directory containing the JSON files (will recursively look for
-        files in subdirectories).
-    lines: bool
-        Whether to write the documents as a JSONL file (default).
+        Path to either
+        - a file if `lines` is true : this will write the documents as a JSONL file
+        - a directory if `lines` is false: this will write one JSON file per document
+          using the FILENAME field returned by the converter (commonly the `note_id`
+          attribute of the documents) as the filename.
+    lines: Optional[bool]
+        Whether to write the documents as a JSONL file or as a directory of JSON files.
+        By default, this is inferred from the path: if the path is a file, lines is
+        assumed to be true, otherwise it is assumed to be false.
     overwrite: bool
         Whether to overwrite existing directories.
     converter: Optional[Union[str, Callable]]

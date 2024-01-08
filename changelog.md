@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+
+- By default, `edsnlp.data.write_json` will infer if the data should be written as a single JSONL
+  file or as a directory of JSON files, based on the `path` argument being a file or not.
+
 ### Fixed
 
 - Measurements now correctly match "0.X", "0.XX", ... numbers

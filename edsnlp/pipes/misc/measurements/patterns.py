@@ -211,11 +211,11 @@ units_config = {
         "followed_by": "arc-minute",
     },
     # Temperature
-    "celcius": {
+    "celsius": {
         "dim": "temperature",
         "degree": 1,
         "scale": 1,
-        "terms": ["°C", "° celcius", "celcius"],
+        "terms": ["°C", "° celsius", "celsius"],
         "followed_by": None,
     },
     # Volumes

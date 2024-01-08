@@ -1,21 +1,33 @@
+# ruff: noqa: F401
 import glob
 import os
 import re
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    Union,
+)
 
+import spacy.tokenizer
 from loguru import logger
 
 from edsnlp import registry
+from edsnlp.core import PipelineProtocol
 from edsnlp.core.lazy_collection import LazyCollection
 from edsnlp.data.base import BaseReader, BaseWriter
 from edsnlp.data.converters import (
     FILENAME,
+    AttributesMappingArg,
+    SequenceStr,
     get_dict2doc_converter,
     get_doc2dict_converter,
 )
 from edsnlp.utils.collections import flatten_once
+from edsnlp.utils.span_getters import SpanSetterArg
 
 REGEX_ENTITY = re.compile(r"^(T\d+)\t(\S+)([^\t]+)\t(.*)$")
 REGEX_NOTE = re.compile(r"^(#\d+)\tAnnotatorNotes ([^\t]+)\t(.*)$")
@@ -382,20 +394,55 @@ def read_standoff(
         docs = list(edsnlp.data.read_standoff("path/to/brat/directory"))
         ```
 
+    !!! warning "True/False attributes"
+
+        Boolean values are not supported by the BRAT editor, and are stored as empty
+        (key: empty value) if true, and not stored otherwise. This means that False
+        values will not be assigned to attributes by default, which can be problematic
+        when deciding if an entity is negated or not : is the entity not negated, or
+        has the negation attribute not been annotated ?
+
+        To avoid this issue, you can use the `bool_attributes` argument to specify
+        which attributes should be considered as boolean when reading a BRAT dataset.
+        These attributes will be assigned a value of `True` if they are present, and
+        `False` otherwise.
+
+        ```{ .python .no-check }
+        doc_iterator = edsnlp.data.read_standoff(
+            "path/to/brat/directory",
+            # Mapping from 'BRAT attribute name' to 'Doc attribute name'
+            span_attributes={"Negation": "negated"},
+            bool_attributes=["negated"],  # Missing values will be set to False
+        )
+        ```
+
     Parameters
     ----------
-    path: Union[str, Path]
+    path : Union[str, Path]
         Path to the directory containing the BRAT files (will recursively look for
         files in subdirectories).
-    nlp: Optional[PipelineProtocol]
-        The pipeline instance (defaults to `edsnlp.blank("eds")`) used to tokenize the
-        documents.
-    span_setter: SpanSetterArg
+    nlp : Optional[PipelineProtocol]
+        The pipeline object (optional and likely not needed, prefer to use the
+        `tokenizer` directly argument instead).
+    tokenizer : Optional[spacy.tokenizer.Tokenizer]
+        The tokenizer instance used to tokenize the documents. Likely not needed since
+        by default it uses the current context tokenizer :
+
+        - the tokenizer of the next pipeline run by `.map_pipeline` in a
+          [LazyCollection][edsnlp.core.lazy_collection.LazyCollection].
+        - or the `eds` tokenizer by default.
+    span_setter : SpanSetterArg
         The span setter to use when setting the spans in the documents. Defaults to
         setting the spans in the `ents` attribute, and creates a new span group for
-        each BRAT entity label.
-    span_attributes: Optional[Union[Sequence[str], Mapping[str, str]]]
-        Mapping from BRAT
+        each JSON entity label.
+    span_attributes : Optional[AttributesMappingArg]
+        Mapping from BRAT attributes to Span extensions (can be a list too).
+        By default, all attributes are imported as Span extensions with the same name.
+    keep_raw_attribute_values : bool
+        Whether to keep the raw attribute values (as strings) or to convert them to
+        Python objects (e.g. booleans).
+    bool_attributes : SequenceStr
+        List of attributes for which missing values should be set to False.
 
     Returns
     -------

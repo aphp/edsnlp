@@ -220,6 +220,16 @@ def test_read_to_json(blank_nlp, tmpdir):
         lines=True,
     )
 
+    with pytest.raises(FileExistsError):
+        edsnlp.data.write_json(
+            [doc],
+            output_dir / "docs.jsonl",
+            converter="omop",
+            doc_attributes=["context_var"],
+            span_attributes=["etat", "assertion"],
+            span_getter=["ents", "sosy", "localisation", "anatomie", "pathologie"],
+        )
+
     with open(output_dir / "docs.jsonl") as f:
         exported_obj = json.loads(f.readlines()[0])
     assert_doc_write(exported_obj)

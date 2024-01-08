@@ -7,6 +7,7 @@ DEFAULT_CONFIG = dict(
     measurements=list(patterns.common_measurements.keys()),  # noqa: E501
     units_config=patterns.units_config,
     number_terms=patterns.number_terms,
+    number_regex=patterns.number_regex,
     stopwords=patterns.stopwords,
     unit_divisors=patterns.unit_divisors,
     ignore_excluded=True,

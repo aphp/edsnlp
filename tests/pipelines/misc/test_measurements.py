@@ -240,3 +240,21 @@ def test_merge_intersect(blank_nlp, matcher: MeasurementsMatcher):
     assert len(doc.spans["measurements"]) == 2
     assert [doc.ents[0].text, doc.ents[1].text] == ["2.0cm", "3cm"]
     assert [doc.ents[0]._.value.cm, doc.ents[1]._.value.cm] == [2.0, 3]
+
+
+def test_measurement_snippets(blank_nlp, matcher: MeasurementsMatcher):
+    for text, result in [
+        ("0.50g", ["0.5 g"]),
+        ("0.050g", ["0.05 g"]),
+        ("1 m 50", ["1.5 m"]),
+        ("1.50 m", ["1.5 m"]),
+        ("1,50m", ["1.5 m"]),
+        ("2.0cm x 3cm", ["2.0 cm", "3 cm"]),
+        ("2 par 1mm", ["2 mm", "1 mm"]),
+        ("8, 13 et 15dm", ["8 dm", "13 dm", "15 dm"]),
+        ("1 / 50  kg", ["0.02 kg"]),
+    ]:
+        doc = blank_nlp(text)
+        doc = matcher(doc)
+
+        assert [str(span._.value) for span in doc.spans["measurements"]] == result

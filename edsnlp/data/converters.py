@@ -179,7 +179,7 @@ class StandoffDict2DocConverter:
     ):
         self.tokenizer = tokenizer or (nlp.tokenizer if nlp is not None else None)
         self.span_setter = span_setter
-        self.span_attributes = span_attributes
+        self.span_attributes = span_attributes  # type: ignore
         self.keep_raw_attribute_values = keep_raw_attribute_values
         self.bool_attributes = bool_attributes
 
@@ -190,10 +190,12 @@ class StandoffDict2DocConverter:
 
         spans = []
 
-        if self.span_attributes is not None:
-            for dst in self.span_attributes.values():
-                if not Span.has_extension(dst):
-                    Span.set_extension(dst, default=None)
+        for dst in (
+            *(() if self.span_attributes is None else self.span_attributes.values()),
+            *self.bool_attributes,
+        ):
+            if not Span.has_extension(dst):
+                Span.set_extension(dst, default=None)
 
         for ent in obj.get("entities") or ():
             for fragment in ent["fragments"]:
@@ -351,10 +353,12 @@ class OmopDict2DocConverter:
 
         spans = []
 
-        if self.span_attributes is not None:
-            for dst in self.span_attributes.values():
-                if not Span.has_extension(dst):
-                    Span.set_extension(dst, default=None)
+        for dst in (
+            *(() if self.span_attributes is None else self.span_attributes.values()),
+            *self.bool_attributes,
+        ):
+            if not Span.has_extension(dst):
+                Span.set_extension(dst, default=None)
 
         for ent in obj.get("entities") or ():
             ent = dict(ent)

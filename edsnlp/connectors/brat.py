@@ -45,6 +45,7 @@ class BratConnector(object):
         directory: Union[str, Path],
         n_jobs: int = 1,
         attributes: Optional[AttributesMappingArg] = None,
+        bool_attributes: Optional[List[str]] = [],
         span_groups: SpanSetterArg = ["ents", "*"],
         keep_raw_attribute_values: bool = False,
     ):
@@ -57,6 +58,7 @@ class BratConnector(object):
         self.attr_map = attributes
         self.span_setter = validate_span_setter(span_groups)
         self.keep_raw_attribute_values = keep_raw_attribute_values
+        self.bool_attributes = list(bool_attributes)
 
     def brat2docs(self, nlp: PipelineProtocol, run_pipe=False) -> List[Doc]:
         res = read_standoff(
@@ -66,7 +68,7 @@ class BratConnector(object):
             span_attributes=self.attr_map,
             span_setter=self.span_setter,
             keep_raw_attribute_values=self.keep_raw_attribute_values,
-            bool_attributes=[],
+            bool_attributes=self.bool_attributes,
         )
         return list(nlp.pipe(res) if run_pipe else res)
 

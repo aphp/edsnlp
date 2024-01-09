@@ -29,10 +29,10 @@ from edsnlp.data.converters import (
 from edsnlp.utils.collections import flatten_once
 from edsnlp.utils.span_getters import SpanSetterArg
 
-REGEX_ENTITY = re.compile(r"^(T\d+)\t(\S+)([^\t]+)\t(.*)$")
+REGEX_ENTITY = re.compile(r"^(T\d+)\t(.*) (\d+ \d+(?:;\d+ \d+)*)\t(.*)$")
 REGEX_NOTE = re.compile(r"^(#\d+)\tAnnotatorNotes ([^\t]+)\t(.*)$")
 REGEX_RELATION = re.compile(r"^(R\d+)\t(\S+) Arg1:(\S+) Arg2:(\S+)")
-REGEX_ATTRIBUTE = re.compile(r"^([AM]\d+)\t(.+)$")
+REGEX_ATTRIBUTE = re.compile(r"^([AM]\d+)\t(.+?) ([TE]\d+)(?: (.+))?$")
 REGEX_EVENT = re.compile(r"^(E\d+)\t(.+)$")
 REGEX_EVENT_PART = re.compile(r"(\S+):([TE]\d+)")
 
@@ -131,19 +131,14 @@ def parse_standoff_file(path: str, merge_spaced_fragments: bool = True) -> Dict:
                         match = REGEX_ATTRIBUTE.match(line)
                         if match is None:
                             raise BratParsingError(ann_file, line)
-                        parts = match.group(2).split(" ")
-                        if len(parts) >= 3:
-                            entity, entity_id, value = parts
-                        elif len(parts) == 2:
-                            entity, entity_id = parts
-                            value = None
-                        else:
+                        _, attr_name, entity_id, value = match.groups()
+                        if attr_name is None:
                             raise BratParsingError(ann_file, line)
                         (
                             entities[entity_id]
                             if entity_id.startswith("T")
                             else events[entity_id]
-                        )["attributes"][entity] = value
+                        )["attributes"][attr_name] = value
                     elif line.startswith("R"):
                         match = REGEX_RELATION.match(line)
                         if match is None:

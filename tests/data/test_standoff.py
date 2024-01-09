@@ -72,12 +72,12 @@ def brat2(tmpdir) -> BratConnector:
 @pytest.fixture
 def brat_importer():
     brat_dir = Path(__file__).parent.parent.resolve() / "resources" / "brat_data"
-    return BratConnector(str(brat_dir))
+    return BratConnector(str(brat_dir), bool_attributes=["bool flag 0"])
 
 
 @pytest.fixture
 def brat_exporter(tmpdir):
-    return BratConnector(tmpdir, attributes=["etat", "assertion"])
+    return BratConnector(tmpdir, attributes=["etat", "assertion", "bool flag 0"])
 
 
 def test_empty_brat(brat2: BratConnector, blank_nlp: PipelineProtocol):
@@ -128,7 +128,7 @@ def test_docs2brat(nlp, brat2):
 def assert_doc_read(doc):
     assert doc._.note_id == "subfolder/doc-1"
 
-    attrs = ("etat", "assertion")
+    attrs = ("etat", "assertion", "bool flag 0")
     spans_and_attributes = {
         "__ents__": sorted(
             [
@@ -149,35 +149,36 @@ def assert_doc_read(doc):
 
     assert spans_and_attributes == {
         "__ents__": [
-            (6, 7, "douleurs", (None, None)),
-            (7, 11, "dans le bras droit", (None, None)),
-            (17, 21, "problème \nde locomotion", (None, "absent")),
-            (25, 26, "AVC", ("passé", "non-associé")),
-            (35, 36, "rhume", ("présent", "hypothétique")),
-            (45, 46, "rhume", ("présent", "hypothétique")),
-            (51, 52, "Douleurs", (None, None)),
-            (52, 56, "dans le bras droit", (None, None)),
-            (68, 69, "anomalie", (None, "absent")),
+            (6, 7, "douleurs", (None, None, False)),
+            (7, 11, "dans le bras droit", (None, None, False)),
+            (17, 21, "problème \nde locomotion", (None, "absent", True)),
+            (25, 26, "AVC", ("passé", "non-associé", False)),
+            (35, 36, "rhume", ("présent", "hypothétique", False)),
+            (45, 46, "rhume", ("présent", "hypothétique", False)),
+            (51, 52, "Douleurs", (None, None, False)),
+            (52, 56, "dans le bras droit", (None, None, False)),
+            (68, 69, "anomalie", (None, "absent", False)),
         ],
         "anatomie": [
-            (9, 11, "bras droit", (None, None)),
-            (54, 56, "bras droit", (None, None)),
+            (9, 11, "bras droit", (None, None, False)),
+            (54, 56, "bras droit", (None, None, False)),
         ],
         "localisation": [
-            (7, 11, "dans le bras droit", (None, None)),
-            (52, 56, "dans le bras droit", (None, None)),
+            (7, 11, "dans le bras droit", (None, None, False)),
+            (52, 56, "dans le bras droit", (None, None, False)),
         ],
         "pathologie": [
-            (17, 21, "problème \nde locomotion", (None, "absent")),
-            (25, 26, "AVC", ("passé", "non-associé")),
-            (35, 36, "rhume", ("présent", "hypothétique")),
-            (45, 46, "rhume", ("présent", "hypothétique")),
+            (17, 21, "problème \nde locomotion", (None, "absent", True)),
+            (25, 26, "AVC", ("passé", "non-associé", False)),
+            (35, 36, "rhume", ("présent", "hypothétique", False)),
+            (45, 46, "rhume", ("présent", "hypothétique", False)),
         ],
         "sosy": [
-            (6, 7, "douleurs", (None, None)),
-            (51, 52, "Douleurs", (None, None)),
-            (68, 69, "anomalie", (None, "absent")),
+            (6, 7, "douleurs", (None, None, False)),
+            (51, 52, "Douleurs", (None, None, False)),
+            (68, 69, "anomalie", (None, "absent", False)),
         ],
+        "test label 0": [(68, 69, "anomalie", (None, "absent", False))],
     }
 
 
@@ -189,20 +190,23 @@ def assert_doc_write(exported_ann_text):
         "T3	anatomie 47 57	bras droit\n"
         "T4	pathologie 75 83;85 98	problème de locomotion\n"
         "A2	assertion T4 absent\n"
+        "A3	bool flag 0 T4\n"
         "T5	pathologie 114 117	AVC\n"
-        "A3	etat T5 passé\n"
-        "A4	assertion T5 non-associé\n"
+        "A4	etat T5 passé\n"
+        "A5	assertion T5 non-associé\n"
         "T6	pathologie 159 164	rhume\n"
-        "A5	etat T6 présent\n"
-        "A6	assertion T6 hypothétique\n"
+        "A6	etat T6 présent\n"
+        "A7	assertion T6 hypothétique\n"
         "T7	pathologie 291 296	rhume\n"
-        "A7	etat T7 présent\n"
-        "A8	assertion T7 hypothétique\n"
+        "A8	etat T7 présent\n"
+        "A9	assertion T7 hypothétique\n"
         "T8	sosy 306 314	Douleurs\n"
         "T9	localisation 315 333	dans le bras droit\n"
         "T10	anatomie 323 333	bras droit\n"
         "T11	sosy 378 386	anomalie\n"
-        "A9	assertion T11 absent\n"
+        "A10	assertion T11 absent\n"
+        "T12	test label 0 378 386	anomalie\n"
+        "A11	assertion T12 absent\n"
     )
 
 
@@ -228,15 +232,22 @@ def test_brat(
 def test_read_to_standoff(blank_nlp, tmpdir):
     input_dir = Path(__file__).parent.parent.resolve() / "resources" / "brat_data"
     output_dir = Path(tmpdir)
-    doc = list(edsnlp.data.read_standoff(input_dir))[0]
+    doc = list(edsnlp.data.read_standoff(input_dir, bool_attributes=["bool flag 0"]))[0]
     assert_doc_read(doc)
     doc.ents[0]._.etat = "test"
 
     edsnlp.data.write_standoff(
         [doc],
         output_dir,
-        span_attributes=["etat", "assertion"],
-        span_getter=["ents", "sosy", "localisation", "anatomie", "pathologie"],
+        span_attributes=["etat", "assertion", "bool flag 0"],
+        span_getter=[
+            "ents",
+            "sosy",
+            "localisation",
+            "anatomie",
+            "pathologie",
+            "test label 0",
+        ],
     )
 
     with open(output_dir / "subfolder" / "doc-1.ann") as f:

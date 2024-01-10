@@ -27,6 +27,8 @@ negation_examples: List[str] = [
     "Le patient ne <ent negated=true>fume</ent> pas.",
     "Le patient ne <ent negated=true>fume vraiment vraiment</ent> pas.",
     "Le patient ne <ent negated=false>fume</ent> que des cigares.",
+    "Le résultat exclut un <ent negated=true>SMD</ent>",
+    "Le résultat ne permet pas d'exclure un <ent negated=false>SMD</ent>",
 ]
 
 

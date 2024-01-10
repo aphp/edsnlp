@@ -12,6 +12,7 @@
 - Measurements now correctly match "0.X", "0.XX", ... numbers
 - Typo in "celsius" measurement unit
 - Spaces and digits are now supported in BRAT entity labels
+- Fixed missing 'permet pas + verb' false positive negation patterns
 
 ## v0.10.2
 

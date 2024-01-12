@@ -136,7 +136,6 @@ class ParquetWriter(BaseWriter):
             return self.write_worker([], last=True)
 
     def write_main(self, fragments: Iterable[List[Union[pyarrow.Table, Path]]]):
-        fragments = list(fragments)
         for table in flatten_once(fragments):
             if not self.write_in_worker:
                 pyarrow.parquet.write_to_dataset(

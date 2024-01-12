@@ -16,7 +16,7 @@ from edsnlp.data.converters import (
     get_dict2doc_converter,
     get_doc2dict_converter,
 )
-from edsnlp.utils.collections import dl_to_ld, flatten_once, ld_to_dl
+from edsnlp.utils.collections import dl_to_ld, flatten, flatten_once, ld_to_dl
 
 
 class ParquetReader(BaseReader):
@@ -118,7 +118,7 @@ class ParquetWriter(BaseWriter):
             self.batch.extend(records[:n_to_fill])
             records = records[n_to_fill:]
             if greedy or len(self.batch) >= self.num_rows_per_file:
-                fragment = pyarrow.Table.from_pydict(ld_to_dl(self.batch))  # type: ignore
+                fragment = pyarrow.Table.from_pydict(ld_to_dl(flatten(self.batch)))  # type: ignore
                 count += len(self.batch)
                 self.batch = []
                 if self.write_in_worker:

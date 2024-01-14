@@ -1,6 +1,9 @@
 import functools
+import importlib
+import inspect
 import os
 import shutil
+import warnings
 from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
@@ -477,7 +480,7 @@ class Pipeline:
         if "nlp" in config:
             if "components" in config and "components" not in config["nlp"]:
                 config["nlp"]["components"] = Reference("components")
-                config = config["nlp"]
+            config = config["nlp"]
 
         config = dict(Config(config).resolve(root=root_config))
         components = config.pop("components", {})
@@ -971,7 +974,7 @@ def blank(
 
 
 def load(
-    config: Union[Path, str, Config],
+    model: Union[Path, str, Config],
     overrides: Optional[Dict[str, Any]] = None,
     *,
     exclude: Optional[Union[str, Iterable[str]]] = None,
@@ -993,7 +996,7 @@ def load(
 
     Parameters
     ----------
-    config: Union[Path, str, Config]
+    model: Union[Path, str, Config]
         The config to use for the pipeline, or the path to a config file or a directory.
     overrides: Optional[Dict[str, Any]]
         Overrides to apply to the config when loading the pipeline. These are the
@@ -1006,10 +1009,31 @@ def load(
     -------
     Pipeline
     """
-    error = "The load function expects a Config or a path to a config file"
-    if isinstance(config, (Path, str)):
-        path = Path(config)
-        if path.is_dir():
+    error = (
+        "The load function expects either :\n"
+        "- a confit Config object\n"
+        "- the path of a config file (.cfg file)\n"
+        "- the path of a trained model\n"
+        "- the name of an installed pipeline package\n"
+        f"but got {model!r} which is neither"
+    )
+    if isinstance(model, (Path, str)):
+        path = Path(model)
+        is_dir = path.is_dir()
+        is_config = path.is_file() and path.suffix == ".cfg"
+        try:
+            module = importlib.import_module(model)
+            is_package = True
+        except (ImportError, AttributeError, TypeError):
+            module = None
+            is_package = False
+        if is_dir and is_package:
+            warnings.warn(
+                "The path provided is both a directory and a package : edsnlp will "
+                "load the package. To load from the directory instead, please pass the "
+                f'path as "./{path}" instead.'
+            )
+        if is_dir:
             path = (Path(path) if isinstance(path, str) else path).absolute()
             config = Config.from_disk(path / "config.cfg")
             if overrides:
@@ -1022,14 +1046,26 @@ def load(
             finally:
                 os.chdir(pwd)
             return nlp
-        elif path.is_file():
-            config = Config.from_disk(path)
-        else:
-            raise ValueError(error)
-    elif not isinstance(config, Config):
+        elif is_config:
+            model = Config.from_disk(path)
+        elif is_package:
+            # Load as package
+            available_kwargs = {
+                "overrides": overrides,
+                "exclude": exclude,
+            }
+            signature_kwargs = inspect.signature(module.load).parameters
+            kwargs = {
+                name: available_kwargs[name]
+                for name in signature_kwargs
+                if name in available_kwargs
+            }
+            return module.load(**kwargs)
+
+    if not isinstance(model, Config):
         raise ValueError(error)
 
-    return Pipeline.from_config(config)
+    return Pipeline.from_config(model)
 
 
 PipelineProtocol = Union[Pipeline, spacy.Language]

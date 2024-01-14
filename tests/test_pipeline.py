@@ -204,6 +204,17 @@ def test_different_names():
     ) in str(exc_info.value)
 
 
+def test_load_config(run_in_test_dir):
+    nlp = edsnlp.load("training/qlf_config.cfg")
+    assert nlp.pipe_names == [
+        "normalizer",
+        "sentencizer",
+        "embedding",
+        "covid",
+        "qualifier",
+    ]
+
+
 fail_config = """
 [nlp]
 lang = "eds"

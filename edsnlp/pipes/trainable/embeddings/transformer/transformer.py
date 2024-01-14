@@ -325,11 +325,25 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                 "mask": batch["mask"].clone(),
             }
 
-        trf_result = self.transformer.base_model(
+        max_windows = self.max_tokens_per_device // batch["input_ids"].size(1)
+        kwargs = dict(
             input_ids=batch["input_ids"].as_tensor(),
             attention_mask=batch["input_ids"].mask,
         )
-        wordpiece_embeddings = trf_result.last_hidden_state
+        wordpiece_embeddings = [
+            self.transformer.base_model(
+                **{
+                    k: None if v is None else v[offset : offset + max_windows]
+                    for k, v in kwargs.items()
+                }
+            ).last_hidden_state
+            for offset in range(0, batch["input_ids"].size(0), max_windows)
+        ]
+        wordpiece_embeddings = (
+            torch.cat(wordpiece_embeddings, dim=0)
+            if len(wordpiece_embeddings) > 1
+            else wordpiece_embeddings[0]
+        )
 
         mask = batch["mask"].clone()
         word_embeddings = torch.zeros(

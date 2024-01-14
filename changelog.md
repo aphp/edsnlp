@@ -11,6 +11,7 @@
 - Support doc -> list converters with parquet files writer
 - Fixed some OOM errors when writing many outputs to parquet files
 - Both edsnlp & spacy factories are now listed when a factory lookup fails
+- Fixed some GPU OOM errors with the `eds.transformer` pipe when processing really long documents
 
 ## v0.10.3
 

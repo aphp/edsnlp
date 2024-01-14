@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Support loading model from package name (e.g., `edsnlp.load("eds_pseudo_aphp")`)
+
+### Fixed
+
+- Support doc -> list converters with parquet files writer
+- Fixed some OOM errors when writing many outputs to parquet files
+
 ## v0.10.3
 
 ### Added

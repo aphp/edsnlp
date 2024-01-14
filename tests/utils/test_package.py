@@ -151,6 +151,7 @@ def load(
 """
         )
     module.load()
+    edsnlp.load(module_name)
 
 
 @pytest.fixture(scope="session", autouse=True)

@@ -134,6 +134,22 @@ class CurriedFactory:
 glob = []
 
 
+def get_all_available_factories(namespaces):
+    result = set()
+    for ns in namespaces:
+        entry_point_ns = "_".join(ns)
+        eps = (
+            catalogue.AVAILABLE_ENTRY_POINTS.select(group=entry_point_ns)
+            if hasattr(catalogue.AVAILABLE_ENTRY_POINTS, "select")
+            else catalogue.AVAILABLE_ENTRY_POINTS.get(entry_point_ns, [])
+        )
+        result.update([ep.name for ep in eps])
+        for keys in catalogue.REGISTRY.copy().keys():
+            if ns == keys[: len(ns)]:
+                result.add(keys[-1])
+    return sorted(result)
+
+
 class FactoryRegistry(Registry):
     """
     A registry that validates the input arguments of the registered functions.
@@ -208,7 +224,16 @@ class FactoryRegistry(Registry):
             ).format(
                 name=name,
                 current_namespace=" -> ".join(self.namespace),
-                available_str=", ".join(self.get_available()) or "none",
+                available_str=", ".join(
+                    get_all_available_factories(
+                        [
+                            self.namespace,
+                            ("spacy", "factories"),
+                            ("spacy", "internal_factories"),
+                        ]
+                    )
+                )
+                or "none",
             )
         )
 

@@ -304,3 +304,10 @@ def test_torch_save(ml_nlp):
 
 def test_parameters(frozen_ml_nlp):
     assert len(list(frozen_ml_nlp.parameters())) == 40
+
+
+def test_missing_factory(nlp):
+    with pytest.raises(ValueError) as exc_info:
+        nlp.add_pipe("__test_missing_pipe__")
+
+    assert "__test_missing_pipe__" in str(exc_info.value)

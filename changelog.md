@@ -5,6 +5,7 @@
 ### Added
 
 - Support loading model from package name (e.g., `edsnlp.load("eds_pseudo_aphp")`)
+- Support filesystem parameter in `edsnlp.data.read_parquet` and `edsnlp.data.write_parquet`
 
 ### Fixed
 

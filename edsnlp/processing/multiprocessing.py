@@ -352,7 +352,9 @@ class CPUWorker:
             else:
                 stages[-1]["cpu_components"].append((pipe, *rest))
 
-        next_batch_id = 0
+        # Start at cpu_idx to avoid having all workers sending their
+        # first batch (0 % num_device, cf below) to the same gpu
+        next_batch_id = self.cpu_idx
         active_batches = {}
 
         logging.info(f"Starting cpu {self.cpu_idx}, PID {os.getpid()}")

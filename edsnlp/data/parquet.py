@@ -27,6 +27,7 @@ class ParquetReader(BaseReader):
         path: Union[str, Path],
         *,
         read_in_worker: bool,
+        filesystem: Optional[pyarrow.fs.FileSystem] = None,
     ):
         super().__init__()
         path = (
@@ -34,8 +35,16 @@ class ParquetReader(BaseReader):
             if isinstance(path, Path) or "://" in path
             else f"file://{os.path.abspath(path)}"
         )
+        inferred_fs, fs_path = pyarrow.fs.FileSystem.from_uri(path)
+        filesystem = filesystem or inferred_fs
+        assert inferred_fs.type_name == filesystem.type_name, (
+            f"Protocol {inferred_fs.type_name} in path does not match "
+            f"filesystem {filesystem.type_name}"
+        )
         self.read_in_worker = read_in_worker
-        self.dataset = pyarrow.dataset.dataset(path, format="parquet")
+        self.dataset = pyarrow.dataset.dataset(
+            fs_path, format="parquet", filesystem=filesystem
+        )
 
     def read_main(self):
         fragments: List[ParquetFileFragment] = self.dataset.get_fragments()
@@ -74,6 +83,7 @@ class ParquetWriter(BaseWriter):
         overwrite: bool,
         write_in_worker: bool,
         accumulate: bool = True,
+        filesystem: Optional[pyarrow.fs.FileSystem] = None,
     ):
         super().__init__()
         path = (
@@ -81,16 +91,24 @@ class ParquetWriter(BaseWriter):
             if isinstance(path, Path) or "://" in path
             else f"file://{os.path.abspath(path)}"
         )
-        fs, fs_path = pyarrow.fs.FileSystem.from_uri(path)
-        fs: pyarrow.fs.FileSystem
-        fs.create_dir(fs_path, recursive=True)
+        inferred_fs, fs_path = pyarrow.fs.FileSystem.from_uri(path)
+        filesystem = filesystem or inferred_fs
+        assert inferred_fs.type_name == filesystem.type_name, (
+            f"Protocol {inferred_fs.type_name} in path does not match "
+            f"filesystem {filesystem.type_name}"
+        )
+        # Check that filesystem has the same protocol as indicated by path
+        filesystem.create_dir(fs_path, recursive=True)
         if overwrite is False:
-            dataset = pyarrow.dataset.dataset(fs_path, format="parquet", filesystem=fs)
+            dataset = pyarrow.dataset.dataset(
+                fs_path, format="parquet", filesystem=filesystem
+            )
             if len(list(dataset.get_fragments())):
                 raise FileExistsError(
-                    f"Directory {path} already exists and is not empty. "
+                    f"Directory {fs_path} already exists and is not empty. "
                     "Use overwrite=True to overwrite."
                 )
+        self.filesystem = filesystem
         self.path = path
         self.write_in_worker = write_in_worker
         self.batch = []
@@ -125,6 +143,7 @@ class ParquetWriter(BaseWriter):
                     pyarrow.parquet.write_to_dataset(
                         table=fragment,
                         root_path=self.path,
+                        filesystem=self.filesystem,
                     )
                     fragment = None
                 results.append(fragment)
@@ -141,6 +160,7 @@ class ParquetWriter(BaseWriter):
                 pyarrow.parquet.write_to_dataset(
                     table=table,
                     root_path=self.path,
+                    filesystem=self.filesystem,
                 )
         return pyarrow.dataset.dataset(self.path)
 
@@ -151,6 +171,7 @@ def read_parquet(
     converter: Union[str, Callable],
     *,
     read_in_worker: bool = False,
+    filesystem: Optional[pyarrow.fs.FileSystem] = None,
     **kwargs,
 ) -> LazyCollection:
     """
@@ -189,6 +210,9 @@ def read_parquet(
         Converter to use to convert the parquet rows of the data source to Doc objects
     read_in_worker: bool
         Whether to read the files in the worker or in the main process.
+    filesystem: Optional[pyarrow.fs.FileSystem]
+        The filesystem to use to read the files. If None, the filesystem will be
+        inferred from the path (e.g. `s3://` will use S3).
     kwargs:
         Additional keyword arguments to pass to the converter. These are documented
         on the [Data schemas](/data/schemas) page.
@@ -201,6 +225,7 @@ def read_parquet(
         reader=ParquetReader(
             path,
             read_in_worker=read_in_worker,
+            filesystem=filesystem,
         )
     )
     if converter:
@@ -217,6 +242,7 @@ def write_parquet(
     write_in_worker: bool = False,
     num_rows_per_file: int = 1024,
     overwrite: bool = False,
+    filesystem: Optional[pyarrow.fs.FileSystem] = None,
     accumulate: bool = True,
     converter: Optional[Union[str, Callable]],
     **kwargs,
@@ -269,6 +295,9 @@ def write_parquet(
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the documents to dictionary objects before writing
         them.
+    filesystem: Optional[pyarrow.fs.FileSystem]
+        The filesystem to use to write the files. If None, the filesystem will be
+        inferred from the path (e.g. `s3://` will use S3).
     kwargs:
         Additional keyword arguments to pass to the converter. These are documented
         on the [Data schemas](/data/schemas) page.
@@ -286,5 +315,6 @@ def write_parquet(
             overwrite=overwrite,
             write_in_worker=write_in_worker,
             accumulate=accumulate,
+            filesystem=filesystem,
         )
     )

@@ -706,7 +706,7 @@ def execute_multiprocessing_backend(
 
     def process():
         try:
-            num_max_enqueued = 4
+            num_max_enqueued = 2
             # Number of input/output batch per process
             outputs_iterator = exchanger.iter_results()
 

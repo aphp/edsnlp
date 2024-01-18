@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 
 import pytest
 import pytz
@@ -10,6 +10,7 @@ from edsnlp.pipelines.misc.dates.models import AbsoluteDate, Relative
 from edsnlp.utils.examples import parse_example
 
 TZ = pytz.timezone("Europe/Paris")
+TODAY = datetime.date.today()
 
 examples = [
     (
@@ -77,7 +78,7 @@ def add_date_pipeline(blank_nlp: PipelineProtocol):
 
 
 def test_dates_component(blank_nlp: PipelineProtocol):
-    note_datetime = datetime(year=1993, month=9, day=23)
+    note_datetime = datetime.datetime(year=1993, month=9, day=23)
 
     for example in examples:
         text, entities = parse_example(example)
@@ -110,7 +111,7 @@ def test_dates_component(blank_nlp: PipelineProtocol):
             if isinstance(date, AbsoluteDate) and {"year", "month", "day"}.issubset(
                 set_d
             ):
-                assert date.to_datetime() == TZ.localize(datetime(**d))
+                assert date.to_datetime() == TZ.localize(datetime.datetime(**d))
 
             elif isinstance(date, AbsoluteDate):
                 assert date.to_datetime() is None
@@ -120,14 +121,14 @@ def test_dates_component(blank_nlp: PipelineProtocol):
                     d["year"] = note_datetime.year
                     assert date.to_datetime(
                         note_datetime=note_datetime, infer_from_context=True
-                    ) == TZ.localize(datetime(**d))
+                    ) == TZ.localize(datetime.datetime(**d))
 
                 # no day
                 if {"month", "year"}.issubset(set_d) and {"day"}.isdisjoint(set_d):
                     d["day"] = 1
                     assert date.to_datetime(
                         note_datetime=note_datetime, infer_from_context=True
-                    ) == TZ.localize(datetime(**d))
+                    ) == TZ.localize(datetime.datetime(**d))
 
                 # year only
                 if {"year"}.issubset(set_d) and {"day", "month"}.isdisjoint(set_d):
@@ -135,7 +136,7 @@ def test_dates_component(blank_nlp: PipelineProtocol):
                     d["month"] = 1
                     assert date.to_datetime(
                         note_datetime=note_datetime, infer_from_context=True
-                    ) == TZ.localize(datetime(**d))
+                    ) == TZ.localize(datetime.datetime(**d))
 
                 # month only
                 if {"month"}.issubset(set_d) and {"day", "year"}.isdisjoint(set_d):
@@ -143,7 +144,7 @@ def test_dates_component(blank_nlp: PipelineProtocol):
                     d["year"] = note_datetime.year
                     assert date.to_datetime(
                         note_datetime=note_datetime, infer_from_context=True
-                    ) == TZ.localize(datetime(**d))
+                    ) == TZ.localize(datetime.datetime(**d))
 
             elif isinstance(date, Relative):
                 assert date.to_datetime() is None
@@ -258,3 +259,23 @@ def test_illegal_dates(blank_nlp):
         doc = blank_nlp(text)
         ent = sorted((*doc.spans["dates"], *doc.spans["durations"]))[0]
         assert ent._.date.to_datetime() is None
+
+
+@pytest.mark.parametrize(
+    "dt",
+    [
+        datetime.datetime.now().strftime("%Y-%m-%d"),
+        datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        datetime.datetime.now(),
+        datetime.datetime.now().timestamp(),
+        datetime.date.today(),
+        None,
+    ],
+)
+def test_note_datetime(blank_nlp, dt):
+    doc = blank_nlp.make_doc("Empty doc")
+    doc._.note_datetime = dt
+    if dt is not None:
+        assert doc._.note_datetime.year == TODAY.year
+        assert doc._.note_datetime.month == TODAY.month
+        assert doc._.note_datetime.day == TODAY.day

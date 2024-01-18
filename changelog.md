@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- Assigning `doc._.note_datetime` will now automatically cast the value to a `pendulum.DateTime` object
+
 ### Added
 
 - Support loading model from package name (e.g., `edsnlp.load("eds_pseudo_aphp")`)

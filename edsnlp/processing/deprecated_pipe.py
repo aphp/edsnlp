@@ -54,6 +54,59 @@ def pipe(
     dtypes: Any = None,
     **kwargs,
 ) -> Union[SparkDataFrame, KoalasDataFrame, pd.DataFrame]:
+    """
+    Helper to process a pandas, koalas or spark dataframe. This function is deprecated.
+    Prefer using the following instead:
+
+    ```{ .python .no-check }
+    import edsnlp
+
+    docs = edsnlp.data.from_***(
+        df,
+        converter='omop',
+        doc_attributes=context,
+    )
+    docs = docs.map_pipeline(nlp)
+    res = edsnlp.data.to_***(
+        docs,
+        converter='ents',  # or custom extractor
+        span_getter="ents",
+        span_attributes=span_attributes,
+        **kwargs
+    )
+    ```
+
+    You can also call this function to get a migration suggestion.
+
+    Parameters
+    ----------
+    df: Union[SparkDataFrame, KoalasDataFrame, pd.DataFrame]
+        The dataframe to process, can be a pandas, spark or koalas dataframe
+    nlp: PipelineProtocol
+        The pipeline to use
+    n_jobs: int
+        Number of CPU workers to use
+    context: List[str]
+        List of context attributes to keep
+    results_extractor: Optional[Callable[[Doc], List[Dict[str, Any]]]]
+        Function to extract results from the pipeline. Defaults to one row per
+        entities.
+    additional_spans: SpanGetterArg
+        Additional spans groups to keep, defaults to `ents` (doc.ents)
+    extensions: ExtensionSchema
+        Span extensions to export as a column. Can be a list of extension names, a dict
+        of extension names to types, or a string
+    dtypes: Any
+        Spark schema to use for the output dataframe. This is only used if
+        the input dataframe is a spark dataframe.
+    kwargs: Any
+        Additional keyword arguments to pass to the `edsnlp.data.to_*` function
+
+    Returns
+    -------
+    Union[SparkDataFrame, KoalasDataFrame, pd.DataFrame]
+        The processed dataframe
+    """
     is_pandas = isinstance(df, pd.DataFrame)
     s = (
         "edsnlp.processing.pipe is deprecated, use the following instead:\n\n"

@@ -4,7 +4,7 @@ In the previous tutorials, we've seen how to apply a spaCy NLP pipeline to a sin
 Once the pipeline is tested and ready to be applied on an entire corpus, we'll want to deploy it efficiently.
 
 In this tutorial, we'll cover a few best practices and some _caveats_ to avoid.
-Then, we'll explore methods that EDS-NLP provides perform inference on multiple texts.
+Then, we'll explore methods that EDS-NLP provides to perform inference on multiple texts.
 
 Consider this simple pipeline:
 

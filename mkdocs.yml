@@ -140,7 +140,6 @@ nav:
       - utilities/tests/blocs.md
       - utilities/tests/examples.md
       - utilities/matchers.md
-      - utilities/processing/spark.md
   - Code Reference: reference/
   - contributing.md
   - changelog.md

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+Allow non-url paths when parquet filesystem is given
+
 ## v0.10.4
 
 ### Changed

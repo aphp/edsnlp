@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pyarrow.dataset
+import pyarrow.fs
 import pytest
 
 import edsnlp
@@ -213,12 +214,14 @@ def test_read_write_in_worker(blank_nlp, tmpdir):
 def test_read_to_parquet(blank_nlp, tmpdir):
     input_dir = Path(__file__).parent.parent.resolve() / "resources" / "docs.pq"
     output_dir = Path(tmpdir)
+    fs = pyarrow.fs.LocalFileSystem()
     doc = list(
         edsnlp.data.read_parquet(
             input_dir,
             converter="omop",
             span_attributes=["etat", "assertion"],
             doc_attributes=["context_var"],
+            filesystem=fs,
         )
     )[0]
     assert_doc_read(doc)

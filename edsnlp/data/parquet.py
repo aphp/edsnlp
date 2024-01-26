@@ -30,17 +30,21 @@ class ParquetReader(BaseReader):
         filesystem: Optional[pyarrow.fs.FileSystem] = None,
     ):
         super().__init__()
-        path = (
-            path
-            if isinstance(path, Path) or "://" in path
-            else f"file://{os.path.abspath(path)}"
-        )
-        inferred_fs, fs_path = pyarrow.fs.FileSystem.from_uri(path)
-        filesystem = filesystem or inferred_fs
-        assert inferred_fs.type_name == filesystem.type_name, (
-            f"Protocol {inferred_fs.type_name} in path does not match "
-            f"filesystem {filesystem.type_name}"
-        )
+        # Either the filesystem has not been passed
+        # or the path is a URL (e.g. s3://) => we need to infer the filesystem
+        fs_path = path
+        if filesystem is None or (isinstance(path, str) and "://" in path):
+            path = (
+                path
+                if isinstance(path, Path) or "://" in path
+                else f"file://{os.path.abspath(path)}"
+            )
+            inferred_fs, fs_path = pyarrow.fs.FileSystem.from_uri(path)
+            filesystem = filesystem or inferred_fs
+            assert inferred_fs.type_name == filesystem.type_name, (
+                f"Protocol {inferred_fs.type_name} in path does not match "
+                f"filesystem {filesystem.type_name}"
+            )
         self.read_in_worker = read_in_worker
         self.dataset = pyarrow.dataset.dataset(
             fs_path, format="parquet", filesystem=filesystem
@@ -86,17 +90,20 @@ class ParquetWriter(BaseWriter):
         filesystem: Optional[pyarrow.fs.FileSystem] = None,
     ):
         super().__init__()
-        path = (
-            path
-            if isinstance(path, Path) or "://" in path
-            else f"file://{os.path.abspath(path)}"
-        )
-        inferred_fs, fs_path = pyarrow.fs.FileSystem.from_uri(path)
-        filesystem = filesystem or inferred_fs
-        assert inferred_fs.type_name == filesystem.type_name, (
-            f"Protocol {inferred_fs.type_name} in path does not match "
-            f"filesystem {filesystem.type_name}"
-        )
+        fs_path = path
+        if filesystem is None or (isinstance(path, str) and "://" in path):
+            path = (
+                path
+                if isinstance(path, Path) or "://" in path
+                else f"file://{os.path.abspath(path)}"
+            )
+            inferred_fs, fs_path = pyarrow.fs.FileSystem.from_uri(path)
+            filesystem = filesystem or inferred_fs
+            assert inferred_fs.type_name == filesystem.type_name, (
+                f"Protocol {inferred_fs.type_name} in path does not match "
+                f"filesystem {filesystem.type_name}"
+            )
+            path = fs_path
         # Check that filesystem has the same protocol as indicated by path
         filesystem.create_dir(fs_path, recursive=True)
         if overwrite is False:
@@ -162,7 +169,9 @@ class ParquetWriter(BaseWriter):
                     root_path=self.path,
                     filesystem=self.filesystem,
                 )
-        return pyarrow.dataset.dataset(self.path)
+        return pyarrow.dataset.dataset(
+            self.path, format="parquet", filesystem=self.filesystem
+        )
 
 
 @registry.readers.register("parquet")
@@ -174,53 +183,6 @@ def read_parquet(
     filesystem: Optional[pyarrow.fs.FileSystem] = None,
     **kwargs,
 ) -> LazyCollection:
-    """
-    The ParquetReader (or `edsnlp.data.read_parquet`) reads a directory of parquet files
-    (or a single file) and yields documents.
-
-    Example
-    -------
-    ```{ .python .no-check }
-
-    import edsnlp
-
-    nlp = edsnlp.blank("eds")
-    nlp.add_pipe(...)
-    doc_iterator = edsnlp.data.read_parquet("path/to/parquet", converter="omop")
-    annotated_docs = nlp.pipe(doc_iterator)
-    ```
-
-    !!! note "Generator vs list"
-
-        `edsnlp.data.read_parquet` returns a
-        [LazyCollection][edsnlp.core.lazy_collection.LazyCollection].
-        To iterate over the documents multiple times efficiently or to access them by
-        index, you must convert it to a list
-
-        ```{ .python .no-check }
-        docs = list(edsnlp.data.read_parquet("path/to/parquet", converter="omop"))
-        ```
-
-    Parameters
-    ----------
-    path: Union[str, Path]
-        Path to the directory containing the parquet files (will recursively look for
-        files in subdirectories). Supports any filesystem supported by pyarrow.
-    converter: Optional[Union[str, Callable]]
-        Converter to use to convert the parquet rows of the data source to Doc objects
-    read_in_worker: bool
-        Whether to read the files in the worker or in the main process.
-    filesystem: Optional[pyarrow.fs.FileSystem]
-        The filesystem to use to read the files. If None, the filesystem will be
-        inferred from the path (e.g. `s3://` will use S3).
-    kwargs:
-        Additional keyword arguments to pass to the converter. These are documented
-        on the [Data schemas](/data/schemas) page.
-
-    Returns
-    -------
-    LazyCollection
-    """
     data = LazyCollection(
         reader=ParquetReader(
             path,
@@ -247,62 +209,6 @@ def write_parquet(
     converter: Optional[Union[str, Callable]],
     **kwargs,
 ) -> None:
-    """
-    `edsnlp.data.write_parquet` writes a list of documents as a parquet dataset.
-
-    Example
-    -------
-    ```{ .python .no-check }
-
-    import edsnlp
-
-    nlp = edsnlp.blank("eds")
-    nlp.add_pipe(...)
-
-    doc = nlp("My document with entities")
-
-    edsnlp.data.write_parquet([doc], "path/to/parquet")
-    ```
-
-    !!! warning "Overwriting files"
-
-        By default, `write_parquet` will raise an error if the directory already exists
-        and contains parquet files. This is to avoid overwriting existing annotations.
-        To allow overwriting existing files, use `overwrite=True`.
-
-    Parameters
-    ----------
-    data: Union[Any, LazyCollection],
-        The data to write (either a list of documents or a LazyCollection).
-    path: Union[str, Path]
-        Path to the directory containing the parquet files (will recursively look for
-        files in subdirectories). Supports any filesystem supported by pyarrow.
-    num_rows_per_file: int
-        The maximum number of documents to write in each parquet file.
-    overwrite: bool
-        Whether to overwrite existing directories.
-    write_in_worker: bool
-        Whether to write the files in the workers or in the main process.
-    accumulate: bool
-        Whether to accumulate the results sent to the writer by workers until the
-        batch is full or the writer is finalized. If False, each file will not be larger
-        than the size of the batches it receives. This option requires that the writer
-        is finalized before the end of the processing, which may not be compatible with
-        some backends, such as `spark`.
-
-        If `write_in_worker` is True, documents will be accumulated in each worker but
-        not across workers, therefore leading to a larger number of files.
-    converter: Optional[Union[str, Callable]]
-        Converter to use to convert the documents to dictionary objects before writing
-        them.
-    filesystem: Optional[pyarrow.fs.FileSystem]
-        The filesystem to use to write the files. If None, the filesystem will be
-        inferred from the path (e.g. `s3://` will use S3).
-    kwargs:
-        Additional keyword arguments to pass to the converter. These are documented
-        on the [Data schemas](/data/schemas) page.
-    """
-
     data = LazyCollection.ensure_lazy(data)
     if converter:
         converter, kwargs = get_doc2dict_converter(converter, kwargs)

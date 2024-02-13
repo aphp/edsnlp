@@ -82,7 +82,14 @@ def test_end_to_end(
 
     data = data.map_pipeline(nlp)
 
-    data = data.set_processing(backend=backend, show_progress=True)
+    data = data.set_processing(
+        backend=backend,
+        show_progress=True,
+        chunk_size=2,
+        batch_by="words",
+        batch_size=2,
+        sort_chunks=True,
+    )
 
     if writer_format == "pandas":
         data.to_pandas(converter=writer_converter)
@@ -116,7 +123,14 @@ def test_multiprocessing_backend(frozen_ml_nlp):
         frozen_ml_nlp.pipe(
             texts * 20,
             batch_size=2,
-        ).set_processing(backend="multiprocessing", num_cpu_workers=-1)
+        ).set_processing(
+            backend="multiprocessing",
+            num_cpu_workers=-1,
+            sort_chunks=True,
+            chunk_size=2,
+            batch_by="words",
+            show_progress=True,
+        )
     )
     assert len(docs) == 40
 

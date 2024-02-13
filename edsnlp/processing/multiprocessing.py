@@ -427,6 +427,9 @@ class CPUWorker:
 
             for stage, (gpu_idx, batch_id, result) in read_tasks():
                 docs, task_id = active_batches.pop(batch_id)
+                for name, pipe, *rest in lc.pipeline:
+                    if hasattr(pipe, "enable_cache"):
+                        pipe.enable_cache(batch_id)
                 if stage > 0:
                     gpu_pipe = stages[stage - 1]["gpu_component"]
                     docs = gpu_pipe.postprocess(docs, result)  # type: ignore
@@ -450,6 +453,9 @@ class CPUWorker:
                         stage=stage,
                     )
                 else:
+                    for name, pipe, *rest in lc.pipeline:
+                        if hasattr(pipe, "disable_cache"):
+                            pipe.disable_cache(batch_id)
                     results, count = (
                         lc.writer.write_worker(docs)
                         if lc.writer is not None
@@ -537,6 +543,7 @@ class GPUWorker:
 
                     cpu_idx, batch_id, batch = task
                     pipe = stage_components[stage]
+                    pipe.enable_cache(batch_id)
                     res = pipe.module_forward(batch)
                     self.exchanger.put_cpu(
                         item=(
@@ -550,6 +557,8 @@ class GPUWorker:
                         stage=stage + 1,
                         idx=cpu_idx,
                     )
+                    if stage == len(stage_components) - 1:
+                        pipe.disable_cache(batch_id)
                     del batch, task
 
                 task = batch = res = None  # noqa
@@ -559,7 +568,10 @@ class GPUWorker:
             print(f"Error in {self}:\n{traceback.format_exc()}", flush=True)
             self.exchanger.put_results((e, 0, None, None))
 
+        from edsnlp.core.torch_component import _caches
+
         task = batch = res = None  # noqa
+        _caches.clear()
         gc.collect()
         sys.modules["torch"].cuda.empty_cache()
 

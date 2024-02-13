@@ -65,7 +65,7 @@ def test_span_getter(gold):
     prep = qlf.make_batch([doc.copy() for doc in gold], supervision=True)
     batch = qlf.collate(prep)
     input_ids = batch["embedding"]["embedding"]["input_ids"]
-    mask = input_ids.mask
+    mask = batch["embedding"]["embedding"]["input_mask"]
     tok = trf.tokenizer
     assert len(input_ids) == 2
     assert tok.decode(input_ids[0][mask[0]]) == "[CLS] arret du ttt si folfox [SEP]"

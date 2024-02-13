@@ -158,10 +158,10 @@ def test_torch_module(frozen_ml_nlp: Pipeline):
 
 
 def test_cache(frozen_ml_nlp: Pipeline):
+    from edsnlp.core.torch_component import _caches
+
     text = "Ceci est un exemple"
     frozen_ml_nlp(text)
-
-    trf = frozen_ml_nlp.get_pipe("transformer")
 
     doc = frozen_ml_nlp.make_doc(text)
     with frozen_ml_nlp.cache():
@@ -174,11 +174,13 @@ def test_cache(frozen_ml_nlp: Pipeline):
             else:
                 doc = pipe(doc)
         trf_forward_cache_entries = [
-            key for key in trf._cache if isinstance(key, tuple) and key[0] == "forward"
+            key
+            for key in _caches["default"]
+            if isinstance(key, tuple) and key[0] == "forward"
         ]
-        assert len(trf_forward_cache_entries) == 1
+        assert len(trf_forward_cache_entries) == 2
 
-    assert trf._cache is None
+    assert len(_caches) == 0
 
 
 def test_select_pipes(frozen_ml_nlp: Pipeline):

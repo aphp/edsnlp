@@ -27,6 +27,9 @@ BatchInput = TypeVar("BatchInput", bound=Dict[str, Any])
 BatchOutput = TypeVar("BatchOutput", bound=Dict[str, Any])
 Scorer = Callable[[Sequence[Tuple[Doc, Doc]]], Union[float, Dict[str, Any]]]
 
+ALL_CACHES = object()
+_caches = {}
+
 
 class CacheEnum(str, Enum):
     preprocess = "preprocess"
@@ -39,19 +42,24 @@ def hash_batch(batch):
         return hash(tuple(id(item) for item in batch))
     elif not isinstance(batch, dict):
         return id(batch)
-    return hash((tuple(batch.keys()), tuple(map(hash_batch, batch.values()))))
+    if "__batch_hash__" in batch:
+        return batch["__batch_hash__"]
+    batch_hash = hash((tuple(batch.keys()), tuple(map(hash_batch, batch.values()))))
+    batch["__batch_hash__"] = batch_hash
+    return batch_hash
 
 
 def cached_preprocess(fn):
     @wraps(fn)
     def wrapped(self: "TorchComponent", doc: Doc):
-        if self._cache is None:
+        if self._current_cache_id is None:
             return fn(self, doc)
-        cache_id = ("preprocess", id(doc))
-        if cache_id in self._cache:
-            return self._cache[cache_id]
+        cache_key = ("preprocess", f"{type(self)}<{id(self)}>: {id(doc)}")
+        cache = _caches[self._current_cache_id]
+        if cache_key in cache:
+            return cache[cache_key]
         res = fn(self, doc)
-        self._cache[cache_id] = res
+        cache[cache_key] = res
         return res
 
     return wrapped
@@ -60,13 +68,14 @@ def cached_preprocess(fn):
 def cached_preprocess_supervised(fn):
     @wraps(fn)
     def wrapped(self: "TorchComponent", doc: Doc):
-        if self._cache is None:
+        if self._current_cache_id is None:
             return fn(self, doc)
-        cache_id = ("preprocess_supervised", id(doc))
-        if cache_id in self._cache:
-            return self._cache[cache_id]
+        cache_key = ("preprocess_supervised", f"{type(self)}<{id(self)}>: {id(doc)}")
+        cache = _caches[self._current_cache_id]
+        if cache_key in cache:
+            return cache[cache_key]
         res = fn(self, doc)
-        self._cache[cache_id] = res
+        cache[cache_key] = res
         return res
 
     return wrapped
@@ -75,13 +84,14 @@ def cached_preprocess_supervised(fn):
 def cached_collate(fn):
     @wraps(fn)
     def wrapped(self: "TorchComponent", batch: Dict):
-        if self._cache is None:
+        if self._current_cache_id is None:
             return fn(self, batch)
-        cache_id = ("collate", hash_batch(batch))
-        if cache_id in self._cache:
-            return self._cache[cache_id]
+        cache_key = ("collate", f"{type(self)}<{id(self)}>: {hash_batch(batch)}")
+        cache = _caches[self._current_cache_id]
+        if cache_key in cache:
+            return cache[cache_key]
         res = fn(self, batch)
-        self._cache[cache_id] = res
+        cache[cache_key] = res
         return res
 
     return wrapped
@@ -91,13 +101,14 @@ def cached_forward(fn):
     @wraps(fn)
     def wrapped(self: "TorchComponent", batch):
         # Convert args and kwargs to a dictionary matching fn signature
-        if self._cache is None:
+        if self._current_cache_id is None:
             return fn(self, batch)
-        cache_id = ("forward", hash_batch(batch))
-        if cache_id in self._cache:
-            return self._cache[cache_id]
+        cache_key = ("forward", f"{type(self)}<{id(self)}>: {hash_batch(batch)}")
+        cache = _caches[self._current_cache_id]
+        if cache_key in cache:
+            return cache[cache_key]
         res = fn(self, batch)
-        self._cache[cache_id] = res
+        cache[cache_key] = res
         return res
 
     return wrapped
@@ -107,13 +118,17 @@ def cached_batch_to_device(fn):
     @wraps(fn)
     def wrapped(self: "TorchComponent", batch, device):
         # Convert args and kwargs to a dictionary matching fn signature
-        if self._cache is None:
+        if self._current_cache_id is None:
             return fn(self, batch, device)
-        cache_id = ("batch_to_device", hash_batch(batch))
-        if cache_id in self._cache:
-            return self._cache[cache_id]
+        cache_key = (
+            "batch_to_device",
+            f"{type(self)}<{id(self)}>: {hash_batch(batch)}",
+        )
+        cache = _caches[self._current_cache_id]
+        if cache_key in cache:
+            return cache[cache_key]
         res = fn(self, batch, device)
-        self._cache[cache_id] = res
+        cache[cache_key] = res
         return res
 
     return wrapped
@@ -159,19 +174,25 @@ class TorchComponent(
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._cache = None
+        self._current_cache_id = None
 
-    def enable_cache(self):
-        self._cache = {}
+    def enable_cache(self, cache_id="default"):
+        self._current_cache_id = cache_id
+        _caches.setdefault(cache_id, {})
         for name, component in self.named_component_children():
             if hasattr(component, "enable_cache"):
-                component.enable_cache()
+                component.enable_cache(cache_id)
 
-    def disable_cache(self):
-        self._cache = None
+    def disable_cache(self, cache_id=ALL_CACHES):
+        if cache_id is ALL_CACHES:
+            _caches.clear()
+        else:
+            if cache_id in _caches:
+                del _caches[cache_id]
+        self._current_cache_id = None
         for name, component in self.named_component_children():
             if hasattr(component, "disable_cache"):
-                component.disable_cache()
+                component.disable_cache(cache_id)
 
     @property
     def device(self):

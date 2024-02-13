@@ -1,10 +1,9 @@
 import copy
 import itertools
-import math
-import sys
 from collections import defaultdict
 from typing import (
     Any,
+    Callable,
     Dict,
     Iterable,
     Iterator,
@@ -15,7 +14,6 @@ from typing import (
     Union,
 )
 
-It = TypeVar("It", bound=Iterable)
 T = TypeVar("T")
 
 
@@ -157,30 +155,12 @@ def decompress_dict(seq: Union[Iterable[Dict[str, Any]], Dict[str, Any]]):
     return res
 
 
-class batchify(Iterable[List[T]]):
-    def __init__(self, iterable: Iterable[T], batch_size: int, drop_last: bool = False):
-        self.iterable = iter(iterable)
-        self.batch_size = batch_size
-        self.drop_last = drop_last
-        try:
-            self.length = math.ceil(len(iterable) / batch_size)
-        except (AttributeError, TypeError):
-            pass
-
-    def __len__(self):
-        return self.length
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        batch = list(itertools.islice(self.iterable, self.batch_size))
-        if len(batch) == 0 or (self.drop_last and len(batch) < self.batch_size):
-            raise StopIteration()
-        return batch
-
-
-def batchify_with_count(iterable: Iterable[T], batch_size: int):
+def batchify(
+    iterable: Iterable[T],
+    batch_size: int,
+    drop_last: bool = False,
+    formula: Callable = len,
+) -> Iterable[List[T]]:
     """
     Yields batch that contain at most `batch_size` elements.
     If an item contains more than `batch_size` elements, it will be yielded as a single
@@ -192,18 +172,14 @@ def batchify_with_count(iterable: Iterable[T], batch_size: int):
     batch_size
     """
     batch = []
-    total = 0
-    for item, count in iterable:
-        # -1 counts as infinite (max integer)
-        count_ = ((count - 1) % sys.maxsize) + 1
-        if total + count_ > batch_size and len(batch) > 0:
-            yield batch, total
+    for item in iterable:
+        next_size = formula(batch + [item])
+        if next_size > batch_size and len(batch) > 0:
+            yield batch
             batch = []
-            total = 0
         batch.append(item)
-        total += count_
-    if len(batch) > 0:
-        yield batch, total
+    if len(batch) > 0 and not drop_last:
+        yield batch
 
 
 def get_attr_item(base, attr):

@@ -1,7 +1,6 @@
 from edsnlp.utils.collections import (
     batch_compress_dict,
     batchify,
-    batchify_with_count,
     decompress_dict,
     dl_to_ld,
     flatten,
@@ -66,17 +65,10 @@ def test_dict_compression():
 
 def test_batchify():
     items = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    batches = batchify(items, 3)
+    batches = list(batchify(items, 3))
     assert len(batches) == 4
     batches = list(batches)
     assert batches == [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9]]
-
-
-def test_batchify_with_count():
-    items = [(0, 50), (1, 10), (2, 10), (3, 10), (4, 5), (5, 5), (6, 1)]
-    batches = batchify_with_count(items, 20)
-    batches = list(batches)
-    assert batches == [([0], 50), ([1, 2], 20), ([3, 4, 5], 20), ([6], 1)]
 
 
 def test_deep_path():

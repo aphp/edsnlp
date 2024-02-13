@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Added `batch_by`, `split_into_batches_after`, `sort_chunks`, `chunk_size`, `disable_implicit_parallelism` parameters to processing (`simple` and `multiprocessing`) backends to improve performance and memory usage. Sorting chunks can improve yield up to **twice the speed** in some cases.
+
+### Fixed
+
+- Improved error handling in `multiprocessing` backend (e.g., no more deadlock)
+
 ## v0.10.5
 
 ### Fixed

@@ -70,6 +70,16 @@ data = data.set_processing(
     num_cpu_workers=4,
     # 2 GPUs to accelerate deep-learning pipes
     num_gpu_workers=2,
+
+    # Below are further options to finetune the inference throughput:
+    # Read chunks of 1024 documents before splitting them into batches
+    chunk_size=1024,
+    # Sort the documents by length before splitting them into batches
+    sort_chunks=True,
+    # Split batches such that each contains at most 100 000 padded words
+    # (padded_words = max doc size in batch * batch size)
+    batch_size=100_000,
+    batch_by="padded_words",
 )
 
 # Write the result, this will execute the lazy collection

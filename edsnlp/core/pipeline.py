@@ -352,10 +352,10 @@ class Pipeline:
 
     def pipe(
         self,
-        inputs: Any,
+        inputs: Union[Iterable, LazyCollection],
         batch_size: Optional[int] = None,
         n_process: int = None,
-    ) -> Iterable[Doc]:
+    ) -> LazyCollection:
         """
         Process a stream of documents by applying each component successively on
         batches of documents.

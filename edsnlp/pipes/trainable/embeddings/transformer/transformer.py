@@ -8,12 +8,13 @@ from confit import validate_arguments
 from foldedtensor import as_folded_tensor
 from transformers import AutoModel, AutoTokenizer
 from transformers import BitsAndBytesConfig as BitsAndBytesConfig_
-from typing_extensions import TypedDict
+from typing_extensions import Literal, TypedDict
 
 from edsnlp import Pipeline
 from edsnlp.pipes.trainable.embeddings.typing import WordEmbeddingComponent
 from edsnlp.utils.span_getters import SpanGetterArg, get_spans
 
+INITIAL_MAX_TOKENS_PER_DEVICE = 32 * 128
 TransformerBatchInput = TypedDict(
     "TransformerBatchInput",
     {
@@ -104,10 +105,13 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
     stride: int
         The stride (distance between windows) to use when splitting long documents into
         smaller windows: (default: 96)
-    max_tokens_per_device: int
+    max_tokens_per_device: Union[int, Literal["auto"]]
         The maximum number of tokens that can be processed by the model on a single
         device. This does not affect the results but can be used to reduce the memory
         usage of the model, at the cost of a longer processing time.
+
+        If "auto", the component will try to estimate the maximum number of tokens that
+        can be processed by the model on the current device at a given time.
     span_getter: Optional[SpanGetterArg]
         Which spans of the document should be embedded. Defaults to the full document
         if None.
@@ -121,7 +125,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         model: Union[str, Path],
         window: int = 128,
         stride: int = 96,
-        max_tokens_per_device: int = 128 * 128,
+        max_tokens_per_device: Union[int, Literal["auto"]] = "auto",
         span_getter: Optional[SpanGetterArg] = None,
         new_tokens: Optional[List[Tuple[str, str]]] = [],
         quantization: Optional[BitsAndBytesConfig] = None,
@@ -141,6 +145,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         )
         self.cfg = {}
         self.max_tokens_per_device = max_tokens_per_device
+        self._mem_per_unit = None
         self.span_getter = span_getter
 
         if new_tokens:
@@ -299,7 +304,8 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                 mask.append([True] * len(span_word_lengths))
 
         return {
-            "input_ids": input_ids,
+            "input_ids": input_ids.as_tensor(),
+            "input_mask": input_ids.mask,
             "word_indices": torch.as_tensor(word_indices),
             "word_offsets": torch.as_tensor(word_offsets),
             "mask": as_folded_tensor(
@@ -325,25 +331,71 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                 "mask": batch["mask"].clone(),
             }
 
-        max_windows = self.max_tokens_per_device // batch["input_ids"].size(1)
         kwargs = dict(
-            input_ids=batch["input_ids"].as_tensor(),
-            attention_mask=batch["input_ids"].mask,
+            input_ids=batch["input_ids"],
+            attention_mask=batch["input_mask"],
         )
-        wordpiece_embeddings = [
-            self.transformer.base_model(
-                **{
-                    k: None if v is None else v[offset : offset + max_windows]
-                    for k, v in kwargs.items()
-                }
-            ).last_hidden_state
-            for offset in range(0, batch["input_ids"].size(0), max_windows)
-        ]
-        wordpiece_embeddings = (
-            torch.cat(wordpiece_embeddings, dim=0)
-            if len(wordpiece_embeddings) > 1
-            else wordpiece_embeddings[0]
-        )
+        auto_batch_size = device.type == "cuda" and self.max_tokens_per_device == "auto"
+        trial_idx = 1
+        while True:
+            total_tokens = batch["input_ids"].numel()
+            if auto_batch_size:  # pragma: no cover
+                max_tokens = INITIAL_MAX_TOKENS_PER_DEVICE
+                torch.cuda.synchronize()
+                total_mem = torch.cuda.get_device_properties(device).total_memory
+                allocated_mem = torch.cuda.memory_allocated(device)
+                torch.cuda.reset_peak_memory_stats()
+                free_mem = total_mem - allocated_mem
+
+                if self._mem_per_unit is not None:
+                    max_tokens = int(free_mem // self._mem_per_unit)
+            else:
+                max_tokens = (
+                    self.max_tokens_per_device
+                    if self.max_tokens_per_device != "auto"
+                    else INITIAL_MAX_TOKENS_PER_DEVICE
+                )
+
+            max_windows = max(1, max_tokens // batch["input_ids"].size(1))
+            total_windows = batch["input_ids"].size(0)
+            try:
+                wordpiece_embeddings = [
+                    self.transformer.base_model(
+                        **{
+                            k: None if v is None else v[offset : offset + max_windows]
+                            for k, v in kwargs.items()
+                        }
+                    ).last_hidden_state
+                    for offset in range(0, total_windows, max_windows)
+                ]
+
+                wordpiece_embeddings = (
+                    torch.cat(wordpiece_embeddings, dim=0)
+                    if len(wordpiece_embeddings) > 1
+                    else wordpiece_embeddings[0]
+                )
+
+                if auto_batch_size:  # pragma: no cover
+                    batch_mem = torch.cuda.max_memory_allocated()
+                    current_mem_per_unit = batch_mem / min(total_tokens, max_tokens)
+                    if self._mem_per_unit is None:
+                        self._mem_per_unit = current_mem_per_unit
+                    self._mem_per_unit = (
+                        self._mem_per_unit * 0.7 + current_mem_per_unit * 0.3
+                    )
+                    torch.cuda.synchronize()  # Wait for all kernels to finish
+            except RuntimeError as e:  # pragma: no cover
+                if "out of memory" in str(e) and trial_idx <= 2:
+                    print(
+                        f"Out of memory: tried to fit {max_windows} "
+                        f"in {free_mem / (1024 ** 3)} (try n°{trial_idx}/2)"
+                    )
+                    torch.cuda.empty_cache()
+                    self._mem_per_unit = (free_mem / max_windows) * 1.5
+                    trial_idx += 1
+                    continue
+                raise
+            break
 
         mask = batch["mask"].clone()
         word_embeddings = torch.zeros(

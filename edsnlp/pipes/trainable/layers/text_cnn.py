@@ -20,9 +20,9 @@ class Residual(torch.nn.Module):
 
     def forward(self, before, after):
         return (
-            before + F.layer_norm(after, after.shape[1:])
+            before + F.layer_norm(after, after.shape[-1:])
             if self.normalize == "pre"
-            else F.layer_norm(before + after, after.shape[1:])
+            else F.layer_norm(before + after, after.shape[-1:])
             if self.normalize == "post"
             else before + after
         )
@@ -83,30 +83,51 @@ class TextCnn(torch.nn.Module):
     def forward(
         self, embeddings: torch.FloatTensor, mask: torch.BoolTensor
     ) -> torch.FloatTensor:
-        # sample word dim -> sample dim word
-        x = embeddings.masked_fill(~mask.unsqueeze(-1), 0).permute(0, 2, 1)
-        x = torch.cat(
-            [
-                self.activation(
-                    # pad by the appropriate amount on both sides of each sentence
-                    conv(
-                        F.pad(
-                            x,
-                            pad=[
-                                conv.kernel_size[0] // 2,
-                                (conv.kernel_size[0] - 1) // 2,
-                            ],
-                        )
-                    )
-                    .permute(0, 2, 1)
-                    .masked_fill(~mask.unsqueeze(-1), 0)
-                )
-                for conv in self.convolutions
-            ],
-            dim=2,
-        )
-        x = self.linear(x)
+        # shape: samples words dim
+        max_k = max(conv.kernel_size[0] for conv in self.convolutions)
+        left_pad = (max_k) // 2
+        right_pad = (max_k - 1) // 2
+        n_samples, n_words, dim = embeddings.shape
+        n_words_with_pad = n_words + left_pad + right_pad
+        flat_n = n_samples * n_words_with_pad - left_pad - right_pad
+
+        # shape: samples (left_pad... words ...right_pad) dim
+        padded_x = F.pad(embeddings, pad=(0, 0, max_k // 2, (max_k - 1) // 2))
+        padded_mask = F.pad(mask, pad=(max_k // 2 + (max_k - 1) // 2, 0), value=True)
+
+        # shape: (un-padded sample words) dim
+        flat_x = padded_x[padded_mask]
+
+        # Conv-1d expects sample * dim * words
+        flat_x = flat_x.permute(1, 0).unsqueeze(0)
+
+        # Apply the convolutions over the flattened input
+        conv_results = []
+        for conv_idx, conv in enumerate(self.convolutions):
+            k = conv.kernel_size[0]
+            conv_x = conv(flat_x)
+            offset = left_pad - (k // 2)
+            conv_results.append(conv_x[0, :, offset : offset + flat_n])
+        flat_x = torch.cat(conv_results, dim=0)
+        flat_x = flat_x.transpose(1, 0)  # n_words * dim
+
+        # Apply the non-linearities
+        flat_x = torch.relu(flat_x)
+        flat_x = self.linear(flat_x)
+
+        # Reshape the output to the original shape
+        new_dim = flat_x.size(-1)
+        x = torch.empty(n_samples * n_words_with_pad, new_dim, device=flat_x.device)
+        flat_mask = padded_mask
+        flat_mask[-1, padded_mask[-1].sum() - right_pad :] = False
+        flat_mask[0, :left_pad] = False
+        flat_mask = flat_mask.view(-1)
+        x[flat_mask] = flat_x
+        x = x.view(n_samples, n_words_with_pad, new_dim)
+        x = x[:, left_pad:-right_pad]
+
+        # Apply the residual connection
         if self.residual is not None:
             x = self.residual(embeddings, x)
 
-        return x.masked_fill(~mask.unsqueeze(-1), 0)
+        return x.masked_fill_((~mask).unsqueeze(-1), 0)

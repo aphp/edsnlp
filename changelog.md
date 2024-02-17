@@ -11,6 +11,12 @@
 ### Changed
 
 - Improved speed and memory usage of the `eds.text_cnn` pipe by running the CNN on a non-padded version of its input: expect a speedup up to 1.3x in real-world use cases.
+- Deprecate the converters' (especially for BRAT/Standoff data) `bool_attributes`
+  parameter in favor of general `default_attributes`. This new mapping describes how to
+  set attributes on spans for which no attribute value was found in the input format.
+  This is especially useful for negation, or frequent attributes values (e.g. "negated"
+  is often False, "temporal" is often "present"), that annotators may not want to
+  annotate every time.
 
 ### Fixed
 

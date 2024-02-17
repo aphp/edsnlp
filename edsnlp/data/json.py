@@ -223,15 +223,16 @@ def read_json(
     path: Union[str, Path]
         Path to the directory containing the JSON files (will recursively look for
         files in subdirectories).
-    converter: Optional[Union[str, Callable]]
-        Converter to use to convert the JSON rows of the data source to Doc objects
     keep_ipynb_checkpoints: bool
         Whether to keep the files have ".ipynb_checkpoints" in their path.
     read_in_worker: bool
         Whether to read the files in the worker or in the main process.
+    converter: Optional[Union[str, Callable]]
+        Converter to use to convert the JSON objects to Doc objects.
+        These are documented on the [Converters](/data/converters) page.
     kwargs:
-        Additional keyword arguments to pass to the converter. These are documented
-        on the [Data schemas](/data/schemas) page.
+        Additional keyword arguments to pass to the converter. These are documented on
+        the [Converters](/data/converters) page.
 
     Returns
     -------
@@ -308,10 +309,10 @@ def write_json(
         Whether to overwrite existing directories.
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the documents to dictionary objects before writing
-        them.
+        them. These are documented on the [Converters](/data/converters) page.
     kwargs:
-        Additional keyword arguments to pass to the converter. These are documented
-        on the [Data schemas](/data/schemas) page.
+        Additional keyword arguments to pass to the converter. These are documented on
+        the [Converters](/data/converters) page.
     """
 
     data = LazyCollection.ensure_lazy(data)

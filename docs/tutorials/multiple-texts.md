@@ -57,12 +57,34 @@ You _could_ just apply the pipeline document by document.
 docs = [nlp(text) for text in corpus]
 ```
 
-Next, you might want to convert these documents to a DataFrame for further analysis:
+Next, you might want to convert these documents to a DataFrame for further analysis or storage. You could do this with a loop like this:
 
 ```python
-import edsnlp.data
+import pandas as pd
 
-df = edsnlp.data.to_pandas(docs, converter="omop")
+rows = []
+for doc in docs:
+    for ent in doc.ents:
+        d = dict(
+            begin=ent.start_char,
+            end=ent.end_char,
+            label=ent.label_,
+            entity_text=ent.text,
+            negation=ent._.negation,
+            hypothesis=ent._.hypothesis,
+            family=ent._.family,
+        )
+        rows.append(d)
+
+    for date in doc.spans.get("dates", []):
+        d = dict(
+            begin=date.start_char,
+            end=date.end_char,
+            label="date",
+            entity_text=date.text,
+        )
+        rows.append(d)
+df = pd.DataFrame(rows)
 ```
 
 There are a few issues with this approach:
@@ -70,16 +92,21 @@ There are a few issues with this approach:
 - If our model contains deep learning components (which it does not in this tutorial), we don't benefit from optimized batched matrix operations : ideally, we'd like to process multiple documents at
   once.
 - We may have multiple cores available but we don't use them to apply the pipes of our model to multiple documents at the same time.
-- We would also like to perform the conversion step (`converter="omop"` which extracts the annotations of our Doc object into dictionaries) in parallel.
+- We would also like to perform the Doc -> Dict conversion step in parallel and avoid transferring full Doc instances back and forth between processes.
+- And ideally, being able to switch between input/output formats, or sequential/parallel processing, without changing the code too much.
 
 ## Lazy inference and parallelization
 
-To efficiently perform the same operations on multiple documents at once, EDS-NLP uses [lazy collections][edsnlp.core.lazy_collection.LazyCollection], which record the operations to perform on the documents without actually executing them directly. This allows EDS-NLP to distribute these operations on multiple cores or machines when it is time to execute them. We can configure how the collection operations are run (how many jobs/workers, how many gpus, whether to use the spark engine) via the lazy collection [`.set_processing(...)`][edsnlp.core.lazy_collection.LazyCollection.set_processing] method.
+To efficiently perform the same operations on multiple documents at once, EDS-NLP uses [lazy collections][edsnlp.core.lazy_collection.LazyCollection], which record the operations to perform on the documents without actually executing them directly, similar to the way Spark does, or polars with its LazyFrame.
+
+This allows EDS-NLP to distribute these operations on multiple cores or machines when it is time to execute them. We can configure how the collection operations are run (how many jobs/workers, how many gpus, whether to use the spark engine) via the lazy collection [`.set_processing(...)`][edsnlp.core.lazy_collection.LazyCollection.set_processing] method.
 
 For instance,
 
 ```python
 docs = edsnlp.data.from_iterable(corpus)
+print(docs)
+# <edsnlp.core.lazy_collection.LazyCollection object at 0x7f3e3c3e3d90>
 ```
 
 as well as any `edsnlp.data.read_*` or `edsnlp.data.from_*` return a lazy collection, that we can iterate over or complete with more operations. To apply the model on our collection of documents, we can simply do:
@@ -90,7 +117,7 @@ docs = docs.map_pipeline(nlp)
 # docs = nlp.pipe(docs)
 ```
 
-!!! warning "SpaCy vs EDS-NLP"
+??? warning "SpaCy vs EDS-NLP"
 
     SpaCy's `nlp.pipe` method is not the same as EDS-NLP's `nlp.pipe` method, and will iterate over anything you pass to it, therefore executing the operations scheduled in our lazy collection.
 
@@ -104,10 +131,43 @@ docs = docs.map_pipeline(nlp)
 
 Finally, we can convert the documents to a DataFrame (or other formats / files) using the `edsnlp.data.to_*` or `edsnlp.data.write_*` methods. This triggers the execution of the operations scheduled in the lazy collection and produces the rows of the DataFrame.
 
+We can pass our previous Doc to Dict code as a function to the `converter` parameter of the `to_pandas` method. Note that this specific conversion is already implemented in EDS-NLP, so you can just pass the string `"ents"` to the `converter` parameter, and customize the conversion by passing more parameters to the `to_pandas` method, as described [here](/data/converters#ents).
+
 ```python
-df = docs.to_pandas(converter="omop")
+def convert_doc_to_rows(doc):
+    entities = []
+
+    for ent in doc.ents:
+        d = dict(
+            start=ent.start_char,
+            end=ent.end_char,
+            label=ent.label_,
+            lexical_variant=ent.text,
+            negation=ent._.negation,
+            hypothesis=ent._.hypothesis,
+            family=ent._.family,
+        )
+        entities.append(d)
+
+    for date in doc.spans.get("dates", []):
+        d = dict(
+            begin=date.start_char,
+            end=date.end_char,
+            label="date",
+            entity_text=date.text,
+        )
+        entities.append(d)
+
+    return entities
+
+
+df = docs.to_pandas(converter=convert_doc_to_rows)
 # or equivalently:
-# df = edsnlp.data.to_pandas(docs, converter="omop")
+df = docs.to_pandas(
+    converter="ents",
+    span_getter=["ents", "dates"],
+    span_attributes=["negation", "hypothesis", "family"],
+)
 ```
 
 We can also iterate over the documents, which also triggers the execution of the operations scheduled in the lazy collection.
@@ -133,6 +193,9 @@ Processing text within a pandas DataFrame is a very common use case. In many app
     - the [`note` table](https://ohdsi.github.io/CommonDataModel/cdm54.html#NOTE) contains the clinical notes
     - the [`note_nlp` table](https://ohdsi.github.io/CommonDataModel/cdm54.html#NOTE_NLP) holds the results of
       a NLP pipeline applied to the `note` table.
+
+    We can use the `converter="omop"` argument to the `edsnlp.data` methods to read data in this format.
+    More information about this converter can be found [here](/data/converters#omop).
 
 To make sure we can follow along, we propose three recipes for getting the DataFrame: using a dummy dataset like before, loading a CSV or by loading a Spark DataFrame into memory.
 
@@ -185,12 +248,11 @@ We'll see in what follows how we can efficiently deploy our pipeline on the `#!p
 docs = edsnlp.data.from_pandas(data, converter="omop")
 
 # Add the pipeline to operations that will be run
-docs = nlp.pipe(docs)
+docs = docs.map_pipeline(nlp)
 
 # Convert each doc to a list of dicts (one by entity)
 # and store the result in a pandas DataFrame
-note_nlp = edsnlp.data.to_pandas(
-    docs,
+note_nlp = docs.to_pandas(
     converter="ents",
     # Below are the arguments to the converter
     span_getter=["ents", "dates"],
@@ -222,15 +284,14 @@ The result on the first note:
 docs = edsnlp.data.from_pandas(data, converter="omop")
 
 # Add the pipeline to operations that will be run
-docs = nlp.pipe(docs)
+docs = docs.map_pipeline(nlp)
 
 # The operations of our lazy collection will be distributed on multiple workers
 docs = docs.set_processing(backend="multiprocessing")
 
 # Convert each doc to a list of dicts (one by entity)
 # and store the result in a pandas DataFrame
-note_nlp = edsnlp.data.to_pandas(
-    docs,
+note_nlp = docs.to_pandas(
     converter="ents",
     span_getter=["ents", "dates"],
     span_attributes={
@@ -253,12 +314,11 @@ To use the Spark engine to distribute the computation, we create our lazy collec
 docs = edsnlp.data.from_spark(df, converter="omop")
 
 # Add the pipeline to operations that will be run
-docs = nlp.pipe(docs)
+docs = docs.map_pipeline(nlp
 
 # Convert each doc to a list of dicts (one by entity)
 # and store the result in a pyspark DataFrame
-note_nlp = edsnlp.data.to_spark(
-    docs,
+note_nlp = docs.to_spark(
     converter="ents",
     span_getter=["ents", "dates"],
     span_attributes={
@@ -274,63 +334,3 @@ note_nlp = edsnlp.data.to_spark(
 ```
 
 1. If you don't pass a `dtypes` argument, EDS-NLP will print the inferred schema it such that you can copy-paste it in your code.
-
-### Using a custom converter
-
-To customize the conversion of a Doc object to dictionaries, you can pass a `converter` argument. It will either be a string (the name of a converter) or a callable, that should return either a dictionary or a list of dictionaries.
-
-```python
-from spacy.tokens import Doc
-from typing import Any, Dict, List
-
-
-def get_entities(doc: Doc) -> List[Dict[str, Any]]:
-    """Return a list of dict representation for the entities"""
-
-    entities = []
-
-    for ent in doc.ents:
-        d = dict(
-            begin=ent.start_char,
-            end=ent.end_char,
-            label=ent.label_,
-            entity_text=ent.text,
-            negation=ent._.negation,
-            hypothesis=ent._.hypothesis,
-            family=ent._.family,
-        )
-        entities.append(d)
-
-    for date in doc.spans.get("dates", []):
-        d = dict(
-            begin=date.start_char,
-            end=date.end_char,
-            label="date",
-            entity_text=date.text,
-        )
-        entities.append(d)
-
-    return entities
-
-
-docs = edsnlp.data.from_pandas(data, converter="omop")
-
-# Add the pipeline to operations that will be run
-docs = nlp.pipe(docs)
-
-# Convert each doc to a list of dicts (one by entity)
-# and store the result in a pyspark DataFrame
-note_nlp = edsnlp.data.to_pandas(
-    docs,
-    converter=get_entities,
-    # no keyword args here since our converter expects none
-)
-```
-
-| begin | end |   label | entity_text | negation | hypothesis | family |
-|------:|----:|--------:|------------:|---------:|-----------:|-------:|
-|     0 |   7 | patient |     Patient |    False |      False |  False |
-|   114 | 121 | patient |     patient |    False |      False |   True |
-|    17 |  34 |    date |  25 sept... |          |            |        |
-|     0 |   7 | patient |     Patient |    False |      False |  False |
-|   114 | 121 | patient |     patient |    False |      False |   True |

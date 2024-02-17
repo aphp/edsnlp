@@ -11,7 +11,7 @@ docs = edsnlp.data.read_{format}(  # or .from_{format} for objects
     # Path to the file or directory
     "path/to/file",
     # How to convert JSON-like samples to Doc objects
-    converter="schema"
+    converter=predefined schema or function,
 )
 ```
 
@@ -26,7 +26,7 @@ edsnlp.data.write_{format}(  # or .to_{format} for objects
     # Iterable of Doc objects
     docs,
     # How to convert Doc objects to JSON-like samples
-    converter="schema"
+    converter=predefined schema or function,
 )
 ```
 
@@ -45,7 +45,8 @@ At the moment, we support the following data sources:
 
 and the following schemas:
 
-| Schema                         | Shorthand  |
-|:-------------------------------|------------|
-| [OMOP](./schemas#omop)         | `omop`     |
-| [Standoff](./schemas#standoff) | `standoff` |
+| Schema                             | Snippet                |
+|:-----------------------------------|------------------------|
+| [Custom](./converters/#custom)     | `converter=custom_fn`  |
+| [OMOP](./converters/#omop)         | `converter="omop"`     |
+| [Standoff](./converters/#standoff) | `converter="standoff"` |

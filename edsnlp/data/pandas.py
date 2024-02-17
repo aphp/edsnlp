@@ -74,10 +74,11 @@ def from_pandas(
     data: pd.DataFrame
         Pandas object
     converter: Optional[Union[str, Callable]]
-        Converter to use to convert the rows of the DataFrame to Doc objects
+        Converter to use to convert the rows of the DataFrame (represented as dicts)
+        to Doc objects. These are documented on the [Converters](/data/converters) page.
     kwargs:
-        Additional keyword arguments passed to the converter. These are documented
-        on the [Data schemas](/data/schemas) page.
+        Additional keyword arguments to pass to the converter. These are documented on
+        the [Converters](/data/converters) page.
 
     Returns
     -------
@@ -138,14 +139,15 @@ def to_pandas(
     ----------
     data: Union[Any, LazyCollection],
         The data to write (either a list of documents or a LazyCollection).
-    converter: Optional[Union[str, Callable]]
-        Converter to use to convert the documents to dictionary objects before storing
-        them in the dataframe.
     dtypes: Optional[dict]
         Dictionary of column names to dtypes. This is passed to `pd.DataFrame.astype`.
+    converter: Optional[Union[str, Callable]]
+        Converter to use to convert the documents to dictionary objects before storing
+        them in the dataframe. These are documented on the
+        [Converters](/data/converters) page.
     kwargs:
-        Additional keyword arguments passed to the converter. These are documented
-        on the [Data schemas](/data/schemas) page.
+        Additional keyword arguments to pass to the converter. These are documented on
+        the [Converters](/data/converters) page.
     """
     data = LazyCollection.ensure_lazy(data)
     if converter:

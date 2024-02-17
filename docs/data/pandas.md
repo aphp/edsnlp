@@ -5,8 +5,8 @@
     ```{ .python .no-check }
     import edsnlp
 
-    iterator = edsnlp.data.from_pandas(df, converter="omop")
-    docs = nlp.pipe(iterator)
+    docs = edsnlp.data.from_pandas(df, converter="omop")
+    docs = docs.map_pipeline(nlp)
     res = edsnlp.data.to_pandas(docs, converter="omop")
     ```
 

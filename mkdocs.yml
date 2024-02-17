@@ -130,7 +130,7 @@ nav:
       - data/parquet.md
       - data/pandas.md
       - data/spark.md
-      - data/schemas.md
+      - data/converters.md
   - Concepts:
       - concepts/pipeline.md
       - concepts/torch-component.md

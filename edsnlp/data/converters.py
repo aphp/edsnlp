@@ -139,7 +139,37 @@ def set_current_tokenizer(tokenizer):
 @registry.factory.register("eds.standoff_dict2doc", spacy_compatible=False)
 class StandoffDict2DocConverter:
     """
-    Read a JSON dictionary in the standoff format and convert it to a Doc object.
+    !!! note "Why does BRAT/Standoff need a converter ?"
+
+        You may wonder : why do I need a converter ? Since BRAT is already a NLP
+        oriented format, it should be straightforward to convert it to a Doc object.
+
+        Indeed, we do provide a default converter for the BRAT standoff format, but we
+        also acknowledge that there may be more than one way to convert a standoff
+        document to a Doc object. For instance, an annotated span may be used to
+        represent a relation between two smaller included entities, or another entity
+        scope, etc.
+
+        In such cases, we recommend you use a custom converter as described
+        [here](/data/converters/#custom-converter).
+
+    Examples
+    --------
+
+    ```{ .python .no-check }
+    # Any kind of reader (`edsnlp.data.read/from_...`) can be used here
+    docs = edsnlp.data.read_standoff(
+        "path/to/standoff",
+        converter="standoff",  # set by default
+
+        # Optional parameters
+        tokenizer=tokenizer,
+        span_setter={"ents": True, "*": True},
+        span_attributes={"negation": "negated"},
+        keep_raw_attribute_values=False,
+        default_attributes={"negated": False, "temporality": "present"},
+    )
+    ```
 
     Parameters
     ----------
@@ -248,7 +278,20 @@ class StandoffDict2DocConverter:
 @registry.factory.register("eds.standoff_doc2dict", spacy_compatible=False)
 class StandoffDoc2DictConverter:
     """
-    Convert a Doc object to a JSON dictionary in the standoff format.
+    Examples
+    --------
+
+    ```{ .python .no-check }
+    # Any kind of reader (`edsnlp.data.read/from_...`) can be used here
+    docs = edsnlp.data.write_standoff(
+        "path/to/standoff",
+        converter="standoff",  # set by default
+
+        # Optional parameters
+        span_getter={"ents": True},
+        span_attributes={"negation": "negated"},
+    )
+    ```
 
     Parameters
     ----------
@@ -258,16 +301,12 @@ class StandoffDoc2DictConverter:
     span_attributes: AttributesMappingArg
         Mapping from Span extensions to JSON attributes (can be a list too).
         By default, no attribute is exported, except `note_id`.
-
-    Returns
-    -------
-    Dict[str, Any]
     """
 
     def __init__(
         self,
         *,
-        span_getter: Optional[SpanGetterArg] = None,
+        span_getter: Optional[SpanGetterArg] = {"ents": True},
         span_attributes: AttributesMappingArg = {},
     ):
         self.span_getter = span_getter
@@ -304,7 +343,27 @@ class StandoffDoc2DictConverter:
 @registry.factory.register("eds.omop_dict2doc", spacy_compatible=False)
 class OmopDict2DocConverter:
     """
-    Read a JSON dictionary in the OMOP format and convert it to a Doc object.
+    Examples
+    --------
+
+    ```{ .python .no-check }
+    # Any kind of reader (`edsnlp.data.read/from_...`) can be used here
+    docs = edsnlp.data.from_pandas(
+        df,
+        converter="omop",
+
+        # Optional parameters
+        tokenizer=tokenizer,
+        doc_attributes=["note_datetime"],
+
+        # Parameters below should only matter if you plan to import entities
+        # from the dataframe. If the data doesn't contain pre-annotated
+        # entities, you can ignore these.
+        span_setter={"ents": True, "*": True},
+        span_attributes={"negation": "negated"},
+        default_attributes={"negated": False, "temporality": "present"},
+    )
+    ```
 
     Parameters
     ----------
@@ -323,7 +382,7 @@ class OmopDict2DocConverter:
         setting the spans in the `ents` attribute, and creates a new span group for
         each JSON entity label.
     doc_attributes: AttributesMappingArg
-        Mapping from JSON attributes to Span extensions (can be a list too).
+        Mapping from JSON attributes to additional Span extensions (can be a list too).
         By default, all attributes are imported as Doc extensions with the same name.
     span_attributes: Optional[AttributesMappingArg]
         Mapping from JSON attributes to Span extensions (can be a list too).
@@ -350,7 +409,9 @@ class OmopDict2DocConverter:
         self.span_setter = span_setter
         self.doc_attributes = doc_attributes
         self.span_attributes = span_attributes
-        self.bool_attributes = bool_attributes
+        self.default_attributes = default_attributes
+        for attr in bool_attributes:
+            self.default_attributes[attr] = False
 
     def __call__(self, obj):
         tok = get_current_tokenizer() if self.tokenizer is None else self.tokenizer
@@ -392,17 +453,31 @@ class OmopDict2DocConverter:
             spans.append(span)
 
         set_spans(doc, spans, span_setter=self.span_setter)
-        for attr in self.bool_attributes:
+        for attr, value in self.default_attributes.items():
             for span in spans:
                 if span._.get(attr) is None:
-                    span._.set(attr, False)
+                    span._.set(attr, value)
         return doc
 
 
 @registry.factory.register("eds.omop_doc2dict", spacy_compatible=False)
 class OmopDoc2DictConverter:
     """
-    Write a Doc object to a JSON dictionary in the OMOP format.
+    Examples
+    --------
+
+    ```{ .python .no-check }
+    # Any kind of reader (`edsnlp.data.read/from_...`) can be used here
+    docs = edsnlp.data.to_pandas(
+        docs,
+        converter="omop",
+
+        # Optional parameters
+        span_getter={"ents": True},
+        doc_attributes=["note_datetime"],
+        span_attributes=["negation", "family"],
+    )
+    ```
 
     Parameters
     ----------
@@ -415,10 +490,6 @@ class OmopDoc2DictConverter:
     span_attributes: AttributesMappingArg
         Mapping from Span extensions to JSON attributes (can be a list too).
         By default, no attribute is exported.
-
-    Returns
-    -------
-    Dict[str, Any]
     """
 
     def __init__(
@@ -465,8 +536,6 @@ class OmopDoc2DictConverter:
 @registry.factory.register("eds.ents_doc2dict", spacy_compatible=False)
 class EntsDoc2DictConverter:
     """
-    Convert a Doc object to a list of JSON dictionaries, one for each entity.
-
     Parameters
     ----------
     span_getter: SpanGetterArg
@@ -478,10 +547,6 @@ class EntsDoc2DictConverter:
     span_attributes: AttributesMappingArg
         Mapping from Span extensions to JSON attributes (can be a list too).
         By default, no attribute is exported.
-
-    Returns
-    -------
-    List[Dict[str, Any]]
     """
 
     def __init__(

@@ -213,16 +213,17 @@ def read_parquet(
     path: Union[str, Path]
         Path to the directory containing the parquet files (will recursively look for
         files in subdirectories). Supports any filesystem supported by pyarrow.
-    converter: Optional[Union[str, Callable]]
-        Converter to use to convert the parquet rows of the data source to Doc objects
     read_in_worker: bool
         Whether to read the files in the worker or in the main process.
     filesystem: Optional[pyarrow.fs.FileSystem]
         The filesystem to use to read the files. If None, the filesystem will be
         inferred from the path (e.g. `s3://` will use S3).
+    converter: Optional[Union[str, Callable]]
+        Converter to use to convert the parquet rows of the data source to Doc objects
+        These are documented on the [Converters](/data/converters) page.
     kwargs:
-        Additional keyword arguments to pass to the converter. These are documented
-        on the [Data schemas](/data/schemas) page.
+        Additional keyword arguments to pass to the converter. These are documented on
+        the [Converters](/data/converters) page.
 
     Returns
     -------
@@ -299,15 +300,16 @@ def write_parquet(
 
         If `write_in_worker` is True, documents will be accumulated in each worker but
         not across workers, therefore leading to a larger number of files.
-    converter: Optional[Union[str, Callable]]
-        Converter to use to convert the documents to dictionary objects before writing
-        them.
     filesystem: Optional[pyarrow.fs.FileSystem]
         The filesystem to use to write the files. If None, the filesystem will be
         inferred from the path (e.g. `s3://` will use S3).
+    converter: Optional[Union[str, Callable]]
+        Converter to use to convert the documents to dictionary objects before writing
+        them as Parquet rows. These are documented on the [Converters](/data/converters)
+        page.
     kwargs:
-        Additional keyword arguments to pass to the converter. These are documented
-        on the [Data schemas](/data/schemas) page.
+        Additional keyword arguments to pass to the converter. These are documented on
+        the [Converters](/data/converters) page.
     """
 
     data = LazyCollection.ensure_lazy(data)

@@ -124,7 +124,7 @@ def from_iterable(
         Converter to use to convert the JSON rows of the data source to Doc objects
     kwargs:
         Additional keyword arguments to pass to the converter. These are documented
-        on the [Data schemas](/data/schemas) page.
+        on the [Converters](/data/converters) page.
 
     Returns
     -------
@@ -170,7 +170,7 @@ def to_iterable(
         Converter to use to convert the documents to dictionary objects.
     kwargs:
         Additional keyword arguments passed to the converter. These are documented
-        on the [Data schemas](/data/schemas) page.
+        on the [Converters](/data/converters) page.
     """
     data = LazyCollection.ensure_lazy(data)
     if converter:

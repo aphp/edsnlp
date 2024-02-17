@@ -74,10 +74,11 @@ def from_spark(
     data: pyspark.sql.dataframe.DataFrame
         The DataFrame to read.
     converter: Optional[Union[str, Callable]]
-        Converter to use to convert the rows of the DataFrame to Doc objects
+        Converter to use to convert the rows of the DataFrame to Doc objects.
+        These are documented on the [Converters](/data/converters) page.
     kwargs:
-        Additional keyword arguments passed to the converter. These are documented
-        on the [Data schemas](/data/schemas) page.
+        Additional keyword arguments to pass to the converter. These are documented on
+        the [Converters](/data/converters) page.
 
     Returns
     -------
@@ -88,14 +89,6 @@ def from_spark(
         converter, kwargs = get_dict2doc_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)
     return data
-
-
-# @dill.register(types.ModuleType)
-# def save_module(pickler: dill.Pickler, obj: Any):
-#     if not (is_dill(pickler, child=True) and obj is pickler._main):
-#         pickler.save_reduce(_import_module, (obj.__name__,), obj=obj)
-#     else:
-#         dill._dill.save_module(pickler, obj)
 
 
 class SparkWriter(BaseWriter):
@@ -193,16 +186,17 @@ def to_spark(
     ----------
     data: Union[Any, LazyCollection],
         The data to write (either a list of documents or a LazyCollection).
-    converter: Optional[Union[str, Callable]]
-        Converter to use to convert the documents to dictionary objects before storing
-        them in the dataframe.
     dtypes: pyspark.sql.types.StructType
         The schema to use for the DataFrame.
     show_dtypes: bool
         Whether to print the inferred schema (only if `dtypes` is None).
+    converter: Optional[Union[str, Callable]]
+        Converter to use to convert the documents to dictionary objects before storing
+        them in the dataframe. These are documented on the
+        [Converters](/data/converters) page.
     kwargs:
-        Additional keyword arguments passed to the converter. These are documented
-        on the [Data schemas](/data/schemas) page.
+        Additional keyword arguments to pass to the converter. These are documented on
+        the [Converters](/data/converters) page.
     """
     data = LazyCollection.ensure_lazy(data)
     if converter:

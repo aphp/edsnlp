@@ -224,7 +224,7 @@ where = ["."]
 "eds.span_pooler"                 = "edsnlp.pipes.trainable.embeddings.span_pooler.factory:create_component"
 "eds.ner_crf"                     = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
 "eds.nested_ner"                  = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
-"eds.span_qualifier"               = "edsnlp.pipes.trainable.span_qualifier.factory:create_component"
+"eds.span_qualifier"              = "edsnlp.pipes.trainable.span_qualifier.factory:create_component"
 
 [project.entry-points."spacy_scorers"]
 "eds.ner_exact_scorer"           = "edsnlp.scorers.ner:create_ner_exact_scorer"

@@ -21,6 +21,7 @@
 ### Fixed
 
 - Improved error handling in `multiprocessing` backend (e.g., no more deadlock)
+- Various improvements to the data processing related documentation pages
 
 ## v0.10.5
 

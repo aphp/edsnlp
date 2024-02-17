@@ -8,7 +8,7 @@ from spacy.tokens import Doc
 
 import edsnlp
 from edsnlp import Pipeline, registry
-from edsnlp.pipelines.factories import normalizer, sentences
+from edsnlp.pipes.factories import normalizer, sentences
 
 
 class CustomClass:

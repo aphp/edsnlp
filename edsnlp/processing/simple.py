@@ -22,6 +22,16 @@ doc_size_fns = {
 }
 
 
+def apply_basic_pipes(docs, pipes):
+    for name, pipe, kwargs, tok in pipes:
+        with set_current_tokenizer(tok):
+            if hasattr(pipe, "batch_process"):
+                docs = pipe.batch_process(docs)
+            else:
+                docs = [pipe(doc, **kwargs) for doc in docs]
+    return docs
+
+
 def execute_simple_backend(
     lc: LazyCollection,
 ):
@@ -62,12 +72,7 @@ def execute_simple_backend(
                 ),
                 batch_size=lc.chunk_size,
             ):
-                for name, pipe, kwargs, tokenizer in chunk_components:
-                    with set_current_tokenizer(tokenizer):
-                        if hasattr(pipe, "batch_process"):
-                            docs = pipe.batch_process(docs, **kwargs)
-                        else:
-                            docs = [pipe(doc, **kwargs) for doc in docs]  #
+                docs = apply_basic_pipes(docs, chunk_components)
 
                 if lc.sort_chunks:
                     docs.sort(key=doc_size_fns.get(lc.sort_chunks, len))
@@ -77,18 +82,13 @@ def execute_simple_backend(
                     for batch in batchify(
                         docs,
                         batch_size=lc.batch_size,
-                        formula=doc_size_fns.get(lc.batch_by, len),
+                        formula=batch_size_fns.get(lc.batch_by, len),
                     )
                 ]
 
                 for batch in batches:
                     with no_grad(), lc.cache():
-                        for name, pipe, kwargs, tokenizer in batch_components:
-                            with set_current_tokenizer(tokenizer):
-                                if hasattr(pipe, "batch_process"):
-                                    batch = pipe.batch_process(batch, **kwargs)
-                                else:
-                                    batch = [pipe(doc, **kwargs) for doc in batch]  # type: ignore
+                        batch = apply_basic_pipes(batch, batch_components)
 
                     if writer is not None:
                         result, count = writer.write_worker(batch)

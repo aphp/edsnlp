@@ -49,14 +49,14 @@ if TYPE_CHECKING:
 Stage = TypedDict(
     "Stage",
     {
-        "cpu_components": List[Tuple[Callable, Dict]],
+        "cpu_components": List[Tuple[str, Callable, Dict, Any]],
         "gpu_component": Optional[Any],
     },
 )
 
 
 def apply_basic_pipes(docs, pipes):
-    for pipe, kwargs, tok in pipes:
+    for name, pipe, kwargs, tok in pipes:
         with set_current_tokenizer(tok):
             if hasattr(pipe, "batch_process"):
                 docs = pipe.batch_process(docs)
@@ -213,12 +213,22 @@ try:
         MAP_LOCATION = map_location
         if torch.__version__ >= "2.1" and isinstance(args[0], str):
             kwargs["mmap"] = True
-        result = torch_load(
-            *args,
-            pickle_module=dill,
-            map_location=map_location,
-            **kwargs,
-        )
+        # with open(args[0], "rb") as f:
+        #     result = dill.load(f, **kwargs)
+        try:
+            if torch.__version__ < "2.0.0":
+                pickle = torch_load.__globals__["pickle"]
+                torch_load.__globals__["pickle"] = dill
+            result = torch_load(
+                *args,
+                pickle_module=dill,
+                map_location=map_location,
+                **kwargs,
+            )
+        finally:
+            import pickle
+
+            torch_load.__globals__["pickle"] = pickle
         MAP_LOCATION = None
         return result
 
@@ -410,9 +420,9 @@ class CPUWorker:
                     stages.append({"cpu_components": [], "gpu_component": None})
                 else:
                     if is_before_split:
-                        preprocess_pipes.append((pipe, *rest))
+                        preprocess_pipes.append((name, pipe, *rest))
                     else:
-                        stages[-1]["cpu_components"].append((pipe, *rest))
+                        stages[-1]["cpu_components"].append((name, pipe, *rest))
                 if name is split_into_batches_after:
                     is_before_split = False
 
@@ -470,10 +480,8 @@ class CPUWorker:
                         )
                     )
 
-            if lc.writer is not None:
-                results, count = lc.writer.finalize()
-                if count > 0:
-                    self.exchanger.put_results((results, count, self.cpu_idx, None))
+            results, count = lc.writer.finalize() if lc.writer is not None else ([], 0)
+            self.exchanger.put_results((results, count, self.cpu_idx, "finalize"))
 
         except BaseException as e:
             import traceback
@@ -485,14 +493,11 @@ class CPUWorker:
         # collate) are left in consumer processes
         task = True  # anything but None
         stage = None
-        # print(f"Draining {self}")
         while (stage, task) != (0, None):
-            # print(f"Flushing {self} stage={stage}, task={type(task)}")
             try:
                 stage, task = self.exchanger.get_cpu_task(self.cpu_idx)
             finally:
                 pass
-        # print(f"Bye bye {self}")
 
     def __repr__(self):
         return f"<CPUWorker idx={self.cpu_idx}>"
@@ -580,14 +585,11 @@ class GPUWorker:
         # collate) are left in consumer processes
         stage = None
         task = None
-        # print(f"Draining {self}")
         while (stage, task) != (0, None):
-            # print(f"Flushing {self} stage={stage}, task={type(task)}")
             try:
                 stage, task = self.exchanger.get_gpu_task(self.gpu_idx)
             finally:
                 pass
-        # print(f"Bye bye {self}")
 
     def __repr__(self):
         return f"<GPUWorker idx={self.gpu_idx}>"
@@ -684,16 +686,17 @@ def execute_multiprocessing_backend(
 
         if num_gpu_workers is None:
             num_gpu_workers = num_devices
+    else:
+        num_gpu_workers = 0
 
-        if num_gpu_workers and process_start_method == "fork":
+    if any(gpu_steps_candidates):
+        if process_start_method == "fork":
             warnings.warn(
                 "Using fork start method with GPU workers may lead to deadlocks. "
                 "Consider using process_start_method='spawn' instead."
             )
 
         process_start_method = process_start_method or "spawn"
-    else:
-        num_gpu_workers = 0
 
     default_method = multiprocessing.get_start_method()
     if process_start_method is not None and default_method != process_start_method:
@@ -815,6 +818,7 @@ def execute_multiprocessing_backend(
     cpu_worker_indices = list(range(num_cpu_workers))
     inputs_iterator = lc.reader.read_main()
     active_chunks = [{} for i in cpu_worker_indices]
+    non_finalized = {i for i in cpu_worker_indices}
     max_workload = lc.chunk_size * num_max_enqueued
 
     bar = nullcontext()
@@ -822,6 +826,19 @@ def execute_multiprocessing_backend(
         from tqdm import tqdm
 
         bar = tqdm(smoothing=0.1, mininterval=5.0)
+
+    def get_and_process_output():
+        outputs, count, cpu_idx, output_task_id = next(outputs_iterator)
+        if output_task_id == "finalize":
+            non_finalized.discard(cpu_idx)
+        if isinstance(outputs, BaseException):
+            raise outputs
+        if show_progress:
+            bar.update(count)
+        if count > 0:
+            yield outputs
+        if output_task_id is not None:
+            active_chunks[cpu_idx].pop(output_task_id, None)
 
     def process():
         try:
@@ -837,17 +854,8 @@ def execute_multiprocessing_backend(
                     batch = [item[0] for item in items]
                     batch_size = sum(item[1] for item in items)
 
-                    output_task_id = None
                     while all(sum(wl.values()) >= max_workload for wl in active_chunks):
-                        outputs, count, cpu_idx, output_task_id = next(outputs_iterator)
-                        if isinstance(outputs, BaseException):
-                            raise outputs
-                        if show_progress:
-                            bar.update(count)
-                        yield outputs
-
-                        if output_task_id is not None:
-                            active_chunks[cpu_idx].pop(output_task_id, None)
+                        yield from get_and_process_output()
 
                     # Shuffle to ensure the first process does not receive all the
                     # documents in case of workload equality
@@ -864,13 +872,11 @@ def execute_multiprocessing_backend(
                     exchanger.cpu_inputs_queues[i][0].put(None)
 
                 while any(active_chunks):
-                    outputs, count, cpu_idx, output_task_id = next(outputs_iterator)
-                    if isinstance(outputs, BaseException):
-                        raise outputs  # pragma: no cover
-                    if show_progress:
-                        bar.update(count)
-                    yield outputs
-                    active_chunks[cpu_idx].pop(output_task_id, None)
+                    yield from get_and_process_output()
+
+                while len(non_finalized):
+                    yield from get_and_process_output()
+
         finally:
             revert_pickler()
 

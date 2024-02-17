@@ -163,8 +163,11 @@ class StandoffDict2DocConverter:
     keep_raw_attribute_values: bool
         Whether to keep the raw attribute values (as strings) or to convert them to
         Python objects (e.g. booleans).
-    bool_attributes: SequenceStr
-        List of attributes for which missing values should be set to False.
+    default_attributes: AttributesMappingArg
+        How to set attributes on spans for which no attribute value was found in the
+        input format. This is especially useful for negation, or frequent attributes
+        values (e.g. "negated" is often False, "temporal" is often "present"), that
+        annotators may not want to annotate every time.
     """
 
     def __init__(
@@ -176,12 +179,15 @@ class StandoffDict2DocConverter:
         span_attributes: Optional[AttributesMappingArg] = None,
         keep_raw_attribute_values: bool = False,
         bool_attributes: SequenceStr = [],
+        default_attributes: AttributesMappingArg = {},
     ):
         self.tokenizer = tokenizer or (nlp.tokenizer if nlp is not None else None)
         self.span_setter = span_setter
         self.span_attributes = span_attributes  # type: ignore
         self.keep_raw_attribute_values = keep_raw_attribute_values
-        self.bool_attributes = bool_attributes
+        self.default_attributes = default_attributes
+        for attr in bool_attributes:
+            self.default_attributes[attr] = False
 
     def __call__(self, obj):
         tok = get_current_tokenizer() if self.tokenizer is None else self.tokenizer
@@ -192,7 +198,7 @@ class StandoffDict2DocConverter:
 
         for dst in (
             *(() if self.span_attributes is None else self.span_attributes.values()),
-            *self.bool_attributes,
+            *self.default_attributes,
         ):
             if not Span.has_extension(dst):
                 Span.set_extension(dst, default=None)
@@ -231,10 +237,10 @@ class StandoffDict2DocConverter:
                 spans.append(span)
 
         set_spans(doc, spans, span_setter=self.span_setter)
-        for attr in self.bool_attributes:
+        for attr, value in self.default_attributes.items():
             for span in spans:
                 if span._.get(attr) is None:
-                    span._.set(attr, False)
+                    span._.set(attr, value)
 
         return doc
 
@@ -322,8 +328,11 @@ class OmopDict2DocConverter:
     span_attributes: Optional[AttributesMappingArg]
         Mapping from JSON attributes to Span extensions (can be a list too).
         By default, all attributes are imported as Span extensions with the same name.
-    bool_attributes: SequenceStr
-        List of attributes for which missing values should be set to False.
+    default_attributes: AttributesMappingArg
+        How to set attributes on spans for which no attribute value was found in the
+        input format. This is especially useful for negation, or frequent attributes
+        values (e.g. "negated" is often False, "temporal" is often "present"), that
+        annotators may not want to annotate every time.
     """
 
     def __init__(
@@ -334,6 +343,7 @@ class OmopDict2DocConverter:
         span_setter: SpanSetterArg = {"ents": True, "*": True},
         doc_attributes: AttributesMappingArg = {},
         span_attributes: Optional[AttributesMappingArg] = None,
+        default_attributes: AttributesMappingArg = {},
         bool_attributes: SequenceStr = [],
     ):
         self.tokenizer = tokenizer or (nlp.tokenizer if nlp is not None else None)
@@ -355,7 +365,7 @@ class OmopDict2DocConverter:
 
         for dst in (
             *(() if self.span_attributes is None else self.span_attributes.values()),
-            *self.bool_attributes,
+            *self.default_attributes,
         ):
             if not Span.has_extension(dst):
                 Span.set_extension(dst, default=None)

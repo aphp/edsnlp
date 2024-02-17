@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Iterable
+from typing import Any, Dict, Iterable
 
 from spacy.training import Example
 
@@ -14,6 +14,7 @@ def span_classification_scorer(
     span_getter: SpanGetterArg,
     qualifiers: Qualifiers,
     include_falsy: bool = False,
+    default_values: Dict = {},
     micro_key: str = "micro",
 ):
     """
@@ -28,6 +29,11 @@ def span_classification_scorer(
         The span getter to use to extract the spans from the document
     qualifiers : Sequence[str]
         The qualifiers to use to score the spans
+    default_values: Dict
+        Values to dismiss when computing the micro-average per label. This is
+        useful to compute precision and recall for certain attributes that have
+        imbalanced value repartitions, such as "negation", "family related"
+        or "certainty" attributes.
     include_falsy : bool
         Whether to count predicted or gold occurrences of falsy values when computing
         the metrics. If `False`, only the non-falsy values will be counted and matched
@@ -43,6 +49,11 @@ def span_classification_scorer(
     labels["micro"] = (set(), set())
     total_pred_count = 0
     total_gold_count = 0
+    if not include_falsy:
+        default_values_ = defaultdict(lambda: False)
+        default_values_.update(default_values)
+        default_values = default_values_
+        del default_values_
     for eg_idx, eg in enumerate(examples):
         doc_spans = get_spans(eg.predicted, span_getter)
         for span_idx, span in enumerate(doc_spans):
@@ -50,8 +61,11 @@ def span_classification_scorer(
             for qualifier, span_filter in qualifiers.items():
                 if not (span_filter is True or span.label_ in span_filter):
                     continue
-                value = BINDING_GETTERS[qualifier](span)
-                if value or include_falsy:
+                getter_key = (
+                    qualifier if qualifier.startswith("_.") else f"_.{qualifier}"
+                )
+                value = BINDING_GETTERS[getter_key](span)
+                if (value or include_falsy) and default_values[qualifier] != value:
                     labels[micro_key][0].add((eg_idx, span_idx, qualifier, value))
                     labels[qualifier][0].add((eg_idx, span_idx, qualifier, value))
 
@@ -61,8 +75,11 @@ def span_classification_scorer(
             for qualifier, span_filter in qualifiers.items():
                 if not (span_filter is True or span.label_ in span_filter):
                     continue
-                value = BINDING_GETTERS[qualifier](span)
-                if value or include_falsy:
+                getter_key = (
+                    qualifier if qualifier.startswith("_.") else f"_.{qualifier}"
+                )
+                value = BINDING_GETTERS[getter_key](span)
+                if (value or include_falsy) and default_values[qualifier] != value:
                     labels[micro_key][1].add((eg_idx, span_idx, qualifier, value))
                     labels[qualifier][1].add((eg_idx, span_idx, qualifier, value))
 
@@ -85,15 +102,22 @@ class create_span_classification_scorer:
         self,
         span_getter: SpanGetterArg,
         qualifiers: QualifiersArg = None,
+        default_values: Dict = {},
+        include_falsy: bool = False,
+        micro_key: str = "micro",
     ):
         self.span_getter = span_getter
-        self.qualifiers = {
-            (k if k.startswith("_.") else f"_.{k}"): v for k, v in qualifiers.items()
-        }
+        self.qualifiers = qualifiers
+        self.default_values = default_values
+        self.include_falsy = include_falsy
+        self.micro_key = micro_key
 
     def __call__(self, *examples: Any):
         return span_classification_scorer(
             make_examples(*examples),
-            self.span_getter,
-            self.qualifiers,
+            span_getter=self.span_getter,
+            qualifiers=self.qualifiers,
+            default_values=self.default_values,
+            include_falsy=self.include_falsy,
+            micro_key=self.micro_key,
         )

@@ -127,8 +127,8 @@ mode = "independent"
 target_span_getter = ["ents", "ner-preds"]
 labels = ["PERSON", "GIFT"]
 infer_span_setter = false
-window = 20
-stride = 18
+window = 40
+stride = 20
 
 [components.ner.span_setter]
 ents = true

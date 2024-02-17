@@ -80,6 +80,7 @@ class LinearChainCRF(torch.nn.Module):
 
         num_tags = forbidden_transitions.shape[0]
 
+        self.with_start_end_transitions = with_start_end_transitions
         self.register_buffer("forbidden_transitions", forbidden_transitions.bool())
         self.register_buffer(
             "start_forbidden_transitions",
@@ -140,12 +141,14 @@ class LinearChainCRF(torch.nn.Module):
         transitions = self.transitions.masked_fill(
             self.forbidden_transitions, IMPOSSIBLE
         )
-        start_transitions = self.start_transitions.masked_fill(
-            self.start_forbidden_transitions, IMPOSSIBLE
-        )
-        end_transitions = self.end_transitions.masked_fill(
-            self.end_forbidden_transitions, IMPOSSIBLE
-        )
+        start_transitions = end_transitions = torch.zeros_like(self.start_transitions)
+        if self.with_start_end_transitions:
+            start_transitions = self.start_transitions.masked_fill(
+                self.start_forbidden_transitions, IMPOSSIBLE
+            )
+            end_transitions = self.end_transitions.masked_fill(
+                self.end_forbidden_transitions, IMPOSSIBLE
+            )
         path = torch.zeros(*emissions.shape[:-1], dtype=torch.long)
 
         emissions[..., 1:][~mask] = IMPOSSIBLE
@@ -170,7 +173,7 @@ class LinearChainCRF(torch.nn.Module):
             for k, b in enumerate(backtrack[::-1]):
                 path[:, -k - 2] = index_dim(b, path[:, -k - 1], dim=-1)
 
-        return path
+        return path.to(transitions.device)
 
     def marginal(self, emissions, mask):
         """
@@ -198,12 +201,14 @@ class LinearChainCRF(torch.nn.Module):
         transitions = self.transitions.masked_fill(
             self.forbidden_transitions, IMPOSSIBLE
         )
-        start_transitions = self.start_transitions.masked_fill(
-            self.start_forbidden_transitions, IMPOSSIBLE
-        )
-        end_transitions = self.end_transitions.masked_fill(
-            self.end_forbidden_transitions, IMPOSSIBLE
-        )
+        start_transitions = end_transitions = torch.zeros_like(self.start_transitions)
+        if self.with_start_end_transitions:
+            start_transitions = self.start_transitions.masked_fill(
+                self.start_forbidden_transitions, IMPOSSIBLE
+            )
+            end_transitions = self.end_transitions.masked_fill(
+                self.end_forbidden_transitions, IMPOSSIBLE
+            )
 
         bi_transitions = torch.stack([transitions, transitions.t()], dim=0).unsqueeze(1)
 
@@ -275,12 +280,14 @@ class LinearChainCRF(torch.nn.Module):
         transitions = self.transitions.masked_fill(
             self.forbidden_transitions, IMPOSSIBLE
         )
-        start_transitions = self.start_transitions.masked_fill(
-            self.start_forbidden_transitions, IMPOSSIBLE
-        )
-        end_transitions = self.end_transitions.masked_fill(
-            self.end_forbidden_transitions, IMPOSSIBLE
-        )
+        start_transitions = end_transitions = torch.zeros_like(self.start_transitions)
+        if self.with_start_end_transitions:
+            start_transitions = self.start_transitions.masked_fill(
+                self.start_forbidden_transitions, IMPOSSIBLE
+            )
+            end_transitions = self.end_transitions.masked_fill(
+                self.end_forbidden_transitions, IMPOSSIBLE
+            )
 
         # emissions: n_samples * n_tokens * ... * n_tags
         # bi_emissions: n_tokens * (2 * n_samples *  * ... * n_tags)
@@ -354,18 +361,16 @@ class MultiLabelBIOULDecoder(LinearChainCRF):
             forbidden_transitions[U + STRIDE, O] = 0  # U-i to O
 
         start_forbidden_transitions = torch.zeros(num_tags, dtype=torch.bool)
-        if with_start_end_transitions:
-            for i in range(num_labels):
-                STRIDE = 4 * i
-                start_forbidden_transitions[I + STRIDE] = 1  # forbidden to start by I-i
-                start_forbidden_transitions[L + STRIDE] = 1  # forbidden to start by L-i
+        for i in range(num_labels):
+            STRIDE = 4 * i
+            start_forbidden_transitions[I + STRIDE] = 1  # forbidden to start by I-i
+            start_forbidden_transitions[L + STRIDE] = 1  # forbidden to start by L-i
 
         end_forbidden_transitions = torch.zeros(num_tags, dtype=torch.bool)
-        if with_start_end_transitions:
-            for i in range(num_labels):
-                STRIDE = 4 * i
-                end_forbidden_transitions[I + STRIDE] = 1  # forbidden to end by I-i
-                end_forbidden_transitions[B + STRIDE] = 1  # forbidden to end by B-i
+        for i in range(num_labels):
+            STRIDE = 4 * i
+            end_forbidden_transitions[I + STRIDE] = 1  # forbidden to end by I-i
+            end_forbidden_transitions[B + STRIDE] = 1  # forbidden to end by B-i
 
         super().__init__(
             forbidden_transitions,
@@ -399,9 +404,10 @@ class MultiLabelBIOULDecoder(LinearChainCRF):
         tags = tags.transpose(1, 2)
 
         tags_after = tags.roll(-1, 2)
-        tags_after[..., -1] = 0
         tags_before = tags.roll(1, 2)
-        tags_before[..., 0] = 0
+        if 0 not in tags.shape:
+            tags_after[..., -1] = 0
+            tags_before[..., 0] = 0
 
         # A span starts if:
         # - tags is B / U

@@ -173,7 +173,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         span_setter: Optional[SpanSetterArg] = None,
         infer_span_setter: Optional[bool] = None,
         mode: Literal["independent", "joint", "marginal"],
-        window: int = 20,
+        window: int = 40,
         stride: Optional[int] = None,
     ):
         if (
@@ -201,12 +201,13 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         )
         self.crf = MultiLabelBIOULDecoder(
             1,
-            with_start_end_transitions=True,
+            with_start_end_transitions=window < 1,
             learnable_transitions=False,
         )
         self.mode = mode
         if stride is None:
-            stride = window - 2
+            stride = window // 2
+        stride = stride if window > 0 else 0
         if window < stride:
             raise ValueError(
                 "The window size must be greater than or equal to the stride."
@@ -217,8 +218,8 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
                 "(i.e. assumes tags are independent) while trained in non "
                 "`independent` mode. This may lead to degraded performance."
             )
-        self.window = window
-        self.stride = stride if window > 0 else 0
+        self.window: int = window
+        self.stride: int = stride
 
         self.target_span_getter: Union[
             SpanGetterMapping,
@@ -418,7 +419,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
             # mask = (targets[:, 0] != -1).to(device)
             collated["targets"] = targets
         else:
-            if self.window > 0:
+            if self.window > 1:
                 win_indices, win_indexer = make_windows(
                     preps["length"],
                     self.window,

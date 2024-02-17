@@ -5,8 +5,16 @@ from spacy.tokens import Span
 import edsnlp
 
 
-@mark.parametrize("ner_mode", ["independent", "joint", "marginal"])
-def test_ner(ner_mode):
+@mark.parametrize(
+    "ner_mode,window",
+    [
+        ("independent", 1),
+        ("joint", 0),
+        ("joint", 5),
+        ("marginal", 0),
+    ],
+)
+def test_ner(ner_mode, window):
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(
         "eds.transformer",
@@ -24,7 +32,7 @@ def test_ner(ner_mode):
             embedding=nlp.get_pipe("transformer"),
             mode=ner_mode,
             target_span_getter=["ents", "ner-preds"],
-            window=1 if ner_mode == "independent" else 5,
+            window=window,
         ),
     )
 

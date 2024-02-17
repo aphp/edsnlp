@@ -4,7 +4,8 @@
 
 ### Added
 
-- Added `batch_by`, `split_into_batches_after`, `sort_chunks`, `chunk_size`, `disable_implicit_parallelism` parameters to processing (`simple` and `multiprocessing`) backends to improve performance and memory usage. Sorting chunks can improve yield up to **twice the speed** in some cases.
+- Added `batch_by`, `split_into_batches_after`, `sort_chunks`, `chunk_size`, `disable_implicit_parallelism` parameters to processing (`simple` and `multiprocessing`) backends to improve performance
+  and memory usage. Sorting chunks can improve yield up to **twice the speed** in some cases.
 - The deep learning cache mechanism now supports multitask models with weight sharing in multiprocessing mode.
 - Added `max_tokens_per_device="auto"` parameter to `eds.transformer` to estimate memory usage and automatically split the input into chunks that fit into the GPU.
 
@@ -17,11 +18,16 @@
   This is especially useful for negation, or frequent attributes values (e.g. "negated"
   is often False, "temporal" is often "present"), that annotators may not want to
   annotate every time.
+- Default `eds.ner_crf` window is now set to 40 and stride set to 20, as it doesn't
+  affect throughput (compared to before, window set to 20) and improves accuracy.
 
 ### Fixed
 
 - Improved error handling in `multiprocessing` backend (e.g., no more deadlock)
 - Various improvements to the data processing related documentation pages
+- Begin of sentence / end of sentence transitions of the `eds.ner_crf` component are now
+  disabled when windows are used (e.g., neither `window=1` equivalent to softmax and
+  `window=0`equivalent to default full sequence Viterbi decoding)
 
 ## v0.10.5
 
@@ -86,7 +92,7 @@
 - We now isolate some of edsnlp components (trainable pipes that require ml dependencies)
   in a new `edsnlp_factories` entry points to prevent spacy from auto-importing them.
 - TNM scores followed by a space are now correctly detected
-- Removed various short TNM false positives (e.g., "PT" or "a   T") and false negatives
+- Removed various short TNM false positives (e.g., "PT" or "a T") and false negatives
 - The Span value extension is not more forcibly overwritten, and user assigned values are returned by `Span._.value` in priority, before the aggregated `span._.get(span.label_)` getter result (#220)
 - Enable mmap during multiprocessing model transfers
 - `RegexMatcher` now supports all alignment modes (`strict`, `expand`, `contract`) and better handles partial doc matching (#201).
@@ -179,24 +185,26 @@ with `nlp = spacy.blank('eds')`. To benefit from the new features, users should 
 ### Changes
 
 - Input and output of components are now specified by `span_getter` and `span_setter` arguments.
-- :boom: Score / disorders / behaviors entities now have a fixed label (passed as an argument), instead of being dynamically set from the component name. The following scores may have a different name than the current one in your pipelines:
-  * `eds.emergency.gemsa` → `emergency_gemsa`
-  * `eds.emergency.ccmu` → `emergency_ccmu`
-  * `eds.emergency.priority` → `emergency_priority`
-  * `eds.charlson` → `charlson`
-  * `eds.elston_ellis` → `elston_ellis`
-  * `eds.SOFA` → `sofa`
-  * `eds.adicap` → `adicap`
-  * `eds.measuremets` → `size`, `weight`, ... instead of `eds.size`, `eds.weight`, ...
+- :boom: Score / disorders / behaviors entities now have a fixed label (passed as an argument), instead of being dynamically set from the component name. The following scores may have a different name
+  than the current one in your pipelines:
+    * `eds.emergency.gemsa` → `emergency_gemsa`
+    * `eds.emergency.ccmu` → `emergency_ccmu`
+    * `eds.emergency.priority` → `emergency_priority`
+    * `eds.charlson` → `charlson`
+    * `eds.elston_ellis` → `elston_ellis`
+    * `eds.SOFA` → `sofa`
+    * `eds.adicap` → `adicap`
+    * `eds.measuremets` → `size`, `weight`, ... instead of `eds.size`, `eds.weight`, ...
 - `eds.dates` now separate dates from durations. Each entity has its own label:
-  * `spans["dates"]` → entities labelled as `date` with a `span._.date` parsed object
-  * `spans["durations"]` → entities labelled as `duration` with a `span._.duration` parsed object
+    * `spans["dates"]` → entities labelled as `date` with a `span._.date` parsed object
+    * `spans["durations"]` → entities labelled as `duration` with a `span._.duration` parsed object
 - the "relative" / "absolute" / "duration" mode of the time entity is now stored in
   the `mode` attribute of the `span._.date/duration`
 - the "from" / "until" period bound, if any, is now stored in the `span._.date.bound` attribute
 - `to_datetime` now only return absolute dates, converts relative dates into absolute if `doc._.note_datetime` is given, and None otherwise
 
 ### Fixed
+
 - `export_to_brat` issue with spans of entities on multiple lines.
 
 ## v0.8.1 (2023-05-31)
@@ -248,6 +256,7 @@ Fix release to allow installation from source
 ## v0.7.4 (2022-12-12)
 
 ### Added
+
 - `eds.history` : Add the option to consider only the closest dates in the sentence (dates inside the boundaries and if there is not, it takes the closest date in the entire sentence).
 - `eds.negation` : It takes into account following past participates and preceding infinitives.
 - `eds.hypothesis`: It takes into account following past participates hypothesis verbs.
@@ -317,6 +326,7 @@ Fix release to allow installation from source
 - Add patterns to `pollution` pipeline and simplifies activating or deactivating specific patterns
 
 ### Changed
+
 - Simplified the configuration scheme of the `pollution` pipeline
 - Update of the `ContextualMatcher` (and all pipelines depending on it), rendering it more flexible to use
 - Rename R component of score TNM as "resection_completeness"
@@ -443,23 +453,26 @@ Fix release to allow installation from source
 ## v0.4.0
 
 - Profound re-write of the normalisation :
-  - The custom attribute `CUSTOM_NORM` is completely abandoned in favour of a more _spacyfic_ alternative
-  - The `normalizer` pipeline modifies the `NORM` attribute in place
-  - Other pipelines can modify the `Token._.excluded` custom attribute
-- EDS regex and term matchers can ignore excluded tokens during matching, effectively adding a second dimension to normalisation (choice of the attribute and possibility to skip _pollution_ tokens regardless of the attribute)
+    - The custom attribute `CUSTOM_NORM` is completely abandoned in favour of a more _spacyfic_ alternative
+    - The `normalizer` pipeline modifies the `NORM` attribute in place
+    - Other pipelines can modify the `Token._.excluded` custom attribute
+- EDS regex and term matchers can ignore excluded tokens during matching, effectively adding a second dimension to normalisation (choice of the attribute and possibility to skip _pollution_ tokens
+  regardless of the attribute)
 - Matching can be performed on custom attributes more easily
 - Qualifiers are regrouped together within the `edsnlp.qualifiers` submodule, the inheritance from the `GenericMatcher` is dropped.
-- `edsnlp.utils.filter.filter_spans` now accepts a `label_to_remove` parameter. If set, only corresponding spans are removed, along with overlapping spans. Primary use-case: removing pseudo cues for qualifiers.
-- Generalise the naming convention for extensions, which keep the same name as the pipeline that created them (eg `Span._.negation` for the `eds.negation` pipeline). The previous convention is kept for now, but calling it issues a warning.
+- `edsnlp.utils.filter.filter_spans` now accepts a `label_to_remove` parameter. If set, only corresponding spans are removed, along with overlapping spans. Primary use-case: removing pseudo cues for
+  qualifiers.
+- Generalise the naming convention for extensions, which keep the same name as the pipeline that created them (eg `Span._.negation` for the `eds.negation` pipeline). The previous convention is kept
+  for now, but calling it issues a warning.
 - The `dates` pipeline underwent some light formatting to increase robustness and fix a few issues
 - A new `consultation_dates` pipeline was added, which looks for dates preceded by expressions specific to consultation dates
 - In rule-based processing, the `terms.py` submodule is replaced by `patterns.py` to reflect the possible presence of regular expressions
 - Refactoring of the architecture :
-  - pipelines are now regrouped by type (`core`, `ner`, `misc`, `qualifiers`)
-  - `matchers` submodule contains `RegexMatcher` and `PhraseMatcher` classes, which interact with the normalisation
-  - `multiprocessing` submodule contains `spark` and `local` multiprocessing tools
-  - `connectors` contains `Brat`, `OMOP` and `LabelTool` connectors
-  - `utils` contains various utilities
+    - pipelines are now regrouped by type (`core`, `ner`, `misc`, `qualifiers`)
+    - `matchers` submodule contains `RegexMatcher` and `PhraseMatcher` classes, which interact with the normalisation
+    - `multiprocessing` submodule contains `spark` and `local` multiprocessing tools
+    - `connectors` contains `Brat`, `OMOP` and `LabelTool` connectors
+    - `utils` contains various utilities
 - Add entry points to make pipeline usable directly, removing the need to import `edsnlp.components`.
 - Add a `eds` namespace for components: for instance, `negation` becomes `eds.negation`. Using the former pipeline name still works, but issues a deprecation warning.
 - Add 3 score pipelines related to emergency
@@ -474,10 +487,12 @@ Fix release to allow installation from source
 ## v0.3.2
 
 - Major revamp of the normalisation.
-  - The `normalizer` pipeline **now adds atomic components** (`lowercase`, `accents`, `quotes`, `pollution` & `endlines`) to the processing pipeline, and compiles the results into a new `Doc._.normalized` extension. The latter is itself a spaCy `Doc` object, wherein tokens are normalised and pollution tokens are removed altogether. Components that match on the `CUSTOM_NORM` attribute process the `normalized` document, and matches are brought back to the original document using a token-wise mapping.
-  - Update the `RegexMatcher` to use the `CUSTOM_NORM` attribute
-  - Add an `EDSPhraseMatcher`, wrapping spaCy's `PhraseMatcher` to enable matching on `CUSTOM_NORM`.
-  - Update the `matcher` and `advanced` pipelines to enable matching on the `CUSTOM_NORM` attribute.
+    - The `normalizer` pipeline **now adds atomic components** (`lowercase`, `accents`, `quotes`, `pollution` & `endlines`) to the processing pipeline, and compiles the results into a
+      new `Doc._.normalized` extension. The latter is itself a spaCy `Doc` object, wherein tokens are normalised and pollution tokens are removed altogether. Components that match on the `CUSTOM_NORM`
+      attribute process the `normalized` document, and matches are brought back to the original document using a token-wise mapping.
+    - Update the `RegexMatcher` to use the `CUSTOM_NORM` attribute
+    - Add an `EDSPhraseMatcher`, wrapping spaCy's `PhraseMatcher` to enable matching on `CUSTOM_NORM`.
+    - Update the `matcher` and `advanced` pipelines to enable matching on the `CUSTOM_NORM` attribute.
 - Add an OMOP connector, to help go back and forth between OMOP-formatted pandas dataframes and spaCy documents.
 - Add a `reason` pipeline, that extracts the reason for visit.
 - Add an `endlines` pipeline, that classifies newline characters between spaces and actual ends of line.
@@ -511,9 +526,9 @@ Fix release to allow installation from source
 - Add `antecedents` pipeline
 - Add `rspeech` pipeline
 - Refactor the library :
-  - Remove the `rules` folder
-  - Add a `pipelines` folder, containing one subdirectory per component
-  - Every component subdirectory contains a module defining the component, and a module defining a factory, plus any other utilities (eg `terms.py`)
+    - Remove the `rules` folder
+    - Add a `pipelines` folder, containing one subdirectory per component
+    - Every component subdirectory contains a module defining the component, and a module defining a factory, plus any other utilities (eg `terms.py`)
 
 ## v0.1.0
 

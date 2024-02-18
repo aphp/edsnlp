@@ -28,6 +28,7 @@
 - Begin of sentence / end of sentence transitions of the `eds.ner_crf` component are now
   disabled when windows are used (e.g., neither `window=1` equivalent to softmax and
   `window=0`equivalent to default full sequence Viterbi decoding)
+- `eds` tokenizer nows inherits from `spacy.Tokenizer` to avoid typing errors
 
 ## v0.10.5
 

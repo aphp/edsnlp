@@ -29,6 +29,7 @@
   disabled when windows are used (e.g., neither `window=1` equivalent to softmax and
   `window=0`equivalent to default full sequence Viterbi decoding)
 - `eds` tokenizer nows inherits from `spacy.Tokenizer` to avoid typing errors
+- Only match 'ne' negation pattern when not part of another word to avoid false positives cases like `u[ne] cure de 10 jours`
 
 ## v0.10.5
 

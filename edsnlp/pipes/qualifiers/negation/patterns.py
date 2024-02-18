@@ -103,7 +103,7 @@ preceding: List[str] = [
 
 preceding_regex = [
     # ne (up to 3 words separated by spaces or newlines) pas/point/...
-    r"ne(?=[ \n]*(?:\w*[ \n]*){3}(?:pas|point|ni|aucun|jamais|rien))"
+    r"\bne\b(?=[ \n]*(?:\w*[ \n]*){3}(?:pas|point|ni|aucun|jamais|rien))"
 ]
 
 following: List[str] = [

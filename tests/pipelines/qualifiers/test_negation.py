@@ -29,6 +29,8 @@ negation_examples: List[str] = [
     "Le patient ne <ent negated=false>fume</ent> que des cigares.",
     "Le résultat exclut un <ent negated=true>SMD</ent>",
     "Le résultat ne permet pas d'exclure un <ent negated=false>SMD</ent>",
+    "Situation aggravée par une <ent negated=false>neutropénie fébrile</ent>."
+    "Patient est traité d'une cure d'<ent negated=false>ALECTINIB</ent> depuis le ...",
 ]
 
 

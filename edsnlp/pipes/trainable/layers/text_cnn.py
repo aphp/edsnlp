@@ -89,7 +89,6 @@ class TextCnn(torch.nn.Module):
         right_pad = (max_k - 1) // 2
         n_samples, n_words, dim = embeddings.shape
         n_words_with_pad = n_words + left_pad + right_pad
-        flat_n = n_samples * n_words_with_pad - left_pad - right_pad
 
         # shape: samples (left_pad... words ...right_pad) dim
         padded_x = F.pad(embeddings, pad=(0, 0, max_k // 2, (max_k - 1) // 2))
@@ -106,8 +105,9 @@ class TextCnn(torch.nn.Module):
         for conv_idx, conv in enumerate(self.convolutions):
             k = conv.kernel_size[0]
             conv_x = conv(flat_x)
-            offset = left_pad - (k // 2)
-            conv_results.append(conv_x[0, :, offset : offset + flat_n])
+            offset_left = left_pad - (k // 2)
+            offset_right = conv_x.size(2) - (right_pad - ((k - 1) // 2))
+            conv_results.append(conv_x[0, :, offset_left:offset_right])
         flat_x = torch.cat(conv_results, dim=0)
         flat_x = flat_x.transpose(1, 0)  # n_words * dim
 
@@ -118,7 +118,7 @@ class TextCnn(torch.nn.Module):
         # Reshape the output to the original shape
         new_dim = flat_x.size(-1)
         x = torch.empty(n_samples * n_words_with_pad, new_dim, device=flat_x.device)
-        flat_mask = padded_mask
+        flat_mask = padded_mask.clone()
         flat_mask[-1, padded_mask[-1].sum() - right_pad :] = False
         flat_mask[0, :left_pad] = False
         flat_mask = flat_mask.view(-1)

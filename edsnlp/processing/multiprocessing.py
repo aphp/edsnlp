@@ -399,6 +399,7 @@ class CPUWorker:
             lc: LazyCollection = load(
                 self.lazy_collection_path, map_location=self.device
             )
+            lc.eval()
             preprocess_pipes = []
             num_cpu = self.exchanger.num_cpu_workers
             split_into_batches_after = lc.split_into_batches_after
@@ -527,6 +528,7 @@ class GPUWorker:
         # mp._prctl_pr_set_pdeathsig(signal.SIGINT)
         try:
             lc = load(self.lazy_collection_path, map_location=self.device)
+            lc.eval()
             stage_components = [
                 pipe
                 # move_to_device(pipe, self.device)
@@ -842,7 +844,7 @@ def execute_multiprocessing_backend(
 
     def process():
         try:
-            with bar:
+            with bar, lc.eval():
                 for input_task_id, items in enumerate(
                     batchify(
                         iterable=inputs_iterator,

@@ -63,7 +63,7 @@ def execute_simple_backend(
 
             bar = tqdm(smoothing=0.1, mininterval=5.0)
 
-        with bar:
+        with bar, lc.eval():
             for docs in batchify(
                 (
                     subtask

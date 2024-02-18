@@ -54,7 +54,11 @@ def cached_preprocess(fn):
     def wrapped(self: "TorchComponent", doc: Doc):
         if self._current_cache_id is None:
             return fn(self, doc)
-        cache_key = ("preprocess", f"{type(self)}<{id(self)}>: {id(doc)}")
+        cache_key = (
+            "preprocess",
+            f"{type(self).__name__}<{id(self)}>",
+            id(doc),
+        )
         cache = _caches[self._current_cache_id]
         if cache_key in cache:
             return cache[cache_key]
@@ -70,7 +74,11 @@ def cached_preprocess_supervised(fn):
     def wrapped(self: "TorchComponent", doc: Doc):
         if self._current_cache_id is None:
             return fn(self, doc)
-        cache_key = ("preprocess_supervised", f"{type(self)}<{id(self)}>: {id(doc)}")
+        cache_key = (
+            "preprocess_supervised",
+            f"{type(self).__name__}<{id(self)}>",
+            id(doc),
+        )
         cache = _caches[self._current_cache_id]
         if cache_key in cache:
             return cache[cache_key]
@@ -86,11 +94,17 @@ def cached_collate(fn):
     def wrapped(self: "TorchComponent", batch: Dict):
         if self._current_cache_id is None:
             return fn(self, batch)
-        cache_key = ("collate", f"{type(self)}<{id(self)}>: {hash_batch(batch)}")
+        batch_hash = hash_batch(batch)
+        cache_key = (
+            "collate",
+            f"{type(self).__name__}<{id(self)}>",
+            batch_hash,
+        )
         cache = _caches[self._current_cache_id]
         if cache_key in cache:
             return cache[cache_key]
         res = fn(self, batch)
+        res["__batch_hash__"] = batch_hash
         cache[cache_key] = res
         return res
 
@@ -103,7 +117,11 @@ def cached_forward(fn):
         # Convert args and kwargs to a dictionary matching fn signature
         if self._current_cache_id is None:
             return fn(self, batch)
-        cache_key = ("forward", f"{type(self)}<{id(self)}>: {hash_batch(batch)}")
+        cache_key = (
+            "forward",
+            f"{type(self).__name__}<{id(self)}>",
+            hash_batch(batch),
+        )
         cache = _caches[self._current_cache_id]
         if cache_key in cache:
             return cache[cache_key]
@@ -122,7 +140,8 @@ def cached_batch_to_device(fn):
             return fn(self, batch, device)
         cache_key = (
             "batch_to_device",
-            f"{type(self)}<{id(self)}>: {hash_batch(batch)}",
+            f"{type(self).__name__}<{id(self)}>",
+            hash_batch(batch),
         )
         cache = _caches[self._current_cache_id]
         if cache_key in cache:

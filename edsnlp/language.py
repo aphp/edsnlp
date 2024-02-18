@@ -6,8 +6,8 @@ from spacy.lang.fr import French, FrenchDefaults
 from spacy.lang.fr.lex_attrs import LEX_ATTRS
 from spacy.lang.fr.stop_words import STOP_WORDS
 from spacy.lang.fr.syntax_iterators import SYNTAX_ITERATORS
+from spacy.tokenizer import Tokenizer
 from spacy.tokens import Doc
-from spacy.util import DummyTokenizer
 
 
 class EDSDefaults(FrenchDefaults):
@@ -44,8 +44,8 @@ class EDSLanguage(French):
 TOKENIZER_EXCEPTIONS = [r"Dr\.", r"Pr\.", r"M\.", r"Mme\.", r"Mlle\.", r"(?i:(?:ep\.))"]
 
 
-class EDSTokenizer(DummyTokenizer):
-    def __init__(self, vocab: Vocab) -> None:
+class EDSTokenizer(Tokenizer):
+    def __init__(self, vocab: Vocab, **kwargs) -> None:
         """
         Tokenizer class for French clinical documents.
         It better handles tokenization around:
@@ -57,7 +57,7 @@ class EDSTokenizer(DummyTokenizer):
         vocab: Vocab
             The spacy vocabulary
         """
-        self.vocab = vocab
+        super().__init__(vocab)
         punct = "[:punct:]" + "\"'ˊ＂〃ײ᳓″״‶˶ʺ“”˝"
         num_like = r"\d+(?:[.,]\d(?![.,]?[0-9])|(?![.,]?[0-9]))?"
         sep = rf"\d{punct}'\n[:space:]"
@@ -78,6 +78,9 @@ class EDSTokenizer(DummyTokenizer):
         ([^\S\r\n\t])?      # an optional space
         """
         )
+
+    def __reduce__(self):
+        return (self.__class__, (self.vocab,))
 
     def __call__(self, text: str) -> Doc:
         """

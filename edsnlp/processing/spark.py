@@ -96,8 +96,6 @@ def execute_spark_backend(
                 ]
             ).toDF(T.StructType([T.StructField("content", T.BinaryType())]))
 
-    bc = Broadcasted(lc.worker_copy())
-
     def process_partition(iterator):  # pragma: no cover
         lc: LazyCollection = bc.value
         try:
@@ -137,17 +135,22 @@ def execute_spark_backend(
         else:
             return [{"content": pickle.dumps(results, -1)}]
 
-    if isinstance(writer, SparkWriter):
-        rdd = df.rdd.mapPartitions(process_partition)
-        with spark_interpret_dicts_as_rows():
-            results = spark.createDataFrame(rdd, schema=writer.dtypes)
+    with lc.eval():
+        bc = Broadcasted(lc.worker_copy())
 
-        if writer.dtypes is None and writer.show_dtypes:
-            schema_warning(results.schema)
-        return results
+        if isinstance(writer, SparkWriter):
+            rdd = df.rdd.mapPartitions(process_partition)
+            with spark_interpret_dicts_as_rows():
+                results = spark.createDataFrame(rdd, schema=writer.dtypes)
 
-    results = (
-        pickle.loads(item["content"])
-        for item in df.rdd.mapPartitions(process_partition).toLocalIterator()
-    )
-    return writer.write_main(results) if writer is not None else flatten_once(results)
+            if writer.dtypes is None and writer.show_dtypes:
+                schema_warning(results.schema)
+            return results
+
+        results = (
+            pickle.loads(item["content"])
+            for item in df.rdd.mapPartitions(process_partition).toLocalIterator()
+        )
+        return (
+            writer.write_main(results) if writer is not None else flatten_once(results)
+        )

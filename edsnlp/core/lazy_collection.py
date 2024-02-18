@@ -340,6 +340,36 @@ class LazyCollection(metaclass=MetaLazyCollection):
             pipe.to(device)
         return self
 
+    def train(self, mode=True):
+        """
+        Enables training mode on pytorch modules
+
+        Parameters
+        ----------
+        mode: bool
+            Whether to enable training or not
+        """
+
+        class context:
+            def __enter__(self):
+                pass
+
+            def __exit__(ctx_self, type, value, traceback):
+                for name, proc in self.torch_components():
+                    proc.train(was_training[name])
+
+        was_training = {name: proc.training for name, proc in self.torch_components()}
+        for name, proc in self.torch_components():
+            proc.train(mode)
+
+        return context()
+
+    def eval(self):
+        """
+        Enables evaluation mode on pytorch modules
+        """
+        return self.train(False)
+
     def worker_copy(self):
         return LazyCollection(
             reader=self.reader.worker_copy(),

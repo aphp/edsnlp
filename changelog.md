@@ -8,6 +8,7 @@
   during the processing. Autocasting should result in a slight speedup, but may lead to numerical instability.
 - Use `torch.inference_mode` to disable view tracking and version counter bumps during inference.
 - Added a new NER pipeline for suicide attempt detection
+- Added date cues (regular expression matches that contributed to a date being detected) under the extension `ent._.date_cues`
 
 ### Changed
 

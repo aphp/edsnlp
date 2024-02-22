@@ -391,7 +391,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
 
         if discarded:
             warnings.warn(
-                f"Some spans in {doc._.note_id} were discarded ("
+                f"Some spans in were discarded {doc._.note_id} ("
                 f"{', '.join(repr(d.text) for d in discarded)}) because they "
                 f"were overlapping with other spans with the same label."
             )
@@ -481,16 +481,6 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
             # tags = scores.argmax(-1).masked_fill(~mask.unsqueeze(-1), 0)
         if loss is not None and loss.item() > 100000:
             warnings.warn("The loss is very high, this is likely a tag encoding issue.")
-            losses = self.crf(
-                scores,
-                mask,
-                batch["targets"].unsqueeze(-1) == torch.arange(5).to(scores.device),
-            ).view(-1)
-            print("LOSSES", losses.tolist())
-            print(
-                batch["targets"].transpose(1, 2).reshape(-1, num_words)[losses.argmax()]
-            )
-            print(batch["targets"])
         return {
             "loss": loss,
             "tags": tags,

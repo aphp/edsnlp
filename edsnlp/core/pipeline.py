@@ -578,15 +578,16 @@ class Pipeline:
         with self.cache():
             if supervision:
                 for name, component in self.pipeline:
-                    prep_comp = (
-                        component.preprocess_supervised(doc)
-                        if hasattr(component, "preprocess_supervised")
-                        else component.preprocess(doc)
-                        if hasattr(component, "preprocess")
-                        else None
-                    )
-                    if prep_comp is not None:
-                        prep[name] = prep_comp
+                    if name not in self._disabled:
+                        prep_comp = (
+                            component.preprocess_supervised(doc)
+                            if hasattr(component, "preprocess_supervised")
+                            else component.preprocess(doc)
+                            if hasattr(component, "preprocess")
+                            else None
+                        )
+                        if prep_comp is not None:
+                            prep[name] = prep_comp
 
         return prep
 
@@ -855,8 +856,6 @@ class Pipeline:
             def __exit__(ctx_self, type, value, traceback):
                 self._disabled = disabled_before
 
-        if enable is None and disable is None:
-            raise ValueError("Expected either `enable` or `disable`")
         disable = [disable] if isinstance(disable, str) else disable
         pipe_names = set(self.pipe_names)
         if enable is not None:

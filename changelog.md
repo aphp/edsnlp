@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.10.6
 
 ### Added
 
@@ -33,6 +33,7 @@
 - `eds` tokenizer nows inherits from `spacy.Tokenizer` to avoid typing errors
 - Only match 'ne' negation pattern when not part of another word to avoid false positives cases like `u[ne] cure de 10 jours`
 - Disabled pipes are now correctly ignored in the `Pipeline.preprocess` method
+- Add "eventuel*" patterns to `eds.hyphothesis`
 
 ## v0.10.5
 

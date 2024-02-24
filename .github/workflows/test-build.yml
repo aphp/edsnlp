@@ -24,7 +24,7 @@ jobs:
 
       - name: Build wheels
         # 2.4 is too low (can't build for macos, 2.16 is too high (OpenSSL issues)
-        uses: pypa/cibuildwheel@v2.13.1
+        uses: pypa/cibuildwheel@v2.16.5
         env:
           CIBW_ARCHS_MACOS: "x86_64 arm64"
 

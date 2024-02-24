@@ -247,7 +247,7 @@ where = ["."]
 "brat"     = "edsnlp.data:write_brat"  # alias for standoff
 
 [project.entry-points."spacy_misc"]
-"eds.span_sentence_getter" = "edsnlp.utils.span_getters:make_span_sentence_getter"
+"eds.span_context_getter" = "edsnlp.utils.span_getters:make_span_context_getter"
 
 [project.entry-points."spacy_languages"]
 "eds" = "edsnlp.language:EDSLanguage"

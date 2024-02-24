@@ -262,7 +262,7 @@ where = ["."]
 [build-system]
 requires = [
     "setuptools",
-    "cython>=0.25,<3.0",
+    "cython>=0.25",
     "spacy>=3.2,<4.0",
     # to update from https://github.com/scipy/oldest-supported-numpy/blob/main/setup.cfg
     # while setting numpy >= 1.15.0 due to spacy reqs
@@ -381,6 +381,6 @@ skip = [
     "*-manylinux_s390x", # Skip slow Linux
 ]
 
-before-test = "pip install pytest"
+before-test = 'pip install pytest "urllib3<2"'
 test-extras = "ml"
 test-command = "pytest {project}/tests/pipelines/test_pipelines.py"

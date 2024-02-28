@@ -3,20 +3,12 @@ Converters are used to convert documents between python dictionaries and Doc obj
 There are two types of converters: readers and writers. Readers convert dictionaries to
 Doc objects, and writers convert Doc objects to dictionaries.
 """
+
 import contextlib
 import inspect
 from copy import copy
 from types import FunctionType
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 from confit.registry import ValidatedFunction
 from spacy.tokenizer import Tokenizer
@@ -258,11 +250,106 @@ class StandoffDict2DocConverter:
                             value = (
                                 True
                                 if value in ("True", "true")
-                                else False
-                                if value in ("False", "false")
-                                else value
+                                else False if value in ("False", "false") else value
                             )
                         span._.set(new_name, value)
+
+                spans.append(span)
+
+        set_spans(doc, spans, span_setter=self.span_setter)
+        for attr, value in self.default_attributes.items():
+            for span in spans:
+                if span._.get(attr) is None:
+                    span._.set(attr, value)
+
+        return doc
+
+
+@registry.factory.register("eds.standoff_w_comment_dict2doc", spacy_compatible=False)
+class StandoffDictWComment2DocConverter(StandoffDict2DocConverter):
+    def __init__(
+                self,
+        nlp: Optional[PipelineProtocol] = None,
+        *,
+        tokenizer: Optional[Tokenizer] = None,
+        span_setter: SpanSetterArg = {"ents": True, "*": True},
+        span_attributes: Optional[AttributesMappingArg] = None,
+        keep_raw_attribute_values: bool = False,
+        bool_attributes: SequenceStr = [],
+        default_attributes: AttributesMappingArg = {},
+        comments_to_attribute : str = "comment",
+    ):
+        super().__init__(
+            nlp,
+            tokenizer=tokenizer,
+            span_setter=span_setter,
+            span_attributes=span_attributes,
+            keep_raw_attribute_values=keep_raw_attribute_values,
+            bool_attributes=bool_attributes,
+            default_attributes=default_attributes,
+        )
+        self.comments_to_attribute = comments_to_attribute
+
+        if not Span.has_extension(
+                        self.comments_to_attribute
+                    ):
+            Span.set_extension(self.comments_to_attribute, default=None)
+
+
+    def __call__(self, obj):
+        tok = get_current_tokenizer() if self.tokenizer is None else self.tokenizer
+        doc = tok(obj["text"] or "")
+        doc._.note_id = obj.get("doc_id", obj.get(FILENAME))
+
+        spans = []
+
+        for dst in (
+            *(() if self.span_attributes is None else self.span_attributes.values()),
+            *self.default_attributes,
+        ):
+            if not Span.has_extension(dst):
+                Span.set_extension(dst, default=None)
+
+        for ent in obj.get("entities") or ():
+            for fragment in ent["fragments"]:
+                span = doc.char_span(
+                    fragment["begin"],
+                    fragment["end"],
+                    label=ent["label"],
+                    alignment_mode="expand",
+                )
+                for label, value in ent["attributes"].items():
+                    new_name = (
+                        self.span_attributes.get(label, None)
+                        if self.span_attributes is not None
+                        else label
+                    )
+                    if self.span_attributes is None and not Span.has_extension(
+                        new_name
+                    ):
+                        Span.set_extension(new_name, default=None)
+
+                    if new_name:
+                        value = True if value is None else value
+                        if not self.keep_raw_attribute_values:
+                            value = (
+                                True
+                                if value in ("True", "true")
+                                else False if value in ("False", "false") else value
+                            )
+                        span._.set(new_name, value)
+
+                comment_list = []
+                for comment_dict in ent["comments"]:
+                    comment = comment_dict.get("comment")
+                    if comment:
+                        comment_list.append(comment)
+
+                if len(comment_list)>0:
+                    span._.set(self.comments_to_attribute, comment_list)
+
+
+                        
 
                 spans.append(span)
 

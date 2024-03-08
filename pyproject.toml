@@ -250,6 +250,7 @@ where = ["."]
 
 [project.entry-points."spacy_misc"]
 "eds.span_sentence_getter" = "edsnlp.utils.span_getters:make_span_sentence_getter"
+"eds.span_token_contextual_getter" = "edsnlp.utils.span_getters:span_token_contextual_getter"
 
 [project.entry-points."spacy_languages"]
 "eds" = "edsnlp.language:EDSLanguage"

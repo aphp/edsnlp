@@ -257,3 +257,59 @@ class make_span_sentence_getter:
         )
 
         return filter_spans(spans)
+
+
+@registry.misc.register("eds.span_token_contextual_getter")  # FIXME name ?
+class SpanTokenContextualGetter:
+    def __init__(
+        self,
+        key: str = "ents",
+        span_filter: bool = True,
+        k1: int = 30,
+        k2: int = 50,
+    ):
+        self.key = key
+        self.span_filter = span_filter
+        self.k1 = k1
+        self.k2 = k2
+        pass
+
+    def __get_candidates__(self, doc: Doc):
+        candidates = doc.spans.get(self.key, ()) if self.key != "ents" else doc.ents
+        if self.span_filter is True:
+            yield from candidates
+        else:
+            for span in candidates:
+                if span.label_ in self.span_filter:
+                    yield span
+
+    def __call__(
+        self,
+        doc: Doc,
+    ):
+        spans = []
+        new_spans = []
+
+        for ent in self.__get_candidates__(doc):
+            _snippet = doc[
+                max(0, ent.start - self.k1) : ent.end + self.k2
+            ]  # noqa: E203
+            spans.append(_snippet)
+
+        if len(spans) > 0:
+            min_start = spans[0].start
+            max_end = spans[0].end
+            for span in spans:
+                start = span.start
+                end = span.end
+
+                if start >= max_end:
+                    new_spans.append(doc[min_start:max_end])
+                    min_start = start
+                    max_end = end
+
+                elif (start >= min_start) and (start <= max_end):
+                    max_end = end
+
+            new_spans.append(doc[min_start:max_end])
+        return new_spans  # FIXME doc >>>>>>> span_getter should return an empty list rather than None

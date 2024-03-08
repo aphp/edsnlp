@@ -74,3 +74,6 @@ if TYPE_CHECKING:
     from .qualifiers.reported_speech.factory import create_component as rspeech
     from .trainable.ner_crf.factory import create_component as ner_crf
     from .trainable.span_qualifier.factory import create_component as span_qualifier
+    from .trainable.span_qualifier.factory import (
+        create_component2 as span_qualifier_roberta,
+    )

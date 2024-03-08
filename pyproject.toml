@@ -225,6 +225,8 @@ where = ["."]
 "eds.ner_crf"                     = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
 "eds.nested_ner"                  = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
 "eds.span_qualifier"              = "edsnlp.pipes.trainable.span_qualifier.factory:create_component"
+"eds.span_qualifier_roberta"      = "edsnlp.pipes.trainable.span_qualifier.factory:create_component2"
+
 
 [project.entry-points."spacy_scorers"]
 "eds.ner_exact_scorer"           = "edsnlp.scorers.ner:create_ner_exact_scorer"

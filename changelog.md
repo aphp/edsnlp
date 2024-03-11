@@ -9,6 +9,8 @@
 
 ### Fixed
 
+- Allow missing `meta.json`, `tokenizer` and `vocab` paths when loading saved models
+
 ## v0.10.6
 
 ### Added

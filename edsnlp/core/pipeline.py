@@ -1,10 +1,10 @@
+import contextlib
 import functools
 import importlib
 import inspect
 import os
 import shutil
 import warnings
-from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
 from typing import (
@@ -391,7 +391,7 @@ class Pipeline:
 
         return lazy_collection
 
-    @contextmanager
+    @contextlib.contextmanager
     def cache(self):
         """
         Enable caching for all (trainable) components in the pipeline
@@ -788,11 +788,11 @@ class Pipeline:
         )
 
         path = (Path(path) if isinstance(path, str) else path).absolute()
-        if "meta" not in exclude:
+        if (path / "meta.json").exists() and "meta" not in exclude:
             deserialize_meta(path / "meta.json")
         if (path / "vocab").exists() and "vocab" not in exclude:
             deserialize_vocab(path / "vocab")
-        if "tokenizer" not in exclude:
+        if (path / "tokenizer").exists() and "tokenizer" not in exclude:
             self.tokenizer.from_disk(path / "tokenizer", exclude=["vocab"])
 
         pwd = os.getcwd()

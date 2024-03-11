@@ -137,7 +137,7 @@ class SparkWriter(BaseWriter):
 @registry.writers.register("spark")
 def to_spark(
     data: Union[Any, LazyCollection],
-    converter: Optional[Union[str, Callable]],
+    converter: Optional[Union[str, Callable]] = None,
     dtypes: Any = None,
     show_dtypes: bool = True,
     **kwargs,

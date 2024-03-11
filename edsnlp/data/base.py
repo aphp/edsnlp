@@ -139,7 +139,7 @@ def from_iterable(
 
 def to_iterable(
     data: Union[Any, LazyCollection],
-    converter: Optional[Union[str, Callable]],
+    converter: Optional[Union[str, Callable]] = None,
     **kwargs,
 ):
     """

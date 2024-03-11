@@ -114,7 +114,7 @@ class PandasWriter(BaseWriter):
 @registry.writers.register("pandas")
 def to_pandas(
     data: Union[Any, LazyCollection],
-    converter: Optional[Union[str, Callable]],
+    converter: Optional[Union[str, Callable]] = None,
     dtypes: Optional[dict] = None,
     **kwargs,
 ) -> pd.DataFrame:

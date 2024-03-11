@@ -252,7 +252,7 @@ def write_parquet(
     overwrite: bool = False,
     filesystem: Optional[pyarrow.fs.FileSystem] = None,
     accumulate: bool = True,
-    converter: Optional[Union[str, Callable]],
+    converter: Optional[Union[str, Callable]] = None,
     **kwargs,
 ) -> None:
     """

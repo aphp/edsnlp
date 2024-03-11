@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Support empty writer converter by default in `edsnlp.data` readers / writers (do not convert by default)
+
+### Fixed
+
 ## v0.10.6
 
 ### Added

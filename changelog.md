@@ -5,6 +5,7 @@
 ### Added
 
 - Support empty writer converter by default in `edsnlp.data` readers / writers (do not convert by default)
+- Add support for polars data import / export
 
 ### Fixed
 

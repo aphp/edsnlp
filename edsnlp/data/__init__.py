@@ -11,4 +11,5 @@ if TYPE_CHECKING:
     from .parquet import read_parquet, write_parquet
     from .spark import from_spark, to_spark
     from .pandas import from_pandas, to_pandas
+    from .polars import from_polars, to_polars
     from .converters import get_dict2doc_converter, get_doc2dict_converter

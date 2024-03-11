@@ -41,6 +41,7 @@ At the moment, we support the following data sources:
 | [JSON](./json)                | `.json` and `.jsonl` files |
 | [Standoff & BRAT](./standoff) | `.ann` and `.txt` files    |
 | [Pandas](./pandas)            | Pandas DataFrame objects   |
+| [Polars](./polars)            | Polars DataFrame objects   |
 | [Spark](./spark)              | Spark DataFrame objects    |
 
 and the following schemas:

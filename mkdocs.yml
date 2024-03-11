@@ -129,6 +129,7 @@ nav:
       - data/json.md
       - data/parquet.md
       - data/pandas.md
+      - data/polars.md
       - data/spark.md
       - data/converters.md
   - Concepts:

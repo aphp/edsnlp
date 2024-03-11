@@ -483,7 +483,7 @@ class TorchComponent(
                     overrides[name] = pipe_overrides
         tensor_dict = {
             n: p
-            for n, p in self.named_parameters()
+            for n, p in (*self.named_parameters(), *self.named_buffers())
             if object.__repr__(p) not in exclude
         }
         os.makedirs(path, exist_ok=True)

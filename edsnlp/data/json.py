@@ -258,7 +258,7 @@ def write_json(
     *,
     lines: bool = None,
     overwrite: bool = False,
-    converter: Optional[Union[str, Callable]],
+    converter: Optional[Union[str, Callable]] = None,
     **kwargs,
 ) -> None:
     """

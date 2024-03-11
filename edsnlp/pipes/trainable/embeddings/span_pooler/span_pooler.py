@@ -61,8 +61,6 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         to predict or train on.
     pooling_mode: Literal["max", "sum", "mean"]
         How word embeddings are aggregated into a single embedding per span.
-    projection_mode: Literal["dot"]
-        How embeddings converted into logits
     """
 
     def __init__(
@@ -73,22 +71,14 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         embedding: WordEmbeddingComponent,
         span_getter: SpanGetterArg,
         pooling_mode: Literal["max", "sum", "mean"] = "mean",
-        projection_mode: Literal["dot"] = "dot",
     ):
         self.qualifiers = None
         self.output_size = embedding.output_size
 
         super().__init__(nlp, name)
 
-        self.projection_mode = projection_mode
         self.pooling_mode = pooling_mode
         self.span_getter = span_getter
-
-        if projection_mode != "dot":
-            raise Exception(
-                "Only scalar product is supported for label classification."
-            )
-
         self.embedding = embedding
 
     def set_extensions(self):

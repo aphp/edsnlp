@@ -129,10 +129,14 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         span_getter: Optional[SpanGetterArg] = None,
         new_tokens: Optional[List[Tuple[str, str]]] = [],
         quantization: Optional[BitsAndBytesConfig] = None,
+        **kwargs,
     ):
         super().__init__(nlp, name)
         self.transformer = AutoModel.from_pretrained(
-            model, add_pooling_layer=False, quantization_config=quantization
+            model,
+            add_pooling_layer=False,
+            quantization_config=quantization,
+            **kwargs,
         )
         self.tokenizer = AutoTokenizer.from_pretrained(model)
         self.window = window
@@ -341,10 +345,10 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
             total_tokens = batch["input_ids"].numel()
             if auto_batch_size:  # pragma: no cover
                 max_tokens = INITIAL_MAX_TOKENS_PER_DEVICE
-                torch.cuda.synchronize()
+                torch.cuda.synchronize(device)
                 total_mem = torch.cuda.get_device_properties(device).total_memory
                 allocated_mem = torch.cuda.memory_allocated(device)
-                torch.cuda.reset_peak_memory_stats()
+                torch.cuda.reset_peak_memory_stats(device)
                 free_mem = total_mem - allocated_mem
 
                 if self._mem_per_unit is not None:
@@ -376,21 +380,21 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                 )
 
                 if auto_batch_size:  # pragma: no cover
-                    batch_mem = torch.cuda.max_memory_allocated()
+                    batch_mem = torch.cuda.max_memory_allocated(device)
                     current_mem_per_unit = batch_mem / min(total_tokens, max_tokens)
                     if self._mem_per_unit is None:
                         self._mem_per_unit = current_mem_per_unit
                     self._mem_per_unit = (
                         self._mem_per_unit * 0.7 + current_mem_per_unit * 0.3
                     )
-                    torch.cuda.synchronize()  # Wait for all kernels to finish
+                    torch.cuda.synchronize(device)  # Wait for all kernels to finish
             except RuntimeError as e:  # pragma: no cover
                 if "out of memory" in str(e) and trial_idx <= 2:
                     print(
                         f"Out of memory: tried to fit {max_windows} "
                         f"in {free_mem / (1024 ** 3)} (try n°{trial_idx}/2)"
                     )
-                    torch.cuda.empty_cache()
+                    torch.cuda.empty_cache(device)
                     self._mem_per_unit = (free_mem / max_windows) * 1.5
                     trial_idx += 1
                     continue

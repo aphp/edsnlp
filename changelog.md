@@ -10,6 +10,7 @@
 ### Fixed
 
 - Allow missing `meta.json`, `tokenizer` and `vocab` paths when loading saved models
+- Save torch buffers when dumping machine learning models to disk (previous versions only saved the model parameters)
 
 ## v0.10.6
 

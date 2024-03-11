@@ -6,11 +6,13 @@
 
 - Support empty writer converter by default in `edsnlp.data` readers / writers (do not convert by default)
 - Add support for polars data import / export
+- Allow kwargs in `eds.transformer` to pass to the transformer model
 
 ### Fixed
 
 - Allow missing `meta.json`, `tokenizer` and `vocab` paths when loading saved models
 - Save torch buffers when dumping machine learning models to disk (previous versions only saved the model parameters)
+- Fix automatic `batch_size` estimation in `eds.transformer` when `max_tokens_per_device` is set to `auto` and multiple GPUs are used
 
 ## v0.10.6
 

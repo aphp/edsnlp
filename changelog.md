@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.10.7
 
 ### Added
 
@@ -17,6 +17,7 @@
 - Allow missing `meta.json`, `tokenizer` and `vocab` paths when loading saved models
 - Save torch buffers when dumping machine learning models to disk (previous versions only saved the model parameters)
 - Fix automatic `batch_size` estimation in `eds.transformer` when `max_tokens_per_device` is set to `auto` and multiple GPUs are used
+- Fix JSONL file parsing
 
 ## v0.10.6
 

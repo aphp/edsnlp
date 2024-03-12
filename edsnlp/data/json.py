@@ -52,11 +52,10 @@ class JsonReader(BaseReader):
     # TODO: implement read in worker = True / False
 
     def read_file(self, file: Path):
-        return (
-            Path(file).read_text().splitlines()
-            if file.suffix.startswith(".jsonl")
-            else [Path(file).read_text()]
-        )
+        with file.open("r", encoding="utf8") as f:
+            return (
+                [line for line in f] if file.suffix.startswith(".jsonl") else [f.read()]
+            )
 
     def read_main(self):
         if self.read_in_worker:

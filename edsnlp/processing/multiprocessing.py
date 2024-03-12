@@ -271,8 +271,17 @@ class Exchanger:
         self.num_stages = num_stages
 
     # noinspection PyUnresolvedReferences
-    def get_cpu_task(self, idx):
-        queue_readers = wait([queue._reader for queue in self.cpu_inputs_queues[idx]])
+    def get_cpu_task(self, idx, get_instant_active_or_skip: bool = False):
+        queues = self.cpu_inputs_queues[idx]
+        if get_instant_active_or_skip:
+            # Don't get new tasks
+            queues = queues[1:]
+        queue_readers = wait(
+            [queue._reader for queue in queues],
+            timeout=0 if get_instant_active_or_skip else None,
+        )
+        if len(queue_readers) == 0:
+            return None, None
         stage, queue = next(
             (stage, q)
             for stage, q in reversed(list(enumerate(self.cpu_inputs_queues[idx])))
@@ -326,15 +335,89 @@ class CPUWorker:
         # Cannot pass torch tensor during init i think ? otherwise i get
         # ValueError: bad value(s) in fds_to_keep
         # mp._prctl_pr_set_pdeathsig(signal.SIGINT)
+        next_batch_id = self.cpu_idx
+        new_batch_iterator = None
+
+        def split_task_into_new_batches(task):
+            nonlocal next_batch_id, new_batch_iterator
+            task_id, fragments = task
+            chunks = list(batchify(lc.reader.read_worker(fragments), lc.chunk_size))
+            for chunk_idx, docs in enumerate(chunks):
+                # If we sort by size, we must first create the documents
+                # to have features against which we will sort
+                docs = apply_basic_pipes(docs, preprocess_pipes)
+
+                if lc.sort_chunks:
+                    docs.sort(key=doc_size_fns.get(lc.sort_chunks, len))
+
+                batches = [
+                    batch
+                    for batch in batchify(
+                        docs,
+                        batch_size=lc.batch_size,
+                        formula=batch_size_fns[lc.batch_by],
+                    )
+                ]
+
+                for batch_idx, batch in enumerate(batches):
+                    assert len(batch) > 0
+                    batch_id = next_batch_id
+
+                    # We mark the task id only for the last batch of a task
+                    # since the purpose of storing the task id is to know
+                    # when the worker has finished processing the task,
+                    # which is true only when the last batch has been
+                    # processed
+                    active_batches[batch_id] = (
+                        batch,
+                        task_id
+                        if (batch_idx == len(batches) - 1)
+                        and (chunk_idx == len(chunks) - 1)
+                        else None,
+                    )
+                    next_batch_id += num_cpu
+                    # gpu_idx = None
+                    # batch_id = we have just created a new batch
+                    # result from the last stage = None
+                    if batch_idx == len(batches) - 1 and chunk_idx == len(chunks) - 1:
+                        new_batch_iterator = None
+                    yield 0, (None, batch_id, None)
+
+            new_batch_iterator = None
 
         def read_tasks():
-            next_batch_id = self.cpu_idx
+            nonlocal new_batch_iterator
+
             expect_new_tasks = True
 
             while expect_new_tasks or len(active_batches) > 0:
+                # Check that there are no more than `chunk_size` docs being processed.
+                # If there is still room, we can process new batches
+                has_room_for_new_batches = (
+                    sum(len(ab[0]) for ab in active_batches.values()) < lc.chunk_size
+                )
+
+                # if new_batch_iterator is not None and len(active_batches) == 0:
+                #     yield next(new_batch_iterator)
+                #     continue
+
                 stage, task = self.exchanger.get_cpu_task(
                     idx=self.cpu_idx,
+                    # We don't have to wait for new active batches to come back if:
+                    get_instant_active_or_skip=(
+                        # - we have room for more batches
+                        has_room_for_new_batches
+                        # - and the batch iterator is still active
+                        and new_batch_iterator is not None
+                    ),
                 )
+
+                # No active batch was returned, and by construction we have room for
+                # new batches, so we can start a new batch
+                if stage is None:
+                    yield next(new_batch_iterator)
+                    continue
+
                 # stage, task = next(iterator)
                 # Prioritized STOP signal: something bad happened in another process
                 # -> stop listening to input queues and raise StopIteration (return)
@@ -350,48 +433,8 @@ class CPUWorker:
                 # If first stage, we receive tasks that may require batching
                 # again => we split them into chunks
                 if stage == 0:
-                    task_id, fragments = task
-                    chunks = list(
-                        batchify(lc.reader.read_worker(fragments), lc.chunk_size)
-                    )
-                    for chunk_idx, docs in enumerate(chunks):
-                        # If we sort by size, we must first create the documents
-                        # to have features against which we will sort
-                        docs = apply_basic_pipes(docs, preprocess_pipes)
-
-                        if lc.sort_chunks:
-                            docs.sort(key=doc_size_fns.get(lc.sort_chunks, len))
-
-                        batches = [
-                            batch
-                            for batch in batchify(
-                                docs,
-                                batch_size=lc.batch_size,
-                                formula=batch_size_fns[lc.batch_by],
-                            )
-                        ]
-
-                        for batch_idx, batch in enumerate(batches):
-                            assert len(batch) > 0
-                            batch_id = next_batch_id
-
-                            # We mark the task id only for the last batch of a task
-                            # since the purpose of storing the task id is to know
-                            # when the worker has finished processing the task,
-                            # which is true only when the last batch has been
-                            # processed
-                            active_batches[batch_id] = (
-                                batch,
-                                task_id
-                                if (batch_idx == len(batches) - 1)
-                                and (chunk_idx == len(chunks) - 1)
-                                else None,
-                            )
-                            next_batch_id += num_cpu
-                            # gpu_idx = None
-                            # batch_id = we have just created a new batch
-                            # result from the last stage = None
-                            yield stage, (None, batch_id, None)
+                    new_batch_iterator = split_task_into_new_batches(task)
+                    yield next(new_batch_iterator)
                 else:
                     yield stage, task
 
@@ -913,11 +956,11 @@ def execute_multiprocessing_backend(
             # with the cleanup of these processes ?
             for i, worker in enumerate(gpu_workers):  # pragma: no cover
                 if worker.is_alive():
-                    logging.error(f"Killing <CPUWorker idx={i}>")
+                    logging.error(f"Killing <GPUWorker idx={i}>")
                     worker.kill()
             for i, worker in enumerate(cpu_workers):  # pragma: no cover
                 if worker.is_alive():
-                    logging.error(f"Killing <GPUWorker idx={i}>")
+                    logging.error(f"Killing <CPUWorker idx={i}>")
                     worker.kill()
 
             for queue_group in (

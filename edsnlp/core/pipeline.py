@@ -821,7 +821,6 @@ class Pipeline:
                 "lang": self.lang,
                 "pipeline": list(self.pipe_names),
                 "components": {key: component for key, component in self._components},
-                "disabled": list(self.disabled),
                 "tokenizer": self._tokenizer_config,
             }
         )

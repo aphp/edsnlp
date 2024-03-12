@@ -8,6 +8,10 @@
 - Add support for polars data import / export
 - Allow kwargs in `eds.transformer` to pass to the transformer model
 
+### Changed
+
+- Saving pipelines now longer saves the `disabled` status of the pipes (i.e., all pipes are considered "enabled" when saved). This feature was not used and causing issues when saving a model wrapped in a `nlp.select_pipes` context.
+
 ### Fixed
 
 - Allow missing `meta.json`, `tokenizer` and `vocab` paths when loading saved models

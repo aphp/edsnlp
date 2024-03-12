@@ -104,7 +104,6 @@ config_str = """\
 lang = "eds"
 pipeline = ["sentences", "transformer", "ner"]
 components = ${components}
-disabled = []
 
 [nlp.tokenizer]
 @tokenizers = "eds.tokenizer"
@@ -221,7 +220,6 @@ fail_config = """
 [nlp]
 lang = "eds"
 pipeline = ["transformer", "ner"]
-disabled = []
 
 [nlp.tokenizer]
 @tokenizers = "eds.tokenizer"

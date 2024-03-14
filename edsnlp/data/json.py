@@ -1,4 +1,5 @@
 import json
+import os
 import warnings
 from collections import Counter
 from pathlib import Path
@@ -15,6 +16,7 @@ from edsnlp.data.converters import (
     get_doc2dict_converter,
 )
 from edsnlp.utils.collections import flatten_once
+from edsnlp.utils.file_system import FileSystem, normalize_fs_path
 
 
 class JsonReader(BaseReader):
@@ -26,45 +28,52 @@ class JsonReader(BaseReader):
         *,
         keep_ipynb_checkpoints: bool,
         read_in_worker: bool,
+        filesystem: Optional[FileSystem] = None,
     ):
         super().__init__()
-        self.path = Path(path)
-        self.keep_ipynb_checkpoints = keep_ipynb_checkpoints
-        self.read_in_worker = read_in_worker
+
+        self.fs, self.path = normalize_fs_path(filesystem, path)
         self.files = (
             [
                 file
-                for file in self.path.rglob("*.json*")
-                if self.keep_ipynb_checkpoints or ".ipynb_checkpoints" not in str(file)
+                for file in self.fs.glob(os.path.join(self.path, "**/*.json*"))
+                if keep_ipynb_checkpoints or ".ipynb_checkpoints" not in str(file)
             ]
-            if self.path.is_dir()
+            if self.fs.isdir(self.path)
             else [self.path]
         )
+        self.keep_ipynb_checkpoints = keep_ipynb_checkpoints
+        self.read_in_worker = read_in_worker
         for file in self.files:
-            if not file.exists():
+            if not self.fs.exists(file):
                 raise FileNotFoundError(f"File {file} does not exist")
-        assert len(self.files), f"No .json* file found under {path}"
+        assert len(self.files), f"No .json* file found under {self.path}"
         logger.info(
             f"Found {len(self.files)} file{'s' if len(self.files) > 1 else ''} "
-            f"under {path}"
+            f"under {self.path}"
         )
 
     # TODO: implement read in worker = True / False
 
-    def read_file(self, file: Path):
-        with file.open("r", encoding="utf8") as f:
+    def read_file(self, file: str):
+        with self.fs.open(file, "r", encoding="utf8") as f:
             return (
-                [line for line in f] if file.suffix.startswith(".jsonl") else [f.read()]
+                [line for line in f]
+                if os.path.splitext(file)[1].startswith(".jsonl")
+                else [f.read()]
             )
 
     def read_main(self):
         if self.read_in_worker:
             # read in worker -> each task is a file to read from
-            return ((f, 0 if f.suffix.startswith(".jsonl") else 1) for f in self.files)
+            return (
+                (f, 0 if os.path.splitext(f)[1].startswith(".jsonl") else 1)
+                for f in self.files
+            )
         else:
             # read in worker -> each task is a non yet parsed line
             return (
-                ((f, line, f.suffix.startswith(".jsonl")), 1)
+                ((f, line, os.path.splitext(f)[1].startswith(".jsonl")), 1)
                 for f in self.files
                 for line in self.read_file(f)
             )
@@ -75,7 +84,7 @@ class JsonReader(BaseReader):
             if self.read_in_worker:
                 filename = task
                 content = self.read_file(filename)
-                is_jsonl = filename.suffix.startswith(".jsonl")
+                is_jsonl = os.path.splitext(filename)[1].startswith(".jsonl")
             else:
                 filename, content, is_jsonl = task
                 content = [content]
@@ -100,35 +109,42 @@ class JsonWriter(BaseWriter):
         *,
         lines: Optional[bool] = None,
         overwrite: bool = False,
+        filesystem: Optional[FileSystem] = None,
     ):
-        self.path = Path(path)
+        self.fs, self.path = normalize_fs_path(filesystem, path)
 
-        might_be_file = self.path.suffix != "" or self.path.is_file()
+        path_exists = self.fs.exists(self.path)
+        path_is_file = path_exists and self.fs.isfile(self.path)
+        might_be_file = path_exists and Path(self.path).suffix != "" or path_is_file
 
         lines = lines if lines is not None else might_be_file
         self.lines = lines
 
-        if self.path.exists():
-            assert self.path.is_file() == lines, (
-                f"To save as a single jsonl file, the path must be a file and lines "
-                f"must be True. To save as a directory of json files, the path must "
-                f"be a directory and lines must be False. "
-                f"Got path={path} and lines={lines}."
-            )
-            if self.path.is_dir():
-                exts = Counter(f.suffix for f in self.path.iterdir())
-                unsafe_exts = {
-                    s[1:]: v for s, v in exts.items() if s.startswith(".json")
-                }
-                if unsafe_exts and not overwrite:
-                    raise FileExistsError(
-                        f"Directory {self.path} already exists and appear to contain "
-                        "annotations:"
-                        + "".join(
-                            f"\n - {s}: {v} files" for s, v in unsafe_exts.items()
+        assert not path_exists or (might_be_file == lines), (
+            f"To save as a single jsonl file, the path must be a file and lines "
+            f"must be True. To save as a directory of json files, the path must "
+            f"be a directory and lines must be False. "
+            f"Got path={self.path} and lines={lines}."
+        )
+        if path_exists:
+            if self.fs.isdir(self.path):
+                files = [f for f in self.fs.glob(os.path.join(self.path, "**/*.json*"))]
+                if files:
+                    if not overwrite:
+                        raise FileExistsError(
+                            f"Directory {self.path} already exists and appear to "
+                            f"contain annotations:"
+                            + "".join(
+                                f"\n - {s[1:]}: {v} files"
+                                for s, v in Counter(
+                                    Path(f).suffix for f in files
+                                ).items()
+                            )
+                            + "\nUse overwrite=True to write anyway."
                         )
-                        + "\nUse overwrite=True to write anyway."
-                    )
+                    for f in files:
+                        self.fs.rm_file(f)
+
             elif not overwrite:
                 raise FileExistsError(
                     f"File {self.path} already exists. Use overwrite=True to write "
@@ -137,8 +153,8 @@ class JsonWriter(BaseWriter):
 
         if might_be_file != lines:
             warnings.warn(
-                f"You set lines to {lines} but the path ({path}) you provided look "
-                f"like a {'file' if might_be_file else 'directory'}. "
+                f"You set lines to {lines} but the path ({self.path}) you provided "
+                f"looks like a {'file' if might_be_file else 'directory'}. "
                 f"To save your documents as a single jsonl file, the path must be a "
                 f"file and lines must be True. To save as a directory of json files, "
                 f"the path must be a directory and lines must be False. "
@@ -165,9 +181,10 @@ class JsonWriter(BaseWriter):
                         "caused by the `note_id` attribute (used as the filename stem) "
                         "not being set on the doc."
                     )
-                file_path = self.path / f"{filename}.json"
-                file_path.parent.mkdir(parents=True, exist_ok=True)
-                with open(file_path, "w") as f:
+
+                file_path = os.path.join(self.path, f"{filename}.json")
+                self.fs.makedirs(os.path.dirname(file_path), exist_ok=True)
+                with self.fs.open(file_path, "w") as f:
                     json.dump(rec, f)
                 results.append(file_path)
             return results, len(results)
@@ -175,7 +192,8 @@ class JsonWriter(BaseWriter):
     def write_main(self, fragments: Iterable[Union[List[Path], List[str]]]):
         fragments = list(flatten_once(fragments))
         if self.lines:
-            self.path.write_text("\n".join(fragments))
+            with self.fs.open(self.path, "w") as f:
+                f.write("\n".join(fragments))
             return [self.path]
         else:
             return [f for f in fragments]
@@ -188,6 +206,7 @@ def read_json(
     *,
     keep_ipynb_checkpoints: bool = False,
     read_in_worker: bool = False,
+    filesystem: Optional[FileSystem] = None,
     **kwargs,
 ) -> LazyCollection:
     """
@@ -229,6 +248,9 @@ def read_json(
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the JSON objects to Doc objects.
         These are documented on the [Converters](/data/converters) page.
+    filesystem: Optional[FileSystem]
+        The filesystem to use to write the files. If None, the filesystem will be
+        inferred from the path (e.g. `s3://` will use S3).
     kwargs:
         Additional keyword arguments to pass to the converter. These are documented on
         the [Converters](/data/converters) page.
@@ -242,6 +264,7 @@ def read_json(
             path,
             keep_ipynb_checkpoints=keep_ipynb_checkpoints,
             read_in_worker=read_in_worker,
+            filesystem=filesystem,
         )
     )
     if converter:
@@ -258,6 +281,7 @@ def write_json(
     lines: bool = None,
     overwrite: bool = False,
     converter: Optional[Union[str, Callable]] = None,
+    filesystem: Optional[FileSystem] = None,
     **kwargs,
 ) -> None:
     """
@@ -309,6 +333,9 @@ def write_json(
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the documents to dictionary objects before writing
         them. These are documented on the [Converters](/data/converters) page.
+    filesystem: Optional[FileSystem]
+        The filesystem to use to write the files. If None, the filesystem will be
+        inferred from the path (e.g. `s3://` will use S3).
     kwargs:
         Additional keyword arguments to pass to the converter. These are documented on
         the [Converters](/data/converters) page.
@@ -319,4 +346,11 @@ def write_json(
         converter, kwargs = get_doc2dict_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)
 
-    return data.write(JsonWriter(path, lines=lines, overwrite=overwrite))
+    return data.write(
+        JsonWriter(
+            path,
+            lines=lines,
+            overwrite=overwrite,
+            filesystem=filesystem,
+        )
+    )

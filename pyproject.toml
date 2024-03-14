@@ -31,6 +31,8 @@ dependencies = [
     "build>=1.0.0",
     "toml",
     "pyarrow>=3.0.0",  # support for fragment.metadata.num_rows
+    "fsspec; python_version>='3.8'",
+    "fsspec<2023.1.0; python_version<'3.8'",
     # this is only to avoid backtracking issues with spacy's capping
     "pydantic<2.0.0; python_version<'3.8'",
     "pydantic-core<2.0.0; python_version<'3.8'",

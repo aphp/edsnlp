@@ -1,5 +1,4 @@
 # ruff: noqa: F401
-import glob
 import os
 import re
 from collections import Counter, defaultdict
@@ -31,7 +30,7 @@ from edsnlp.data.converters import (
     get_doc2dict_converter,
 )
 from edsnlp.utils.collections import flatten_once
-from edsnlp.utils.file_system import FileSystem, normalize_fs_path
+from edsnlp.utils.file_system import FileSystem, normalize_fs_path, walk_match
 from edsnlp.utils.span_getters import SpanSetterArg
 
 REGEX_ENTITY = re.compile(r"^(T\d+)\t(.*) (\d+ \d+(?:;\d+ \d+)*)\t(.*)$")
@@ -76,7 +75,12 @@ def parse_standoff_file(
     Iterator[Dict]
     """
     ann_filenames = []
-    for filename in fs.glob(path.replace(".txt", ".a*")):
+    for filename in walk_match(
+        fs,
+        os.path.dirname(path),
+        os.path.basename(path).replace(".txt", ".a*"),
+        recursive=False,
+    ):
         ann_filenames.append(filename)
 
     entities = {}
@@ -301,9 +305,17 @@ class StandoffReader(BaseReader):
         self.fs, self.path = normalize_fs_path(filesystem, path)
         self.files: List[str] = [
             file
-            for file in self.fs.glob(os.path.join(self.path, "**/*.txt"))
+            for file in walk_match(self.fs, self.path, "*.txt")
             if (keep_ipynb_checkpoints or ".ipynb_checkpoints" not in str(file))
-            and (keep_txt_only_docs or self.fs.glob(file.replace(".txt", ".a*")))
+            and (
+                keep_txt_only_docs
+                or walk_match(
+                    self.fs,
+                    os.path.dirname(file),
+                    os.path.basename(file).replace(".txt", ".a*"),
+                    recursive=False,
+                )
+            )
         ]
         assert len(self.files), f"No .txt files found in the BRAT directory {self.path}"
         for file in self.files:
@@ -338,11 +350,9 @@ class StandoffWriter(BaseWriter):
 
         if self.fs.exists(self.path):
             unsafe_exts = Counter(
-                os.path.splitext(f)[1]
-                for f in self.fs.glob(os.path.join(self.path, "**/*.txt"))
+                os.path.splitext(f)[1] for f in walk_match(self.fs, self.path, "*.txt")
             ) + Counter(
-                os.path.splitext(f)[1]
-                for f in self.fs.glob(os.path.join(self.path, "**/*.a*"))
+                os.path.splitext(f)[1] for f in walk_match(self.fs, self.path, "*.a*")
             )
             if unsafe_exts and not overwrite:
                 raise FileExistsError(

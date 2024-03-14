@@ -249,3 +249,13 @@ def test_read_to_parquet(blank_nlp, tmpdir):
             span_attributes=["etat", "assertion"],
             span_getter=["ents", "sosy", "localisation", "anatomie", "pathologie"],
         )
+
+    edsnlp.data.write_parquet(
+        [doc],
+        output_dir,
+        converter="omop",
+        doc_attributes=["context_var"],
+        span_attributes=["etat", "assertion"],
+        span_getter=["ents", "sosy", "localisation", "anatomie", "pathologie"],
+        overwrite=True,
+    )

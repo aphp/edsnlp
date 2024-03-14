@@ -16,7 +16,7 @@ from edsnlp.data.converters import (
     get_doc2dict_converter,
 )
 from edsnlp.utils.collections import flatten_once
-from edsnlp.utils.file_system import FileSystem, normalize_fs_path
+from edsnlp.utils.file_system import FileSystem, normalize_fs_path, walk_match
 
 
 class JsonReader(BaseReader):
@@ -36,7 +36,7 @@ class JsonReader(BaseReader):
         self.files = (
             [
                 file
-                for file in self.fs.glob(os.path.join(self.path, "**/*.json*"))
+                for file in walk_match(self.fs, os.path.dirname(self.path), "*.json*")
                 if keep_ipynb_checkpoints or ".ipynb_checkpoints" not in str(file)
             ]
             if self.fs.isdir(self.path)
@@ -128,7 +128,7 @@ class JsonWriter(BaseWriter):
         )
         if path_exists:
             if self.fs.isdir(self.path):
-                files = [f for f in self.fs.glob(os.path.join(self.path, "**/*.json*"))]
+                files = [f for f in walk_match(self.fs, self.path, "*.json*")]
                 if files:
                     if not overwrite:
                         raise FileExistsError(

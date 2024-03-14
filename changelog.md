@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Support for a `filesystem` parameter in every `edsnlp.data.read_*` and `edsnlp.data.write_*` functions
+
 ## v0.10.7
 
 ### Added

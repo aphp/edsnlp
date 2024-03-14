@@ -8,11 +8,15 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Iterable,
+    List,
     Optional,
+    Tuple,
     Union,
 )
 
 import spacy.tokenizer
+from fsspec import filesystem as fsspec
 from loguru import logger
 
 from edsnlp import registry
@@ -27,6 +31,7 @@ from edsnlp.data.converters import (
     get_doc2dict_converter,
 )
 from edsnlp.utils.collections import flatten_once
+from edsnlp.utils.file_system import FileSystem, normalize_fs_path
 from edsnlp.utils.span_getters import SpanSetterArg
 
 REGEX_ENTITY = re.compile(r"^(T\d+)\t(.*) (\d+ \d+(?:;\d+ \d+)*)\t(.*)$")
@@ -42,7 +47,14 @@ class BratParsingError(ValueError):
         super().__init__(f"File {ann_file}, unrecognized Brat line {line}")
 
 
-def parse_standoff_file(path: str, merge_spaced_fragments: bool = True) -> Dict:
+LOCAL_FS = fsspec("file")
+
+
+def parse_standoff_file(
+    path: str,
+    merge_spaced_fragments: bool = True,
+    fs: FileSystem = LOCAL_FS,
+) -> Dict:
     """
     Load a brat file
 
@@ -56,20 +68,22 @@ def parse_standoff_file(path: str, merge_spaced_fragments: bool = True) -> Dict:
     merge_spaced_fragments: bool
         Merge fragments of an entity that was split by brat because it overlapped an
         end of line
+    fs: FileSystem
+        Filesystem to use
 
     Returns
     -------
     Iterator[Dict]
     """
     ann_filenames = []
-    for filename in glob.glob(path.replace(".txt", ".a*"), recursive=True):
+    for filename in fs.glob(path.replace(".txt", ".a*")):
         ann_filenames.append(filename)
 
     entities = {}
     relations = []
     events = {}
 
-    with open(path) as f:
+    with fs.open(path, "r") as f:
         text = f.read()
 
     if not len(ann_filenames):
@@ -78,7 +92,7 @@ def parse_standoff_file(path: str, merge_spaced_fragments: bool = True) -> Dict:
         }
 
     for ann_file in ann_filenames:
-        with open(ann_file) as f:
+        with fs.open(ann_file, "r") as f:
             for line_idx, line in enumerate(f):
                 try:
                     if line.startswith("T"):
@@ -190,7 +204,7 @@ def parse_standoff_file(path: str, merge_spaced_fragments: bool = True) -> Dict:
                 except Exception:
                     raise Exception(
                         "Could not parse line {} from {}: {}".format(
-                            line_idx, filename.replace(".txt", ".ann"), repr(line)
+                            line_idx, ann_file, repr(line)
                         )
                     )
     return {
@@ -201,19 +215,25 @@ def parse_standoff_file(path: str, merge_spaced_fragments: bool = True) -> Dict:
     }
 
 
-def dump_standoff_file(doc, txt_filename, overwrite_txt=False, overwrite_ann=False):
+def dump_standoff_file(
+    doc,
+    txt_filename,
+    overwrite_txt=False,
+    overwrite_ann=False,
+    fs: FileSystem = LOCAL_FS,
+):
     parent_dir = txt_filename.rsplit("/", 1)[0]
-    if parent_dir and not os.path.exists(parent_dir):
-        os.makedirs(parent_dir, exist_ok=True)
-    if not os.path.exists(txt_filename) or overwrite_txt:
-        with open(txt_filename, "w") as f:
+    if parent_dir and not fs.exists(parent_dir):
+        fs.makedirs(parent_dir, exist_ok=True)
+    if not fs.exists(txt_filename) or overwrite_txt:
+        with fs.open(txt_filename, "w") as f:
             f.write(doc["text"])
 
     ann_filename = txt_filename.replace(".txt", ".ann")
     attribute_idx = 1
     entities_ids = defaultdict(lambda: "T" + str(len(entities_ids) + 1))
-    if not os.path.exists(ann_filename) or overwrite_ann:
-        with open(ann_filename, "w") as f:
+    if not fs.exists(ann_filename) or overwrite_ann:
+        with fs.open(ann_filename, "w") as f:
             if "entities" in doc:
                 for entity in doc["entities"]:
                     spans = []
@@ -275,29 +295,30 @@ class StandoffReader(BaseReader):
         *,
         keep_ipynb_checkpoints: bool = False,
         keep_txt_only_docs: bool = False,
+        filesystem: Optional[FileSystem] = None,
     ):
         super().__init__()
-        self.path = Path(path)
-        self.files = [
+        self.fs, self.path = normalize_fs_path(filesystem, path)
+        self.files: List[str] = [
             file
-            for file in self.path.rglob("*.txt")
+            for file in self.fs.glob(os.path.join(self.path, "**/*.txt"))
             if (keep_ipynb_checkpoints or ".ipynb_checkpoints" not in str(file))
-            and (keep_txt_only_docs or glob.glob(str(path).replace(".txt", ".a*")))
+            and (keep_txt_only_docs or self.fs.glob(file.replace(".txt", ".a*")))
         ]
-        assert len(self.files), f"No .txt files found in the BRAT directory {path}"
+        assert len(self.files), f"No .txt files found in the BRAT directory {self.path}"
         for file in self.files:
-            if not file.exists():
+            if not self.fs.exists(file):
                 raise FileNotFoundError(f"File {file} does not exist")
         logger.info(f"The BRAT directory contains {len(self.files)} .txt files.")
 
-    def read_main(self):
+    def read_main(self) -> Iterable[Tuple[str, int]]:
         return ((f, 1) for f in self.files)
 
-    def read_worker(self, fragment):
+    def read_worker(self, fragment: List[str]):
         tasks = []
         for file in fragment:
-            anns = parse_standoff_file(str(file))
-            anns[FILENAME] = str(file.relative_to(self.path)).rsplit(".", 1)[0]
+            anns = parse_standoff_file(str(file), fs=self.fs)
+            anns[FILENAME] = os.path.relpath(file, self.path).rsplit(".", 1)[0]
             anns["doc_id"] = anns[FILENAME]
             tasks.append(anns)
         return tasks
@@ -310,44 +331,46 @@ class StandoffWriter(BaseWriter):
         *,
         lines: bool = True,
         overwrite: bool = False,
+        filesystem: Optional[FileSystem] = None,
     ):
-        self.path = path
+        self.fs, self.path = normalize_fs_path(filesystem, path)
         self.lines = lines
 
-        if path.exists():
-            suffixes = Counter(f.suffix for f in path.iterdir())
-            unsafe_suffixes = {
-                s: v
-                for s, v in suffixes.items()
-                if s.startswith(".a") or s.startswith(".txt")
-            }
-            if unsafe_suffixes and not overwrite:
+        if self.fs.exists(self.path):
+            unsafe_exts = Counter(
+                os.path.splitext(f)[1]
+                for f in self.fs.glob(os.path.join(self.path, "**/*.txt"))
+            ) + Counter(
+                os.path.splitext(f)[1]
+                for f in self.fs.glob(os.path.join(self.path, "**/*.a*"))
+            )
+            if unsafe_exts and not overwrite:
                 raise FileExistsError(
-                    f"Directory {path} already exists and appear to contain "
+                    f"Directory {self.path} already exists and appear to contain "
                     "annotations:"
-                    + "".join(f"\n -{s}: {v} files" for s, v in unsafe_suffixes.items())
+                    + "".join(f"\n -{s[1:]}: {v} files" for s, v in unsafe_exts.items())
                     + "\nUse overwrite=True to write files anyway."
                 )
-        path.mkdir(parents=True, exist_ok=True)
+        self.fs.makedirs(self.path, exist_ok=True)
 
         super().__init__()
 
-    def write_worker(self, records):
-        # If write as jsonl, we will perform the actual writing in the `write` method
+    def write_worker(self, records: List[Dict]) -> Tuple[List[str], int]:
         results = []
         for rec in records:
             filename = str(rec[FILENAME])
-            path = str(self.path / f"{filename}.txt")
+            path = os.path.join(self.path, f"{filename}.txt")
             dump_standoff_file(
                 rec,
                 path,
                 overwrite_txt=True,
                 overwrite_ann=True,
+                fs=self.fs,
             )
             results.append(path)
         return results, len(results)
 
-    def write_main(self, fragments):
+    def write_main(self, fragments) -> List[str]:
         return list(flatten_once(fragments))
 
 
@@ -359,6 +382,7 @@ def read_standoff(
     keep_ipynb_checkpoints: bool = False,
     keep_txt_only_docs: bool = False,
     converter: Optional[Union[str, Callable]] = "standoff",
+    filesystem: Optional[FileSystem] = None,
     **kwargs,
 ) -> LazyCollection:
     """
@@ -438,6 +462,15 @@ def read_standoff(
         Python objects (e.g. booleans).
     bool_attributes : SequenceStr
         List of attributes for which missing values should be set to False.
+    keep_ipynb_checkpoints : bool
+        Whether to keep the files that are in the `.ipynb_checkpoints` directory.
+    keep_txt_only_docs : bool
+        Whether to keep the `.txt` files that do not have corresponding `.ann` files.
+    converter : Optional[Union[str, Callable]]
+        Converter to use to convert the documents to dictionary objects.
+    filesystem: Optional[FileSystem] = None,
+        The filesystem to use to write the files. If None, the filesystem will be
+        inferred from the path (e.g. `s3://` will use S3).
 
     Returns
     -------
@@ -448,6 +481,7 @@ def read_standoff(
             path,
             keep_ipynb_checkpoints=keep_ipynb_checkpoints,
             keep_txt_only_docs=keep_txt_only_docs,
+            filesystem=filesystem,
         )
     )
     if converter:
@@ -462,6 +496,7 @@ def write_standoff(
     path: Union[str, Path],
     overwrite: bool = False,
     converter: Optional[Union[str, Callable]] = "standoff",
+    filesystem: Optional[FileSystem] = None,
     **kwargs,
 ) -> None:
     """
@@ -508,10 +543,13 @@ def write_standoff(
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the documents to dictionary objects.
         Defaults to the "standoff" format converter.
+    filesystem: Optional[FileSystem] = None,
+        The filesystem to use to write the files. If None, the filesystem will be
+        inferred from the path (e.g. `s3://` will use S3).
     """
     data = LazyCollection.ensure_lazy(data)
     if converter:
         converter, kwargs = get_doc2dict_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)
 
-    return data.write(StandoffWriter(path, overwrite=overwrite))
+    return data.write(StandoffWriter(path, overwrite=overwrite, filesystem=filesystem))

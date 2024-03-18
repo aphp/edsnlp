@@ -184,21 +184,27 @@ class StandoffDict2DocConverter:
         - the tokenizer of the next pipeline run by `.map_pipeline` in a
           [LazyCollection][edsnlp.core.lazy_collection.LazyCollection].
         - or the `eds` tokenizer by default.
-    span_setter: SpanSetterArg
+    span_setter : SpanSetterArg
         The span setter to use when setting the spans in the documents. Defaults to
         setting the spans in the `ents` attribute, and creates a new span group for
         each JSON entity label.
-    span_attributes: Optional[AttributesMappingArg]
-        Mapping from JSON attributes to Span extensions (can be a list too).
+    span_attributes : Optional[AttributesMappingArg]
+        Mapping from BRAT attributes to Span extensions (can be a list too).
         By default, all attributes are imported as Span extensions with the same name.
-    keep_raw_attribute_values: bool
+    keep_raw_attribute_values : bool
         Whether to keep the raw attribute values (as strings) or to convert them to
         Python objects (e.g. booleans).
-    default_attributes: AttributesMappingArg
+    default_attributes : AttributesMappingArg
         How to set attributes on spans for which no attribute value was found in the
         input format. This is especially useful for negation, or frequent attributes
         values (e.g. "negated" is often False, "temporal" is often "present"), that
         annotators may not want to annotate every time.
+    notes_as_span_attribute : Optional[str]
+        If set, the AnnotatorNote annotations will be concatenated and stored in a span
+        attribute with this name.
+    split_fragments : bool
+        Whether to split the fragments into separate spans or not. If set to False, the
+        fragments will be concatenated into a single span.
     """
 
     def __init__(
@@ -211,12 +217,16 @@ class StandoffDict2DocConverter:
         keep_raw_attribute_values: bool = False,
         bool_attributes: SequenceStr = [],
         default_attributes: AttributesMappingArg = {},
+        notes_as_span_attribute: Optional[str] = None,
+        split_fragments: bool = True,
     ):
         self.tokenizer = tokenizer or (nlp.tokenizer if nlp is not None else None)
         self.span_setter = span_setter
         self.span_attributes = span_attributes  # type: ignore
         self.keep_raw_attribute_values = keep_raw_attribute_values
         self.default_attributes = default_attributes
+        self.notes_as_span_attribute = notes_as_span_attribute
+        self.split_fragments = split_fragments
         for attr in bool_attributes:
             self.default_attributes[attr] = False
 
@@ -235,13 +245,27 @@ class StandoffDict2DocConverter:
                 Span.set_extension(dst, default=None)
 
         for ent in obj.get("entities") or ():
-            for fragment in ent["fragments"]:
+            fragments = (
+                [
+                    {
+                        "begin": min(f["begin"] for f in ent["fragments"]),
+                        "end": max(f["end"] for f in ent["fragments"]),
+                    }
+                ]
+                if not self.split_fragments
+                else ent["fragments"]
+            )
+            for fragment in fragments:
                 span = doc.char_span(
                     fragment["begin"],
                     fragment["end"],
                     label=ent["label"],
                     alignment_mode="expand",
                 )
+                if self.notes_as_span_attribute and ent["notes"]:
+                    ent["attributes"][self.notes_as_span_attribute] = "|".join(
+                        note["value"] for note in ent["notes"]
+                    )
                 for label, value in ent["attributes"].items():
                     new_name = (
                         self.span_attributes.get(label, None)

@@ -16,6 +16,7 @@
     data = data.map_pipeline(nlp)
     data.to_pandas(converters={"ents": {"span_attributes": ["sent.text", "start", "end"]}})
     ```
+- Support assigning Brat AnnotatorNotes as span attributes: `edsnlp.data.read_standoff(...,  notes_as_span_attribute="cui")`
 
 ## v0.10.7
 

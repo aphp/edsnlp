@@ -10,7 +10,7 @@ from edsnlp.core.lazy_collection import LazyCollection
 from edsnlp.data.base import BaseWriter
 from edsnlp.data.converters import set_current_tokenizer
 from edsnlp.data.spark import SparkReader, SparkWriter
-from edsnlp.utils.collections import batchify, flatten_once
+from edsnlp.utils.collections import batchify, flatten
 
 try:
     from koalas.dataframe import DataFrame as KoalasDataFrame
@@ -151,6 +151,4 @@ def execute_spark_backend(
             pickle.loads(item["content"])
             for item in df.rdd.mapPartitions(process_partition).toLocalIterator()
         )
-        return (
-            writer.write_main(results) if writer is not None else flatten_once(results)
-        )
+        return flatten(results) if writer is None else writer.write_main(results)

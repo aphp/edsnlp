@@ -29,7 +29,7 @@ from typing_extensions import TypedDict
 
 from edsnlp.core.lazy_collection import LazyCollection
 from edsnlp.data.converters import set_current_tokenizer
-from edsnlp.utils.collections import batchify, flatten_once
+from edsnlp.utils.collections import batchify, flatten
 
 batch_size_fns = {
     "words": lambda batch: sum(len(doc) for doc in batch),
@@ -973,4 +973,4 @@ def execute_multiprocessing_backend(
                         queue.cancel_join_thread()
 
     gen = process()
-    return lc.writer.write_main(gen) if lc.writer is not None else flatten_once(gen)
+    return flatten(gen) if lc.writer is None else lc.writer.write_main(gen)

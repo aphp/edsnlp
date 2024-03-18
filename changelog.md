@@ -26,6 +26,10 @@
     data.to_pandas()
     ```
 
+### Fixed
+
+- Flatten list outputs (such as "ents" converter) when iterating: `nlp.map(data).to_iterable("ents")` is now a list of entities, and not a list of lists of entities
+
 ## v0.10.7
 
 ### Added

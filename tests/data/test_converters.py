@@ -8,6 +8,12 @@ from edsnlp.data.converters import (
 )
 
 
+@pytest.fixture(autouse=True, scope="module")
+def set_extensions():
+    if not Span.has_extension("negation"):
+        Span.set_extension("negation", default=None)
+
+
 def test_read_omop_dict(blank_nlp):
     json = {
         "note_id": 1234,
@@ -186,6 +192,46 @@ def test_write_standoff_dict(blank_nlp):
             ),
         )[0](doc)
         == json
+    )
+
+
+def test_write_ents_dict(blank_nlp):
+    doc = blank_nlp("This is a test.")
+    doc._.note_id = 1234
+    doc.ents = [Span(doc, 0, 1, label="test"), Span(doc, 1, 2, label="test")]
+    doc.ents[0]._.negation = True
+    doc.ents[1]._.negation = False
+    jsons = [
+        {
+            "note_id": 1234,
+            "start": 0,
+            "end": 4,
+            "lexical_variant": "This",
+            "label": "test",
+            "span_type": "ents",
+            "sent.text": "This is a test.",
+            "negation": True,
+        },
+        {
+            "note_id": 1234,
+            "start": 5,
+            "end": 7,
+            "lexical_variant": "is",
+            "label": "test",
+            "span_type": "ents",
+            "sent.text": "This is a test.",
+            "negation": False,
+        },
+    ]
+    assert (
+        get_doc2dict_converter(
+            "ents",
+            dict(
+                span_getter={"ents": True},
+                span_attributes=["negation", "sent.text"],
+            ),
+        )[0](doc)
+        == jsons
     )
 
 

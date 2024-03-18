@@ -5,7 +5,7 @@ from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
 from edsnlp.data.converters import set_current_tokenizer
-from edsnlp.utils.collections import batchify, flatten_once
+from edsnlp.utils.collections import batchify, flatten
 
 if TYPE_CHECKING:
     from edsnlp.core.lazy_collection import LazyCollection
@@ -107,4 +107,4 @@ def execute_simple_backend(
                     yield result
 
     gen = process()
-    return flatten_once(gen) if writer is None else writer.write_main(gen)
+    return flatten(gen) if writer is None else writer.write_main(gen)

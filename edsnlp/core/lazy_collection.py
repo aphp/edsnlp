@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import sys
+from collections import namedtuple
 from functools import wraps
 from typing import (
     TYPE_CHECKING,
@@ -35,6 +36,9 @@ def with_non_default_args(fn: Callable) -> Callable:
         return fn(self, **kwargs, _non_default_args=kwargs.keys())
 
     return wrapper
+
+
+Batchable = namedtuple("Batchable", ["batch_process"])
 
 
 class MetaLazyCollection(type):
@@ -234,12 +238,50 @@ class LazyCollection(metaclass=MetaLazyCollection):
         return cls(reader=IterableReader(data))
 
     def map(self, pipe, name: Optional[str] = None, kwargs={}) -> "LazyCollection":
+        """
+        Maps a callable to the documents.
+
+        Parameters
+        ----------
+        pipe: Any
+            The callable to map to the documents.
+        name: Optional[str]
+            The name of the pipeline step.
+        kwargs: Dict
+            The keyword arguments to pass to the callable.
+
+        Returns
+        -------
+        LazyCollection
+        """
         return LazyCollection(
             reader=self.reader,
             writer=self.writer,
             pipeline=[*self.pipeline, (name, pipe, kwargs, None)],
             config=self.config,
         )
+
+    def map_batches(
+        self, pipe, name: Optional[str] = None, kwargs={}
+    ) -> "LazyCollection":
+        """
+        Maps a callable to a batch of documents. The callable should take a list of
+        inputs and return a **list** of outputs (not a single output).
+
+        Parameters
+        ----------
+        pipe: Any
+            The callable to map to the documents.
+        name: Optional[str]
+            The name of the pipeline step.
+        kwargs: Dict
+            The keyword arguments to pass to the callable.
+
+        Returns
+        -------
+        LazyCollection
+        """
+        return self.map(Batchable(pipe), name, kwargs)
 
     def map_pipeline(self, model: Pipeline) -> "LazyCollection":
         new_steps = []

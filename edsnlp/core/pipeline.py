@@ -41,6 +41,7 @@ from ..core.registries import PIPE_META, CurriedFactory, FactoryMeta, registry
 from ..utils.collections import (
     FrozenDict,
     FrozenList,
+    FrozenNamespace,
     batch_compress_dict,
     decompress_dict,
     multi_tee,
@@ -134,6 +135,10 @@ class Pipeline:
     @property
     def pipe_names(self) -> List[str]:
         return FrozenList([name for name, _ in self._components])
+
+    @property
+    def pipes(self):
+        return FrozenNamespace({name: pipe for name, pipe in self._components})
 
     component_names = pipe_names
 
@@ -557,7 +562,20 @@ class Pipeline:
             raise ValueError("input is not a Pipeline or config dict")
         return v
 
-    def preprocess(self, doc: Doc, supervision: bool = False):
+    @property
+    def preprocess(self):
+        compressor = batch_compress_dict()
+
+        @functools.wraps(self._preprocess)
+        def preprocess(doc, supervision: bool = False, compress: bool = True):
+            prep = self._preprocess(doc, supervision)
+            if compress:
+                prep = compressor(prep)
+            return prep
+
+        return preprocess
+
+    def _preprocess(self, doc: Doc, supervision: bool = False):
         """
         Run the preprocessing methods of each component in the pipeline
         on a document and returns a dictionary containing the results, with the
@@ -576,19 +594,17 @@ class Pipeline:
         """
         prep = {}
         with self.cache():
-            if supervision:
-                for name, component in self.pipeline:
-                    if name not in self._disabled:
-                        prep_comp = (
-                            component.preprocess_supervised(doc)
-                            if hasattr(component, "preprocess_supervised")
-                            else component.preprocess(doc)
-                            if hasattr(component, "preprocess")
-                            else None
-                        )
-                        if prep_comp is not None:
-                            prep[name] = prep_comp
-
+            for name, component in self.pipeline:
+                if name not in self._disabled:
+                    prep_comp = (
+                        component.preprocess_supervised(doc)
+                        if supervision and hasattr(component, "preprocess_supervised")
+                        else component.preprocess(doc)
+                        if hasattr(component, "preprocess")
+                        else None
+                    )
+                    if prep_comp is not None:
+                        prep[name] = prep_comp
         return prep
 
     def preprocess_many(self, docs: Iterable[Doc], compress=True, supervision=True):
@@ -613,16 +629,15 @@ class Pipeline:
         -------
         Iterable[OutputT]
         """
-        preprocessed = map(
-            functools.partial(self.preprocess, supervision=supervision), docs
-        )
+        res = LazyCollection.ensure_lazy(docs)
+        res = res.map(functools.partial(self.preprocess, supervision=supervision))
         if compress:
-            preprocessed = batch_compress_dict(preprocessed)
-        return preprocessed
+            res = res.map(batch_compress_dict())
+        return res
 
     def collate(
         self,
-        batch: Dict[str, Any],
+        batch: Union[Iterable[Dict[str, Any]], Dict[str, Any]],
     ):
         """
         Collates a batch of preprocessed samples into a single (maybe nested)
@@ -630,7 +645,7 @@ class Pipeline:
 
         Parameters
         ----------
-        batch: Dict[str, Any]
+        batch: Union[Iterable[Dict[str, Any]], Dict[str, Any]]
             The batch of preprocessed samples
 
         Returns
@@ -1041,6 +1056,7 @@ def load(
                 os.chdir(path)
                 nlp = Pipeline.from_config(config)
                 nlp.from_disk(path, exclude=exclude)
+                nlp.train(False)
             finally:
                 os.chdir(pwd)
             return nlp

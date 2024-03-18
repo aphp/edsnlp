@@ -5,6 +5,7 @@
 ### Added
 
 - Support for a `filesystem` parameter in every `edsnlp.data.read_*` and `edsnlp.data.write_*` functions
+- Pipes of a pipeline are now easily accessible with `nlp.pipes.xxx` instead of `nlp.get_pipe("xxx")`
 - Support builtin Span attributes in converters `span_attributes` parameter, e.g.
     ```python
     import edsnlp
@@ -25,6 +26,10 @@
     data = data.map_batches(lambda batch: do_something(batch))
     data.to_pandas()
     ```
+
+### Changed
+
+- `nlp.preprocess_many` now uses lazy collections to enable parallel processing
 
 ### Fixed
 

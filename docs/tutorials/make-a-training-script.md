@@ -186,7 +186,7 @@ Finally, the model is evaluated on the validation dataset and saved at regular i
 from edsnlp.scorers.ner import create_ner_exact_scorer
 from copy import deepcopy
 
-scorer = create_ner_exact_scorer(nlp.get_pipe('ner').target_span_getter)
+scorer = create_ner_exact_scorer(nlp.pipes.ner.target_span_getter)
 
     ...
 
@@ -281,7 +281,7 @@ Let's wrap the training code in a function, and make it callable from the comman
             shuffle=True,
         )
 
-        scorer = create_ner_exact_scorer(nlp.get_pipe("ner").target_span_getter)
+        scorer = create_ner_exact_scorer(nlp.pipes.ner.target_span_getter)
 
         optimizer = torch.optim.AdamW(
             params=nlp.parameters(),

@@ -9,6 +9,7 @@ from typing import (
     Iterator,
     List,
     Mapping,
+    Optional,
     Sequence,
     TypeVar,
     Union,
@@ -102,7 +103,7 @@ class batch_compress_dict:
 
     __slots__ = ("flatten", "seq")
 
-    def __init__(self, seq: Iterable[Dict[str, Any]]):
+    def __init__(self, seq: Optional[Iterable[Dict[str, Any]]] = None):
         self.seq = seq
         self.flatten = None
 
@@ -116,14 +117,15 @@ class batch_compress_dict:
     #     self.seq = state["seq"]
     #     self.flatten = None
 
-    def __next__(self) -> Dict[str, List]:
+    def __call__(self, item):
         exec_result = {}
-
-        item = next(self.seq)
         if self.flatten is None:
             exec(_discover_scheme(item), {}, exec_result)
             self.flatten = exec_result["flatten"]
         return self.flatten(item)
+
+    def __next__(self) -> Dict[str, List]:
+        return self(next(self.seq))
 
 
 def decompress_dict(seq: Union[Iterable[Dict[str, Any]], Dict[str, Any]]):
@@ -330,6 +332,19 @@ class FrozenList(list):
 
     def sort(self, *args, **kwargs):
         raise NotImplementedError(self.error)
+
+
+class FrozenNamespace:
+    def __init__(self, items) -> None:
+        self.__dict__.update(items)
+
+    def __setattr__(self, key, value):
+        raise NotImplementedError("You cannot assign to a frozen namespace")
+
+    def __delattr__(self, key):
+        raise NotImplementedError(
+            "You cannot delete an attribute from a frozen namespace"
+        )
 
 
 def flatten_once(items):

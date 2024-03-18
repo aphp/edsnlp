@@ -37,10 +37,12 @@ def test_add_pipe_component():
     model.add_pipe(normalizer(nlp=model), name="normalizer")
     assert "normalizer" in model.pipe_names
     assert model.has_pipe("normalizer")
+    assert model.pipes.normalizer is model.get_pipe("normalizer")
 
     model.add_pipe(sentences(nlp=model), name="sentences")
     assert "sentences" in model.pipe_names
     assert model.has_pipe("sentences")
+    assert model.pipes.sentences is model.get_pipe("sentences")
 
     with pytest.raises(ValueError):
         model.add_pipe(

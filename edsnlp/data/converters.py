@@ -35,6 +35,7 @@ from edsnlp.utils.span_getters import (
 )
 
 FILENAME = "__FILENAME__"
+SPAN_BUILTIN_ATTRS = ("sent", "label_", "kb_id_", "text")
 
 SCHEMA = {}
 
@@ -505,6 +506,14 @@ class OmopDoc2DictConverter:
 
     def __call__(self, doc):
         spans = get_spans(doc, self.span_getter)
+        span_binding_getters = {
+            obj_name: BINDING_GETTERS[
+                ("_." + ext_name)
+                if ext_name.split(".")[0] not in SPAN_BUILTIN_ATTRS
+                else ext_name
+            ]
+            for ext_name, obj_name in self.span_attributes.items()
+        }
         obj = {
             FILENAME: doc._.note_id,
             "note_id": doc._.note_id,
@@ -522,9 +531,8 @@ class OmopDoc2DictConverter:
                     "lexical_variant": ent.text,
                     "note_nlp_source_value": ent.label_,
                     **{
-                        obj_name: getattr(ent._, ext_name)
-                        for ext_name, obj_name in self.span_attributes.items()
-                        if ent._.has(ext_name)
+                        obj_name: getter(ent)
+                        for obj_name, getter in span_binding_getters.items()
                     },
                 }
                 for i, ent in enumerate(sorted(dict.fromkeys(spans)))
@@ -562,7 +570,11 @@ class EntsDoc2DictConverter:
 
     def __call__(self, doc):
         span_binding_getters = {
-            obj_name: BINDING_GETTERS["_." + ext_name]
+            obj_name: BINDING_GETTERS[
+                ("_." + ext_name)
+                if ext_name.split(".")[0] not in SPAN_BUILTIN_ATTRS
+                else ext_name
+            ]
             for ext_name, obj_name in self.span_attributes.items()
         }
         doc_attributes_values = {

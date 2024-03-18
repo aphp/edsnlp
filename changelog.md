@@ -17,6 +17,14 @@
     data.to_pandas(converters={"ents": {"span_attributes": ["sent.text", "start", "end"]}})
     ```
 - Support assigning Brat AnnotatorNotes as span attributes: `edsnlp.data.read_standoff(...,  notes_as_span_attribute="cui")`
+- Support for mapping full batches in `edsnlp.processing` pipelines with `map_batches` lazy collection method:
+    ```python
+    import edsnlp
+
+    data = edsnlp.data.from_xxx(...)
+    data = data.map_batches(lambda batch: do_something(batch))
+    data.to_pandas()
+    ```
 
 ## v0.10.7
 

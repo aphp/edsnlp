@@ -47,7 +47,7 @@ A lazy collection contains :
 - an optional `writer`: the destination of the data (e.g., a file, a database, a list of strings, etc.)
 - the execution `config`, containing the backend to use and its configuration such as the number of workers, the batch size, etc.
 
-All methods (`.map`, `.map_pipeline`, `.set_processing`) of the lazy collection are chainable, meaning that they return a new object (no in-place modification).
+All methods (`.map`, `.map_batches`, `.map_pipeline`, `.set_processing`) of the lazy collection are chainable, meaning that they return a new object (no in-place modification).
 
 For instance, the following code will load a model, read a folder of JSON files, apply the model to each document and write the result in a Parquet folder, using 4 CPUs and 2 GPUs.
 
@@ -89,6 +89,8 @@ data.write_parquet("path/to/output_folder", converter="...", write_in_worker=Tru
 ### Applying operations to a lazy collection
 
 To apply an operation to a lazy collection, you can use the `.map` method. It takes a callable as input and an optional dictionary of keyword arguments. The function will be applied to each element of the collection.
+
+To apply an operation to a lazy collection in batches, you can use the `.map_batches` method. It takes a callable as input and an optional dictionary of keyword arguments. The function will be applied to each batch of the collection (as a list of elements), and should return a list of results, that will be concatenated at the end.
 
 To apply a model, you can use the `.map_pipeline` method. It takes a model as input and will add every pipe of the model to the scheduled operations.
 

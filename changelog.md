@@ -5,6 +5,17 @@
 ### Added
 
 - Support for a `filesystem` parameter in every `edsnlp.data.read_*` and `edsnlp.data.write_*` functions
+- Support builtin Span attributes in converters `span_attributes` parameter, e.g.
+    ```python
+    import edsnlp
+
+    nlp = ...
+    nlp.add_pipe("eds.sentences")
+
+    data = edsnlp.data.from_xxx(...)
+    data = data.map_pipeline(nlp)
+    data.to_pandas(converters={"ents": {"span_attributes": ["sent.text", "start", "end"]}})
+    ```
 
 ## v0.10.7
 

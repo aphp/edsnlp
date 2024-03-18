@@ -110,6 +110,7 @@ def test_write_omop_dict(blank_nlp):
                 "end_char": 4,
                 "lexical_variant": "This",
                 "note_nlp_source_value": "test",
+                "sent.text": "This is a test.",
                 "negation": True,
             },
             {
@@ -118,6 +119,7 @@ def test_write_omop_dict(blank_nlp):
                 "end_char": 7,
                 "lexical_variant": "is",
                 "note_nlp_source_value": "test",
+                "sent.text": "This is a test.",
                 "negation": False,
             },
         ],
@@ -127,7 +129,7 @@ def test_write_omop_dict(blank_nlp):
             "omop",
             dict(
                 span_getter={"ents": True},
-                span_attributes=["negation"],
+                span_attributes=["negation", "sent.text"],
             ),
         )[0](doc)
         == json

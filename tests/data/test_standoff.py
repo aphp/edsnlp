@@ -232,9 +232,16 @@ def test_brat(
 def test_read_to_standoff(blank_nlp, tmpdir):
     input_dir = Path(__file__).parent.parent.resolve() / "resources" / "brat_data"
     output_dir = Path(tmpdir)
-    doc = list(edsnlp.data.read_standoff(input_dir, bool_attributes=["bool flag 0"]))[0]
+    doc = list(
+        edsnlp.data.read_standoff(
+            input_dir,
+            bool_attributes=["bool flag 0"],
+            notes_as_span_attribute="cui",
+        )
+    )[0]
     assert_doc_read(doc)
     doc.ents[0]._.etat = "test"
+    doc.ents[0]._.cui = "C0030193"
 
     edsnlp.data.write_standoff(
         [doc],

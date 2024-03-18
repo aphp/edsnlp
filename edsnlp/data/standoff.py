@@ -112,7 +112,7 @@ def parse_standoff_file(
                             "entity_id": ann_id,
                             "fragments": [],
                             "attributes": {},
-                            "comments": [],
+                            "notes": [],
                             "label": entity,
                         }
                         last_end = None
@@ -198,11 +198,11 @@ def parse_standoff_file(
                             raise BratParsingError(ann_file, line)
                         ann_id = match.group(1)
                         entity_id = match.group(2)
-                        comment = match.group(3)
-                        entities[entity_id]["comments"].append(
+                        note = match.group(3)
+                        entities[entity_id]["notes"].append(
                             {
-                                "comment_id": ann_id,
-                                "comment": comment,
+                                "note_id": ann_id,
+                                "value": note,
                             }
                         )
                 except Exception:
@@ -470,8 +470,17 @@ def read_standoff(
     keep_raw_attribute_values : bool
         Whether to keep the raw attribute values (as strings) or to convert them to
         Python objects (e.g. booleans).
-    bool_attributes : SequenceStr
-        List of attributes for which missing values should be set to False.
+    default_attributes : AttributesMappingArg
+        How to set attributes on spans for which no attribute value was found in the
+        input format. This is especially useful for negation, or frequent attributes
+        values (e.g. "negated" is often False, "temporal" is often "present"), that
+        annotators may not want to annotate every time.
+    notes_as_span_attribute : Optional[str]
+        If set, the AnnotatorNote annotations will be concatenated and stored in a span
+        attribute with this name.
+    split_fragments : bool
+        Whether to split the fragments into separate spans or not. If set to False, the
+        fragments will be concatenated into a single span.
     keep_ipynb_checkpoints : bool
         Whether to keep the files that are in the `.ipynb_checkpoints` directory.
     keep_txt_only_docs : bool

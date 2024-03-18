@@ -24,3 +24,4 @@ A8	assertion T11 absent
 E1	MyArg1:T3 MyArg2:T1
 E2	MyArg1:T1 MyArg2:E1
 T12	test label 0 378 386	anomalie
+#1	AnnotatorNotes T1	C0030193

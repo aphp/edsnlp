@@ -48,13 +48,9 @@ class PyCodePreprocessor(FencedBlockPreprocessor):
 
     def run(self, lines):
         text = "\n".join(lines)
-        if 'nlp.add_pipe(f"eds.aids")' in text:
-            print("TEXT", text)
         while True:
             # ----  https://github.com/Python-Markdown/markdown/blob/5a2fee/markdown/extensions/fenced_code.py#L84C9-L98  # noqa: E501
             m = self.FENCED_BLOCK_RE.search(text)
-            if 'nlp.add_pipe(f"eds.aids")' in text:
-                print("CODE ==>", m.group("code") if m else None)
             if m:
                 lang, id, classes, config = None, "", [], {}
                 if m.group("attrs"):
@@ -155,4 +151,7 @@ def extract_docs_code():
 
     docs_code_blocks = plugin.docs_code_blocks
     # Deduplicate both keys and values
-    return {k: v for v, k in {v: k for k, v in docs_code_blocks}.items()}
+    return {
+        k: v
+        for v, k in {v: k for k, v in docs_code_blocks if "changelog" not in k}.items()
+    }

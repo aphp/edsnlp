@@ -729,11 +729,15 @@ class Pipeline:
 
         path = Path(path) if isinstance(path, str) else path
 
-        if os.path.exists(path) and not os.path.exists(path / "config.cfg"):
+        if (
+            os.path.exists(path)
+            and os.listdir(path)
+            and not os.path.exists(path / "config.cfg")
+        ):
             raise Exception(
                 "The directory already exists and doesn't appear to be a"
-                "saved pipeline. Please erase it manually or choose a "
-                "different directory."
+                "saved pipeline (missing config.cfg). Please erase it manually or "
+                "choose a different directory."
             )
         shutil.rmtree(path, ignore_errors=True)
         os.makedirs(path, exist_ok=True)

@@ -1,3 +1,4 @@
+import os
 from io import BytesIO
 
 import pytest
@@ -73,6 +74,8 @@ def test_disk_serialization(tmp_path, ml_nlp):
     assert nlp.get_pipe("transformer").stride == 96
     ner = nlp.get_pipe("ner")
     ner.update_labels(["PERSON", "GIFT"])
+
+    os.makedirs(tmp_path / "model", exist_ok=True)
     nlp.to_disk(tmp_path / "model")
 
     print("tmp_path", tmp_path, list((tmp_path / "model/transformer").iterdir()))

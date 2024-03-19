@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 import pandas as pd
@@ -7,6 +8,8 @@ from helpers import make_nlp
 from pytest import fixture
 
 import edsnlp
+
+logging.basicConfig(level=logging.INFO)
 
 
 @fixture(scope="session", params=["eds", "fr"])

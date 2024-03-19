@@ -30,6 +30,7 @@
 ### Changed
 
 - `nlp.preprocess_many` now uses lazy collections to enable parallel processing
+- :warning: Breaking change. Improved and simplified `eds.span_qualifier`: we didn't support combination groups before, so this feature was scrapped for now. We now also support splitting values of a single qualifier between different span labels.
 
 ### Fixed
 

@@ -84,12 +84,18 @@ def make_binding_setter(binding: Binding):
     Callable[[Span]]
         The qualifier setter
     """
-    path, value = binding
-    _check_path(path)
-    fn_string = f"""def fn(span): span.{path} = value"""
-    loc = {"value": value}
-    exec(fn_string, loc, loc)
-    return loc["fn"]
+    if isinstance(binding, tuple):
+        path, value = binding
+        path = _check_path(path)
+        fn_string = f"""def setter(span): span{path} = value"""
+        ctx = {"value": value}
+        exec(fn_string, ctx, ctx)
+    else:
+        path = _check_path(binding)
+        fn_string = f"""def setter(span, value): span{path} = value"""
+        ctx = {}
+        exec(fn_string, ctx, ctx)
+    return ctx["setter"]
 
 
 K = TypeVar("K")
@@ -109,7 +115,7 @@ class keydefaultdict(dict):
 BINDING_GETTERS = keydefaultdict(make_binding_getter)
 BINDING_SETTERS = keydefaultdict(make_binding_setter)
 
-Qualifiers = Union[SeqStr, Dict[str, SpanFilter]]
+Qualifiers = Dict[str, SpanFilter]
 
 
 def validate_qualifiers(value: Union[SeqStr, Dict[str, SpanFilter]]) -> Qualifiers:

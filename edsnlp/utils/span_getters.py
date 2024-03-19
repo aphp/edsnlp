@@ -17,8 +17,9 @@ from typing_extensions import Literal
 
 from edsnlp import registry
 from edsnlp.utils.filter import filter_spans
+from edsnlp.utils.typing import AsList
 
-SeqStr = Union[str, Sequence[str]]
+SeqStr = AsList[str]
 SpanFilter = Union[bool, SeqStr]
 
 SpanSetterMapping = Dict[str, SpanFilter]

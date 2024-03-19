@@ -47,7 +47,7 @@ def gold():
 
 
 @pytest.mark.parametrize("with_constraints_and_not_none", [True, False])
-def test_span_qualifier(gold, with_constraints_and_not_none):
+def test_span_qualifier(gold, with_constraints_and_not_none, tmp_path):
     import torch
 
     nlp = edsnlp.blank("eds")
@@ -69,7 +69,7 @@ def test_span_qualifier(gold, with_constraints_and_not_none):
                 "embedding": nlp.get_pipe("transformer"),
                 "span_getter": ["ents", "sc"],
             },
-            "qualifiers": {"_.event_type": ("event",), "_.test_negated": True}
+            "qualifiers": {"_.test_negated": True, "_.event_type": ("event",)}
             if with_constraints_and_not_none
             else ["_.test_negated", "_.event_type"],
             "keep_none": not with_constraints_and_not_none,
@@ -82,21 +82,16 @@ def test_span_qualifier(gold, with_constraints_and_not_none):
     else:
         assert qlf.qualifiers == {"_.event_type": True, "_.test_negated": True}
     if with_constraints_and_not_none:
-        qlf.classifier.bias.data += torch.tensor([0, 1000, 1000, 0])
+        qlf.classifier.bias.data[:] = torch.tensor([0, 1000, 1000, 0])
         assert qlf.bindings == [
-            ("_.test_negated", False),
-            ("_.test_negated", True),
-            ("_.event_type", "start"),
-            ("_.event_type", "stop"),
+            ("_.test_negated", True, [False, True]),
+            ("_.event_type", ["event"], ["start", "stop"]),
         ]
     else:
-        qlf.classifier.bias.data += torch.tensor([0, 1000, 0, 1000, 0])
+        qlf.classifier.bias.data[:] = torch.tensor([0, 1000, 0, 1000, 0])
         assert qlf.bindings == [
-            ("_.test_negated", False),
-            ("_.test_negated", True),
-            ("_.event_type", None),
-            ("_.event_type", "start"),
-            ("_.event_type", "stop"),
+            ("_.test_negated", True, [False, True]),
+            ("_.event_type", True, [None, "start", "stop"]),
         ]
 
     pred = qlf.pipe([doc.copy() for doc in gold])
@@ -108,3 +103,26 @@ def test_span_qualifier(gold, with_constraints_and_not_none):
                     assert ent._.event_type == "start"
                 else:
                     assert ent._.event_type is None
+
+    with pytest.warns(UserWarning) as record:
+        qlf.update_bindings(
+            [
+                ("_.test_negated", True, [False, True]),
+                ("_.event_type", True, ["start", "stop"]),
+                ("_.new_qualifier", True, ["test", "toast"]),
+            ]
+        )
+    assert len(record) == 1
+    assert record[0].message.args[0] == (
+        "Added 2 new bindings. Consider retraining the model to learn these new "
+        "bindings."
+    )
+
+    qlf.qualifiers = {"_.test_negated": True}
+    assert qlf.bindings == [
+        ("_.test_negated", True, [False, True]),
+    ]
+
+    nlp.to_disk(tmp_path / "model")
+    nlp = edsnlp.load(tmp_path / "model")
+    assert nlp.pipes.qualifier.classifier.bias.data.tolist() == [0, 1000]

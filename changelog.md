@@ -35,6 +35,7 @@
 ### Fixed
 
 - Flatten list outputs (such as "ents" converter) when iterating: `nlp.map(data).to_iterable("ents")` is now a list of entities, and not a list of lists of entities
+- Allow span pooler to choose between multiple base embedding spans (as likely produced by `eds.transformer`) by sorting them by Dice overlap score.
 
 ## v0.10.7
 

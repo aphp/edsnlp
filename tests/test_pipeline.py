@@ -305,7 +305,7 @@ def test_torch_save(ml_nlp):
 
 
 def test_parameters(frozen_ml_nlp):
-    assert len(list(frozen_ml_nlp.parameters())) == 40
+    assert len(list(frozen_ml_nlp.parameters())) == 42
 
 
 def test_missing_factory(nlp):

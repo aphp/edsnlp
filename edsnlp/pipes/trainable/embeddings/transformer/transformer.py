@@ -134,7 +134,6 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         super().__init__(nlp, name)
         self.transformer = AutoModel.from_pretrained(
             model,
-            add_pooling_layer=False,
             quantization_config=quantization,
             **kwargs,
         )

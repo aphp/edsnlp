@@ -232,8 +232,8 @@ def span_f1(a: Span, b: Span) -> float:
 
 
 def align_spans(
-    source: Sequence[Span],
-    target: Sequence[Span],
+    source_spans: Sequence[Span],
+    target_spans: Sequence[Span],
     sort_by_overlap: bool = False,
 ) -> List[List[Span]]:
     """
@@ -242,9 +242,9 @@ def align_spans(
 
     Parameters
     ----------
-    source : List[Span]
+    source_spans : List[Span]
         List of spans to align.
-    target : List[Span]
+    target_spans : List[Span]
         List of spans to align.
     sort_by_overlap : bool
         Whether to sort the aligned spans by maximum dice/f1 overlap
@@ -255,17 +255,22 @@ def align_spans(
     List[List[Span]]
         Subset of `source` spans for each target span
     """
-    source = sorted(source, key=lambda x: (x.start, x.end))
-    targets_with_idx = sorted(enumerate(target), key=lambda x: (x[1].start, x[1].end))
+    source_spans = sorted(source_spans, key=lambda x: (x.start, x.end))
+    targets_with_idx = sorted(
+        enumerate(target_spans), key=lambda x: (x[1].start, x[1].end)
+    )
 
-    aligned = [set() for _ in target]
+    aligned = [set() for _ in target_spans]
     source_idx = 0
     for target_idx, target in targets_with_idx:
-        while source_idx < len(source) and source[source_idx].end <= target.start:
+        while (
+            source_idx < len(source_spans)
+            and source_spans[source_idx].end <= target.start
+        ):
             source_idx += 1
         i = source_idx
-        while i < len(source) and source[i].start < target.end:
-            aligned[target_idx].add(source[i])
+        while i < len(source_spans) and source_spans[i].start < target.end:
+            aligned[target_idx].add(source_spans[i])
             i += 1
 
     aligned = [list(span_set) for span_set in aligned]
@@ -273,8 +278,10 @@ def align_spans(
     # Sort the aligned spans by maximum dice/f1 overlap with the target span
     if sort_by_overlap:
         aligned = [
-            sorted(span_set, key=lambda x: span_f1(x, y), reverse=True)
-            for span_set, (_, y) in zip(aligned, targets_with_idx)
+            sorted(
+                aligned_span_set, key=lambda x: span_f1(x, target_span), reverse=True
+            )
+            for aligned_span_set, target_span in zip(aligned, target_spans)
         ]
 
     return aligned

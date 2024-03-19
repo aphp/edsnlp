@@ -51,7 +51,7 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
     Parameters
     ----------
     nlp: PipelineProtocol
-        Spacy vocabulary
+        The pipeline object
     name: str
         Name of the component
     embedding : WordEmbeddingComponent
@@ -81,6 +81,9 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         self.span_getter = span_getter
         self.embedding = embedding
 
+    def feed_forward(self, span_embeds: torch.Tensor) -> torch.Tensor:
+        return span_embeds
+
     def set_extensions(self):
         super().set_extensions()
 
@@ -97,12 +100,16 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
 
         embedded_spans_to_idx = {span: i for i, span in enumerate(embedded_spans)}
         for i, (span, embedding_spans) in enumerate(
-            zip(spans, align_spans(embedded_spans, spans))
+            zip(spans, align_spans(embedded_spans, spans, sort_by_overlap=True))
         ):
-            if len(embedding_spans) != 1:
+            if (
+                len(embedding_spans) == 0
+                or embedding_spans[0].start > span.start
+                or embedding_spans[0].end < span.end
+            ):
                 raise Exception(
-                    f"Span {span.text!r} is not aligned to exactly one embedding span: "
-                    f"{[s.text for s in embedding_spans]}"
+                    f"Span {span.text!r} is not included in at least one embedding "
+                    f"span: {[s.text for s in embedding_spans]}"
                 )
             start = embedding_spans[0].start
             sequence_idx.append(embedded_spans_to_idx[embedding_spans[0]])
@@ -178,6 +185,7 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
             offsets=offsets,
             mode=self.pooling_mode,
         )
+        span_embeds = self.feed_forward(span_embeds)
 
         return {
             "embeddings": span_embeds,

@@ -363,8 +363,8 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         for embedded_span, target_ents in zip(
             embedded_spans,
             align_spans(
-                source=list(self.get_target_spans(doc)),
-                target=embedded_spans,
+                list(self.get_target_spans(doc)),
+                embedded_spans,
             ),
         ):
             span_tags = [[0] * len(self.labels) for _ in range(len(embedded_span))]

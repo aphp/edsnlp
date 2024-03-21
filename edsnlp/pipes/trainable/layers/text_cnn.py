@@ -1,20 +1,14 @@
-from enum import Enum
 from typing import Optional, Sequence
 
 import torch
 import torch.nn.functional as F
+from typing_extensions import Literal
 
 from edsnlp.utils.torch import ActivationFunction, get_activation_function
 
 
-class NormalizationPlacement(str, Enum):
-    pre = "pre"
-    post = "post"
-    none = "none"
-
-
 class Residual(torch.nn.Module):
-    def __init__(self, normalize: NormalizationPlacement = "pre"):
+    def __init__(self, normalize: Literal["pre", "post", "none"] = "pre"):
         super().__init__()
         self.normalize = normalize
 
@@ -37,7 +31,7 @@ class TextCnn(torch.nn.Module):
         kernel_sizes: Sequence[int] = (3, 4, 5),
         activation: ActivationFunction = "relu",
         residual: bool = True,
-        normalize: NormalizationPlacement = "pre",
+        normalize: Literal["pre", "post", "none"] = "pre",
     ):
         """
         Parameters
@@ -55,7 +49,7 @@ class TextCnn(torch.nn.Module):
             Activation function to use
         residual: bool
             Whether to use residual connections
-        normalize: NormalizationPlacement
+        normalize: Literal["pre", "post", "none"]
             Whether to normalize before or after the residual connection
         """
         super().__init__()

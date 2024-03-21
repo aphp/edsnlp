@@ -1,14 +1,14 @@
 from typing import Optional, Sequence
 
 import torch
-from typing_extensions import TypedDict
+from typing_extensions import Literal, TypedDict
 
 from edsnlp.core.torch_component import BatchInput
 from edsnlp.pipes.trainable.embeddings.typing import (
     WordEmbeddingBatchOutput,
     WordEmbeddingComponent,
 )
-from edsnlp.pipes.trainable.layers.text_cnn import NormalizationPlacement, TextCnn
+from edsnlp.pipes.trainable.layers.text_cnn import TextCnn
 from edsnlp.utils.torch import ActivationFunction
 
 TextCnnBatchInput = TypedDict(
@@ -44,7 +44,7 @@ class TextCnnEncoder(WordEmbeddingComponent):
         Activation function to use
     residual : bool
         Whether to use residual connections
-    normalize : NormalizationPlacement
+    normalize : Literal["pre", "post", "none"]
         Whether to normalize before or after the residual connection
     """
 
@@ -58,7 +58,7 @@ class TextCnnEncoder(WordEmbeddingComponent):
         kernel_sizes: Sequence[int] = (3, 4, 5),
         activation: ActivationFunction = "relu",
         residual: bool = True,
-        normalize: NormalizationPlacement = "pre",
+        normalize: Literal["pre", "post", "none"] = "pre",
     ):
         super().__init__(nlp, name)
         self.embedding = embedding

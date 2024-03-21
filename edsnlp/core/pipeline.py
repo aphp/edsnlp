@@ -46,6 +46,7 @@ from ..utils.collections import (
     decompress_dict,
     multi_tee,
 )
+from ..utils.typing import AsList
 from .lazy_collection import LazyCollection
 
 if TYPE_CHECKING:
@@ -912,7 +913,7 @@ class Pipeline:
         project_type: Optional[Literal["poetry", "setuptools"]] = None,
         version: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = {},
-        distributions: Optional[Sequence[Literal["wheel", "sdist"]]] = ["wheel"],
+        distributions: Optional[AsList[Literal["wheel", "sdist"]]] = ["wheel"],
         config_settings: Optional[Mapping[str, Union[str, Sequence[str]]]] = None,
         isolation: bool = True,
         skip_build_dependency_check: bool = False,

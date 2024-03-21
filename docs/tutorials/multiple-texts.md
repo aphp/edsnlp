@@ -279,6 +279,10 @@ The result on the first note:
 
 ### Locally, using multiple parallel workers
 
+!!! warning "Caveat"
+
+    Since workers can produce their results in any order, the order of the rows in the resulting DataFrame may not be the same as the order of the input data.
+
 ```{ .python hl_lines="8" }
 # Read from a dataframe & use the omop converter
 docs = edsnlp.data.from_pandas(data, converter="omop")

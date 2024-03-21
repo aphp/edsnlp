@@ -680,6 +680,11 @@ def execute_multiprocessing_backend(
         <img src="/assets/images/model-parallelism.png" />
     </div>
 
+    !!! warning "Caveat"
+
+        Since workers can produce their results in any order, the order of the results
+        may not be the same as the order of the input tasks.
+
     """
     try:
         TorchComponent = sys.modules["edsnlp.core.torch_component"].TorchComponent

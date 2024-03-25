@@ -40,7 +40,7 @@ class PolarsReader(BaseReader):
 @registry.readers.register("polars")
 def from_polars(
     data: Union[pl.DataFrame, pl.LazyFrame],
-    converter: Union[str, Callable],
+    converter: Optional[Union[str, Callable]] = None,
     **kwargs,
 ) -> LazyCollection:
     """

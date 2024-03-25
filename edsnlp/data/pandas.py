@@ -38,7 +38,7 @@ class PandasReader(BaseReader):
 @registry.readers.register("pandas")
 def from_pandas(
     data,
-    converter: Union[str, Callable],
+    converter: Optional[Union[str, Callable]] = None,
     **kwargs,
 ) -> LazyCollection:
     """

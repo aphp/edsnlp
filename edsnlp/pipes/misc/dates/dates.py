@@ -1,4 +1,5 @@
 """`eds.dates` pipeline."""
+
 import warnings
 from itertools import chain
 from typing import Dict, Iterable, List, Optional, Tuple, Union
@@ -153,6 +154,8 @@ class DatesMatcher(BaseNERComponent):
         Label to use for periods
     span_setter : SpanSetterArg
         How to set matches in the doc.
+    explain : bool
+        Whether to keep track of regex cues for each entity.
 
     Authors and citation
     --------------------
@@ -185,10 +188,12 @@ class DatesMatcher(BaseNERComponent):
             "durations": ["duration"],
             "periods": ["period"],
         },
+        explain: bool = False,
     ):
         self.date_label = date_label
         self.duration_label = duration_label
         self.period_label = period_label
+        self.explain = explain
 
         # Backward compatibility
         if as_ents is True:
@@ -280,6 +285,9 @@ class DatesMatcher(BaseNERComponent):
 
         if not Span.has_extension(self.period_label):
             Span.set_extension(self.period_label, default=None)
+
+        if not Span.has_extension("date_cues"):
+            Span.set_extension("date_cues", default=None)
 
     def process(self, doc: Doc) -> List[Tuple[Span, Dict[str, str]]]:
         """
@@ -383,6 +391,9 @@ class DatesMatcher(BaseNERComponent):
                 parsed = Duration.parse_obj(date_cfg)
                 span.label_ = self.duration_label
                 span._.duration = parsed
+
+            if self.explain:
+                span._.date_cues = groupdict
 
         return [span for span, _ in matches]
 

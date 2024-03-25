@@ -2,8 +2,8 @@ from pytest import fixture
 from spacy.tokens import Span
 
 import edsnlp
-from edsnlp.pipelines.trainable.embeddings.transformer.transformer import Transformer
-from edsnlp.pipelines.trainable.span_qualifier.span_qualifier import (
+from edsnlp.pipes.trainable.embeddings.transformer.transformer import Transformer
+from edsnlp.pipes.trainable.span_qualifier.span_qualifier import (
     TrainableSpanQualifier,
 )
 
@@ -62,8 +62,7 @@ def test_span_getter(gold):
     trf: Transformer = nlp.get_pipe("transformer")
     qlf: TrainableSpanQualifier = nlp.get_pipe("qualifier")
     qlf.post_init(gold, set())
-    prep = qlf.make_batch([doc.copy() for doc in gold], supervision=True)
-    batch = qlf.collate(prep)
+    batch = qlf.prepare_batch([doc.copy() for doc in gold], supervision=True)
     input_ids = batch["embedding"]["embedding"]["input_ids"]
     mask = batch["embedding"]["embedding"]["input_mask"]
     tok = trf.tokenizer

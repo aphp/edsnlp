@@ -26,6 +26,7 @@
     data = data.map_batches(lambda batch: do_something(batch))
     data.to_pandas()
     ```
+- New `data.map_gpu` method to map a deep learning operation on some data and take advantage of edsnlp multi-gpu inference capabilities
 
 ### Changed
 

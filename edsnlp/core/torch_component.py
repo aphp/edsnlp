@@ -312,7 +312,7 @@ class TorchComponent(
         """
         return {
             name: (
-                value.to(device)
+                (value.to(device) if device is not None else value)
                 if hasattr(value, "to")
                 else getattr(self, name).batch_to_device(value, device=device)
                 if hasattr(self, name)
@@ -344,11 +344,12 @@ class TorchComponent(
         """
         return torch.nn.Module.__call__(self, *args, **kwargs)
 
-    def make_batch(
+    def prepare_batch(
         self,
         docs: Sequence[Doc],
         supervision: bool = False,
-    ) -> Dict[str, Sequence[Any]]:
+        device: Optional[Union[str, torch.device]] = None,
+    ) -> BatchInput:
         """
         Convenience method to preprocess a batch of documents and collate them
         Features corresponding to the same path are grouped together in a list,
@@ -360,6 +361,8 @@ class TorchComponent(
             Batch of documents
         supervision: bool
             Whether to extract supervision features or not
+        device: Optional[Union[str, torch.device]]
+            Device to move the tensors to
 
         Returns
         -------
@@ -369,7 +372,10 @@ class TorchComponent(
             (self.preprocess_supervised(doc) if supervision else self.preprocess(doc))
             for doc in docs
         ]
-        return decompress_dict(list(batch_compress_dict(batch)))
+        batch = decompress_dict(list(batch_compress_dict(batch)))
+        batch = self.collate(batch)
+        batch = self.batch_to_device(batch, device=device)
+        return batch
 
     def batch_process(self, docs: Sequence[Doc]) -> Sequence[Doc]:
         """
@@ -389,13 +395,11 @@ class TorchComponent(
         """
         device = next((p.device for p in self.parameters()), "cpu")
         with torch.no_grad():
-            batch = self.make_batch(docs)
-            inputs = self.collate(batch)
-            inputs = self.batch_to_device(inputs, device=device)
+            batch = self.prepare_batch(docs, device)
             if hasattr(self, "compiled"):
-                res = self.compiled(inputs)
+                res = self.compiled(batch)
             else:
-                res = self.module_forward(inputs)
+                res = self.module_forward(batch)
             docs = self.postprocess(docs, res)
             return docs
 

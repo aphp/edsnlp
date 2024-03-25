@@ -486,23 +486,26 @@ class CPUWorker:
                         pipe.enable_cache(batch_id)
                 if stage > 0:
                     gpu_pipe = stages[stage - 1]["gpu_component"]
-                    docs = gpu_pipe.postprocess(docs, result)  # type: ignore
+                    docs = (
+                        gpu_pipe.postprocess(docs, result)
+                        if hasattr(gpu_pipe, "postprocess")
+                        else result
+                    )
 
                 docs = apply_basic_pipes(docs, stages[stage]["cpu_components"])
 
                 gpu_pipe: "TorchComponent" = stages[stage]["gpu_component"]
                 if gpu_pipe is not None:
-                    preprocessed = gpu_pipe.make_batch(docs)  # type: ignore
                     active_batches[batch_id] = (docs, task_id)
                     if gpu_idx is None:
                         gpu_idx = batch_id % len(self.exchanger.gpu_worker_devices)
-                    collated = gpu_pipe.collate(preprocessed)
-                    collated = gpu_pipe.batch_to_device(
-                        collated,
-                        device=self.exchanger.gpu_worker_devices[gpu_idx],
-                    )
+                    device = self.exchanger.gpu_worker_devices[gpu_idx]
                     self.exchanger.put_gpu(
-                        item=(self.cpu_idx, batch_id, collated),
+                        item=(
+                            self.cpu_idx,
+                            batch_id,
+                            gpu_pipe.prepare_batch(docs, device=device),
+                        ),
                         idx=gpu_idx,
                         stage=stage,
                     )
@@ -699,7 +702,11 @@ def execute_multiprocessing_backend(
 
     # Infer which pipes should be accelerated on GPU
     gpu_steps_candidates = (
-        [name for name, component, *_ in steps if isinstance(component, TorchComponent)]
+        [
+            name
+            for name, pipe, *_ in steps
+            if hasattr(pipe, "module_forward") and hasattr(pipe, "prepare_batch")
+        ]
         if TorchComponent is not None
         else []
     )

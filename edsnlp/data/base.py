@@ -130,7 +130,7 @@ def from_iterable(
     -------
     LazyCollection
     """
-    data = LazyCollection(reader=IterableReader(data))
+    data = LazyCollection.ensure_lazy(data)
     if converter:
         converter, kwargs = get_dict2doc_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)

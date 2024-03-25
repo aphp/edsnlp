@@ -51,3 +51,43 @@ def test_map_gpu(num_gpu_workers):
     res = ld_to_dl(lazy)
     res = torch.cat(res["outputs"])
     assert torch.all(res == torch.tensor([4, 6, 8, 10, 12]))
+
+
+@pytest.mark.parametrize("num_cpu_workers", [1, 2])
+@pytest.mark.parametrize(
+    "batch_by,expected",
+    [
+        ("words", [3, 1, 3, 1, 3, 1]),
+        ("padded_words", [2, 1, 1, 2, 1, 1, 2, 1, 1]),
+        ("docs", [10, 2]),
+        ("ents", [3, 2, 3, 3, 1]),
+    ],
+)
+def test_map_with_batching(num_cpu_workers, batch_by, expected):
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(
+        "eds.matcher",
+        config={
+            "terms": {
+                "foo": ["This", "is", "a", "sentence", ".", "Short", "snippet", "too"],
+            }
+        },
+        name="matcher",
+    )
+    samples = [
+        "This is a sentence.",
+        "Short snippet",
+        "Short snippet too",
+        "This is a very very long sentence that will make more than 10 words",
+    ] * 3
+    lazy = edsnlp.data.from_iterable(samples)
+    lazy = lazy.map_pipeline(nlp)
+    lazy = lazy.map_batches(len)
+    lazy = lazy.set_processing(
+        num_cpu_workers=num_cpu_workers,
+        batch_size=10,
+        batch_by=batch_by,
+        chunk_size=1000,
+        split_into_batches_after="matcher",
+    )
+    assert list(lazy) == expected

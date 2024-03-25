@@ -5,17 +5,11 @@ from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
 from edsnlp.data.converters import set_current_tokenizer
+from edsnlp.utils.batching import batchify_fns
 from edsnlp.utils.collections import batchify, flatten
 
 if TYPE_CHECKING:
     from edsnlp.core.lazy_collection import LazyCollection
-
-
-batch_size_fns = {
-    "words": lambda batch: sum(len(doc) for doc in batch),
-    "padded_words": lambda batch: max(len(doc) for doc in batch) * len(batch),
-    "docs": len,
-}
 
 doc_size_fns = {
     "words": len,
@@ -48,11 +42,11 @@ def execute_simple_backend(
     show_progress = lc.show_progress
 
     split_into_batches_after = lc.split_into_batches_after
-    if split_into_batches_after is None or lc.batch_by != "docs" or lc.sort_chunks:
+    if split_into_batches_after is None and (lc.batch_by != "docs" or lc.sort_chunks):
         split_into_batches_after = next(
-            (p[0] for p in lc.pipeline if p[0] is not None), None
+            (s[0] for s in lc.pipeline if s[0] == "_ensure_doc"), None
         )
-    names = [step[0] for step in lc.pipeline] + [None]
+    names = [None] + [step[0] for step in lc.pipeline]
     chunk_components = lc.pipeline[: names.index(split_into_batches_after)]
     batch_components = lc.pipeline[names.index(split_into_batches_after) :]
 
@@ -77,16 +71,8 @@ def execute_simple_backend(
                 if lc.sort_chunks:
                     docs.sort(key=doc_size_fns.get(lc.sort_chunks, len))
 
-                batches = [
-                    batch
-                    for batch in batchify(
-                        docs,
-                        batch_size=lc.batch_size,
-                        formula=batch_size_fns.get(lc.batch_by, len),
-                    )
-                ]
-
-                for batch in batches:
+                for batch in batchify_fns[lc.batch_by](docs, lc.batch_size):
+                    count = len(batch)
                     with no_grad(), lc.cache():
                         batch = apply_basic_pipes(batch, batch_components)
 
@@ -97,7 +83,7 @@ def execute_simple_backend(
                         yield result
                     else:
                         if show_progress:
-                            bar.update(len(batch))
+                            bar.update(count)
                         yield batch
             if writer is not None:
                 result, count = writer.finalize()

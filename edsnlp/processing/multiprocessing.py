@@ -29,13 +29,8 @@ from typing_extensions import TypedDict
 
 from edsnlp.core.lazy_collection import LazyCollection
 from edsnlp.data.converters import set_current_tokenizer
+from edsnlp.utils.batching import batchify_fns, batchify_with_counts
 from edsnlp.utils.collections import batchify, flatten
-
-batch_size_fns = {
-    "words": lambda batch: sum(len(doc) for doc in batch),
-    "padded_words": lambda batch: max(len(doc) for doc in batch) * len(batch),
-    "docs": len,
-}
 
 doc_size_fns = {
     "words": len,
@@ -162,6 +157,12 @@ debug = (
     if DEBUG
     else lambda *args, **kwargs: None
 )
+
+if os.environ.get("TORCH_SHARING_STRATEGY"):
+    try:
+        torch.multiprocessing.set_sharing_strategy(os.environ["TORCH_SHARING_STRATEGY"])
+    except NameError:
+        pass
 
 try:
     import torch
@@ -352,10 +353,9 @@ class CPUWorker:
 
                 batches = [
                     batch
-                    for batch in batchify(
+                    for batch in batchify_fns[lc.batch_by](
                         docs,
                         batch_size=lc.batch_size,
-                        formula=batch_size_fns[lc.batch_by],
                     )
                 ]
 
@@ -446,13 +446,11 @@ class CPUWorker:
             preprocess_pipes = []
             num_cpu = self.exchanger.num_cpu_workers
             split_into_batches_after = lc.split_into_batches_after
-            if (
-                split_into_batches_after is None
-                or lc.batch_by != "docs"
-                or lc.sort_chunks
+            if split_into_batches_after is None and (
+                lc.batch_by != "docs" or lc.sort_chunks
             ):
                 split_into_batches_after = next(
-                    (p[0] for p in lc.pipeline if p[0] is not None), None
+                    (s[0] for s in lc.pipeline if s[0] == "_ensure_doc"), None
                 )
             is_before_split = split_into_batches_after is not None
 
@@ -481,6 +479,7 @@ class CPUWorker:
 
             for stage, (gpu_idx, batch_id, result) in read_tasks():
                 docs, task_id = active_batches.pop(batch_id)
+                count = len(docs)
                 for name, pipe, *rest in lc.pipeline:
                     if hasattr(pipe, "enable_cache"):
                         pipe.enable_cache(batch_id)
@@ -488,7 +487,7 @@ class CPUWorker:
                     gpu_pipe = stages[stage - 1]["gpu_component"]
                     docs = (
                         gpu_pipe.postprocess(docs, result)
-                        if hasattr(gpu_pipe, "postprocess")
+                        if getattr(gpu_pipe, "postprocess", None) is not None
                         else result
                     )
 
@@ -516,7 +515,7 @@ class CPUWorker:
                     results, count = (
                         lc.writer.write_worker(docs)
                         if lc.writer is not None
-                        else (docs, len(docs))
+                        else (docs, count)
                     )
                     self.exchanger.put_results(
                         (
@@ -588,7 +587,7 @@ class GPUWorker:
             # Inform the main process that we are ready
             self.exchanger.put_results((None, 0, None, None))
 
-            with torch.no_grad():
+            with torch.no_grad():  # , torch.cuda.amp.autocast():
                 while True:
                     stage, task = self.exchanger.get_gpu_task(self.gpu_idx)
                     if task is None:
@@ -689,11 +688,6 @@ def execute_multiprocessing_backend(
         may not be the same as the order of the input tasks.
 
     """
-    try:
-        TorchComponent = sys.modules["edsnlp.core.torch_component"].TorchComponent
-    except (KeyError, AttributeError):  # pragma: no cover
-        TorchComponent = None
-
     steps = lc.pipeline
     num_cpu_workers = lc.num_cpu_workers
     num_gpu_workers = lc.num_gpu_workers
@@ -701,15 +695,11 @@ def execute_multiprocessing_backend(
     process_start_method = lc.process_start_method
 
     # Infer which pipes should be accelerated on GPU
-    gpu_steps_candidates = (
-        [
-            name
-            for name, pipe, *_ in steps
-            if hasattr(pipe, "module_forward") and hasattr(pipe, "prepare_batch")
-        ]
-        if TorchComponent is not None
-        else []
-    )
+    gpu_steps_candidates = [
+        name
+        for name, pipe, *_ in steps
+        if hasattr(pipe, "module_forward") and hasattr(pipe, "prepare_batch")
+    ]
     gpu_pipe_names = (
         gpu_steps_candidates if lc.gpu_pipe_names is None else lc.gpu_pipe_names
     )
@@ -745,6 +735,16 @@ def execute_multiprocessing_backend(
             num_gpu_workers = num_devices
     else:
         num_gpu_workers = 0
+
+    if "torch" in sys.modules:
+        try:
+            import torch.multiprocessing
+
+            os.environ[
+                "TORCH_SHARING_STRATEGY"
+            ] = torch.multiprocessing.get_sharing_strategy()
+        except ImportError:  # pragma: no cover
+            pass
 
     if any(gpu_steps_candidates):
         if process_start_method == "fork":
@@ -806,7 +806,7 @@ def execute_multiprocessing_backend(
         gpu_worker_devices=gpu_worker_devices,
     )
 
-    lc = lc.to("cpu")
+    # lc = lc.to("cpu")
 
     cpu_workers = []
     gpu_workers = []
@@ -900,17 +900,9 @@ def execute_multiprocessing_backend(
     def process():
         try:
             with bar, lc.eval():
-                for input_task_id, items in enumerate(
-                    batchify(
-                        iterable=inputs_iterator,
-                        batch_size=lc.chunk_size,
-                        drop_last=False,
-                        formula=lambda x: sum(item[1] for item in x),
-                    )
+                for input_task_id, (batch, batch_size) in enumerate(
+                    batchify_with_counts(inputs_iterator, lc.chunk_size)
                 ):
-                    batch = [item[0] for item in items]
-                    batch_size = sum(item[1] for item in items)
-
                     while all(sum(wl.values()) >= max_workload for wl in active_chunks):
                         yield from get_and_process_output()
 

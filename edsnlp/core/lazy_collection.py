@@ -98,7 +98,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
 
     @property
     def split_into_batches_after(self):
-        return self.config.get("split_into_batches_after")
+        return self.config.get("split_into_batches_after", None)
 
     @property
     def chunk_size(self):
@@ -272,6 +272,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
         -------
         LazyCollection
         """
+        name = name or f"{repr(pipe)}-{id(kwargs)}"
         return LazyCollection(
             reader=self.reader,
             writer=self.writer,

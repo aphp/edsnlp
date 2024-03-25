@@ -3,7 +3,6 @@ import itertools
 from collections import defaultdict
 from typing import (
     Any,
-    Callable,
     Dict,
     Iterable,
     Iterator,
@@ -161,7 +160,6 @@ def batchify(
     iterable: Iterable[T],
     batch_size: int,
     drop_last: bool = False,
-    formula: Callable = len,
 ) -> Iterable[List[T]]:
     """
     Yields batch that contain at most `batch_size` elements.
@@ -172,11 +170,11 @@ def batchify(
     ----------
     iterable
     batch_size
+    drop_last
     """
     batch = []
     for item in iterable:
-        next_size = formula(batch + [item])
-        if next_size > batch_size and len(batch) > 0:
+        if len(batch) >= batch_size:
             yield batch
             batch = []
         batch.append(item)

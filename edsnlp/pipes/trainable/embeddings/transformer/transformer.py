@@ -351,7 +351,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                 free_mem = total_mem - allocated_mem
 
                 if self._mem_per_unit is not None:
-                    max_tokens = int(free_mem // self._mem_per_unit)
+                    max_tokens = max(1, int(free_mem // self._mem_per_unit))
             else:
                 max_tokens = (
                     self.max_tokens_per_device
@@ -393,7 +393,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                         f"Out of memory: tried to fit {max_windows} "
                         f"in {free_mem / (1024 ** 3)} (try n°{trial_idx}/2)"
                     )
-                    torch.cuda.empty_cache(device)
+                    torch.cuda.empty_cache()
                     self._mem_per_unit = (free_mem / max_windows) * 1.5
                     trial_idx += 1
                     continue

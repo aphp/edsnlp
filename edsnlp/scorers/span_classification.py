@@ -4,7 +4,7 @@ from typing import Any, Dict, Iterable
 from spacy.training import Example
 
 from edsnlp import registry
-from edsnlp.scorers import make_examples, prf
+from edsnlp.scorers import average_precision, make_examples, prf
 from edsnlp.utils.bindings import BINDING_GETTERS, Qualifiers, QualifiersArg
 from edsnlp.utils.span_getters import SpanGetterArg, get_spans
 
@@ -45,10 +45,11 @@ def span_classification_scorer(
     -------
     Dict[str, float]
     """
-    labels = defaultdict(lambda: (set(), set()))
-    labels["micro"] = (set(), set())
+    labels = defaultdict(lambda: (set(), set(), dict()))
+    labels["micro"] = (set(), set(), dict())
     total_pred_count = 0
     total_gold_count = 0
+
     if not include_falsy:
         default_values_ = defaultdict(lambda: False)
         default_values_.update(default_values)
@@ -65,6 +66,14 @@ def span_classification_scorer(
                     qualifier if qualifier.startswith("_.") else f"_.{qualifier}"
                 )
                 value = BINDING_GETTERS[getter_key](span)
+                top_val, top_p = max(
+                    getattr(span._, "prob", {}).get(qualifier, {}).items(),
+                    key=lambda x: x[1],
+                    default=(value, 1.0),
+                )
+                if (top_val or include_falsy) and default_values[qualifier] != top_val:
+                    labels[qualifier][2][(eg_idx, span_idx, qualifier, top_val)] = top_p
+                    labels[micro_key][2][(eg_idx, span_idx, qualifier, top_val)] = top_p
                 if (value or include_falsy) and default_values[qualifier] != value:
                     labels[micro_key][0].add((eg_idx, span_idx, qualifier, value))
                     labels[qualifier][0].add((eg_idx, span_idx, qualifier, value))
@@ -91,7 +100,13 @@ def span_classification_scorer(
             "another NER pipe in your model."
         )
 
-    return {name: prf(pred, gold) for name, (pred, gold) in labels.items()}
+    return {
+        name: {
+            **prf(pred, gold),
+            "ap": average_precision(pred_with_prob, gold),
+        }
+        for name, (pred, gold, pred_with_prob) in labels.items()
+    }
 
 
 @registry.scorers.register("eds.span_classification_scorer")

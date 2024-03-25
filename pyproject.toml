@@ -323,6 +323,7 @@ ban-relative-imports = "parents"
 
 [tool.ruff.isort]
 known-first-party = ["edsnlp"]
+known-third-party = ["build"]
 order-by-type = true
 
 [tool.interrogate]

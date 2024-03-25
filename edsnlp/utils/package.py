@@ -388,7 +388,7 @@ class PoetryPackager:
                     "remove it from the pyproject.toml metadata."
                 )
             os.makedirs(new_file_path.parent, exist_ok=True)
-            logger.info(f"COPY {file_path}" f"TO {new_file_path}")
+            logger.info(f"COPY {file_path}" f" TO {new_file_path}")
             shutil.copy(file_path, new_file_path)
 
         self.update_pyproject()

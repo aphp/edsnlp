@@ -47,7 +47,7 @@ A lazy collection contains :
 - an optional `writer`: the destination of the data (e.g., a file, a database, a list of strings, etc.)
 - the execution `config`, containing the backend to use and its configuration such as the number of workers, the batch size, etc.
 
-All methods (`.map`, `.map_batches`, `.map_pipeline`, `.set_processing`) of the lazy collection are chainable, meaning that they return a new object (no in-place modification).
+All methods (`.map`, `.map_batches`, `.map_gpu`, `.map_pipeline`, `.set_processing`) of the lazy collection are chainable, meaning that they return a new lazy collection object (no in-place modification).
 
 For instance, the following code will load a model, read a folder of JSON files, apply the model to each document and write the result in a Parquet folder, using 4 CPUs and 2 GPUs.
 
@@ -94,7 +94,9 @@ To apply an operation to a lazy collection in batches, you can use the `.map_bat
 
 To apply a model, you can use the `.map_pipeline` method. It takes a model as input and will add every pipe of the model to the scheduled operations.
 
-In both cases, the operations will not be executed immediately but will be scheduled to be executed when iterating of the collection, or calling the `.execute`, `.to_*` or `.write_*` methods.
+To run a specific function on a GPU (for advanced users, otherwise `map_pipeline` should accommodate most use cases), you can use the `.map_gpu` method. It takes two or three callables as input: the first on (`prepare_batches`) takes a batch of inputs and should return some tensors that will be sent to the GPU and passed to the second callable (`forward`), which will apply the deep learning ops and return the results. The third callable (`postprocess`) and gets the batch of inputs as well as the `forward` results and should return the final results (for instance, the input documents annotated with the predictions).
+
+In each cases, the operations will not be executed immediately but will be scheduled to be executed when iterating of the collection, or calling the `.execute`, `.to_*` or `.write_*` methods.
 
 ### Execution of a lazy collection {: #edsnlp.core.lazy_collection.LazyCollection.set_processing }
 

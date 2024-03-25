@@ -14,6 +14,7 @@ from typing import (
     List,
     Optional,
     Tuple,
+    Union,
 )
 
 from typing_extensions import Literal
@@ -39,6 +40,23 @@ def with_non_default_args(fn: Callable) -> Callable:
 
 
 Batchable = namedtuple("Batchable", ["batch_process"])
+
+
+class GPUOp:
+    def __init__(self, prepare_batch, forward, postprocess):
+        self.prepare_batch = prepare_batch
+        self.module_forward = forward
+        self.postprocess = postprocess
+
+    def batch_process(self, docs):
+        res = self.module_forward(self.prepare_batch(docs, None))
+        return self.postprocess(docs, res) if self.postprocess is not None else res
+
+    def enable_cache(self, cache_id=None):
+        pass
+
+    def disable_cache(self, cache_id=None):
+        pass
 
 
 class MetaLazyCollection(type):
@@ -282,6 +300,38 @@ class LazyCollection(metaclass=MetaLazyCollection):
         LazyCollection
         """
         return self.map(Batchable(pipe), name, kwargs)
+
+    def map_gpu(
+        self,
+        prepare_batch: Callable[[List, Union[str, torch.device]], Any],
+        forward: Callable[[Any], Any],
+        postprocess: Optional[Callable[[List, Any], Any]] = None,
+        name: Optional[str] = None,
+    ) -> "LazyCollection":
+        """
+        Maps a deep learning operation to a batch of documents, on a GPU worker.
+
+        Parameters
+        ----------
+        prepare_batch: Callable[[List, Union[str, torch.device]], Any]
+            A callable that takes a list of documents and a device and returns a batch
+            of tensors (or anything that can be passed to the `forward` callable). This
+            will be called on a CPU-bound worker, and may be parallelized.
+        forward: Callable[[Any], Any]
+            A callable that takes the output of `prepare_batch` and returns the output
+            of the deep learning operation. This will be called on a GPU-bound worker.
+        postprocess: Optional[Callable[[List, Any], Any]]
+            An optional callable that takes the list of documents and the output of the
+            deep learning operation, and returns the final output. This will be called
+            on the same CPU-bound worker that called the `prepare_batch` function.
+        name: Optional[str]
+            The name of the pipeline step.
+
+        Returns
+        -------
+        LazyCollection
+        """
+        return self.map(GPUOp(prepare_batch, forward, postprocess), name, {})
 
     def map_pipeline(self, model: Pipeline) -> "LazyCollection":
         new_steps = []

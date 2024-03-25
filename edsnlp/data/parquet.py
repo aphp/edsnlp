@@ -159,7 +159,7 @@ class ParquetWriter(BaseWriter):
 @registry.readers.register("parquet")
 def read_parquet(
     path: Union[str, Path],
-    converter: Union[str, Callable],
+    converter: Optional[Union[str, Callable]] = None,
     *,
     read_in_worker: bool = False,
     filesystem: Optional[FileSystem] = None,

@@ -39,7 +39,7 @@ class SparkReader(BaseReader):
 @registry.readers.register("spark")
 def from_spark(
     data,
-    converter: Union[str, Callable],
+    converter: Optional[Union[str, Callable]] = None,
     **kwargs,
 ) -> LazyCollection:
     """

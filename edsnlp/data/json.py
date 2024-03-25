@@ -202,7 +202,7 @@ class JsonWriter(BaseWriter):
 @registry.readers.register("json")
 def read_json(
     path: Union[str, Path],
-    converter: Union[str, Callable],
+    converter: Optional[Union[str, Callable]] = None,
     *,
     keep_ipynb_checkpoints: bool = False,
     read_in_worker: bool = False,

@@ -27,6 +27,7 @@
     data.to_pandas()
     ```
 - New `data.map_gpu` method to map a deep learning operation on some data and take advantage of edsnlp multi-gpu inference capabilities
+- Added average precision computation in edsnlp span_classification scorer
 
 ### Changed
 

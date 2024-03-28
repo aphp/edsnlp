@@ -51,8 +51,6 @@ def test_add_pipe(blank_nlp: PipelineProtocol):
 
     blank_nlp.add_pipe("eds.umls", config=dict(pattern_config=pattern_config))
 
-    assert "eds.umls" in blank_nlp.pipe_names
-
     for text, entities in map(parse_example, examples):
         doc = blank_nlp(text)
         assert len(doc.ents) == len(entities)

@@ -15,7 +15,7 @@ You can always define your own converter functions to convert between your data 
 ### Reading from a custom schema
 
 ```{ .python .no-check }
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 from spacy.tokens import Doc
 from edsnlp.data.converters import get_current_tokenizer
 from typing import Dict
@@ -29,8 +29,8 @@ def convert_row_to_dict(row: Dict) -> Doc:
     return doc
 
 nlp = edsnlp.blank("eds")
-nlp.add_pipe("eds.normalizer")
-nlp.add_pipe("eds.covid")
+nlp.add_pipe(eds.normalizer())
+nlp.add_pipe(eds.covid())
 
 # Any kind of reader (`edsnlp.data.read/from_...`) can be used here
 docs = edsnlp.data.from_pandas(

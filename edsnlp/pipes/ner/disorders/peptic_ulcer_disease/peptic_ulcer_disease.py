@@ -32,13 +32,12 @@ class PepticUlcerDiseaseMatcher(DisorderMatcher):
     Examples
     --------
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe(eds.sentences())
     nlp.add_pipe(
-        "eds.normalizer",
-        config=dict(
+        eds.normalizer(
             accents=True,
             lowercase=True,
             quotes=True,
@@ -54,7 +53,7 @@ class PepticUlcerDiseaseMatcher(DisorderMatcher):
             ),
         ),
     )
-    nlp.add_pipe(f"eds.peptic_ulcer_disease")
+    nlp.add_pipe(eds.peptic_ulcer_disease())
     ```
 
     Below are a few examples:
@@ -83,8 +82,8 @@ class PepticUlcerDiseaseMatcher(DisorderMatcher):
 
     def __init__(
         self,
-        nlp: Optional[PipelineProtocol] = None,
-        name: str = "eds.peptic_ulcer_disease",
+        nlp: Optional[PipelineProtocol],
+        name: str = "peptic_ulcer_disease",
         *,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]] = default_patterns,
         label: str = "peptic_ulcer_disease",

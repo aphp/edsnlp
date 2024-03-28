@@ -1,3 +1,4 @@
+import inspect
 import warnings
 from operator import attrgetter
 from typing import (
@@ -9,6 +10,7 @@ from typing import (
 from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
+from edsnlp.core.registries import CurriedFactory
 from edsnlp.utils.span_getters import (
     SpanGetter,  # noqa: F401
     SpanGetterArg,  # noqa: F401
@@ -28,7 +30,32 @@ def value_getter(span: Span):
     return span._.get(span.label_) if span._.has(span.label_) else None
 
 
-class BaseComponent:
+class BaseComponentMeta(type):
+    def __init__(cls, name, bases, dct):
+        super().__init__(name, bases, dct)
+
+        sig = inspect.signature(cls.__init__)
+        sig = sig.replace(parameters=tuple(sig.parameters.values())[1:])
+        cls.__signature__ = sig
+
+    def __call__(cls, nlp=inspect.Signature.empty, *args, **kwargs):
+        # If this component is missing the nlp argument, we curry it with the
+        # provided arguments and return a CurriedFactory object.
+        sig = inspect.signature(cls.__init__)
+        bound = sig.bind_partial(None, nlp, *args, **kwargs)
+        bound.arguments.pop("self", None)
+        if (
+            "nlp" in sig.parameters
+            and sig.parameters["nlp"].default is sig.empty
+            and bound.arguments.get("nlp", sig.empty) is sig.empty
+        ):
+            return CurriedFactory(cls, bound.arguments)
+        if nlp is inspect.Signature.empty:
+            bound.arguments.pop("nlp", None)
+        return super().__call__(**bound.arguments)
+
+
+class BaseComponent(metaclass=BaseComponentMeta):
     """
     The `BaseComponent` adds a `set_extensions` method,
     called at the creation of the object.
@@ -47,6 +74,7 @@ class BaseComponent:
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
+        self.name = name
         self.set_extensions()
 
     def set_extensions(self):

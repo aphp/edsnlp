@@ -13,6 +13,7 @@ repo_name: aphp/edsnlp
 theme:
   language: en
   name: material
+  custom_dir: docs/assets/overrides
   palette:
     - scheme: default
       toggle:
@@ -34,6 +35,7 @@ theme:
     - navigation.footer
     - content.code.annotate
     - content.code.copy
+    - announce.dismiss
 
 nav:
   - index.md

@@ -96,31 +96,28 @@ class TrainableSpanQualifier(
     To create a span qualifier component, you can use the following code:
 
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(
-        "eds.span_qualifier",
-        name="qualifier",
-        config={
-            "embedding": {
-                # To embed the spans, we will use a span pooler
-                "@factory": "eds.span_pooler",
-                "pooling_mode": "mean",  # mean pooling
-                "span_getter": ["ents", "sc"],
-                "embedding": {
-                    # that will use a transformer to embed the doc words
-                    "@factory": "eds.transformer",
-                    "model": "prajjwal1/bert-tiny",
-                    "window": 128,
-                    "stride": 96,
-                },
-            },
+        eds.span_qualifier(
+            # To embed the spans, we will use a span pooler
+            embedding=eds.span_pooler(
+                pooling_mode="mean",  # mean pooling
+                span_getter=["ents", "sc"],
+                # that will use a transformer to embed the doc words
+                embedding=eds.transformer(
+                    model="prajjwal1/bert-tiny",
+                    window=128,
+                    stride=96,
+                ),
+            ),
             # For every span embedded by the span pooler
             # (doc.ents and doc.spans["sc"]), we will predict both
             # span._.negation and span._.event_type
-            "qualifiers": ["_.negation", "_.event_type"],
-        },
+            qualifiers=["_.negation", "_.event_type"],
+        ),
+        name="qualifier",
     )
     ```
 
@@ -165,8 +162,8 @@ class TrainableSpanQualifier(
 
     def __init__(
         self,
-        nlp: Optional[PipelineProtocol],
-        name: str = "eds.span_qualifier",
+        nlp: Optional[PipelineProtocol] = None,
+        name: str = "span_qualifier",
         *,
         embedding: SpanEmbeddingComponent,
         qualifiers: QualifiersArg,

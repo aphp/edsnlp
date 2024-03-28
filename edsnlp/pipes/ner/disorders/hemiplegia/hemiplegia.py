@@ -28,13 +28,12 @@ class HemiplegiaMatcher(DisorderMatcher):
     Examples
     --------
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe(eds.sentences())
     nlp.add_pipe(
-        "eds.normalizer",
-        config=dict(
+        eds.normalizer(
             accents=True,
             lowercase=True,
             quotes=True,
@@ -50,7 +49,7 @@ class HemiplegiaMatcher(DisorderMatcher):
             ),
         ),
     )
-    nlp.add_pipe(f"eds.hemiplegia")
+    nlp.add_pipe(eds.hemiplegia())
     ```
 
     Below are a few examples:
@@ -79,8 +78,8 @@ class HemiplegiaMatcher(DisorderMatcher):
 
     def __init__(
         self,
-        nlp: Optional[PipelineProtocol] = None,
-        name: str = "eds.hemiplegia",
+        nlp: Optional[PipelineProtocol],
+        name: str = "hemiplegia",
         *,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]] = default_patterns,
         label: str = "hemiplegia",

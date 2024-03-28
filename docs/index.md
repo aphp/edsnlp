@@ -29,7 +29,7 @@ pip install "edsnlp[ml]==0.10.7"
 Once you've installed the library, let's begin with a very simple example that extracts mentions of COVID19 in a text, and detects whether they are negated.
 
 ```python
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 
 nlp = edsnlp.blank("eds")  # (1)
 
@@ -38,11 +38,11 @@ terms = dict(
 )
 
 # Sentencizer component, needed for negation detection
-nlp.add_pipe("eds.sentences")  # (3)
+nlp.add_pipe(eds.sentences())  # (3)
 # Matcher component
-nlp.add_pipe("eds.matcher", config=dict(terms=terms))  # (4)
+nlp.add_pipe(eds.matcher(terms=terms))  # (4)
 # Negation detection
-nlp.add_pipe("eds.negation")
+nlp.add_pipe(eds.negation())
 
 # Process your text in one call !
 doc = nlp("Le patient n'est pas atteint de covid")

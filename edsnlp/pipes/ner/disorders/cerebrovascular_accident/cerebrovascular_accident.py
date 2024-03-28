@@ -34,13 +34,12 @@ class CerebrovascularAccidentMatcher(DisorderMatcher):
     Usage
     -----
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe(eds.sentences())
     nlp.add_pipe(
-        "eds.normalizer",
-        config=dict(
+        eds.normalizer(
             accents=True,
             lowercase=True,
             quotes=True,
@@ -56,7 +55,7 @@ class CerebrovascularAccidentMatcher(DisorderMatcher):
             ),
         ),
     )
-    nlp.add_pipe(f"eds.cerebrovascular_accident")
+    nlp.add_pipe(eds.cerebrovascular_accident())
     ```
 
     Below are a few examples:
@@ -86,7 +85,7 @@ class CerebrovascularAccidentMatcher(DisorderMatcher):
     def __init__(
         self,
         nlp: Optional[PipelineProtocol],
-        name: str = "eds.cerebrovascular_accident",
+        name: str = "cerebrovascular_accident",
         *,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]] = default_patterns,
         label: str = "cerebrovascular_accident",

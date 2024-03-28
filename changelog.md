@@ -7,33 +7,45 @@
 - Support for a `filesystem` parameter in every `edsnlp.data.read_*` and `edsnlp.data.write_*` functions
 - Pipes of a pipeline are now easily accessible with `nlp.pipes.xxx` instead of `nlp.get_pipe("xxx")`
 - Support builtin Span attributes in converters `span_attributes` parameter, e.g.
-    ```python
-    import edsnlp
+  ```python
+  import edsnlp
 
-    nlp = ...
-    nlp.add_pipe("eds.sentences")
+  nlp = ...
+  nlp.add_pipe("eds.sentences")
 
-    data = edsnlp.data.from_xxx(...)
-    data = data.map_pipeline(nlp)
-    data.to_pandas(converters={"ents": {"span_attributes": ["sent.text", "start", "end"]}})
-    ```
+  data = edsnlp.data.from_xxx(...)
+  data = data.map_pipeline(nlp)
+  data.to_pandas(converters={"ents": {"span_attributes": ["sent.text", "start", "end"]}})
+  ```
 - Support assigning Brat AnnotatorNotes as span attributes: `edsnlp.data.read_standoff(...,  notes_as_span_attribute="cui")`
 - Support for mapping full batches in `edsnlp.processing` pipelines with `map_batches` lazy collection method:
-    ```python
-    import edsnlp
+  ```python
+  import edsnlp
 
-    data = edsnlp.data.from_xxx(...)
-    data = data.map_batches(lambda batch: do_something(batch))
-    data.to_pandas()
-    ```
+  data = edsnlp.data.from_xxx(...)
+  data = data.map_batches(lambda batch: do_something(batch))
+  data.to_pandas()
+  ```
 - New `data.map_gpu` method to map a deep learning operation on some data and take advantage of edsnlp multi-gpu inference capabilities
 - Added average precision computation in edsnlp span_classification scorer
+- You can now add pipes to your pipeline by instantiating them directly, which comes with many advantages, such as auto-completion, introspection and type checking !
+
+  ```python
+  import edsnlp, edsnlp.pipes as eds
+
+  nlp = edsnlp.blank("eds")
+  nlp.add_pipe(eds.sentences())
+  # instead of nlp.add_pipe("eds.sentences")
+  ```
+
+  *The previous way of adding pipes is still supported.*
 
 ### Changed
 
 - `nlp.preprocess_many` now uses lazy collections to enable parallel processing
 - :warning: Breaking change. Improved and simplified `eds.span_qualifier`: we didn't support combination groups before, so this feature was scrapped for now. We now also support splitting values of a single qualifier between different span labels.
 - Optimized edsnlp.data batching, especially for large batch sizes (removed a quadratic loop)
+- :warning: Breaking change. By default, the name of components added to a pipeline is now the default name defined in their class `__init__` signature. For most components of EDS-NLP, this will change the name from "eds.xxx" to "xxx".
 
 ### Fixed
 
@@ -41,7 +53,7 @@
 - Allow span pooler to choose between multiple base embedding spans (as likely produced by `eds.transformer`) by sorting them by Dice overlap score.
 - EDS-NLP does not raise an error anymore when saving a model to an already existing, but empty directory
 
-## v0.10.7
+## v0.10.7 (2024-03-12)
 
 ### Added
 
@@ -60,7 +72,7 @@
 - Fix automatic `batch_size` estimation in `eds.transformer` when `max_tokens_per_device` is set to `auto` and multiple GPUs are used
 - Fix JSONL file parsing
 
-## v0.10.6
+## v0.10.6 (2024-02-24)
 
 ### Added
 
@@ -95,13 +107,13 @@
 - Disabled pipes are now correctly ignored in the `Pipeline.preprocess` method
 - Add "eventuel*" patterns to `eds.hyphothesis`
 
-## v0.10.5
+## v0.10.5 (2024-01-29)
 
 ### Fixed
 
 - Allow non-url paths when parquet filesystem is given
 
-## v0.10.4
+## v0.10.4 (2024-01-19)
 
 ### Changed
 
@@ -119,7 +131,7 @@
 - Both edsnlp & spacy factories are now listed when a factory lookup fails
 - Fixed some GPU OOM errors with the `eds.transformer` pipe when processing really long documents
 
-## v0.10.3
+## v0.10.3 (2024-01-11)
 
 ### Added
 
@@ -133,7 +145,7 @@
 - Spaces and digits are now supported in BRAT entity labels
 - Fixed missing 'permet pas + verb' false positive negation patterns
 
-## v0.10.2
+## v0.10.2 (2023-12-20)
 
 ### Changed
 
@@ -146,7 +158,7 @@
 - `AsList` errors are now correctly reported
 - `eds.span_qualifier` saved configuration during `to_disk` is now longer null
 
-## v0.10.1
+## v0.10.1 (2023-12-15)
 
 ### Changed
 
@@ -164,7 +176,7 @@
 - `RegexMatcher` now supports all alignment modes (`strict`, `expand`, `contract`) and better handles partial doc matching (#201).
 - `on_ent_only=False/True` is now supported again in qualifier pipes (e.g., "eds.negation", "eds.hypothesis", ...)
 
-## v0.10.0
+## v0.10.0 (2023-12-04)
 
 ### Added
 
@@ -188,7 +200,7 @@
 - Support for pydantic v2
 - Support for python 3.11 (not ci-tested yet)
 
-## v0.10.0beta1
+## v0.10.0beta1 (2023-12-04)
 
 Large refacto of EDS-NLP to allow training models and performing inference using PyTorch
 as the deep-learning backend. Rather than a mere wrapper of Pytorch using spaCy, this is
@@ -223,13 +235,13 @@ with `nlp = spacy.blank('eds')`. To benefit from the new features, users should 
   to avoid having to wrap every import torch statement for pure rule-based use cases.
   Hence, torch is not a required dependency
 
-## v0.9.2
+## v0.9.2 (2023-12-04)
 
 ### Changed
 
 - Fix matchers to skip pipes with assigned extensions that are not required by the matcher during the initialization
 
-## v0.9.1
+## v0.9.1 (2023-09-22)
 
 ### Changed
 
@@ -242,7 +254,7 @@ with `nlp = spacy.blank('eds')`. To benefit from the new features, users should 
 - `span_getter` is not incompatible with on_ents_only anymore
 - `ContextualMatcher` now supports empty matches (e.g. lookahead/lookbehind) in `assign` patterns
 
-## v0.9.0
+## v0.9.0 (2023-09-15)
 
 ### Added
 
@@ -461,7 +473,7 @@ Fix release to allow installation from source
 - [TNM](https://en.wikipedia.org/wiki/TNM_staging_system) detection and normalisation with the `eds.TNM` pipeline
 - Support for arbitrary callback for Pandas multiprocessing, with the `callback` argument
 
-## v0.5.2 (2022-04-29)
+## v0.5.2 (2022-05-04)
 
 ### Added
 
@@ -490,7 +502,7 @@ Fix release to allow installation from source
 - Complete revamp of the date detection pipeline, with better parsing and more exhaustive matching
 - Reimplementation of the EDSPhraseMatcher in Cython, leading to a x15 speed increase
 
-## v0.4.4
+## v0.4.4 (2022-03-31)
 
 - Add `measures` pipeline
 - Cap Jinja2 version to fix mkdocs
@@ -498,25 +510,25 @@ Fix release to allow installation from source
 - Improve the speed of char replacement pipelines (accents and quotes)
 - Improve the speed of the regex matcher
 
-## v0.4.3
+## v0.4.3 (2022-03-18)
 
 - Fix regex matching on spans.
 - Add fast_parse in date pipeline.
 - Add relative_date information parsing
 
-## v0.4.2
+## v0.4.2 (2022-03-16)
 
 - Fix issue with `dateparser` library (see scrapinghub/dateparser#1045)
 - Fix `attr` issue in the `advanced-regex` pipelin
 - Add documentation for `eds.covid`
 - Update the demo with an explanation for the regex
 
-## v0.4.1
+## v0.4.1 (2022-03-14)
 
 - Added support to Koalas DataFrames in the `edsnlp.processing` pipe.
 - Added `eds.covid` NER pipeline for detecting COVID19 mentions.
 
-## v0.4.0
+## v0.4.0 (2022-02-22)
 
 - Profound re-write of the normalisation :
     - The custom attribute `CUSTOM_NORM` is completely abandoned in favour of a more _spacyfic_ alternative
@@ -550,7 +562,7 @@ Fix release to allow installation from source
 - Add a `eds.covid` component, that identifies mentions of COVID
 - Change the demo, to include NER components
 
-## v0.3.2
+## v0.3.2 (2021-11-24)
 
 - Major revamp of the normalisation.
     - The `normalizer` pipeline **now adds atomic components** (`lowercase`, `accents`, `quotes`, `pollution` & `endlines`) to the processing pipeline, and compiles the results into a
@@ -564,14 +576,14 @@ Fix release to allow installation from source
 - Add an `endlines` pipeline, that classifies newline characters between spaces and actual ends of line.
 - Add possibility to annotate within entities for qualifiers (`negation`, `hypothesis`, etc), ie if the cue is within the entity. Disabled by default.
 
-## v0.3.1
+## v0.3.1 (2021-10-13)
 
 - Update `dates` to remove miscellaneous bugs.
 - Add `isort` pre-commit hook.
 - Improve performance for `negation`, `hypothesis`, `antecedents`, `family` and `rspeech` by using spaCy's `filter_spans` and our `consume_spans` methods.
 - Add proposition segmentation to `hypothesis` and `family`, enhancing results.
 
-## v0.3.0
+## v0.3.0 (2021-09-29)
 
 - Renamed `generic` to `matcher`. This is a non-breaking change for the average user, adding the pipeline is still :
 
@@ -584,7 +596,7 @@ Fix release to allow installation from source
 - Add `advanced-regex` pipeline
 - Corrected bugs in the `negation` pipeline
 
-## v0.2.0
+## v0.2.0 (2021-09-13)
 
 - Add `negation` pipeline
 - Add `family` pipeline
@@ -596,7 +608,7 @@ Fix release to allow installation from source
     - Add a `pipelines` folder, containing one subdirectory per component
     - Every component subdirectory contains a module defining the component, and a module defining a factory, plus any other utilities (eg `terms.py`)
 
-## v0.1.0
+## v0.1.0 (2021-09-29)
 
 First working version. Available pipelines :
 

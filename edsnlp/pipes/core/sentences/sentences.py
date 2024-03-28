@@ -22,7 +22,7 @@ class SentenceSegmenter(BaseComponent):
     def __init__(
         self,
         nlp: PipelineProtocol,
-        name: Optional[str] = None,
+        name: Optional[str] = "sentences",
         punct_chars: Optional[List[str]] = None,
         use_endlines: bool = None,
         ignore_excluded: bool = True,

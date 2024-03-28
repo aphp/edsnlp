@@ -25,7 +25,7 @@ DEFAULT_CONFIG = dict(
 )
 def create_component(
     nlp: PipelineProtocol,
-    name: str = "eds.drugs",
+    name: str = "drugs",
     *,
     attr: str = "NORM",
     ignore_excluded: bool = False,
@@ -47,11 +47,11 @@ def create_component(
     (ATC code: A10B).
 
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.normalizer")
-    nlp.add_pipe("eds.drugs", config=dict(term_matcher="exact"))
+    nlp.add_pipe(eds.normalizer())
+    nlp.add_pipe(eds.drugs(term_matcher="exact"))
 
     text = "Traitement habituel: Kardégic, cardensiel (bisoprolol), glucophage, lasilix"
 

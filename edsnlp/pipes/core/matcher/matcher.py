@@ -21,7 +21,7 @@ class GenericMatcher(BaseNERComponent):
     Let us redefine the pipeline :
 
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
 
@@ -35,8 +35,7 @@ class GenericMatcher(BaseNERComponent):
     )
 
     nlp.add_pipe(
-        "eds.matcher",
-        config=dict(
+        eds.matcher(
             terms=terms,
             regex=regex,
             attr="LOWER",
@@ -93,7 +92,7 @@ class GenericMatcher(BaseNERComponent):
     def __init__(
         self,
         nlp: PipelineProtocol,
-        name: Optional[str] = "eds.matcher",
+        name: Optional[str] = "matcher",
         *,
         terms: Optional[Patterns] = None,
         regex: Optional[Patterns] = None,

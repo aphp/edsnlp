@@ -45,16 +45,13 @@ class NegationQualifier(RuleBasedQualifier):
     extracted entities. It is complete and can be run _as is_.
 
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe(eds.sentences())
     # Dummy matcher
-    nlp.add_pipe(
-        "eds.matcher",
-        config=dict(terms=dict(patient="patient", fracture="fracture")),
-    )
-    nlp.add_pipe("eds.negation")
+    nlp.add_pipe(eds.matcher(terms=dict(patient="patient", fracture="fracture")))
+    nlp.add_pipe(eds.negation())
 
     text = (
         "Le patient est admis le 23 août 2021 pour une douleur au bras. "
@@ -150,7 +147,7 @@ class NegationQualifier(RuleBasedQualifier):
     def __init__(
         self,
         nlp: PipelineProtocol,
-        name: Optional[str] = "eds.negation",
+        name: Optional[str] = "negation",
         *,
         pseudo: Optional[List[str]] = None,
         preceding: Optional[List[str]] = None,

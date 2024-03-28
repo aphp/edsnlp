@@ -21,7 +21,7 @@ class ReasonMatcher(GenericMatcher):
     hospitalisation reasons. It is complete and can be run _as is_.
 
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     text = """COMPTE RENDU D'HOSPITALISATION du 11/07/2018 au 12/07/2018
     MOTIF D'HOSPITALISATION
@@ -36,8 +36,7 @@ class ReasonMatcher(GenericMatcher):
 
     # Extraction of entities
     nlp.add_pipe(
-        "eds.matcher",
-        config=dict(
+        eds.matcher(
             terms=dict(
                 respiratoire=[
                     "asthmatique",
@@ -47,10 +46,8 @@ class ReasonMatcher(GenericMatcher):
             )
         ),
     )
-
-
-    nlp.add_pipe("eds.normalizer")
-    nlp.add_pipe("eds.reason", config=dict(use_sections=True))
+    nlp.add_pipe(eds.normalizer())
+    nlp.add_pipe(eds.reason(use_sections=True))
     doc = nlp(text)
 
     reason = doc.spans["reasons"][0]
@@ -107,7 +104,7 @@ class ReasonMatcher(GenericMatcher):
     def __init__(
         self,
         nlp: PipelineProtocol,
-        name: str = "eds.reason",
+        name: str = "reason",
         *,
         reasons: Optional[Dict[str, Union[List[str], str]]] = None,
         attr: Union[Dict[str, str], str] = "TEXT",

@@ -12,13 +12,12 @@ Let's create a simple NLP model, that can:
 You know the drill:
 
 ```python title="pipeline.py"
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 
-nlp = edsnlp.blank('fr')
-
-nlp.add_pipe("eds.sentences")
-
-config = dict(
+nlp = edsnlp.blank('eds')
+nlp.add_pipe(eds.sentences())
+nlp.add_pipe(
+   eds.matcher(
     regex=dict(
         covid=[
             "covid",
@@ -28,13 +27,12 @@ config = dict(
         ],
     ),
     attr="LOWER",
+   ),
 )
-nlp.add_pipe('eds.matcher', config=config)
-
-nlp.add_pipe("eds.negation")
-nlp.add_pipe("eds.family")
-nlp.add_pipe("eds.hypothesis")
-nlp.add_pipe("eds.reported_speech")
+nlp.add_pipe(eds.negation())
+nlp.add_pipe(eds.family())
+nlp.add_pipe(eds.hypothesis())
+nlp.add_pipe(eds.rspeech())
 ```
 
 ## Creating the FastAPI app

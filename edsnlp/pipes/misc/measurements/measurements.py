@@ -295,12 +295,11 @@ class MeasurementsMatcher(BaseNERComponent):
     Examples
     --------
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(
-        "eds.measurements",
-        config=dict(
+        eds.measurements(
             measurements=["size", "weight", "bmi"],
             extract_ranges=True,
         ),
@@ -370,12 +369,11 @@ class MeasurementsMatcher(BaseNERComponent):
     You can declare custom measurements by altering the patterns:
 
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(
-        "eds.measurements",
-        config=dict(
+        eds.measurements(
             measurements={
                 "my_custom_surface_measurement": {
                     # This measurement unit is homogenous to square meters
@@ -476,7 +474,7 @@ class MeasurementsMatcher(BaseNERComponent):
     def __init__(
           self,
           nlp: PipelineProtocol,
-          name: str = "eds.measurements",
+          name: str = "measurements",
           *,
           measurements: Union[str, List[Union[str, MsrConfig]], Dict[str, MsrConfig]] = list(patterns.common_measurements.keys()),  # noqa: E501
           units_config: Dict[str, UnitConfig] = patterns.units_config,

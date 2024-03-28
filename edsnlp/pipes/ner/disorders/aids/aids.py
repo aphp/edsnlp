@@ -47,13 +47,12 @@ class AIDSMatcher(DisorderMatcher):
     Examples
     --------
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe(eds.sentences())
     nlp.add_pipe(
-        "eds.normalizer",
-        config=dict(
+        eds.normalizer(
             accents=True,
             lowercase=True,
             quotes=True,
@@ -99,7 +98,7 @@ class AIDSMatcher(DisorderMatcher):
     def __init__(
         self,
         nlp: Optional[PipelineProtocol],
-        name: str = "eds.aids",
+        name: str = "aids",
         *,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]] = default_patterns,
         label: str = "aids",

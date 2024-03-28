@@ -26,20 +26,19 @@ class ConsultationDatesMatcher(GenericMatcher):
         (`CR-CONS` at APHP), so please filter accordingly before proceeding.
 
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe(eds.sentences())
     nlp.add_pipe(
-        "eds.normalizer",
-        config=dict(
+        eds.normalizer(
             lowercase=True,
             accents=True,
             quotes=True,
             pollution=False,
         ),
     )
-    nlp.add_pipe("eds.consultation_dates")
+    nlp.add_pipe(eds.consultation_dates())
 
     text = """
     XXX
@@ -103,7 +102,7 @@ class ConsultationDatesMatcher(GenericMatcher):
     def __init__(
         self,
         nlp: PipelineProtocol,
-        name: Optional[str] = "eds.consultation_dates",
+        name: Optional[str] = "consultation_dates",
         *,
         consultation_mention: Union[bool, List[str]] = True,
         town_mention: Union[bool, List[str]] = False,

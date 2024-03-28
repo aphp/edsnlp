@@ -25,7 +25,7 @@ DEFAULT_CONFIG = dict(
 )
 def create_component(
     nlp: PipelineProtocol,
-    name: str = "eds.cim10",
+    name: str = "cim10",
     *,
     attr: str = "NORM",
     ignore_excluded: bool = False,
@@ -48,10 +48,10 @@ def create_component(
     Examples
     --------
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.cim10", config=dict(term_matcher="simstring"))
+    nlp.add_pipe(eds.cim10(term_matcher="simstring"))
 
     text = "Le patient est suivi pour fièvres typhoïde et paratyphoïde."
 

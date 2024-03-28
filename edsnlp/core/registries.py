@@ -1,5 +1,7 @@
 import inspect
+import types
 from dataclasses import dataclass
+from functools import wraps
 from typing import Any, Callable, Dict, Iterable, Optional, Sequence
 from weakref import WeakKeyDictionary
 
@@ -60,7 +62,7 @@ class CurriedFactory:
     def instantiate(
         obj: Any,
         nlp: "edsnlp.Pipeline",
-        path: Sequence[str] = (),
+        path: Optional[Sequence[str]] = (),
     ):
         """
         To ensure compatibility with spaCy's API, we need to support
@@ -74,14 +76,18 @@ class CurriedFactory:
             if obj.instantiated is not None:
                 return obj.instantiated
 
-            name = ".".join(path)
+            name = path[0] if len(path) == 1 else None
             parameters = (
                 inspect.signature(obj.factory.__init__).parameters
                 if isinstance(obj.factory, type)
                 else inspect.signature(obj.factory).parameters
             )
             kwargs = {
-                key: CurriedFactory.instantiate(value, nlp, (*path, key))
+                key: CurriedFactory.instantiate(
+                    obj=value,
+                    nlp=nlp,
+                    path=(*path, key),
+                )
                 for key, value in obj.kwargs.items()
             }
             try:
@@ -107,7 +113,9 @@ class CurriedFactory:
             for key, value in obj.items():
                 try:
                     instantiated[key] = CurriedFactory.instantiate(
-                        value, nlp, (*path, key)
+                        obj=value,
+                        nlp=nlp,
+                        path=(*path, key),
                     )
                 except ConfitValidationError as e:
                     errors.extend(e.raw_errors)
@@ -129,6 +137,22 @@ class CurriedFactory:
             return type(obj)(instantiated)
         else:
             return obj
+
+    def _raise_curried_factory_error(self):
+        raise TypeError(
+            f"This component ({self}) has not been instantiated yet, likely because it "
+            f"was missing an `nlp` pipeline argument. You should either:\n"
+            f"- add it to a pipeline: `pipe = nlp.add_pipe(pipe)`\n"
+            f"- or fill its `nlp` argument: `pipe = factory(nlp=nlp, ...)`"
+        )
+
+    def __call__(self, *args, **kwargs):
+        self._raise_curried_factory_error()
+
+    def __getattr__(self, name):
+        if name.startswith("__"):
+            raise AttributeError(name)
+        self._raise_curried_factory_error()
 
 
 glob = []
@@ -312,10 +336,10 @@ class FactoryRegistry(Registry):
                 if not isinstance(fn, type)
                 else fn.__init__.__annotations__
             )
-            nlp_was_spacy_language = False
-            if "nlp" in annotations and annotations["nlp"] is spacy.Language:
-                nlp_was_spacy_language = True
-                annotations["nlp"] = edsnlp.core.PipelineProtocol
+            old_annotation = None
+            if "nlp" in annotations:  # annotations["nlp"] is spacy.Language:
+                old_annotation = annotations["nlp"]
+                annotations["nlp"] = Optional[edsnlp.core.PipelineProtocol]
             registered_fn = Registry.register(
                 self,
                 name=name,
@@ -325,8 +349,8 @@ class FactoryRegistry(Registry):
                 invoker=invoke,
                 deprecated=deprecated,
             )
-            if nlp_was_spacy_language:
-                annotations["nlp"] = spacy.Language
+            if old_annotation is not None:
+                annotations["nlp"] = old_annotation
 
             if spacy_compatible:
                 for spacy_pipe_name in (name, *deprecated):
@@ -340,7 +364,31 @@ class FactoryRegistry(Registry):
                         func=registered_fn,
                     )
 
-            return registered_fn
+            @wraps(fn)
+            def curried_registered_fn(
+                nlp=inspect.Signature.empty,
+                name=inspect.Signature.empty,
+                **kwargs,
+            ):
+                sig = inspect.signature(fn)
+                if nlp is not inspect.Signature.empty:
+                    kwargs["nlp"] = nlp
+                if name is not inspect.Signature.empty:
+                    kwargs["name"] = name
+                bound = sig.bind_partial(**kwargs)
+                if (
+                    "nlp" in sig.parameters
+                    and sig.parameters["nlp"].default is sig.empty
+                    and bound.arguments.get("nlp", sig.empty) is sig.empty
+                ):
+                    return CurriedFactory(registered_fn, dict(bound.arguments))
+                return registered_fn(**bound.arguments)
+
+            return (
+                curried_registered_fn
+                if isinstance(fn, types.FunctionType)
+                else registered_fn
+            )
 
         return register(func) if func is not None else register
 

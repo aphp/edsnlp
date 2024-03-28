@@ -17,11 +17,11 @@ class TablesMatcher(GenericMatcher):
     Examples
     --------
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.normalizer")
-    nlp.add_pipe("eds.tables")
+    nlp.add_pipe(eds.normalizer())
+    nlp.add_pipe(eds.tables())
 
     text = """
     SERVICE
@@ -117,7 +117,7 @@ class TablesMatcher(GenericMatcher):
     def __init__(
         self,
         nlp: PipelineProtocol,
-        name: str = "eds.tables",
+        name: str = "tables",
         *,
         tables_pattern: Optional[Dict[str, str]] = None,
         sep_pattern: Optional[str] = None,

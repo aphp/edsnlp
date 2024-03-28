@@ -69,14 +69,14 @@ class EndLinesMatcher(GenericMatcher):
     Examples
     --------
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
     from spacy.tokens import Span
     from spacy import displacy
 
     nlp = edsnlp.blank("eds")
 
     PATH = "/tmp/path_to_save"
-    nlp.add_pipe("eds.endlines", config=dict(model_path=PATH))
+    nlp.add_pipe(eds.endlines(model_path=PATH))
 
     docs = list(nlp.pipe(texts))
 
@@ -120,7 +120,7 @@ class EndLinesMatcher(GenericMatcher):
     def __init__(
         self,
         nlp: PipelineProtocol,
-        name: Optional[str] = "eds.endlines",
+        name: Optional[str] = "endlines",
         *,
         model_path: Optional[Union[str, EndLinesModel]] = None,
     ):

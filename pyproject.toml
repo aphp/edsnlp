@@ -330,11 +330,11 @@ order-by-type = true
 ignore-init-method = true
 ignore-init-module = true
 ignore-magic = false
-ignore-semiprivate = false
+ignore-semiprivate = true
 ignore-private = false
 ignore-property-decorators = false
 ignore-module = true
-ignore-nested-functions = false
+ignore-nested-functions = true
 ignore-nested-classes = true
 ignore-setters = false
 fail-under = 40
@@ -342,6 +342,7 @@ exclude = ["setup.py", "docs", "build", "tests"]
 verbose = 0
 quiet = false
 whitelist-regex = []
+ignore-regex = ['__(?!init).*__']
 color = true
 omit-covered-files = false
 # generate-badge = "."
@@ -361,6 +362,7 @@ exclude_lines = [
     "raise .*Exception",
     "warn\\(",
     "if __name__ == .__main__.:",
+    "if repr_id in exclude:",
     "if TYPE_CHECKING:",
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",

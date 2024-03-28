@@ -1,5 +1,4 @@
 import os
-from abc import ABCMeta
 from enum import Enum
 from functools import wraps
 from typing import (
@@ -20,7 +19,7 @@ import safetensors.torch
 import torch
 from spacy.tokens import Doc
 
-from edsnlp.pipes.base import BaseComponent
+from edsnlp.pipes.base import BaseComponent, BaseComponentMeta
 from edsnlp.utils.collections import batch_compress_dict, batchify, decompress_dict
 
 BatchInput = TypeVar("BatchInput", bound=Dict[str, Any])
@@ -153,7 +152,7 @@ def cached_batch_to_device(fn):
     return wrapped
 
 
-class TorchComponentMeta(ABCMeta):
+class TorchComponentMeta(BaseComponentMeta):
     def __new__(mcs, name, bases, class_dict):
         if "preprocess" in class_dict:
             class_dict["preprocess"] = cached_preprocess(class_dict["preprocess"])

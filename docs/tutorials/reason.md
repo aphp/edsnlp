@@ -7,7 +7,7 @@ In this tutorial we will use the pipe `eds.reason` to :
 - Check for all named entities if they are tagged `is_reason`
 
 ```python
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 
 text = """COMPTE RENDU D'HOSPITALISATION du 11/07/2018 au 12/07/2018
 MOTIF D'HOSPITALISATION
@@ -22,22 +22,19 @@ nlp = edsnlp.blank("eds")
 
 # Extraction d'entités nommées
 nlp.add_pipe(
-    "eds.matcher",
-    config=dict(
+    eds.matcher(
         terms=dict(
             respiratoire=[
                 "asthmatique",
                 "asthme",
                 "toux",
             ]
-        )
+        ),
     ),
 )
-
-
-nlp.add_pipe("eds.normalizer")
-nlp.add_pipe("eds.sections")
-nlp.add_pipe("eds.reason", config=dict(use_sections=True))
+nlp.add_pipe(eds.normalizer())
+nlp.add_pipe(eds.sections())
+nlp.add_pipe(eds.reason(use_sections=True))
 
 doc = nlp(text)
 ```

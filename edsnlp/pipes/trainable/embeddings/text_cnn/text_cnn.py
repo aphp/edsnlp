@@ -3,6 +3,7 @@ from typing import Optional, Sequence
 import torch
 from typing_extensions import Literal, TypedDict
 
+from edsnlp.core.pipeline import Pipeline
 from edsnlp.core.torch_component import BatchInput
 from edsnlp.pipes.trainable.embeddings.typing import (
     WordEmbeddingBatchOutput,
@@ -50,8 +51,9 @@ class TextCnnEncoder(WordEmbeddingComponent):
 
     def __init__(
         self,
-        nlp,
-        name: str,
+        nlp: Optional[Pipeline] = None,
+        name: str = "text_cnn",
+        *,
         embedding: WordEmbeddingComponent,
         output_size: Optional[int] = None,
         out_channels: Optional[int] = None,

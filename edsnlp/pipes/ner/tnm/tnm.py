@@ -21,11 +21,11 @@ class TNMMatcher(BaseNERComponent):
     Examples
     --------
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.sentences")
-    nlp.add_pipe("eds.tnm")
+    nlp.add_pipe(eds.sentences())
+    nlp.add_pipe(eds.tnm())
 
     text = "TNM: pTx N1 M1"
 
@@ -71,7 +71,7 @@ class TNMMatcher(BaseNERComponent):
     def __init__(
         self,
         nlp: Optional[PipelineProtocol],
-        name: str = "eds.tnm",
+        name: str = "tnm",
         *,
         pattern: Optional[Union[List[str], str]] = tnm_pattern,
         attr: str = "TEXT",

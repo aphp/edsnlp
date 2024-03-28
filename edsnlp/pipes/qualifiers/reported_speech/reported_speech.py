@@ -34,16 +34,13 @@ class ReportedSpeechQualifier(RuleBasedQualifier):
     entities are part of a reported speech. It is complete and can be run _as is_.
 
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe(eds.sentences())
     # Dummy matcher
-    nlp.add_pipe(
-        "eds.matcher",
-        config=dict(terms=dict(patient="patient", alcool="alcoolisé")),
-    )
-    nlp.add_pipe("eds.reported_speech")
+    nlp.add_pipe(eds.matcher(terms=dict(patient="patient", alcool="alcoolisé")))
+    nlp.add_pipe(eds.reported_speech())
 
     text = (
         "Le patient est admis aux urgences ce soir pour une douleur au bras. "
@@ -114,7 +111,7 @@ class ReportedSpeechQualifier(RuleBasedQualifier):
     def __init__(
         self,
         nlp: PipelineProtocol,
-        name: Optional[str] = "eds.reported_speech",
+        name: Optional[str] = "reported_speech",
         *,
         pseudo: Optional[List[str]] = None,
         preceding: Optional[List[str]] = None,

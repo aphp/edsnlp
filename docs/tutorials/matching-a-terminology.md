@@ -22,7 +22,7 @@ You should consider reading the [matcher's specific documentation](../pipes/core
 Let's try to find mentions of COVID19 and references to patients within a clinical note.
 
 ```python
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 
 text = (
     "Motif de prise en charge : probable pneumopathie a COVID19, "
@@ -36,7 +36,7 @@ terms = dict(
 )
 
 nlp = edsnlp.blank("eds")
-nlp.add_pipe("eds.matcher", config=dict(terms=terms))
+nlp.add_pipe(eds.matcher(terms=terms))
 
 doc = nlp(text)
 
@@ -80,7 +80,7 @@ Let's focus on two:
 Matching on the lowercased version is extremely easy:
 
 ```python
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 
 text = (
     "Motif de prise en charge : probable pneumopathie a COVID19, "
@@ -95,8 +95,7 @@ terms = dict(
 
 nlp = edsnlp.blank("eds")
 nlp.add_pipe(
-    "eds.matcher",
-    config=dict(
+    eds.matcher(
         terms=terms,
         attr="LOWER",  # (1)
     ),
@@ -137,7 +136,7 @@ It handles:
 You can activate it like any other component.
 
 ```python hl_lines="4 10 17 23 24"
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 
 text = (
     "Motif de prise en charge : probable pneumopathie a ===== COVID19, "  # (1)
@@ -153,11 +152,10 @@ terms = dict(
 nlp = edsnlp.blank("eds")
 
 # Add the normalisation component
-nlp.add_pipe("eds.normalizer")  # (3)
+nlp.add_pipe(eds.normalizer())  # (3)
 
 nlp.add_pipe(
-    "eds.matcher",
-    config=dict(
+    eds.matcher(
         terms=terms,
         attr="NORM",  # (4)
         ignore_excluded=True,  # (5)
@@ -202,7 +200,7 @@ Of course, we _could_ write out every imaginable possibility, but this will quic
 Let us redefine the pipeline once again, this time using regular expressions:
 
 ```python
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 
 text = (
     "Motif de prise en charge : probable pneumopathie a COVID19, "
@@ -218,8 +216,7 @@ terms = dict(respiratoire="asthmatique")
 
 nlp = edsnlp.blank("eds")
 nlp.add_pipe(
-    "eds.matcher",
-    config=dict(
+    eds.matcher(
         regex=regex,  # (1)
         terms=terms,  # (2)
         attr="LOWER",  # (3)

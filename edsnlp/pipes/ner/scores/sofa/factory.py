@@ -31,7 +31,7 @@ DEFAULT_CONFIG = dict(
 )
 def create_component(
     nlp: PipelineProtocol,
-    name: Optional[str] = None,
+    name: Optional[str] = "sofa",
     *,
     regex: List[str] = regex,
     value_extract: List[Dict[str, str]] = value_extract,
@@ -57,12 +57,12 @@ def create_component(
     --------
 
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.sentences")
-    nlp.add_pipe("eds.normalizer")
-    nlp.add_pipe("eds.sofa")
+    nlp.add_pipe(eds.sentences())
+    nlp.add_pipe(eds.normalizer())
+    nlp.add_pipe(eds.sofa())
 
     text = """
     SOFA (à 24H) : 12.

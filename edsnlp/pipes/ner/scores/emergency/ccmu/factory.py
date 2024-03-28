@@ -30,7 +30,7 @@ DEFAULT_CONFIG = dict(
 )
 def create_component(
     nlp: PipelineProtocol,
-    name: Optional[str] = None,
+    name: Optional[str] = "emergency_ccmu",
     *,
     regex: List[str] = patterns.regex,
     value_extract: str = patterns.value_extract,
@@ -53,10 +53,10 @@ def create_component(
     --------
 
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.emergency_ccmu")
+    nlp.add_pipe(eds.emergency_ccmu())
     ```
 
     Parameters

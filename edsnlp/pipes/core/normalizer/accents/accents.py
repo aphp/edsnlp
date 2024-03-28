@@ -25,7 +25,7 @@ class AccentsConverter(BaseComponent):
     def __init__(
         self,
         nlp: Optional[PipelineProtocol] = None,
-        name: Optional[str] = "eds.spaces",
+        name: Optional[str] = "spaces",
         *,
         accents: List[Tuple[str, str]] = patterns.accents,
     ):

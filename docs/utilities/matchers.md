@@ -17,11 +17,11 @@ have reimplemented the matching algorithm in Cython, like the original `spacy.Ph
 You can use it as described in the code below.
 
 ```python
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 from edsnlp.matchers.phrase import EDSPhraseMatcher
 
 nlp = edsnlp.blank("eds")
-nlp.add_pipe("eds.normalizer")
+nlp.add_pipe(eds.normalizer())
 doc = nlp("On ne relève pas de signe du Corona =============== virus.")
 
 matcher = EDSPhraseMatcher(nlp.vocab, attr="NORM")
@@ -48,11 +48,11 @@ lexical variations of the target phrases and feed them to the `PhraseMatcher` in
 You can use it as described in the code below.
 
 ```python
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 from edsnlp.matchers.regex import RegexMatcher
 
 nlp = edsnlp.blank("eds")
-nlp.add_pipe("eds.normalizer")
+nlp.add_pipe(eds.normalizer())
 doc = nlp("On ne relève pas de signe du Corona =============== virus.")
 
 matcher = RegexMatcher(attr="NORM", ignore_excluded=True)
@@ -88,11 +88,11 @@ and feed them to the `PhraseMatcher` instead.
 You can use it as described in the code below.
 
 ```python
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 from edsnlp.matchers.simstring import SimstringMatcher
 
 nlp = edsnlp.blank("eds")
-nlp.add_pipe("eds.normalizer")
+nlp.add_pipe(eds.normalizer())
 doc = nlp(
     "On ne relève pas de signe du corona-virus. Historique d'un hepatocellulaire carcinome."
 )

@@ -24,7 +24,7 @@ class SpacesTagger(BaseComponent):
     def __init__(
         self,
         nlp: Optional[PipelineProtocol] = None,
-        name: Optional[str] = "eds.spaces",
+        name: Optional[str] = "spaces",
         *,
         newline: bool = True,
     ):

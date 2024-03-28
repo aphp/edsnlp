@@ -18,7 +18,7 @@ DEFAULT_CONFIG = dict(
 )
 def create_component(
     nlp: PipelineProtocol,
-    name: str = "eds.sentences",
+    name: str = "sentences",
     *,
     punct_chars: Optional[List[str]] = None,
     use_endlines: Optional[bool] = None,
@@ -43,10 +43,10 @@ def create_component(
     === "EDS-NLP"
 
         ```{ .python .no-check }
-        import edsnlp
+        import edsnlp, edsnlp.pipes as eds
 
         nlp = edsnlp.blank("eds")
-        nlp.add_pipe("eds.sentences")
+        nlp.add_pipe(eds.sentences())  # same as nlp.add_pipe("eds.sentences")
 
         text = """Le patient est admis le 23 août 2021 pour une douleur à l'estomac
         Il lui était arrivé la même chose il y a deux ans."
@@ -64,7 +64,7 @@ def create_component(
     === "spaCy sentencizer"
 
         ```{ .python .no-check }
-        import edsnlp
+        import edsnlp, edsnlp.pipes as eds
 
         nlp = edsnlp.blank("eds")
         nlp.add_pipe("sentencizer")

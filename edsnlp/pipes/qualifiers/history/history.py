@@ -68,20 +68,16 @@ class HistoryQualifier(RuleBasedQualifier):
     entities are history or not. It is complete and can be run _as is_.
 
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.sentences")
-    nlp.add_pipe("eds.normalizer")
-    nlp.add_pipe("eds.sections")
-    nlp.add_pipe("eds.dates")
+    nlp.add_pipe(eds.sentences())
+    nlp.add_pipe(eds.normalizer())
+    nlp.add_pipe(eds.sections())
+    nlp.add_pipe(eds.dates())
+    nlp.add_pipe(eds.matcher(terms=dict(douleur="douleur", malaise="malaises")))
     nlp.add_pipe(
-        "eds.matcher",
-        config=dict(terms=dict(douleur="douleur", malaise="malaises")),
-    )
-    nlp.add_pipe(
-        "eds.history",
-        config=dict(
+        eds.history(
             use_sections=True,
             use_dates=True,
         ),
@@ -177,7 +173,7 @@ class HistoryQualifier(RuleBasedQualifier):
     def __init__(
         self,
         nlp: PipelineProtocol,
-        name: Optional[str] = "eds.history",
+        name: Optional[str] = "history",
         *,
         history: Optional[List[str]] = None,
         termination: Optional[List[str]] = None,

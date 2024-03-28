@@ -1,9 +1,7 @@
 # Qualifying entities
 
-In the previous tutorial, we saw how to match a terminology on a text. Using the `#!python doc.ents` attribute, we can check whether a document mentions a concept of interest to build a cohort or describe patients.
-
-
-
+In the previous tutorial, we saw how to match a terminology on a text. Using the `#!python doc.ents` attribute, we can check whether a document mentions a concept of interest to build a cohort or
+describe patients.
 
 ## The issue
 
@@ -25,7 +23,8 @@ However, consider the classical example where we look for the `diabetes` concept
     The patient's father is diabetic.
     ```
 
-None of these expressions should be used to build a cohort: the detected entity is either negated, speculative, or does not concern the patient themself. That's why we need to **qualify the matched entities**.
+None of these expressions should be used to build a cohort: the detected entity is either negated, speculative, or does not concern the patient themself. That's why we need to **qualify the matched
+entities**.
 
 !!! warning
 
@@ -41,7 +40,7 @@ We can use EDS-NLP's qualifier pipes to achieve that. Let's add specific compone
 Adding qualifier pipes is straightforward:
 
 ```python hl_lines="25-29"
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 
 text = (
     "Motif de prise en charge : probable pneumopathie à COVID19, "
@@ -55,21 +54,19 @@ regex = dict(
 )
 terms = dict(respiratoire="asthmatique")
 
-nlp = edsnlp.blank("fr")
+nlp = edsnlp.blank("eds")
 nlp.add_pipe(
-    "eds.matcher",
-    config=dict(
+    eds.matcher(
         regex=regex,
         terms=terms,
         attr="LOWER",
     ),
 )
 
-nlp.add_pipe("eds.sentences")  # (1)
-
-nlp.add_pipe("eds.negation")  # Negation component
-nlp.add_pipe("eds.hypothesis")  # Speculation pipe
-nlp.add_pipe("eds.family")  # Family context detection
+nlp.add_pipe(eds.sentences())  # (1)
+nlp.add_pipe(eds.negation())  # Negation component
+nlp.add_pipe(eds.hypothesis())  # Speculation pipe
+nlp.add_pipe(eds.family())  # Family context detection
 ```
 
 1. Qualifiers pipes need sentence boundaries to be set (see the [specific documentation](../pipes/qualifiers/index.md) for detail).
@@ -81,7 +78,7 @@ This code is complete, and should run as is.
 Let's output the results as a pandas DataFrame for better readability:
 
 ```python hl_lines="2 34-48"
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 import pandas as pd
 
 text = (
@@ -96,21 +93,20 @@ regex = dict(
 )
 terms = dict(respiratoire="asthmatique")
 
-nlp = edsnlp.blank("fr")
+nlp = edsnlp.blank("eds")
 nlp.add_pipe(
-    "eds.matcher",
-    config=dict(
+    eds.matcher(
         regex=regex,
         terms=terms,
         attr="LOWER",
     ),
 )
 
-nlp.add_pipe("eds.sentences")
+nlp.add_pipe(eds.sentences())
 
-nlp.add_pipe("eds.negation")  # Negation component
-nlp.add_pipe("eds.hypothesis")  # Speculation pipe
-nlp.add_pipe("eds.family")  # Family context detection
+nlp.add_pipe(eds.negation())  # Negation component
+nlp.add_pipe(eds.hypothesis())  # Speculation pipe
+nlp.add_pipe(eds.family())  # Family context detection
 
 doc = nlp(text)
 
@@ -134,7 +130,7 @@ This code is complete, and should run as is.
 We get the following result:
 
 | lexical_variant | label        | negation | hypothesis | family |
-| :-------------- | :----------- | -------- | ---------- | ------ |
+|:----------------|:-------------|----------|------------|--------|
 | COVID19         | covid        | False    | True       | False  |
 | respiratoires   | respiratoire | True     | False      | False  |
 | asthmatique     | respiratoire | False    | False      | True   |

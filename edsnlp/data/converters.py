@@ -307,15 +307,17 @@ class StandoffDoc2DictConverter:
     --------
 
     ```{ .python .no-check }
-    # Any kind of reader (`edsnlp.data.read/from_...`) can be used here
-    docs = edsnlp.data.write_standoff(
-        "path/to/standoff",
+    # Any kind of writer (`edsnlp.data.read/from_...`) can be used here
+    edsnlp.data.write_standoff(
+        docs,
         converter="standoff",  # set by default
 
         # Optional parameters
         span_getter={"ents": True},
         span_attributes={"negation": "negated"},
     )
+    # or docs.to_standoff(...) if it's already a
+    # [LazyCollection][edsnlp.core.lazy_collection.LazyCollection]
     ```
 
     Parameters
@@ -492,8 +494,8 @@ class OmopDoc2DictConverter:
     --------
 
     ```{ .python .no-check }
-    # Any kind of reader (`edsnlp.data.read/from_...`) can be used here
-    docs = edsnlp.data.to_pandas(
+    # Any kind of writer (`edsnlp.data.write/to_...`) can be used here
+    df = edsnlp.data.to_pandas(
         docs,
         converter="omop",
 
@@ -502,6 +504,8 @@ class OmopDoc2DictConverter:
         doc_attributes=["note_datetime"],
         span_attributes=["negation", "family"],
     )
+    # or docs.to_pandas(...) if it's already a
+    # [LazyCollection][edsnlp.core.lazy_collection.LazyCollection]
     ```
 
     Parameters

@@ -9,7 +9,7 @@ import torch
 from spacy.tokens import Doc, Span
 from typing_extensions import Literal, NotRequired, TypedDict
 
-from edsnlp import Pipeline
+from edsnlp.core.pipeline import Pipeline
 from edsnlp.core.torch_component import TorchComponent
 from edsnlp.pipes.base import BaseNERComponent
 from edsnlp.pipes.trainable.embeddings.typing import (
@@ -95,31 +95,26 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
     ```{ .python }
     from pathlib import Path
 
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(
-        "eds.transformer",
-        name="transformer",
-        config=dict(
-            model="prajjwal1/bert-tiny",
-            window=128,
-            stride=96,
-        ),
-    )
-    nlp.add_pipe(
-        "eds.ner_crf",
-        name="ner",
-        config=dict(
-            embedding=nlp.get_pipe("transformer"),
+        eds.ner_crf(
+            embedding=eds.transformer(
+                model="prajjwal1/bert-tiny",
+                window=128,
+                stride=96,
+            ),
             mode="joint",
             target_span_getter=["ents", "ner-preds"],
             window=10,
-        )
+        ),
+        name="ner"
     )
     ```
 
-    To train the model, refer to the [Training](/tutorials/training.md) tutorial.
+    To train the model, refer to the [Training](/tutorials/make-a-training-script)
+    tutorial.
 
     Parameters
     ----------
@@ -165,7 +160,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
     def __init__(
         self,
         nlp: Optional[Pipeline] = None,
-        name: Optional[str] = "eds.ner_crf",
+        name: Optional[str] = "ner_crf",
         *,
         embedding: WordEmbeddingComponent,
         target_span_getter: SpanGetterArg = {"ents": True},

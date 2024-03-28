@@ -25,7 +25,7 @@ DEFAULT_CONFIG = dict(
 )
 def create_component(
     nlp: PipelineProtocol,
-    name: str = "eds.normalizer",
+    name: str = "normalizer",
     *,
     accents: Union[bool, Dict[str, Any]] = True,
     lowercase: Union[bool, Dict[str, Any]] = True,

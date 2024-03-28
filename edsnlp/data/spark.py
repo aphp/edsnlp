@@ -151,10 +151,10 @@ def to_spark(
     -------
     ```{ .python .no-check }
 
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.covid")
+    nlp.add_pipe(eds.covid())
 
     note_df = sql('''
         select note_id, note_text from note

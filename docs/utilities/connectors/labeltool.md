@@ -5,7 +5,7 @@ LabelTool is an in-house module enabling rapid annotation of pre-extracted entit
 We provide a ready-to-use function that converts a list of annotated spaCy documents into a `pandas` DataFrame that is readable to LabelTool.
 
 ```python
-import spacy
+import edsnlp, edsnlp.pipes as eds
 
 from edsnlp.connectors.labeltool import docs2labeltool
 
@@ -15,10 +15,10 @@ corpus = [
 ]
 
 # Instantiate the spacy pipeline
-nlp = spacy.blank("fr")
-nlp.add_pipe("eds.sentences")
-nlp.add_pipe("eds.matcher", config=dict(terms=dict(medical="médical", malade="malade")))
-nlp.add_pipe("eds.negation")
+nlp = edsnlp.blank("fr")
+nlp.add_pipe(eds.sentences())
+nlp.add_pipe(eds.matcher(terms=dict(medical="médical", malade="malade")))
+nlp.add_pipe(eds.negation())
 
 # Convert all BRAT files to a list of documents
 docs = nlp.pipe(corpus)

@@ -14,29 +14,27 @@ the NER prediction task using a Conditional Random Field (CRF) token classifier.
 the `@factory` key will be used to select the class of the module.
 
 ```{ .python .annotate }
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 from confit.utils.random import set_seed
 
 set_seed(42)
 
 nlp = edsnlp.blank("eds")
 nlp.add_pipe(
-    "eds.ner_crf",  # (1)
+    eds.ner_crf(  # (1)
+        mode="joint",  # (2)
+        target_span_getter="ml-ner",  # (3)
+        window=20,
+        embedding=eds.text_cnn(  # (4)
+            kernel_sizes=[3],
+            embedding=eds.transformer(  # (5)
+                model="prajjwal1/bert-tiny",  # (6)
+                window=128,
+                stride=96,
+            ),
+        ),
+    ),
     name="ner",
-    config={
-        "mode": "joint",  # (2)
-        "target_span_getter": "ml-ner", # (3)
-        "embedding": {
-            "@factory": "eds.text_cnn",  # (4)
-            "kernel_sizes": [3],
-            "embedding": {
-                "@factory": "eds.transformer",  # (5)
-                "model": "prajjwal1/bert-tiny",  # (6)
-                "window": 128,
-                "stride": 96,
-            },
-        },
-    },
 )
 ```
 
@@ -219,7 +217,7 @@ Let's wrap the training code in a function, and make it callable from the comman
     from spacy.tokens import Doc
     from tqdm import tqdm
 
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
     from edsnlp import registry, Pipeline
     from edsnlp.scorers.ner import create_ner_exact_scorer
 
@@ -317,23 +315,20 @@ Let's wrap the training code in a function, and make it callable from the comman
     if __name__ == "__main__":
         nlp = edsnlp.blank("eds")
         nlp.add_pipe(
-            "eds.ner_crf",
+            eds.ner_crf(
+                mode="joint",
+                target_span_getter="ml-ner",
+                window=20,
+                embedding=eds.text_cnn(
+                    kernel_sizes=[3],
+                    embedding=eds.transformer(
+                        model="prajjwal1/bert-tiny",
+                        window=128,
+                        stride=96,
+                    ),
+                ),
+            ),
             name="ner",
-            config={
-                "mode": "joint",
-                "target_span_getter": "ml-ner",
-                "window": 20,
-                "embedding": {
-                    "@factory": "eds.text_cnn",
-                    "kernel_sizes": [3],
-                    "embedding": {
-                        "@factory": "eds.transformer",
-                        "model": "prajjwal1/bert-tiny",
-                        "window": 128,
-                        "stride": 96,
-                    },
-                },
-            },
         )
         train(
             nlp=nlp,

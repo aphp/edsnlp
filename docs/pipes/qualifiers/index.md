@@ -88,7 +88,10 @@ Albeit simple, this algorithm can achieve very good performance depending on the
     You may use EDS-NLP's:
 
     ```{ .python .no-check }
-    nlp.add_pipe("eds.sentences")
+    import edsnlp, edsnlp.pipes as eds
+
+    ...
+    nlp.add_pipe(eds.sentences())
     ```
 
 ## Persisting the results

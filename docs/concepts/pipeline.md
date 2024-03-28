@@ -22,20 +22,74 @@ Trainable components, on the other hand, are built on top of the [PyTorch](https
 
 A pipeline is composed of multiple pipes, i.e., callable processing blocks, like a function, that apply a transformation on a Doc object, such as adding annotations, and return the modified object.
 
-To create your first EDS-NLP pipeline, run the following code:
+To create your first EDS-NLP pipeline, run the following code. We provide several ways to create a pipeline:
 
-=== "EDS-NLP pipeline"
+=== "EDS-NLP API"
+
+    This is the recommended way to create a pipeline, as it allows auto-completion, type checking and introspection (you can click on the component or its arguments to see the documentation in most IDEs).
 
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
+    nlp.add_pipe(eds.sentences())
+    nlp.add_pipe(eds.matcher(regex={"smoker": ["fume", "clope"]}))
+    nlp.add_pipe(eds.negation())
+    ```
+
+    !!! note "Curried components"
+
+        Most components (like `eds.matcher`) require an `nlp` argument initialization.
+        The above `eds.matcher(regex={"smoker": ["fume", "clope"]})` actually returns
+        a ["curried"](https://en.wikipedia.org/wiki/Currying) component, that will be
+        instantiated when added to the pipeline. To create the actual component directly
+        and use it outside of a pipeline (not recommended), you can use
+        `eds.matcher(nlp, regex={"smoker": ["fume", "clope"]})`, or use the result of
+        the `nlp.add_pipe` call.
+
+=== "SpaCy-like API"
+
+    Pipes can be dynamically added to the pipeline using the `add_pipe` method, with a string matching their factory name and an optional configuration dictionary.
+
+    ```python
+    import edsnlp  # or import spacy
+
+    nlp = edsnlp.blank("eds")  # or spacy.blank("eds")
     nlp.add_pipe("eds.sentences")
     nlp.add_pipe("eds.matcher", config=dict(regex={"smoker": ["fume", "clope"]}))
     nlp.add_pipe("eds.negation")
     ```
 
-This pipeline can then be run on one or more PDF documents.
+=== "From a config file"
+
+    You can also create a pipeline from a configuration file. This is useful when you plan on changing the pipeline configuration often.
+
+    ```{ .cfg title="config.cfg" }
+    [nlp]
+    lang = "eds"
+    pipeline = ["sentences", "matcher", "negation"]
+
+    [components.sentences]
+    @factory = "eds.sentences"
+
+    [components.matcher]
+    @factory = "eds.matcher"
+    regex = {"smoker": ["fume", "clope"]}
+
+    [components.negation]
+    @factory = "eds.negation"
+    ```
+
+    and then load the pipeline with:
+
+    ```{ .python .no-check }
+    import edsnlp
+
+    nlp = edsnlp.load("config.cfg")
+    ```
+
+
+This pipeline can then be run on one or more texts documents.
 As the pipeline process documents, components will be called in the order
 they were added to the pipeline.
 

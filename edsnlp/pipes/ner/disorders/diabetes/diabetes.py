@@ -42,13 +42,12 @@ class DiabetesMatcher(DisorderMatcher):
     Examples
     --------
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe(eds.sentences())
     nlp.add_pipe(
-        "eds.normalizer",
-        config=dict(
+        eds.normalizer(
             accents=True,
             lowercase=True,
             quotes=True,
@@ -64,7 +63,7 @@ class DiabetesMatcher(DisorderMatcher):
             ),
         ),
     )
-    nlp.add_pipe(f"eds.diabetes")
+    nlp.add_pipe(eds.diabetes())
     ```
 
     Below are a few examples:
@@ -93,8 +92,8 @@ class DiabetesMatcher(DisorderMatcher):
 
     def __init__(
         self,
-        nlp: Optional[PipelineProtocol] = None,
-        name: str = "eds.diabetes",
+        nlp: Optional[PipelineProtocol],
+        name: str = "diabetes",
         *,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]] = default_patterns,
         label: str = "diabetes",

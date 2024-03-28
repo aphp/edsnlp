@@ -45,12 +45,12 @@ class DatesMatcher(BaseNERComponent):
     ## Usage
 
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     import pendulum
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.dates")
+    nlp.add_pipe(eds.dates())
 
     text = (
         "Le patient est admis le 23 août 2021 pour une douleur à l'estomac. "
@@ -163,7 +163,7 @@ class DatesMatcher(BaseNERComponent):
     def __init__(
         self,
         nlp: PipelineProtocol,
-        name: str = "eds.dates",
+        name: str = "dates",
         *,
         absolute: Optional[List[str]] = None,
         relative: Optional[List[str]] = None,

@@ -11,7 +11,7 @@ import torch
 from spacy.tokens import Doc, Span
 from typing_extensions import Literal, TypedDict
 
-from edsnlp.core import PipelineProtocol
+from edsnlp.core.pipeline import Pipeline
 from edsnlp.core.torch_component import BatchInput, BatchOutput
 from edsnlp.pipes.base import BaseComponent
 from edsnlp.pipes.trainable.embeddings.typing import (
@@ -65,8 +65,8 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
 
     def __init__(
         self,
-        nlp: Optional[PipelineProtocol],
-        name: str,
+        nlp: Optional[Pipeline] = None,
+        name: str = "span_pooler",
         *,
         embedding: WordEmbeddingComponent,
         span_getter: SpanGetterArg,

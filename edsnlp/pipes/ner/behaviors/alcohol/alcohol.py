@@ -33,13 +33,12 @@ class AlcoholMatcher(DisorderMatcher):
     Examples
     --------
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe(eds.sentences())
     nlp.add_pipe(
-        "eds.normalizer",
-        config=dict(
+        eds.normalizer(
             accents=True,
             lowercase=True,
             quotes=True,
@@ -84,8 +83,8 @@ class AlcoholMatcher(DisorderMatcher):
 
     def __init__(
         self,
-        nlp: Optional[PipelineProtocol] = None,
-        name: str = "eds.alcohol",
+        nlp: Optional[PipelineProtocol],
+        name: str = "alcohol",
         *,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]] = default_patterns,
         label="alcohol",

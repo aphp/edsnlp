@@ -12,9 +12,11 @@ Some general considerations about those components:
 - Those components work on **normalized** documents. Please use the `eds.normalizer` pipeline with the following parameters:
 
     ```{ .python .no-check }
+    import edsnlp, edsnlp.pipes as eds
+    ...
+
     nlp.add_pipe(
-        "eds.normalizer",
-        config=dict(
+        eds.normalizer(
             accents=True,
             lowercase=True,
             quotes=True,

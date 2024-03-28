@@ -51,11 +51,11 @@ Name=cgts_sem_adicap_fiche-detaillee.pdf).
     Examples
     --------
     ```{ .python .no-check }
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.sentences")
-    nlp.add_pipe("eds.adicap")
+    nlp.add_pipe(eds.sentences())
+    nlp.add_pipe(eds.adicap())
 
     text = \"\"\"
     COMPTE RENDU D’EXAMEN
@@ -138,7 +138,7 @@ Name=cgts_sem_adicap_fiche-detaillee.pdf).
     def __init__(
         self,
         nlp: Optional[PipelineProtocol],
-        name: str = "eds.adicap",
+        name: str = "adicap",
         *,
         pattern: Union[List[str], str] = patterns.base_code,
         prefix: Union[List[str], str] = patterns.adicap_prefix,

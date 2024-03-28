@@ -36,13 +36,12 @@ class SolidTumorMatcher(DisorderMatcher):
     Examples
     --------
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe(eds.sentences())
     nlp.add_pipe(
-        "eds.normalizer",
-        config=dict(
+        eds.normalizer(
             accents=True,
             lowercase=True,
             quotes=True,
@@ -58,7 +57,7 @@ class SolidTumorMatcher(DisorderMatcher):
             ),
         ),
     )
-    nlp.add_pipe(f"eds.solid_tumor")
+    nlp.add_pipe(eds.solid_tumor())
     ```
 
     Below are a few examples:
@@ -89,8 +88,8 @@ class SolidTumorMatcher(DisorderMatcher):
 
     def __init__(
         self,
-        nlp: Optional[PipelineProtocol] = None,
-        name: str = "eds.solid_tumor",
+        nlp: Optional[PipelineProtocol],
+        name: str = "solid_tumor",
         *,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]] = default_patterns,
         use_tnm: bool = False,

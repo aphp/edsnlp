@@ -8,8 +8,10 @@ from confit.registry import validate_arguments
 from spacy.tokens import Doc
 
 import edsnlp
+import edsnlp.pipes as eds
 from edsnlp import Pipeline, registry
-from edsnlp.pipes.factories import normalizer, sentences
+from edsnlp.core.registries import CurriedFactory
+from edsnlp.pipes.base import BaseComponent
 
 
 class CustomClass:
@@ -35,19 +37,19 @@ def test_add_pipe_factory():
 
 def test_add_pipe_component():
     model = edsnlp.blank("eds")
-    model.add_pipe(normalizer(nlp=model), name="normalizer")
+    model.add_pipe(eds.normalizer(nlp=model), name="normalizer")
     assert "normalizer" in model.pipe_names
     assert model.has_pipe("normalizer")
     assert model.pipes.normalizer is model.get_pipe("normalizer")
 
-    model.add_pipe(sentences(nlp=model), name="sentences")
+    model.add_pipe(eds.sentences(nlp=model), name="sentences")
     assert "sentences" in model.pipe_names
     assert model.has_pipe("sentences")
     assert model.pipes.sentences is model.get_pipe("sentences")
 
     with pytest.raises(ValueError):
         model.add_pipe(
-            sentences(nlp=model, name="sentences"),
+            eds.sentences(nlp=model, name="sentences"),
             config={"punct_chars": ".?!"},
         )
 
@@ -127,8 +129,8 @@ stride = 96
 [components.ner]
 @factory = "eds.ner_crf"
 embedding = ${components.transformer}
-mode = "independent"
 target_span_getter = ["ents", "ner-preds"]
+mode = "independent"
 labels = ["PERSON", "GIFT"]
 infer_span_setter = false
 window = 40
@@ -199,7 +201,7 @@ def test_select_pipes(frozen_ml_nlp: Pipeline):
 def test_different_names():
     nlp = edsnlp.blank("eds")
 
-    extractor = sentences(nlp=nlp, name="custom_name")
+    extractor = eds.sentences(nlp=nlp, name="custom_name")
 
     with pytest.raises(ValueError) as exc_info:
         nlp.add_pipe(extractor, name="sentences")
@@ -276,9 +278,9 @@ def test_rule_based_pipeline():
     nlp.add_pipe("eds.normalizer")
     nlp.add_pipe("eds.covid")
 
-    assert nlp.pipe_names == ["eds.normalizer", "eds.covid"]
-    assert nlp.get_pipe("eds.normalizer") == nlp.pipeline[0][1]
-    assert nlp.has_pipe("eds.covid")
+    assert nlp.pipe_names == ["normalizer", "covid"]
+    assert nlp.get_pipe("normalizer") == nlp.pipeline[0][1]
+    assert nlp.has_pipe("covid")
 
     with pytest.raises(ValueError) as exc_info:
         nlp.get_pipe("unknown")
@@ -292,7 +294,7 @@ def test_rule_based_pipeline():
     assert len(doc.ents) == 1
     assert new_doc is doc
 
-    assert nlp.get_pipe_meta("eds.covid").assigns == ["doc.ents", "doc.spans"]
+    assert nlp.get_pipe_meta("covid").assigns == ["doc.ents", "doc.spans"]
 
 
 def test_torch_save(ml_nlp):
@@ -316,3 +318,41 @@ def test_missing_factory(nlp):
         nlp.add_pipe("__test_missing_pipe__")
 
     assert "__test_missing_pipe__" in str(exc_info.value)
+
+
+@edsnlp.registry.factory("custom-curry-test")
+class CustomComponent(BaseComponent):
+    def __init__(self, nlp, name):
+        self.nlp = nlp
+
+    def __call__(self, doc):
+        return doc
+
+
+def test_curried_nlp_pipe():
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(eds.sentences(name="my-sentences"))
+    nlp.add_pipe(eds.normalizer())
+    nlp.add_pipe(eds.sections(), name="sections")
+    pipe = CustomComponent()
+
+    err = (
+        f"This component ({pipe}) has not been instantiated yet, likely because it was"
+        " missing an `nlp` pipeline argument. You should either:\n"
+        "- add it to a pipeline: `pipe = nlp.add_pipe(pipe)`\n"
+        "- or fill its `nlp` argument: `pipe = factory(nlp=nlp, ...)`"
+    )
+    assert isinstance(pipe, CurriedFactory)
+    with pytest.raises(TypeError) as exc_info:
+        pipe("Demo texte")
+    assert str(exc_info.value) == err
+
+    with pytest.raises(TypeError) as exc_info:
+        pipe.forward("Demo texte")
+    assert str(exc_info.value) == err
+
+    nlp.add_pipe(pipe, name="custom")
+
+    assert nlp.pipes.custom.nlp is nlp
+
+    assert nlp.pipe_names == ["my-sentences", "normalizer", "sections", "custom"]

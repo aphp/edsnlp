@@ -31,13 +31,12 @@ class ConnectiveTissueDiseaseMatcher(DisorderMatcher):
     Examples
     --------
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe(eds.sentences())
     nlp.add_pipe(
-        "eds.normalizer",
-        config=dict(
+        eds.normalizer(
             accents=True,
             lowercase=True,
             quotes=True,
@@ -53,7 +52,7 @@ class ConnectiveTissueDiseaseMatcher(DisorderMatcher):
             ),
         ),
     )
-    nlp.add_pipe(f"eds.connective_tissue_disease")
+    nlp.add_pipe(eds.connective_tissue_disease())
     ```
 
     Below are a few examples:
@@ -82,8 +81,8 @@ class ConnectiveTissueDiseaseMatcher(DisorderMatcher):
 
     def __init__(
         self,
-        nlp: Optional[PipelineProtocol] = None,
-        name: str = "eds.connective_tissue_disease",
+        nlp: Optional[PipelineProtocol],
+        name: str = "connective_tissue_disease",
         *,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]] = default_patterns,
         label: str = "connective_tissue_disease",

@@ -38,7 +38,7 @@ class PollutionTagger(BaseComponent):
     def __init__(
         self,
         nlp: PipelineProtocol,
-        name: Optional[str] = "eds.pollution",
+        name: Optional[str] = "pollution",
         *,
         pollution: Dict[str, Union[bool, str, List[str]]] = default_enabled,
     ):

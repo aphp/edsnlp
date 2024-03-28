@@ -34,16 +34,15 @@ class FamilyContextQualifier(RuleBasedQualifier):
     of the extracted entities. It is complete, and can be run _as is_.
 
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe(eds.sentences())
     # Dummy matcher
     nlp.add_pipe(
-        "eds.matcher",
-        config=dict(terms=dict(douleur="douleur", osteoporose="ostéoporose")),
+        eds.matcher(terms=dict(douleur="douleur", osteoporose="ostéoporose")),
     )
-    nlp.add_pipe("eds.family")
+    nlp.add_pipe(eds.family())
 
     text = (
         "Le patient est admis le 23 août 2021 pour une douleur au bras. "
@@ -111,7 +110,7 @@ class FamilyContextQualifier(RuleBasedQualifier):
     def __init__(
         self,
         nlp: PipelineProtocol,
-        name: Optional[str] = "eds.family",
+        name: Optional[str] = "family",
         *,
         attr: str = "NORM",
         family: Optional[List[str]] = None,

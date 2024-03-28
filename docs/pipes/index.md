@@ -41,12 +41,12 @@ EDS-NLP provides easy-to-use pipeline components (aka pipes).
 You can add them to your pipeline by simply calling `add_pipe`, for instance:
 
 ```python
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 
 nlp = edsnlp.blank("eds")
-nlp.add_pipe("eds.normalizer")
-nlp.add_pipe("eds.sentences")
-nlp.add_pipe("eds.tnm")
+nlp.add_pipe(eds.normalizer())
+nlp.add_pipe(eds.sentences())
+nlp.add_pipe(eds.tnm())
 ```
 
 ## Basic architecture

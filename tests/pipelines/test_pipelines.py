@@ -9,4 +9,8 @@ def test_pipelines(doc):
 
 
 def test_import_all():
-    import edsnlp.pipelines.factories  # noqa: F401
+    import edsnlp.pipes
+
+    for name in dir(edsnlp.pipes):
+        if not name.startswith("_"):
+            getattr(edsnlp.pipes, name)

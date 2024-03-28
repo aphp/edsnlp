@@ -26,7 +26,7 @@ class QuotesConverter(BaseComponent):
     def __init__(
         self,
         nlp: Optional[PipelineProtocol] = None,
-        name: Optional[str] = "eds.spaces",
+        name: Optional[str] = "spaces",
         *,
         quotes: List[Tuple[str, str]] = quotes_and_apostrophes,
     ):

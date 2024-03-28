@@ -44,7 +44,7 @@ class Normalizer(BaseComponent):
     def __init__(
         self,
         nlp: Optional[PipelineProtocol],
-        name: Optional[str] = "eds.normalizer",
+        name: Optional[str] = "normalizer",
         *,
         lowercase: bool = False,
         accents: Optional[AccentsConverter] = None,

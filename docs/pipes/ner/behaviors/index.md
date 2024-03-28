@@ -12,8 +12,7 @@ Some general considerations about those components:
 - Those components work on **normalized** documents. Please use the `eds.normalizer` pipeline with the following parameters:
   ```{ .python .no-check }
   nlp.add_pipe(
-      "eds.normalizer",
-      config=dict(
+      eds.normalizer(
           accents=True,
           lowercase=True,
           quotes=True,
@@ -40,13 +39,12 @@ Some general considerations about those components:
 ## Usage
 
 ```{ .python .no-check }
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 
 nlp = edsnlp.blank("eds")
-nlp.add_pipe("eds.sentences")
+nlp.add_pipe(eds.sentences())
 nlp.add_pipe(
-    "eds.normalizer",
-    config=dict(
+    eds.normalizer(
         accents=True,
         lowercase=True,
         quotes=True,
@@ -62,8 +60,8 @@ nlp.add_pipe(
         ),
     ),
 )
-nlp.add_pipe("eds.tobacco")
-nlp.add_pipe("eds.diabetes")
+nlp.add_pipe(eds.tobacco())
+nlp.add_pipe(eds.diabetes())
 
 text = """
 Compte-rendu de consultation.

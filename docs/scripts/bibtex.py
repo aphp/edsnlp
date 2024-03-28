@@ -104,25 +104,26 @@ class Bibliography(object):
         year = ref.fields.get("year")
         pages = ref.fields.get("pages")
         doi = ref.fields.get("doi")
+        url = ref.fields.get("url")
 
         ref_id = self.referenceID(ref.key)
-        reference = f"<p id={repr(ref_id)}>{authors}, {year}. {title}."
+        ref = f"<p id={repr(ref_id)}>{authors}, {year}. {title}."
         if journal:
-            reference += f" <i>{journal}</i>."
+            ref += f" <i>{journal}</i>."
             if volume:
-                reference += f" <i>{volume}</i>"
+                ref += f" <i>{volume}</i>"
             if issue:
-                reference += f"({issue})"
+                ref += f"({issue})"
             if pages:
-                reference += f", pp.{pages}"
-            reference += "."
+                ref += f", pp.{pages}"
+            ref += "."
         if doi:
-            reference += (
-                f' <a href="https://dx.doi.org/{doi}" target="_blank">{doi}</a>'
-            )
-        reference += "</p>"
+            ref += f' <a href="https://dx.doi.org/{doi}" target="_blank">{doi}</a>'
+        elif url:
+            ref += f' <a href="{url}" target="_blank">{url}</a>'
+        ref += "</p>"
 
-        return etree.fromstring(reference)
+        return etree.fromstring(ref)
 
     def formatCitation(self, ref):
         author_list = list(map(self.formatAuthorSurname, ref.persons["author"]))

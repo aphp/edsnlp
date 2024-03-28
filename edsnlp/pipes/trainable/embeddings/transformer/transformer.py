@@ -74,13 +74,11 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
     Here is an example of how to define a pipeline with a Transformer component:
 
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(
-        "eds.transformer",
-        name="transformer",
-        config=dict(
+        eds.transformer(
             model="prajjwal1/bert-tiny",
             window=128,
             stride=96,
@@ -120,7 +118,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
     def __init__(
         self,
         nlp: Optional[Pipeline] = None,
-        name: str = "eds.transformer",
+        name: str = "transformer",
         *,
         model: Union[str, Path],
         window: int = 128,

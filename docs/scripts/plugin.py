@@ -152,7 +152,15 @@ HREF_REGEX = (
     r'(?:"([^"]*)"|\'([^\']*)|[ ]*([^ =>]*)(?![a-z]+=))'
 )
 # Maybe find something less specific ?
-PIPE_REGEX = r"(?<=[^a-zA-Z0-9._-])eds[.][a-zA-Z0-9._-]*(?=[^a-zA-Z0-9._-])"
+PIPE_REGEX = r"(?<![a-zA-Z0-9._-])eds[.]([a-zA-Z0-9._-]*)(?![a-zA-Z0-9._-])"
+
+HTML_PIPE_REGEX = r"""(?x)
+(?<![a-zA-Z0-9._-])
+<span[^>]*>eds<\/span>
+<span[^>]*>[.]<\/span>
+<span[^>]*>([a-zA-Z0-9._-]*)<\/span>
+(?![a-zA-Z0-9._-])
+"""
 
 
 @mkdocs.plugins.event_priority(-1000)
@@ -187,7 +195,8 @@ def on_post_page(
     }
 
     def replace_component(match):
-        name = match.group(0)
+        full_group = match.group(0)
+        name = "eds." + match.group(1)
         ep = spacy_factories_entry_points.get(name)
         preceding = output[match.start(0) - 50 : match.start(0)]
         if ep is not None and "DEFAULT:" not in preceding:
@@ -196,8 +205,8 @@ def on_post_page(
             except KeyError:
                 pass
             else:
-                return "<a href={href}>{name}</a>".format(href=url, name=name)
-        return name
+                return f"<a href={url}>{name}</a>"
+        return full_group
 
     def replace_link(match):
         relative_url = url = match.group(1) or match.group(2) or match.group(3)
@@ -208,6 +217,7 @@ def on_post_page(
 
     # Replace absolute paths with path relative to the rendered page
     output = regex.sub(PIPE_REGEX, replace_component, output)
+    output = regex.sub(HTML_PIPE_REGEX, replace_component, output)
     output = regex.sub(HREF_REGEX, replace_link, output)
 
     return output

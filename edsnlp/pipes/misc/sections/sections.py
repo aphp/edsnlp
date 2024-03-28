@@ -61,11 +61,11 @@ class SectionsMatcher(GenericMatcher):
     The following snippet detects section titles. It is complete and can be run _as is_.
 
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.normalizer")
-    nlp.add_pipe("eds.sections")
+    nlp.add_pipe(eds.normalizer())
+    nlp.add_pipe(eds.sections())
 
     text = """
     CRU du 10/09/2021
@@ -112,7 +112,7 @@ class SectionsMatcher(GenericMatcher):
     def __init__(
         self,
         nlp: PipelineProtocol,
-        name: str = "eds.sections",
+        name: str = "sections",
         *,
         sections: Dict[str, List[str]] = patterns.sections,
         add_patterns: bool = True,

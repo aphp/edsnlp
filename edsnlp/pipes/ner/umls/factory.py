@@ -26,7 +26,7 @@ DEFAULT_CONFIG = dict(
 )
 def create_component(
     nlp: PipelineProtocol,
-    name: str = "eds.umls",
+    name: str = "umls",
     *,
     attr: Union[str, Dict[str, str]] = "NORM",
     ignore_excluded: bool = False,
@@ -58,10 +58,10 @@ def create_component(
     3. Set `UMLS_API_KEY` locally: `export UMLS_API_KEY=your_api_key`
 
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.umls")
+    nlp.add_pipe(eds.umls())
 
     text = "Grosse toux: le malade a été mordu par des Amphibiens " "sous le genou"
 
@@ -83,13 +83,13 @@ def create_component(
     argument:
 
     ```python
-    import spacy
+    import edsnlp, edsnlp.pipes as eds
 
     # Enable the French and English languages, through the French MeSH and LOINC
     pattern_config = dict(languages=["FRE", "ENG"], sources=["MSHFRE", "LNC"])
 
-    nlp = spacy.blank("eds")
-    nlp.add_pipe("eds.umls", config=dict(pattern_config=pattern_config))
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(eds.umls(pattern_config=pattern_config))
     ```
 
     See more options of languages and sources

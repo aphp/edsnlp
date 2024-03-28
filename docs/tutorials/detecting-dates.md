@@ -44,10 +44,10 @@ Clinical notes contain many different types of dates. To name a few examples:
 The followings snippet adds the `eds.dates` component to the pipeline:
 
 ```python
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 
 nlp = edsnlp.blank("eds")
-nlp.add_pipe("eds.dates")  # (1)
+nlp.add_pipe(eds.dates())  # (1)
 
 text = (
     "Le patient est admis le 21 janvier pour une douleur dans le cou.\n"
@@ -114,18 +114,18 @@ and we will post-process the output `Doc` object to determine
 whether a given entity can be linked to a date.
 
 ```python
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 from datetime import datetime
 
 nlp = edsnlp.blank("eds")
-nlp.add_pipe("eds.sentences")
-nlp.add_pipe("eds.dates")
-
-config = dict(
-    regex=dict(admission=["admissions?", "admise?", "prise? en charge"]),
-    attr="LOWER",
+nlp.add_pipe(eds.sentences())
+nlp.add_pipe(eds.dates())
+nlp.add_pipe(
+    eds.matcher(
+        regex=dict(admission=["admissions?", "admise?", "prise? en charge"]),
+        attr="LOWER",
+    )
 )
-nlp.add_pipe("eds.matcher", config=config)
 
 text = (
     "Le patient est admis le 12 avril pour une douleur "
@@ -220,19 +220,19 @@ def get_event_date(ent: Span) -> Optional[Span]:
 We can apply this simple function:
 
 ```{ .python .no-check }
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 from utils import get_event_date
 from datetime import datetime
 
 nlp = edsnlp.blank("eds")
-nlp.add_pipe("eds.sentences")
-nlp.add_pipe("eds.dates")
-
-config = dict(
-    regex=dict(admission=["admissions?", "admise?", "prise? en charge"]),
-    attr="LOWER",
+nlp.add_pipe(eds.sentences())
+nlp.add_pipe(eds.dates())
+nlp.add_pipe(
+    eds.matcher(
+        regex=dict(admission=["admissions?", "admise?", "prise? en charge"]),
+        attr="LOWER",
+    )
 )
-nlp.add_pipe("eds.matcher", config=config)
 
 text = (
     "Le patient est admis le 12 avril pour une douleur "

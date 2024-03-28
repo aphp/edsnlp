@@ -28,13 +28,12 @@ class CongestiveHeartFailureMatcher(DisorderMatcher):
     Usage
     -----
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe(eds.sentences())
     nlp.add_pipe(
-        "eds.normalizer",
-        config=dict(
+        eds.normalizer(
             accents=True,
             lowercase=True,
             quotes=True,
@@ -50,7 +49,7 @@ class CongestiveHeartFailureMatcher(DisorderMatcher):
             ),
         ),
     )
-    nlp.add_pipe(f"eds.congestive_heart_failure")
+    nlp.add_pipe(eds.congestive_heart_failure())
     ```
 
     Below are a few examples:
@@ -79,8 +78,8 @@ class CongestiveHeartFailureMatcher(DisorderMatcher):
 
     def __init__(
         self,
-        nlp: Optional[PipelineProtocol] = None,
-        name: str = "eds.congestive_heart_failure",
+        nlp: Optional[PipelineProtocol],
+        name: str = "congestive_heart_failure",
         *,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]] = default_patterns,
         label: str = "congestive_heart_failure",

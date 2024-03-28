@@ -1,10 +1,11 @@
 from typing import Any
 
 import pandas as pd
-import spacy
 import streamlit as st
 from spacy import displacy
 
+import edsnlp
+import edsnlp.pipes as eds
 from edsnlp.utils.filter import filter_spans
 
 DEFAULT_TEXT = """\
@@ -30,8 +31,7 @@ Possible infection au coronavirus. Prescription de paracétomol pour la fièvre.
 REGEX = """
 # RegEx and terms matcher
 nlp.add_pipe(
-    "eds.matcher",
-    config=dict(
+    eds.matcher(
         regex=dict(custom=r"{custom_regex}"),
         attr="NORM",
     ),
@@ -39,20 +39,20 @@ nlp.add_pipe(
 """
 
 CODE = """
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 
 # Declare the pipeline
 nlp = edsnlp.blank("eds")
 
 # General-purpose components
-nlp.add_pipe("eds.normalizer")
-nlp.add_pipe("eds.sentences")
+nlp.add_pipe(eds.normalizer())
+nlp.add_pipe(eds.sentences())
 {pipes}
 # Qualifier pipes
-nlp.add_pipe("eds.negation")
-nlp.add_pipe("eds.family")
-nlp.add_pipe("eds.hypothesis")
-nlp.add_pipe("eds.reported_speech")
+nlp.add_pipe(eds.negation())
+nlp.add_pipe(eds.family())
+nlp.add_pipe(eds.hypothesis())
+nlp.add_pipe(eds.rspeech())
 
 # Define the note text
 text = {text}
@@ -104,35 +104,31 @@ def load_model(custom_regex: str, **enabled):
     pipes = []
 
     # Declare the pipeline
-    nlp = spacy.blank("eds")
-    nlp.add_pipe("eds.normalizer")
-    nlp.add_pipe("eds.sentences")
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(eds.normalizer())
+    nlp.add_pipe(eds.sentences())
 
     for title, name in PIPES.items():
         if name == "drugs":
             if enabled["drugs"]:
                 if enabled["fuzzy_drugs"]:
-                    nlp.add_pipe("eds.drugs", config=dict(term_matcher="simstring"))
-                    pipes.append(
-                        'nlp.add_pipe("eds.drugs", '
-                        'config=dict(term_matcher="simstring"))'
-                    )
+                    nlp.add_pipe(eds.drugs(term_matcher="simstring"))
+                    pipes.append('nlp.add_pipe(eds.drugs(term_matcher="simstring"))')
                 else:
-                    nlp.add_pipe("eds.drugs")
-                    pipes.append('nlp.add_pipe("eds.drugs")')
+                    nlp.add_pipe(eds.drugs())
+                    pipes.append("nlp.add_pipe(eds.drugs())")
 
         else:
             if enabled[name]:
                 nlp.add_pipe(f"eds.{name}")
-                pipes.append(f'nlp.add_pipe("eds.{name}")')
+                pipes.append(f"nlp.add_pipe(eds.{name}())")
 
     if pipes:
         pipes.insert(0, "# Entity extraction pipes")
 
     if custom_regex:
         nlp.add_pipe(
-            "eds.matcher",
-            config=dict(
+            eds.matcher(
                 regex=dict(custom=custom_regex),
                 attr="NORM",
             ),
@@ -143,10 +139,10 @@ def load_model(custom_regex: str, **enabled):
     else:
         regex = ""
 
-    nlp.add_pipe("eds.negation")
-    nlp.add_pipe("eds.family")
-    nlp.add_pipe("eds.hypothesis")
-    nlp.add_pipe("eds.reported_speech")
+    nlp.add_pipe(eds.negation())
+    nlp.add_pipe(eds.family())
+    nlp.add_pipe(eds.hypothesis())
+    nlp.add_pipe(eds.rspeech())
 
     return nlp, pipes, regex
 

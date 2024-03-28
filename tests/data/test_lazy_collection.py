@@ -83,11 +83,13 @@ def test_map_with_batching(num_cpu_workers, batch_by, expected):
     lazy = edsnlp.data.from_iterable(samples)
     lazy = lazy.map_pipeline(nlp)
     lazy = lazy.map_batches(len)
+    lazy = lazy.to("cpu")
     lazy = lazy.set_processing(
         num_cpu_workers=num_cpu_workers,
         batch_size=10,
         batch_by=batch_by,
         chunk_size=1000,
         split_into_batches_after="matcher",
+        show_progress=True,
     )
     assert list(lazy) == expected

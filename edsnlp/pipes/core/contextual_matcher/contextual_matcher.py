@@ -73,7 +73,7 @@ class ContextualMatcher(BaseNERComponent):
     def __init__(
         self,
         nlp: Optional[PipelineProtocol],
-        name: Optional[str] = None,
+        name: Optional[str] = "contextual_matcher",
         *,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]],
         assign_as_span: bool = False,

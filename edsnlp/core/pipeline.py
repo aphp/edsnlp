@@ -199,13 +199,17 @@ class Pipeline:
         Pipe
         """
         try:
-            curried_factory: CurriedFactory = Config(
+            curried: CurriedFactory = Config(
                 {
                     "@factory": factory,
                     **(config if config is not None else {}),
                 }
             ).resolve(registry=registry)
-            pipe = curried_factory.instantiate(nlp=self, path=(name,))
+            if name is None:
+                name = inspect.signature(curried.factory).parameters.get("name").default
+            if name is None or name == inspect.Parameter.empty:
+                name = factory
+            pipe = curried.instantiate(nlp=self, path=(name,))
         except ConfitValidationError as e:
             raise e.with_traceback(None)
         return pipe
@@ -252,20 +256,25 @@ class Pipeline:
             The component that was added to the pipeline.
         """
         if isinstance(factory, str):
-            if name is None:
-                name = factory
             pipe = self.create_pipe(factory, name, config)
+            name = name or getattr(pipe, "name", factory)
         else:
             if config is not None:
                 raise ValueError(
                     "Can't pass config or name with an instantiated component",
                 )
+            if isinstance(factory, CurriedFactory):
+                name = name or factory.kwargs.get("name")
+                factory = factory.instantiate(nlp=self, path=(name,))
+
             pipe = factory
-            name = getattr(pipe, "name", None) or name
+            name = name or getattr(pipe, "name", None)
             if name is None:
                 raise ValueError(
                     "The component does not have a name, so you must provide one",
                 )
+        if hasattr(pipe, "name") and name != pipe.name:
+            pipe.name = name
         assert sum([before is not None, after is not None, first]) <= 1, (
             "You can only use one of before, after, or first",
         )
@@ -960,10 +969,10 @@ def blank(
     Examples
     --------
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.covid")
+    nlp.add_pipe(eds.covid())
     ```
 
     Parameters

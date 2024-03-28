@@ -32,13 +32,12 @@ class LiverDiseaseMatcher(DisorderMatcher):
     Examples
     --------
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe(eds.sentences())
     nlp.add_pipe(
-        "eds.normalizer",
-        config=dict(
+        eds.normalizer(
             accents=True,
             lowercase=True,
             quotes=True,
@@ -54,7 +53,7 @@ class LiverDiseaseMatcher(DisorderMatcher):
             ),
         ),
     )
-    nlp.add_pipe(f"eds.liver_disease")
+    nlp.add_pipe(eds.liver_disease())
     ```
 
     Below are a few examples:
@@ -83,8 +82,8 @@ class LiverDiseaseMatcher(DisorderMatcher):
 
     def __init__(
         self,
-        nlp: Optional[PipelineProtocol] = None,
-        name: str = "eds.liver_disease",
+        nlp: Optional[PipelineProtocol],
+        name: str = "liver_disease",
         *,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]] = default_patterns,
         label: str = "liver_disease",

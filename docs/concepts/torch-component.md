@@ -79,21 +79,21 @@ In EDS-NLP, sharing a subcomponent is simply done by sharing the object between 
 
     ```{ .python .no-check }
     nlp.add_pipe(
-        "my-component-1",
+        eds.ner_crf(
+            ...,
+            embedding=eds.transformer(
+                model_name="bert-base-uncased",
+                window=128,
+                stride=96,
+            ),
+        ),
         name="first",
-        config={
-            "embedding": {
-                "@factory": "eds.embeddings",
-                # ...
-            }
-        },
     )
     nlp.add_pipe(
-        "my-component-2",
+        some_other_task(
+            embedding=nlp.pipes.first.embedding,
+        ),
         name="second",
-        config={
-            "embedding": pipeline.components.first.embedding,
-        },
     )
     ```
 
@@ -101,14 +101,15 @@ In EDS-NLP, sharing a subcomponent is simply done by sharing the object between 
 
     ```toml
     [components.first]
-    @factory = "my-component-1"
+    @factory = "eds.ner_crf"
+    ...
 
     [components.first.embedding]
     @factory = "eds.embeddings"
     ...
 
     [components.second]
-    @factory = "my-component-2"
+    @factory = "some_other_task"
     embedding = ${components.first.embedding}
     ```
 

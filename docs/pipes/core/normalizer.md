@@ -34,11 +34,11 @@ The normaliser can act on the input text in five dimensions :
 The normalisation is handled by the single `eds.normalizer` pipeline component. The following code snippet is complete, and should run as is.
 
 ```python
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 from edsnlp.matchers.utils import get_text
 
 nlp = edsnlp.blank("eds")
-nlp.add_pipe("eds.normalizer")
+nlp.add_pipe(eds.normalizer())
 
 # Notice the special character used for the apostrophe and the quotes
 text = "Le patient est admis à l'hôpital le 23 août 2021 pour une douleur ʺaffreuse” à l`estomac."
@@ -60,8 +60,8 @@ Moreover, every span exposes a `normalized_variant` extension getter, which comp
 The pipeline component can be configured using the following parameters :
 
 ::: edsnlp.pipes.core.normalizer.factory.create_component
-    options:
-       only_parameters: true
+options:
+only_parameters: true
 
 ## Pipes
 
@@ -74,19 +74,19 @@ The `eds.lowercase` pipeline component transforms every token to lowercase. It i
 Consider the following example :
 
 ```python
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 from edsnlp.matchers.utils import get_text
 
-config = dict(
-    lowercase=True,
-    accents=False,
-    quotes=False,
-    spaces=False,
-    pollution=False,
-)
-
 nlp = edsnlp.blank("eds")
-nlp.add_pipe("eds.normalizer", config=config)
+nlp.add_pipe(
+    eds.normalizer(
+        lowercase=True,
+        accents=False,
+        quotes=False,
+        spaces=False,
+        pollution=False,
+    ),
+)
 
 text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
 
@@ -105,19 +105,19 @@ making it more predictable than using a library such as `unidecode`.
 Consider the following example :
 
 ```python
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 from edsnlp.matchers.utils import get_text
 
-config = dict(
-    lowercase=False,
-    accents=True,
-    quotes=False,
-    spaces=False,
-    pollution=False,
-)
-
 nlp = edsnlp.blank("eds")
-nlp.add_pipe("eds.normalizer", config=config)
+nlp.add_pipe(
+    eds.normalizer(
+        lowercase=False,
+        accents=True,
+        quotes=False,
+        spaces=False,
+        pollution=False,
+    ),
+)
 
 text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
 
@@ -127,7 +127,6 @@ get_text(doc, attr="NORM", ignore_excluded=False)
 # Out: Pneumopathie a NBNbWbWbNbWbNBNbNbWbW `coronavirus'
 ```
 
-
 ### Apostrophes and quotation marks
 
 Apostrophes and quotation marks can be encoded using unpredictable special characters. The `eds.quotes` component transforms every such special character to `'` and `"`, respectively.
@@ -135,19 +134,19 @@ Apostrophes and quotation marks can be encoded using unpredictable special chara
 Consider the following example :
 
 ```python
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 from edsnlp.matchers.utils import get_text
 
-config = dict(
-    lowercase=False,
-    accents=False,
-    quotes=True,
-    spaces=False,
-    pollution=False,
-)
-
 nlp = edsnlp.blank("eds")
-nlp.add_pipe("eds.normalizer", config=config)
+nlp.add_pipe(
+    eds.normalizer(
+        lowercase=False,
+        accents=False,
+        quotes=True,
+        spaces=False,
+        pollution=False,
+    ),
+)
 
 text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
 
@@ -169,18 +168,18 @@ matching.
       `ignore_space_tokens` parameter token to True in a downstream component.
 
 ```python
-import edsnlp
-
-config = dict(
-    lowercase=False,
-    accents=False,
-    quotes=False,
-    spaces=True,
-    pollution=False,
-)
+import edsnlp, edsnlp.pipes as eds
 
 nlp = edsnlp.blank("eds")
-nlp.add_pipe("eds.normalizer", config=config)
+nlp.add_pipe(
+    eds.normalizer(
+        lowercase=False,
+        accents=False,
+        quotes=False,
+        spaces=True,
+        pollution=False,
+    ),
+)
 
 doc = nlp("Phrase    avec des espaces \n et un retour à la ligne")
 [t.tag_ for t in doc]
@@ -189,24 +188,25 @@ doc = nlp("Phrase    avec des espaces \n et un retour à la ligne")
 
 ### Pollution
 
-The pollution pipeline component uses a set of regular expressions to detect pollutions (irrelevant non-medical text that hinders text processing). Corresponding tokens are marked as excluded (by setting `Token._.excluded` to `True`), enabling the use of the phrase matcher.
+The pollution pipeline component uses a set of regular expressions to detect pollutions (irrelevant non-medical text that hinders text processing). Corresponding tokens are marked as excluded (by
+setting `Token._.excluded` to `True`), enabling the use of the phrase matcher.
 
 Consider the following example :
 
 ```python
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 from edsnlp.matchers.utils import get_text
 
-config = dict(
-    lowercase=False,
-    accents=True,
-    quotes=False,
-    spaces=False,
-    pollution=True,
-)
-
 nlp = edsnlp.blank("eds")
-nlp.add_pipe("eds.normalizer", config=config)
+nlp.add_pipe(
+    eds.normalizer(
+        lowercase=False,
+        accents=True,
+        quotes=False,
+        spaces=False,
+        pollution=True,
+    ),
+)
 
 text = "Pneumopathie à NBNbWbWbNbWbNBNbNbWbW `coronavirus'"
 
@@ -231,15 +231,12 @@ Pollution can come in various forms in clinical texts. We provide a small set of
 For instance, if we consider biology tables as pollution, we only need to instantiate the `normalizer` pipe as follows:
 
 ```python
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 
 nlp = edsnlp.blank("eds")
 nlp.add_pipe(
-    "eds.normalizer",
-    config=dict(
-        pollution=dict(
-            biology=True,
-        ),
+    eds.normalizer(
+        pollution=dict(biology=True),
     ),
 )
 ```
@@ -260,15 +257,12 @@ If you want to exclude specific patterns, you can provide them as a RegEx (or a 
 For instance, to consider text between "AAA" and "ZZZ" as pollution you might use:
 
 ```python
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 
 nlp = edsnlp.blank("eds")
 nlp.add_pipe(
-    "eds.normalizer",
-    config=dict(
-        pollution=dict(
-            custom_pollution=r"AAA.*ZZZ",
-        ),
+    eds.normalizer(
+        pollution=dict(custom_pollution=r"AAA.*ZZZ"),
     ),
 )
 ```

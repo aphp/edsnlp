@@ -9,26 +9,27 @@ Then, we'll explore methods that EDS-NLP provides to perform inference on multip
 Consider this simple pipeline:
 
 ```python
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 
 nlp = edsnlp.blank("eds")
 
-nlp.add_pipe("eds.sentences")
-nlp.add_pipe("eds.normalizer")
+nlp.add_pipe(eds.sentences())
+nlp.add_pipe(eds.normalizer())
 
-config = dict(
-    terms=dict(patient=["patient", "malade"]),
-    attr="NORM",
+nlp.add_pipe(
+    eds.matcher(
+        terms=dict(patient=["patient", "malade"]),
+        attr="NORM",
+    ),
 )
-nlp.add_pipe("eds.matcher", config=config)
 
 # Add qualifiers
-nlp.add_pipe("eds.negation")
-nlp.add_pipe("eds.hypothesis")
-nlp.add_pipe("eds.family")
+nlp.add_pipe(eds.negation())
+nlp.add_pipe(eds.hypothesis())
+nlp.add_pipe(eds.family())
 
 # Add date detection
-nlp.add_pipe("eds.dates")
+nlp.add_pipe(eds.dates())
 ```
 
 Let's deploy it on a large number of documents.
@@ -97,9 +98,11 @@ There are a few issues with this approach:
 
 ## Lazy inference and parallelization
 
-To efficiently perform the same operations on multiple documents at once, EDS-NLP uses [lazy collections][edsnlp.core.lazy_collection.LazyCollection], which record the operations to perform on the documents without actually executing them directly, similar to the way Spark does, or polars with its LazyFrame.
+To efficiently perform the same operations on multiple documents at once, EDS-NLP uses [lazy collections][edsnlp.core.lazy_collection.LazyCollection], which record the operations to perform on the
+documents without actually executing them directly, similar to the way Spark does, or polars with its LazyFrame.
 
-This allows EDS-NLP to distribute these operations on multiple cores or machines when it is time to execute them. We can configure how the collection operations are run (how many jobs/workers, how many gpus, whether to use the spark engine) via the lazy collection [`.set_processing(...)`][edsnlp.core.lazy_collection.LazyCollection.set_processing] method.
+This allows EDS-NLP to distribute these operations on multiple cores or machines when it is time to execute them. We can configure how the collection operations are run (how many jobs/workers, how
+many gpus, whether to use the spark engine) via the lazy collection [`.set_processing(...)`][edsnlp.core.lazy_collection.LazyCollection.set_processing] method.
 
 For instance,
 
@@ -109,7 +112,8 @@ print(docs)
 # <edsnlp.core.lazy_collection.LazyCollection object at 0x7f3e3c3e3d90>
 ```
 
-as well as any `edsnlp.data.read_*` or `edsnlp.data.from_*` return a lazy collection, that we can iterate over or complete with more operations. To apply the model on our collection of documents, we can simply do:
+as well as any `edsnlp.data.read_*` or `edsnlp.data.from_*` return a lazy collection, that we can iterate over or complete with more operations. To apply the model on our collection of documents, we
+can simply do:
 
 ```python
 docs = docs.map_pipeline(nlp)
@@ -129,9 +133,11 @@ docs = docs.map_pipeline(nlp)
     docs = docs.map_pipeline(nlp)
     ```
 
-Finally, we can convert the documents to a DataFrame (or other formats / files) using the `edsnlp.data.to_*` or `edsnlp.data.write_*` methods. This triggers the execution of the operations scheduled in the lazy collection and produces the rows of the DataFrame.
+Finally, we can convert the documents to a DataFrame (or other formats / files) using the `edsnlp.data.to_*` or `edsnlp.data.write_*` methods. This triggers the execution of the operations scheduled
+in the lazy collection and produces the rows of the DataFrame.
 
-We can pass our previous Doc to Dict code as a function to the `converter` parameter of the `to_pandas` method. Note that this specific conversion is already implemented in EDS-NLP, so you can just pass the string `"ents"` to the `converter` parameter, and customize the conversion by passing more parameters to the `to_pandas` method, as described [here](/data/converters#ents).
+We can pass our previous Doc to Dict code as a function to the `converter` parameter of the `to_pandas` method. Note that this specific conversion is already implemented in EDS-NLP, so you can just
+pass the string `"ents"` to the `converter` parameter, and customize the conversion by passing more parameters to the `to_pandas` method, as described [here](/data/converters#ents).
 
 ```python
 def convert_doc_to_rows(doc):
@@ -311,7 +317,8 @@ note_nlp = docs.to_pandas(
 
 ### In a distributed fashion with spark
 
-To use the Spark engine to distribute the computation, we create our lazy collection from the Spark dataframe directly and write the result to a new Spark dataframe. EDS-NLP will automatically distribute the operations on the cluster (setting `backend="spark"` behind the scenes), but you can change the backend (for instance to `multiprocessing` to run locally).
+To use the Spark engine to distribute the computation, we create our lazy collection from the Spark dataframe directly and write the result to a new Spark dataframe. EDS-NLP will automatically
+distribute the operations on the cluster (setting `backend="spark"` behind the scenes), but you can change the backend (for instance to `multiprocessing` to run locally).
 
 ```{ .python hl_lines="2 9" .no-check }
 # Read from the pyspark dataframe & use the omop converter

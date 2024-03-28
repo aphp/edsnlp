@@ -42,16 +42,13 @@ class HypothesisQualifier(RuleBasedQualifier):
     entities are part of a speculation. It is complete and can be run _as is_.
 
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe(eds.sentences())
     # Dummy matcher
-    nlp.add_pipe(
-        "eds.matcher",
-        config=dict(terms=dict(douleur="douleur", fracture="fracture")),
-    )
-    nlp.add_pipe("eds.hypothesis")
+    nlp.add_pipe(eds.matcher(terms=dict(douleur="douleur", fracture="fracture")))
+    nlp.add_pipe(eds.hypothesis())
 
     text = (
         "Le patient est admis le 23 août 2021 pour une douleur au bras. "
@@ -148,7 +145,7 @@ class HypothesisQualifier(RuleBasedQualifier):
     def __init__(
         self,
         nlp: PipelineProtocol,
-        name: Optional[str] = "eds.hypothesis",
+        name: Optional[str] = "hypothesis",
         *,
         pseudo: Optional[List[str]] = None,
         preceding: Optional[List[str]] = None,

@@ -77,13 +77,13 @@ endlines.save(PATH)
 ## Use a trained model for inference
 
 ```{ .python .no-check }
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 
 nlp = edsnlp.blank("eds")
 
 PATH = "/path_to_model"
-nlp.add_pipe("eds.endlines", config=dict(model_path=PATH))  # (1)
-nlp.add_pipe("eds.sentences")  # (1)
+nlp.add_pipe(eds.endlines(model_path=PATH))  # (1)
+nlp.add_pipe(eds.sentences())  # (1)
 
 docs = list(nlp.pipe([text1, text2, text3]))
 

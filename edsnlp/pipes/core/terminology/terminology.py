@@ -38,7 +38,7 @@ class TerminologyMatcher(BaseNERComponent):
     Let us redefine the pipeline :
 
     ```python
-    import edsnlp
+    import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
 
@@ -52,8 +52,7 @@ class TerminologyMatcher(BaseNERComponent):
     )
 
     nlp.add_pipe(
-        "eds.terminology",
-        config=dict(
+        eds.terminology(
             label="disease",
             terms=terms,
             regex=regex,
@@ -106,7 +105,7 @@ class TerminologyMatcher(BaseNERComponent):
     def __init__(
         self,
         nlp: PipelineProtocol,
-        name: Optional[str] = None,
+        name: Optional[str] = "terminology",
         *,
         terms: Optional[Patterns] = None,
         regex: Optional[Patterns] = None,

@@ -63,12 +63,12 @@ Span of text are represented by the `Span` object and represent slices of the `D
 - `doc.spans` is dict of groups of spans (that can overlap)
 
 ```python
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 
 nlp = edsnlp.blank("eds")
 
-nlp.add_pipe("eds.sentences")  # (1)
-nlp.add_pipe("eds.dates")  # (2)
+nlp.add_pipe(eds.sentences())  # (1)
+nlp.add_pipe(eds.dates())  # (2)
 
 text = "Le 5 mai 2005, Jimothé a été invité à une fête organisée par Michel."
 

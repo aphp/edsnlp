@@ -39,6 +39,7 @@
   ```
 
   *The previous way of adding pipes is still supported.*
+- New `eds.span_linker` deep-learning component to match entities with their concepts in a knowledge base, in synonym-similarity or concept-similarity mode.
 
 ### Changed
 

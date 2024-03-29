@@ -34,13 +34,13 @@ Check out our interactive [demo](https://aphp.github.io/edsnlp/demo/) !
 You can install EDS-NLP via `pip`. We recommend pinning the library version in your projects, or use a strict package manager like [Poetry](https://python-poetry.org/).
 
 ```shell
-pip install edsnlp==0.10.7
+pip install edsnlp==0.11.0
 ```
 
 or if you want to use the trainable components (using pytorch)
 
 ```shell
-pip install "edsnlp[ml]==0.10.7"
+pip install "edsnlp[ml]==0.11.0"
 ```
 
 ### A first pipeline
@@ -48,7 +48,7 @@ pip install "edsnlp[ml]==0.10.7"
 Once you've installed the library, let's begin with a very simple example that extracts mentions of COVID19 in a text, and detects whether they are negated.
 
 ```python
-import edsnlp
+import edsnlp, edsnlp.pipes as eds
 
 nlp = edsnlp.blank("eds")
 
@@ -57,10 +57,10 @@ terms = dict(
 )
 
 # Split the documents into sentences, this isneeded for negation detection
-nlp.add_pipe("eds.sentences")
+nlp.add_pipe(eds.sentences())
 # Matcher component
-nlp.add_pipe("eds.matcher", config=dict(terms=terms))
-# Negation detection
+nlp.add_pipe(eds.matcher(terms=terms))
+# Negation detection (we also support spacy-like API !)
 nlp.add_pipe("eds.negation")
 
 # Process your text in one call !

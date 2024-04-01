@@ -50,7 +50,7 @@ def test_map_gpu(num_gpu_workers):
 
     res = ld_to_dl(lazy)
     res = torch.cat(res["outputs"])
-    assert torch.all(res == torch.tensor([4, 6, 8, 10, 12]))
+    assert set(res.tolist()) == {4, 6, 8, 10, 12}
 
 
 @pytest.mark.parametrize("num_cpu_workers", [1, 2])

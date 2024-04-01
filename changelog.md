@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Automatic estimation of cpu count when using multiprocessing
+
+### Changed
+
+- `nlp.post_init` will not tee lazy collections anymore (use `edsnlp.utils.collections.multi_tee` yourself if needed)
+
 ## v0.11.0 (2024-03-29)
 
 ### Added

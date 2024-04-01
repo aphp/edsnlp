@@ -130,7 +130,8 @@ class LazyCollection(metaclass=MetaLazyCollection):
 
     @property
     def backend(self):
-        return self.config.get("backend")
+        backend = self.config.get("backend")
+        return {"mp": "multiprocessing"}.get(backend, backend)
 
     @property
     def show_progress(self):
@@ -143,7 +144,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
     @with_non_default_args
     def set_processing(
         self,
-        batch_size: int = 1,
+        batch_size: int = INFER,
         batch_by: Literal["docs", "words", "padded_words"] = "docs",
         chunk_size: int = INFER,
         sort_chunks: bool = False,
@@ -151,7 +152,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
         num_cpu_workers: Optional[int] = INFER,
         num_gpu_workers: Optional[int] = INFER,
         disable_implicit_parallelism: bool = True,
-        backend: Optional[Literal["simple", "multiprocessing", "spark"]] = INFER,
+        backend: Optional[Literal["simple", "multiprocessing", "mp", "spark"]] = INFER,
         gpu_pipe_names: Optional[List[str]] = INFER,
         show_progress: bool = False,
         process_start_method: Optional[Literal["fork", "spawn"]] = INFER,

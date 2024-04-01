@@ -61,6 +61,9 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         to predict or train on.
     pooling_mode: Literal["max", "sum", "mean"]
         How word embeddings are aggregated into a single embedding per span.
+    hidden_size : Optional[int]
+        The size of the hidden layer. If None, no projection is done and the output
+        of the span pooler is used directly.
     """
 
     def __init__(
@@ -71,18 +74,24 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         embedding: WordEmbeddingComponent,
         span_getter: SpanGetterArg,
         pooling_mode: Literal["max", "sum", "mean"] = "mean",
+        hidden_size: Optional[int] = None,
     ):
         self.qualifiers = None
-        self.output_size = embedding.output_size
+        self.output_size = embedding.output_size if hidden_size is None else hidden_size
 
         super().__init__(nlp, name)
 
         self.pooling_mode = pooling_mode
         self.span_getter = span_getter
         self.embedding = embedding
+        self.projector = (
+            torch.nn.Linear(self.embedding.output_size, hidden_size)
+            if hidden_size is not None
+            else torch.nn.Identity()
+        )
 
     def feed_forward(self, span_embeds: torch.Tensor) -> torch.Tensor:
-        return span_embeds
+        return self.projector(span_embeds)
 
     def set_extensions(self):
         super().set_extensions()

@@ -13,7 +13,6 @@ from typing import (
     Sequence,
     Set,
     Tuple,
-    Union,
 )
 
 import foldedtensor as ft
@@ -35,7 +34,7 @@ from edsnlp.utils.collections import (
     decompress_dict,
     ld_to_dl,
 )
-from edsnlp.utils.span_getters import get_spans_with_group
+from edsnlp.utils.span_getters import get_spans, get_spans_with_group
 
 SpanLinkerBatchInput = TypedDict(
     "SpanLinkerBatchInput",
@@ -94,10 +93,10 @@ class TrainableSpanLinker(
     found in the mapping, the span is compared with all concepts.
 
     We support comparing entity queries against two kind of references : either the
-    embeddings of the concepts themselves (`reference_mode = "synonym"`), or the
-    embeddings of the synonyms of the concepts (`reference_mode = "class"`).
+    embeddings of the concepts themselves (`reference_mode = "concept"`), or the
+    embeddings of the synonyms of the concepts (`reference_mode = "synonym"`).
 
-    ### Synonym span linking
+    ### Synonym similarity
 
     When performing span linking in `synonym` mode, the span linker embedding matrix
     contains one embedding vector per concept per synonym, and each embedding maps to
@@ -106,21 +105,21 @@ class TrainableSpanLinker(
     in zero-shot scenarios (see example below).
 
     <figure markdown>
-      ![Synonym-based Span Linker](/assets/images/synonym_span_linker.png)
-      <figcaption>Synonym-based span linking</figcaption>
+      ![Synonym similarity](/assets/images/synonym_span_linker.png)
+      <figcaption>Entity linking based on synonym similarity</figcaption>
     </figure>
 
-    ### Class span linking
+    ### Concept similarity
 
-    In `class` mode, the span linker embedding matrix contains one embedding vector per
-    concept : imagine a single vector that approximately averages all the synonyms
+    In `concept` mode, the span linker embedding matrix contains one embedding vector
+    per concept : imagine a single vector that approximately averages all the synonyms
     of a concept (e.g. B01AC06 = average of "aspirin", "acetyl-salicylic acid", etc.).
     This mode is faster and more memory efficient, but usually requires that the
-    embeddings are pre-trained.
+    concept weights are fine-tuned.
 
     <figure markdown>
-      ![Class-based Span Linking](/assets/images/class_span_linker.png)
-      <figcaption>Class-based span linking</figcaption>
+      ![Concept similarity](/assets/images/class_span_linker.png)
+      <figcaption>Entity linking based on concept similarity</figcaption>
     </figure>
 
     Examples
@@ -142,12 +141,12 @@ class TrainableSpanLinker(
         eds.span_linker(
             rescale=20.0,
             threshold=0.8,
-            hidden_size=128,
             metric="cosine",
             reference_mode="synonym",
             probability_mode="sigmoid",
             embedding=eds.span_pooler(
                 span_getter=["ents"],
+                hidden_size=128,
                 embedding=eds.transformer(
                     span_getter=["ents"],
                     model="prajjwal1/bert-tiny",
@@ -224,7 +223,7 @@ class TrainableSpanLinker(
         Threshold probability to consider a concept as valid
     attribute : str
         The attribute to store the concept id
-    reference_mode : Literal["class", "synonym"]
+    reference_mode : Literal["concept", "synonym"]
         Whether to compare the embeddings with the concepts embeddings (one per concept)
         or the synonyms embeddings (one per concept per synonym). See above for more
         details.
@@ -244,20 +243,18 @@ class TrainableSpanLinker(
         the entities of the docs provided to the `post_init` method.
         How this is done depends on the `reference_mode` parameter:
 
-        - `class`: the embeddings are averaged
+        - `concept`: the embeddings are averaged
         - `synonym`: the embeddings are stored as is
 
         By default, this is set to `True` if `reference_mode` is `synonym`, and
         `False` otherwise.
-    hidden_size : Optional[int]
-        The size of the hidden layer. If None, no projection is done and the output
-        of the span pooler is used directly.
 
     Authors and citation
     --------------------
     The `eds.span_linker` component was developed by AP-HP's Data Science team.
 
-    The deep learning class-based architecture was adapted from [@wajsburt2021medical].
+    The deep learning concept-based architecture was adapted from
+    [@wajsburt2021medical].
     """
 
     def __init__(
@@ -266,12 +263,11 @@ class TrainableSpanLinker(
         name: str = "span_linker",
         *,
         embedding: SpanEmbeddingComponent,
-        hidden_size: Optional[int],
         metric: Literal["cosine", "dot"] = "cosine",
-        rescale: Union[float, Literal["auto"]] = 20,
+        rescale: float = 20,
         threshold: float = 0.5,
         attribute: str = "cui",
-        reference_mode: Literal["class", "synonym"] = "class",
+        reference_mode: Literal["concept", "synonym"] = "concept",
         probability_mode: Literal["softmax", "sigmoid"] = "sigmoid",
         init_weights: bool = True,
     ):
@@ -287,26 +283,16 @@ class TrainableSpanLinker(
         self.threshold = threshold
         self.reference_mode = reference_mode
         self.probability_mode = probability_mode
-        self.init_weights = (
-            (reference_mode == "synonym") if init_weights is None else init_weights
-        )
-        projected_size = (
-            hidden_size if hidden_size is not None else self.embedding.output_size
-        )
+        self.init_weights = init_weights
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)
             self.classifier = Metric(
-                in_features=projected_size,
+                in_features=self.embedding.output_size,
                 out_features=0,
                 num_groups=0,
                 rescale=rescale,
                 metric=metric,
             )
-        self.projector = (
-            torch.nn.Linear(self.embedding.output_size, hidden_size)
-            if hidden_size is not None
-            else torch.nn.Identity()
-        )
 
     @property
     def span_getter(self):
@@ -412,21 +398,22 @@ class TrainableSpanLinker(
                     )
                     * old_weight_norm
                 )
-                concepts = list(self.concepts_to_idx)
         else:
             common = sorted(set(self.concepts_to_idx) & set(old_concepts_to_idx))
             old_index = [old_concepts_to_idx[label] for label in common]
             new_index = [self.concepts_to_idx[label] for label in common]
             new_lin.weight.data[new_index] = self.classifier.weight.data[old_index]
 
-        self.concepts = concepts
+        self.concepts = (
+            concepts if self.reference_mode == "synonym" else list(self.concepts_to_idx)
+        )
         self.classifier.weight.data = new_lin.weight.data
         self.classifier.out_features = self.classifier.weight.shape[0]
 
         if mapping is not None:
             mapping = {k: set(v) for k, v in mapping.items()}
             self.classifier.groups.data = torch.tensor(
-                [[True] * len(concepts)]
+                [[True] * len(self.concepts)]
                 + [
                     [concept in label_concepts for concept in self.concepts]
                     for span_label, label_concepts in mapping.items()
@@ -437,53 +424,76 @@ class TrainableSpanLinker(
             span_labels_to_idx = {label: idx for idx, label in enumerate(span_labels)}
             self.span_labels_to_idx = span_labels_to_idx
 
-    def compute_embeddings(
-        self, docs: Iterable[Doc]
-    ) -> Tuple[torch.Tensor, List[str], List[str]]:
+    def compute_init_features(
+        self,
+        docs: Iterable[Doc],
+        with_embeddings=True,
+    ) -> Tuple[List[str], List[str], Optional[torch.Tensor]]:
         embedding = self.embedding
 
-        def prepare_batch(docs, device):
-            batch = [embedding.preprocess(doc) for doc in docs]
-            spans = [span for prep in batch for span in prep["$spans"]]
-            batch = decompress_dict(list(batch_compress_dict(batch)))
-            inputs = embedding.collate(batch)
-            inputs = embedding.batch_to_device(inputs, device=device)
+        def prepare_batch(docs, device=None):
+            res = {}
+            if self.init_weights:
+                device = device or embedding.device
+                batch = [embedding.preprocess(doc) for doc in docs]
+                spans = [span for prep in batch for span in prep["$spans"]]
+                batch = decompress_dict(list(batch_compress_dict(batch)))
+                inputs = embedding.collate(batch)
+                inputs = embedding.batch_to_device(inputs, device=device)
+                res["inputs"] = inputs
+            else:
+                spans = [
+                    span for doc in docs for span in get_spans(doc, self.span_getter)
+                ]
             batch_concepts = [s._.get(self.attribute) for s in spans]
             batch_labels = [s.label_ for s in spans]
-            return {
-                "inputs": inputs,
-                "concepts": batch_concepts,
-                "labels": batch_labels,
-            }
+            res.update(
+                {
+                    "concepts": batch_concepts,
+                    "labels": batch_labels,
+                }
+            )
+            return res
 
         def run_forward(batch):
-            res = embedding.module_forward(batch["inputs"])
-            res = F.normalize(self.projector(res["embeddings"])).cpu()
-            return {
-                "embeds": res,
+            res = {
                 "concepts": batch["concepts"],
                 "labels": batch["labels"],
             }
+            if self.init_weights:
+                res["embeds"] = F.normalize(
+                    embedding.module_forward(batch["inputs"])["embeddings"]
+                ).cpu()
+            return res
 
         # Loop over the data to compute the embeddings and collect the concepts
+        docs = edsnlp.data.from_iterable(docs)
         results = ld_to_dl(
-            edsnlp.data.from_iterable(docs).map_gpu(
+            docs.map_gpu(
                 forward=run_forward,
                 prepare_batch=prepare_batch,
             )
+            if self.init_weights
+            else docs.map_batches(prepare_batch)
         )
-        all_embeds = torch.cat(results["embeds"], dim=0).to(self.device)
+        all_embeds = (
+            torch.cat(results["embeds"], dim=0).to(self.device)
+            if "embeds" in results
+            else None
+        )
         all_concepts = [c for batch in results["concepts"] for c in batch]
         all_labels = [c for batch in results["labels"] for c in batch]
         if not len(all_concepts):
             warnings.warn("Did not find any concept when scanning the gold data.")
 
-        return all_embeds, all_concepts, all_labels
+        return all_concepts, all_labels, all_embeds
 
     def post_init(self, gold_data: Iterable[Doc], exclude: Set[str]):
         super().post_init(gold_data, exclude=exclude)
 
-        embeds, concepts, labels = self.compute_embeddings(gold_data)
+        concepts, labels, embeds = self.compute_init_features(
+            gold_data, with_embeddings=self.init_weights
+        )
         labels_to_cuis = defaultdict(set)
         for label, cui in zip(labels, concepts):
             if cui is not None:
@@ -536,8 +546,7 @@ class TrainableSpanLinker(
         return collated
 
     def forward(self, inputs: SpanLinkerBatchInput) -> BatchOutput:
-        embedding = self.embedding.module_forward(inputs["embedding"])
-        span_embeds = self.projector(embedding["embeddings"])
+        span_embeds = self.embedding.module_forward(inputs["embedding"])["embeddings"]
 
         span_labels = inputs["span_labels"]
         targets = inputs.get("concepts")

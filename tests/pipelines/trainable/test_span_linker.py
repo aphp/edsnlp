@@ -33,15 +33,15 @@ def gold():
 @pytest.mark.parametrize(
     "metric,probability_mode,reference_mode",
     [
-        ("cosine", "softmax", "class"),
-        ("cosine", "sigmoid", "class"),
+        ("cosine", "softmax", "concept"),
+        ("cosine", "sigmoid", "concept"),
         ("dot", "sigmoid", "synonym"),
     ],
 )
 def test_span_linker(
     metric: Literal["cosine", "dot"],
     probability_mode: Literal["softmax", "sigmoid"],
-    reference_mode: Literal["class", "synonym"],
+    reference_mode: Literal["concept", "synonym"],
     gold,
     tmp_path,
 ):
@@ -50,12 +50,14 @@ def test_span_linker(
         eds.span_linker(
             rescale=20.0,
             threshold=0.8,
-            hidden_size=128,
             metric=metric,
             reference_mode=reference_mode,
             probability_mode=probability_mode,
+            # just to maximize coverage, prefer init_weights=True in practice
+            init_weights=True if reference_mode == "concept" else False,
             embedding=eds.span_pooler(
                 span_getter=["ents"],
+                hidden_size=128,
                 embedding=eds.transformer(
                     span_getter=["ents"],
                     model="prajjwal1/bert-tiny",

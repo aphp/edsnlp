@@ -15,5 +15,6 @@ All trainable components implement the [`TorchComponent`][edsnlp.core.torch_comp
 | `eds.span_pooler`    | A span embedding component that aggregates word embeddings           |
 | `eds.ner_crf`        | A trainable component to extract entities                            |
 | `eds.span_qualifier` | A trainable component for multi-class multi-label span qualification |
+| `eds.span_linker`    | A trainable entity linker (i.e. to a list of concepts)               |
 
 <!-- --8<-- [end:components] -->

@@ -44,7 +44,6 @@ from ..utils.collections import (
     FrozenNamespace,
     batch_compress_dict,
     decompress_dict,
-    multi_tee,
 )
 from ..utils.typing import AsList
 from .lazy_collection import LazyCollection
@@ -452,7 +451,6 @@ class Pipeline:
             Components to exclude from post initialization on data
         """
         exclude = set() if exclude is None else set(exclude)
-        data = multi_tee(data)
         for name, pipe in self._components:
             if hasattr(pipe, "post_init"):
                 pipe.post_init(data, exclude=exclude)

@@ -4,6 +4,7 @@ import copyreg
 import gc
 import io
 import logging
+import math
 import multiprocessing
 import multiprocessing.reduction
 import os
@@ -139,6 +140,75 @@ def replace_pickler():
         ) = before
 
     return revert
+
+
+def cpu_count():  # pragma: no cover
+    """
+    Heavily inspired (partially copied) from joblib's loky
+    (https://github.com/joblib/loky/blob/2c21e/loky/backend/context.py#L83)
+    by Thomas Moreau and Olivier Grisel.
+
+    Return the number of CPUs we can use to process data in parallel.
+
+    The returned number of CPUs returns the minimum of:
+     * `os.cpu_count()`
+     * the CPU affinity settings
+     * cgroup CPU bandwidth limit (share of total CPU time allowed in a given job)
+       typically used in containerized environments like Docker
+
+    Note that on Windows, the returned number of CPUs cannot exceed 61 (or 60 for
+    Python < 3.10), see:
+    https://bugs.python.org/issue26903.
+
+    It is also always larger or equal to 1.
+    """
+    # Note: os.cpu_count() is allowed to return None in its docstring
+    os_cpu_count = os.cpu_count() or 1
+    if sys.platform == "win32":
+        # Following loky's windows implementation
+
+        _MAX_WINDOWS_WORKERS = 60
+        if sys.version_info >= (3, 8):
+            from concurrent.futures.process import _MAX_WINDOWS_WORKERS
+
+            if sys.version_info < (3, 10):
+                _MAX_WINDOWS_WORKERS = _MAX_WINDOWS_WORKERS - 1
+        os_cpu_count = min(os_cpu_count, _MAX_WINDOWS_WORKERS)
+
+    cpu_count_affinity = os_cpu_count
+    try:
+        cpu_count_affinity = len(os.sched_getaffinity(0))
+    except (NotImplementedError, AttributeError):
+        pass
+
+    # Cgroup CPU bandwidth limit available in Linux since 2.6 kernel
+    cpu_count_cgroup = os_cpu_count
+    cpu_max_fname = "/sys/fs/cgroup/cpu.max"
+    cfs_quota_fname = "/sys/fs/cgroup/cpu/cpu.cfs_quota_us"
+    cfs_period_fname = "/sys/fs/cgroup/cpu/cpu.cfs_period_us"
+    if os.path.exists(cpu_max_fname):
+        # cgroup v2
+        # https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html
+        with open(cpu_max_fname) as fh:
+            cpu_quota_us, cpu_period_us = fh.read().strip().split()
+    elif os.path.exists(cfs_quota_fname) and os.path.exists(cfs_period_fname):
+        # cgroup v1
+        # https://www.kernel.org/doc/html/latest/scheduler/sched-bwc.html#management
+        with open(cfs_quota_fname) as fh:
+            cpu_quota_us = fh.read().strip()
+        with open(cfs_period_fname) as fh:
+            cpu_period_us = fh.read().strip()
+    else:
+        cpu_quota_us = "max"
+        cpu_period_us = 100_000
+
+    if cpu_quota_us != "max":
+        cpu_quota_us = int(cpu_quota_us)
+        cpu_period_us = int(cpu_period_us)
+        if cpu_quota_us > 0 and cpu_period_us > 0:
+            cpu_count_cgroup = math.ceil(cpu_quota_us / cpu_period_us)
+
+    return max(1, min(os_cpu_count, cpu_count_affinity, cpu_count_cgroup))
 
 
 # Should we check if the multiprocessing module of edsnlp
@@ -642,9 +712,6 @@ class GPUWorker:
         return f"<GPUWorker idx={self.gpu_idx}>"
 
 
-DEFAULT_MAX_CPU_WORKERS = 4
-
-
 def execute_multiprocessing_backend(
     lc: LazyCollection,
 ):
@@ -724,6 +791,7 @@ def execute_multiprocessing_backend(
         and num_gpu_workers > 0
     )
 
+    num_cpus = cpu_count()
     num_devices = 0
     if requires_gpu:
         import torch
@@ -732,7 +800,7 @@ def execute_multiprocessing_backend(
         logging.info(f"Number of available devices: {num_devices}")
 
         if num_gpu_workers is None:
-            num_gpu_workers = num_devices
+            num_gpu_workers = min(num_devices, num_cpus // 2)
     else:
         num_gpu_workers = 0
 
@@ -760,11 +828,11 @@ def execute_multiprocessing_backend(
         logging.info(f"Switching process start method to {process_start_method}")
 
     mp = multiprocessing.get_context(process_start_method)
-    max_workers = max(min(mp.cpu_count() - num_gpu_workers, DEFAULT_MAX_CPU_WORKERS), 0)
+    max_cpu_workers = max(num_cpus - num_gpu_workers - 1, 0)
     num_cpu_workers = (
-        (num_gpu_workers or max_workers)
+        max_cpu_workers
         if num_cpu_workers is None
-        else max_workers + num_cpu_workers + 1
+        else max_cpu_workers + num_cpu_workers + 1
         if num_cpu_workers < 0
         else num_cpu_workers
     )
@@ -882,7 +950,7 @@ def execute_multiprocessing_backend(
     if show_progress:
         from tqdm import tqdm
 
-        bar = tqdm(smoothing=0.1, mininterval=5.0)
+        bar = tqdm(smoothing=0.1, mininterval=1.0)
 
     def get_and_process_output():
         outputs, count, cpu_idx, output_task_id = next(outputs_iterator)

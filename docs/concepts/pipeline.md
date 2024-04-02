@@ -1,4 +1,4 @@
-# Pipeline {: #edspdf.pipeline.Pipeline }
+# Pipeline {: #edsnlp.core.pipeline.Pipeline }
 
 The goal of EDS-NLP is to provide a **framework** for processing textual documents.
 

@@ -76,6 +76,14 @@ class ScheduledOptimizer(torch.optim.Optimizer):
                 for schedule in group["schedules"]:
                     schedule.step(group)
 
+    def initialize(self):
+        self.optim.zero_grad()
+        for group in self.optim.param_groups:
+            for param in group["params"]:
+                if param.requires_grad:
+                    param.grad = torch.zeros_like(param)
+        self.optim.step()
+
 
 class OptimizerGroupsProxy:
     def __init__(self, groups):

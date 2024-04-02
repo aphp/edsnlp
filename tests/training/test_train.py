@@ -5,13 +5,16 @@ from typing import (
     Union,
 )
 
+import pytest
 import spacy.tokenizer
+import torch.nn
 from confit import Config
 from confit.utils.random import set_seed
 from spacy.tokens import Span
 
 from edsnlp.core.registries import registry
 from edsnlp.data.converters import AttributesMappingArg, get_current_tokenizer
+from edsnlp.optimization import LinearSchedule, ScheduledOptimizer
 from edsnlp.train import GenericScorer, Reader, train
 from edsnlp.utils.span_getters import SpanSetterArg, set_spans
 
@@ -98,3 +101,48 @@ def test_qualif_train(run_in_test_dir, tmp_path):
     last_scores = scorer(nlp, Reader(**kwargs["val_data"])(nlp))
 
     assert last_scores["qualifier"]["micro"]["f"] > 0.5
+
+
+def test_optimizer():
+    net = torch.nn.Linear(10, 10)
+    optim = ScheduledOptimizer(
+        torch.optim.AdamW(
+            [
+                {
+                    "params": list(net.parameters()),
+                    "lr": 9e-4,
+                    "schedules": LinearSchedule(
+                        total_steps=10,
+                        warmup_rate=0.1,
+                        start_value=0,
+                    ),
+                }
+            ]
+        )
+    )
+    for param in net.parameters():
+        assert "exp_avg" not in optim.optim.state[param]
+    optim.initialize()
+    for param in net.parameters():
+        assert "exp_avg" in optim.optim.state[param]
+    lr_values = [optim.optim.param_groups[0]["lr"]]
+    for i in range(10):
+        optim.step()
+        lr_values.append(optim.optim.param_groups[0]["lr"])
+
+    # close enough
+    assert lr_values == pytest.approx(
+        [
+            0.0,
+            0.0009,
+            0.0008,
+            0.0007,
+            0.0006,
+            0.0005,
+            0.0004,
+            0.0003,
+            0.0002,
+            0.0001,
+            0.0,
+        ]
+    )

@@ -5,6 +5,7 @@
 ### Added
 
 - Automatic estimation of cpu count when using multiprocessing
+- `optim.initialize()` method to create optim state before the first backward pass
 
 ### Changed
 

@@ -65,6 +65,7 @@ dev = [
     "pathspec>=0.11.1",  # required by vendored mkdocs-autorefs PR
     "astunparse",
     "mlconjug3<3.9.0",
+    "griffe<0.39",
 
     # Machine Learning
     "rich-logger>=0.3.1",

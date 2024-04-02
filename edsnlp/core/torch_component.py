@@ -339,8 +339,7 @@ class TorchComponent(
     def module_forward(self, *args, **kwargs):
         """
         This is a wrapper around `torch.nn.Module.__call__` to avoid conflict
-        with the [`Component.__call__`][edspdf.component.Component.__call__]
-        method.
+        with the components `__call__` method.
         """
         return torch.nn.Module.__call__(self, *args, **kwargs)
 
@@ -461,8 +460,8 @@ class TorchComponent(
         """
         Applies the component on a single doc.
         For multiple documents, prefer batch processing via the
-        [batch_process][edspdf.trainable_pipe.TrainablePipe.batch_process] method.
-        In general, prefer the [Pipeline][edspdf.pipeline.Pipeline] methods
+        [batch_process][edsnlp.core.torch_component.TorchComponent.batch_process]
+        method. In general, prefer the [Pipeline][edsnlp.core.pipeline.Pipeline] methods
 
         Parameters
         ----------

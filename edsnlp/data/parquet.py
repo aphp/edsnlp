@@ -83,7 +83,8 @@ class ParquetWriter(BaseWriter):
         self.fs, self.path = normalize_fs_path(filesystem, path)
 
         # Check that filesystem has the same protocol as indicated by path
-        self.fs.makedir(self.path, create_parents=True)
+        self.fs.makedirs(self.path, exist_ok=True)
+
         dataset: pyarrow.dataset.FileSystemDataset = (  # type: ignore
             pyarrow.dataset.dataset(
                 self.path,
@@ -91,7 +92,6 @@ class ParquetWriter(BaseWriter):
                 filesystem=self.fs,
             )
         )
-        self.fs.makedirs(self.path, exist_ok=True)
         if len(list(dataset.files)):
             if not overwrite:
                 raise FileExistsError(

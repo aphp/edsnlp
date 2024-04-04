@@ -19,13 +19,11 @@ from fsspec import filesystem as fsspec
 from loguru import logger
 
 from edsnlp import registry
-from edsnlp.core import PipelineProtocol
 from edsnlp.core.lazy_collection import LazyCollection
 from edsnlp.data.base import BaseReader, BaseWriter
 from edsnlp.data.converters import (
     FILENAME,
     AttributesMappingArg,
-    SequenceStr,
     get_dict2doc_converter,
     get_doc2dict_converter,
 )
@@ -50,7 +48,8 @@ LOCAL_FS = fsspec("file")
 
 
 def parse_standoff_file(
-    path: str,
+    txt_path: str,
+    ann_paths: List[str],
     merge_spaced_fragments: bool = True,
     fs: FileSystem = LOCAL_FS,
 ) -> Dict:
@@ -74,28 +73,19 @@ def parse_standoff_file(
     -------
     Iterator[Dict]
     """
-    ann_filenames = []
-    for filename in walk_match(
-        fs,
-        os.path.dirname(path),
-        os.path.basename(path).replace(".txt", ".a*"),
-        recursive=False,
-    ):
-        ann_filenames.append(filename)
-
     entities = {}
     relations = []
     events = {}
 
-    with fs.open(path, "r") as f:
+    with fs.open(txt_path, "r") as f:
         text = f.read()
 
-    if not len(ann_filenames):
+    if not len(ann_paths):
         return {
             "text": text,
         }
 
-    for ann_file in ann_filenames:
+    for ann_file in ann_paths:
         with fs.open(ann_file, "r") as f:
             for line_idx, line in enumerate(f):
                 try:
@@ -303,24 +293,23 @@ class StandoffReader(BaseReader):
     ):
         super().__init__()
         self.fs, self.path = normalize_fs_path(filesystem, path)
-        self.files: List[str] = [
+        files = {
             file
-            for file in walk_match(self.fs, self.path, "*.txt")
+            for file in walk_match(self.fs, self.path, ".*[.](txt|a*)")
             if (keep_ipynb_checkpoints or ".ipynb_checkpoints" not in str(file))
-            and (
-                keep_txt_only_docs
-                or walk_match(
-                    self.fs,
-                    os.path.dirname(file),
-                    os.path.basename(file).replace(".txt", ".a*"),
-                    recursive=False,
-                )
-            )
+        }
+        ann_files = {}
+        for f in files:
+            name, ext = os.path.splitext(f)
+            if ext.startswith(".a"):
+                ann_files.setdefault(name, []).append(f)
+        self.files = [
+            (file, ann_files.get(file.replace(".txt", ""), []))
+            for file in files
+            if file.endswith(".txt")
+            and (keep_txt_only_docs or file.replace(".txt", "") in ann_files)
         ]
         assert len(self.files), f"No .txt files found in the BRAT directory {self.path}"
-        for file in self.files:
-            if not self.fs.exists(file):
-                raise FileNotFoundError(f"File {file} does not exist")
         logger.info(f"The BRAT directory contains {len(self.files)} .txt files.")
 
     def read_main(self) -> Iterable[Tuple[str, int]]:
@@ -328,9 +317,9 @@ class StandoffReader(BaseReader):
 
     def read_worker(self, fragment: List[str]):
         tasks = []
-        for file in fragment:
-            anns = parse_standoff_file(str(file), fs=self.fs)
-            anns[FILENAME] = os.path.relpath(file, self.path).rsplit(".", 1)[0]
+        for txt_path, ann_paths in fragment:
+            anns = parse_standoff_file(txt_path, ann_paths, fs=self.fs)
+            anns[FILENAME] = os.path.relpath(txt_path, self.path).rsplit(".", 1)[0]
             anns["doc_id"] = anns[FILENAME]
             tasks.append(anns)
         return tasks
@@ -350,9 +339,8 @@ class StandoffWriter(BaseWriter):
 
         if self.fs.exists(self.path):
             unsafe_exts = Counter(
-                os.path.splitext(f)[1] for f in walk_match(self.fs, self.path, "*.txt")
-            ) + Counter(
-                os.path.splitext(f)[1] for f in walk_match(self.fs, self.path, "*.a*")
+                os.path.splitext(f)[1]
+                for f in walk_match(self.fs, self.path, ".*[.](txt|a.*)")
             )
             if unsafe_exts and not overwrite:
                 raise FileExistsError(

@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pyarrow.dataset
@@ -242,7 +243,7 @@ def test_read_to_parquet(blank_nlp, tmpdir):
     fs = pyarrow.fs.LocalFileSystem()
     doc = list(
         edsnlp.data.read_parquet(
-            input_dir,
+            input_dir.relative_to(os.getcwd()),
             converter="omop",
             span_attributes=["etat", "assertion"],
             doc_attributes=["context_var"],

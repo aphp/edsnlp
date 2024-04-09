@@ -1,9 +1,10 @@
 # Changelog
 
-## Unreleased
+## v0.11.2
 
 ### Fixed
 - Fix `edsnlp.utils.file_system.normalize_fs_path` file system detection not working correctly
+- Improved performance of `edsnlp.data` methods over a filesystem (`fs` parameter)
 
 ## v0.11.1 (2024-04-02)
 

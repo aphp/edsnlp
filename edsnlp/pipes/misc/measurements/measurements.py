@@ -1,4 +1,5 @@
 import abc
+import ast
 import re
 import unicodedata
 from collections import defaultdict
@@ -101,6 +102,7 @@ class UnitRegistry:
     def __init__(self, config: Dict[str, UnitConfig]):
         self.config = {unicodedata.normalize("NFKC", k): v for k, v in config.items()}
         for unit, unit_config in list(self.config.items()):
+            # oh il fait les per tout
             if not unit.startswith("per_") and "per_" + unit not in unit_config:
                 self.config["per_" + unit] = {
                     "dim": unit_config["dim"],
@@ -122,6 +124,24 @@ class UnitRegistry:
             if sum(v) != 0
         }
         return str(dict(sorted(degrees.items()))), scale
+
+    def dim_to_unit(self, dim, degree):
+        for k, v in self.config.items():
+            if (v["dim"] == dim) and (v["scale"] == 1) and (v["degree"] == degree):
+                return k
+        return ""
+
+    def dims_to_units(self, dims):
+        base, per = "", ""
+        for dim, degree in dims.items():
+            unit = self.dim_to_unit(dim, degree)
+            if degree < 0:
+                per += unit  # f"_per_{unit}"
+            else:
+                base = unit
+        per = f"_{per}" if per != "" else ""
+
+        return f"{base}{per}"
 
 
 class SimpleMeasurement(Measurement):
@@ -495,6 +515,11 @@ class MeasurementsMatcher(BaseNERComponent):
           span_setter: Optional[SpanSetterArg] = None,
     ):
         # fmt: on
+        if measurements == "all":
+            measurements = []
+            self.all_measurements = True
+        else:
+            self.all_measurements = False
         if isinstance(measurements, str):
             measurements = [measurements]
         if isinstance(measurements, (list, tuple)):
@@ -844,7 +869,7 @@ class MeasurementsMatcher(BaseNERComponent):
             except (ValueError, SyntaxError):
                 continue
 
-            unit_idx = unit_text = unit_norm = None
+            unit_idx = unit_text = unit_norm = ent = None
 
             # Find the closest unit after the number
             try:
@@ -899,6 +924,26 @@ class MeasurementsMatcher(BaseNERComponent):
                         )
                 except StopIteration:
                     pass
+            # Else try to detect unit before number to handle case such
+            # that "mmol/l : 120"
+            if not unit_norm:
+                try:
+                    unit_idx, unit_text = next(
+                        (j, ent)
+                        for j, ent in get_matches_before(number_idx)
+                        if ent.label in unit_label_hashes
+                    )
+                    unit_norm = unit_text.label_
+                except (AttributeError, StopIteration):
+                    pass
+                try:
+                    pseudo_sent = pseudo[offsets[unit_idx]: offsets[number_idx]+1]
+                    if not re.fullmatch(r"u:?(n,?)*", pseudo_sent):
+                        unit_text, unit_norm = None, None
+                    else:
+                        ent = doc[unit_text.start: number.end]
+                except TypeError:
+                    pass
 
             # Otherwise, skip this number
             if not unit_norm:
@@ -907,9 +952,10 @@ class MeasurementsMatcher(BaseNERComponent):
             # Compute the final entity
             # TODO: handle this part better without .text.strip(), with cases for
             #  stopwords, etc
+            # Q : why now and not before ?
             if (
                   unit_text
-                  and number.start <= unit_text.end
+                  and number.start < unit_text.end
                   and doc[number.end: unit_text.start].text.strip() == ""
             ):
                 ent = doc[number.start: unit_text.end]
@@ -919,7 +965,7 @@ class MeasurementsMatcher(BaseNERComponent):
                   and doc[unit_text.end: number.start].text.strip() == ""
             ):
                 ent = doc[unit_text.start: number.end]
-            else:
+            elif not ent:
                 ent = number
 
             # Compute the dimensionality of the parsed unit
@@ -930,12 +976,17 @@ class MeasurementsMatcher(BaseNERComponent):
 
             # If the measure was not requested, dismiss it
             # Otherwise, relabel the entity and create the value attribute
-            if dims not in self.measure_names:
+            if (dims not in self.measure_names) and not self.all_measurements:
                 continue
-
-            ent.label_ = self.measure_names[dims]
+            if not self.all_measurements:
+                ent.label_ = self.measure_names[dims]
+            else:
+                ent.label_ = self.unit_registry.dims_to_units(ast.literal_eval(dims))
+                if not Span.has_extension(ent.label_):
+                    Span.set_extension(ent.label_, default=None)
             ent._.set(
-                self.measure_names[dims],
+                #self.measure_names[dims],
+                ent.label_,
                 SimpleMeasurement(value, unit_norm, self.unit_registry)
             )
 

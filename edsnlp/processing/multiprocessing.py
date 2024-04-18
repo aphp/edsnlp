@@ -666,7 +666,7 @@ class GPUWorker:
                     cpu_idx, batch_id, batch = task
                     pipe = stage_components[stage]
                     pipe.enable_cache(batch_id)
-                    res = pipe.module_forward(batch)
+                    res = pipe(batch)
                     self.exchanger.put_cpu(
                         item=(
                             self.gpu_idx,
@@ -765,7 +765,7 @@ def execute_multiprocessing_backend(
     gpu_steps_candidates = [
         name
         for name, pipe, *_ in steps
-        if hasattr(pipe, "module_forward") and hasattr(pipe, "prepare_batch")
+        if hasattr(pipe, "forward") and hasattr(pipe, "prepare_batch")
     ]
     gpu_pipe_names = (
         gpu_steps_candidates if lc.gpu_pipe_names is None else lc.gpu_pipe_names

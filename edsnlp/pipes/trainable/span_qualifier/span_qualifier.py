@@ -396,7 +396,7 @@ class TrainableSpanQualifier(
         -------
         BatchOutput
         """
-        embedding = self.embedding.module_forward(batch["embedding"])
+        embedding = self.embedding(batch["embedding"])
         span_embeds = embedding["embeddings"]
 
         binding_scores = self.classifier(span_embeds)

@@ -62,7 +62,7 @@ def test_ner(ner_mode, window):
     ner = nlp.get_pipe("ner")
     ner.update_labels(["PERSON", "GIFT"])
     batch = ner.prepare_batch([doc], supervision=True)
-    batch = ner.module_forward(batch)
+    batch = ner(batch)
 
     list(ner.pipe([doc]))
 

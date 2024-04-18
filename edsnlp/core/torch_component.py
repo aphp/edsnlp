@@ -2,6 +2,7 @@ import os
 from enum import Enum
 from functools import wraps
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -336,7 +337,7 @@ class TorchComponent(
         """
         raise NotImplementedError()
 
-    def module_forward(self, *args, **kwargs):
+    def module_forward(self, *args, **kwargs):  # pragma: no cover
         """
         This is a wrapper around `torch.nn.Module.__call__` to avoid conflict
         with the components `__call__` method.
@@ -397,7 +398,7 @@ class TorchComponent(
             if hasattr(self, "compiled"):
                 res = self.compiled(batch)
             else:
-                res = self.module_forward(batch)
+                res = self(batch)
             docs = self.postprocess(docs, res)
             return docs
 
@@ -456,22 +457,10 @@ class TorchComponent(
         for batch in batchify(docs, batch_size=batch_size):
             yield from self.batch_process(batch)
 
-    def __call__(self, doc: Doc) -> Doc:
-        """
-        Applies the component on a single doc.
-        For multiple documents, prefer batch processing via the
-        [batch_process][edsnlp.core.torch_component.TorchComponent.batch_process]
-        method. In general, prefer the [Pipeline][edsnlp.core.pipeline.Pipeline] methods
+    if TYPE_CHECKING:
 
-        Parameters
-        ----------
-        doc: Doc
-
-        Returns
-        -------
-        Doc
-        """
-        return self.batch_process([doc])[0]
+        def __call__(self, BatchInput) -> BatchOutput:
+            ...
 
     def to_disk(self, path, *, exclude: Optional[Set[str]]):
         if object.__repr__(self) in exclude:

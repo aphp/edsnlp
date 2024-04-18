@@ -67,8 +67,8 @@ def test_span_qualifier(gold, with_constraints_and_not_none, tmp_path):
             "embedding": {
                 "@factory": "eds.span_pooler",
                 "embedding": nlp.get_pipe("transformer"),
-                "span_getter": ["ents", "sc"],
             },
+            "span_getter": ["ents", "sc"],
             "qualifiers": {"_.test_negated": True, "_.event_type": ("event",)}
             if with_constraints_and_not_none
             else ["_.test_negated", "_.event_type"],
@@ -96,7 +96,7 @@ def test_span_qualifier(gold, with_constraints_and_not_none, tmp_path):
 
     pred = qlf.pipe([doc.copy() for doc in gold])
     for doc in pred:
-        for ent in get_spans(doc, qlf.embedding.span_getter):
+        for ent in get_spans(doc, qlf.span_getter):
             assert ent._.test_negated is True
             if ent.label_ == "event":
                 if with_constraints_and_not_none is not None:

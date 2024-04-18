@@ -13,7 +13,6 @@ from typing import (
 
 from pydantic import NonNegativeInt
 from spacy.tokens import Doc, Span
-from typing_extensions import Literal
 
 from edsnlp import registry
 from edsnlp.utils.filter import filter_spans
@@ -290,8 +289,6 @@ class make_span_context_getter:
 
     Parameters
     ----------
-    span_getter : SpanGetterArg
-        Span getter, i.e. for which spans to get the context.
     context_words : NonNegativeInt
         Minimum number of words to include on each side of the span.
     context_sents : Optional[NonNegativeInt]
@@ -302,49 +299,34 @@ class make_span_context_getter:
         - n: include n sentences on each side of the span.
 
         By default, 0 if the document has no sentence annotations, 1 otherwise.
-    overlap_policy : Literal["filter", "merge"]
-        How to handle overlapping spans:
-
-        - "filter": remove overlapping spans.
-        - "merge": merge overlapping spans
     """
 
     def __init__(
         self,
-        span_getter: SpanGetterArg,
         context_words: NonNegativeInt = 0,
-        context_sents: Optional[NonNegativeInt] = None,
-        overlap_policy: Literal["filter", "merge"] = "merge",
+        context_sents: Optional[NonNegativeInt] = 1,
     ):
         self.context_words = context_words
         self.context_sents = context_sents
-        self.overlap_policy = overlap_policy
-        self.span_getter = span_getter
 
-    def __call__(self, doc: Doc) -> List[Span]:
-        n_sents = self.context_sents
-        if n_sents is None:
-            n_sents = 0 if not doc.has_annotation("SENT_START") else 1
+    def __call__(self, span: Span) -> List[Span]:
+        n_sents: int = self.context_sents
         n_words = self.context_words
 
-        spans = []
-        sents = list(doc.sents) if n_sents > 1 else []
-        for e in get_spans(doc, self.span_getter):
-            min_start_sent = min_start_word = e.start - n_words
-            max_end_sent = max_end_word = e.end + n_words
+        start = span.start - n_words
+        end = span.end + n_words
 
+        if n_sents > 0:
             if n_sents == 1:
-                sent = e.sent
+                sent = span.sent
                 min_start_sent = sent.start
                 max_end_sent = sent.end
             else:
-                sent_i = sents.index(e.sent)
+                sents = list(span.doc.sents) if n_sents > 1 else []
+                sent_i = sents.index(span.sent)
                 min_start_sent = sents[max(0, sent_i - n_sents)].start
                 max_end_sent = sents[min(len(sents) - 1, sent_i + n_sents)].end
-            start = max(0, min(min_start_word, min_start_sent))
-            end = min(len(doc), max(max_end_word, max_end_sent))
-            spans.append(doc[start:end])
+            start = max(0, min(start, min_start_sent))
+            end = min(len(span.doc), max(end, max_end_sent))
 
-        if self.overlap_policy == "filter":
-            return filter_spans(spans)
-        return merge_spans(spans)
+        return span.doc[start:end]

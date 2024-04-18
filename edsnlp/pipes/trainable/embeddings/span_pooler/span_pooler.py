@@ -7,26 +7,26 @@ from typing import (
     Sequence,
 )
 
+import foldedtensor as ft
 import torch
 from spacy.tokens import Doc, Span
 from typing_extensions import Literal, TypedDict
 
 from edsnlp.core.pipeline import Pipeline
-from edsnlp.core.torch_component import BatchInput, BatchOutput
+from edsnlp.core.torch_component import BatchInput
 from edsnlp.pipes.base import BaseComponent
 from edsnlp.pipes.trainable.embeddings.typing import (
     SpanEmbeddingComponent,
     WordEmbeddingComponent,
 )
 from edsnlp.utils.filter import align_spans
-from edsnlp.utils.span_getters import SpanGetterArg, get_spans
 
 SpanPoolerBatchInput = TypedDict(
     "SpanPoolerBatchInput",
     {
         "embedding": BatchInput,
-        "begins": torch.Tensor,
-        "ends": torch.Tensor,
+        "begins": ft.FoldedTensor,
+        "ends": ft.FoldedTensor,
         "sequence_idx": torch.Tensor,
     },
 )
@@ -40,6 +40,13 @@ ends: torch.LongTensor
 sequence_idx: torch.LongTensor
     Sequence (cf Embedding spans) index of the spans
 """
+
+SpanPoolerBatchOutput = TypedDict(
+    "SpanPoolerBatchOutput",
+    {
+        "embeddings": ft.FoldedTensor,
+    },
+)
 
 
 class SpanPooler(SpanEmbeddingComponent, BaseComponent):
@@ -56,9 +63,6 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         Name of the component
     embedding : WordEmbeddingComponent
         The word embedding component
-    span_getter: SpanGetterArg
-        How to extract the candidate spans and the qualifiers
-        to predict or train on.
     pooling_mode: Literal["max", "sum", "mean"]
         How word embeddings are aggregated into a single embedding per span.
     hidden_size : Optional[int]
@@ -72,11 +76,16 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         name: str = "span_pooler",
         *,
         embedding: WordEmbeddingComponent,
-        span_getter: SpanGetterArg,
         pooling_mode: Literal["max", "sum", "mean"] = "mean",
         hidden_size: Optional[int] = None,
+        span_getter: Any = None,
     ):
-        self.qualifiers = None
+        if span_getter is not None:
+            raise ValueError(
+                "The `span_getter` parameter of the `eds.span_pooler` component is "
+                "deprecated. Please use the `span_getter` parameter of the "
+                "`eds.span_classifier` or `eds.span_linker` components instead."
+            )
         self.output_size = embedding.output_size if hidden_size is None else hidden_size
 
         super().__init__(nlp, name)
@@ -93,45 +102,45 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
     def feed_forward(self, span_embeds: torch.Tensor) -> torch.Tensor:
         return self.projector(span_embeds)
 
-    def set_extensions(self):
-        super().set_extensions()
+    def preprocess(
+        self,
+        doc: Doc,
+        *,
+        spans: Optional[Sequence[Span]] = None,
+        contexts: Optional[Sequence[Span]] = None,
+        pre_aligned: bool = False,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        contexts = contexts if contexts is not None else [doc[:]]
 
-        for qlf in self.qualifiers or ():
-            if not Span.has_extension(qlf):
-                Span.set_extension(qlf, default=None)
-
-    def preprocess(self, doc: Doc) -> Dict[str, Any]:
-        spans = list(get_spans(doc, self.span_getter))
-        embedded_spans = list(get_spans(doc, self.embedding.span_getter))
         sequence_idx = []
         begins = []
         ends = []
 
-        embedded_spans_to_idx = {span: i for i, span in enumerate(embedded_spans)}
-        for i, (span, embedding_spans) in enumerate(
-            zip(spans, align_spans(embedded_spans, spans, sort_by_overlap=True))
-        ):
-            if (
-                len(embedding_spans) == 0
-                or embedding_spans[0].start > span.start
-                or embedding_spans[0].end < span.end
-            ):
+        contexts_to_idx = {span: i for i, span in enumerate(contexts)}
+        assert not pre_aligned or len(spans) == len(contexts), (
+            "When `pre_aligned` is True, the number of spans and contexts must be the "
+            "same."
+        )
+        aligned_contexts = (
+            [[c] for c in contexts] if pre_aligned else align_spans(contexts, spans)
+        )
+        for i, (span, ctx) in enumerate(zip(spans, aligned_contexts)):
+            if len(ctx) == 0 or ctx[0].start > span.start or ctx[0].end < span.end:
                 raise Exception(
                     f"Span {span.text!r} is not included in at least one embedding "
-                    f"span: {[s.text for s in embedding_spans]}"
+                    f"span: {[s.text for s in ctx]}"
                 )
-            start = embedding_spans[0].start
-            sequence_idx.append(embedded_spans_to_idx[embedding_spans[0]])
+            start = ctx[0].start
+            sequence_idx.append(contexts_to_idx[ctx[0]])
             begins.append(span.start - start)
             ends.append(span.end - start)
         return {
-            "embedding": self.embedding.preprocess(doc),
             "begins": begins,
             "ends": ends,
             "sequence_idx": sequence_idx,
-            "num_sequences": len(embedded_spans),
-            "$spans": spans,
-            "$embedded_spans": embedded_spans,
+            "num_sequences": len(contexts),
+            "embedding": self.embedding.preprocess(doc, contexts=contexts, **kwargs),
         }
 
     def collate(self, batch: Dict[str, Sequence[Any]]) -> SpanPoolerBatchInput:
@@ -143,14 +152,24 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
 
         collated: SpanPoolerBatchInput = {
             "embedding": self.embedding.collate(batch["embedding"]),
-            "begins": torch.as_tensor([b for x in batch["begins"] for b in x]),
-            "ends": torch.as_tensor([e for x in batch["ends"] for e in x]),
+            "begins": ft.as_folded_tensor(
+                batch["begins"],
+                data_dims=("span",),
+                full_names=("sample", "span"),
+                dtype=torch.long,
+            ),
+            "ends": ft.as_folded_tensor(
+                batch["ends"],
+                data_dims=("span",),
+                full_names=("sample", "span"),
+                dtype=torch.long,
+            ),
             "sequence_idx": torch.as_tensor(sequence_idx),
         }
         return collated
 
     # noinspection SpellCheckingInspection
-    def forward(self, batch: SpanPoolerBatchInput) -> BatchOutput:
+    def forward(self, batch: SpanPoolerBatchInput) -> SpanPoolerBatchOutput:
         """
         Apply the span classifier module to the document embeddings and given spans to:
         - compute the loss
@@ -174,11 +193,11 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
             }
 
         embeds = self.embedding(batch["embedding"])["embeddings"]
-        n_samples, n_words, dim = embeds.shape
+        _, n_words, dim = embeds.shape
         device = embeds.device
 
-        flat_begins = n_words * batch["sequence_idx"] + batch["begins"]
-        flat_ends = n_words * batch["sequence_idx"] + batch["ends"]
+        flat_begins = n_words * batch["sequence_idx"] + batch["begins"].as_tensor()
+        flat_ends = n_words * batch["sequence_idx"] + batch["ends"].as_tensor()
         flat_embeds = embeds.view(-1, dim)
         flat_indices = torch.cat(
             [
@@ -197,5 +216,5 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         span_embeds = self.feed_forward(span_embeds)
 
         return {
-            "embeddings": span_embeds,
+            "embeddings": batch["begins"].with_data(span_embeds),
         }

@@ -1,4 +1,7 @@
+import copyreg
+import io
 import os
+import pickle
 from enum import Enum
 from functools import wraps
 from typing import (
@@ -8,6 +11,7 @@ from typing import (
     Dict,
     Generic,
     Iterable,
+    List,
     Optional,
     Sequence,
     Set,
@@ -17,7 +21,9 @@ from typing import (
 )
 
 import safetensors.torch
+import spacy
 import torch
+import xxhash
 from spacy.tokens import Doc
 
 from edsnlp.pipes.base import BaseComponent, BaseComponentMeta
@@ -29,6 +35,16 @@ Scorer = Callable[[Sequence[Tuple[Doc, Doc]]], Union[float, Dict[str, Any]]]
 
 ALL_CACHES = object()
 _caches = {}
+dispatch_table = copyreg.dispatch_table.copy()
+
+
+def simple_hash_pickle(x):
+    return (hash, (hash(x),))
+
+
+dispatch_table[spacy.tokens.Doc] = simple_hash_pickle
+dispatch_table[spacy.tokens.Span] = simple_hash_pickle
+dispatch_table[spacy.tokens.Token] = simple_hash_pickle
 
 
 class CacheEnum(str, Enum):
@@ -49,126 +65,99 @@ def hash_batch(batch):
     return batch_hash
 
 
-def cached_preprocess(fn):
-    @wraps(fn)
-    def wrapped(self: "TorchComponent", doc: Doc):
-        if self._current_cache_id is None:
-            return fn(self, doc)
-        cache_key = (
-            "preprocess",
-            f"{type(self).__name__}<{id(self)}>",
-            id(doc),
+def hash_inputs(inputs):
+    res = io.BytesIO()
+    p = pickle.Pickler(res)
+    p.dispatch_table = dispatch_table
+    hashed = xxhash.xxh3_64()
+    p.dump(inputs)
+    hashed.update(res.getvalue())
+    return hashed.hexdigest()
+
+
+def cached(key, store_key=False):
+    def wrapper(fn):
+        @wraps(fn)
+        def wrapped(self: "TorchComponent", *args, **kwargs):
+            if self._current_cache_id is None:
+                return fn(self, *args, **kwargs)
+            cache_key = (
+                fn.__name__,
+                f"{self.__class__.__name__}<{id(self)}>",
+                key(self, *args, **kwargs),
+            )
+            cache = _caches[self._current_cache_id]
+            if cache_key in cache:
+                return cache[cache_key]
+            res = fn(self, *args, **kwargs)
+            cache[cache_key] = res
+            if store_key:
+                res["__cache_key__"] = cache_key
+            return res
+
+        wrapped._cached = fn
+        return wrapped
+
+    return wrapper
+
+
+def _cached_preprocess(fn):
+    if hasattr(fn, "_cached"):  # pragma: no cover
+        return fn
+    return cached(
+        lambda self, *args, **kwargs: hash_inputs(
+            (*args, sorted(kwargs.items(), key=lambda x: x[0]))
         )
-        cache = _caches[self._current_cache_id]
-        if cache_key in cache:
-            return cache[cache_key]
-        res = fn(self, doc)
-        cache[cache_key] = res
-        return res
-
-    return wrapped
+    )(fn)
 
 
-def cached_preprocess_supervised(fn):
-    @wraps(fn)
-    def wrapped(self: "TorchComponent", doc: Doc):
-        if self._current_cache_id is None:
-            return fn(self, doc)
-        cache_key = (
-            "preprocess_supervised",
-            f"{type(self).__name__}<{id(self)}>",
-            id(doc),
+def _cached_preprocess_supervised(fn):
+    if hasattr(fn, "_cached"):  # pragma: no cover
+        return fn
+    return cached(
+        lambda self, *args, **kwargs: hash_inputs(
+            (*args, sorted(kwargs.items(), key=lambda x: x[0]))
         )
-        cache = _caches[self._current_cache_id]
-        if cache_key in cache:
-            return cache[cache_key]
-        res = fn(self, doc)
-        cache[cache_key] = res
-        return res
-
-    return wrapped
+    )(fn)
 
 
-def cached_collate(fn):
-    @wraps(fn)
-    def wrapped(self: "TorchComponent", batch: Dict):
-        if self._current_cache_id is None:
-            return fn(self, batch)
-        batch_hash = hash_batch(batch)
-        cache_key = (
-            "collate",
-            f"{type(self).__name__}<{id(self)}>",
-            batch_hash,
-        )
-        cache = _caches[self._current_cache_id]
-        if cache_key in cache:
-            return cache[cache_key]
-        res = fn(self, batch)
-        res["__batch_hash__"] = batch_hash
-        cache[cache_key] = res
-        return res
-
-    return wrapped
+def _cached_collate(fn):
+    if hasattr(fn, "_cached"):  # pragma: no cover
+        return fn
+    return cached(lambda self, batch: hash_batch(batch), store_key=True)(fn)
 
 
-def cached_forward(fn):
-    @wraps(fn)
-    def wrapped(self: "TorchComponent", batch):
-        # Convert args and kwargs to a dictionary matching fn signature
-        if self._current_cache_id is None:
-            return fn(self, batch)
-        cache_key = (
-            "forward",
-            f"{type(self).__name__}<{id(self)}>",
+def _cached_forward(fn):
+    if hasattr(fn, "_cached"):  # pragma: no cover
+        return fn
+    return cached(lambda self, batch: hash_batch(batch))(fn)
+
+
+def _cached_batch_to_device(fn):
+    return cached(
+        lambda self, batch, device: (
             hash_batch(batch),
+            device,
         )
-        cache = _caches[self._current_cache_id]
-        if cache_key in cache:
-            return cache[cache_key]
-        res = fn(self, batch)
-        cache[cache_key] = res
-        return res
-
-    return wrapped
-
-
-def cached_batch_to_device(fn):
-    @wraps(fn)
-    def wrapped(self: "TorchComponent", batch, device):
-        # Convert args and kwargs to a dictionary matching fn signature
-        if self._current_cache_id is None:
-            return fn(self, batch, device)
-        cache_key = (
-            "batch_to_device",
-            f"{type(self).__name__}<{id(self)}>",
-            hash_batch(batch),
-        )
-        cache = _caches[self._current_cache_id]
-        if cache_key in cache:
-            return cache[cache_key]
-        res = fn(self, batch, device)
-        cache[cache_key] = res
-        return res
-
-    return wrapped
+    )(fn)
 
 
 class TorchComponentMeta(BaseComponentMeta):
     def __new__(mcs, name, bases, class_dict):
         if "preprocess" in class_dict:
-            class_dict["preprocess"] = cached_preprocess(class_dict["preprocess"])
+            class_dict["preprocess"] = _cached_preprocess(class_dict["preprocess"])
         if "preprocess_supervised" in class_dict:
-            class_dict["preprocess_supervised"] = cached_preprocess_supervised(
+            class_dict["preprocess_supervised"] = _cached_preprocess_supervised(
                 class_dict["preprocess_supervised"]
             )
         if "collate" in class_dict:
-            class_dict["collate"] = cached_collate(class_dict["collate"])
+            class_dict["collate"] = _cached_collate(class_dict["collate"])
         if "batch_to_device" in class_dict:
-            class_dict["batch_to_device"] = cached_batch_to_device(
+            class_dict["batch_to_device"] = _cached_batch_to_device(
                 class_dict["batch_to_device"]
             )
         if "forward" in class_dict:
-            class_dict["forward"] = cached_forward(class_dict["forward"])
+            class_dict["forward"] = _cached_forward(class_dict["forward"])
 
         return super().__new__(mcs, name, bases, class_dict)
 
@@ -250,7 +239,7 @@ class TorchComponent(
             if hasattr(component, "post_init"):
                 component.post_init(gold_data, exclude=exclude)
 
-    def preprocess(self, doc: Doc) -> Dict[str, Any]:
+    def preprocess(self, doc: Doc, **kwargs) -> Dict[str, Any]:
         """
         Preprocess the document to extract features that will be used by the
         neural network to perform its predictions.
@@ -267,7 +256,7 @@ class TorchComponent(
             the document.
         """
         return {
-            name: component.preprocess(doc)
+            name: component.preprocess(doc, **kwargs)
             for name, component in self.named_component_children()
         }
 
@@ -394,15 +383,20 @@ class TorchComponent(
             Batch of updated documents
         """
         with torch.no_grad():
-            batch = self.prepare_batch(docs, device=self.device)
+            inputs = [self.preprocess(doc) for doc in docs]
+            batch = decompress_dict(list(batch_compress_dict(inputs)))
+            batch = self.collate(batch)
+            batch = self.batch_to_device(batch, device=self.device)
             if hasattr(self, "compiled"):
                 res = self.compiled(batch)
             else:
                 res = self(batch)
-            docs = self.postprocess(docs, res)
+            docs = self.postprocess(docs, res, inputs)
             return docs
 
-    def postprocess(self, docs: Sequence[Doc], batch: BatchOutput) -> Sequence[Doc]:
+    def postprocess(
+        self, docs: Sequence[Doc], results: BatchOutput, inputs: List[Dict[str, Any]]
+    ) -> Sequence[Doc]:
         """
         Update the documents with the predictions of the neural network.
         By default, this is a no-op.
@@ -410,9 +404,11 @@ class TorchComponent(
         Parameters
         ----------
         docs: Sequence[Doc]
-            Batch of documents
-        batch: BatchOutput
+            List of documents to update
+        results: BatchOutput
             Batch of predictions, as returned by the forward method
+        inputs: BatchInput
+            List of preprocessed features, as returned by the preprocess method
 
         Returns
         -------

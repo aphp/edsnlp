@@ -31,7 +31,12 @@ from typing_extensions import TypedDict
 from edsnlp.core.lazy_collection import LazyCollection
 from edsnlp.data.converters import set_current_tokenizer
 from edsnlp.utils.batching import batchify_fns, batchify_with_counts
-from edsnlp.utils.collections import batchify, flatten
+from edsnlp.utils.collections import (
+    batch_compress_dict,
+    batchify,
+    decompress_dict,
+    flatten,
+)
 
 doc_size_fns = {
     "words": len,
@@ -444,6 +449,7 @@ class CPUWorker:
                         if (batch_idx == len(batches) - 1)
                         and (chunk_idx == len(chunks) - 1)
                         else None,
+                        None,
                     )
                     next_batch_id += num_cpu
                     # gpu_idx = None
@@ -548,7 +554,7 @@ class CPUWorker:
             self.exchanger.put_results((None, 0, None, None))
 
             for stage, (gpu_idx, batch_id, result) in read_tasks():
-                docs, task_id = active_batches.pop(batch_id)
+                docs, task_id, inputs = active_batches.pop(batch_id)
                 count = len(docs)
                 for name, pipe, *rest in lc.pipeline:
                     if hasattr(pipe, "enable_cache"):
@@ -556,7 +562,7 @@ class CPUWorker:
                 if stage > 0:
                     gpu_pipe = stages[stage - 1]["gpu_component"]
                     docs = (
-                        gpu_pipe.postprocess(docs, result)
+                        gpu_pipe.postprocess(docs, result, inputs)
                         if getattr(gpu_pipe, "postprocess", None) is not None
                         else result
                     )
@@ -565,15 +571,23 @@ class CPUWorker:
 
                 gpu_pipe: "TorchComponent" = stages[stage]["gpu_component"]
                 if gpu_pipe is not None:
-                    active_batches[batch_id] = (docs, task_id)
                     if gpu_idx is None:
                         gpu_idx = batch_id % len(self.exchanger.gpu_worker_devices)
                     device = self.exchanger.gpu_worker_devices[gpu_idx]
+                    if hasattr(gpu_pipe, "preprocess"):
+                        inputs = [gpu_pipe.preprocess(doc) for doc in docs]
+                        batch = decompress_dict(list(batch_compress_dict(inputs)))
+                        batch = gpu_pipe.collate(batch)
+                        batch = gpu_pipe.batch_to_device(batch, device=device)
+                    else:
+                        batch = gpu_pipe.prepare_batch(docs, device=device)
+                        inputs = None
+                    active_batches[batch_id] = (docs, task_id, inputs)
                     self.exchanger.put_gpu(
                         item=(
                             self.cpu_idx,
                             batch_id,
-                            gpu_pipe.prepare_batch(docs, device=device),
+                            batch,
                         ),
                         idx=gpu_idx,
                         stage=stage,

@@ -55,11 +55,11 @@ def test_span_linker(
             probability_mode=probability_mode,
             # just to maximize coverage, prefer init_weights=True in practice
             init_weights=True if reference_mode == "concept" else False,
+            span_getter=["ents"],
+            context_getter=["ents"],
             embedding=eds.span_pooler(
-                span_getter=["ents"],
                 hidden_size=128,
                 embedding=eds.transformer(
-                    span_getter=["ents"],
                     model="prajjwal1/bert-tiny",
                     window=128,
                     stride=96,

@@ -34,7 +34,7 @@ from edsnlp.utils.bindings import (
     Qualifiers,
     QualifiersArg,
 )
-from edsnlp.utils.span_getters import SpanFilter, get_spans
+from edsnlp.utils.span_getters import SpanFilter, SpanGetterArg, get_spans
 
 logger = logging.getLogger(__name__)
 
@@ -50,10 +50,24 @@ embeds: torch.FloatTensor
     Token embeddings to predict the tags from
 mask: torch.BoolTensor
     Mask of the sequences
-spans: torch.LongTensor
+spans: torch.Tensor
     2d tensor of n_spans * (doc_idx, ner_label_idx, begin, end)
-targets: NotRequired[List[torch.LongTensor]]
+targets: NotRequired[List[torch.Tensor]]
     list of 2d tensor of n_spans * n_combinations (1 hot)
+"""
+
+SpanQualifierBatchOutput = TypedDict(
+    "SpanQualifierBatchOutput",
+    {
+        "loss": Optional[torch.Tensor],
+        "labels": Optional[List[torch.Tensor]],
+    },
+)
+"""
+loss: Optional[torch.Tensor]
+    The loss of the model
+labels: Optional[List[torch.Tensor]]
+    The predicted labels
 """
 
 
@@ -104,7 +118,6 @@ class TrainableSpanQualifier(
             # To embed the spans, we will use a span pooler
             embedding=eds.span_pooler(
                 pooling_mode="mean",  # mean pooling
-                span_getter=["ents", "sc"],
                 # that will use a transformer to embed the doc words
                 embedding=eds.transformer(
                     model="prajjwal1/bert-tiny",
@@ -112,6 +125,7 @@ class TrainableSpanQualifier(
                     stride=96,
                 ),
             ),
+            span_getter=["ents", "sc"],
             # For every span embedded by the span pooler
             # (doc.ents and doc.spans["sc"]), we will predict both
             # span._.negation and span._.event_type
@@ -151,6 +165,18 @@ class TrainableSpanQualifier(
         Name of the component
     embedding : SpanEmbeddingComponent
         The word embedding component
+    span_getter : SpanGetterArg
+        How to extract the candidate spans and the qualifiers to predict or train on.
+    context_getter : Optional[Union[Callable, SpanGetterArg]]
+        What context to use when computing the span embeddings (defaults to the whole
+        document). This can be:
+
+        - a `SpanGetterArg` to retrieve contexts from a whole document. For example
+          `{"section": "conclusion"}` to only use the conclusion as context (you
+          must ensure that all spans produced by the `span_getter` argument do fall
+          in the conclusion in this case)
+        - a callable, that gets a span and should return a context for this span.
+          For instance, `lambda span: span.sent` to use the sentence as context.
     qualifiers : QualifiersArg
         The qualifiers to predict or train on. If a dict is given, keys are the
         qualifiers and values are the labels for which the qualifier is allowed, or True
@@ -167,6 +193,8 @@ class TrainableSpanQualifier(
         *,
         embedding: SpanEmbeddingComponent,
         qualifiers: QualifiersArg,
+        span_getter: SpanGetterArg = {"ents": True},
+        context_getter: Optional[SpanGetterArg] = None,
         values: Optional[Dict[str, List[Any]]] = None,
         keep_none: bool = False,
     ):
@@ -180,6 +208,8 @@ class TrainableSpanQualifier(
 
         super().__init__(nlp, name)
         self.embedding = embedding
+        self.span_getter = span_getter
+        self.context_getter = context_getter
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)
             self.classifier = torch.nn.Linear(embedding.output_size, 0)
@@ -202,10 +232,6 @@ class TrainableSpanQualifier(
             if groups:
                 bindings.append((qlf, labels, groups[0][2]))
         self.update_bindings(bindings)
-
-    @property
-    def span_getter(self):
-        return self.embedding.span_getter
 
     def to_disk(self, path, *, exclude=set()):
         repr_id = object.__repr__(self)
@@ -266,7 +292,7 @@ class TrainableSpanQualifier(
             (qlf, labels, dict.fromkeys(vals)) for qlf, labels, vals in self.bindings
         ]
         for doc in gold_data:
-            spans = list(get_spans(doc, self.embedding.span_getter))
+            spans = list(get_spans(doc, self.span_getter))
             for span in spans:
                 for qualifier, labels, values in bindings:
                     if labels is True or span.label_ in labels:
@@ -345,14 +371,27 @@ class TrainableSpanQualifier(
         ]
         self._bindings_to_idx = None
 
-    def preprocess(self, doc: Doc) -> Dict[str, Any]:
+    def preprocess(self, doc: Doc, **kwargs) -> Dict[str, Any]:
+        spans = list(get_spans(doc, self.span_getter))
+        if self.context_getter is None or not callable(self.context_getter):
+            contexts = list(get_spans(doc, self.context_getter))
+            pre_aligned = False
+        else:
+            contexts = [self.context_getter(span) for span in spans]
+            pre_aligned = True
         return {
-            "embedding": self.embedding.preprocess(doc),
+            "embedding": self.embedding.preprocess(
+                doc,
+                spans=spans,
+                contexts=contexts,
+                pre_aligned=pre_aligned,
+                **kwargs,
+            ),
+            "$spans": spans,
         }
 
     def preprocess_supervised(self, doc: Doc) -> Dict[str, Any]:
         preps = self.preprocess(doc)
-        spans = preps["embedding"]["$spans"]
         return {
             **preps,
             "targets": [
@@ -362,7 +401,7 @@ class TrainableSpanQualifier(
                     else -100
                     for qlf, labels, values_to_idx in self.bindings_to_idx
                 ]
-                for span in spans
+                for span in preps["$spans"]
             ],
         }
 
@@ -429,11 +468,17 @@ class TrainableSpanQualifier(
             "labels": pred,
         }
 
-    def postprocess(self, docs: Sequence[Doc], batch: BatchOutput) -> Sequence[Doc]:
+    def postprocess(
+        self,
+        docs: Sequence[Doc],
+        results: SpanQualifierBatchOutput,
+        inputs: List[Dict[str, Any]],
+    ) -> Sequence[Doc]:
         # Preprocessed docs should still be in the cache
-        spans = [s for doc in docs for s in self.preprocess(doc)["embedding"]["$spans"]]
+        spans = [span for sample in inputs for span in sample["$spans"]]
+        all_labels = results["labels"]
         # For each prediction group (exclusive bindings)...
-        for val_indices, (qlf, labels, values) in zip(batch["labels"], self.bindings):
+        for val_indices, (qlf, labels, values) in zip(all_labels, self.bindings):
             # For each span...
             for span, idx in zip(spans, val_indices.tolist()):
                 # If the span is not filtered out...

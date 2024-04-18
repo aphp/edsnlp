@@ -2,7 +2,54 @@
 
 ## Unreleased
 
+### Added
+
+- The `eds.transformer` component now accepts `prompts` (passed to its `preprocess` method, see breaking change below) to prefix before each window of text to embed.
+
 ### Changed
+
+- :boom: Major breaking change in trainable components, moving towards a more "task-centric" design:
+  - the `eds.transformer` component is no longer responsible for deciding which spans of text ("contexts") should be embedded. These contexts are now passed via the `preprocess` method, which now accepts more arguments than just the docs to process.
+  - similarly the `eds.span_pooler` is now longer responsible for deciding which spans to pool, and instead pools all spans passed to it in the `preprocess` method.
+
+  Consequently, the `eds.transformer` and `eds.span_pooler` no longer accept their `span_getter` argument, and the `eds.ner_crf`, `eds.span_classifier`, `eds.span_linker` and `eds.span_qualifier` components now accept a `context_getter` argument instead, as well as a `span_getter` argument for the latter two. This refactoring can be summarized as follows:
+
+    ```diff
+    - eds.transformer.span_getter
+    + eds.ner_crf.context_getter
+    + eds.span_classifier.context_getter
+    + eds.span_linker.context_getter
+
+    - eds.span_pooler.span_getter
+    + eds.span_qualifier.span_getter
+    + eds.span_linker.span_getter
+    ```
+
+    and as an example for the `eds.span_linker` component:
+
+    ```diff
+    nlp.add_pipe(
+        eds.span_linker(
+            metric="cosine",
+            probability_mode="sigmoid",
+    +       span_getter="ents",
+    +       # context_getter="ents",  -> by default, same as span_getter
+            embedding=eds.span_pooler(
+                hidden_size=128,
+    -           span_getter="ents",
+                embedding=eds.transformer(
+    -               span_getter="ents",
+                    model="prajjwal1/bert-tiny",
+                    window=128,
+                    stride=96,
+                ),
+            ),
+        ),
+        name="linker",
+    )
+    ```
+
+- Trainable embedding components now all use `foldedtensor` to return embeddings, instead of returning a tensor of floats and a mask tensor.
 
 - :boom: TorchComponent `__call__` no longer applies the end to end method, and instead calls the `forward` method directly, like all torch modules.
 

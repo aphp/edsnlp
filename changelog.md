@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- :boom: TorchComponent `__call__` no longer applies the end to end method, and instead calls the `forward` method directly, like all torch modules.
+
 ## v0.11.2
 
 ### Fixed

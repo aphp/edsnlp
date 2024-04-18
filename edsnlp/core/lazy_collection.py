@@ -45,11 +45,14 @@ Batchable = namedtuple("Batchable", ["batch_process"])
 class GPUOp:
     def __init__(self, prepare_batch, forward, postprocess):
         self.prepare_batch = prepare_batch
-        self.module_forward = forward
+        self.forward = forward
         self.postprocess = postprocess
 
+    def __call__(self, *args, **kwargs):
+        return self.forward(*args, **kwargs)
+
     def batch_process(self, docs):
-        res = self.module_forward(self.prepare_batch(docs, None))
+        res = self.forward(self.prepare_batch(docs, None))
         return self.postprocess(docs, res) if self.postprocess is not None else res
 
     def enable_cache(self, cache_id=None):
@@ -449,11 +452,12 @@ class LazyCollection(metaclass=MetaLazyCollection):
                 pass
 
             def __exit__(ctx_self, type, value, traceback):
-                for name, proc in self.torch_components():
+                for name, proc in procs:
                     proc.train(was_training[name])
 
-        was_training = {name: proc.training for name, proc in self.torch_components()}
-        for name, proc in self.torch_components():
+        procs = [x for x in self.torch_components() if hasattr(x[1], "train")]
+        was_training = {name: proc.training for name, proc in procs}
+        for name, proc in procs:
             proc.train(mode)
 
         return context()

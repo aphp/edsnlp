@@ -157,7 +157,7 @@ for step in tqdm(range(max_steps), "Training model", leave=True):
 ### 7. Optimizing the weights
 
 Inside the training loop, the trainable components are fed the collated batches from the dataloader by calling
-the [`TorchComponent.module_forward`][edsnlp.core.torch_component.TorchComponent.module_forward] methods to compute the losses. In the case we train a multi-task model (not in this tutorial), the
+the [`TorchComponent.forward`][edsnlp.core.torch_component.TorchComponent.forward] method (via a simple call) to compute the losses. In the case we train a multi-task model (not in this tutorial), the
 outputs of shared embedding are reused between components, we enable caching by wrapping this step in a cache context. The training loop is otherwise carried in a similar fashion to a standard pytorch
 training loop
 
@@ -165,7 +165,7 @@ training loop
     with nlp.cache():
         loss = torch.zeros((), device="cpu")
         for name, component in nlp.torch_components():
-            output = component.module_forward(batch[name])  # (1)
+            output = component(batch[name])  # (1)
             if "loss" in output:
                 loss += output["loss"]
 
@@ -173,8 +173,6 @@ training loop
 
     optimizer.step()
 ```
-
-1. We use the `module_forward` instead of a standard call, since the `__call__` method of EDS-NLP components is used to run a component on a spaCy Doc.
 
 ### 8. Evaluating the model
 
@@ -296,7 +294,7 @@ Let's wrap the training code in a function, and make it callable from the comman
             loss = torch.zeros((), device="cpu")
             with nlp.cache():
                 for name, component in nlp.torch_components():
-                    output = component.module_forward(batch[name])
+                    output = component(batch[name])
                     if "loss" in output:
                         loss += output["loss"]
 

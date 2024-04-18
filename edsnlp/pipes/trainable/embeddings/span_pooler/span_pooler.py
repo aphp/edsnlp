@@ -173,7 +173,7 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
                 "embeddings": torch.empty(0, self.output_size, device=device),
             }
 
-        embeds = self.embedding.module_forward(batch["embedding"])["embeddings"]
+        embeds = self.embedding(batch["embedding"])["embeddings"]
         n_samples, n_words, dim = embeds.shape
         device = embeds.device
 

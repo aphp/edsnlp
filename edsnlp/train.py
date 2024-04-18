@@ -605,7 +605,7 @@ def train(
                     loss = torch.zeros((), device=accelerator.device)
                     with nlp.cache():
                         for name, pipe in zip(pipe_names, trained_pipes):
-                            output = pipe.module_forward(mini_batch[name])
+                            output = pipe(mini_batch[name])
                             if "loss" in output:
                                 loss += output["loss"]
                             for key, value in output.items():

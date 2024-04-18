@@ -462,7 +462,7 @@ class TrainableSpanLinker(
             }
             if self.init_weights:
                 res["embeds"] = F.normalize(
-                    embedding.module_forward(batch["inputs"])["embeddings"]
+                    embedding(batch["inputs"])["embeddings"]
                 ).cpu()
             return res
 

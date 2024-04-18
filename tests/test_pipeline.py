@@ -217,7 +217,6 @@ def test_load_config(run_in_test_dir):
     assert nlp.pipe_names == [
         "normalizer",
         "sentencizer",
-        "embedding",
         "covid",
         "qualifier",
     ]

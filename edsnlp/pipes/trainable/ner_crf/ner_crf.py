@@ -3,7 +3,7 @@ from __future__ import annotations
 import warnings
 from collections import defaultdict
 from enum import Enum
-from typing import Callable, Dict, Iterable, List, Optional, Sequence, Set, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Set, Union
 
 import torch
 from spacy.tokens import Doc, Span
@@ -137,6 +137,10 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
     infer_span_setter : Optional[bool]
         Whether to complete the span setter from the target_span_getter config.
         False by default, unless the span_setter is None.
+    context_getter : Optional[SpanGetterArg]
+        What context to use when computing the span embeddings (defaults to the whole
+        document). For example `{"section": "conclusion"}` to only extract the
+        entities from the conclusion.
     mode : Literal["independent", "joint", "marginal"]
         The CRF mode to use : independent, joint or marginal
     window : int
@@ -164,6 +168,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         *,
         embedding: WordEmbeddingComponent,
         target_span_getter: SpanGetterArg = {"ents": True},
+        context_getter: Optional[SpanGetterArg] = None,
         labels: Optional[List[str]] = None,
         span_setter: Optional[SpanSetterArg] = None,
         infer_span_setter: Optional[bool] = None,
@@ -184,12 +189,14 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
             name=name,
             span_setter=span_setter or {},
         )
+        self.context_getter = context_getter
         self.infer_span_setter = (
             span_setter is None if infer_span_setter is None else infer_span_setter
         )
 
         self.embedding = embedding
         self.labels = labels
+        self.labels_to_idx = {lab: i for i, lab in enumerate(labels)} if labels else {}
         self.linear = torch.nn.Linear(
             self.embedding.output_size,
             0 if labels is None else (len(labels) * 5),
@@ -244,7 +251,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
 
         for doc in docs:
             if callable(self.target_span_getter):
-                for ent in self.target_span_getter(doc):
+                for ent in get_spans(doc, self.target_span_getter):
                     inferred_labels.add(ent.label_)
             else:
                 for key, span_filter in self.target_span_getter.items():
@@ -325,6 +332,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
 
         # Update initialization arguments
         self.labels = labels
+        self.labels_to_idx = {lab: i for i, lab in enumerate(labels)}
 
     @property
     def cfg(self):
@@ -337,7 +345,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
             "stride": self.stride,
         }
 
-    def preprocess(self, doc):
+    def preprocess(self, doc, **kwargs):
         if self.labels is None:
             raise ValueError(
                 "The component was not initialized with any labels. Please "
@@ -345,36 +353,41 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
                 "labels to the `update_labels` method, or call the `post_init` "
                 "method with a list of documents."
             )
+
+        ctxs = get_spans(doc, self.context_getter) if self.context_getter else [doc[:]]
         return {
-            "embedding": self.embedding.preprocess(doc),
-            "length": len(doc),
+            "embedding": self.embedding.preprocess(doc, contexts=ctxs, **kwargs),
+            "lengths": [len(ctx) for ctx in ctxs],
+            "$contexts": ctxs,
         }
 
-    def preprocess_supervised(self, doc):
-        embedded_spans = list(get_spans(doc, self.embedding.span_getter))
+    def preprocess_supervised(self, doc, **kwargs):
+        prep = self.preprocess(doc, **kwargs)
+        contexts = prep["$contexts"]
         tags = []
 
         discarded = []
-        for embedded_span, target_ents in zip(
-            embedded_spans,
+        for context, target_ents in zip(
+            contexts,
             align_spans(
-                list(self.get_target_spans(doc)),
-                embedded_spans,
+                list(get_spans(doc, self.target_span_getter)),
+                contexts,
             ),
         ):
-            span_tags = [[0] * len(self.labels) for _ in range(len(embedded_span))]
-            start = embedded_span.start
+            span_tags = [[0] * len(self.labels) for _ in range(len(context))]
+            start = context.start
             by_label = defaultdict(list)
             for ent in target_ents:
-                by_label[ent.label_].append(ent)
+                label_idx = self.labels_to_idx.get(ent.label_)
+                by_label[label_idx].append(ent)
             filtered = []
-            for label, spans in by_label.items():
+            for label_idx, spans in by_label.items():
                 filtered[len(filtered) :], discarded[len(discarded) :] = filter_spans(
-                    by_label[label], return_discarded=True
+                    by_label[label_idx], return_discarded=True
                 )
 
             for ent in filtered:
-                label_idx = self.labels.index(ent.label_)
+                label_idx = self.labels_to_idx[ent.label_]
                 if ent.start == ent.end - 1:
                     span_tags[ent.start - start][label_idx] = 4
                 else:
@@ -392,7 +405,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
             )
 
         return {
-            **self.preprocess(doc),
+            **prep,
             "targets": tags,
         }
 
@@ -400,7 +413,8 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         collated: NERBatchInput = {
             "embedding": self.embedding.collate(preps["embedding"]),
         }
-        max_len = max(preps["length"])
+        lengths = [length for sample in preps["lengths"] for length in sample]
+        max_len = max(lengths)
         if "targets" in preps:
             targets = torch.as_tensor(
                 [
@@ -410,13 +424,11 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
                 ],
                 dtype=torch.long,
             )
-            # targets = (targets.unsqueeze(-1) == torch.arange(5)).to(device)
-            # mask = (targets[:, 0] != -1).to(device)
             collated["targets"] = targets
         else:
             if self.window > 1:
                 win_indices, win_indexer = make_windows(
-                    preps["length"],
+                    lengths,
                     self.window,
                     self.stride,
                 )
@@ -425,13 +437,13 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         return collated
 
     def forward(self, batch: NERBatchInput) -> NERBatchOutput:
-        encoded = self.embedding.module_forward(batch["embedding"])
-        embeddings = encoded["embeddings"]
-        mask = encoded["mask"]
+        embeddings = self.embedding(batch["embedding"])["embeddings"]
+        embeddings = embeddings.refold("context", "word")
+        mask = embeddings.mask
         # batch words (labels tags) -> batch words labels tags
-        num_samples, num_words = embeddings.shape[:-1]
+        num_contexts, num_words = embeddings.shape[:-1]
         num_labels = len(self.labels)
-        scores = self.linear(embeddings).view((num_samples, num_words, num_labels, 5))
+        scores = self.linear(embeddings).view((num_contexts, num_words, num_labels, 5))
         loss = tags = None
         if "targets" in batch:
             if self.mode == "independent":
@@ -463,14 +475,14 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
             elif self.window <= 0:
                 tags = self.crf.decode(scores, mask)
             else:
-                win_scores = scores.view(num_samples * num_words, num_labels, 5)[
+                win_scores = scores.view(num_contexts * num_words, num_labels, 5)[
                     batch["window_indices"]
                 ]
                 win_tags = self.crf.decode(win_scores, batch["window_indices"] != -1)
                 tags = win_tags.view(win_tags.shape[0] * win_tags.shape[1], num_labels)[
                     batch["window_indexer"]
                 ]
-                tags = tags.view(num_samples, num_words, num_labels)
+                tags = tags.view(num_contexts, num_words, num_labels)
                 tags = tags.masked_fill(~mask.unsqueeze(-1), 0)
 
             # tags = scores.argmax(-1).masked_fill(~mask.unsqueeze(-1), 0)
@@ -481,25 +493,18 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
             "tags": tags,
         }
 
-    def get_target_spans(self, doc) -> Iterable[Span]:
-        return (
-            self.target_span_getter(doc)
-            if callable(self.target_span_getter)
-            else get_spans(doc, self.target_span_getter)
-        )
-
-    def postprocess(self, docs: List[Doc], batch: NERBatchOutput):
+    def postprocess(
+        self,
+        docs: List[Doc],
+        results: NERBatchOutput,
+        inputs: List[Dict[str, Any]],
+    ):
         spans: Dict[Doc, list[Span]] = defaultdict(list)
-        embedded_spans = [
-            span
-            for doc in docs
-            for span in list(get_spans(doc, self.embedding.span_getter))
-        ]
-        for embedded_span_idx, label_idx, start, end in self.crf.tags_to_spans(
-            batch["tags"].cpu()
-        ).tolist():
-            span = embedded_spans[embedded_span_idx][start:end]
-            span.label_ = self.labels[label_idx]
+        contexts = [ctx for sample in inputs for ctx in sample["$contexts"]]
+        tags = results["tags"].cpu()
+        for ctx, label, start, end in self.crf.tags_to_spans(tags).tolist():
+            span = contexts[ctx][start:end]
+            span.label_ = self.labels[label]
             spans[span.doc].append(span)
         for doc in docs:
             self.set_spans(doc, spans.get(doc, []))

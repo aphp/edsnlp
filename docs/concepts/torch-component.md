@@ -82,7 +82,7 @@ In EDS-NLP, sharing a subcomponent is simply done by sharing the object between 
         eds.ner_crf(
             ...,
             embedding=eds.transformer(
-                model_name="bert-base-uncased",
+                model="bert-base-uncased",
                 window=128,
                 stride=96,
             ),

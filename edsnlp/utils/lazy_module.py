@@ -15,9 +15,9 @@ def lazify():
         available.
 
         For instance:
-        > from .trainable.span_qualifier.factory import create_component as
-        span_qualifier is stored in the cache as:
-        > module_paths["span_qualifier"] = "trainable.span_qualifier.factory"
+        > from .trainable.span_classifier.factory import create_component as
+        span_classifier is stored in the cache as:
+        > module_paths["span_classifier"] = "trainable.span_classifier.factory"
 
         Returns
         -------

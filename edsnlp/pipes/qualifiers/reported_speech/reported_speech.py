@@ -139,6 +139,7 @@ class ReportedSpeechQualifier(RuleBasedQualifier):
             nlp=nlp,
             name=name,
             attr=attr,
+            attributes=["reported_speech"],
             explain=explain,
             terms=terms,
             on_ents_only=on_ents_only,

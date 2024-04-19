@@ -93,6 +93,7 @@ def test_span_linker(
         ],
         converter=convert,
     )
+    assert linker.attributes == ["cui"]
     nlp.post_init(synonyms)
     pred = nlp.pipe([doc.copy() for doc in gold])
 

@@ -24,7 +24,7 @@ from typing_extensions import Literal, NotRequired, TypedDict
 import edsnlp.data
 from edsnlp.core import PipelineProtocol
 from edsnlp.core.torch_component import BatchInput, BatchOutput, TorchComponent
-from edsnlp.pipes.base import BaseComponent
+from edsnlp.pipes.base import BaseSpanAttributeClassifierComponent
 from edsnlp.pipes.trainable.embeddings.typing import (
     SpanEmbeddingComponent,
 )
@@ -34,7 +34,12 @@ from edsnlp.utils.collections import (
     decompress_dict,
     ld_to_dl,
 )
-from edsnlp.utils.span_getters import SpanGetterArg, get_spans, get_spans_with_group
+from edsnlp.utils.span_getters import (
+    SpanGetter,
+    SpanGetterArg,
+    get_spans,
+    get_spans_with_group,
+)
 
 SpanLinkerBatchInput = TypedDict(
     "SpanLinkerBatchInput",
@@ -57,7 +62,8 @@ targets: NotRequired[List[torch.LongTensor]]
 
 
 class TrainableSpanLinker(
-    TorchComponent[BatchOutput, SpanLinkerBatchInput], BaseComponent
+    TorchComponent[BatchOutput, SpanLinkerBatchInput],
+    BaseSpanAttributeClassifierComponent,
 ):
     """
     The `eds.span_linker` component is a trainable span concept predictor, typically
@@ -228,8 +234,7 @@ class TrainableSpanLinker(
         or the synonyms embeddings (one per concept per synonym). See above for more
         details.
     span_getter : SpanGetterArg
-        How to extract the candidate spans and the qualifiers
-        to predict or train on.
+        How to extract the candidate spans to predict or train on.
     context_getter : Optional[SpanGetterArg]
         What context to use when computing the span embeddings (defaults to the entity
         only, so no context)
@@ -281,19 +286,21 @@ class TrainableSpanLinker(
     ):
         self.attribute = attribute
 
-        super().__init__(nlp, name)
+        super().__init__(
+            nlp,
+            name,
+            span_getter=span_getter,
+        )
 
         self.embedding = embedding
         self.concepts: List = []
-        self.qualifiers = ["_." + self.attribute]
         self.concepts_to_idx: Dict[str, int] = {}
         self.span_labels_to_idx: Dict[str, int] = {}
         self.threshold = threshold
         self.reference_mode = reference_mode
         self.probability_mode = probability_mode
         self.init_weights = init_weights
-        self.span_getter = span_getter
-        self.context_getter = context_getter or span_getter
+        self.context_getter: SpanGetter = context_getter or span_getter
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)
             self.classifier = Metric(
@@ -303,6 +310,10 @@ class TrainableSpanLinker(
                 rescale=rescale,
                 metric=metric,
             )
+
+    @property
+    def attributes(self) -> List[str]:
+        return [self.attribute]
 
     def to_disk(self, path, *, exclude=set()):
         repr_id = object.__repr__(self)
@@ -439,7 +450,7 @@ class TrainableSpanLinker(
 
         def prepare_batch(docs, device=None):
             res = {}
-            if self.init_weights:
+            if with_embeddings:
                 device = device or embedding.device
                 spans = [list(get_spans(doc, self.span_getter)) for doc in docs]
                 batch = [
@@ -474,7 +485,7 @@ class TrainableSpanLinker(
                 "concepts": batch["concepts"],
                 "labels": batch["labels"],
             }
-            if self.init_weights:
+            if with_embeddings:
                 res["embeds"] = F.normalize(
                     embedding(batch["inputs"])["embeddings"]
                 ).cpu()
@@ -487,7 +498,7 @@ class TrainableSpanLinker(
                 forward=run_forward,
                 prepare_batch=prepare_batch,
             )
-            if self.init_weights
+            if with_embeddings
             else docs.map_batches(prepare_batch)
         )
         all_embeds = (

@@ -2,12 +2,12 @@ import pytest
 from confit import validate_arguments
 from confit.errors import ConfitValidationError
 
-from edsnlp.utils.bindings import BINDING_GETTERS, BINDING_SETTERS, QualifiersArg
+from edsnlp.utils.bindings import BINDING_GETTERS, BINDING_SETTERS, AttributesArg
 
 
 def test_qualifier_validation():
     @validate_arguments
-    def fn(arg: QualifiersArg):
+    def fn(arg: AttributesArg):
         return arg
 
     assert fn("_.negated") == {"_.negated": True}

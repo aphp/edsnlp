@@ -129,6 +129,7 @@ class FamilyContextQualifier(RuleBasedQualifier):
             nlp=nlp,
             name=name,
             attr=attr,
+            attributes=["family"],
             explain=explain,
             terms=terms,
             on_ents_only=on_ents_only,

@@ -196,6 +196,7 @@ class HistoryQualifier(RuleBasedQualifier):
             nlp=nlp,
             name=name,
             attr=attr,
+            attributes=["history"],
             explain=explain,
             terms=terms,
             on_ents_only=on_ents_only,

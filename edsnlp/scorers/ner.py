@@ -1,3 +1,4 @@
+import abc
 from collections import defaultdict
 from typing import Any, Dict, Iterable
 
@@ -100,17 +101,31 @@ def ner_token_scorer(
     return {name: prf(pred, gold) for name, (pred, gold) in labels.items()}
 
 
+class NerScorer(abc.ABC):
+    span_getter: SpanGetter
+
+    def __call__(self, *args, **kwargs) -> Dict[str, Any]:
+        raise NotImplementedError()
+
+
 @registry.scorers.register("eds.ner_exact_scorer")
-def create_ner_exact_scorer(
-    span_getter: SpanGetterArg,
-):
-    return lambda *args, **kwargs: ner_exact_scorer(
-        make_examples(*args, **kwargs), span_getter
-    )
+class NerExactScorer(NerScorer):
+    def __init__(self, span_getter: SpanGetterArg):
+        self.span_getter = span_getter
+
+    def __call__(self, *args, **kwargs):
+        return ner_exact_scorer(make_examples(*args, **kwargs), self.span_getter)
 
 
 @registry.scorers.register("eds.ner_token_scorer")
-def create_ner_token_scorer(
-    span_getter: SpanGetterArg,
-):
-    return lambda *args: ner_token_scorer(make_examples(*args), span_getter)
+class NerTokenScorer(NerScorer):
+    def __init__(self, span_getter: SpanGetterArg):
+        self.span_getter = span_getter
+
+    def __call__(self, *args, **kwargs):
+        return ner_token_scorer(make_examples(*args, **kwargs), self.span_getter)
+
+
+# For backward compatibility
+create_ner_exact_scorer = NerExactScorer
+create_ner_token_scorer = NerTokenScorer

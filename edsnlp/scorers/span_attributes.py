@@ -1,3 +1,4 @@
+import warnings
 from collections import defaultdict
 from typing import Any, Dict, Iterable
 
@@ -5,14 +6,14 @@ from spacy.training import Example
 
 from edsnlp import registry
 from edsnlp.scorers import average_precision, make_examples, prf
-from edsnlp.utils.bindings import BINDING_GETTERS, Qualifiers, QualifiersArg
+from edsnlp.utils.bindings import BINDING_GETTERS, Attributes, AttributesArg
 from edsnlp.utils.span_getters import SpanGetterArg, get_spans
 
 
-def span_classification_scorer(
+def span_attribute_scorer(
     examples: Iterable[Example],
     span_getter: SpanGetterArg,
-    qualifiers: Qualifiers,
+    attributes: Attributes,
     include_falsy: bool = False,
     default_values: Dict = {},
     micro_key: str = "micro",
@@ -27,8 +28,8 @@ def span_classification_scorer(
         The examples to score
     span_getter : SpanGetterArg
         The span getter to use to extract the spans from the document
-    qualifiers : Sequence[str]
-        The qualifiers to use to score the spans
+    attributes : Sequence[str]
+        The attributes to use to score the spans
     default_values: Dict
         Values to dismiss when computing the micro-average per label. This is
         useful to compute precision and recall for certain attributes that have
@@ -59,45 +60,41 @@ def span_classification_scorer(
         doc_spans = get_spans(eg.predicted, span_getter)
         for span_idx, span in enumerate(doc_spans):
             total_pred_count += 1
-            for qualifier, span_filter in qualifiers.items():
+            for attr, span_filter in attributes.items():
                 if not (span_filter is True or span.label_ in span_filter):
                     continue
-                getter_key = (
-                    qualifier if qualifier.startswith("_.") else f"_.{qualifier}"
-                )
+                getter_key = attr if attr.startswith("_.") else f"_.{attr}"
                 value = BINDING_GETTERS[getter_key](span)
                 top_val, top_p = max(
-                    getattr(span._, "prob", {}).get(qualifier, {}).items(),
+                    getattr(span._, "prob", {}).get(attr, {}).items(),
                     key=lambda x: x[1],
                     default=(value, 1.0),
                 )
-                if (top_val or include_falsy) and default_values[qualifier] != top_val:
-                    labels[qualifier][2][(eg_idx, span_idx, qualifier, top_val)] = top_p
-                    labels[micro_key][2][(eg_idx, span_idx, qualifier, top_val)] = top_p
-                if (value or include_falsy) and default_values[qualifier] != value:
-                    labels[micro_key][0].add((eg_idx, span_idx, qualifier, value))
-                    labels[qualifier][0].add((eg_idx, span_idx, qualifier, value))
+                if (top_val or include_falsy) and default_values[attr] != top_val:
+                    labels[attr][2][(eg_idx, span_idx, attr, top_val)] = top_p
+                    labels[micro_key][2][(eg_idx, span_idx, attr, top_val)] = top_p
+                if (value or include_falsy) and default_values[attr] != value:
+                    labels[micro_key][0].add((eg_idx, span_idx, attr, value))
+                    labels[attr][0].add((eg_idx, span_idx, attr, value))
 
         doc_spans = get_spans(eg.reference, span_getter)
         for span_idx, span in enumerate(doc_spans):
             total_gold_count += 1
-            for qualifier, span_filter in qualifiers.items():
+            for attr, span_filter in attributes.items():
                 if not (span_filter is True or span.label_ in span_filter):
                     continue
-                getter_key = (
-                    qualifier if qualifier.startswith("_.") else f"_.{qualifier}"
-                )
+                getter_key = attr if attr.startswith("_.") else f"_.{attr}"
                 value = BINDING_GETTERS[getter_key](span)
-                if (value or include_falsy) and default_values[qualifier] != value:
-                    labels[micro_key][1].add((eg_idx, span_idx, qualifier, value))
-                    labels[qualifier][1].add((eg_idx, span_idx, qualifier, value))
+                if (value or include_falsy) and default_values[attr] != value:
+                    labels[micro_key][1].add((eg_idx, span_idx, attr, value))
+                    labels[attr][1].add((eg_idx, span_idx, attr, value))
 
     if total_pred_count != total_gold_count:
         raise ValueError(
             f"Number of predicted and gold spans differ: {total_pred_count} != "
             f"{total_gold_count}. Make sure that you are running your span "
-            "qualifier pipe on the gold annotations, and not spans predicted by "
-            "another NER pipe in your model."
+            "attribute classification pipe on the gold annotations, and not spans "
+            "predicted by another NER pipe in your model."
         )
 
     return {
@@ -109,30 +106,44 @@ def span_classification_scorer(
     }
 
 
-@registry.scorers.register("eds.span_classification_scorer")
-class create_span_classification_scorer:
-    qualifiers: Qualifiers
+@registry.scorers.register(
+    "eds.span_attribute_scorer",
+    deprecated="eds.span_classification_scorer",
+)
+class SpanAttributeScorer:
+    attributes: Attributes
 
     def __init__(
         self,
         span_getter: SpanGetterArg,
-        qualifiers: QualifiersArg = None,
+        attributes: AttributesArg = None,
+        qualifiers: AttributesArg = None,
         default_values: Dict = {},
         include_falsy: bool = False,
         micro_key: str = "micro",
     ):
+        if qualifiers is not None:
+            warnings.warn(
+                "The `qualifiers` argument is deprecated. Use `attributes` instead.",
+                DeprecationWarning,
+            )
         self.span_getter = span_getter
-        self.qualifiers = qualifiers
+        self.attributes = attributes or qualifiers
         self.default_values = default_values
         self.include_falsy = include_falsy
         self.micro_key = micro_key
 
     def __call__(self, *examples: Any):
-        return span_classification_scorer(
+        return span_attribute_scorer(
             make_examples(*examples),
             span_getter=self.span_getter,
-            qualifiers=self.qualifiers,
+            attributes=self.attributes,
             default_values=self.default_values,
             include_falsy=self.include_falsy,
             micro_key=self.micro_key,
         )
+
+
+# For backward compatibility
+span_classification_scorer = span_attribute_scorer
+create_span_attributes_scorer = SpanAttributeScorer

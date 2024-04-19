@@ -235,9 +235,12 @@ where = ["."]
 "eds.span_linker"        = "edsnlp.pipes.trainable.span_linker.factory:create_component"
 
 [project.entry-points."spacy_scorers"]
-"eds.ner_exact_scorer"           = "edsnlp.scorers.ner:create_ner_exact_scorer"
-"eds.ner_token_scorer"           = "edsnlp.scorers.ner:create_ner_token_scorer"
-"eds.span_classification_scorer" = "edsnlp.scorers.span_classification:create_span_classification_scorer"
+"eds.ner_exact_scorer"           = "edsnlp.scorers.ner:NerExactScorer"
+"eds.ner_token_scorer"           = "edsnlp.scorers.ner:NerTokenScorer"
+"eds.span_attributes_scorer"     = "edsnlp.scorers.span_attributes:SpanAttributeScorer"
+
+# Deprecated
+"eds.span_classification_scorer" = "edsnlp.scorers.span_attributes:create_span_attributes_scorer"
 
 [project.entry-points."edsnlp_readers"]
 "spark" =    "edsnlp.data:from_spark"

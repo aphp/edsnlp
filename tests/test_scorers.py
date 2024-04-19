@@ -2,7 +2,8 @@ import pytest
 from spacy.tokens import Span
 
 import edsnlp
-from edsnlp.scorers.ner import create_ner_exact_scorer, create_ner_token_scorer
+from edsnlp.scorers.ner import NerExactScorer, NerTokenScorer
+from edsnlp.scorers.span_attributes import SpanAttributeScorer
 
 
 @pytest.fixture(scope="session")
@@ -26,7 +27,7 @@ def gold_and_pred():
 
 
 def test_exact_ner_scorer(gold_and_pred):
-    scorer = create_ner_exact_scorer("ents")
+    scorer = NerExactScorer("ents")
     ner_exact_score = scorer(*gold_and_pred)
     assert ner_exact_score["micro"] == {
         "p": 0.5,
@@ -39,7 +40,7 @@ def test_exact_ner_scorer(gold_and_pred):
 
 
 def test_token_ner_scorer(gold_and_pred):
-    scorer = create_ner_token_scorer("ents")
+    scorer = NerTokenScorer("ents")
     ner_exact_score = scorer(*gold_and_pred)
     assert ner_exact_score["micro"] == {
         "f": 0.75,
@@ -48,4 +49,38 @@ def test_token_ner_scorer(gold_and_pred):
         "support": 4,
         "positives": 4,
         "tp": 3,
+    }
+
+
+def test_span_attributes_scorer():
+    if not Span.has_extension("negation"):
+        Span.set_extension("negation", default=False)
+    pred = edsnlp.blank("eds")("Le patient n'a pas le covid 19.")
+    gold = edsnlp.blank("eds")("Le patient n'a pas le covid 19.")
+    scorer = SpanAttributeScorer(
+        "entities",
+        "negation",
+        default_values={"negation": False},
+    )
+    pred.spans["entities"] = [
+        pred[1:2],
+        pred[3:4],
+    ]
+    pred.spans["entities"][0]._.negation = True
+    pred.spans["entities"][1]._.negation = True
+    gold.spans["entities"] = [
+        gold[1:2],
+        gold[3:4],
+    ]
+    gold.spans["entities"][0]._.negation = False
+    gold.spans["entities"][1]._.negation = True
+    result = scorer([gold], [pred])
+    assert result["micro"] == {
+        "ap": 0.5,
+        "p": 0.5,
+        "r": 1,
+        "f": 2 / 3,
+        "support": 1,
+        "positives": 2,
+        "tp": 1,
     }

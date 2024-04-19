@@ -23,24 +23,24 @@ def _check_path(path: str):
     return path
 
 
-def make_binding_getter(qualifier: Union[str, Binding]):
+def make_binding_getter(attribute: Union[str, Binding]):
     """
-    Make a qualifier getter
+    Make a attribute getter
 
     Parameters
     ----------
-    qualifier: Union[str, Binding]
+    attribute: Union[str, Binding]
         Either one of the following:
-        - a path to a nested attributes of the span, such as "qualifier_" or "_.negated"
+        - a path to a nested attributes of the span, such as "attribute_" or "_.negated"
         - a tuple of (key, value) equality, such as `("_.date.mode", "PASSED")`
 
     Returns
     -------
     Callable[[Span], bool]
-        The qualifier getter
+        The attribute getter
     """
-    if isinstance(qualifier, tuple):
-        path, value = qualifier
+    if isinstance(attribute, tuple):
+        path, value = attribute
         path = _check_path(path)
         ctx = {"value": value}
         exec(
@@ -54,7 +54,7 @@ def make_binding_getter(qualifier: Union[str, Binding]):
         )
         return ctx["getter"]
     else:
-        path = _check_path(qualifier)
+        path = _check_path(attribute)
         ctx = {}
         exec(
             f"def getter(span):\n"
@@ -70,19 +70,19 @@ def make_binding_getter(qualifier: Union[str, Binding]):
 
 def make_binding_setter(binding: Binding):
     """
-    Make a qualifier setter
+    Make a attribute setter
 
     Parameters
     ----------
     binding: Binding
         A pair of
-        - a path to a nested attributes of the span, such as `qualifier_` or `_.negated`
+        - a path to a nested attributes of the span, such as `attribute_` or `_.negated`
         - a value assignment
 
     Returns
     -------
     Callable[[Span]]
-        The qualifier setter
+        The attribute setter
     """
     if isinstance(binding, tuple):
         path, value = binding
@@ -115,10 +115,10 @@ class keydefaultdict(dict):
 BINDING_GETTERS = keydefaultdict(make_binding_getter)
 BINDING_SETTERS = keydefaultdict(make_binding_setter)
 
-Qualifiers = Dict[str, SpanFilter]
+Attributes = Dict[str, SpanFilter]
 
 
-def validate_qualifiers(value: Union[SeqStr, Dict[str, SpanFilter]]) -> Qualifiers:
+def validate_attributes(value: Union[SeqStr, Dict[str, SpanFilter]]) -> Attributes:
     if callable(value):
         return value
     if isinstance(value, str):
@@ -136,7 +136,7 @@ def validate_qualifiers(value: Union[SeqStr, Dict[str, SpanFilter]]) -> Qualifie
                 new_value[k] = list(v)
             else:
                 raise TypeError(
-                    f"Invalid entry {value} ({type(value)}) for Qualifiers, "
+                    f"Invalid entry {value} ({type(value)}) for Attributes, "
                     f"expected bool/string(s), dict of bool/string(s) or callable"
                 )
         return new_value
@@ -147,21 +147,21 @@ def validate_qualifiers(value: Union[SeqStr, Dict[str, SpanFilter]]) -> Qualifie
         )
 
 
-class QualifiersArg:
+class AttributesArg:
     """
-    Valid values for the `qualifiers` argument of a component can be :
+    Valid values for the `attributes` argument of a component can be :
 
-    - a (span) -> qualifier callable
-    - a qualifier name ("_.negated")
-    - a list of qualifier names (["_.negated", "_.event"])
-    - a dict of qualifier name to True or list of labels, to filter the qualifiers
+    - a (span) -> attribute callable
+    - a attribute name ("_.negated")
+    - a list of attribute names (["_.negated", "_.event"])
+    - a dict of attribute name to True or list of labels, to filter the attributes
 
     Examples
     --------
-    - `qualifiers="_.negated"` will use the `negated` extention of the span
-    - `qualifiers=["_.negated", "_.past"]` will use the `negated` and `past`
+    - `attributes="_.negated"` will use the `negated` extention of the span
+    - `attributes=["_.negated", "_.past"]` will use the `negated` and `past`
        extensions of the span
-    - `qualifiers={"_.negated": True, "_.past": "DATE"}` will use the `negated`
+    - `attributes={"_.negated": True, "_.past": "DATE"}` will use the `negated`
        extension of any span, and the `past` extension of spans with the `DATE` label
     """
 
@@ -170,9 +170,9 @@ class QualifiersArg:
         yield cls.validate
 
     @classmethod
-    def validate(cls, value, config=None) -> Qualifiers:
-        return validate_qualifiers(value)
+    def validate(cls, value, config=None) -> Attributes:
+        return validate_attributes(value)
 
 
 if TYPE_CHECKING:
-    QualifiersArg = Union[SeqStr, Dict[str, Union[bool, SeqStr]], Callable]  # noqa: F811
+    AttributesArg = Union[SeqStr, Dict[str, Union[bool, SeqStr]], Callable]  # noqa: F811

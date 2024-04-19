@@ -48,10 +48,9 @@
         name="linker",
     )
     ```
-
 - Trainable embedding components now all use `foldedtensor` to return embeddings, instead of returning a tensor of floats and a mask tensor.
-
 - :boom: TorchComponent `__call__` no longer applies the end to end method, and instead calls the `forward` method directly, like all torch modules.
+- The trainable `eds.span_qualifier` component has been renamed to `eds.span_classifier` to reflect its general gpurpose (it doesn't only predict qualifiers, but any attribute of a span using its context or not).
 
 ## v0.11.2
 

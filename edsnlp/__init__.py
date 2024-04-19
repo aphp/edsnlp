@@ -24,8 +24,14 @@ BASE_DIR = Path(__file__).parent
 
 class AliasPathFinder(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path, target=None):
+        if not fullname.startswith("edsnlp."):
+            return None
         if fullname.startswith("edsnlp.pipelines"):
             new_name = "edsnlp.pipes" + fullname[16:]
+            spec = importlib.util.spec_from_loader(fullname, AliasLoader(new_name))
+            return spec
+        if "span_qualifier" in fullname.split("."):
+            new_name = fullname.replace("span_qualifier", "span_classifier")
             spec = importlib.util.spec_from_loader(fullname, AliasLoader(new_name))
             return spec
 

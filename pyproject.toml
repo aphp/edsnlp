@@ -62,6 +62,7 @@ dev = [
     "mkdocstrings~=0.20",
     "mkdocstrings-python~=1.1",
     "mkdocs-minify-plugin",
+    "mkdocs-redirects>=1.2.1;python_version>='3.8'",
     "pybtex~=0.24.0",
     "pathspec>=0.11.1",  # required by vendored mkdocs-autorefs PR
     "astunparse",
@@ -160,7 +161,7 @@ where = ["."]
 "eds.solid_tumor"                 = "edsnlp.pipes.ner.disorders.solid_tumor.factory:create_component"
 "eds.tobacco"                     = "edsnlp.pipes.ner.behaviors.tobacco.factory:create_component"
 
-# Qualifiers
+# Span classifiers
 "eds.family"                      = "edsnlp.pipes.qualifiers.family.factory:create_component"
 "eds.history"                     = "edsnlp.pipes.qualifiers.history.factory:create_component"
 "eds.hypothesis"                  = "edsnlp.pipes.qualifiers.hypothesis.factory:create_component"
@@ -229,7 +230,8 @@ where = ["."]
 "eds.span_pooler"        = "edsnlp.pipes.trainable.embeddings.span_pooler.factory:create_component"
 "eds.ner_crf"            = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
 "eds.nested_ner"         = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
-"eds.span_qualifier"      = "edsnlp.pipes.trainable.span_qualifier.factory:create_component"
+"eds.span_qualifier"      = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
+"eds.span_classifier"     = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
 "eds.span_linker"        = "edsnlp.pipes.trainable.span_linker.factory:create_component"
 
 [project.entry-points."spacy_scorers"]

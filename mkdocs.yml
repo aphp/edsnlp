@@ -119,11 +119,12 @@ nav:
 
       - Trainable components:
           - pipes/trainable/index.md
-          - pipes/trainable/embeddings/transformer.md
-          - pipes/trainable/embeddings/text_cnn.md
-          - pipes/trainable/embeddings/span_pooler.md
-          - pipes/trainable/ner.md
-          - pipes/trainable/span-qualifier.md
+          - 'Transformer': pipes/trainable/embeddings/transformer.md
+          - 'Text CNN': pipes/trainable/embeddings/text_cnn.md
+          - 'Span Pooler': pipes/trainable/embeddings/span_pooler.md
+          - 'NER': pipes/trainable/ner.md
+          - 'Span Classifier': pipes/trainable/span-classifier.md
+          - 'Span Linker': pipes/trainable/span-linker.md
   - tokenizers.md
   - Data Connectors:
       - data/index.md
@@ -180,6 +181,9 @@ hooks:
     - docs/scripts/plugin.py
 
 plugins:
+  - redirects:
+      redirect_maps:
+        'pipes/trainable/span-qualifier.md': 'pipes/trainable/span-classifier.md'
   - search
   - minify:
       minify_html: true

@@ -24,22 +24,22 @@ from typing_extensions import NotRequired, TypedDict
 
 from edsnlp.core import PipelineProtocol
 from edsnlp.core.torch_component import BatchInput, BatchOutput, TorchComponent
-from edsnlp.pipes.base import BaseComponent
+from edsnlp.pipes.base import BaseSpanAttributeClassifierComponent
 from edsnlp.pipes.trainable.embeddings.typing import (
     SpanEmbeddingComponent,
 )
 from edsnlp.utils.bindings import (
     BINDING_GETTERS,
     BINDING_SETTERS,
-    Qualifiers,
-    QualifiersArg,
+    Attributes,
+    AttributesArg,
 )
 from edsnlp.utils.span_getters import SpanFilter, SpanGetterArg, get_spans
 
 logger = logging.getLogger(__name__)
 
-SpanQualifierBatchInput = TypedDict(
-    "SpanQualifierBatchInput",
+SpanClassifierBatchInput = TypedDict(
+    "SpanClassifierBatchInput",
     {
         "embedding": BatchInput,
         "targets": NotRequired[torch.Tensor],
@@ -56,8 +56,8 @@ targets: NotRequired[List[torch.Tensor]]
     list of 2d tensor of n_spans * n_combinations (1 hot)
 """
 
-SpanQualifierBatchOutput = TypedDict(
-    "SpanQualifierBatchOutput",
+SpanClassifierBatchOutput = TypedDict(
+    "SpanClassifierBatchOutput",
     {
         "loss": Optional[torch.Tensor],
         "labels": Optional[List[torch.Tensor]],
@@ -71,22 +71,22 @@ labels: Optional[List[torch.Tensor]]
 """
 
 
-class TrainableSpanQualifier(
-    TorchComponent[BatchOutput, SpanQualifierBatchInput], BaseComponent
+class TrainableSpanClassifier(
+    TorchComponent[BatchOutput, SpanClassifierBatchInput],
+    BaseSpanAttributeClassifierComponent,
 ):
     """
-    The `eds.span_qualifier` component is a trainable qualifier predictor. In EDS-NLP,
-    we call span attributes "qualifiers". In this context, the span qualification task
-    consists in assigning values (boolean, strings or any complex object) to
-    attributes/extensions of spans such as:
+    The `eds.span_classifier` component is a trainable attribute predictor.
+    In this context, the span classification task consists in assigning values (boolean,
+    strings or any object) to attributes/extensions of spans such as:
 
     - `span._.negation`,
     - `span._.date.mode`
     - `span._.cui`
 
-    In the rest of this page, we will refer to a pair of (qualifier, value) as a
+    In the rest of this page, we will refer to a pair of (attribute, value) as a
     "binding". For instance, the binding `("_.negation", True)` means that the
-    qualifier `negation` of the span is (or should be, when predicted) set to `True`.
+    attribute `negation` of the span is (or should be, when predicted) set to `True`.
 
     Architecture
     ------------
@@ -107,14 +107,14 @@ class TrainableSpanQualifier(
 
     Examples
     --------
-    To create a span qualifier component, you can use the following code:
+    To create a span classifier component, you can use the following code:
 
     ```python
     import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(
-        eds.span_qualifier(
+        eds.span_classifier(
             # To embed the spans, we will use a span pooler
             embedding=eds.span_pooler(
                 pooling_mode="mean",  # mean pooling
@@ -129,13 +129,13 @@ class TrainableSpanQualifier(
             # For every span embedded by the span pooler
             # (doc.ents and doc.spans["sc"]), we will predict both
             # span._.negation and span._.event_type
-            qualifiers=["_.negation", "_.event_type"],
+            attributes=["_.negation", "_.event_type"],
         ),
-        name="qualifier",
+        name="span_classifier",
     )
     ```
 
-    To infer the values of the qualifiers, you can use the pipeline `post_init` method:
+    To infer the values of the attributes, you can use the pipeline `post_init` method:
 
     ```{ .python .no-check }
     nlp.post_init(gold_data)
@@ -145,8 +145,8 @@ class TrainableSpanQualifier(
 
     You can inspect the bindings that will be used for training and prediction
     ```{ .python .no-check }
-    print(nlp.pipes.qualifier.bindings)
-    # list of (qualifier name, span labels or True if all, values)
+    print(nlp.pipes.attr.bindings)
+    # list of (attr name, span labels or True if all, values)
     # Out: [
     #   ('_.negation', True, [True, False]),
     #   ('_.event_type', True, ['start', 'stop'])
@@ -166,7 +166,7 @@ class TrainableSpanQualifier(
     embedding : SpanEmbeddingComponent
         The word embedding component
     span_getter : SpanGetterArg
-        How to extract the candidate spans and the qualifiers to predict or train on.
+        How to extract the candidate spans and the attributes to predict or train on.
     context_getter : Optional[Union[Callable, SpanGetterArg]]
         What context to use when computing the span embeddings (defaults to the whole
         document). This can be:
@@ -177,55 +177,67 @@ class TrainableSpanQualifier(
           in the conclusion in this case)
         - a callable, that gets a span and should return a context for this span.
           For instance, `lambda span: span.sent` to use the sentence as context.
-    qualifiers : QualifiersArg
-        The qualifiers to predict or train on. If a dict is given, keys are the
-        qualifiers and values are the labels for which the qualifier is allowed, or True
-        if the qualifier is allowed for all labels.
+    attributes : AttributesArg
+        The attributes to predict or train on. If a dict is given, keys are the
+        attributes and values are the labels for which the attr is allowed, or True
+        if the attr is allowed for all labels.
     keep_none : bool
-        If False, skip spans for which a qualifier returns None. If True (default), the
+        If False, skip spans for which a attr returns None. If True (default), the
         None values will be learned and predicted, just as any other value.
     """
 
     def __init__(
         self,
         nlp: Optional[PipelineProtocol] = None,
-        name: str = "span_qualifier",
+        name: str = "span_classifier",
         *,
         embedding: SpanEmbeddingComponent,
-        qualifiers: QualifiersArg,
+        attributes: AttributesArg = None,
+        qualifiers: AttributesArg = None,
         span_getter: SpanGetterArg = {"ents": True},
         context_getter: Optional[SpanGetterArg] = None,
         values: Optional[Dict[str, List[Any]]] = None,
         keep_none: bool = False,
     ):
-        qualifiers: Qualifiers
+        attributes: Attributes
+        if attributes is None and qualifiers is None:
+            raise TypeError(
+                "The `attributes` parameter is required. Please provide a dict of "
+                "attributes to predict or train on."
+            )
+
+        if qualifiers is not None:
+            warnings.warn(
+                "The `qualifiers` parameter is deprecated. Use `attributes` instead."
+            )
+            assert attributes is None
+            attributes = qualifiers
         self.values = values
         self.keep_none = keep_none
         self.bindings: List[Tuple[str, List[str], List[Any]]] = [
             (k if k.startswith("_.") else f"_.{k}", v, [])
-            for k, v in qualifiers.items()
+            for k, v in attributes.items()
         ]
 
-        super().__init__(nlp, name)
+        super().__init__(nlp, name, span_getter=span_getter)
         self.embedding = embedding
-        self.span_getter = span_getter
         self.context_getter = context_getter
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)
             self.classifier = torch.nn.Linear(embedding.output_size, 0)
 
     @property
-    def qualifiers(self) -> Qualifiers:
+    def attributes(self) -> Attributes:
         return {qlf: labels for qlf, labels, _ in self.bindings}
 
-    @qualifiers.setter
-    def qualifiers(self, value: Qualifiers):
+    @attributes.setter
+    def attributes(self, value: Attributes):
         bindings = []
         for qlf, labels in value.items():
             groups = [group for group in self.bindings if group[0] == qlf]
             if len(groups) > 1:
                 raise ValueError(
-                    f"Qualifier {qlf} has different label filters: "
+                    f"Attribute {qlf} has different label filters: "
                     f"{[g[0] for g in groups]}. Please use the `update_bindings` "
                     f"method to update the labels."
                 )
@@ -267,8 +279,8 @@ class TrainableSpanQualifier(
         if getattr(self, "_bindings_to_idx", None) is not None:
             return self._bindings_to_idx
         self._bindings_to_idx = [  # noqa
-            (qualifier, labels, {value: idx for idx, value in enumerate(values)})
-            for qualifier, labels, values in self.bindings
+            (attr, labels, {value: idx for idx, value in enumerate(values)})
+            for attr, labels, values in self.bindings
         ]
         return self._bindings_to_idx
 
@@ -294,21 +306,20 @@ class TrainableSpanQualifier(
         for doc in gold_data:
             spans = list(get_spans(doc, self.span_getter))
             for span in spans:
-                for qualifier, labels, values in bindings:
+                for attr, labels, values in bindings:
                     if labels is True or span.label_ in labels:
-                        value = BINDING_GETTERS[qualifier](span)
+                        value = BINDING_GETTERS[attr](span)
                         if value is not None or self.keep_none:
                             values[value] = None
 
         bindings = [
-            (qualifier, labels, sorted(values, key=str))
-            for qualifier, labels, values in bindings
+            (attr, labels, sorted(values, key=str)) for attr, labels, values in bindings
         ]
 
-        for qualifier, labels, values in bindings:
+        for attr, labels, values in bindings:
             if len(values) < 2:
                 warnings.warn(
-                    f"Qualifier {qualifier} for labels {labels} should have at "
+                    f"Attribute {attr} for labels {labels} should have at "
                     f"least 2 values but found {len(values)}: {values}."
                 )
 
@@ -321,7 +332,7 @@ class TrainableSpanQualifier(
         ]
         if not all(keep_bindings):
             logger.warning(
-                "Some qualifiers have no labels or values and have been removed:"
+                "Some attributes have no labels or values and have been removed:"
                 + "".join(
                     "\n- " + str(b[0]) + " for labels " + str(b[1])
                     for b, keep in zip(bindings, keep_bindings)
@@ -405,8 +416,8 @@ class TrainableSpanQualifier(
             ],
         }
 
-    def collate(self, batch: Dict[str, Sequence[Any]]) -> SpanQualifierBatchInput:
-        collated: SpanQualifierBatchInput = {
+    def collate(self, batch: Dict[str, Sequence[Any]]) -> SpanClassifierBatchInput:
+        collated: SpanClassifierBatchInput = {
             "embedding": self.embedding.collate(batch["embedding"]),
         }
         if "targets" in batch:
@@ -420,7 +431,7 @@ class TrainableSpanQualifier(
         return collated
 
     # noinspection SpellCheckingInspection
-    def forward(self, batch: SpanQualifierBatchInput) -> BatchOutput:
+    def forward(self, batch: SpanClassifierBatchInput) -> BatchOutput:
         """
         Apply the span classifier module to the document embeddings and given spans to:
         - compute the loss
@@ -428,7 +439,7 @@ class TrainableSpanQualifier(
 
         Parameters
         ----------
-        batch: SpanQualifierBatchInput
+        batch: SpanClassifierBatchInput
             The input batch
 
         Returns
@@ -471,7 +482,7 @@ class TrainableSpanQualifier(
     def postprocess(
         self,
         docs: Sequence[Doc],
-        results: SpanQualifierBatchOutput,
+        results: SpanClassifierBatchOutput,
         inputs: List[Dict[str, Any]],
     ) -> Sequence[Doc]:
         # Preprocessed docs should still be in the cache
@@ -486,3 +497,7 @@ class TrainableSpanQualifier(
                     # ...assign the predicted value to the span
                     BINDING_SETTERS[qlf](span, values[idx])
         return docs
+
+
+# For backward compatibility
+TrainableSpanQualifier = TrainableSpanClassifier

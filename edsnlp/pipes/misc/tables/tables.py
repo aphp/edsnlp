@@ -102,6 +102,9 @@ class TablesMatcher(GenericMatcher):
     tables_pattern : Optional[Dict[str, str]]
         The regex pattern to identify tables.
         The key of dictionary should be `tables`
+    sep_pattern : Optional[str]
+        The regex pattern to identify the separator pattern.
+        Used when calling `to_pd_table`.
     attr : str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with
@@ -124,14 +127,16 @@ class TablesMatcher(GenericMatcher):
         attr: Union[Dict[str, str], str] = "TEXT",
         ignore_excluded: bool = True,
     ):
-        if tables_pattern is None:
+        if tables_pattern is None and sep_pattern is None:
             self.tables_pattern = patterns.regex
+            self.sep = patterns.sep
+        elif tables_pattern is None or sep_pattern is None:
+            raise ValueError(
+                "Both tables_pattern and sep_pattern must be provided "
+                "for custom eds.table pipeline."
+            )
         else:
             self.tables_pattern = tables_pattern
-
-        if sep_pattern is None:
-            self.sep = patterns.sep
-        else:
             self.sep = sep_pattern
 
         super().__init__(

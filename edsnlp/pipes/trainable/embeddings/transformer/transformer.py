@@ -114,6 +114,10 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
     stride: int
         The stride (distance between windows) to use when splitting long documents into
         smaller windows: (default: 96)
+    training_stride: bool
+        If False, the stride will be set to the window size during training, meaning
+        that there will be no overlap between windows. If True, the stride will be set
+        to the `stride` parameter during training, just like during inference.
     max_tokens_per_device: Union[int, Literal["auto"]]
         The maximum number of tokens that can be processed by the model on a single
         device. This does not affect the results but can be used to reduce the memory
@@ -134,6 +138,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         model: Union[str, Path],
         window: int = 128,
         stride: int = 96,
+        training_stride: bool = True,
         max_tokens_per_device: Union[int, Literal["auto"]] = "auto",
         span_getter: Optional[SpanGetterArg] = None,
         new_tokens: Optional[List[Tuple[str, str]]] = [],
@@ -156,6 +161,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         self.tokenizer = AutoTokenizer.from_pretrained(model)
         self.window = window
         self.stride = stride
+        self.training_stride = training_stride
         self.output_size = self.transformer.config.hidden_size
         self.empty_word_embedding = torch.nn.Parameter(
             torch.randn(
@@ -280,6 +286,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         -------
 
         """
+        stride = self.window if self.training and self.training_stride else self.stride
         max_seq_size = max(
             [
                 2  # CLS and SEP tokens
@@ -303,7 +310,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         word_indices = []
         word_offsets = []
         empty_word_indices = []
-        overlap = self.window - self.stride
+        overlap = self.window - stride
         word_offset = 0
         all_word_wp_offset = 0
         for (
@@ -336,7 +343,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                         [*span_prompt_input_ids, self.tokenizer.sep_token_id]
                     )
                 windows_offsets = list(
-                    range(0, max(len(span_text_input_ids) - overlap, 1), self.stride)
+                    range(0, max(len(span_text_input_ids) - overlap, 1), stride)
                 )
                 span_token_indices = []
                 for idx, offset in enumerate(windows_offsets):
@@ -361,6 +368,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                     )
                     span_token_indices.extend(wp_indices)
                     input_ids.append(window_input_ids)
+
                 token_indices.append(span_token_indices)
 
                 span_word_wp_offsets = []
@@ -370,9 +378,13 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                     if length == 0:
                         empty_word_indices.append(word_offset)
                     span_word_wp_offsets.append(all_word_wp_offset + word_wp_offset)
-                    word_indices.extend(
-                        span_token_indices[word_wp_offset : word_wp_offset + length]
-                    )
+                    word_wp_indices = [
+                        span_token_indices[i]
+                        for i in span_word_tokens[
+                            word_wp_offset : word_wp_offset + length
+                        ]
+                    ]
+                    word_indices.extend(word_wp_indices)
                     word_wp_offset += length
                     word_offset += 1
                 all_word_wp_offset += word_wp_offset
@@ -487,7 +499,8 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
             "embeddings": word_embeddings.refold("context", "word"),
         }
 
-    def align_words_with_trf_tokens(self, doc, trf_char_indices):
+    @staticmethod
+    def align_words_with_trf_tokens(doc, trf_char_indices):
         token_i = 0
         n_trf_tokens = len(trf_char_indices)
         word_tokens = []

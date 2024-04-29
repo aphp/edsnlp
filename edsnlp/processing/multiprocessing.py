@@ -29,7 +29,6 @@ import dill
 from typing_extensions import TypedDict
 
 from edsnlp.core.lazy_collection import LazyCollection
-from edsnlp.data.converters import set_current_tokenizer
 from edsnlp.utils.batching import batchify_fns, batchify_with_counts
 from edsnlp.utils.collections import (
     batch_compress_dict,
@@ -37,6 +36,8 @@ from edsnlp.utils.collections import (
     decompress_dict,
     flatten,
 )
+
+from .utils import apply_basic_pipes
 
 doc_size_fns = {
     "words": len,
@@ -54,16 +55,6 @@ Stage = TypedDict(
         "gpu_component": Optional[Any],
     },
 )
-
-
-def apply_basic_pipes(docs, pipes):
-    for name, pipe, kwargs, tok in pipes:
-        with set_current_tokenizer(tok):
-            if hasattr(pipe, "batch_process"):
-                docs = pipe.batch_process(docs)
-            else:
-                docs = [pipe(doc, **kwargs) for doc in docs]
-    return docs
 
 
 class ForkingPickler(dill.Pickler):

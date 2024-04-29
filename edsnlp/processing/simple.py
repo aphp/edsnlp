@@ -4,9 +4,10 @@ import sys
 from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
-from edsnlp.data.converters import set_current_tokenizer
 from edsnlp.utils.batching import batchify_fns
 from edsnlp.utils.collections import batchify, flatten
+
+from .utils import apply_basic_pipes
 
 if TYPE_CHECKING:
     from edsnlp.core.lazy_collection import LazyCollection
@@ -14,16 +15,6 @@ if TYPE_CHECKING:
 doc_size_fns = {
     "words": len,
 }
-
-
-def apply_basic_pipes(docs, pipes):
-    for name, pipe, kwargs, tok in pipes:
-        with set_current_tokenizer(tok):
-            if hasattr(pipe, "batch_process"):
-                docs = pipe.batch_process(docs)
-            else:
-                docs = [pipe(doc, **kwargs) for doc in docs]
-    return docs
 
 
 def execute_simple_backend(

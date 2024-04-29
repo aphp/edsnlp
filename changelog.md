@@ -52,6 +52,10 @@
 - :boom: TorchComponent `__call__` no longer applies the end to end method, and instead calls the `forward` method directly, like all torch modules.
 - The trainable `eds.span_qualifier` component has been renamed to `eds.span_classifier` to reflect its general gpurpose (it doesn't only predict qualifiers, but any attribute of a span using its context or not).
 
+### Fixed
+
+- `edsnlp.data.read_json` now correctly read the files from the directory passed as an argument, and not from the parent directory.
+
 ## v0.11.2
 
 ### Fixed

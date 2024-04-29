@@ -635,7 +635,7 @@ class Pipeline:
 
         Returns
         -------
-        Iterable[OutputT]
+        LazyCollection
         """
         res = LazyCollection.ensure_lazy(docs)
         res = res.map(functools.partial(self.preprocess, supervision=supervision))

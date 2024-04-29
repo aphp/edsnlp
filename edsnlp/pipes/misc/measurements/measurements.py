@@ -23,6 +23,7 @@ from edsnlp.pipes.base import (
     validate_span_getter,
 )
 from edsnlp.pipes.misc.measurements import patterns
+from edsnlp.pipes.misc.tables import TablesMatcher
 from edsnlp.utils.filter import align_spans, filter_spans, get_span_group
 
 __all__ = ["MeasurementsMatcher"]
@@ -581,6 +582,7 @@ class MeasurementsMatcher(BaseNERComponent):
             ignore_excluded=ignore_excluded,
             ignore_space_tokens=True,
         )
+        self.table_matcher = TablesMatcher(nlp)
         for measure_config in measurements:
             name = measure_config["name"]
             unit = measure_config["unit"]
@@ -724,7 +726,7 @@ class MeasurementsMatcher(BaseNERComponent):
         snippet = doclike if isinstance(doclike, Span) else doclike[:]
         last = snippet.start
         offsets = []
-        for ent, is_sent_split in matches:
+        for ent, is_sent_split, _ in matches:
             if (
                   ent.start != last
                   and not doclike.doc[last: ent.start].text.strip() == ""
@@ -759,6 +761,7 @@ class MeasurementsMatcher(BaseNERComponent):
 
         regex_matches = list(self.regex_matcher(doc, as_spans=True))
         term_matches = list(self.term_matcher(doc, as_spans=True))
+        # table_matches = list(self.table_matcher(doc))
 
         # Detect unit parts and compose them into units
         units = self.extract_units(term_matches)
@@ -776,25 +779,29 @@ class MeasurementsMatcher(BaseNERComponent):
         # Note: we also include sentence ends tokens as 1-token spans in those matches
         # Prevent from matching over ents that are not measurement related
         ents = (e for e in doc.ents if e.label_ not in self.measure_names.values())
-        spans__keep__is_sent_end = filter_spans(
+        spans__keep__is_sent_end__= filter_spans(
             [
                 # Tuples (span, keep = is measurement related, is sentence end)
-                *zip(get_span_group(doc, "dates"), repeat(False), repeat(False)),
-                *zip(regex_matches, repeat(True), repeat(False)),
-                *zip(non_unit_terms, repeat(True), repeat(False)),
-                *zip(units, repeat(True), repeat(False)),
-                *zip(ents, repeat(False), repeat(False)),
-                *zip(sent_ends, repeat(True), repeat(True)),
+                *zip(get_span_group(doc, "tables"), repeat(True),
+                     repeat(False), repeat(True)),
+                *zip(get_span_group(doc, "dates"), repeat(False), repeat(False),
+                     repeat(False)),
+                *zip(regex_matches, repeat(True), repeat(False),
+                     repeat(False)),
+                *zip(non_unit_terms, repeat(True), repeat(False), repeat(False)),
+                *zip(units, repeat(True), repeat(False), repeat(False)),
+                *zip(ents, repeat(False), repeat(False), repeat(False)),
+                *zip(sent_ends, repeat(True), repeat(True), repeat(False)),
             ]
         )
 
         # Remove non-measurement related spans (keep = False) and sort the matches
         matches_and_is_sentence_end: List[(Span, bool)] = sorted(
             [
-                (span, is_sent_end)
-                for span, keep, is_sent_end in spans__keep__is_sent_end
+                (span, is_sent_end, in_table)
+                for span, keep, is_sent_end, in_table in spans__keep__is_sent_end__
                 # and remove entities that are not relevant to this pipeline
-                if keep
+                if keep and not in_table
             ]
         )
 
@@ -818,14 +825,14 @@ class MeasurementsMatcher(BaseNERComponent):
         # Make match slice function to query them
         def get_matches_after(i):
             anchor = matches[i][0]
-            for j, (ent, is_sent_end) in enumerate(matches[i + 1:]):
+            for j, (ent, is_sent_end, _) in enumerate(matches[i + 1:]):
                 if not is_sent_end and ent.start > anchor.end + AFTER_SNIPPET_LIMIT:
                     return
                 yield j + i + 1, ent
 
         def get_matches_before(i):
             anchor = matches[i][0]
-            for j, (ent, is_sent_end) in enumerate(matches[i::-1]):
+            for j, (ent, is_sent_end, _) in enumerate(matches[i::-1]):
                 if not is_sent_end and ent.end < anchor.start - BEFORE_SNIPPET_LIMIT:
                     return
                 yield i - j, ent
@@ -850,7 +857,7 @@ class MeasurementsMatcher(BaseNERComponent):
         matched_number_indices = set()
 
         # Iterate through the number matches
-        for number_idx, (number, is_sent_split) in enumerate(matches):
+        for number_idx, (number, is_sent_split, _) in enumerate(matches):
             if not is_sent_split and number.label not in self.number_label_hashes:
                 continue
 
@@ -998,7 +1005,7 @@ class MeasurementsMatcher(BaseNERComponent):
                 matched_number_indices.add(number_idx)
 
         unmatched = []
-        for idx, (match, _) in enumerate(matches):
+        for idx, (match, _, _) in enumerate(matches):
             if (
                   match.label in unit_label_hashes
                   and idx not in matched_unit_indices

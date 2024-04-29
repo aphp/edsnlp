@@ -248,3 +248,23 @@ def test_multiprocessing_ml_error(ml_nlp):
         )
         list(docs)
     assert "Deep learning error" in str(e.value)
+
+
+@pytest.mark.parametrize(
+    "backend",
+    [
+        "simple",
+        "multiprocessing",
+        "spark",
+    ],
+)
+def test_generator(backend):
+    items = ["abc", "def", "ghij"]
+    items = edsnlp.data.from_iterable(items)
+
+    def gen(x):
+        for char in x:
+            yield char
+
+    items = items.map(gen).set_processing(backend=backend)
+    assert list(items) == ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]

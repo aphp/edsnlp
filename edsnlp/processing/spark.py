@@ -8,9 +8,10 @@ import dill
 
 from edsnlp.core.lazy_collection import LazyCollection
 from edsnlp.data.base import BaseWriter
-from edsnlp.data.converters import set_current_tokenizer
 from edsnlp.data.spark import SparkReader, SparkWriter
 from edsnlp.utils.collections import batchify, flatten
+
+from .utils import apply_basic_pipes
 
 try:
     from koalas.dataframe import DataFrame as KoalasDataFrame
@@ -119,12 +120,7 @@ def execute_spark_backend(
             batch_size=lc.batch_size,
         ):
             with lc.cache():
-                for name, pipe, kwargs, tokenizer in lc.pipeline:
-                    with set_current_tokenizer(tokenizer):
-                        if hasattr(pipe, "batch_process"):
-                            batch = pipe.batch_process(batch, **kwargs)
-                        else:
-                            batch = [pipe(doc, **kwargs) for doc in batch]  # type: ignore
+                batch = apply_basic_pipes(batch, lc.pipeline)
             results.extend(batch)
 
         if lc.writer:

@@ -4,7 +4,8 @@
 
 ### Added
 
-- The `eds.transformer` component now accepts `prompts` (passed to its `preprocess` method, see breaking change below) to prefix before each window of text to embed.
+- The `eds.transformer` component now accepts `prompts` (passed to its `preprocess` method, see breaking change below) to add before each window of text to embed.
+- `LazyCollection.map` / `map_batches` now support generator functions as arguments.
 
 ### Changed
 

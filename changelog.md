@@ -6,6 +6,7 @@
 
 - Support for numpy>2.0, and formal support for Python 3.11 and Python 3.12
 - Expose the defaults patterns of `eds.negation`, `eds.hypothesis`, `eds.family`, `eds.history` and `eds.reported_speech` under a `eds.negation.default_patterns` attribute
+- Added a `context_getter` SpanGetter argument to the `eds.matcher` class to only retrieve entities inside the spans returned by the getter
 
 ### Fixed
 

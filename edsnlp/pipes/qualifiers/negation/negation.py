@@ -170,6 +170,8 @@ class NegationQualifier(RuleBasedQualifier):
     The `eds.negation` component was developed by AP-HP's Data Science team.
     """
 
+    default_patterns = patterns
+
     def __init__(
         self,
         nlp: PipelineProtocol,

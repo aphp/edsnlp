@@ -133,6 +133,8 @@ class FamilyContextQualifier(RuleBasedQualifier):
     The `eds.family` component was developed by AP-HP's Data Science team.
     """
 
+    default_patterns = patterns
+
     def __init__(
         self,
         nlp: PipelineProtocol,

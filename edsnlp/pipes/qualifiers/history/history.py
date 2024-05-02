@@ -197,6 +197,8 @@ class HistoryQualifier(RuleBasedQualifier):
     The `eds.history` component was developed by AP-HP's Data Science team.
     """
 
+    default_patterns = patterns
+
     history_limit: timedelta
 
     def __init__(

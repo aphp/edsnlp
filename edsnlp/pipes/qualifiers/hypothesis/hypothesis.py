@@ -168,6 +168,8 @@ class HypothesisQualifier(RuleBasedQualifier):
     The `eds.hypothesis` pipeline was developed by AP-HP's Data Science team.
     """
 
+    default_patterns = patterns
+
     def __init__(
         self,
         nlp: PipelineProtocol,

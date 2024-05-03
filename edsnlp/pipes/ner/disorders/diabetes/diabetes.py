@@ -8,7 +8,6 @@ from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.matchers.utils import get_text
 from edsnlp.pipes.base import SpanSetterArg
-from edsnlp.pipes.core.contextual_matcher.contextual_matcher import get_window
 
 from ..base import DisorderMatcher
 from .patterns import COMPLICATIONS, default_patterns
@@ -141,8 +140,7 @@ class DiabetesMatcher(DisorderMatcher):
         Handles the common case where complications are listed as bullet points,
         sometimes fairly far from the anchor.
         """
-        window = (0, 50)
-        context = get_window(span, window, limit_to_sentence=False)
+        context = span.doc[span.start : span.end + 50]
         if next(iter(self.complication_matcher(context)), None) is not None:
             return True
         return False

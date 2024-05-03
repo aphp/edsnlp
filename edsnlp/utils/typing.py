@@ -29,7 +29,8 @@ class Validated:
 class MetaAsList(type):
     def __init__(cls, name, bases, dct):
         super().__init__(name, bases, dct)
-        cls.type_ = Any
+        type_ = next((base.type_ for base in bases if hasattr(base, "type_")), Any)
+        cls.type_ = type_
 
     @functools.lru_cache(maxsize=None)
     def __getitem__(self, item):

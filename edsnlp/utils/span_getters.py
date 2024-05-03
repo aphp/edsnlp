@@ -1,3 +1,4 @@
+import abc
 from collections import defaultdict
 from typing import (
     TYPE_CHECKING,
@@ -12,6 +13,7 @@ from typing import (
     Union,
 )
 
+import numpy as np
 from pydantic import NonNegativeInt
 from spacy.tokens import Doc, Span
 
@@ -35,18 +37,34 @@ SpanSetter = Union[
 ]
 
 
-def get_spans(doc, span_getter):
+def get_spans(doclike, span_getter):
     if span_getter is None:
-        yield doc[:]
+        yield doclike[:]
         return
     if callable(span_getter):
-        yield from span_getter(doc)
+        yield from span_getter(doclike)
         return
-    for key, span_filter in span_getter.items():
-        if key == "*":
-            candidates = (span for group in doc.spans.values() for span in group)
+    for k, span_filter in span_getter.items():
+        if isinstance(doclike, Doc):
+            if k == "*":
+                candidates = (s for grp in doclike.spans.values() for s in grp)
+            else:
+                candidates = doclike.spans.get(k, ()) if k != "ents" else doclike.ents
         else:
-            candidates = doc.spans.get(key, ()) if key != "ents" else doc.ents
+            doc = doclike.doc
+            if k == "*":
+                candidates = (
+                    s
+                    for grp in doc.spans.values()
+                    for s in grp
+                    if not (s.end < doclike.start or s.start > doclike.end)
+                )
+            else:
+                candidates = (
+                    s
+                    for s in (doc.spans.get(k, ()) if k != "ents" else doc.ents)
+                    if not (s.end < doclike.start or s.start > doclike.end)
+                )
         if span_filter is True:
             yield from candidates
         else:
@@ -251,8 +269,9 @@ class make_span_context_getter:
     Parameters
     ----------
     context_words : Union[NonNegativeInt, Tuple[NonNegativeInt, NonNegativeInt]]
-        Minimum number of words to include on each side of the span. It could be asymmetric.
-        For example (5,2) will include 5 words before the start of the span and 2 after the end of the span
+        Minimum number of words to include on each side of the span. It could be
+        asymmetric. For example (5,2) will include 5 words before the start of the
+        span and 2 after the end of the span
     context_sents : Optional[
             Union[NonNegativeInt, Tuple[NonNegativeInt, NonNegativeInt]]
         ] = 1
@@ -264,7 +283,7 @@ class make_span_context_getter:
 
 
         By default, 0 if the document has no sentence annotations, 1 otherwise.
-    """  # noqa: E501
+    """
 
     def __init__(
         self,
@@ -284,9 +303,9 @@ class make_span_context_getter:
             )
         else:
             self.context_sents_left, self.context_sents_right = context_sents
-            assert (
-                sum(context_sents) != 1
-            ), "Asymmetric sentence context should not be (0,1) or (1,0)"
+            assert sum(context_sents) != 1, (
+                "Asymmetric sentence context should not be (0,1) or (1,0)"
+            )
         self.span_getter = validate_span_getter(span_getter, optional=True)
 
     def __call__(self, span: Union[Doc, Span]) -> Union[Span, List[Span]]:
@@ -321,3 +340,203 @@ class make_span_context_getter:
             end = max(end, max_end_sent)
 
         return span.doc[start:end]
+
+
+class ContextWindowMeta(abc.ABCMeta):
+    pass
+
+
+class ContextWindow(abc.ABC, metaclass=ContextWindowMeta):
+    """
+    A ContextWindow specifies how much additional context (such as sentences or words)
+    should be included relative to an anchor span. For example, one might define a
+    context window that extracts the sentence immediately preceding and following the
+    anchor span, or one that extends the span by a given number of words before and
+    after.
+
+    ContextWindow objects can be combined using logical operations to create more
+    complex context windows. For example, one can create a context window that includes
+    either words from a -10 to +10 range or words from the sentence.
+
+
+    Examples
+    --------
+    ```python
+    from confit import validate_arguments
+    from edsnlp.utils.span_getters import ContextWindow
+    from spacy.tokens import Span
+
+
+    @validate_arguments
+    def apply_context(span: Span, ctx: ContextWindow):
+        # ctx will be parsed and cast as a ContextWindow
+        return ctx(span)
+
+
+    # Will return a span with the 10 words before and after the span
+    # and words of the current sentence and the next sentence.
+    apply_context(span, "words[-10:10] | sents[0:1]")
+
+    # Will return the span covering at most the -5 and +5 words
+    # around the span and the current sentence of the span.
+    apply_context(span, "words[-5:5] & sent")
+    ```
+
+    !!! warning "Indexing"
+
+        Unlike standard Python sequence slicing, `sents[0:0]` returns
+        the current sentence, not an empty span.
+    """
+
+    @abc.abstractmethod
+    def __call__(self, span: Span) -> Span:
+        pass
+
+    # logical ops
+    def __and__(self, other: "ContextWindow"):
+        # fmt: off
+        return IntersectionContextWindow([
+            *(self.contexts if isinstance(self, IntersectionContextWindow) else (self,)),  # noqa: E501
+            *(other.contexts if isinstance(other, IntersectionContextWindow) else (other,))  # noqa: E501
+        ])
+        # fmt: on
+
+    def __or__(self, other: "ContextWindow"):
+        # fmt: off
+        return UnionContextWindow([
+            *(self.contexts if isinstance(self, UnionContextWindow) else (self,)),
+            *(other.contexts if isinstance(other, UnionContextWindow) else (other,))
+        ])
+        # fmt: on
+
+    @classmethod
+    def parse(cls, query):
+        try:
+            return eval(
+                query,
+                {},
+                {
+                    "words": WordContextWindow,
+                    "sents": SentenceContextWindow,
+                    "sent": SentenceContextWindow(0, 0),
+                },
+            )
+        except NameError:
+            raise ValueError(
+                "Only queries containing vars `words[before:after]`, "
+                "`sents[before:after]` and `sent` are allowed to "
+                f"define a context getter, got {query!r}"
+            )
+
+    @classmethod
+    def validate(cls, obj, config=None):
+        if isinstance(obj, cls):
+            return obj
+        if isinstance(obj, str):
+            return cls.parse(obj)
+        if isinstance(obj, tuple):
+            assert len(obj) == 2
+            return WordContextWindow(*obj)
+        if isinstance(obj, int):
+            assert obj != 0, "The provided `window` should not be 0"
+            return WordContextWindow(obj, 0) if obj < 0 else WordContextWindow(0, obj)
+        raise ValueError(f"Invalid context: {obj}")
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+
+class LeafContextWindowMeta(ContextWindowMeta):
+    def __getitem__(cls, item) -> Span:
+        assert isinstance(item, slice)
+        before = item.start
+        after = item.stop
+        return cls(before, after)
+
+
+class LeafContextWindow(ContextWindow, metaclass=LeafContextWindowMeta):
+    pass
+
+
+class WordContextWindow(LeafContextWindow):
+    def __init__(
+        self,
+        before: Optional[int] = None,
+        after: Optional[int] = None,
+    ):
+        self.before = before
+        self.after = after
+
+    def __call__(self, span):
+        start = span.start + self.before if self.before is not None else 0
+        end = span.end + self.after if self.after is not None else len(span.doc)
+        return span.doc[max(0, start) : min(len(span.doc), end)]
+
+    def __repr__(self):
+        return "words[{}:{}]".format(self.before, self.after)
+
+
+class SentenceContextWindow(LeafContextWindow):
+    def __init__(
+        self,
+        before: Optional[int] = None,
+        after: Optional[int] = None,
+    ):
+        self.before = before
+        self.after = after
+
+    def __call__(self, span):
+        sent_starts = span.doc.to_array("SENT_START") == 1
+        sent_indices = sent_starts.cumsum()
+        sent_indices = sent_indices - sent_indices[span.start]
+
+        start_idx = end_idx = None
+        if self.before is not None:
+            start = sent_starts & (sent_indices == self.before)
+            x = np.flatnonzero(start)
+            start_idx = x[-1] if len(x) else 0
+
+        if self.after is not None:
+            end = sent_starts & (sent_indices == self.after + 1)
+            x = np.flatnonzero(end)
+            end_idx = x[0] - 1 if len(x) else len(span.doc)
+
+        return span.doc[start_idx:end_idx]
+
+    def __repr__(self):
+        return "sents[{}:{}]".format(self.before, self.after)
+
+
+class UnionContextWindow(ContextWindow):
+    def __init__(
+        self,
+        contexts: AsList[ContextWindow],
+    ):
+        self.contexts = contexts
+
+    def __call__(self, span):
+        results = [context(span) for context in self.contexts]
+        min_word = min([span.start for span in results])
+        max_word = max([span.end for span in results])
+        return span.doc[min_word:max_word]
+
+    def __repr__(self):
+        return " | ".join(repr(context) for context in self.contexts)
+
+
+class IntersectionContextWindow(ContextWindow):
+    def __init__(
+        self,
+        contexts: AsList[ContextWindow],
+    ):
+        self.contexts = contexts
+
+    def __call__(self, span):
+        results = [context(span) for context in self.contexts]
+        min_word = max([span.start for span in results])
+        max_word = min([span.end for span in results])
+        return span.doc[min_word:max_word]
+
+    def __repr__(self):
+        return " & ".join(repr(context) for context in self.contexts)

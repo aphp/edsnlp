@@ -1,9 +1,6 @@
 import re
 import warnings
-from collections import defaultdict
-from functools import lru_cache
-from operator import attrgetter
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Generator, Iterable, Optional, Union
 
 from confit import VisibleDeprecationWarning
 from loguru import logger
@@ -12,25 +9,11 @@ from spacy.tokens import Doc, Span
 from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher, create_span
-from edsnlp.matchers.utils import get_text
 from edsnlp.pipes.base import BaseNERComponent, SpanSetterArg
-from edsnlp.utils.collections import flatten_once
-from edsnlp.utils.typing import cast
+from edsnlp.utils.doc_to_text import get_text
+from edsnlp.utils.span_getters import get_spans
 
-from . import models
-
-
-@lru_cache(64)
-def get_window(
-    doclike: Union[Doc, Span], window: Tuple[int, int], limit_to_sentence: bool
-):
-    start_limit = doclike.sent.start if limit_to_sentence else 0
-    end_limit = doclike.sent.end if limit_to_sentence else len(doclike.doc)
-
-    start = max(doclike.start + window[0], start_limit)
-    end = min(doclike.end + window[1], end_limit)
-
-    return doclike.doc[start:end]
+from .models import FullConfig, SingleAssignModel, SingleConfig
 
 
 class ContextualMatcher(BaseNERComponent):
@@ -44,8 +27,13 @@ class ContextualMatcher(BaseNERComponent):
         spaCy `Language` object.
     name : Optional[str]
         The name of the pipe
-    patterns : Union[Dict[str, Any], List[Dict[str, Any]]]
-        The configuration dictionary
+    patterns : AsList[SingleConfig]
+        ??? subdoc "The patterns to match"
+
+            ::: edsnlp.pipes.core.contextual_matcher.models.SingleConfig
+                options:
+                    only_parameters: "no-header"
+                    show_toc: false
     assign_as_span : bool
         Whether to store eventual extractions defined via the `assign` key as Spans
         or as string
@@ -75,7 +63,7 @@ class ContextualMatcher(BaseNERComponent):
         nlp: Optional[PipelineProtocol],
         name: Optional[str] = "contextual_matcher",
         *,
-        patterns: Union[Dict[str, Any], List[Dict[str, Any]]],
+        patterns: FullConfig,
         assign_as_span: bool = False,
         alignment_mode: str = "expand",
         attr: str = "NORM",
@@ -87,7 +75,7 @@ class ContextualMatcher(BaseNERComponent):
         label: Optional[str] = None,
         span_setter: SpanSetterArg = {"ents": True},
     ):
-        if label is None and label_name is not None:
+        if label is None and label_name is not None:  # pragma: no cover
             warnings.warn(
                 "`label_name` is deprecated, use `label` instead.",
                 VisibleDeprecationWarning,
@@ -104,136 +92,103 @@ class ContextualMatcher(BaseNERComponent):
         self.ignore_excluded = ignore_excluded
         self.ignore_space_tokens = ignore_space_tokens
         self.alignment_mode = alignment_mode
-        self.regex_flags = regex_flags
+        self.regex_flags: Union[re.RegexFlag, int] = regex_flags
         self.include_assigned = include_assigned
 
-        # Configuration parsing
-        patterns = cast(models.FullConfig, patterns)
-        self.patterns = {pattern.source: pattern for pattern in patterns}
+        for pattern in patterns:
+            phrase_matcher = EDSPhraseMatcher(
+                nlp.vocab,
+                attr=attr,
+                ignore_excluded=ignore_excluded,
+                ignore_space_tokens=ignore_space_tokens,
+            )
+            phrase_matcher.build_patterns(
+                nlp=nlp,
+                terms={
+                    "terms": {
+                        "patterns": pattern.terms,
+                    }
+                },
+            )
+            pattern.phrase_matcher = phrase_matcher
 
-        # Matchers for the anchors
-        self.phrase_matcher = EDSPhraseMatcher(
-            nlp.vocab,
-            attr=attr,
-            ignore_excluded=ignore_excluded,
-            ignore_space_tokens=ignore_space_tokens,
-        )
-        self.regex_matcher = RegexMatcher(
-            attr=attr,
-            flags=regex_flags,
-            ignore_excluded=ignore_excluded,
-            ignore_space_tokens=ignore_space_tokens,
-            alignment_mode=alignment_mode,
-        )
-
-        self.phrase_matcher.build_patterns(
-            nlp=nlp,
-            terms={
-                source: {
-                    "patterns": p.terms,
+            regex_matcher = RegexMatcher(
+                attr=attr,
+                flags=regex_flags,
+                ignore_excluded=ignore_excluded,
+                ignore_space_tokens=ignore_space_tokens,
+                alignment_mode=alignment_mode,
+            )
+            regex_matcher.build_patterns(
+                regex={
+                    "regex": {
+                        "regex": pattern.regex,
+                        "attr": pattern.regex_attr,
+                        "flags": pattern.regex_flags,
+                    }
                 }
-                for source, p in self.patterns.items()
-            },
-        )
-        self.regex_matcher.build_patterns(
-            regex={
-                source: {
-                    "regex": p.regex,
-                    "attr": p.regex_attr,
-                    "flags": p.regex_flags,
-                }
-                for source, p in self.patterns.items()
-            }
-        )
+            )
+            pattern.regex_matcher = regex_matcher
 
-        self.exclude_matchers = defaultdict(
-            list
-        )  # Will contain all the exclusion matchers
-        self.assign_matchers = defaultdict(list)  # Will contain all the assign matchers
-
-        # Will contain the reduce mode (for each source and assign matcher)
-        self.reduce_mode = {}
-
-        # Will contain the name of the assign matcher from which
-        # entity will be replaced (for each source)
-        self.replace_key = {}
-
-        for source, p in self.patterns.items():
-            p = p.model_dump()
-
-            for exclude in p["exclude"]:
-                exclude_matcher = RegexMatcher(
-                    attr=exclude["regex_attr"] or p["regex_attr"] or self.attr,
-                    flags=exclude["regex_flags"]
-                    or p["regex_flags"]
-                    or self.regex_flags,
-                    ignore_excluded=ignore_excluded,
-                    ignore_space_tokens=ignore_space_tokens,
-                    alignment_mode="expand",
-                )
-
-                exclude_matcher.build_patterns(regex={"exclude": exclude["regex"]})
-
-                self.exclude_matchers[source].append(
-                    dict(
-                        matcher=exclude_matcher,
-                        window=exclude["window"],
-                        limit_to_sentence=exclude["limit_to_sentence"],
+            for exclude in pattern.exclude:
+                if exclude.regex is not None:
+                    matcher = RegexMatcher(
+                        attr=exclude.regex_attr or pattern.regex_attr or self.attr,
+                        flags=exclude.regex_flags
+                        or pattern.regex_flags
+                        or self.regex_flags,
+                        ignore_excluded=ignore_excluded,
+                        ignore_space_tokens=ignore_space_tokens,
+                        alignment_mode="expand",
                     )
-                )
+                    matcher.build_patterns(regex={"exclude": exclude.regex})
+                    exclude.regex_matcher = matcher
 
-            replace_key = None
+            for include in pattern.include:
+                if include.regex is not None:
+                    matcher = RegexMatcher(
+                        attr=include.regex_attr or pattern.regex_attr or self.attr,
+                        flags=include.regex_flags
+                        or pattern.regex_flags
+                        or self.regex_flags,
+                        ignore_excluded=ignore_excluded,
+                        ignore_space_tokens=ignore_space_tokens,
+                        alignment_mode="expand",
+                    )
+                    matcher.build_patterns(regex={"include": include.regex})
+                    include.regex_matcher = matcher
 
-            for assign in p["assign"]:
-                assign_matcher = RegexMatcher(
-                    attr=assign["regex_attr"] or p["regex_attr"] or self.attr,
-                    flags=assign["regex_flags"] or p["regex_flags"] or self.regex_flags,
+            # replace_key = None
+
+            for assign in pattern.assign:
+                assign.regex_matcher = RegexMatcher(
+                    attr=assign.regex_attr or pattern.regex_attr or self.attr,
+                    flags=assign.regex_flags or pattern.regex_flags or self.regex_flags,
                     ignore_excluded=ignore_excluded,
                     ignore_space_tokens=ignore_space_tokens,
                     alignment_mode=alignment_mode,
                     span_from_group=True,
                 )
-
-                assign_matcher.build_patterns(
-                    regex={assign["name"]: assign["regex"]},
+                assign.regex_matcher.build_patterns(
+                    regex={assign.name: assign.regex},
                 )
 
-                self.assign_matchers[source].append(
-                    dict(
-                        name=assign["name"],
-                        matcher=assign_matcher,
-                        window=assign["window"],
-                        limit_to_sentence=assign["limit_to_sentence"],
-                        replace_entity=assign["replace_entity"],
-                        reduce_mode=assign["reduce_mode"],
-                    )
-                )
-
-                if assign["replace_entity"]:
-                    # We know that there is only one assign name
-                    # with `replace_entity==True`
-                    # from PyDantic validation
-                    replace_key = assign["name"]
-
-            self.replace_key[source] = replace_key
-
-            self.reduce_mode[source] = {
-                d["name"]: d["reduce_mode"] for d in self.assign_matchers[source]
-            }
-
-        self.set_extensions()
+        self.patterns = patterns
 
     def set_extensions(self) -> None:
+        """
+        Define the extensions used by the component
+        """
         super().set_extensions()
         if not Span.has_extension("assigned"):
             Span.set_extension("assigned", default=dict())
         if not Span.has_extension("source"):
             Span.set_extension("source", default=None)
 
-    def filter_one(self, span: Span) -> Span:
+    def filter_one(self, span: Span, pattern) -> Optional[Span]:
         """
-        Filter extracted entity based on the "exclusion filter" mentioned
-        in the configuration
+        Filter extracted entity based on the exclusion and inclusion filters of
+        the configuration.
 
         Parameters
         ----------
@@ -245,32 +200,35 @@ class ContextualMatcher(BaseNERComponent):
         Optional[Span]
             None if the span was filtered, the span else
         """
-        source = span.label_
         to_keep = True
-        for matcher in self.exclude_matchers[source]:
-            window = matcher["window"]
-            limit_to_sentence = matcher["limit_to_sentence"]
-            snippet = get_window(
-                doclike=span,
-                window=window,
-                limit_to_sentence=limit_to_sentence,
-            )
+        for exclude in pattern.exclude:
+            snippet = exclude.window(span)
 
             if (
-                next(
-                    matcher["matcher"](snippet, as_spans=True),
-                    None,
-                )
-                is not None
+                exclude.regex_matcher is not None
+                and next(exclude.regex_matcher(snippet), None) is not None
+                or exclude.span_getter is not None
+                and next(get_spans(snippet, exclude.regex_matcher), None) is not None
             ):
                 to_keep = False
-                logger.trace(f"Entity {span} was filtered out")
+                break
+
+        for include in pattern.include:
+            snippet = include.window(span)
+
+            if (
+                include.regex_matcher is not None
+                and next(include.regex_matcher(snippet), None) is None
+                or include.span_getter is not None
+                and next(get_spans(snippet, include.regex_matcher), None) is None
+            ):
+                to_keep = False
                 break
 
         if to_keep:
             return span
 
-    def assign_one(self, span: Span) -> Span:
+    def assign_one(self, span: Span, pattern) -> Iterable[Span]:
         """
         Get additional information in the context
         of each entity. This function will populate two custom attributes:
@@ -285,159 +243,164 @@ class ContextualMatcher(BaseNERComponent):
 
         Returns
         -------
-        Span
-            Span with additional information
+        List[Span]
+            Spans with additional information
         """
-
-        if span is None:
-            yield from []
-            return
-
-        source = span.label_
-        assigned_dict = models.AssignDict(reduce_mode=self.reduce_mode[source])
         replace_key = None
 
-        for matcher in self.assign_matchers[source]:
-            attr = self.patterns[source].regex_attr or matcher["matcher"].default_attr
-            window = matcher["window"]
-            limit_to_sentence = matcher["limit_to_sentence"]
-            replace_entity = matcher["replace_entity"]  # Boolean
+        # Assigned matches is a list of tuples, each containing:
+        # - the span matched by the "assign" regex (or returned by the span getter)
+        # - the span corresponding to the match group of the regex (or the full match,
+        #   ie same as above)
+        assigned_dict = {}
+        reduce_modes = {}
+        attrs = {}
 
-            snippet = get_window(
-                doclike=span,
-                window=window,
-                limit_to_sentence=limit_to_sentence,
-            )
+        for assign in pattern.assign:
+            assign: SingleAssignModel
+            window = assign.window
+            snippet = window(span)
+            reduce_modes[assign.name] = assign.reduce_mode
+            matcher: RegexMatcher = assign.regex_matcher
+            attrs[assign.name] = matcher.regex[0][2]
+            if matcher is not None:
+                # Getting the matches
+                matches = list(matcher.match(snippet))
+                assigned = [
+                    (matched_span, matched_span)
+                    if not re_match.groups()
+                    else (
+                        matched_span,
+                        create_span(
+                            doclike=snippet,
+                            start_char=re_match.start(0),
+                            end_char=re_match.end(0),
+                            key=matcher.regex[0][0],
+                            attr=matcher.regex[0][2],
+                            alignment_mode=matcher.regex[0][5],
+                            ignore_excluded=matcher.regex[0][3],
+                            ignore_space_tokens=matcher.regex[0][4],
+                        ),
+                        # matcher.regex[0][0],
+                    )
+                    for (matched_span, re_match) in matches
+                ]
+            if assign.span_getter is not None:
+                assigned = [
+                    (matched_span, matched_span)
+                    for matched_span in get_spans(snippet, assign.span_getter)
+                    # if matched_span.start >= snippet.start
+                    # and matched_span.end <= snippet.end
+                ]
 
-            # Getting the matches
-            assigned_list = list(matcher["matcher"].match(snippet))
+            if assign.required and not assigned:
+                logger.trace(f"Entity {span} was filtered out")
+                return []
 
-            assigned_list = [
-                (span, span, matcher["matcher"].regex[0][0])
-                if not match.groups()
-                else (
-                    span,
-                    create_span(
-                        doclike=snippet,
-                        start_char=match.start(0),
-                        end_char=match.end(0),
-                        key=matcher["matcher"].regex[0][0],
-                        attr=matcher["matcher"].regex[0][2],
-                        alignment_mode=matcher["matcher"].regex[0][5],
-                        ignore_excluded=matcher["matcher"].regex[0][3],
-                        ignore_space_tokens=matcher["matcher"].regex[0][4],
-                    ),
-                    matcher["matcher"].regex[0][0],
-                )
-                for (span, match) in assigned_list
-            ]
-
-            # assigned_list now contains tuples with
-            # - the first element being the span extracted from the group
-            # - the second element being the full match
-
-            if not assigned_list:  # No match was found
+            if len(assigned) == 0:
                 continue
 
-            for assigned in assigned_list:
-                if assigned is None:
-                    continue
-                if replace_entity:
-                    replace_key = assigned[2]
+            if assign.replace_entity:
+                replace_key = assign.name
+            if assign.reduce_mode == "keep_first":  # closest
+                assigned = [min(assigned, key=lambda e: abs(e[0].start - span.start))]
+            elif assign.reduce_mode == "keep_last":
+                assigned = [max(assigned, key=lambda e: abs(e[0].start - span.start))]
 
-                # Using he overrid `__setitem__` method from AssignDict here:
-                assigned_dict[assigned[2]] = {
-                    "span": assigned[1],  # Full span
-                    "value_span": assigned[0],  # Span of the group
-                    "value_text": get_text(
-                        assigned[0],
-                        attr=attr,
-                        ignore_excluded=self.ignore_excluded,
-                    ),  # Text of the group
-                }
-                logger.trace(f"Assign key {matcher['name']} matched on entity {span}")
-        if replace_key is None and self.replace_key[source] is not None:
-            # There should have been a replacement, but none was found
-            # So we discard the entity
-            return
+            assigned_dict[assign.name] = assigned
 
-        # Entity replacement
+        # Several cases:
+        # 1. should_have_replacement and include_assigned is True
+        #    -> pick closest assigned span where replace = True
+        #    ->
         if replace_key is not None:
-            replacables = assigned_dict[replace_key]["span"]
-            kept_ents = (
-                replacables if isinstance(replacables, list) else [replacables]
-            ).copy()
+            replacements = sorted(
+                assigned_dict[replace_key],
+                key=lambda e: abs(e[0].start - span.start),
+            )
+            assigned_dict[replace_key] = replacements
 
+        ext = {
+            n: None
+            if reduce_modes[n] is not None and len(g) == 0
+            else [s[0] for s in g][slice(None) if reduce_modes[n] is None else 0]
+            if self.assign_as_span
+            else [
+                get_text(
+                    s[0],
+                    attr=attrs[n],
+                    ignore_excluded=self.ignore_excluded,
+                    ignore_space_tokens=self.ignore_space_tokens,
+                )
+                for s in g
+            ][slice(None) if reduce_modes[n] is None else 0]
+            for n, g in assigned_dict.items()
+        }
+
+        if replace_key is None:
             if self.include_assigned:
-                # We look for the closest
-                closest = min(
-                    kept_ents,
-                    key=lambda e: abs(e.start - span.start),
-                )
-                kept_ents.remove(closest)
-
-                expandables = list(
-                    flatten_once(
-                        [
-                            a["span"]
-                            for k, a in assigned_dict.items()
-                            if k != replace_key
-                        ]
-                    )
-                ) + [span, closest]
-
-                closest = Span(
-                    span.doc,
-                    min(expandables, key=attrgetter("start")).start,
-                    max(expandables, key=attrgetter("end")).end,
-                    span.label_,
-                )
-
-                kept_ents.append(closest)
-                kept_ents.sort(key=attrgetter("start"))
-
-            for replaced in kept_ents:
-                # Propagating attributes from the anchor
-                replaced._.source = source
-                replaced.label_ = self.label
-
-        else:
-            # Entity expansion
-            expandables = [
-                s
-                for s in flatten_once([a["span"] for a in assigned_dict.values()])
-                if s is not None
-            ]
-
-            if self.include_assigned and expandables:
+                merged = [span, *(x[1] for name, g in assigned_dict.items() for x in g)]
                 span = Span(
                     span.doc,
-                    min(s.start for s in expandables + [span] if s is not None),
-                    max(s.end for s in expandables + [span] if s is not None),
+                    min(s.start for s in merged),
+                    max(s.end for s in merged),
                     span.label_,
                 )
-
-            span._.source = source
+            span._.source = pattern.source
             span.label_ = self.label
-            kept_ents = [span]
+            span._.assigned = ext
+            new_spans = [span]
+        else:
+            if self.include_assigned:
+                # we will merge spans from other assign groups + the main span
+                # to the closest "most central" assign span.
+                [closest_replacement, *rest_replacements] = assigned_dict[replace_key]
+                other_spans = [
+                    x[1]
+                    for name, g in assigned_dict.items()
+                    if name != replace_key
+                    for x in g
+                ]
+                merged = [closest_replacement[1], span, *other_spans]
+                span = Span(
+                    span.doc,
+                    min(s.start for s in merged),
+                    max(s.end for s in merged),
+                    span.label_,
+                )
+                new_spans = [span, *(s[1] for s in rest_replacements)]
+            else:
+                new_spans = [x[1] for x in assigned_dict[replace_key]]
+            for idx, span in enumerate(new_spans):
+                span._.source = pattern.source
+                span.label_ = self.label
+                span._.assigned = {
+                    k: v[idx] if ((k == replace_key) and reduce_modes[k] is None) else v
+                    for k, v in ext.items()
+                }
 
-        key = "value_span" if self.assign_as_span else "value_text"
+        return new_spans
 
-        for idx, e in enumerate(kept_ents):
-            e._.assigned = {
-                k: v[key][idx]
-                if ((k == replace_key) and self.reduce_mode[source][k] is None)
-                else v[key]
-                for k, v in assigned_dict.items()
-            }
+    def process_one(self, span: Span, pattern: SingleConfig):
+        """
+        Processes one span, applying both the filters and the assignments
 
-        yield from kept_ents
+        Parameters
+        ----------
+        span: Span
+            Span object
+        pattern: SingleConfig
 
-    def process_one(self, span):
-        filtered = self.filter_one(span)
-        yield from self.assign_one(filtered)
+        Yields
+        ------
+        span:
+            Filtered spans, with optional assignments
+        """
+        span = self.filter_one(span, pattern)
+        if span is not None:
+            yield from self.assign_one(span, pattern)
 
-    def process(self, doc: Doc) -> List[Span]:
+    def process(self, doc: Doc) -> Generator[Span, None, None]:
         """
         Process the document, looking for named entities.
 
@@ -452,12 +415,18 @@ class ContextualMatcher(BaseNERComponent):
             List of detected spans.
         """
 
-        matches = self.phrase_matcher(doc, as_spans=True)
-        regex_matches = list(self.regex_matcher(doc, as_spans=True))
-
-        spans = (*matches, *regex_matches)
-        for span in spans:
-            yield from self.process_one(span)
+        for pattern in self.patterns:
+            for span in (
+                *pattern.phrase_matcher(doc, as_spans=True),
+                *pattern.regex_matcher(doc, as_spans=True),
+                *(
+                    get_spans(doc, pattern.span_getter)
+                    if pattern.span_getter is not None
+                    else []
+                ),
+            ):
+                spans = list(self.process_one(span, pattern))
+                yield from spans
 
     def __call__(self, doc: Doc) -> Doc:
         """

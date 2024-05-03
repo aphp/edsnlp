@@ -1,6 +1,6 @@
 import re
 from bisect import bisect_left, bisect_right
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 from loguru import logger
 from spacy.tokens import Doc, Span
@@ -465,7 +465,7 @@ class RegexMatcher(object):
         doclike: Union[Doc, Span],
         as_spans=False,
         return_groupdict=False,
-    ) -> Union[Span, Tuple[Span, Dict[str, Any]]]:
+    ) -> Iterator[Union[Span, Tuple[Span, Dict[str, Any]]]]:
         """
         Performs matching. Yields matches.
 

@@ -1,148 +1,8 @@
-
 # Contextual Matcher {: #edsnlp.pipes.core.contextual_matcher.factory.create_component }
 
-During feature extraction, it may be necessary to search for additional patterns in their neighborhood, namely:
+EDS-NLP provides simple pattern matchers like `eds.matcher` to extract regular expressions, specific phrases, or perform lexical similarity matching on documents. However, certain use cases require examining the context around matched entities to filter out irrelevant matches or enrich them with additional information. For example, to extract mentions of malignant cancers, we need to exclude matches that have “benin” mentioned nearby : `eds.contextual_matcher` was built to address such needs.
 
-- patterns to discard irrelevant entities
-- patterns to enrich these entities and store some information
-
-For example, to extract mentions of non-benign cancers, we need to discard all extractions that mention "benin" in their immediate neighborhood.
-Although such a filtering is feasible using a regular expression, it essentially requires modifying each of the regular expressions.
-
-The ContextualMatcher allows to perform this extraction in a clear and concise way.
-
-## The configuration file
-
-The whole ContextualMatcher pipeline component is basically defined as a list of **pattern dictionaries**.
-Let us see step by step how to build such a list using the example stated just above.
-
-### a. Finding mentions of cancer
-
-To do this, we can build either a set of `terms` or a set of `regex`. `terms` will be used to search for exact matches in the text. While less flexible,
-it is faster than using regex. In our case we could use the following lists (which are of course absolutely not exhaustives):
-
-```python
-terms = [
-    "cancer",
-    "tumeur",
-]
-
-regex = [
-    r"adeno(carcinom|[\s-]?k)",
-    "neoplas",
-    "melanom",
-]
-```
-
-Maybe we want to exclude mentions of benign cancers:
-
-```python
-benign = "benign|benin"
-```
-
-### b. Find mention of a *stage* and extract its value
-
-For this we will forge a RegEx with one capturing group (basically a pattern enclosed in parentheses):
-
-```python
-stage = "stade (I{1,3}V?|[1234])"
-```
-
-This will extract stage between 1 and 4
-
-We can add a second regex to try to capture if the cancer is in a metastasis stage or not:
-
-```python
-metastase = "(metasta)"
-```
-
-### c. The complete configuration
-
-We can now put everything together:
-
-```python
-cancer = dict(
-    source="Cancer solide",
-    regex=regex,
-    terms=terms,
-    regex_attr="NORM",
-    exclude=dict(
-        regex=benign,
-        window=3,
-    ),
-    assign=[
-        dict(
-            name="stage",
-            regex=stage,
-            window=(-10, 10),
-            replace_entity=False,
-            reduce_mode=None,
-        ),
-        dict(
-            name="metastase",
-            regex=metastase,
-            window=10,
-            replace_entity=False,
-            reduce_mode="keep_last",
-        ),
-    ],
-)
-```
-
-Here the configuration consists of a single dictionary. We might want to also include lymphoma in the matcher:
-
-```python
-lymphome = dict(
-    source="Lymphome",
-    regex=["lymphom", "lymphangio"],
-    regex_attr="NORM",
-    exclude=dict(
-        regex=["hodgkin"],  # (1)
-        window=3,
-    ),
-)
-```
-
-1. We are excluding "Lymphome de Hodgkin" here
-
-In this case, the configuration can be concatenated in a list:
-
-```python
-patterns = [cancer, lymphome]
-```
-
-## Available parameters for more flexibility
-
-3 main parameters can be used to refine how entities will be formed
-
-### The `include_assigned` parameter
-
-Following the previous example, you might want your extracted entities to **include**, if found, the cancer stage and the metastasis status. This can be achieved by setting `include_assigned=True` in the pipe configuration.
-
-For instance, from the sentence "Le patient a un cancer au stade 3", the extracted entity will be:
-
-- "cancer" if `include_assigned=False`
-- "cancer au stade 3" if `include_assigned=True`
-
-### The `reduce_mode` parameter
-
-It may happen that an assignment matches more than once. For instance, in the (nonsensical) sentence "Le patient a un cancer au stade 3 et au stade 4", both "stade 3" and "stade 4" will be matched by the `stage` assign key. Depending on your use case, you may want to keep all the extractions, or just one.
-
-- If `reduce_mode=None` (default), all extractions are kept in a list
-- If `reduce_mode="keep_first"`, only the extraction closest to the main matched entity will be kept (in this case, it would be "stade 3" since it is the closest to "cancer")
-- If `reduce_mode=="keep_last"`, only the furthest extraction is kept.
-
-### The `replace_entity` parameter
-
-This parameter can be se to `True` **only for a single assign key per dictionary**. This limitation comes from the purpose of this parameter: If set to `True`, the corresponding `assign` key will be returned as the entity, instead of the match itself. For clarity, let's take the same sentence "Le patient a un cancer au stade 3" as an example:
-
-- if `replace_entity=True` in the `stage` assign key, then the extracted entity will be "stade 3" instead of "cancer"
-- if `replace_entity=False` for every assign key, the returned entity will be, as expected, "cancer"
-
-**Please notice** that with `replace_entity` set to True, if the correponding assign key matches nothing, the entity will be discarded.
-
-
-## Examples
+## Example
 
 ```python
 import edsnlp, edsnlp.pipes as eds
@@ -153,14 +13,69 @@ nlp.add_pipe(eds.sentences())
 nlp.add_pipe(eds.normalizer())
 nlp.add_pipe(
     eds.contextual_matcher(
-        patterns=patterns,
+        patterns=[
+            dict(
+                terms=["cancer", "tumeur"],  # (1)!
+                regex=[r"adeno(carcinom|[\s-]?k)", "neoplas", "melanom"],  # (2)!
+                regex_attr="NORM",  # (3)!
+                exclude=dict(
+                    regex="benign|benin",  # (4)!
+                    window=3,  # (5)!
+                ),
+                assign=[
+                    dict(
+                        name="stage",  # (6)!
+                        regex="stade (I{1,3}V?|[1234])",  # (7)!
+                        window="words[-10:10]",  # (8)!
+                        replace_entity=False,  # (9)!
+                        reduce_mode=None,  # (10)!
+                    ),
+                    dict(
+                        name="metastase",  # (11)!
+                        regex="(metasta)",  # (12)!
+                        window=10,  # (13)!
+                        replace_entity=False,  # (14)!
+                        reduce_mode="keep_last",  # (15)!
+                    ),
+                ],
+            ),
+            dict(
+                source="Lymphome",  # (16)!
+                regex=["lymphom", "lymphangio"],  # (17)!
+                regex_attr="NORM",  # (18)!
+                exclude=dict(
+                    regex=["hodgkin"],  # (19)!
+                    window=3,  # (20)!
+                ),
+            ),
+        ],
         label="cancer",
     ),
 )
 ```
 
-Let us see what we can get from this pipeline with a few examples
+1. Exact match terms (faster than regex, but less flexible)
+2. Regex for flexible matching
+3. Apply regex on normalized text
+4. Regex to exclude benign mentions
+5. Window size for exclusion check
+6. Extract cancer stage
+7. Stage regex pattern
+8. Window range for stage extraction. Visit the documentation of [ContextWindow][edsnlp.utils.span_getters.ContextWindow] for more information about this syntax.
+9. Do not use these matches as replacement for the anchor (default behavior)
+10. Keep all matches
+11. Detect metastasis
+12. Regex for metastasis detection
+13. Window size for detection
+14. Keep main entity
+15. Keep furthest extraction
+16. Source label for lymphoma
+17. Regex patterns for lymphoma
+18. Apply regex on normalized text
+19. Exclude Hodgkin lymphoma
+20. Window size for exclusion
 
+Let's explore some examples using this pipeline:
 
 === "Simple match"
 
@@ -181,7 +96,7 @@ Let us see what we can get from this pipeline with a few examples
 
 === "Exclusion rule"
 
-    Let us check that when a *benign* mention is present, the extraction is excluded:
+    Check exclusion with a benign mention:
 
     ```python
     txt = "Le patient a eu un cancer relativement bénin il y a 5 ans"
@@ -193,8 +108,7 @@ Let us see what we can get from this pipeline with a few examples
 
 === "Extracting additional infos"
 
-    All informations extracted from the provided `assign` configuration can be found in the `assigned` attribute
-    under the form of a dictionary:
+    Additional information extracted via `assign` configurations is available in the `assigned` attribute:
 
     ```python
     txt = "Le patient a eu un cancer de stade 3."
@@ -204,124 +118,39 @@ Let us see what we can get from this pipeline with a few examples
     # Out: {'stage': '3'}
     ```
 
-However, most of the configuration is provided in the `patterns` key, as a **pattern dictionary** or a **list of pattern dictionaries**
+## Better control over the final extracted entities
 
-## The pattern dictionary
+Three main parameters refine how entities are extracted:
 
-### Description
+#### `include_assigned`
 
-A patterr is a nested dictionary with the following keys:
+Following the previous example, if you want extracted entities to include the cancer stage or metastasis status (if found), set `include_assigned=True` in the pipe configuration.
 
-=== "`source`"
+For instance, from the sentence "Le patient a un cancer au stade 3":
 
-    A label describing the pattern
+- If `include_assigned=False`, the extracted entity is "cancer"
+- If `include_assigned=True`, the extracted entity is "cancer au stade 3"
 
-=== "`regex`"
+#### `reduce_mode`
 
-    A single Regex or a list of Regexes
+Sometimes, an assignment matches multiple times. For example, in the sentence "Le patient a un cancer au stade 3 et au stade 4", both "stade 3" and "stade 4" match the `stage` key. Depending on your use case:
 
-=== "`regex_attr`"
+- `reduce_mode=None` (default): Keeps all matched extractions in a list
+- `reduce_mode="keep_first"`: Keeps only the extraction closest to the main matched entity ("stade 3" in this case)
+- `reduce_mode="keep_last"`: Keeps only the furthest extraction
 
-    An attributes to overwrite the given `attr` when matching with Regexes.
+#### `replace_entity`
 
-=== "`terms`"
+This parameter can be set to `True` **for only one assign key per dictionary**. If set to `True`, the matched assignment replaces the main entity.
 
-    A single term or a list of terms (for exact matches)
+Example using "Le patient a un cancer au stade 3":
 
-=== "`exclude`"
+- With `replace_entity=True` for the `stage` key, the entity extracted is "stade 3"
+- With `replace_entity=False`, the entity extracted remains "cancer"
 
-    A dictionary (or list of dictionaries) to define exclusion rules. Exclusion rules are given as Regexes, and if a
-    match is found in the surrounding context of an extraction, the extraction is removed. Each dictionary should have the following keys:
+**Note**: With `replace_entity=True`, if the corresponding assign key matches nothing, the entity is discarded.
 
-    === "`window`"
-
-        Size of the context to use (in number of words). You can provide the window as:
-
-        - A positive integer, in this case the used context will be taken **after** the extraction
-        - A negative integer, in this case the used context will be taken **before** the extraction
-        - A tuple of integers `(start, end)`, in this case the used context will be the snippet from `start` tokens before the extraction to `end` tokens after the extraction
-
-    === "`regex`"
-
-        A single Regex or a list of Regexes.
-
-=== "`assign`"
-
-    A dictionary to refine the extraction. Similarily to the `exclude` key, you can provide a dictionary to
-    use on the context **before** and **after** the extraction.
-
-    === "`name`"
-
-        A name (string)
-
-    === "`window`"
-
-        Size of the context to use (in number of words). You can provide the window as:
-
-        - A positive integer, in this case the used context will be taken **after** the extraction
-        - A negative integer, in this case the used context will be taken **before** the extraction
-        - A tuple of integers `(start, end)`, in this case the used context will be the snippet from `start` tokens before the extraction to `end` tokens after the extraction
-
-    === "`regex`"
-
-        A dictionary where keys are labels and values are **Regexes with a single capturing group**
-
-    === "`replace_entity`"
-
-        If set to `True`, the match from the corresponding assign key will be used as entity, instead of the main match. See [this paragraph][the-replace_entity-parameter]
-
-    === "`reduce_mode`"
-
-        Set how multiple assign matches are handled. See the documentation of the [`reduce_mode` parameter][the-reduce_mode-parameter]
-
-### A full pattern dictionary example
-
-```python
-dict(
-    source="AVC",
-    regex=[
-        "accidents? vasculaires? cerebr",
-    ],
-    terms="avc",
-    regex_attr="NORM",
-    exclude=[
-        dict(
-            regex=["service"],
-            window=3,
-        ),
-        dict(
-            regex=[" a "],
-            window=-2,
-        ),
-    ],
-    assign=[
-        dict(
-            name="neo",
-            regex=r"(neonatal)",
-            expand_entity=True,
-            window=3,
-        ),
-        dict(
-            name="trans",
-            regex="(transitoire)",
-            expand_entity=True,
-            window=3,
-        ),
-        dict(
-            name="hemo",
-            regex=r"(hemorragique)",
-            expand_entity=True,
-            window=3,
-        ),
-        dict(
-            name="risk",
-            regex=r"(risque)",
-            expand_entity=False,
-            window=-3,
-        ),
-    ],
-)
-```
+The primary configuration is provided in the `patterns` key as either a **pattern dictionary** or a **list of pattern dictionaries**.
 
 ::: edsnlp.pipes.core.contextual_matcher.factory.create_component
     options:
@@ -329,4 +158,4 @@ dict(
 
 ## Authors and citation
 
-The `eds.matcher` pipeline component was developed by AP-HP's Data Science team.
+The `eds.contextual_matcher` pipeline component was developed by AP-HP's Data Science team.

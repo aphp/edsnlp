@@ -190,3 +190,20 @@ a.discrete-link {
     font-size: 1rem;
     align-content: center;
 }
+
+.doc-param-details .subdoc {
+    padding: 0;
+    box-shadow: none;
+    border-color: var(--md-typeset-table-color);
+}
+
+.doc-param-details .subdoc > div > div > div>  table {
+    padding: 0;
+    box-shadow: none;
+    border: none;
+}
+
+.doc-param-details .subdoc > summary {
+    margin: 0;
+    font-weight: normal;
+}

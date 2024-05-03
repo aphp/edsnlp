@@ -1,7 +1,13 @@
+import os
+
 import pytest
 
+import edsnlp
+import edsnlp.pipes as eds
 from edsnlp.utils.examples import parse_example
 from edsnlp.utils.extensions import rgetattr
+
+os.environ["CONFIT_DEBUG"] = "1"
 
 EXAMPLES = [
     """
@@ -156,7 +162,6 @@ ALL_PARAMS = [
 
 @pytest.mark.parametrize("params,example", list(zip(ALL_PARAMS, EXAMPLES)))
 def test_contextual(blank_nlp, params, example):
-
     include_assigned, replace_entity, reduce_mode_stage, reduce_mode_metastase = params
 
     blank_nlp.add_pipe(
@@ -225,9 +230,49 @@ def test_contextual(blank_nlp, params, example):
     assert len(doc.ents) == len(entities)
 
     for entity, ent in zip(entities, doc.ents):
-
         for modifier in entity.modifiers:
+            assert rgetattr(ent, modifier.key) == modifier.value, (
+                f"{modifier.key} labels don't match."
+            )
 
-            assert (
-                rgetattr(ent, modifier.key) == modifier.value
-            ), f"{modifier.key} labels don't match."
+
+def test_contextual_matcher_include(blank_nlp):
+    if not isinstance(blank_nlp, edsnlp.Pipeline):
+        pytest.skip("Only running for edsnlp.Pipeline")
+    blank_nlp.add_pipe(
+        eds.quantities(
+            span_setter=["sizes"],
+            quantities=["size"],
+        ),
+    )
+    blank_nlp.add_pipe(
+        eds.contextual_matcher(
+            name="tumor_size",
+            label="tumor_size",
+            assign_as_span=True,
+            patterns=[
+                dict(
+                    source="tumor_size",
+                    terms=["cancer", "tumeur"],
+                    regex_attr="NORM",
+                    include=dict(regex="mamm", window="sents[-1:1]"),
+                    assign=dict(
+                        name="size",
+                        span_getter="sizes",
+                        reduce_mode="first",
+                        required=True,
+                    ),
+                )
+            ],
+        ),
+    )
+    doc = blank_nlp("""\
+Bilan mammaire:
+La tumeur est de 3 cm.
+Tumeur au pied sans changement.
+Tumeur mammaire benigne.
+""")
+    assert len(doc.ents) == 1
+    ent = doc.ents[0]
+    assert ent.label_ == "tumor_size"
+    assert ent._.assigned["size"]._.value.cm == 3

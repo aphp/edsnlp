@@ -1,9 +1,12 @@
-from typing import Any, Callable, Dict, Iterable, Union, Sequence
+from typing import Any, Callable, Dict, Iterable, Union, Collection, Tuple
 
+import spacy
 from spacy.tokens import Doc
 from spacy.training import Example
 
 import numpy as np
+
+Examples = Union[Tuple[Iterable[Doc], Iterable[Doc]], Iterable[Example]]
 
 Scorer = Union[
     Callable[[Iterable[Doc], Iterable[Doc]], Dict[str, Dict[str, Any]]],
@@ -26,7 +29,7 @@ def average_precision(pred: Dict[Any, float], gold: Iterable[Any]):
     return ap
 
 
-def prf(pred: Sequence, gold: Sequence):
+def prf(pred: Collection, gold: Collection):
     tp = len(set(pred) & set(gold))
     num_pred = len(pred)
     num_gold = len(gold)

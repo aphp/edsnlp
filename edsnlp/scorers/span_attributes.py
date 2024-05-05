@@ -1,8 +1,6 @@
 import warnings
 from collections import defaultdict
-from typing import Any, Dict, Iterable
-
-from spacy.training import Example
+from typing import Any, Dict, Optional
 
 from edsnlp import registry
 from edsnlp.scorers import average_precision, make_examples, prf
@@ -11,12 +9,13 @@ from edsnlp.utils.span_getters import SpanGetterArg, get_spans
 
 
 def span_attribute_scorer(
-    examples: Iterable[Example],
+    *args,
     span_getter: SpanGetterArg,
     attributes: Attributes,
     include_falsy: bool = False,
     default_values: Dict = {},
     micro_key: str = "micro",
+    filter_expr: Optional[str] = None,
 ):
     """
     Scores the extracted entities that may be overlapping or nested
@@ -24,8 +23,9 @@ def span_attribute_scorer(
 
     Parameters
     ----------
-    examples : Iterable[Example]
-        The examples to score
+    args : Examples
+        The examples to score, either a tuple of (golds, preds) or a list of
+        spacy.training.Example objects
     span_getter : SpanGetterArg
         The span getter to use to extract the spans from the document
     attributes : Sequence[str]
@@ -41,11 +41,17 @@ def span_attribute_scorer(
         together.
     micro_key : str
         The key to use to store the micro-averaged results for spans of all types
+    filter_expr : Optional[str]
+        The filter expression to use to filter the documents
 
     Returns
     -------
     Dict[str, float]
     """
+    examples = make_examples(*args)
+    if filter_expr is not None:
+        filter_fn = eval(f"lambda doc: {filter_expr}")
+        examples = [eg for eg in examples if filter_fn(eg.reference)]
     labels = defaultdict(lambda: (set(), set(), dict()))
     labels["micro"] = (set(), set(), dict())
     total_pred_count = 0
@@ -121,6 +127,7 @@ class SpanAttributeScorer:
         default_values: Dict = {},
         include_falsy: bool = False,
         micro_key: str = "micro",
+        filter_expr: Optional[str] = None,
     ):
         if qualifiers is not None:
             warnings.warn(
@@ -132,15 +139,17 @@ class SpanAttributeScorer:
         self.default_values = default_values
         self.include_falsy = include_falsy
         self.micro_key = micro_key
+        self.filter_expr = filter_expr
 
     def __call__(self, *examples: Any):
         return span_attribute_scorer(
-            make_examples(*examples),
+            *examples,
             span_getter=self.span_getter,
             attributes=self.attributes,
             default_values=self.default_values,
             include_falsy=self.include_falsy,
             micro_key=self.micro_key,
+            filter_expr=self.filter_expr,
         )
 
 

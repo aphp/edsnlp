@@ -27,7 +27,7 @@ def gold_and_pred():
 
 
 def test_exact_ner_scorer(gold_and_pred):
-    scorer = NerExactScorer("ents")
+    scorer = NerExactScorer("ents", filter_expr="'vid' in doc.text")
     ner_exact_score = scorer(*gold_and_pred)
     assert ner_exact_score["micro"] == {
         "p": 0.5,
@@ -40,7 +40,7 @@ def test_exact_ner_scorer(gold_and_pred):
 
 
 def test_token_ner_scorer(gold_and_pred):
-    scorer = NerTokenScorer("ents")
+    scorer = NerTokenScorer("ents", filter_expr="'vid' in doc.text")
     ner_exact_score = scorer(*gold_and_pred)
     assert ner_exact_score["micro"] == {
         "f": 0.75,
@@ -61,6 +61,7 @@ def test_span_attributes_scorer():
         "entities",
         "negation",
         default_values={"negation": False},
+        filter_expr="'vid' in doc.text",
     )
     pred.spans["entities"] = [
         pred[1:2],

@@ -1,8 +1,6 @@
 import abc
 from collections import defaultdict
-from typing import Any, Dict, Iterable
-
-from spacy.training import Example
+from typing import Any, Dict, Optional
 
 from edsnlp import registry
 from edsnlp.scorers import make_examples, prf
@@ -10,9 +8,10 @@ from edsnlp.utils.span_getters import SpanGetter, SpanGetterArg, get_spans
 
 
 def ner_exact_scorer(
-    examples: Iterable[Example],
+    *args,
     span_getter: SpanGetter,
     micro_key: str = "micro",
+    filter_expr: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Scores the extracted entities that may be overlapping or nested
@@ -20,17 +19,24 @@ def ner_exact_scorer(
 
     Parameters
     ----------
-    examples: Iterable[Example]
-        The examples to score
+    *args: Examples
+        The examples to score, either a tuple of (golds, preds) or a list of
+        spacy.training.Example objects
     span_getter: SpanGetter
         The span getter to use to extract the spans from the document
     micro_key: str
         The key to use to store the micro-averaged results for spans of all types
+    filter_expr: str
+        The filter expression to use to filter the documents
 
     Returns
     -------
     Dict[str, Any]
     """
+    examples = make_examples(*args)
+    if filter_expr is not None:
+        filter_fn = eval(f"lambda doc: {filter_expr}")
+        examples = [eg for eg in examples if filter_fn(eg.reference)]
     labels = defaultdict(lambda: (set(), set()))
     labels["micro"] = (set(), set())
     for eg_idx, eg in enumerate(examples):
@@ -54,9 +60,10 @@ def ner_exact_scorer(
 
 
 def ner_token_scorer(
-    examples: Iterable[Example],
+    *args,
     span_getter: SpanGetter,
     micro_key: str = "micro",
+    filter_expr: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Scores the extracted entities that may be overlapping or nested
@@ -65,17 +72,24 @@ def ner_token_scorer(
 
     Parameters
     ----------
-    examples: Iterable[Example]
-        The examples to score
+    *args: Examples
+        The examples to score, either a tuple of (golds, preds) or a list of
+        spacy.training.Example objects
     span_getter: SpanGetter
         The span getter to use to extract the spans from the document
     micro_key: str
         The key to use to store the micro-averaged results for spans of all types
+    filter_expr: str
+        The filter expression to use to filter the documents
 
     Returns
     -------
     Dict[str, Any]
     """
+    examples = make_examples(*args)
+    if filter_expr is not None:
+        filter_fn = eval(f"lambda doc: {filter_expr}")
+        examples = [eg for eg in examples if filter_fn(eg.reference)]
     # label -> pred, gold
     labels = defaultdict(lambda: (set(), set()))
     labels["micro"] = (set(), set())
@@ -104,26 +118,50 @@ def ner_token_scorer(
 class NerScorer(abc.ABC):
     span_getter: SpanGetter
 
-    def __call__(self, *args, **kwargs) -> Dict[str, Any]:
+    def __call__(self, *examples) -> Dict[str, Any]:
         raise NotImplementedError()
 
 
 @registry.scorers.register("eds.ner_exact_scorer")
 class NerExactScorer(NerScorer):
-    def __init__(self, span_getter: SpanGetterArg):
+    def __init__(
+        self,
+        span_getter: SpanGetterArg,
+        micro_key: str = "micro",
+        filter_expr: Optional[str] = None,
+    ):
         self.span_getter = span_getter
+        self.micro_key = micro_key
+        self.filter_expr = filter_expr
 
-    def __call__(self, *args, **kwargs):
-        return ner_exact_scorer(make_examples(*args, **kwargs), self.span_getter)
+    def __call__(self, *examples):
+        return ner_exact_scorer(
+            *examples,
+            span_getter=self.span_getter,
+            micro_key=self.micro_key,
+            filter_expr=self.filter_expr,
+        )
 
 
 @registry.scorers.register("eds.ner_token_scorer")
 class NerTokenScorer(NerScorer):
-    def __init__(self, span_getter: SpanGetterArg):
+    def __init__(
+        self,
+        span_getter: SpanGetterArg,
+        micro_key: str = "micro",
+        filter_expr: Optional[str] = None,
+    ):
         self.span_getter = span_getter
+        self.micro_key = micro_key
+        self.filter_expr = filter_expr
 
-    def __call__(self, *args, **kwargs):
-        return ner_token_scorer(make_examples(*args, **kwargs), self.span_getter)
+    def __call__(self, *examples):
+        return ner_token_scorer(
+            *examples,
+            span_getter=self.span_getter,
+            micro_key=self.micro_key,
+            filter_expr=self.filter_expr,
+        )
 
 
 # For backward compatibility

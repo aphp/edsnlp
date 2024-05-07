@@ -237,6 +237,7 @@ where = ["."]
 [project.entry-points."spacy_scorers"]
 "eds.ner_exact_scorer"           = "edsnlp.scorers.ner:NerExactScorer"
 "eds.ner_token_scorer"           = "edsnlp.scorers.ner:NerTokenScorer"
+"eds.ner_overlap_scorer"           = "edsnlp.scorers.ner:NerOverlapScorer"
 "eds.span_attributes_scorer"     = "edsnlp.scorers.span_attributes:SpanAttributeScorer"
 
 # Deprecated

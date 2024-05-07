@@ -3,13 +3,13 @@ from collections import defaultdict
 from typing import Any, Dict, Optional
 
 from edsnlp import registry
-from edsnlp.scorers import average_precision, make_examples, prf
+from edsnlp.scorers import Examples, average_precision, make_examples, prf
 from edsnlp.utils.bindings import BINDING_GETTERS, Attributes, AttributesArg
 from edsnlp.utils.span_getters import SpanGetterArg, get_spans
 
 
 def span_attribute_scorer(
-    *args,
+    examples: Examples,
     span_getter: SpanGetterArg,
     attributes: Attributes,
     include_falsy: bool = False,
@@ -18,8 +18,7 @@ def span_attribute_scorer(
     filter_expr: Optional[str] = None,
 ):
     """
-    Scores the extracted entities that may be overlapping or nested
-    by looking in `doc.ents`, and `doc.spans`.
+    Scores the attributes predictions between a list of gold and predicted spans.
 
     Parameters
     ----------
@@ -48,7 +47,7 @@ def span_attribute_scorer(
     -------
     Dict[str, float]
     """
-    examples = make_examples(*args)
+    examples = make_examples(examples)
     if filter_expr is not None:
         filter_fn = eval(f"lambda doc: {filter_expr}")
         examples = [eg for eg in examples if filter_fn(eg.reference)]
@@ -141,9 +140,11 @@ class SpanAttributeScorer:
         self.micro_key = micro_key
         self.filter_expr = filter_expr
 
+    __init__.__doc__ = span_attribute_scorer.__doc__
+
     def __call__(self, *examples: Any):
         return span_attribute_scorer(
-            *examples,
+            examples,
             span_getter=self.span_getter,
             attributes=self.attributes,
             default_values=self.default_values,

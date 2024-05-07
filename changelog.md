@@ -7,6 +7,7 @@
 - The `eds.transformer` component now accepts `prompts` (passed to its `preprocess` method, see breaking change below) to add before each window of text to embed.
 - `LazyCollection.map` / `map_batches` now support generator functions as arguments.
 - Window stride can now be disabled (i.e., stride = window) during training in the `eds.transformer` component by `training_stride = False`
+- Added a new `eds.ner_overlap_scorer` to evaluate matches between two lists of entities, counting true when the dice overlap is above a given threshold
 
 ### Changed
 

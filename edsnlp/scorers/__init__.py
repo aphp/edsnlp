@@ -43,12 +43,16 @@ def prf(pred: Collection, gold: Collection):
     }
 
 
-def make_examples(*args):
-    if len(args) == 2:
-        return (
-            [Example(reference=g, predicted=p) for g, p in zip(*args)]
-            if len(args) == 2
-            else args[0]
+def make_examples(*examples):
+    while isinstance(examples, tuple) and len(examples) == 1:
+        examples = examples[0]
+    if isinstance(examples, tuple) and len(examples) == 2:
+        examples = (
+            [Example(reference=g, predicted=p) for g, p in zip(*examples)]
+            if len(examples) == 2
+            else examples[0]
         )
-    else:
-        raise ValueError("Expected either a list of examples or two lists of spans")
+    if not isinstance(examples, list):
+        raise ValueError("Expected either a list of examples "
+                         "or a tuple of two lists of docs")
+    return examples

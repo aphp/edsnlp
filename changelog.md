@@ -58,6 +58,7 @@
 ### Fixed
 
 - `edsnlp.data.read_json` now correctly read the files from the directory passed as an argument, and not from the parent directory.
+- Overwrite spacy's Doc, Span and Token pickling utils to allow recursively storing Doc, Span and Token objects in the extension values (in particular, span._.date.doc)
 
 ## v0.11.2
 

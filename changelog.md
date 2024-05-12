@@ -11,6 +11,7 @@
 - Specify whether to log the validation results or not (`logger=False`)
 - Added support for the CoNLL format with `edsnlp.data.read_conll` and with a specific `eds.conll_dict2doc` converter
 - Added a Trainable Biaffine Dependency Parser (`eds.biaffine_dep_parser`) component and metrics
+- New `eds.extractive_qa` component to perform extractive question answering using questions as prompts to tag entities instead of a list of predefined labels as in `eds.ner_crf`.
 
 ### Fixed
 

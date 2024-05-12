@@ -14,6 +14,7 @@ All trainable components implement the [`TorchComponent`][edsnlp.core.torch_comp
 | `eds.text_cnn`            | Contextualize embeddings with a CNN                                   |
 | `eds.span_pooler`         | A span embedding component that aggregates word embeddings            |
 | `eds.ner_crf`             | A trainable component to extract entities                             |
+| `eds.extractive_qa`       | A trainable component for extractive question answering               |
 | `eds.span_classifier`     | A trainable component for multi-class multi-label span classification |
 | `eds.span_linker`         | A trainable entity linker (i.e. to a list of concepts)                |
 | `eds.biaffine_dep_parser` | A trainable biaffine dependency parser                                |

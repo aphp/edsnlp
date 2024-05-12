@@ -54,11 +54,14 @@
 - Trainable embedding components now all use `foldedtensor` to return embeddings, instead of returning a tensor of floats and a mask tensor.
 - :boom: TorchComponent `__call__` no longer applies the end to end method, and instead calls the `forward` method directly, like all torch modules.
 - The trainable `eds.span_qualifier` component has been renamed to `eds.span_classifier` to reflect its general gpurpose (it doesn't only predict qualifiers, but any attribute of a span using its context or not).
+- `omop` converter now takes the `note_datetime` field into account by default when building a document
+- `span._.date.to_datetime()` and `span._.date.to_duration()` now automatically take the `note_datetime` into account
 
 ### Fixed
 
 - `edsnlp.data.read_json` now correctly read the files from the directory passed as an argument, and not from the parent directory.
 - Overwrite spacy's Doc, Span and Token pickling utils to allow recursively storing Doc, Span and Token objects in the extension values (in particular, span._.date.doc)
+- Removed pendulum dependency, solving various pickling, multiprocessing and missing attributes errors
 
 ## v0.11.2
 

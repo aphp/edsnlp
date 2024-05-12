@@ -1,29 +1,32 @@
+import warnings
 from datetime import date, datetime
 
-import pendulum
+from dateutil.parser import parse as parse_date
 from spacy.tokens import Doc
 
 if not Doc.has_extension("note_id"):
     Doc.set_extension("note_id", default=None)
 
 
-def set_note_datetime(span, dt):
-    if type(dt) is datetime:
-        dt = pendulum.instance(dt)
-    elif isinstance(dt, pendulum.DateTime):
+def set_note_datetime(doc, dt):
+    try:
+        if type(dt) is datetime:
+            pass
+        elif isinstance(dt, str):
+            dt = parse_date(dt)
+        elif isinstance(dt, (int, float)):
+            dt = datetime.fromtimestamp(dt)
+        elif isinstance(dt, date):
+            dt = datetime(dt.year, dt.month, dt.day)
+        elif dt is None:
+            pass
+        key = doc._._get_key("note_datetime")
+        doc.doc.user_data[key] = dt
+        return
+    except Exception:
         pass
-    elif isinstance(dt, str):
-        dt = pendulum.parse(dt)
-    elif isinstance(dt, (int, float)):
-        dt = pendulum.from_timestamp(dt)
-    elif isinstance(dt, date):
-        dt = pendulum.instance(datetime.fromordinal(dt.toordinal()))
-    elif dt is None:
-        pass
-    else:
-        raise ValueError(f"Cannot cast {dt} as a datetime")
-    key = span._._get_key("note_datetime")
-    span.doc.user_data[key] = dt
+
+    warnings.warn(f"Cannot cast {dt} as a note datetime", UserWarning)
 
 
 def get_note_datetime(doc):

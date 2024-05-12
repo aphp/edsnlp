@@ -51,6 +51,7 @@ docs = [
         ("parquet", "omop", "spark", "parquet", "omop", False),
         ("parquet", "omop", "multiprocessing", "parquet", "omop", True),
         ("parquet", "omop", "spark", "parquet", "omop", True),
+        ("parquet", "omop", "multiprocessing", "iterable", None, False),
     ],
 )
 def test_end_to_end(
@@ -113,6 +114,8 @@ def test_end_to_end(
                 converter=writer_converter,
                 write_in_worker=worker_io,
             )
+    elif writer_format == "iterable":
+        list(data)
     else:
         raise ValueError(writer_format)
 

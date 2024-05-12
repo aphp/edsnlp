@@ -83,6 +83,7 @@ for doc in docs:
             end=date.end_char,
             label="date",
             entity_text=date.text,
+            datetime=date._.date.datetime,
         )
         rows.append(d)
 df = pd.DataFrame(rows)
@@ -160,7 +161,8 @@ def convert_doc_to_rows(doc):
             begin=date.start_char,
             end=date.end_char,
             label="date",
-            entity_text=date.text,
+            lexical_variant=date.text,
+            datetime=date._.date.datetime,
         )
         entities.append(d)
 
@@ -172,7 +174,13 @@ df = docs.to_pandas(converter=convert_doc_to_rows)
 df = docs.to_pandas(
     converter="ents",
     span_getter=["ents", "dates"],
-    span_attributes=["negation", "hypothesis", "family"],
+    span_attributes={
+        # span._.*** name: column name
+        "negation": "negation",
+        "hypothesis": "hypothesis",
+        "family": "family",
+        "date.datetime": "datetime",
+    },
 )
 ```
 
@@ -263,10 +271,14 @@ note_nlp = docs.to_pandas(
     # Below are the arguments to the converter
     span_getter=["ents", "dates"],
     span_attributes={  # (1)
+        # span._.*** name: column name
         "negation": "negation",
         "hypothesis": "hypothesis",
         "family": "family",
-        "date.day": "date_day",  # slugified name
+        "date.datetime": "datetime",
+        # having individual columns for each date part
+        # can be useful for incomplete dates (eg, "in May")
+        "date.day": "date_day",
         "date.month": "date_month",
         "date.year": "date_year",
     },
@@ -308,9 +320,13 @@ note_nlp = docs.to_pandas(
         "negation": "negation",
         "hypothesis": "hypothesis",
         "family": "family",
-        "date.day": "date_day",  # slugify the extension name
+        "date.datetime": "datetime",
+
+        # having individual columns for each date part
+        # can be useful for incomplete dates (eg, "in May")
+        "date.day": "date_day",
         "date.month": "date_month",
-        "date.year": "date_year"
+        "date.year": "date_year",
     },
 )
 ```
@@ -336,9 +352,13 @@ note_nlp = docs.to_spark(
         "negation": "negation",
         "hypothesis": "hypothesis",
         "family": "family",
-        "date.day": "date_day",  # slugify the extension name
+        "date.datetime": "datetime",
+
+        # having individual columns for each date part
+        # can be useful for incomplete dates (eg, "in May")
+        "date.day": "date_day",
         "date.month": "date_month",
-        "date.year": "date_year"
+        "date.year": "date_year",
     },
     dtypes=None,  # (1)
 )

@@ -1,16 +1,14 @@
 import datetime
 
 import pytest
-import pytz
 import spacy
 from pytest import fixture
 
 from edsnlp.core import PipelineProtocol
-from edsnlp.pipelines.misc.dates.models import AbsoluteDate, Relative
+from edsnlp.pipes.misc.dates.models import AbsoluteDate, Relative
 from edsnlp.utils.examples import parse_example
 
-TZ = pytz.timezone("Europe/Paris")
-TODAY = datetime.date.today()
+BASE_DATE = datetime.datetime.strptime("2021-09-04", "%Y-%m-%d")
 
 examples = [
     (
@@ -20,7 +18,7 @@ examples = [
     "Le patient est venu <ent norm='-1 day' direction=past day=1>hier</ent>",
     "le <ent norm='2021-09-04' day=4 month=9 year=2021>04/09/2021</ent>",
     (
-        "Il est cas contact <ent norm='-1 week' direction=past week=1>"
+        "Il est cas contact <ent norm='-7 days' direction=past week=1>"
         "depuis la semaine dernière</ent>"
     ),
     "le <ent norm='????-08-09' day=9 month=8>09/08</ent>",
@@ -35,11 +33,11 @@ examples = [
         "pour..."
     ),
     (
-        "Il est venu <ent norm='-3 months' direction=past month=3>il y a "
+        "Il est venu <ent norm='-90 days' direction=past month=3>il y a "
         "trois mois</ent> pour..."
     ),
     (
-        "Il lui était arrivé la même chose <ent norm='-1 year' "
+        "Il lui était arrivé la même chose <ent norm='-365 days' "
         "direction=past year=1>il y a un an</ent>."
     ),
     (
@@ -51,14 +49,14 @@ examples = [
         "day=3 month=7 year=2019>03 07 19</ent>"
     ),
     "En <ent norm='2017-11-??' month=11 year=2017>11/2017</ent> stabilité sur...",
-    "<ent norm='-3 months' direction=past month=3>depuis 3 mois</ent>",
+    "<ent norm='-90 days' direction=past month=3>depuis 3 mois</ent>",
     "- <ent norm='2004-12-??' month=12 year=2004>Décembre 2004</ent> :",
     "- <ent norm='2005-06-??' month=6 year=2005>Juin 2005</ent>:  ",
     # "-<ent norm=" month=6 year=2005>Juin 2005</ent>:  ",  # issues with "fr" language
     "<ent norm='2017-09-??' month=9 year=2017>sept 2017</ent> :",
     (
-        "<ent norm='-1 year' direction=past year=1>il y a 1 an</ent> "
-        "<ent norm='during 1 month' mode=duration month=1>pdt 1 mois</ent>"
+        "<ent norm='-365 days' direction=past year=1>il y a 1 an</ent> "
+        "<ent norm='during 30 days' mode=duration month=1>pdt 1 mois</ent>"
     ),
     (
         "Prélevé le : <ent norm='2016-04-22' day=22 month=4 year=2016>22/04/2016</ent> "
@@ -111,7 +109,7 @@ def test_dates_component(blank_nlp: PipelineProtocol):
             if isinstance(date, AbsoluteDate) and {"year", "month", "day"}.issubset(
                 set_d
             ):
-                assert date.to_datetime() == TZ.localize(datetime.datetime(**d))
+                assert date.to_datetime() == datetime.datetime(**d)
 
             elif isinstance(date, AbsoluteDate):
                 assert date.to_datetime() is None
@@ -121,14 +119,14 @@ def test_dates_component(blank_nlp: PipelineProtocol):
                     d["year"] = note_datetime.year
                     assert date.to_datetime(
                         note_datetime=note_datetime, infer_from_context=True
-                    ) == TZ.localize(datetime.datetime(**d))
+                    ) == datetime.datetime(**d)
 
                 # no day
                 if {"month", "year"}.issubset(set_d) and {"day"}.isdisjoint(set_d):
                     d["day"] = 1
                     assert date.to_datetime(
                         note_datetime=note_datetime, infer_from_context=True
-                    ) == TZ.localize(datetime.datetime(**d))
+                    ) == datetime.datetime(**d)
 
                 # year only
                 if {"year"}.issubset(set_d) and {"day", "month"}.isdisjoint(set_d):
@@ -136,7 +134,7 @@ def test_dates_component(blank_nlp: PipelineProtocol):
                     d["month"] = 1
                     assert date.to_datetime(
                         note_datetime=note_datetime, infer_from_context=True
-                    ) == TZ.localize(datetime.datetime(**d))
+                    ) == datetime.datetime(**d)
 
                 # month only
                 if {"month"}.issubset(set_d) and {"day", "year"}.isdisjoint(set_d):
@@ -144,7 +142,7 @@ def test_dates_component(blank_nlp: PipelineProtocol):
                     d["year"] = note_datetime.year
                     assert date.to_datetime(
                         note_datetime=note_datetime, infer_from_context=True
-                    ) == TZ.localize(datetime.datetime(**d))
+                    ) == datetime.datetime(**d)
 
             elif isinstance(date, Relative):
                 assert date.to_datetime() is None
@@ -264,18 +262,33 @@ def test_illegal_dates(blank_nlp):
 @pytest.mark.parametrize(
     "dt",
     [
-        datetime.datetime.now().strftime("%Y-%m-%d"),
-        datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        datetime.datetime.now(),
-        datetime.datetime.now().timestamp(),
-        datetime.date.today(),
+        BASE_DATE.strftime("%Y-%m-%d"),
+        BASE_DATE.strftime("%Y-%m-%d %H:%M:%S"),
+        BASE_DATE,
+        BASE_DATE.timestamp(),
+        BASE_DATE.date(),
+        "un truc",
         None,
     ],
 )
 def test_note_datetime(blank_nlp, dt):
-    doc = blank_nlp.make_doc("Empty doc")
+    doc = blank_nlp.make_doc(
+        "On le voit en décembre, dans 3 mois puis dans 2 ans pendant 1 an."
+    )
     doc._.note_datetime = dt
-    if dt is not None:
-        assert doc._.note_datetime.year == TODAY.year
-        assert doc._.note_datetime.month == TODAY.month
-        assert doc._.note_datetime.day == TODAY.day
+    doc = blank_nlp(doc)
+    if dt is not None and dt != "un truc":
+        assert doc._.note_datetime.year == BASE_DATE.year
+        assert doc._.note_datetime.month == BASE_DATE.month
+        assert doc._.note_datetime.day == BASE_DATE.day
+        assert doc.spans["dates"][0]._.date.datetime.year == BASE_DATE.year
+        assert doc.spans["dates"][0]._.date.duration.days == 88
+        assert str(doc.spans["dates"][0]._.value) == "????-12-??"
+        assert doc.spans["dates"][1]._.date.datetime.month == BASE_DATE.month + 3
+        assert doc.spans["dates"][1]._.date.duration.days == 90
+        assert str(doc.spans["dates"][1]._.date) == "+90 days"
+        assert doc.spans["dates"][2]._.date.datetime.year == BASE_DATE.year + 2
+        assert doc.spans["dates"][2]._.date.duration.days == 730
+        assert str(doc.spans["dates"][2]._.date) == "+730 days"
+        assert doc.spans["durations"][0]._.duration.duration.days == 365
+        assert str(doc.spans["durations"][0]._.duration) == "during 365 days"

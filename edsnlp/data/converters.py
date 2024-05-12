@@ -432,7 +432,7 @@ class OmopDict2DocConverter:
         *,
         tokenizer: Optional[PipelineProtocol] = None,
         span_setter: SpanSetterArg = {"ents": True, "*": True},
-        doc_attributes: AttributesMappingArg = {},
+        doc_attributes: AttributesMappingArg = {"note_datetime": "note_datetime"},
         span_attributes: Optional[AttributesMappingArg] = None,
         default_attributes: AttributesMappingArg = {},
         bool_attributes: SequenceStr = [],

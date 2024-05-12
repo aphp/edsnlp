@@ -1,10 +1,10 @@
 import datetime
 from enum import Enum
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 
-import pendulum
 from pandas._libs.tslibs.nattype import NaTType
-from pydantic import BaseModel, root_validator, validator
+from pydantic import BaseModel, Field, root_validator, validator
+from pytz import timezone
 from spacy.tokens import Span
 
 from edsnlp.pipes.misc.dates.patterns.relative import specific_dict
@@ -39,6 +39,16 @@ class Period(BaseModel):
 class BaseDate(BaseModel):
     mode: Mode = None
     bound: Optional[Bound] = None
+    doc: Optional[Any] = Field(exclude=True, default=None)
+
+    def norm(self) -> str:
+        raise NotImplementedError()
+
+    def to_datetime(self, **kwargs) -> Optional[datetime.datetime]:
+        raise NotImplementedError()
+
+    def to_duration(self, **kwargs) -> Optional[datetime.timedelta]:
+        raise NotImplementedError()
 
     @validator("*", pre=True)
     def remove_space(cls, v):
@@ -46,6 +56,17 @@ class BaseDate(BaseModel):
         if isinstance(v, str):
             return v.replace(" ", "")
         return v
+
+    @property
+    def datetime(self):
+        return self.to_datetime()
+
+    @property
+    def duration(self):
+        return self.to_duration()
+
+    def __str__(self):
+        return self.norm()
 
 
 class AbsoluteDate(BaseDate):
@@ -59,21 +80,21 @@ class AbsoluteDate(BaseDate):
 
     def to_datetime(
         self,
-        note_datetime: Optional[Union[pendulum.datetime, datetime.datetime]] = None,
-        tz: Union[str, pendulum.timezone] = "Europe/Paris",
+        note_datetime: Optional[Union[datetime.datetime]] = None,
+        tz: Union[str, datetime.timezone] = None,
         infer_from_context: Optional[bool] = None,
         default_day=1,
         default_month=1,
         **kwargs,
-    ) -> Optional[pendulum.datetime]:
+    ) -> Optional[datetime.datetime]:
         """
-        Convert the date to a pendulum.datetime object.
+        Convert the date to a datetime.datetime object.
 
         Parameters
         ----------
         tz : Optional[Union[str, pendulum.timezone]]
-            The timezone to use. Defaults to "Europe/Paris".
-        note_datetime : Optional[Union[pendulum.datetime, datetime.datetime]]
+            The timezone to use. Defaults to None.
+        note_datetime : Optional[Union[datetime.datetime, datetime.datetime]]
             The datetime of the note. Used to infer missing parts of the date.
         infer_from_context : bool
             Whether to infer missing parts of the date from the note datetime.
@@ -95,16 +116,26 @@ class AbsoluteDate(BaseDate):
 
         Returns
         -------
-        Optional[pendulum.datetime]
+        Union[datetime.datetime, None]
         """
 
+        if isinstance(tz, str):
+            tz = timezone(tz)
         d = self.dict(exclude_none=True)
         d.pop("mode", None)
         d.pop("bound", None)
 
+        if note_datetime is None:
+            note_datetime = self.doc._.note_datetime
+
         if self.year and self.month and self.day:
             try:
-                return pendulum.datetime(**d, tz=tz)
+                dt = (
+                    tz.localize(datetime.datetime(**d))
+                    if tz
+                    else datetime.datetime(**d)
+                )
+                return dt
             except ValueError:
                 return None
         elif (
@@ -113,8 +144,6 @@ class AbsoluteDate(BaseDate):
             and note_datetime is not None
         ):
             if note_datetime and not isinstance(note_datetime, NaTType):
-                note_datetime = pendulum.instance(note_datetime)
-
                 if self.year is None:
                     d["year"] = note_datetime.year
                 if self.month is None:
@@ -133,7 +162,12 @@ class AbsoluteDate(BaseDate):
                     d["day"] = default_day
 
             try:
-                return pendulum.datetime(**d, tz=tz)
+                dt = (
+                    tz.localize(datetime.datetime(**d))
+                    if tz
+                    else datetime.datetime(**d)
+                )
+                return dt
             except ValueError:
                 return None
 
@@ -141,14 +175,16 @@ class AbsoluteDate(BaseDate):
 
     def to_duration(
         self,
-        note_datetime: Optional[Union[pendulum.datetime, datetime.datetime]] = None,
+        note_datetime: Optional[Union[datetime.datetime, datetime.datetime]] = None,
         **kwargs,
-    ) -> Optional[pendulum.Duration]:
+    ) -> Optional[datetime.timedelta]:
+        if note_datetime is None:
+            note_datetime = self.doc._.note_datetime
+
         if note_datetime and not isinstance(note_datetime, NaTType):
-            note_datetime = pendulum.instance(note_datetime)
             dt = self.to_datetime(note_datetime=note_datetime, **kwargs)
-            delta = dt.diff(note_datetime)
-            return delta.as_interval()
+            delta = dt - note_datetime
+            return delta
         else:
             return None
 
@@ -177,9 +213,6 @@ class AbsoluteDate(BaseDate):
 
         if v < 25:
             return 2000 + v
-
-    def __str__(self):
-        return self.norm()
 
 
 class Relative(BaseDate):
@@ -217,20 +250,26 @@ class Relative(BaseDate):
 
         return d
 
-    def to_duration(self, note_datetime=None, **kwargs) -> pendulum.Duration:
+    def to_duration(self, note_datetime=None, **kwargs) -> datetime.timedelta:
         d = self.dict(exclude_none=True)
 
         direction = d.pop("direction", None)
-        dir = -1 if direction == Direction.PAST else 1
+        direction = -1 if direction == Direction.PAST else 1
 
         d.pop("mode", None)
 
         d = {f"{k}s": v for k, v in d.items()}
 
-        td = dir * pendulum.duration(**d)
+        if "months" in d:
+            d["days"] = d.get("days", 0) + 30 * d.pop("months")
+
+        if "years" in d:
+            d["days"] = d.get("days", 0) + 365 * d.pop("years")
+
+        td = direction * datetime.timedelta(**d)
         return td
 
-    def to_datetime(self, **kwargs) -> Optional[pendulum.datetime]:
+    def to_datetime(self, **kwargs) -> Optional[datetime.datetime]:
         # for compatibility
         return None
 
@@ -240,12 +279,13 @@ class RelativeDate(Relative):
 
     def to_datetime(
         self,
-        note_datetime: Optional[Union[pendulum.datetime, datetime.datetime]] = None,
+        note_datetime: Optional[Union[datetime.datetime, datetime.datetime]] = None,
         **kwargs,
-    ) -> Optional[pendulum.datetime]:
-        if note_datetime is not None and not isinstance(note_datetime, NaTType):
-            note_datetime = pendulum.instance(note_datetime)
+    ) -> Optional[datetime.datetime]:
+        if note_datetime is None:
+            note_datetime = self.doc._.note_datetime
 
+        if note_datetime is not None and not isinstance(note_datetime, NaTType):
             d = self.dict(exclude_none=True)
 
             direction = d.pop("direction", None)
@@ -256,7 +296,13 @@ class RelativeDate(Relative):
 
             d = {f"{k}s": v for k, v in d.items()}
 
-            td = dir * pendulum.duration(**d)
+            if "months" in d:
+                d["days"] = d.get("days", 0) + 30 * d.pop("months")
+
+            if "years" in d:
+                d["days"] = d.get("days", 0) + 365 * d.pop("years")
+
+            td = dir * datetime.timedelta(**d)
 
             return note_datetime + td
 
@@ -274,8 +320,10 @@ class RelativeDate(Relative):
         else:
             td = self.to_duration()
             norm = str(td)
-            if td.in_seconds() > 0:
+            if td.total_seconds() > 0:
                 norm = f"+{norm}"
+            if norm.endswith(", 0:00:00"):
+                norm = norm[:-9]
 
         return norm
 
@@ -304,20 +352,28 @@ class RelativeDate(Relative):
 
         return d
 
-    def __str__(self):
-        return self.norm()
-
 
 class Duration(Relative):
     mode: Mode = Mode.DURATION
 
     def norm(self) -> str:
         td = self.to_duration()
-        return f"during {td}"
+        norm = f"during {td}"
 
-    def to_duration(self, note_datetime=None, **kwargs) -> pendulum.Duration:
+        if norm.endswith(", 0:00:00"):
+            norm = norm[:-9]
+
+        return norm
+
+    def to_duration(self, note_datetime=None, **kwargs) -> datetime.timedelta:
         d = self.dict(exclude_none=True)
 
         d = {f"{k}s": v for k, v in d.items() if k not in ("mode", "bound")}
 
-        return pendulum.duration(**d)
+        if "months" in d:
+            d["days"] = d.get("days", 0) + 30 * d.pop("months")
+
+        if "years" in d:
+            d["days"] = d.get("days", 0) + 365 * d.pop("years")
+
+        return datetime.timedelta(**d)

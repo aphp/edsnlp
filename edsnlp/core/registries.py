@@ -1,11 +1,13 @@
 import inspect
 import types
+from collections import defaultdict
 from dataclasses import dataclass
 from functools import wraps
 from typing import Any, Callable, Dict, Iterable, Optional, Sequence
 from weakref import WeakKeyDictionary
 
 import catalogue
+import importlib_metadata
 import spacy
 from confit import Config, Registry, RegistryCollection, set_default_registry
 from confit.errors import ConfitValidationError, patch_errors
@@ -227,6 +229,11 @@ class FactoryRegistry(Registry):
         # Steps 1 & 2
         func = check_and_return()
         if func is None and self.entry_points:
+            # Update entry points in case packages lookup paths have changed
+            available_entry_points = defaultdict(list)
+            for ep in importlib_metadata.entry_points():
+                available_entry_points[ep.group].append(ep)
+            catalogue.AVAILABLE_ENTRY_POINTS.update(available_entry_points)
             # Otherwise, step 3
             self.get_entry_point(name)
             # Then redo steps 1 & 2

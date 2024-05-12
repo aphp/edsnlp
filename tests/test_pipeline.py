@@ -1,4 +1,6 @@
 import os
+import subprocess
+import sys
 from io import BytesIO
 
 import pytest
@@ -78,7 +80,8 @@ def test_disk_serialization(tmp_path, ml_nlp):
     ner.update_labels(["PERSON", "GIFT"])
 
     os.makedirs(tmp_path / "model", exist_ok=True)
-    nlp.to_disk(tmp_path / "model")
+    # by default, vocab is excluded
+    nlp.to_disk(tmp_path / "model", exclude=set())
 
     print("tmp_path", tmp_path, list((tmp_path / "model/transformer").iterdir()))
 
@@ -355,3 +358,34 @@ def test_curried_nlp_pipe():
     assert nlp.pipes.custom.nlp is nlp
 
     assert nlp.pipe_names == ["my-sentences", "normalizer", "sections", "custom"]
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 8),
+    reason="Can't run on GH CI with Python 3.7",
+)
+def test_huggingface():
+    nlp = edsnlp.load(
+        "AP-HP/dummy-ner",
+        auto_update=True,
+        install_dependencies=True,
+    )
+    doc = nlp("On lui prescrit du paracetamol à 500mg.")
+    assert doc.ents[0].text == "paracetamol"
+    assert doc.ents[1].text == "500mg"
+
+    subprocess.run(["pip", "uninstall", "dummy-pip-package", "-y"], check=True)
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 8),
+    reason="Can't run on GH CI with Python 3.7",
+)
+def test_missing_huggingface():
+    with pytest.raises(ValueError) as exc_info:
+        edsnlp.load(
+            "AP-HP/does-not-exist",
+            auto_update=True,
+        )
+
+    assert "The load function expects either :" in str(exc_info.value)

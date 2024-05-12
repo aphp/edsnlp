@@ -28,6 +28,8 @@ from dill._dill import save_function as dill_save_function
 from dill._dill import save_module as dill_save_module
 from dill._dill import save_type as dill_save_type
 
+from edsnlp.utils.typing import AsList
+
 try:
     import importlib_metadata
 except ImportError:  # pragma: no cover
@@ -37,6 +39,12 @@ from typing_extensions import Literal
 
 import edsnlp
 
+logger.remove()
+logger.add(
+    sys.stdout,
+    format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> - <level>{level: <8}</level>"
+    " - {message}",
+)
 py_version = f"{sys.version_info.major}.{sys.version_info.minor}"
 
 
@@ -368,7 +376,6 @@ class PoetryPackager:
         snake_name = snake_case(self.name.lower())
         included = self.pyproject["tool"]["poetry"].setdefault("include", [])
         included.append(f"{snake_name}/{self.artifacts_name}/**")
-
         packages = list(self.poetry_packages)
         packages.append({"include": snake_name})
         self.pyproject["tool"]["poetry"]["packages"] = packages
@@ -379,6 +386,7 @@ class PoetryPackager:
         shutil.rmtree(package_dir, ignore_errors=True)
         os.makedirs(package_dir, exist_ok=True)
         build_artifacts_dir = package_dir / self.artifacts_name
+        shutil.rmtree(build_artifacts_dir, ignore_errors=True)
         for file_path in self.list_files_to_add():
             new_file_path = self.build_dir / Path(file_path).relative_to(self.root_dir)
             if isinstance(self.pipeline, Path) and self.pipeline in file_path.parents:
@@ -388,13 +396,17 @@ class PoetryPackager:
                     "remove it from the pyproject.toml metadata."
                 )
             os.makedirs(new_file_path.parent, exist_ok=True)
-            logger.info(f"COPY {file_path}" f" TO {new_file_path}")
             shutil.copy(file_path, new_file_path)
 
         self.update_pyproject()
 
         # Write pyproject.toml
         (self.build_dir / "pyproject.toml").write_text(toml.dumps(self.pyproject))
+        if "readme" in self.pyproject["tool"]["poetry"]:
+            shutil.copy(
+                self.root_dir / self.pyproject["tool"]["poetry"]["readme"],
+                self.build_dir / "README.md",
+            )
 
         if isinstance(self.pipeline, Path):
             # self.pipeline = edsnlp.load(self.pipeline)
@@ -404,7 +416,6 @@ class PoetryPackager:
             )
         else:
             self.pipeline.to_disk(build_artifacts_dir)
-        os.makedirs(package_dir, exist_ok=True)
         with open(package_dir / "__init__.py", mode="a") as f:
             f.write(
                 INIT_PY.format(
@@ -412,6 +423,11 @@ class PoetryPackager:
                     artifacts_dir=os.path.relpath(build_artifacts_dir, package_dir),
                 )
             )
+
+        # Print all the files that will be included in the package
+        for file in self.build_dir.rglob("*"):
+            if file.is_file():
+                logger.info(f"INCLUDE {file.relative_to(self.build_dir)}")
 
 
 @app.command(name="package")
@@ -426,7 +442,7 @@ def package(
     project_type: Optional[Literal["poetry", "setuptools"]] = None,
     version: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = {},
-    distributions: Optional[Sequence[Literal["wheel", "sdist"]]] = ["wheel"],
+    distributions: Optional[AsList[Literal["wheel", "sdist"]]] = ["wheel"],
     config_settings: Optional[Mapping[str, Union[str, Sequence[str]]]] = None,
     isolation: bool = True,
     skip_build_dependency_check: bool = False,

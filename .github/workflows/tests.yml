@@ -30,16 +30,25 @@ jobs:
         python-version: ["3.7", "3.8", "3.9"]
     steps:
       - uses: actions/checkout@v2
+
       - name: Cache downloaded resources
         uses: actions/cache@v3
         with:
           path: ~/.data/
           key: resources
+
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-python-${{ matrix.python-version }}-pip
+
       - name: Set up Java
         uses: actions/setup-java@v2
         with:
           distribution: "temurin" # See 'Supported distributions' for available options
           java-version: "8"
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:

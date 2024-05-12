@@ -8,6 +8,7 @@
 - `LazyCollection.map` / `map_batches` now support generator functions as arguments.
 - Window stride can now be disabled (i.e., stride = window) during training in the `eds.transformer` component by `training_stride = False`
 - Added a new `eds.ner_overlap_scorer` to evaluate matches between two lists of entities, counting true when the dice overlap is above a given threshold
+- `edsnlp.load` now accepts EDS-NLP models from the huggingface hub 🤗 !
 
 ### Changed
 
@@ -56,6 +57,7 @@
 - The trainable `eds.span_qualifier` component has been renamed to `eds.span_classifier` to reflect its general gpurpose (it doesn't only predict qualifiers, but any attribute of a span using its context or not).
 - `omop` converter now takes the `note_datetime` field into account by default when building a document
 - `span._.date.to_datetime()` and `span._.date.to_duration()` now automatically take the `note_datetime` into account
+- `nlp.vocab` is no longer serialized when saving a model, as it may contain sensitive information and can be recomputed during inference anyway
 
 ### Fixed
 

@@ -129,6 +129,7 @@ nav:
           - 'Span Classifier': pipes/trainable/span-classifier.md
           - 'Span Linker': pipes/trainable/span-linker.md
           - 'Biaffine Dependency Parser': pipes/trainable/biaffine-dependency-parser.md
+          - 'Extractive QA': pipes/trainable/extractive-qa.md
   - tokenizers.md
   - Data Connectors:
       - data/index.md

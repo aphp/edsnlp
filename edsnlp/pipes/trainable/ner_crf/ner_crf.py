@@ -24,6 +24,7 @@ from edsnlp.utils.span_getters import (
     SpanSetter,
     SpanSetterArg,
     get_spans,
+    get_spans_with_group,
 )
 from edsnlp.utils.torch import make_windows
 
@@ -93,8 +94,6 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
     Let us define a pipeline composed of a transformer, and a NER component.
 
     ```{ .python }
-    from pathlib import Path
-
     import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
@@ -106,7 +105,8 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
                 stride=96,
             ),
             mode="joint",
-            target_span_getter=["ents", "ner-preds"],
+            target_span_getter="ner-gold",
+            span_setter="ents",
             window=10,
         ),
         name="ner"
@@ -150,7 +150,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         degraded performance. Empirically, we found that a window size of 10 or 20
         works well.
     stride : Optional[int]
-        The stride to use for the CRF windows. Defaults to `window - 2`.
+        The stride to use for the CRF windows. Defaults to `window // 2`.
 
     Authors and citation
     --------------------
@@ -251,24 +251,12 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
 
         for doc in docs:
             if callable(self.target_span_getter):
-                for ent in get_spans(doc, self.target_span_getter):
-                    inferred_labels.add(ent.label_)
+                for span in get_spans(doc, self.target_span_getter):
+                    inferred_labels.add(span.label_)
             else:
-                for key, span_filter in self.target_span_getter.items():
-                    candidates = doc.spans.get(key, ()) if key != "ents" else doc.ents
-                    filtered_candidates = (
-                        candidates
-                        if span_filter is True
-                        else [
-                            span
-                            for span in candidates
-                            if span.label_ in span_filter
-                            and (self.labels is None or span.label_ in self.labels)
-                        ]
-                    )
-                    for span in filtered_candidates:
-                        inferred_labels.add(span.label_)
-                        span_setter[key].append(span.label_)
+                for span, key in get_spans_with_group(doc, self.target_span_getter):
+                    inferred_labels.add(span.label_)
+                    span_setter[key].append(span.label_)
         if self.labels is not None:
             if inferred_labels != set(self.labels):
                 warnings.warn(
@@ -378,8 +366,9 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
             start = context.start
             by_label = defaultdict(list)
             for ent in target_ents:
-                label_idx = self.labels_to_idx.get(ent.label_)
-                by_label[label_idx].append(ent)
+                if ent.label_ in self.labels_to_idx:
+                    label_idx = self.labels_to_idx.get(ent.label_)
+                    by_label[label_idx].append(ent)
             filtered = []
             for label_idx, spans in by_label.items():
                 filtered[len(filtered) :], discarded[len(discarded) :] = filter_spans(

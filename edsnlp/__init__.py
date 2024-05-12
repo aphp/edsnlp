@@ -13,6 +13,7 @@ from .core.pipeline import Pipeline, blank, load
 from .core.registries import registry
 import edsnlp.data  # noqa: F401
 import edsnlp.pipes
+from . import reducers
 
 __version__ = "0.11.2"
 

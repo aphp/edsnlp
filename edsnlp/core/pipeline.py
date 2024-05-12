@@ -4,6 +4,8 @@ import importlib
 import inspect
 import os
 import shutil
+import subprocess
+import sys
 import warnings
 from enum import Enum
 from pathlib import Path
@@ -25,6 +27,8 @@ from typing import (
     Union,
 )
 
+import pkg_resources
+import requests
 import spacy
 import srsly
 from confit import Config
@@ -51,9 +55,22 @@ from .lazy_collection import LazyCollection
 if TYPE_CHECKING:
     import torch
 
+try:
+    import importlib.metadata as importlib_metadata
+except ModuleNotFoundError:
+    import importlib_metadata
+
 import edsnlp
 
 EMPTY_LIST = FrozenList()
+FORBIDDEN_AUTO_HF_OWNERS = {
+    "models",
+    "artifacts",
+    "model-last",
+    "model-best",
+    ".",
+    "..",
+}
 
 
 class CacheEnum(str, Enum):
@@ -732,8 +749,10 @@ class Pipeline:
         exclude: Sequence[str]
             The names of the components, or attributes to exclude from the saving
             process.
+            By default, the vocabulary is excluded since it may contain personal
+            identifiers and can be rebuilt during inference.
         """
-        exclude = set() if exclude is None else exclude
+        exclude = {"vocab"} if exclude is None else exclude
 
         path = Path(path) if isinstance(path, str) else path
 
@@ -1003,6 +1022,9 @@ def load(
     overrides: Optional[Dict[str, Any]] = None,
     *,
     exclude: Optional[Union[str, Iterable[str]]] = None,
+    auto_update: bool = False,
+    install_dependencies: bool = False,
+    **kwargs,
 ):
     """
     Load a pipeline from a config file or a directory.
@@ -1029,17 +1051,27 @@ def load(
     exclude: Optional[Union[str, Iterable[str]]]
         The names of the components, or attributes to exclude from the loading
         process. :warning: The `exclude` argument will be mutated in place.
+    auto_update: bool
+        When installing a pipeline from the Hugging Face Hub, whether to automatically
+        try to update the model, even if a local version is found. Only applies when
+        loading from the Hugging Face Hub.
+    install_dependencies: bool
+        When installing a pipeline from the Hugging Face Hub, whether to install the
+        dependencies of the model if they are not already installed. Only applies when
+        loading from the Hugging Face Hub.
 
     Returns
     -------
     Pipeline
     """
+    base_exc = None
     error = (
         "The load function expects either :\n"
         "- a confit Config object\n"
         "- the path of a config file (.cfg file)\n"
         "- the path of a trained model\n"
         "- the name of an installed pipeline package\n"
+        "- or a model on the huggingface hub if edsnlp[ml] has been installed\n"
         f"but got {model!r} which is neither"
     )
     if isinstance(model, (Path, str)):
@@ -1087,11 +1119,134 @@ def load(
                 if name in available_kwargs
             }
             return module.load(**kwargs)
+        elif (
+            len(str(model).split("/")) == 2
+            and str(model).split("/")[0] not in FORBIDDEN_AUTO_HF_OWNERS
+        ):
+            try:
+                return load_from_huggingface(
+                    model,
+                    overrides=overrides,
+                    auto_update=auto_update,
+                    install_dependencies=install_dependencies,
+                    **kwargs,
+                )
+            except (
+                ImportError,
+                requests.RequestException,
+                ValueError,
+                FileNotFoundError,
+            ) as e:
+                base_exc = e
 
     if not isinstance(model, Config):
-        raise ValueError(error)
+        raise ValueError(error) from base_exc
 
     return Pipeline.from_config(model)
+
+
+def load_from_huggingface(
+    repo_id: str,
+    auto_update: bool = False,
+    install_dependencies: bool = False,
+    token: Optional[str] = None,
+    revision: Optional[str] = None,
+    **kwargs,
+):
+    """
+    Load a model from the Hugging Face Hub.
+
+    Parameters
+    ----------
+    repo_id: str
+        The repository ID of the model to load (e.g. "username/repo_name").
+    auto_update: bool
+        Whether to automatically try to update the model, even if a local version
+        is found.
+    install_dependencies: bool
+        Whether to install the dependencies of the model if they are not already
+        installed.
+    token: Optional[str]
+        The Hugging Face Hub API token to use.
+    revision: Optional[str]
+        The revision of the model to load.
+    kwargs: Any
+        Additional keyword arguments to pass to the model's `load` method.
+
+    Returns
+    -------
+
+    """
+    from huggingface_hub import snapshot_download
+
+    owner, model_name = repo_id.split("/")
+    module_name = model_name.replace("-", "_")
+
+    assert (
+        len(repo_id.split("/")) == 2
+    ), "Invalid repo_id format (expected 'owner/repo_name' format)"
+    path = None
+    try:
+        path = snapshot_download(
+            repo_id,
+            local_files_only=auto_update,
+            token=token,
+            revision=revision,
+        )
+    except FileNotFoundError:
+        pass
+
+    should_install = False
+    if path is None or auto_update:
+        # Download the snapshot, which is the source distribution of the packaged model
+        path = snapshot_download(
+            repo_id,
+            local_files_only=False,
+            token=token,
+            revision=revision,
+        )
+        should_install = True
+
+    if should_install or not any(
+        p.startswith(module_name) and p.endswith(".dist-info") for p in os.listdir(path)
+    ):
+        subprocess.run(
+            ["pip", "install", path, "--target", path, "--no-deps", "--upgrade"]
+        )
+
+    if path not in sys.path:
+        sys.path.insert(0, path)
+
+    # Load dependencies
+    reqs = importlib_metadata.requires(module_name)
+    missing_deps = []
+    # Check if the dependencies are installed, with the correct version
+    for req in reqs:
+        try:
+            pkg_resources.require(req)
+        except (pkg_resources.VersionConflict, pkg_resources.DistributionNotFound):
+            missing_deps.append(req)
+
+    if missing_deps:
+        if not install_dependencies:
+            warnings.warn(
+                "Some dependencies could not be satisfied, consider installing them "
+                "to use the model:\n"
+                f"  pip install {' '.join((repr(str(dep)) for dep in missing_deps))}\n"
+                f"or let edsnlp do it \n"
+                f"  nlp = edsnlp.load('{repo_id}', install_dependencies=True)",
+                ImportWarning,
+            )
+        else:
+            warnings.warn(
+                "Installing missing dependencies:\n"
+                f"pip install {' '.join((repr(str(dep)) for dep in missing_deps))}",
+                ImportWarning,
+            )
+            pip = sys.executable.rsplit("/", 1)[0] + "/pip"
+            subprocess.run([pip, "install", *(str(d) for d in missing_deps)])
+    module = importlib.import_module(module_name)
+    return module.load(**kwargs)
 
 
 PipelineProtocol = Union[Pipeline, spacy.Language]

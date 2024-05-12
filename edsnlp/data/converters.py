@@ -262,11 +262,16 @@ class StandoffDict2DocConverter:
                     label=ent["label"],
                     alignment_mode="expand",
                 )
+                attributes = (
+                    {a["label"]: a["value"] for a in ent["attributes"]}
+                    if isinstance(ent["attributes"], list)
+                    else ent["attributes"]
+                )
                 if self.notes_as_span_attribute and ent["notes"]:
                     ent["attributes"][self.notes_as_span_attribute] = "|".join(
                         note["value"] for note in ent["notes"]
                     )
-                for label, value in ent["attributes"].items():
+                for label, value in attributes.items():
                     new_name = (
                         self.span_attributes.get(label, None)
                         if self.span_attributes is not None

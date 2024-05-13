@@ -352,6 +352,7 @@ omit-covered-files = false
 
 
 [tool.coverage.report]
+include = ["edsnlp/*"]
 omit = [
     "tests/*",
 ]
@@ -374,7 +375,9 @@ exclude_lines = [
 ]
 
 [tool.coverage.run]
+include = ["edsnlp/*"]
 concurrency = ["multiprocessing"]
+parallel = true
 
 [tool.cibuildwheel]
 skip = [

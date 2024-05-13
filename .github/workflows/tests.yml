@@ -57,18 +57,31 @@ jobs:
       - name: Test with Pytest on Python ${{ matrix.python-version }}
         env:
           UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
-        run: python -m pytest --cov edsnlp --cov-report xml --ignore tests/test_docs.py
+        run: coverage run -m pytest --ignore tests/test_docs.py
         if: matrix.python-version != '3.9'
 
       - name: Test with Pytest on Python ${{ matrix.python-version }}
         env:
           UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
-        run: python -m pytest --cov edsnlp --cov-report xml
+        run: coverage run -m pytest
         if: matrix.python-version == '3.9'
 
-      - name: Upload coverage
-        uses: codecov/codecov-action@v2
+      - name: Upload coverage data
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-data-${{ matrix.python-version }}
+          path: .coverage.*
+          if-no-files-found: ignore
 
+  Coverage:
+    needs: Pytest
+    uses: aphp/foldedtensor/.github/workflows/coverage.yml@main
+    with:
+      base-branch: master
+      coverage-data-pattern: coverage-data-*
+      coverage-report: coverage.txt
+      coverage-badge: coverage.svg
+      coverage-branch: coverage
 
   Documentation:
     runs-on: ubuntu-latest

@@ -250,38 +250,6 @@ if TYPE_CHECKING:
     ]
 
 
-def merge_spans(spans: Iterable[Span]) -> List[Span]:
-    """
-    Merge overlapping spans into a single span.
-
-    Parameters
-    ----------
-    spans : List[Span]
-        List of spans to merge.
-    doc : Doc
-        Document to merge the spans on.
-
-    Returns
-    -------
-    List[Span]
-        Merged spans.
-    """
-    spans = sorted(spans, key=lambda x: (x.start, x.end))
-    merged = []
-    for span in spans:
-        if len(merged) and span.start <= merged[-1].end:
-            if span.end > merged[-1].end:
-                merged[-1] = Span(
-                    span.doc,
-                    merged[-1].start,
-                    span.end,
-                    merged[-1].label_,
-                )
-        else:
-            merged.append(span)
-    return merged
-
-
 @registry.misc.register("eds.span_context_getter")
 class make_span_context_getter:
     """

@@ -1,0 +1,40 @@
+[
+    {
+        "subject": [
+            {
+                "label": "Chemical_and_drugs",
+                "attr": {
+                    "Tech": [
+                        null
+                    ]
+                }
+            }
+        ],
+        "object": [
+            {
+                "label": "Temporal",
+                "attr": {
+                    "AttTemp": [
+                        "Duration",
+                        "Date",
+                        "Frequency",
+                        "Time"
+                    ]
+                }
+            },
+            {
+                "label": "Chemical_and_drugs",
+                "attr": {
+                    "Tech": [
+                        "dosage",
+                        "route",
+                        "strength",
+                        "form"
+                    ]
+                }
+            }
+        ],
+        "type": "Depend",
+        "inv_type": "inv_Depend"
+    }
+]

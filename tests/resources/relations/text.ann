@@ -1,0 +1,82 @@
+T1	DISO 24 41	fatigue chronique
+A1	Certainty T1 Certain
+T2	DISO 49 61	maux de tête
+A2	Certainty T2 Certain
+T3	Constantes 97 134	tension artérielle est de 145/90 mmHg
+T4	Constantes 139 172	glycémie à jeun est de 7.8 mmol/L
+T5	Constantes 179 212	saturation en oxygène est de 98 %
+T6	Chemical_and_drugs 238 248	Amlodipine
+A3	Certainty T6 Certain
+A4	Temporality T6 Present
+T7	Chemical_and_drugs 263 267	5 mg
+A5	Tech T7 strength
+T8	Chemical_and_drugs 282 290	comprimé
+A6	Tech T8 form
+T9	Chemical_and_drugs 300 310	voie orale
+A7	Tech T9 route
+T10	Chemical_and_drugs 311 328	une fois par jour
+A8	Tech T10 dosage
+R1	Depend Arg1:T6 Arg2:T7	
+R2	Depend Arg1:T6 Arg2:T8	
+R3	Depend Arg1:T6 Arg2:T9	
+R4	Depend Arg1:T6 Arg2:T10	
+T11	Chemical_and_drugs 330 340	Metformine
+A9	Certainty T11 Certain
+A10	Temporality T11 Present
+T12	Chemical_and_drugs 355 380	500 mg deux fois par jour
+A11	Tech T12 dosage
+T13	Chemical_and_drugs 355 361	500 mg
+A12	Tech T13 strength
+T14	Temporal 362 380	deux fois par jour
+A13	AttTemp T14 Frequency
+T15	Temporal 381 401	depuis le 27/05/2022
+A14	AttTemp T15 Duration
+A15	AttDate T15 StartDate
+A16	RefTemp T15 Absolute
+T16	Chemical_and_drugs 403 413	Salbutamol
+A17	Certainty T16 Certain
+A18	Temporality T16 Present
+T17	Chemical_and_drugs 428 434	100 µg
+A19	Tech T17 strength
+A20	Certainty T17 Conditional
+A21	Temporality T17 Present
+T18	Chemical_and_drugs 448 458	inhalateur
+A22	Tech T18 form
+T19	Chemical_and_drugs 471 483	voie inhalée
+A23	Tech T19 route
+T20	Chemical_and_drugs 502 513	Paracétamol
+A24	Certainty T20 Conditional
+A25	Temporality T20 Present
+T21	Chemical_and_drugs 528 534	500 mg
+A26	Tech T21 strength
+T22	Chemical_and_drugs 535 541	per os
+A27	Tech T22 route
+T23	Temporal 560 588	maximum quatre fois par jour
+A28	AttTemp T23 Frequency
+T24	DISO 598 610	maux de tête
+A29	Certainty T24 Conditional
+T25	DISO 751 754	HTA
+A30	Certainty T25 Certain
+T26	Chemical_and_drugs 787 797	Amlodipine
+A31	Action T26 Increase
+A32	Certainty T26 Certain
+A33	Temporality T26 Present
+T27	Chemical_and_drugs 800 805	10 mg
+A34	Tech T27 dosage
+T28	DISO 845 851	asthme
+A35	Certainty T28 Certain
+T29	DISO 917 929	maux de tête
+A36	Certainty T29 Conditional
+T30	Chemical_and_drugs 970 981	paracétamol
+A37	Certainty T30 Conditional
+R5	Depend Arg1:T11 Arg2:T13	
+R6	Depend Arg1:T11 Arg2:T12	
+R7	Depend Arg1:T11 Arg2:T14	
+R8	Depend Arg1:T11 Arg2:T15	
+R9	Depend Arg1:T16 Arg2:T17	
+R10	Depend Arg1:T16 Arg2:T18	
+R11	Depend Arg1:T16 Arg2:T19	
+R12	Depend Arg1:T20 Arg2:T21	
+R13	Depend Arg1:T20 Arg2:T22	
+R14	Depend Arg1:T20 Arg2:T23	
+R15	Depend Arg1:T26 Arg2:T27	

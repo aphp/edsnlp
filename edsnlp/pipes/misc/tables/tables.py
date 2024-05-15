@@ -111,10 +111,6 @@ class TablesMatcher(BaseComponent):
     sep_pattern : Optional[str]
         The regex pattern to identify the separator pattern.
         Used when calling `to_pd_table`.
-    col_names : Optional[bool]
-        Whether the tables_pattern matches column names
-    row_names : Optional[bool]
-        Whether the table_pattern matches row names
     attr : str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with

@@ -9,6 +9,9 @@
 - Use `torch.inference_mode` to disable view tracking and version counter bumps during inference.
 - Added a new NER pipeline for suicide attempt detection
 - Added date cues (regular expression matches that contributed to a date being detected) under the extension `ent._.date_cues`
+- Added tables processing in eds.measurement
+- Added 'all' as possible input in eds.measurement measurements config
+- Added new units in eds.measurement
 
 ### Changed
 

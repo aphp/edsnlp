@@ -1,4 +1,5 @@
 import abc
+import ast
 import re
 import unicodedata
 from collections import defaultdict
@@ -122,6 +123,24 @@ class UnitRegistry:
             if sum(v) != 0
         }
         return str(dict(sorted(degrees.items()))), scale
+
+    def dim_to_unit(self, dim, degree):
+        for k, v in self.config.items():
+            if (v["dim"] == dim) and (v["scale"] == 1) and (v["degree"] == degree):
+                return k
+        return ""
+
+    def dims_to_units(self, dims):
+        base_unit, per_unit = "", ""
+        for dim, degree in dims.items():
+            unit = self.dim_to_unit(dim, degree)
+            if degree < 0:
+                per_unit += unit
+            else:
+                base_unit = unit
+        per_unit = f"_{per_unit}" if per_unit != "" else ""
+
+        return f"{base_unit}{per_unit}"
 
 
 class SimpleMeasurement(Measurement):
@@ -494,6 +513,9 @@ class MeasurementsMatcher(BaseNERComponent):
           as_ents: bool = False,
           span_setter: Optional[SpanSetterArg] = None,
     ):
+        self.all_measurements = (measurements == "all")
+        if self.all_measurements:
+            measurements = []
         # fmt: on
         if isinstance(measurements, str):
             measurements = [measurements]
@@ -930,12 +952,18 @@ class MeasurementsMatcher(BaseNERComponent):
 
             # If the measure was not requested, dismiss it
             # Otherwise, relabel the entity and create the value attribute
-            if dims not in self.measure_names:
+            if (dims not in self.measure_names) and not self.all_measurements:
                 continue
 
-            ent.label_ = self.measure_names[dims]
+            if self.all_measurements:
+                # We need to compute the detected unit
+                ent.label_ = self.unit_registry.dims_to_units(ast.literal_eval(dims))
+                if not Span.has_extension(ent.label_):
+                    Span.set_extension(ent.label_, default=None)
+            else:
+                ent.label_ = self.measure_names[dims]
             ent._.set(
-                self.measure_names[dims],
+                ent.label_,
                 SimpleMeasurement(value, unit_norm, self.unit_registry)
             )
 

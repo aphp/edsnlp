@@ -173,6 +173,7 @@ where = ["."]
 "eds.reason"                      = "edsnlp.pipes.misc.reason.factory:create_component"
 "eds.sections"                    = "edsnlp.pipes.misc.sections.factory:create_component"
 "eds.tables"                      = "edsnlp.pipes.misc.tables.factory:create_component"
+"eds.relations"                   = "edsnlp.pipes.misc.relations.factory:create_component"
 
 # Deprecated (links to the same factories as above)
 "SOFA"                   = "edsnlp.pipes.ner.scores.sofa.factory:create_component"

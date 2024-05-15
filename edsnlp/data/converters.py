@@ -66,7 +66,7 @@ def validate_kwargs(converter, kwargs):
     return {**(d.pop(vd.v_kwargs_name, None) or {}), **d}
 
 
-class SequenceStr:
+class SequenceStr: 
     @classmethod
     def __get_validators__(cls):
         yield cls.validate
@@ -191,6 +191,9 @@ class StandoffDict2DocConverter:
     span_attributes : Optional[AttributesMappingArg]
         Mapping from BRAT attributes to Span extensions (can be a list too).
         By default, all attributes are imported as Span extensions with the same name.
+    span_rel : Optional[AttributesMappingArg]
+        Mapping from BRAT relations to Span extensions (can be a list too).
+        By default, all relations are imported as Span extensions with the name rel.
     keep_raw_attribute_values : bool
         Whether to keep the raw attribute values (as strings) or to convert them to
         Python objects (e.g. booleans).
@@ -214,6 +217,7 @@ class StandoffDict2DocConverter:
         tokenizer: Optional[Tokenizer] = None,
         span_setter: SpanSetterArg = {"ents": True, "*": True},
         span_attributes: Optional[AttributesMappingArg] = None,
+        span_rel: Optional[AttributesMappingArg] = None, # à voir si on le garde
         keep_raw_attribute_values: bool = False,
         bool_attributes: SequenceStr = [],
         default_attributes: AttributesMappingArg = {},
@@ -223,6 +227,7 @@ class StandoffDict2DocConverter:
         self.tokenizer = tokenizer or (nlp.tokenizer if nlp is not None else None)
         self.span_setter = span_setter
         self.span_attributes = span_attributes  # type: ignore
+        self.span_rel = span_rel  # à voir si on le garde
         self.keep_raw_attribute_values = keep_raw_attribute_values
         self.default_attributes = default_attributes
         self.notes_as_span_attribute = notes_as_span_attribute
@@ -244,12 +249,17 @@ class StandoffDict2DocConverter:
             if not Span.has_extension(dst):
                 Span.set_extension(dst, default=None)
 
+        ############## Modification pour les relations ###############
+        dict_entities={} ## dictionnaire pour stocker les entités
         for ent in obj.get("entities") or ():
+            begin = min(f["begin"] for f in ent["fragments"]) # debut de l'entité
+            end = max(f["end"] for f in ent["fragments"]) # fin de l'entité
+            dict_entities[ent['entity_id']] =  ent['label'] + ';' + str(begin) + ';' + str(end) # stocker les entités
             fragments = (
                 [
                     {
-                        "begin": min(f["begin"] for f in ent["fragments"]),
-                        "end": max(f["end"] for f in ent["fragments"]),
+                        "begin": begin,
+                        "end": end,
                     }
                 ]
                 if not self.split_fragments
@@ -260,7 +270,7 @@ class StandoffDict2DocConverter:
                     fragment["begin"],
                     fragment["end"],
                     label=ent["label"],
-                    alignment_mode="expand",
+                    alignment_mode="expand", # ajout id 
                 )
                 if self.notes_as_span_attribute and ent["notes"]:
                     ent["attributes"][self.notes_as_span_attribute] = "|".join(
@@ -290,12 +300,51 @@ class StandoffDict2DocConverter:
                         span._.set(new_name, value)
 
                 spans.append(span)
+        
 
         set_spans(doc, spans, span_setter=self.span_setter)
         for attr, value in self.default_attributes.items():
             for span in spans:
                 if span._.get(attr) is None:
                     span._.set(attr, value)
+
+        
+        ############## Modification pour les relations ###############
+        # Ajout des relations en terme de span
+        if self.span_rel is None and not Span.has_extension(
+                    'rel'
+                ):
+                    Span.set_extension('rel', default=[])
+        
+        for rel in obj.get("relations") or (): # itere relation
+            for label in doc.spans: # itere label source
+                for i, spa in enumerate(doc.spans[label]): # itere spans source
+                    bo = False
+                    
+                    #relations
+                    if dict_entities[rel["from_entity_id"]].split(';') == [label , str(spa.start_char), str(spa.end_char)]: # si l'entité source est la meme que celle du span
+                        for label2 in doc.spans: #itere label target
+                            for j, spa2 in enumerate(doc.spans[label2]): #iter label target
+                                if dict_entities[rel["to_entity_id"]].split(';') == [label2 , str(spa2.start_char), str(spa2.end_char)]: # si l'entité target est la meme que celle du span
+                                    relation = {'type': rel['relation_label'], 'target': doc.spans[label2][j]} # creer la relation
+                                    doc.spans[label][i]._.rel.append(relation) # ajouter la relation au span
+                                    bo = True 
+                                    break
+                            if bo == True:
+                                break
+                    bo = False
+
+                    # relations inverses
+                    if dict_entities[rel["to_entity_id"]].split(';') == [label , str(spa.start_char), str(spa.end_char)]: 
+                        for label2 in doc.spans: 
+                            for j, spa2 in enumerate(doc.spans[label2]):
+                                if dict_entities[rel["from_entity_id"]].split(';') == [label2 , str(spa2.start_char), str(spa2.end_char)]:
+                                    relation = {'type': 'inv_' + rel['relation_label'], 'target': doc.spans[label2][j]}
+                                    doc.spans[label][i]._.rel.append(relation)
+                                    bo=True
+                                    break
+                            if bo == True:
+                                break
 
         return doc
 
@@ -644,6 +693,7 @@ def get_dict2doc_converter(
             converter = edsnlp.registry.factory.get(filtered[0])
             converter = converter(**kwargs).instantiate(nlp=None)
             kwargs = {}
+            print(converter, kwargs)
             return converter, kwargs
         except (KeyError, IndexError):
             available = [v for v in available if "dict2doc" in v]

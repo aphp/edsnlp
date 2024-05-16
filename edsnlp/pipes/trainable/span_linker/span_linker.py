@@ -286,6 +286,15 @@ class TrainableSpanLinker(
     ):
         self.attribute = attribute
 
+        sub_span_getter = getattr(embedding, "span_getter", None)
+        if sub_span_getter is not None and span_getter is None:  # pragma: no cover
+            span_getter = sub_span_getter
+        sub_context_getter = getattr(embedding, "context_getter", None)
+        if (
+            sub_context_getter is not None and context_getter is None
+        ):  # pragma: no cover
+            context_getter = sub_context_getter
+
         super().__init__(
             nlp,
             name,

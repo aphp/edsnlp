@@ -273,11 +273,16 @@ class make_span_context_getter:
         self,
         context_words: NonNegativeInt = 0,
         context_sents: Optional[NonNegativeInt] = 1,
+        span_getter: Optional[SpanGetterArg] = None,
     ):
         self.context_words = context_words
         self.context_sents = context_sents
+        self.span_getter = validate_span_getter(span_getter, optional=True)
 
-    def __call__(self, span: Span) -> List[Span]:
+    def __call__(self, span: Union[Doc, Span]) -> Union[Span, List[Span]]:
+        if isinstance(span, Doc):  # pragma: no cover
+            return [self(s) for s in get_spans(span, self.span_getter)]
+
         n_sents: int = self.context_sents
         n_words = self.context_words
 

@@ -183,6 +183,11 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
                 "You cannot set both the `labels` key of the `target_span_getter` "
                 "parameter and the `labels` parameter."
             )
+        sub_context_getter = getattr(embedding, "context_getter", None)
+        if (
+            sub_context_getter is not None and context_getter is None
+        ):  # pragma: no cover
+            context_getter = sub_context_getter
 
         super().__init__(
             nlp=nlp,

@@ -212,6 +212,17 @@ class TrainableSpanClassifier(
             )
             assert attributes is None
             attributes = qualifiers
+        sub_span_getter = getattr(embedding, "span_getter", None)
+        if (
+            sub_span_getter is not None and span_getter is None
+        ):  # pragma: no cover  # noqa: E501
+            span_getter = sub_span_getter
+        sub_context_getter = getattr(embedding, "context_getter", None)
+        if (
+            sub_context_getter is not None and context_getter is None
+        ):  # pragma: no cover
+            context_getter = sub_context_getter
+
         self.values = values
         self.keep_none = keep_none
         self.bindings: List[Tuple[str, List[str], List[Any]]] = [

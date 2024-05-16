@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from typing import (
     Any,
     Dict,
@@ -9,6 +10,7 @@ from typing import (
 
 import foldedtensor as ft
 import torch
+from confit import VisibleDeprecationWarning
 from spacy.tokens import Doc, Span
 from typing_extensions import Literal, TypedDict
 
@@ -81,11 +83,19 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         span_getter: Any = None,
     ):
         if span_getter is not None:
-            raise ValueError(
+            warnings.warn(
                 "The `span_getter` parameter of the `eds.span_pooler` component is "
                 "deprecated. Please use the `span_getter` parameter of the "
-                "`eds.span_classifier` or `eds.span_linker` components instead."
+                "`eds.span_classifier` or `eds.span_linker` components instead.",
+                VisibleDeprecationWarning,
             )
+        sub_span_getter = getattr(embedding, "span_getter", None)
+        if sub_span_getter is not None and span_getter is None:  # pragma: no cover
+            self.span_getter = sub_span_getter
+        sub_context_getter = getattr(embedding, "context_getter", None)
+        if sub_context_getter is not None:  # pragma: no cover
+            self.context_getter = sub_context_getter
+
         self.output_size = embedding.output_size if hidden_size is None else hidden_size
 
         super().__init__(nlp, name)

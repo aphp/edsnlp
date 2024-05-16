@@ -82,7 +82,6 @@ jobs:
       coverage-report: coverage.txt
       coverage-badge: coverage.svg
       coverage-branch: coverage
-      precision: 2
 
   Documentation:
     runs-on: ubuntu-latest

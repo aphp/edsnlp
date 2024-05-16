@@ -359,6 +359,7 @@ omit-covered-files = false
 
 
 [tool.coverage.report]
+precision = 2
 include = ["edsnlp/*"]
 omit = [
     "tests/*",

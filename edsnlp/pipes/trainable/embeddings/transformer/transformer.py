@@ -1,3 +1,4 @@
+import warnings
 from pathlib import Path
 from typing import List, Optional, Set, Tuple, Union
 
@@ -5,7 +6,7 @@ import foldedtensor as ft
 import tokenizers
 import tokenizers.normalizers
 import torch
-from confit import validate_arguments
+from confit import VisibleDeprecationWarning, validate_arguments
 from transformers import AutoModel, AutoTokenizer
 from transformers import BitsAndBytesConfig as BitsAndBytesConfig_
 from typing_extensions import Literal, TypedDict
@@ -148,10 +149,11 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         super().__init__(nlp, name)
 
         if span_getter is not None:
-            raise ValueError(
+            warnings.warn(
                 "The `span_getter` parameter of the `eds.transformer` component is "
                 "deprecated. Please use the `context_getter` parameter of the "
-                "other higher level task components instead."
+                "other higher level task components instead.",
+                VisibleDeprecationWarning,
             )
         self.transformer = AutoModel.from_pretrained(
             model,

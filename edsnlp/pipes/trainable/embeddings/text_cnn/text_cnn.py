@@ -63,6 +63,13 @@ class TextCnnEncoder(WordContextualizerComponent):
         residual: bool = True,
         normalize: Literal["pre", "post", "none"] = "pre",
     ):
+        sub_span_getter = getattr(embedding, "span_getter", None)
+        if sub_span_getter is not None:  # pragma: no cover
+            self.span_getter = sub_span_getter
+        sub_context_getter = getattr(embedding, "context_getter", None)
+        if sub_context_getter is not None:  # pragma: no cover
+            self.context_getter = sub_context_getter
+
         super().__init__(nlp, name)
         self.embedding = embedding
         self.output_size = output_size or embedding.output_size

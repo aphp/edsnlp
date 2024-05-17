@@ -1,0 +1,137 @@
+[edsnlp_factories]
+eds.ner_crf = edsnlp.pipes.trainable.ner_crf.factory:create_component
+eds.nested_ner = edsnlp.pipes.trainable.ner_crf.factory:create_component
+eds.span_linker = edsnlp.pipes.trainable.span_linker.factory:create_component
+eds.span_pooler = edsnlp.pipes.trainable.embeddings.span_pooler.factory:create_component
+eds.span_qualifier = edsnlp.pipes.trainable.span_qualifier.factory:create_component
+eds.text_cnn = edsnlp.pipes.trainable.embeddings.text_cnn.factory:create_component
+eds.transformer = edsnlp.pipes.trainable.embeddings.transformer.factory:create_component
+
+[edsnlp_readers]
+brat = edsnlp.data:read_brat
+json = edsnlp.data:read_json
+pandas = edsnlp.data:from_pandas
+parquet = edsnlp.data:read_parquet
+spark = edsnlp.data:from_spark
+standoff = edsnlp.data:read_standoff
+
+[edsnlp_writers]
+brat = edsnlp.data:write_brat
+json = edsnlp.data:write_json
+pandas = edsnlp.data:to_pandas
+spark = edsnlp.data:to_spark
+standoff = edsnlp.data:write_standoff
+
+[mkdocs.plugins]
+autorefs = docs.scripts.autorefs.plugin:AutorefsPlugin
+bibtex = docs.scripts.bibtex:BibTexPlugin
+
+[spacy_factories]
+SOFA = edsnlp.pipes.ner.scores.sofa.factory:create_component
+accents = edsnlp.pipes.core.normalizer.accents.factory:create_component
+charlson = edsnlp.pipes.ner.scores.charlson.factory:create_component
+consultation_dates = edsnlp.pipes.misc.consultation_dates.factory:create_component
+contextual-matcher = edsnlp.pipes.core.contextual_matcher.factory:create_component
+dates = edsnlp.pipes.misc.dates.factory:create_component
+eds.AIDS = edsnlp.pipes.ner.disorders.aids.factory:create_component
+eds.CKD = edsnlp.pipes.ner.disorders.ckd.factory:create_component
+eds.COPD = edsnlp.pipes.ner.disorders.copd.factory:create_component
+eds.SOFA = edsnlp.pipes.ner.scores.sofa.factory:create_component
+eds.TNM = edsnlp.pipes.ner.tnm.factory:create_component
+eds.accents = edsnlp.pipes.core.normalizer.accents.factory:create_component
+eds.adicap = edsnlp.pipes.ner.adicap.factory:create_component
+eds.aids = edsnlp.pipes.ner.disorders.aids.factory:create_component
+eds.alcohol = edsnlp.pipes.ner.behaviors.alcohol.factory:create_component
+eds.cerebrovascular_accident = edsnlp.pipes.ner.disorders.cerebrovascular_accident.factory:create_component
+eds.charlson = edsnlp.pipes.ner.scores.charlson.factory:create_component
+eds.cim10 = edsnlp.pipes.ner.cim10.factory:create_component
+eds.ckd = edsnlp.pipes.ner.disorders.ckd.factory:create_component
+eds.congestive_heart_failure = edsnlp.pipes.ner.disorders.congestive_heart_failure.factory:create_component
+eds.connective_tissue_disease = edsnlp.pipes.ner.disorders.connective_tissue_disease.factory:create_component
+eds.consultation_dates = edsnlp.pipes.misc.consultation_dates.factory:create_component
+eds.contextual-matcher = edsnlp.pipes.core.contextual_matcher.factory:create_component
+eds.contextual_matcher = edsnlp.pipes.core.contextual_matcher.factory:create_component
+eds.copd = edsnlp.pipes.ner.disorders.copd.factory:create_component
+eds.covid = edsnlp.pipes.ner.covid.factory:create_component
+eds.dates = edsnlp.pipes.misc.dates.factory:create_component
+eds.dementia = edsnlp.pipes.ner.disorders.dementia.factory:create_component
+eds.diabetes = edsnlp.pipes.ner.disorders.diabetes.factory:create_component
+eds.drugs = edsnlp.pipes.ner.drugs.factory:create_component
+eds.elston-ellis = edsnlp.pipes.ner.scores.elston_ellis.factory:create_component
+eds.elston_ellis = edsnlp.pipes.ner.scores.elston_ellis.factory:create_component
+eds.elstonellis = edsnlp.pipes.ner.scores.elston_ellis.factory:create_component
+eds.emergency.ccmu = edsnlp.pipes.ner.scores.emergency.ccmu.factory:create_component
+eds.emergency.gemsa = edsnlp.pipes.ner.scores.emergency.gemsa.factory:create_component
+eds.emergency.priority = edsnlp.pipes.ner.scores.emergency.priority.factory:create_component
+eds.emergency_ccmu = edsnlp.pipes.ner.scores.emergency.ccmu.factory:create_component
+eds.emergency_gemsa = edsnlp.pipes.ner.scores.emergency.gemsa.factory:create_component
+eds.emergency_priority = edsnlp.pipes.ner.scores.emergency.priority.factory:create_component
+eds.endlines = edsnlp.pipes.core.endlines.factory:create_component
+eds.family = edsnlp.pipes.qualifiers.family.factory:create_component
+eds.hemiplegia = edsnlp.pipes.ner.disorders.hemiplegia.factory:create_component
+eds.history = edsnlp.pipes.qualifiers.history.factory:create_component
+eds.hypothesis = edsnlp.pipes.qualifiers.hypothesis.factory:create_component
+eds.leukemia = edsnlp.pipes.ner.disorders.leukemia.factory:create_component
+eds.liver_disease = edsnlp.pipes.ner.disorders.liver_disease.factory:create_component
+eds.lymphoma = edsnlp.pipes.ner.disorders.lymphoma.factory:create_component
+eds.matcher = edsnlp.pipes.core.matcher.factory:create_component
+eds.measurements = edsnlp.pipes.misc.measurements.factory:create_component
+eds.measures = edsnlp.pipes.misc.measurements.factory:create_component
+eds.myocardial_infarction = edsnlp.pipes.ner.disorders.myocardial_infarction.factory:create_component
+eds.negation = edsnlp.pipes.qualifiers.negation.factory:create_component
+eds.normalizer = edsnlp.pipes.core.normalizer.factory:create_component
+eds.peptic_ulcer_disease = edsnlp.pipes.ner.disorders.peptic_ulcer_disease.factory:create_component
+eds.peripheral_vascular_disease = edsnlp.pipes.ner.disorders.peripheral_vascular_disease.factory:create_component
+eds.pollution = edsnlp.pipes.core.normalizer.pollution.factory:create_component
+eds.quotes = edsnlp.pipes.core.normalizer.quotes.factory:create_component
+eds.reason = edsnlp.pipes.misc.reason.factory:create_component
+eds.relations = edsnlp.pipes.misc.relations.factory:create_component
+eds.remove-lowercase = edsnlp.pipes.core.normalizer.remove_lowercase.factory:create_component
+eds.remove_lowercase = edsnlp.pipes.core.normalizer.remove_lowercase.factory:create_component
+eds.reported_speech = edsnlp.pipes.qualifiers.reported_speech.factory:create_component
+eds.score = edsnlp.pipes.ner.scores.factory:create_component
+eds.sections = edsnlp.pipes.misc.sections.factory:create_component
+eds.sentences = edsnlp.pipes.core.sentences.factory:create_component
+eds.sofa = edsnlp.pipes.ner.scores.sofa.factory:create_component
+eds.solid_tumor = edsnlp.pipes.ner.disorders.solid_tumor.factory:create_component
+eds.spaces = edsnlp.pipes.core.normalizer.spaces.factory:create_component
+eds.tables = edsnlp.pipes.misc.tables.factory:create_component
+eds.terminology = edsnlp.pipes.core.terminology.factory:create_component
+eds.tnm = edsnlp.pipes.ner.tnm.factory:create_component
+eds.tobacco = edsnlp.pipes.ner.behaviors.tobacco.factory:create_component
+eds.umls = edsnlp.pipes.ner.umls.factory:create_component
+emergency.ccmu = edsnlp.pipes.ner.scores.emergency.ccmu.factory:create_component
+emergency.gemsa = edsnlp.pipes.ner.scores.emergency.gemsa.factory:create_component
+emergency.priority = edsnlp.pipes.ner.scores.emergency.priority.factory:create_component
+endlines = edsnlp.pipes.core.endlines.factory:create_component
+family = edsnlp.pipes.qualifiers.family.factory:create_component
+hypothesis = edsnlp.pipes.qualifiers.hypothesis.factory:create_component
+matcher = edsnlp.pipes.core.matcher.factory:create_component
+negation = edsnlp.pipes.qualifiers.negation.factory:create_component
+normalizer = edsnlp.pipes.core.normalizer.factory:create_component
+pollution = edsnlp.pipes.core.normalizer.pollution.factory:create_component
+quotes = edsnlp.pipes.core.normalizer.quotes.factory:create_component
+reason = edsnlp.pipes.misc.reason.factory:create_component
+remove-lowercase = edsnlp.pipes.core.normalizer.remove_lowercase.factory:create_component
+reported_speech = edsnlp.pipes.qualifiers.reported_speech.factory:create_component
+rspeech = edsnlp.pipes.qualifiers.reported_speech.factory:create_component
+score = edsnlp.pipes.ner.scores.factory:create_component
+sections = edsnlp.pipes.misc.sections.factory:create_component
+sentences = edsnlp.pipes.core.sentences.factory:create_component
+spaces = edsnlp.pipes.core.normalizer.spaces.factory:create_component
+tables = edsnlp.pipes.misc.tables.factory:create_component
+terminology = edsnlp.pipes.core.terminology.factory:create_component
+
+[spacy_languages]
+eds = edsnlp.language:EDSLanguage
+
+[spacy_misc]
+eds.span_context_getter = edsnlp.utils.span_getters:make_span_context_getter
+
+[spacy_scorers]
+eds.ner_exact_scorer = edsnlp.scorers.ner:create_ner_exact_scorer
+eds.ner_token_scorer = edsnlp.scorers.ner:create_ner_token_scorer
+eds.span_classification_scorer = edsnlp.scorers.span_classification:create_span_classification_scorer
+
+[spacy_tokenizers]
+eds.tokenizer = edsnlp.language:create_eds_tokenizer

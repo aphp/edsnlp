@@ -1,0 +1,6 @@
+demo
+docs
+edsnlp
+notebooks
+scripts
+tests

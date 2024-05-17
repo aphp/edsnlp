@@ -16,5 +16,6 @@ For instance, the date detection and normalisation pipeline falls in this catego
 | `eds.sections`           | Section detection                           |
 | `eds.reason`             | Rule-based hospitalisation reason detection |
 | `eds.tables`             | Tables detection                            |
+| `eds.relations`          | Relations extraction                        |
 
 <!-- --8<-- [end:components] -->

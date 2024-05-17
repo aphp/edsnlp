@@ -1,7 +1,7 @@
 scheme = [
                 {
-                    "subject": [{"label": "Chemical_and_drugs", "attr": {"Tech": [None]}}],
-                    "object": [
+                    "source": [{"label": "Chemical_and_drugs", "attr": {"Tech": [None]}}],
+                    "target": [
                         {
                             "label": "Temporal",
                             "attr": {"AttTemp": [None, "Duration", "Date", "Time"]},

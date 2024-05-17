@@ -14,25 +14,168 @@ import json
 
 
 class RelationsMatcher:
-    """ A spaCy EDSNLP pipeline component to find relations between entities based on their proximity.
-    scheme = [
-                    {
-                        "subject": [{"label": "Chemical_and_drugs", "attr": {"Tech": [None]}}],
-                        "object": [
-                            {
-                                "label": "Temporal",
-                                "attr": {"AttTemp": [None, "Duration", "Date", "Time"]},
-                            },
-                            {
-                                "label": "Chemical_and_drugs",
-                                "attr": {"Tech": ["dosage", "route", "strength", "form"]},
-                            },
-                        ],
-                        "type": "Depend",
-                        "inv_type": "inv_Depend",
-                    },
-                ]
-    """
+    '''
+    The `eds.relations` component links source and target Named Entities +/- Attributes.
+    This component is rule-based and utilizes character proximity 
+    to determine relationships.
+
+
+    Examples
+    --------
+    In this simple example, we extract drugs and dates from a text and link them together.
+    ```python
+    import edsnlp, edsnlp.pipes as eds
+
+    text = """
+        Prise pendant 3 semaines d'Amlodipine 5mg per os une fois par jour mais l'HTA reste mal contrôlée. 
+        Metformine 500 mg deux fois par jour à partir du 27/05/2022.  
+        Consultation chez un cardiologue le 11/07 pour évaluation de l'HTA, dans l'attente majoration de l'AMLODIPINE à 10 mg. 
+        """
+
+    scheme = {
+        "source": [{"label": "drug", "attr": None}],
+        "target": [{"label": "dates", "attr": None}, 
+                    {"label": "durations", "attr": None}],
+        "type": "Temporal",
+        "inv_type": "inv_Temporal",
+    }
+
+    nlp = edsnlp.blank("eds")
+
+    # Extraction of entities
+    nlp.add_pipe("eds.drugs")
+    nlp.add_pipe("eds.dates")
+    # Extraction of sentences
+    nlp.add_pipe("eds.sentences")
+    # Extraction of relations
+    nlp.add_pipe(
+        "eds.relations",
+        config={
+            "scheme": scheme,
+            "use_sentences": True,
+            "clean_rel": True,
+            "proximity_method": "sym",
+            "max_dist": 60,
+        },
+    )
+    doc = nlp(text)
+
+    for label in doc.spans:
+        print("Label: ", label, "\t Entities :", doc.spans[label])
+        for span in doc.spans[label]:
+            print("\t Entity :", span, "\t Relations :", span._.rel)
+
+    # Out: Label:  drug 	 Entities : [Amlodipine, Metformine, AMLODIPINE]
+        # Entity : Amlodipine 	 Relations : [{'type': 'Temporal', 'target': pendant 3 semaines}]
+        # Entity : Metformine 	 Relations : [{'type': 'Temporal', 'target': 27/05/2022}]
+        # Entity : AMLODIPINE 	 Relations : []
+
+    # Label:  dates 	 Entities : [27/05/2022, 11/07]
+        # Entity : 27/05/2022 	 Relations : [{'type': 'inv_Temporal', 'target': Metformine}]
+        # Entity : 11/07 	 Relations : []
+
+    # Label:  durations 	 Entities : [pendant 3 semaines]
+        # Entity : pendant 3 semaines 	 Relations : [{'type': 'inv_Temporal', 'target': Amlodipine}]
+
+    # Label:  periods 	 Entities : []
+    ```
+
+    Extensions
+    ----------
+    The `eds.relations` pipeline adds and declares one extension 
+    on the `Span` objects called `rel`. By default rel is an empty list.
+
+    The `rel` extension is a list of dictionaries
+    containing the type of the relation and the target `Span`.
+    It automatically adds the inverse relation to the target `Span`.
+
+    Parameters
+    ----------
+    nlp : PipelineProtocol
+        The pipeline object
+    name : str
+        Name of the component
+    scheme : Union[Union[Dict, List[Dict]],str]
+        The scheme to use to match the relations
+    use_sentences: bool = True
+        Whether or not to use the `eds.sentences` matcher to improve results
+    proximity_method: str = "right"
+        The method to use to calculate the proximity between the entities
+        "sym" : symmetrical distance
+        "start" : distance between the start char of the entities
+        "end" : distance between the end char of the entities
+        "middle" : distance between the middle of the entities
+        "right" : distance between the end of the source and the start of the target
+        "left" : distance between the end of the target and the start of the source
+    max_dist: int = 45
+        The maximum distance between the entities to consider them as related
+    clean_rel: bool = True
+        Whether or not to clean the relations before adding new ones
+    
+    Scheme
+    ------
+    It can be a dictionary (one relation), a list of dictionaries (one or more relations) 
+    or a string indicating the path of a json file.
+
+    Each dictionary should contain the keys `source`, `target`, `type` and `inv_type`.
+
+    `source` and `target` are lists of dictionaries containing the keys `label` and `attr`.
+
+    `label` is the label of the entity to match.
+
+    `attr` is a dictionary containing the attributes to match on or None if no attribute is needed.
+
+    `type` is the type of the relation.
+
+    `inv_type` is the inverse type of the relation.
+    ```json
+    [
+        {
+            "source": [
+                {
+                    "label": "Chemical_and_drugs",
+                    "attr": {
+                        "Tech": [
+                            null
+                        ]
+                    }
+                }
+            ],
+            "target": [
+                {
+                    "label": "Temporal",
+                    "attr": {
+                        "AttTemp": [
+                            "Duration",
+                            "Date",
+                            "Frequency",
+                            "Time"
+                        ]
+                    }
+                },
+                {
+                    "label": "Chemical_and_drugs",
+                    "attr": {
+                        "Tech": [
+                            "dosage",
+                            "route",
+                            "strength",
+                            "form"
+                        ]
+                    }
+                }
+            ],
+            "type": "Depend",
+            "inv_type": "inv_Depend"
+        }
+    ]
+    ```
+
+    Authors and citation
+    --------------------
+    The `eds.relations` was developed by AP-HP's Data Science team.
+
+    '''
     
     def __init__(
         self,
@@ -96,47 +239,47 @@ class RelationsMatcher:
         for scheme in schemes:
             if not isinstance(scheme, dict):
                 raise ValueError("scheme must be a dictionary")
-            if "subject" not in scheme:
-                raise ValueError("scheme must contain a 'subject' key")
-            if "object" not in scheme:
-                raise ValueError("scheme must contain an 'object' key")
+            if "source" not in scheme:
+                raise ValueError("scheme must contain a 'source' key")
+            if "target" not in scheme:
+                raise ValueError("scheme must contain an 'target' key")
             if "type" not in scheme:
                 raise ValueError("scheme must contain a 'type' key")
             if "inv_type" not in scheme:
                 raise ValueError("scheme must contain an 'inv_type' key")
-            if not isinstance(scheme["subject"], list):
-                raise ValueError("scheme['subject'] must be a list")
-            if not isinstance(scheme["object"], list):
-                raise ValueError("scheme['object'] must be a list")
+            if not isinstance(scheme["source"], list):
+                raise ValueError("scheme['source'] must be a list")
+            if not isinstance(scheme["target"], list):
+                raise ValueError("scheme['target'] must be a list")
             if not isinstance(scheme["type"], str):
                 raise ValueError("scheme['type'] must be a string")
             if not isinstance(scheme["inv_type"], str):
                 raise ValueError("scheme['inv_type'] must be a string")
-            for sub in scheme["subject"]:
+            for sub in scheme["source"]:
                 if not isinstance(sub, dict):
-                    raise ValueError("scheme['subject'] must contain dictionaries")
+                    raise ValueError("scheme['source'] must contain dictionaries")
                 if "label" not in sub:
-                    raise ValueError("scheme['subject'] must contain a 'label' key")
+                    raise ValueError("scheme['source'] must contain a 'label' key")
                 if not isinstance(sub["label"], str):
-                    raise ValueError("scheme['subject']['label'] must be a string")
+                    raise ValueError("scheme['source']['label'] must be a string")
                 if "attr" in sub:
                     if sub["attr"] is not None and not isinstance(sub["attr"], dict):
-                        raise ValueError("scheme['subject']['attr'] must be a dictionary or None")
-            for obj in scheme["object"]:
+                        raise ValueError("scheme['source']['attr'] must be a dictionary or None")
+            for obj in scheme["target"]:
                 if not isinstance(obj, dict):
-                    raise ValueError("scheme['object'] must contain dictionaries")
+                    raise ValueError("scheme['target'] must contain dictionaries")
                 if "label" not in obj:
-                    raise ValueError("scheme['object'] must contain a 'label' key")
+                    raise ValueError("scheme['target'] must contain a 'label' key")
                 if not isinstance(obj["label"], str):
-                    raise ValueError("scheme['object']['label'] must be a string")
+                    raise ValueError("scheme['target']['label'] must be a string")
                 if "attr" in obj:
                     if obj["attr"] is not None and not isinstance(obj["attr"], dict):
-                        raise ValueError("scheme['object']['attr'] must be a dictionary or None")
+                        raise ValueError("scheme['target']['attr'] must be a dictionary or None")
         return True
 
     @classmethod
     def set_extensions(cls) -> None:
-        """Set the extension rel for the Span object.
+        """Set the extension rel for the Span target.
         """
         if not Span.has_extension("rel"):
             Span.set_extension("rel", default=[])
@@ -193,7 +336,7 @@ class RelationsMatcher:
         """ Check if span_obj and span_sub are in the same sentence.
 
         Args:
-            doc (Doc): EDSNLP Doc object
+            doc (Doc): EDSNLP Doc target
             span_obj (Span): span representing the target
             span_sub (Span): span representing the source
 
@@ -208,13 +351,13 @@ class RelationsMatcher:
 
     def find_relations(self, doc: Doc) -> Dict:
         """
-        Detect the potential subjects and objects in the document
+        Detect the potential sources and targets in the document
 
         Args:
-            doc (Doc): EDSNLP Doc object
+            doc (Doc): EDSNLP Doc target
 
         Returns:
-            Dict: dict containing the potential subjects and objects
+            Dict: dict containing the potential sources and targets
         """
         dict_r = {}
         for r, relation in enumerate(self.scheme):
@@ -226,8 +369,8 @@ class RelationsMatcher:
                 "type": relation["type"],
                 "inv_type": relation["inv_type"],
             }
-            # Treatment of objects
-            for obj in relation["object"]:
+            # Treatment of targets
+            for obj in relation["target"]:
                 label_obj = obj["label"]
                 attr_obj = obj["attr"]
                 if label_obj in doc.spans:
@@ -247,8 +390,8 @@ class RelationsMatcher:
                             )
                             dict_r[r]["spans_obj"].append({'label': label_obj, 'num_span': num_span_obj, 'span': span_obj})
 
-            # Treatment of subjects
-            for sub in relation["subject"]:
+            # Treatment of sources
+            for sub in relation["source"]:
                 label_sub = sub["label"]
                 attr_sub = sub["attr"]
                 if label_sub in doc.spans:
@@ -275,36 +418,36 @@ class RelationsMatcher:
 
         return dict_r
 
-    def calculate_min_distances(self, subjects:NDArray[Any], objects:NDArray[Any]) -> NDArray[Any]:
-        """ calculate the minimum distance between subjects and objects
+    def calculate_min_distances(self, sources:NDArray[Any], targets:NDArray[Any]) -> NDArray[Any]:
+        """ calculate the minimum distance between sources and targets
 
         Args:
-            subjects (NDArray[Any]): entities to be used as subjects
-            objects (NDArray[Any]): entities to be used as objects
+            sources (NDArray[Any]): entities to be used as sources
+            targets (NDArray[Any]): entities to be used as targets
 
         Returns:
-            NDArray[Any]: the index of the subject that is closest to the object
+            NDArray[Any]: the index of the source that is closest to the target
         """
 
-        subjects_expanded = subjects[:, np.newaxis, :]
-        objects_expanded = objects[np.newaxis, :, :]
+        sources_expanded = sources[:, np.newaxis, :]
+        targets_expanded = targets[np.newaxis, :, :]
 
         # calculate the distances between the entities
-        distance_start_to_end = subjects_expanded[:, :, 0] - objects_expanded[:, :, 1]
-        distance_end_to_start = objects_expanded[:, :, 0] - subjects_expanded[:, :, 1]
-        distance_start_to_start = subjects_expanded[:, :, 0] - objects_expanded[:, :, 0]
-        distance_end_to_end = objects_expanded[:, :, 1] - subjects_expanded[:, :, 1]
+        distance_start_to_end = sources_expanded[:, :, 0] - targets_expanded[:, :, 1]
+        distance_end_to_start = targets_expanded[:, :, 0] - sources_expanded[:, :, 1]
+        distance_start_to_start = sources_expanded[:, :, 0] - targets_expanded[:, :, 0]
+        distance_end_to_end = targets_expanded[:, :, 1] - sources_expanded[:, :, 1]
         distance_middle = (
-            subjects_expanded[:, :, 0] + subjects_expanded[:, :, 1]
-        ) / 2 - (objects_expanded[:, :, 0] + objects_expanded[:, :, 1]) / 2
+            sources_expanded[:, :, 0] + sources_expanded[:, :, 1]
+        ) / 2 - (targets_expanded[:, :, 0] + targets_expanded[:, :, 1]) / 2
 
         if self.proximity_method == "sym":
             distance_middle = np.abs(
                 np.minimum(distance_start_to_start, distance_end_to_end)
             )
             # determine the mask for the left and right side of the entities
-            mask_left = objects_expanded[:, :, 1] <= subjects_expanded[:, :, 0]
-            mask_right = subjects_expanded[:, :, 1] <= objects_expanded[:, :, 0]
+            mask_left = targets_expanded[:, :, 1] <= sources_expanded[:, :, 0]
+            mask_right = sources_expanded[:, :, 1] <= targets_expanded[:, :, 0]
 
             # Assign the distances based on the mask
             distances = np.where(mask_left, np.abs(distance_start_to_end), np.inf)

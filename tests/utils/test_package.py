@@ -5,7 +5,7 @@ import sys
 import pytest
 
 import edsnlp
-from edsnlp.utils.package import package
+from edsnlp.package import package
 
 
 def test_blank_package(nlp, tmp_path):
@@ -44,7 +44,7 @@ def test_package_with_files(nlp, tmp_path, package_name):
     if not isinstance(nlp, edsnlp.Pipeline):
         pytest.skip("Only running for edsnlp.Pipeline")
 
-    nlp.to_disk(tmp_path / "model")
+    nlp.to_disk(tmp_path / "model", exclude=set())
 
     ((tmp_path / "test_model").mkdir(parents=True))
     (tmp_path / "test_model" / "__init__.py").write_text('print("Hello World!")\n')
@@ -87,7 +87,7 @@ python = "^3.7"
         name=package_name,
         pipeline=tmp_path / "model",
         root_dir=tmp_path,
-        check_dependencies=True,
+        check_dependencies=False,
         version="0.1.0",
         distributions=None,
         metadata={

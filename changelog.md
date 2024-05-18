@@ -9,6 +9,7 @@
 - Window stride can now be disabled (i.e., stride = window) during training in the `eds.transformer` component by `training_stride = False`
 - Added a new `eds.ner_overlap_scorer` to evaluate matches between two lists of entities, counting true when the dice overlap is above a given threshold
 - `edsnlp.load` now accepts EDS-NLP models from the huggingface hub 🤗 !
+- New `python -m edsnlp.package` command to package a model for the huggingface hub or pypi-like registries
 
 ### Changed
 

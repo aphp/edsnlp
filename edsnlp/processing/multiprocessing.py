@@ -796,7 +796,7 @@ def execute_multiprocessing_backend(
         and num_gpu_workers > 0
     )
 
-    num_cpus = int(os.environ["EDSNLP_MAX_CPU_WORKERS"] or cpu_count())
+    num_cpus = int(os.environ.get("EDSNLP_MAX_CPU_WORKERS") or cpu_count())
     num_devices = 0
     if requires_gpu:
         import torch

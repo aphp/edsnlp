@@ -288,7 +288,9 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         -------
 
         """
-        stride = self.window if self.training and self.training_stride else self.stride
+        stride = (
+            self.window if self.training and not self.training_stride else self.stride
+        )
         max_seq_size = max(
             [
                 2  # CLS and SEP tokens

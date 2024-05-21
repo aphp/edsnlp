@@ -4,6 +4,14 @@
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## v0.12.0
+
+### Added
+
 - The `eds.transformer` component now accepts `prompts` (passed to its `preprocess` method, see breaking change below) to add before each window of text to embed.
 - `LazyCollection.map` / `map_batches` now support generator functions as arguments.
 - Window stride can now be disabled (i.e., stride = window) during training in the `eds.transformer` component by `training_stride = False`
@@ -55,7 +63,7 @@
     ```
 - Trainable embedding components now all use `foldedtensor` to return embeddings, instead of returning a tensor of floats and a mask tensor.
 - :boom: TorchComponent `__call__` no longer applies the end to end method, and instead calls the `forward` method directly, like all torch modules.
-- The trainable `eds.span_qualifier` component has been renamed to `eds.span_classifier` to reflect its general gpurpose (it doesn't only predict qualifiers, but any attribute of a span using its context or not).
+- The trainable `eds.span_qualifier` component has been renamed to `eds.span_classifier` to reflect its general purpose (it doesn't only predict qualifiers, but any attribute of a span using its context or not).
 - `omop` converter now takes the `note_datetime` field into account by default when building a document
 - `span._.date.to_datetime()` and `span._.date.to_duration()` now automatically take the `note_datetime` into account
 - `nlp.vocab` is no longer serialized when saving a model, as it may contain sensitive information and can be recomputed during inference anyway

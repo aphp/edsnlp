@@ -8,7 +8,6 @@ from typing import Any, Callable, Dict, Iterable, Optional, Sequence
 from weakref import WeakKeyDictionary
 
 import catalogue
-import importlib_metadata
 import spacy
 from confit import Config, Registry, RegistryCollection, set_default_registry
 from confit.errors import ConfitValidationError, patch_errors
@@ -16,6 +15,11 @@ from spacy.pipe_analysis import validate_attrs
 
 import edsnlp
 from edsnlp.utils.collections import FrozenDict, FrozenList
+
+try:
+    import importlib.metadata as importlib_metadata
+except ImportError:
+    import importlib_metadata
 
 PIPE_META = WeakKeyDictionary()
 

@@ -1213,7 +1213,7 @@ def load_from_huggingface(
     if should_install or not any(
         p.startswith(module_name) and p.endswith(".dist-info") for p in os.listdir(path)
     ):
-        pip = sys.executable.rsplit("/", 1)[0] + "/pip"
+        pip = os.path.join(*os.path.split(sys.executable)[:-1], "pip")
         subprocess.run(
             [pip, "install", path, "--target", path, "--no-deps", "--upgrade"]
         )

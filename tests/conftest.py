@@ -14,7 +14,10 @@ import edsnlp
 os.environ["EDSNLP_MAX_CPU_WORKERS"] = "2"
 os.environ["TZ"] = "Europe/Paris"
 
-time.tzset()
+try:
+    time.tzset()
+except AttributeError:
+    pass
 logging.basicConfig(level=logging.INFO)
 
 

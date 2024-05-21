@@ -374,6 +374,13 @@ def test_huggingface():
     assert doc.ents[0].text == "paracetamol"
     assert doc.ents[1].text == "500mg"
 
+    # Try loading it twice for coverage
+    edsnlp.load(
+        "AP-HP/dummy-ner",
+        auto_update=True,
+        install_dependencies=True,
+    )
+
     subprocess.run(["pip", "uninstall", "dummy-pip-package", "-y"], check=True)
 
 

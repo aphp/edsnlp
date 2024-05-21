@@ -1186,6 +1186,7 @@ def load_from_huggingface(
         len(repo_id.split("/")) == 2
     ), "Invalid repo_id format (expected 'owner/repo_name' format)"
     path = None
+    mtime = None
     try:
         path = snapshot_download(
             repo_id,
@@ -1193,6 +1194,7 @@ def load_from_huggingface(
             token=token,
             revision=revision,
         )
+        mtime = max(os.path.getmtime(x) for x in Path(path).rglob("*"))
     except FileNotFoundError:
         pass
 
@@ -1205,13 +1207,15 @@ def load_from_huggingface(
             token=token,
             revision=revision,
         )
-        should_install = True
+        new_mtime = max(os.path.getmtime(x) for x in Path(path).rglob("*"))
+        should_install = new_mtime != mtime
 
     if should_install or not any(
         p.startswith(module_name) and p.endswith(".dist-info") for p in os.listdir(path)
     ):
+        pip = sys.executable.rsplit("/", 1)[0] + "/pip"
         subprocess.run(
-            ["pip", "install", path, "--target", path, "--no-deps", "--upgrade"]
+            [pip, "install", path, "--target", path, "--no-deps", "--upgrade"]
         )
 
     if path not in sys.path:

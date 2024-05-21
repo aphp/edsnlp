@@ -9,7 +9,8 @@ T = TypeVar("T")
 class MetaAsList(type):
     def __init__(cls, name, bases, dct):
         super().__init__(name, bases, dct)
-        cls.item = Any
+        item = next((base.item for base in bases if hasattr(base, "item")), Any)
+        cls.item = item
 
     def __getitem__(self, item):
         new_type = MetaAsList(self.__name__, (self,), {})

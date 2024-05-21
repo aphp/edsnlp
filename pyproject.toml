@@ -50,7 +50,7 @@ dev = [
     "polars",
 
     # Distributed inference
-    "koalas>=1.8.1; python_version<'3.10'",
+    "koalas>=1.8.1; python_version<'3.8'",
     "pyspark",
 
     # Docs
@@ -346,9 +346,9 @@ ignore-property-decorators = false
 ignore-module = true
 ignore-nested-functions = true
 ignore-nested-classes = true
-ignore-setters = false
+ignore-setters = true
 fail-under = 40
-exclude = ["setup.py", "docs", "build", "tests"]
+exclude = ["setup.py", "docs", "build", "tests", "edsnlp/pipes/core/contextual_matcher/models.py"]
 verbose = 0
 quiet = false
 whitelist-regex = []

@@ -166,3 +166,20 @@ body, input {
 .md-typeset code a:not(.md-annotation__index) {
     border-bottom: 1px dashed var(--md-typeset-a-color);
 }
+
+.doc-param-details .subdoc {
+    padding: 0;
+    box-shadow: none;
+    border-color: var(--md-typeset-table-color);
+}
+
+.doc-param-details .subdoc > div > div > div>  table {
+    padding: 0;
+    box-shadow: none;
+    border: none;
+}
+
+.doc-param-details .subdoc > summary {
+    margin: 0;
+    font-weight: normal;
+}

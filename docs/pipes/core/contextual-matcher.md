@@ -206,74 +206,6 @@ Let us see what we can get from this pipeline with a few examples
 
 However, most of the configuration is provided in the `patterns` key, as a **pattern dictionary** or a **list of pattern dictionaries**
 
-## The pattern dictionary
-
-### Description
-
-A patterr is a nested dictionary with the following keys:
-
-=== "`source`"
-
-    A label describing the pattern
-
-=== "`regex`"
-
-    A single Regex or a list of Regexes
-
-=== "`regex_attr`"
-
-    An attributes to overwrite the given `attr` when matching with Regexes.
-
-=== "`terms`"
-
-    A single term or a list of terms (for exact matches)
-
-=== "`exclude`"
-
-    A dictionary (or list of dictionaries) to define exclusion rules. Exclusion rules are given as Regexes, and if a
-    match is found in the surrounding context of an extraction, the extraction is removed. Each dictionary should have the following keys:
-
-    === "`window`"
-
-        Size of the context to use (in number of words). You can provide the window as:
-
-        - A positive integer, in this case the used context will be taken **after** the extraction
-        - A negative integer, in this case the used context will be taken **before** the extraction
-        - A tuple of integers `(start, end)`, in this case the used context will be the snippet from `start` tokens before the extraction to `end` tokens after the extraction
-
-    === "`regex`"
-
-        A single Regex or a list of Regexes.
-
-=== "`assign`"
-
-    A dictionary to refine the extraction. Similarily to the `exclude` key, you can provide a dictionary to
-    use on the context **before** and **after** the extraction.
-
-    === "`name`"
-
-        A name (string)
-
-    === "`window`"
-
-        Size of the context to use (in number of words). You can provide the window as:
-
-        - A positive integer, in this case the used context will be taken **after** the extraction
-        - A negative integer, in this case the used context will be taken **before** the extraction
-        - A tuple of integers `(start, end)`, in this case the used context will be the snippet from `start` tokens before the extraction to `end` tokens after the extraction
-
-    === "`regex`"
-
-        A dictionary where keys are labels and values are **Regexes with a single capturing group**
-
-    === "`replace_entity`"
-
-        If set to `True`, the match from the corresponding assign key will be used as entity, instead of the main match. See [this paragraph][the-replace_entity-parameter]
-
-    === "`reduce_mode`"
-
-        Set how multiple assign matches are handled. See the documentation of the [`reduce_mode` parameter][the-reduce_mode-parameter]
-
 ### A full pattern dictionary example
 
 ```python
@@ -300,6 +232,8 @@ dict(
             regex=r"(neonatal)",
             expand_entity=True,
             window=3,
+            # keep the extraction only if neonatal is found
+            required=True,
         ),
         dict(
             name="trans",

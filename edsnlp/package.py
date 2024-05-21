@@ -218,16 +218,18 @@ def parse_authors_as_strings(authors):
 class PoetryPackager:
     def __init__(
         self,
+        *,
+        name: ModuleName,
         pyproject: Optional[Dict[str, Any]],
         pipeline: Union[Path, "edsnlp.Pipeline"],
         version: Optional[str],
-        name: Optional[ModuleName],
         root_dir: Path = ".",
-        build_dir: Path = "build",
-        dist_dir: Path = "dist",
-        artifacts_name: ModuleName = "artifacts",
-        dependencies: Optional[Sequence[Tuple[str, str]]] = None,
+        build_dir: Path,
+        dist_dir: Path,
+        artifacts_name: ModuleName,
+        dependencies: Optional[Sequence[Tuple[str, str]]] = (),
         metadata: Optional[Dict[str, Any]] = {},
+        exclude: AsList[str],
     ):
         self.poetry_bin_path = (
             subprocess.run(["which", "poetry"], stdout=subprocess.PIPE)
@@ -244,6 +246,7 @@ class PoetryPackager:
         self.dist_dir = (
             dist_dir if Path(dist_dir).is_absolute() else self.root_dir / dist_dir
         )
+        self.exclude = exclude
 
         with self.ensure_pyproject(metadata):
             python_executable = (
@@ -386,17 +389,16 @@ class PoetryPackager:
         shutil.rmtree(package_dir, ignore_errors=True)
         os.makedirs(package_dir, exist_ok=True)
         build_artifacts_dir = package_dir / self.artifacts_name
-        shutil.rmtree(build_artifacts_dir, ignore_errors=True)
         for file_path in self.list_files_to_add():
-            new_file_path = self.build_dir / Path(file_path).relative_to(self.root_dir)
+            dest_path = self.build_dir / Path(file_path).relative_to(self.root_dir)
             if isinstance(self.pipeline, Path) and self.pipeline in file_path.parents:
                 raise Exception(
                     f"Pipeline ({self.artifacts_name}) is already "
                     "included in the package's data, you should "
                     "remove it from the pyproject.toml metadata."
                 )
-            os.makedirs(new_file_path.parent, exist_ok=True)
-            shutil.copy(file_path, new_file_path)
+            os.makedirs(dest_path.parent, exist_ok=True)
+            shutil.copy(file_path, dest_path)
 
         self.update_pyproject()
 
@@ -415,7 +417,7 @@ class PoetryPackager:
                 build_artifacts_dir,
             )
         else:
-            self.pipeline.to_disk(build_artifacts_dir)
+            self.pipeline.to_disk(build_artifacts_dir, exclude=set())
         with open(package_dir / "__init__.py", mode="a") as f:
             f.write(
                 INIT_PY.format(
@@ -427,16 +429,22 @@ class PoetryPackager:
         # Print all the files that will be included in the package
         for file in self.build_dir.rglob("*"):
             if file.is_file():
-                logger.info(f"INCLUDE {file.relative_to(self.build_dir)}")
+                rel = file.relative_to(self.build_dir)
+                if not any(rel.match(e) for e in self.exclude):
+                    logger.info(f"INCLUDE {rel}")
+                else:
+                    file.unlink()
+                    logger.info(f"SKIP {rel}")
 
 
 @app.command(name="package")
 def package(
+    *,
     pipeline: Union[Path, "edsnlp.Pipeline"],
     name: Optional[ModuleName] = None,
-    root_dir: Path = ".",
-    build_dir: Path = "build",
-    dist_dir: Path = "dist",
+    root_dir: Path = Path("."),
+    build_dir: Path = Path("build"),
+    dist_dir: Path = Path("dist"),
     artifacts_name: ModuleName = "artifacts",
     check_dependencies: bool = False,
     project_type: Optional[Literal["poetry", "setuptools"]] = None,
@@ -446,8 +454,10 @@ def package(
     config_settings: Optional[Mapping[str, Union[str, Sequence[str]]]] = None,
     isolation: bool = True,
     skip_build_dependency_check: bool = False,
+    exclude: Optional[AsList[str]] = None,
 ):
     # root_dir = Path(".").resolve()
+    exclude = exclude or ["artifacts/vocab/*"]
     pyproject_path = root_dir / "pyproject.toml"
 
     if not pyproject_path.exists():
@@ -487,6 +497,7 @@ def package(
             artifacts_name=artifacts_name,
             dependencies=dependencies,
             metadata=metadata,
+            exclude=exclude,
         )
     else:
         raise Exception(
@@ -501,3 +512,7 @@ def package(
         isolation=isolation,
         skip_dependency_check=skip_build_dependency_check,
     )
+
+
+if __name__ == "__main__":
+    app()

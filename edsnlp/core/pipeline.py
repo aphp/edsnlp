@@ -944,7 +944,7 @@ class Pipeline:
         isolation: bool = True,
         skip_build_dependency_check: bool = False,
     ):
-        from edsnlp.utils.package import package
+        from edsnlp.package import package
 
         return package(
             pipeline=self,

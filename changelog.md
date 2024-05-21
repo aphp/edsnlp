@@ -9,6 +9,12 @@
 - Window stride can now be disabled (i.e., stride = window) during training in the `eds.transformer` component by `training_stride = False`
 - Added a new `eds.ner_overlap_scorer` to evaluate matches between two lists of entities, counting true when the dice overlap is above a given threshold
 - `edsnlp.load` now accepts EDS-NLP models from the huggingface hub 🤗 !
+- New `python -m edsnlp.package` command to package a model for the huggingface hub or pypi-like registries
+- Expose the defaults patterns of `eds.negation`, `eds.hypothesis`, `eds.family`, `eds.history` and `eds.reported_speech` under a `eds.negation.default_patterns` attribute
+- Added a `context_getter` SpanGetter argument to the `eds.matcher` class to only retrieve entities inside the spans returned by the getter
+- Added a `filter_expr` parameter to scorers to filter the documents to score
+- Added a new `required` field to `eds.contextual_matcher` assign patterns to only match if the required field has been found, and an `include` parameter (similar to `exclude`) to search for required patterns without assigning them to the entity
+- Added context strings (e.g., "words[0:5] | sent[0:1]") to the `eds.contextual_matcher` component to allow for more complex patterns in the selection of the window around the trigger spans
 
 ### Changed
 

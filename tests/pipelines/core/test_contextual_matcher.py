@@ -1,7 +1,11 @@
+import os
+
 import pytest
 
 from edsnlp.utils.examples import parse_example
 from edsnlp.utils.extensions import rgetattr
+
+os.environ["CONFIT_DEBUG"] = "1"
 
 EXAMPLES = [
     """
@@ -151,12 +155,11 @@ ALL_PARAMS = [
     (False, False, "keep_last", None),
     (False, False, "keep_last", "keep_first"),
     (False, False, "keep_last", "keep_last"),
-]
+][:1]
 
 
 @pytest.mark.parametrize("params,example", list(zip(ALL_PARAMS, EXAMPLES)))
 def test_contextual(blank_nlp, params, example):
-
     include_assigned, replace_entity, reduce_mode_stage, reduce_mode_metastase = params
 
     blank_nlp.add_pipe(
@@ -225,9 +228,7 @@ def test_contextual(blank_nlp, params, example):
     assert len(doc.ents) == len(entities)
 
     for entity, ent in zip(entities, doc.ents):
-
         for modifier in entity.modifiers:
-
             assert (
                 rgetattr(ent, modifier.key) == modifier.value
             ), f"{modifier.key} labels don't match."

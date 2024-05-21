@@ -1,3 +1,4 @@
+import abc
 from collections import defaultdict
 from typing import (
     TYPE_CHECKING,
@@ -11,6 +12,7 @@ from typing import (
     Union,
 )
 
+import numpy as np
 from pydantic import NonNegativeInt
 from spacy.tokens import Doc, Span
 
@@ -303,3 +305,160 @@ class make_span_context_getter:
             end = min(len(span.doc), max(end, max_end_sent))
 
         return span.doc[start:end]
+
+
+class ContextMeta(abc.ABCMeta):
+    pass
+
+
+class Context(abc.ABC, metaclass=ContextMeta):
+    @abc.abstractmethod
+    def __call__(self, span: Span) -> Span:
+        pass
+
+    # logical ops
+    def __and__(self, other: "Context"):
+        # fmt: off
+        return IntersectionContext([
+            *(self.contexts if isinstance(self, IntersectionContext) else (self,)),
+            *(other.contexts if isinstance(other, IntersectionContext) else (other,))
+        ])
+        # fmt: on
+
+    def __rand__(self, other: "Context"):
+        return self & other if other is not None else self
+
+    def __or__(self, other: "Context"):
+        # fmt: off
+        return UnionContext([
+            *(self.contexts if isinstance(self, UnionContext) else (self,)),
+            *(other.contexts if isinstance(other, UnionContext) else (other,))
+        ])
+        # fmt: on
+
+    def __ror__(self, other: "Context"):
+        return self & other if other is not None else self
+
+    @classmethod
+    def parse(cls, query):
+        return eval(
+            query,
+            {"__builtins__": None},
+            {
+                "words": WordContext,
+                "sents": SentenceContext,
+            },
+        )
+
+    @classmethod
+    def validate(cls, obj, config=None):
+        if isinstance(obj, cls):
+            return obj
+        if isinstance(obj, str):
+            return cls.parse(obj)
+        if isinstance(obj, tuple):
+            assert len(obj) == 2
+            return WordContext(*obj)
+        if isinstance(obj, int):
+            assert obj != 0, "The provided `window` should not be 0"
+            return WordContext(obj, 0) if obj < 0 else WordContext(0, obj)
+        raise ValueError(f"Invalid context: {obj}")
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+
+class LeafContextMeta(ContextMeta):
+    def __getitem__(cls, item) -> Span:
+        assert isinstance(item, slice)
+        before = item.start
+        after = item.stop
+        return cls(before, after)
+
+
+class LeafContext(Context, metaclass=LeafContextMeta):
+    pass
+
+
+class WordContext(LeafContext):
+    def __init__(
+        self,
+        before: Optional[int] = None,
+        after: Optional[int] = None,
+    ):
+        self.before = before
+        self.after = after
+
+    def __call__(self, span):
+        start = span.start + self.before if self.before is not None else 0
+        end = span.end + self.after if self.after is not None else len(span.doc)
+        return span.doc[max(0, start) : min(len(span.doc), end)]
+
+    def __repr__(self):
+        return "words[{}:{}]".format(self.before, self.after)
+
+
+class SentenceContext(LeafContext):
+    def __init__(
+        self,
+        before: Optional[int] = None,
+        after: Optional[int] = None,
+    ):
+        self.before = before
+        self.after = after
+
+    def __call__(self, span):
+        sent_starts = span.doc.to_array("SENT_START") == 1
+        sent_indices = sent_starts.cumsum()
+        sent_indices = sent_indices - sent_indices[span.start]
+
+        start_idx = end_idx = None
+        if self.before is not None:
+            start = sent_starts & (sent_indices == self.before)
+            x = np.flatnonzero(start)
+            start_idx = x[-1] if len(x) else 0
+
+        if self.after is not None:
+            end = sent_starts & (sent_indices == self.after + 1)
+            x = np.flatnonzero(end)
+            end_idx = x[0] - 1 if len(x) else len(span.doc)
+
+        return span.doc[start_idx:end_idx]
+
+    def __repr__(self):
+        return "sents[{}:{}]".format(self.before, self.after)
+
+
+class UnionContext(Context):
+    def __init__(
+        self,
+        contexts: AsList[Context],
+    ):
+        self.contexts = contexts
+
+    def __call__(self, span):
+        results = [context(span) for context in self.contexts]
+        min_word = min([span.start for span in results])
+        max_word = max([span.end for span in results])
+        return span.doc[min_word:max_word]
+
+    def __repr__(self):
+        return " | ".join(repr(context) for context in self.contexts)
+
+
+class IntersectionContext(Context):
+    def __init__(
+        self,
+        contexts: AsList[Context],
+    ):
+        self.contexts = contexts
+
+    def __call__(self, span):
+        results = [context(span) for context in self.contexts]
+        min_word = max([span.start for span in results])
+        max_word = min([span.end for span in results])
+        return span.doc[min_word:max_word]
+
+    def __repr__(self):
+        return " & ".join(repr(context) for context in self.contexts)

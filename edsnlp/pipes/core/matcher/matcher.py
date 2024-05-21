@@ -9,6 +9,7 @@ from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.matchers.simstring import SimstringMatcher
 from edsnlp.matchers.utils import Patterns
 from edsnlp.pipes.base import BaseNERComponent, SpanSetterArg
+from edsnlp.utils.span_getters import SpanGetterArg, get_spans
 
 
 class GenericMatcher(BaseNERComponent):
@@ -102,6 +103,7 @@ class GenericMatcher(BaseNERComponent):
         term_matcher: Literal["exact", "simstring"] = "exact",
         term_matcher_config: Dict[str, Any] = {},
         span_setter: SpanSetterArg = {"ents": True},
+        context_getter: Optional[SpanGetterArg] = None,
     ):
         super().__init__(nlp=nlp, name=name, span_setter=span_setter)
 
@@ -114,6 +116,7 @@ class GenericMatcher(BaseNERComponent):
         regex = regex or {}
 
         self.attr = attr
+        self.context_getter = context_getter
 
         if term_matcher == "exact":
             self.phrase_matcher = EDSPhraseMatcher(
@@ -163,10 +166,16 @@ class GenericMatcher(BaseNERComponent):
             List of Spans returned by the matchers.
         """
 
-        matches = self.phrase_matcher(doc, as_spans=True)
-        regex_matches = self.regex_matcher(doc, as_spans=True)
-
-        spans = list(matches) + list(regex_matches)
+        contexts = (
+            list(get_spans(doc, self.context_getter))
+            if self.context_getter is not None
+            else [doc]
+        )
+        spans: List[Span] = []
+        for context in contexts:
+            matches = self.phrase_matcher(context, as_spans=True)
+            regex_matches = self.regex_matcher(context, as_spans=True)
+            spans.extend(list(matches) + list(regex_matches))
 
         return spans
 

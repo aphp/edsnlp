@@ -9,6 +9,7 @@
 ### Fixed
 
 - Make catalogue & entrypoints compatible with py37-py312
+- Check that a data has a doc before trying to use the document's `note_datetime`
 
 ## v0.12.0
 

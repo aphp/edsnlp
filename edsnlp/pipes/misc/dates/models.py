@@ -125,7 +125,7 @@ class AbsoluteDate(BaseDate):
         d.pop("mode", None)
         d.pop("bound", None)
 
-        if note_datetime is None:
+        if note_datetime is None and self.doc is not None:
             note_datetime = self.doc._.note_datetime
 
         if self.year and self.month and self.day:
@@ -178,7 +178,7 @@ class AbsoluteDate(BaseDate):
         note_datetime: Optional[Union[datetime.datetime, datetime.datetime]] = None,
         **kwargs,
     ) -> Optional[datetime.timedelta]:
-        if note_datetime is None:
+        if note_datetime is None and self.doc is not None:
             note_datetime = self.doc._.note_datetime
 
         if note_datetime and not isinstance(note_datetime, NaTType):
@@ -282,7 +282,7 @@ class RelativeDate(Relative):
         note_datetime: Optional[Union[datetime.datetime, datetime.datetime]] = None,
         **kwargs,
     ) -> Optional[datetime.datetime]:
-        if note_datetime is None:
+        if note_datetime is None and self.doc is not None:
             note_datetime = self.doc._.note_datetime
 
         if note_datetime is not None and not isinstance(note_datetime, NaTType):

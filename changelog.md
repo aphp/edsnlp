@@ -8,6 +8,8 @@
 
 ### Fixed
 
+- Make catalogue & entrypoints compatible with py37-py312
+
 ## v0.12.0
 
 ### Added

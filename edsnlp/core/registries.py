@@ -1,10 +1,8 @@
 import inspect
 import types
-from collections import defaultdict
 from dataclasses import dataclass
 from functools import wraps
-from itertools import chain
-from typing import Any, Callable, Dict, Iterable, Optional, Sequence
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
 from weakref import WeakKeyDictionary
 
 import catalogue
@@ -235,15 +233,7 @@ class FactoryRegistry(Registry):
         func = check_and_return()
         if func is None and self.entry_points:
             # Update entry points in case packages lookup paths have changed
-            available_entry_points = defaultdict(list)
-            eps = importlib_metadata.entry_points()
-            for ep in (
-                chain.from_iterable(dict(eps).values())
-                if isinstance(eps, dict)
-                else eps
-            ):
-                available_entry_points[ep.group].append(ep)
-            catalogue.AVAILABLE_ENTRY_POINTS.update(available_entry_points)
+            catalogue.AVAILABLE_ENTRY_POINTS = importlib_metadata.entry_points()
             # Otherwise, step 3
             self.get_entry_point(name)
             # Then redo steps 1 & 2
@@ -276,6 +266,13 @@ class FactoryRegistry(Registry):
                 )
                 or "none",
             )
+        )
+
+    def _get_entry_points(self) -> List[importlib_metadata.EntryPoint]:
+        return (
+            catalogue.AVAILABLE_ENTRY_POINTS.select(group=self.entry_point_namespace)
+            if hasattr(catalogue.AVAILABLE_ENTRY_POINTS, "select")
+            else catalogue.AVAILABLE_ENTRY_POINTS.get(self.entry_point_namespace, [])
         )
 
     def register(

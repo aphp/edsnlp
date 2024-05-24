@@ -1,7 +1,10 @@
 import sys
 
 import pytest
-from extract_docs_code import extract_docs_code
+
+pytest.importorskip("mkdocs")
+
+from extract_docs_code import extract_docs_code  # noqa: E402
 
 # We don't check documentation for Python <= 3.7:
 if sys.version_info < (3, 8):

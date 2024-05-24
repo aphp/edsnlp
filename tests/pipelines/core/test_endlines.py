@@ -1,9 +1,6 @@
 import spacy
 from pytest import fixture
 
-from edsnlp.pipelines.core.endlines.functional import build_path
-from edsnlp.pipelines.core.endlines.model import EndLinesModel
-
 texts = [
     """Le patient est arrivé hier soir.
 Il est accompagné par son fils
@@ -28,6 +25,9 @@ Antecedents Familiaux:
 
 @fixture
 def model_path(tmp_path, blank_nlp):
+    from edsnlp.pipes.core.endlines.functional import build_path
+    from edsnlp.pipes.core.endlines.model import EndLinesModel
+
     blank_nlp = spacy.blank("eds")
 
     # Train model

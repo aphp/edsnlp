@@ -4,6 +4,8 @@
 
 ### Added
 
+- Added binary distribution for linux aarch64 (Streamlit's environment)
+
 ### Changed
 
 ### Fixed

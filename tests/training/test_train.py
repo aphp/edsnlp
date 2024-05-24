@@ -1,3 +1,9 @@
+# ruff: noqa: E402
+
+import pytest
+
+pytest.importorskip("rich")
+
 import shutil
 from typing import (
     Optional,

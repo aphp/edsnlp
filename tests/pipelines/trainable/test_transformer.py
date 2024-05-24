@@ -2,10 +2,6 @@ from pytest import fixture
 from spacy.tokens import Span
 
 import edsnlp
-from edsnlp.pipes.trainable.embeddings.transformer.transformer import Transformer
-from edsnlp.pipes.trainable.span_qualifier.span_qualifier import (
-    TrainableSpanQualifier,
-)
 from edsnlp.utils.collections import batch_compress_dict, decompress_dict
 
 if not Span.has_extension("label"):
@@ -40,6 +36,11 @@ def gold():
 
 
 def test_span_getter(gold):
+    from edsnlp.pipes.trainable.embeddings.transformer.transformer import Transformer
+    from edsnlp.pipes.trainable.span_qualifier.span_qualifier import (
+        TrainableSpanQualifier,
+    )
+
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(
         "eds.transformer",

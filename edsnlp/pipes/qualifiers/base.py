@@ -1,7 +1,7 @@
+import warnings
 from itertools import chain
 from typing import Dict, List, Optional, Set, Union
 
-from loguru import logger
 from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
@@ -19,23 +19,12 @@ def check_normalizer(nlp: PipelineProtocol) -> None:
     normalizer = components.get("normalizer")
 
     if normalizer and not normalizer.lowercase:
-        logger.warning(
+        warnings.warn(
             "You have chosen the NORM attribute, but disabled lowercasing "
             "in your normalisation pipeline. "
             "This WILL hurt performance : you might want to use the "
             "LOWER attribute instead."
         )
-
-
-def get_qualifier_extensions(nlp: PipelineProtocol):
-    """
-    Check for all qualifiers present in the pipe and return its corresponding extension
-    """
-    return {
-        name: nlp.get_pipe_meta(name).assigns[0].split("span.")[-1]
-        for name, pipe in nlp.pipeline
-        if isinstance(pipe, RuleBasedQualifier)
-    }
 
 
 class RuleBasedQualifier(BaseSpanAttributeClassifierComponent):

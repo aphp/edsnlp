@@ -392,7 +392,6 @@ skip = [
     "*-manylinux_i686", # Skip 32-bit Linux
     "*-win_arm64", # Skip experimental Windows on ARM
     "*-musllinux*", # Skip slow Linux
-    "*-manylinux_aarch64", # Skip slow Linux
     "*-manylinux_ppc64le", # Skip slow Linux
     "*-manylinux_s390x", # Skip slow Linux
 ]

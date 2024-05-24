@@ -9,7 +9,7 @@ edsnlp/connectors/omop.py                                                       
 edsnlp/core/__init__.py                                                                     2      0 100.00%
 edsnlp/core/lazy_collection.py                                                            149      2  98.66%   52, 437
 edsnlp/core/pipeline.py                                                                   408      1  99.75%   551
-edsnlp/core/registries.py                                                                 168      1  99.40%   81
+edsnlp/core/registries.py                                                                 164      1  99.39%   79
 edsnlp/core/torch_component.py                                                            179      2  98.88%   391, 437
 edsnlp/data/__init__.py                                                                     3      0 100.00%
 edsnlp/data/base.py                                                                        39      5  87.18%   175-180
@@ -43,7 +43,7 @@ edsnlp/pipes/core/endlines/__init__.py                                          
 edsnlp/pipes/core/endlines/endlines.py                                                     87      7  91.95%   152-155, 159-160, 192, 279
 edsnlp/pipes/core/endlines/factory.py                                                       4      0 100.00%
 edsnlp/pipes/core/endlines/functional.py                                                   13      0 100.00%
-edsnlp/pipes/core/endlines/model.py                                                       254      0 100.00%
+edsnlp/pipes/core/endlines/model.py                                                       256      0 100.00%
 edsnlp/pipes/core/matcher/__init__.py                                                       1      0 100.00%
 edsnlp/pipes/core/matcher/factory.py                                                        4      0 100.00%
 edsnlp/pipes/core/matcher/matcher.py                                                       33      0 100.00%
@@ -238,7 +238,7 @@ edsnlp/pipes/ner/umls/__init__.py                                               
 edsnlp/pipes/ner/umls/factory.py                                                           10      0 100.00%
 edsnlp/pipes/ner/umls/patterns.py                                                          43      0 100.00%
 edsnlp/pipes/qualifiers/__init__.py                                                         0      0 100.00%
-edsnlp/pipes/qualifiers/base.py                                                            44      1  97.73%   22
+edsnlp/pipes/qualifiers/base.py                                                            41      0 100.00%
 edsnlp/pipes/qualifiers/family/__init__.py                                                  2      0 100.00%
 edsnlp/pipes/qualifiers/family/factory.py                                                   4      0 100.00%
 edsnlp/pipes/qualifiers/family/family.py                                                   59      1  98.31%   22
@@ -315,7 +315,5 @@ edsnlp/utils/span_getters.py                                                    
 edsnlp/utils/spark_dtypes.py                                                               92      0 100.00%
 edsnlp/utils/torch.py                                                                      31      0 100.00%
 edsnlp/utils/typing.py                                                                     27      0 100.00%
-edsnlp/viz/__init__.py                                                                      1      0 100.00%
-edsnlp/viz/quick_examples.py                                                               80      3  96.25%   89-91
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                    9300    223  97.60%
+TOTAL                                                                                    9214    219  97.62%

@@ -24,6 +24,10 @@
 - Added a new `eds.ner_overlap_scorer` to evaluate matches between two lists of entities, counting true when the dice overlap is above a given threshold
 - `edsnlp.load` now accepts EDS-NLP models from the huggingface hub 🤗 !
 - New `python -m edsnlp.package` command to package a model for the huggingface hub or pypi-like registries
+- Improve table detection in `eds.tables` and support new options in `table._.to_pd_table(...)`:
+  - `header=True` to use first row as header
+  - `index=True` to use first column as index
+  - `as_spans=True` to fill cells as document spans instead of strings
 
 ### Changed
 

@@ -757,6 +757,9 @@ class MeasurementsMatcher(BaseNERComponent):
         regex_matches = list(self.regex_matcher(doc, as_spans=True))
         term_matches = list(self.term_matcher(doc, as_spans=True))
 
+        tables = self.table_matcher(doc).spans["tables"]
+        table_matches = [table for table in tables]
+
         # Detect unit parts and compose them into units
         units = self.extract_units(term_matches)
         unit_label_hashes = {unit.label for unit in units}
@@ -795,7 +798,7 @@ class MeasurementsMatcher(BaseNERComponent):
             ]
         )
 
-        return matches_and_is_sentence_end, unit_label_hashes
+        return matches_and_is_sentence_end, unit_label_hashes, table_matches
 
     def extract_measurements(self, doclike: Doc):
         """
@@ -810,8 +813,7 @@ class MeasurementsMatcher(BaseNERComponent):
         List[Span]
         """
         doc = doclike.doc if isinstance(doclike, Span) else doclike
-        matches, unit_label_hashes = self.get_matches(doclike)
-
+        matches, unit_label_hashes, table_matches = self.get_matches(doclike)
         # Make match slice function to query them
         def get_matches_after(i):
             anchor = matches[i][0]
@@ -884,9 +886,41 @@ class MeasurementsMatcher(BaseNERComponent):
             try:
                 pseudo_sent = pseudo[offsets[number_idx] + 1: offsets[unit_idx]]
                 if not re.fullmatch(r"(,n)*", pseudo_sent):
-                    unit_text, unit_norm = None, None
+                    unit_norm = None
             except TypeError:
                 pass
+
+            # Check if number is in table with a unit in the same row
+            if unit_norm is None :
+                for table in table_matches:
+                    if (number.start >= table.start) & (number.end <= table.end):
+                        table_pd = table._.to_pd_table(as_spans=True)
+                        # Find out the number's row
+                        for _, row in table_pd.iterrows():
+                            start_line = next((item.start for item in row
+                                               if hasattr(item, 'start')), None)
+                            end_line = next((item.end for item in reversed(row)
+                                             if hasattr(item, 'end')), None)
+                            def is_within_row(x):
+                                return (x.start >= start_line) & (x.end <= end_line)
+                            if is_within_row(number):
+                                # Check if any unit in the same row
+                                if unit_text and is_within_row(unit_text):
+                                    unit_norm = unit_text.label_
+                                    continue
+                                try:
+                                    b_unit_idx, b_unit_text = next(
+                                        (j, ent)
+                                        for j, ent in get_matches_before(number_idx)
+                                        if ent.label in unit_label_hashes
+                                    )
+                                    b_unit_norm = b_unit_text.label_
+                                    if is_within_row(b_unit_text):
+                                        unit_text = b_unit_text
+                                        unit_norm = b_unit_norm
+                                        unit_idx = b_unit_idx
+                                except (AttributeError, StopIteration):
+                                    pass
 
             # Otherwise, try to infer the unit from the preceding unit to handle cases
             # like (1 meter 50)
@@ -900,7 +934,7 @@ class MeasurementsMatcher(BaseNERComponent):
 
             # If no unit was matched, try to detect unitless patterns before
             # the number to handle cases like ("Weight: 63, Height: 170")
-            if not unit_norm:
+            if unit_norm is None:
                 try:
                     (unitless_idx, unitless_text) = next(
                         (j, e)

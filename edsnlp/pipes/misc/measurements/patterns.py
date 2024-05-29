@@ -613,7 +613,7 @@ common_measurements = {
 
 unit_divisors = ["/", "par"]
 
-stopwords = ["par", "sur", "de", "a", ",", "et"]
+stopwords = ["par", "sur", "de", "a", ",", "et", "-"]
 
 # Should we only make accented patterns and expect the user to use
 # `eds.normalizer` component first ?
@@ -624,5 +624,7 @@ range_patterns = [
     ("de", "a"),
     ("Entre", "et"),
     ("entre", "et"),
+    (None, "a"),
     (None, "à"),
+    (None, "-"),
 ]

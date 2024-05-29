@@ -1,5 +1,4 @@
 import abc
-import ast
 import re
 import unicodedata
 from collections import defaultdict
@@ -8,6 +7,7 @@ from itertools import repeat
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import regex
+from loguru import logger
 from spacy.tokens import Doc, Span
 from typing_extensions import Literal, NotRequired, TypedDict
 
@@ -52,7 +52,7 @@ class UnitlessPatternConfig(TypedDict):
 
 class UnitlessPatternConfigWithName(TypedDict):
     terms: List[str]
-    ranges: List[UnitlessRange]
+    ranges: NotRequired[List[UnitlessRange]]
     name: str
 
 
@@ -109,7 +109,7 @@ class UnitRegistry:
                     "scale": 1 / unit_config["scale"],
                 }
 
-    @lru_cache(maxsize=-1)
+    @lru_cache(maxsize=1000)
     def parse_unit(self, unit: str) -> Tuple[str, float]:
         degrees = defaultdict(lambda: [])
         scale = 1
@@ -123,24 +123,6 @@ class UnitRegistry:
             if sum(v) != 0
         }
         return str(dict(sorted(degrees.items()))), scale
-
-    def dim_to_unit(self, dim, degree):
-        for k, v in self.config.items():
-            if (v["dim"] == dim) and (v["scale"] == 1) and (v["degree"] == degree):
-                return k
-        return ""
-
-    def dims_to_units(self, dims):
-        base_unit, per_unit = "", ""
-        for dim, degree in dims.items():
-            unit = self.dim_to_unit(dim, degree)
-            if degree < 0:
-                per_unit += unit
-            else:
-                base_unit = unit
-        per_unit = f"_{per_unit}" if per_unit != "" else ""
-
-        return f"{base_unit}{per_unit}"
 
 
 class SimpleMeasurement(Measurement):
@@ -279,7 +261,7 @@ class RangeMeasurement(Measurement):
 
 
 class MeasurementsMatcher(BaseNERComponent):
-    '''
+    r'''
     The `eds.measurements` matcher detects and normalizes numerical measurements
     within a medical document.
 
@@ -289,6 +271,81 @@ class MeasurementsMatcher(BaseNERComponent):
         been rigorously validated. If you come across a measurement expression that
         goes undetected, please file an issue !
 
+    Pipe definition
+    ---------------
+    ```python
+    text = """Poids : 65. Taille : 1.75
+              On mesure ... à 3mmol/l ; pression : 100mPa-110mPa.
+              Acte réalisé par ... à 12h13"""
+    ```
+    === "All measurements"
+        ```python
+        import edsnlp
+
+        nlp = edsnlp.blank("eds")
+        nlp.add_pipe("eds.sentences")
+        nlp.add_pipe("eds.tables")
+        nlp.add_pipe(
+            "eds.measurements",
+            config=dict(
+                measurements="all", extract_ranges=True, use_tables=True  # (3)  # (1)
+            ),  # (2)
+        )
+        nlp(text).spans["measurements"]
+        # Out: [65, 1.75, 3mmol/l, 100mPa-110mPa, 12h13]
+        ```
+
+        1. 100-110mg, 2 à 4 jours ...
+        2. If True `eds.tables` must be called
+        3. All units from [Availability](#availability) will be detected
+    === "Custom measurements"
+        ```python
+        import edsnlp
+
+        nlp = edsnlp.blank("eds")
+        nlp.add_pipe("eds.sentences")
+        nlp.add_pipe("eds.tables")
+        nlp.add_pipe(
+            "eds.measurements",
+            config=dict(
+                measurements={
+                    "concentration": {"unit": "mol_per_l"},
+                    "pressure": {"unit": "Pa"},
+                },  # (3)
+                extract_ranges=True,  # (1)
+                use_tables=True,
+            ),  # (2)
+        )
+        nlp(text).spans["measurements"]
+        # Out: [3mmol/l, 100mPa-110mPa]
+        ```
+
+        1. 100-110mg, 2 à 4 jours ...
+        2. If True `eds.tables` must be called
+        3. Which units are available ? See [Availability](#availability).
+           More on customization ? See [Customization](#customization)
+    === "Predefined measurements"
+        ```python
+        import edsnlp
+
+        nlp = edsnlp.blank("eds")
+        nlp.add_pipe("eds.sentences")
+        nlp.add_pipe("eds.tables")
+        nlp.add_pipe(
+            "eds.measurements",
+            config=dict(
+                measurements=["weight", "size"],  # (3)
+                extract_ranges=True,  # (1)
+                use_tables=True,
+            ),  # (2)
+        )
+        nlp(text).spans["measurements"]
+        # Out: [65, 1.75]
+        ```
+
+        1. 100-110mg, 2 à 4 jours ...
+        2. If True `eds.tables` must be called
+        3. Which measurements are available ? See [Availability](#availability)
     Scope
     -----
     The `eds.measurements` matcher can extract simple (e.g. `3cm`) measurements.
@@ -300,16 +357,7 @@ class MeasurementsMatcher(BaseNERComponent):
     desired unit. Like for other components, the `span._.value` extension can also be
     used to access the normalized value for any measurement span.
 
-
-    The current matcher annotates the following measurements out of the box:
-
-    | Measurement name | Example                |
-    |------------------|------------------------|
-    | `size`           | `1m50`, `1.50m`        |
-    | `weight`         | `12kg`, `1kg300`       |
-    | `bmi`            | `BMI: 24`, `24 kg.m-2` |
-    | `volume`         | `2 cac`, `8ml`         |
-
+    See Availability section for details on which units are handled
 
     Examples
     --------
@@ -383,37 +431,6 @@ class MeasurementsMatcher(BaseNERComponent):
     # Out: [178.0, 0.12, 0.24, 1.25]
     ```
 
-    Customization
-    -------------
-    You can declare custom measurements by altering the patterns:
-
-    ```python
-    import edsnlp, edsnlp.pipes as eds
-
-    nlp = edsnlp.blank("eds")
-    nlp.add_pipe(
-        eds.measurements(
-            measurements={
-                "my_custom_surface_measurement": {
-                    # This measurement unit is homogenous to square meters
-                    "unit": "m2",
-                    # Handle cases like "surface: 1.8" (implied m2),
-                    # vs "surface: 50" (implied cm2)
-                    "unitless_patterns": [
-                        {
-                            "terms": ["surface", "aire"],
-                            "ranges": [
-                                {"unit": "m2", "min": 0, "max": 9},
-                                {"unit": "cm2", "min": 10, "max": 100},
-                            ],
-                        }
-                    ],
-                },
-            }
-        ),
-    )
-    ```
-
     Extensions
     ----------
     The `eds.measurements` pipeline declares its extensions dynamically, depending
@@ -446,6 +463,7 @@ class MeasurementsMatcher(BaseNERComponent):
           }
         }
         ```
+        Set `measurements="all"` to extract all raw measurements from units_config file.
     number_terms: Dict[str, List[str]
         A mapping of numbers to their lexical variants
     stopwords: List[str]
@@ -484,6 +502,61 @@ class MeasurementsMatcher(BaseNERComponent):
           instead, and assign all the parsed information (`._.date` / `._.duration`)
           to it. Otherwise, don't return the date.
 
+    Availability
+    ------------
+
+    Feel free to propose any missing raw unit or predefined measurement.
+
+    Raw units and their derivations (g, mg, mgr ...) and their
+    compositions (g/ml, cac/j ...) can be detected.
+
+    __Available raw units :__
+
+    `g, m, m2, m3, mol, ui, Pa, %, log, mmHg, s/min/h/d/w/m/y,
+    arc-second, °, °C, cac, goutte, l, x10*4, x10*5`
+
+    __Available predefined measurements :__
+
+    | measurement_name | Example                |
+    |------------------|------------------------|
+    | `size`           | `1m50`, `1.50m`...     |
+    | `weight`         | `1kg`, `Poids : 65`... |
+    | `bmi`            | `BMI: 24`, `24 kg.m-2` |
+    | `volume`         | `2 cac`, `8ml`...      |
+
+    See `edsnlp.pipes.misc.measurements.patterns` for exhaustive definition.
+
+    Customization
+    -------------
+    You can declare custom measurements by altering the patterns:
+
+    ```python
+    import edsnlp, edsnlp.pipes as eds
+
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(
+        eds.measurements(
+            measurements={
+                "my_custom_surface_measurement": {
+                    # This measurement unit is homogenous to square meters
+                    "unit": "m2",
+                    # Handle cases like "surface: 1.8" (implied m2),
+                    # vs "surface: 50" (implied cm2)
+                    "unitless_patterns": [
+                        {
+                            "terms": ["surface", "aire"],
+                            "ranges": [
+                                {"unit": "m2", "min": 0, "max": 9},
+                                {"unit": "cm2", "min": 10, "max": 100},
+                            ],
+                        }
+                    ],
+                },
+            }
+        ),
+    )
+    ```
+
     Authors and citation
     --------------------
     The `eds.measurements` pipeline was developed by AP-HP's Data Science team.
@@ -512,10 +585,23 @@ class MeasurementsMatcher(BaseNERComponent):
           merge_mode: Literal["intersect", "align"] = "intersect",
           as_ents: bool = False,
           span_setter: Optional[SpanSetterArg] = None,
+          use_tables : bool = True
     ):
+
+        self.use_tables = use_tables and (
+            "eds.tables" in nlp.pipe_names or "tables" in nlp.pipe_names
+        )
+        if use_tables and not self.use_tables:
+            logger.warning(
+                "You have requested that the pipeline use annotations "
+                "provided by the `table` pipeline, but it was not set. "
+                "Skipping that step."
+            )
+
         self.all_measurements = (measurements == "all")
         if self.all_measurements:
             measurements = []
+
         # fmt: on
         if isinstance(measurements, str):
             measurements = [measurements]
@@ -578,6 +664,13 @@ class MeasurementsMatcher(BaseNERComponent):
             ignore_excluded=ignore_excluded,
             ignore_space_tokens=True,
         )
+
+        if self.all_measurements:
+            measurements = [
+                {"name": name, **common_measurement}
+                for name, common_measurement in patterns.common_measurements.items()
+            ]
+
         for measure_config in measurements:
             name = measure_config["name"]
             unit = measure_config["unit"]
@@ -757,9 +850,6 @@ class MeasurementsMatcher(BaseNERComponent):
         regex_matches = list(self.regex_matcher(doc, as_spans=True))
         term_matches = list(self.term_matcher(doc, as_spans=True))
 
-        tables = self.table_matcher(doc).spans["tables"]
-        table_matches = [table for table in tables]
-
         # Detect unit parts and compose them into units
         units = self.extract_units(term_matches)
         unit_label_hashes = {unit.label for unit in units}
@@ -798,7 +888,7 @@ class MeasurementsMatcher(BaseNERComponent):
             ]
         )
 
-        return matches_and_is_sentence_end, unit_label_hashes, table_matches
+        return matches_and_is_sentence_end, unit_label_hashes
 
     def extract_measurements(self, doclike: Doc):
         """
@@ -813,7 +903,12 @@ class MeasurementsMatcher(BaseNERComponent):
         List[Span]
         """
         doc = doclike.doc if isinstance(doclike, Span) else doclike
-        matches, unit_label_hashes, table_matches = self.get_matches(doclike)
+
+        table_matches = []
+        if self.use_tables:
+            table_matches = list(doc.spans["tables"])
+
+        matches, unit_label_hashes = self.get_matches(doclike)
         # Make match slice function to query them
         def get_matches_after(i):
             anchor = matches[i][0]
@@ -893,16 +988,19 @@ class MeasurementsMatcher(BaseNERComponent):
             # Check if number is in table with a unit in the same row
             if unit_norm is None :
                 for table in table_matches:
-                    if (number.start >= table.start) & (number.end <= table.end):
+                    if (number.start >= table.start) and (number.end <= table.end):
                         table_pd = table._.to_pd_table(as_spans=True)
                         # Find out the number's row
                         for _, row in table_pd.iterrows():
                             start_line = next((item.start for item in row
-                                               if hasattr(item, 'start')), None)
+                                               if item is not None), None)
                             end_line = next((item.end for item in reversed(row)
-                                             if hasattr(item, 'end')), None)
+                                             if item is not None), None)
+                            if start_line is None:
+                                continue
                             def is_within_row(x):
-                                return (x.start >= start_line) & (x.end <= end_line)
+                                return (x.start >= start_line) and (x.end <= end_line)
+
                             if is_within_row(number):
                                 # Check if any unit in the same row
                                 if unit_text and is_within_row(unit_text):
@@ -990,10 +1088,10 @@ class MeasurementsMatcher(BaseNERComponent):
                 continue
 
             if self.all_measurements:
-                # We need to compute the detected unit
-                ent.label_ = self.unit_registry.dims_to_units(ast.literal_eval(dims))
-                if not Span.has_extension(ent.label_):
-                    Span.set_extension(ent.label_, default=None)
+                if not Span.has_extension(unit_norm):
+                    Span.set_extension(unit_norm, default=None)
+                ent.label_ = unit_norm
+
             else:
                 ent.label_ = self.measure_names[dims]
             ent._.set(

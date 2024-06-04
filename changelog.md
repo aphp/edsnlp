@@ -1,13 +1,11 @@
 # Changelog
 
-## Unreleased
+## v0.12.1
 
 ### Added
 
 - Added binary distribution for linux aarch64 (Streamlit's environment)
 - Added new separator option in eds.table and new input check
-
-### Changed
 
 ### Fixed
 

@@ -111,10 +111,10 @@ edsnlp/pipes/misc/sections/__init__.py                                          
 edsnlp/pipes/misc/sections/factory.py                                                       5      0 100.00%
 edsnlp/pipes/misc/sections/patterns.py                                                     23      0 100.00%
 edsnlp/pipes/misc/sections/sections.py                                                     45      1  97.78%   127
-edsnlp/pipes/misc/tables/__init__.py                                                        2      0 100.00%
+edsnlp/pipes/misc/tables/__init__.py                                                        1      0 100.00%
 edsnlp/pipes/misc/tables/factory.py                                                         4      0 100.00%
 edsnlp/pipes/misc/tables/patterns.py                                                        2      0 100.00%
-edsnlp/pipes/misc/tables/tables.py                                                         28      2  92.86%   130, 135
+edsnlp/pipes/misc/tables/tables.py                                                         58      0 100.00%
 edsnlp/pipes/ner/__init__.py                                                                0      0 100.00%
 edsnlp/pipes/ner/adicap/__init__.py                                                         0      0 100.00%
 edsnlp/pipes/ner/adicap/adicap.py                                                          36      0 100.00%
@@ -316,4 +316,4 @@ edsnlp/utils/spark_dtypes.py                                                    
 edsnlp/utils/torch.py                                                                      31      0 100.00%
 edsnlp/utils/typing.py                                                                     27      0 100.00%
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                    9214    219  97.62%
+TOTAL                                                                                    9243    217  97.65%

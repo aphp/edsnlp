@@ -137,6 +137,7 @@ where = ["."]
 "eds.sofa"                        = "edsnlp.pipes.ner.scores.sofa.factory:create_component"
 "eds.tnm"                         = "edsnlp.pipes.ner.tnm.factory:create_component"
 "eds.umls"                        = "edsnlp.pipes.ner.umls.factory:create_component"
+"eds.suicide_attempt"             = "edsnlp.pipes.ner.suicide_attempt.factory:create_component"
 
 # NER/Comorbidities
 "eds.aids"                        = "edsnlp.pipes.ner.disorders.aids.factory:create_component"

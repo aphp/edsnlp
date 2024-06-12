@@ -1,5 +1,8 @@
 # Changelog
+## Unreleased
+### Added
 
+- Added a new NER pipeline for suicide attempt detection
 ## v0.12.1
 
 ### Added

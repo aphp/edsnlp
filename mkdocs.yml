@@ -116,6 +116,7 @@ nav:
           - pipes/ner/umls.md
           - pipes/ner/cim10.md
           - pipes/ner/drugs.md
+          - pipes/ner/suicide_attempt.md
 
       - Trainable components:
           - pipes/trainable/index.md

@@ -62,9 +62,12 @@ if TYPE_CHECKING:
     from .ner.scores.elston_ellis.factory import create_component as elston_ellis
     from .ner.scores.emergency.ccmu.factory import create_component as emergency_ccmu
     from .ner.scores.emergency.gemsa.factory import create_component as emergency_gemsa
-    from .ner.scores.emergency.priority.factory import create_component as emergency_priority
+    from .ner.scores.emergency.priority.factory import (
+        create_component as emergency_priority,
+    )
     from .ner.scores.factory import create_component as score
     from .ner.scores.sofa.factory import create_component as sofa
+    from .ner.suicide_attempt.factory import create_component as suicide_attempt
     from .ner.tnm.factory import create_component as tnm
     from .ner.umls.factory import create_component as umls
     from .qualifiers.family.factory import create_component as family
@@ -73,9 +76,13 @@ if TYPE_CHECKING:
     from .qualifiers.negation.factory import create_component as negation
     from .qualifiers.reported_speech.factory import create_component as reported_speech
     from .qualifiers.reported_speech.factory import create_component as rspeech
+    from .trainable.embeddings.span_pooler.factory import (
+        create_component as span_pooler,
+    )
+    from .trainable.embeddings.text_cnn.factory import create_component as text_cnn
+    from .trainable.embeddings.transformer.factory import (
+        create_component as transformer,
+    )
     from .trainable.ner_crf.factory import create_component as ner_crf
     from .trainable.span_classifier.factory import create_component as span_classifier
     from .trainable.span_linker.factory import create_component as span_linker
-    from .trainable.embeddings.span_pooler.factory import create_component as span_pooler
-    from .trainable.embeddings.transformer.factory import create_component as transformer
-    from .trainable.embeddings.text_cnn.factory import create_component as text_cnn

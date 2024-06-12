@@ -1,12 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from typing import (
-    Any,
-    Dict,
-    Optional,
-    Sequence,
-)
+from typing import Any, Dict, Optional, Sequence
 
 import foldedtensor as ft
 import torch

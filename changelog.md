@@ -7,6 +7,7 @@
 - `data.set_processing(...)` now expose an `autocast` parameter to disable or tweak the automatic casting of the tensor
   during the processing. Autocasting should result in a slight speedup, but may lead to numerical instability.
 - Use `torch.inference_mode` to disable view tracking and version counter bumps during inference.
+- Added a new NER pipeline for suicide attempt detection
 
 ### Changed
 

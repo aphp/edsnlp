@@ -65,6 +65,7 @@ if TYPE_CHECKING:
     from .ner.scores.emergency.priority.factory import create_component as emergency_priority
     from .ner.scores.factory import create_component as score
     from .ner.scores.sofa.factory import create_component as sofa
+    from .ner.suicide_attempt.factory import create_component as suicide_attempt
     from .ner.tnm.factory import create_component as tnm
     from .ner.umls.factory import create_component as umls
     from .qualifiers.family.factory import create_component as family

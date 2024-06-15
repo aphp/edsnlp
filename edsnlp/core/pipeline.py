@@ -27,6 +27,7 @@ from typing import (
     Union,
 )
 
+import huggingface_hub
 import pkg_resources
 import requests
 import spacy
@@ -932,7 +933,7 @@ class Pipeline:
         self,
         name: Optional[str] = None,
         root_dir: Union[str, Path] = ".",
-        build_dir: Union[str, Path] = "build",
+        build_dir: Optional[Union[str, Path]] = None,
         dist_dir: Union[str, Path] = "dist",
         artifacts_name: str = "artifacts",
         check_dependencies: bool = False,
@@ -943,6 +944,7 @@ class Pipeline:
         config_settings: Optional[Mapping[str, Union[str, Sequence[str]]]] = None,
         isolation: bool = True,
         skip_build_dependency_check: bool = False,
+        readme_replacements: Dict[str, str] = {},
     ):
         from edsnlp.package import package
 
@@ -961,6 +963,7 @@ class Pipeline:
             config_settings=config_settings,
             isolation=isolation,
             skip_build_dependency_check=skip_build_dependency_check,
+            readme_replacements=readme_replacements,
         )
 
     def __getstate__(self):
@@ -1124,6 +1127,7 @@ def load(
             and str(model).split("/")[0] not in FORBIDDEN_AUTO_HF_OWNERS
         ):
             try:
+                huggingface_hub.login()
                 return load_from_huggingface(
                     model,
                     overrides=overrides,

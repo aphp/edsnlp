@@ -1,6 +1,8 @@
 import importlib
 import subprocess
 import sys
+import tarfile
+import zipfile
 
 import pytest
 
@@ -13,14 +15,13 @@ def test_blank_package(nlp, tmp_path):
     if not isinstance(nlp, edsnlp.Pipeline):
         pytest.skip("Only running for edsnlp.Pipeline")
 
-    with pytest.raises(Exception):
-        package(
-            pipeline=nlp,
-            root_dir=tmp_path,
-            name="test-model-fail",
-            metadata={},
-            project_type="poetry",
-        )
+    package(
+        pipeline=nlp,
+        root_dir=tmp_path,
+        name="test-model-fail",
+        metadata={},
+        project_type="poetry",
+    )
 
     nlp.package(
         root_dir=tmp_path,
@@ -33,10 +34,8 @@ def test_blank_package(nlp, tmp_path):
         distributions=["wheel"],
     )
     assert (tmp_path / "dist").is_dir()
-    assert (tmp_path / "build").is_dir()
     assert (tmp_path / "dist" / "test_model-0.1.0-py3-none-any.whl").is_file()
     assert not (tmp_path / "dist" / "test_model-0.1.0.tar.gz").is_file()
-    assert (tmp_path / "build" / "test-model").is_dir()
 
 
 @pytest.mark.parametrize("package_name", ["my-test-model", None])
@@ -50,6 +49,7 @@ def test_package_with_files(nlp, tmp_path, package_name):
     (tmp_path / "test_model" / "__init__.py").write_text('print("Hello World!")\n')
     (tmp_path / "README.md").write_text(
         """\
+<!-- INSERT -->
 # Test Model
 """
     )
@@ -67,21 +67,10 @@ authors = ["Test Author <test.author@mail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = ">=3.7"
+build = "*"  # sample light package to install
 """
     )
-
-    with pytest.raises(ValueError):
-        package(
-            pipeline=nlp,
-            root_dir=tmp_path,
-            version="0.1.0",
-            name=package_name,
-            metadata={
-                "description": "Wrong description",
-                "authors": "Test Author <test.author@mail.com>",
-            },
-        )
 
     package(
         name=package_name,
@@ -91,8 +80,11 @@ python = "^3.7"
         version="0.1.0",
         distributions=None,
         metadata={
-            "description": "A test model",
+            "description": "A new description",
             "authors": "Test Author <test.author@mail.com>",
+        },
+        readme_replacements={
+            "<!-- INSERT -->": "Replaced !",
         },
     )
 
@@ -103,6 +95,43 @@ python = "^3.7"
     assert (tmp_path / "dist" / f"{module_name}-0.1.0-py3-none-any.whl").is_file()
     assert (tmp_path / "pyproject.toml").is_file()
 
+    with zipfile.ZipFile(
+        tmp_path / "dist" / f"{module_name}-0.1.0-py3-none-any.whl"
+    ) as zf:
+        # check files
+        assert set(zf.namelist()) == {
+            f"{module_name}-0.1.0.dist-info/METADATA",
+            f"{module_name}-0.1.0.dist-info/RECORD",
+            f"{module_name}-0.1.0.dist-info/WHEEL",
+            f"{module_name}/__init__.py",
+            f"{module_name}/artifacts/config.cfg",
+            f"{module_name}/artifacts/meta.json",
+            f"{module_name}/artifacts/tokenizer",
+            "test_model/__init__.py",
+        }
+        # check description
+        with zf.open(f"{module_name}-0.1.0.dist-info/METADATA") as f:
+            assert b"A new description" in f.read()
+
+    with tarfile.open(tmp_path / "dist" / f"{module_name}-0.1.0.tar.gz") as tf:
+        # check files
+        assert set(tf.getnames()) == {
+            f"{module_name}-0.1.0/PKG-INFO",
+            f"{module_name}-0.1.0/README.md",
+            f"{module_name}-0.1.0/artifacts/config.cfg",
+            f"{module_name}-0.1.0/artifacts/meta.json",
+            f"{module_name}-0.1.0/artifacts/tokenizer",
+            f"{module_name}-0.1.0/{module_name}/__init__.py",
+            f"{module_name}-0.1.0/pyproject.toml",
+            f"{module_name}-0.1.0/test_model/__init__.py",
+        }
+        # check description
+        with tf.extractfile(f"{module_name}-0.1.0/PKG-INFO") as f:
+            assert b"A new description" in f.read()
+
+        with tf.extractfile(f"{module_name}-0.1.0/README.md") as f:
+            assert b"Replaced !" in f.read()
+
     # pip install the whl file
     (tmp_path / "site-packages").mkdir(exist_ok=True)
     print(
@@ -112,6 +141,7 @@ python = "^3.7"
                 "-m",
                 "pip",
                 "install",
+                "-vvv",
                 "--target",
                 str(tmp_path / "site-packages"),
                 str(tmp_path / "dist" / f"{module_name}-0.1.0-py3-none-any.whl"),
@@ -120,7 +150,17 @@ python = "^3.7"
         )
     )
 
-    sys.path.insert(0, str(tmp_path / "site-packages"))
+    site_packages = tmp_path / "site-packages"
+    sys.path.insert(0, str(site_packages))
+    # check site-package files
+    files = {str(f.relative_to(site_packages)) for f in set(site_packages.rglob("*"))}
+    assert files >= {
+        f"{module_name}/artifacts",
+        f"{module_name}/artifacts/config.cfg",
+        f"{module_name}/artifacts/meta.json",
+        f"{module_name}/artifacts/tokenizer",
+    }
+
     module = importlib.import_module(module_name)
 
     assert module.__version__ == "0.1.0"
@@ -142,8 +182,10 @@ __version__ = '{module.__version__}'
 def load(
     overrides: Optional[Dict[str, Any]] = None,
 ) -> edsnlp.Pipeline:
-    artifacts_path = Path(__file__).parent / "artifacts"
-    model = edsnlp.load(artifacts_path, overrides=overrides)
+    path_outside = Path(__file__).parent / "../artifacts"
+    path_inside = Path(__file__).parent / "artifacts"
+    path = path_inside if path_inside.exists() else path_outside
+    model = edsnlp.load(path, overrides=overrides)
     return model
 """
         )

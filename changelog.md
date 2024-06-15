@@ -10,6 +10,7 @@ Packages:
   at the root of the sdist package (uploadable to HF) and move them inside the package upon installation to avoid conflicts.
 - Dependencies are no longer inferred with dill-magic (this didn't work well before anyway)
 - Option to perform substitutions in the model's README.md file (e.g., for the model's name, metrics, ...)
+- Huggingface models are now installed with pip *editable* installations, which is faster since it doesn't copy around the weights
 
 ## v0.12.1
 

@@ -6,6 +6,7 @@ import os
 import shutil
 import subprocess
 import sys
+import sysconfig
 import warnings
 from enum import Enum
 from pathlib import Path
@@ -27,7 +28,6 @@ from typing import (
     Union,
 )
 
-import huggingface_hub
 import pkg_resources
 import requests
 import spacy
@@ -1127,7 +1127,6 @@ def load(
             and str(model).split("/")[0] not in FORBIDDEN_AUTO_HF_OWNERS
         ):
             try:
-                huggingface_hub.login()
                 return load_from_huggingface(
                     model,
                     overrides=overrides,
@@ -1217,9 +1216,9 @@ def load_from_huggingface(
     if should_install or not any(
         p.startswith(module_name) and p.endswith(".dist-info") for p in os.listdir(path)
     ):
-        pip = os.path.join(*os.path.split(sys.executable)[:-1], "pip")
+        pip = os.path.join(sysconfig.get_path("scripts"), "pip")
         subprocess.run(
-            [pip, "install", path, "--target", path, "--no-deps", "--upgrade"]
+            [pip, "install", "-e", path, "--target", path, "--no-deps", "--upgrade"]
         )
 
     if path not in sys.path:

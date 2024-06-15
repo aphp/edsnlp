@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+Packages:
+
+- Pip-installable models are now built with `hatch` instead of poetry, which allows us to expose `artifacts` (weights)
+  at the root of the sdist package (uploadable to HF) and move them inside the package upon installation to avoid conflicts.
+- Dependencies are no longer inferred with dill-magic (this didn't work well before anyway)
+- Option to perform substitutions in the model's README.md file (e.g., for the model's name, metrics, ...)
+
 ## v0.12.1
 
 ### Added

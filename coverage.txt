@@ -302,7 +302,7 @@ edsnlp/utils/bindings.py                                                        
 edsnlp/utils/collections.py                                                               155      0 100.00%
 edsnlp/utils/deprecation.py                                                                15      0 100.00%
 edsnlp/utils/doc_to_text.py                                                                62      0 100.00%
-edsnlp/utils/examples.py                                                                   48      0 100.00%
+edsnlp/utils/examples.py                                                                   51      0 100.00%
 edsnlp/utils/extensions.py                                                                  6      0 100.00%
 edsnlp/utils/file_system.py                                                                24      0 100.00%
 edsnlp/utils/filter.py                                                                     74      1  98.65%   207
@@ -316,4 +316,4 @@ edsnlp/utils/spark_dtypes.py                                                    
 edsnlp/utils/torch.py                                                                      31      0 100.00%
 edsnlp/utils/typing.py                                                                     27      0 100.00%
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                    9193    210  97.72%
+TOTAL                                                                                    9196    210  97.72%

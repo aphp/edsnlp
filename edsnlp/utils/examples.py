@@ -19,7 +19,10 @@ class Modifier(BaseModel):
 
     @validator("value")
     def optional_dict_parsing(cls, v):
-        return loads(v) if isinstance(v, str) else v
+        try:
+            return loads(v)
+        except Exception:
+            return v
 
 
 class Entity(BaseModel):

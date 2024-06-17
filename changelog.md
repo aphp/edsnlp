@@ -1,14 +1,6 @@
 # Changelog
 
-## Unreleased
-
-### Added
-
-### Changed
-
-### Fixed
-
-## v0.12.2
+## v0.12.3
 
 ### Changed
 

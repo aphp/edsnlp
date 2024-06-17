@@ -1241,14 +1241,15 @@ def load_from_huggingface(
                 "to use the model:\n"
                 f"  pip install {' '.join((repr(str(dep)) for dep in missing_deps))}\n"
                 f"or let edsnlp do it \n"
-                f"  nlp = edsnlp.load('{repo_id}', install_dependencies=True)",
-                ImportWarning,
+                f"  nlp = edsnlp.load('{repo_id}', install_dependencies=True)\n"
+                f"You may need to restart your Python session after the installation.",
+                UserWarning,
             )
         else:
             warnings.warn(
                 "Installing missing dependencies:\n"
                 f"pip install {' '.join((repr(str(dep)) for dep in missing_deps))}",
-                ImportWarning,
+                UserWarning,
             )
             pip = sys.executable.rsplit("/", 1)[0] + "/pip"
             subprocess.run([pip, "install", *(str(d) for d in missing_deps)])

@@ -71,6 +71,7 @@ def make_windows(lengths, size, stride):
             for idx in range(0, 1 + max(0, math.ceil((length - size) / stride)))
         ],
         pad=-1,
+        dtype=torch.long,
     )
     windows_mask = windows != -1
     windows[~windows_mask] = 0

@@ -10,6 +10,7 @@
 
 - `edsnlp.load("your/huggingface-model", install_dependencies=True)` now correctly resolves the python pip
   (especially on Colab) to auto-install the model dependencies
+- We now better handle empty documents in the `eds.transformer`, `eds.text_cnn` and `eds.ner_crf` components
 
 ## v0.12.3
 

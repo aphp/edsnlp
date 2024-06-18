@@ -78,6 +78,8 @@ class TextCnn(torch.nn.Module):
         self, embeddings: torch.FloatTensor, mask: torch.BoolTensor
     ) -> torch.FloatTensor:
         # shape: samples words dim
+        if 0 in embeddings.shape:
+            return embeddings.view((*embeddings.shape[:-1], self.linear.out_features))  # type: ignore
         max_k = max(conv.kernel_size[0] for conv in self.convolutions)
         left_pad = (max_k) // 2
         right_pad = (max_k - 1) // 2

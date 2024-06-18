@@ -93,6 +93,9 @@ def test_ner_qualif_train(run_in_test_dir, tmp_path):
     scorer = GenericScorer(**kwargs["scorer"])
     last_scores = scorer(nlp, Reader(**kwargs["val_data"])(nlp))
 
+    # Check empty doc
+    nlp("")
+
     assert last_scores["ner"]["micro"]["f"] > 0.4
     assert last_scores["qual"]["micro"]["f"] > 0.4
 
@@ -105,6 +108,9 @@ def test_qualif_train(run_in_test_dir, tmp_path):
     nlp = train(**kwargs, output_path=tmp_path, cpu=True)
     scorer = GenericScorer(**kwargs["scorer"])
     last_scores = scorer(nlp, Reader(**kwargs["val_data"])(nlp))
+
+    # Check empty doc
+    nlp("")
 
     assert last_scores["qual"]["micro"]["f"] >= 0.4
 

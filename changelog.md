@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+### Changed
+
+### Fixed
+
+- `edsnlp.load("your/huggingface-model", install_dependencies=True)` now correctly resolves the python pip
+  (especially on Colab) to auto-install the model dependencies
+
 ## v0.12.3
 
 ### Changed

@@ -25,9 +25,25 @@ def execute_simple_backend(
     batch on the current process in a sequential manner.
     """
     try:
-        no_grad = sys.modules["torch"].no_grad
+        torch = sys.modules["torch"]
+        no_grad_ctx = torch.no_grad()
+        autocast_ctx = (
+            torch.autocast(
+                device_type=next(
+                    p.device for pipe in lc.torch_components for p in lc.parameters
+                ),
+                dtype=lc.autocast,
+            )
+            if lc.autocast is not None
+            else nullcontext()
+        )
+        inference_mode_ctx = (
+            torch.inference_mode()
+            if hasattr(torch, "inference_mode")
+            else nullcontext()
+        )
     except (KeyError, AttributeError):
-        no_grad = nullcontext
+        no_grad_ctx = autocast_ctx = inference_mode_ctx = nullcontext()
     reader = lc.reader
     writer = lc.writer
     show_progress = lc.show_progress
@@ -48,7 +64,7 @@ def execute_simple_backend(
 
             bar = tqdm(smoothing=0.1, mininterval=5.0)
 
-        with bar, lc.eval():
+        with bar, lc.eval(), autocast_ctx, inference_mode_ctx:
             for docs in batchify(
                 (
                     subtask
@@ -64,7 +80,7 @@ def execute_simple_backend(
 
                 for batch in batchify_fns[lc.batch_by](docs, lc.batch_size):
                     count = len(batch)
-                    with no_grad(), lc.cache():
+                    with no_grad_ctx, lc.cache():
                         batch = apply_basic_pipes(batch, batch_components)
 
                     if writer is not None:

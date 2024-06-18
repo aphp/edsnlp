@@ -656,13 +656,22 @@ class GPUWorker:
                 if name in self.gpu_pipe_names
             ]
 
+            autocast_ctx = (
+                torch.autocast(
+                    device_type=self.device,
+                    dtype=lc.autocast,
+                )
+                if lc.autocast is not None
+                else nullcontext()
+            )
+
             del lc
             logging.info(f"Starting {self} on {os.getpid()}")
 
             # Inform the main process that we are ready
             self.exchanger.put_results((None, 0, None, None))
 
-            with torch.no_grad():  # , torch.cuda.amp.autocast():
+            with torch.no_grad(), autocast_ctx, torch.inference_mode():
                 while True:
                     stage, task = self.exchanger.get_gpu_task(self.gpu_idx)
                     if task is None:

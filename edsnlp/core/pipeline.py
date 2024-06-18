@@ -1213,10 +1213,10 @@ def load_from_huggingface(
         new_mtime = max(os.path.getmtime(x) for x in Path(path).rglob("*"))
         should_install = new_mtime != mtime
 
+    pip = os.path.join(sysconfig.get_path("scripts"), "pip")
     if should_install or not any(
         p.startswith(module_name) and p.endswith(".dist-info") for p in os.listdir(path)
     ):
-        pip = os.path.join(sysconfig.get_path("scripts"), "pip")
         subprocess.run(
             [pip, "install", "-e", path, "--target", path, "--no-deps", "--upgrade"]
         )
@@ -1251,7 +1251,6 @@ def load_from_huggingface(
                 f"pip install {' '.join((repr(str(dep)) for dep in missing_deps))}",
                 UserWarning,
             )
-            pip = sys.executable.rsplit("/", 1)[0] + "/pip"
             subprocess.run([pip, "install", *(str(d) for d in missing_deps)])
     module = importlib.import_module(module_name)
     return module.load(**kwargs)

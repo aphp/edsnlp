@@ -20,8 +20,6 @@ class SuicideAttemptMatcher(BaseNERComponent):
     negation, hypothesis or family. We recomend to use a Machine Learning qualifier
     to disambiguate polysemic words, as proposed in [@bey_natural_2024].
 
-    It was designed at AP-HP's EDS, following the insights of the algorithm proposed
-    by [@bey_natural_2024].
 
     It sets the entity label `suicide_attempt`.
 

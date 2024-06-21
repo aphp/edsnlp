@@ -162,7 +162,7 @@ class SuicideAttemptMatcher(BaseNERComponent):
         Returns
         -------
         doc:
-            Doc object, annotated for extracted terms.
+            Doc object, annotated with suicide attempts entities.
         """
         matches = self.process(doc)
 

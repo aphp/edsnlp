@@ -141,9 +141,7 @@ class SuicideAttemptMatcher(BaseNERComponent):
             List of Spans returned by the matchers.
         """
 
-        regex_matches = self.regex_matcher(doc, as_spans=True)
-
-        spans = list(regex_matches)
+        spans = list(self.regex_matcher(doc, as_spans=True))
 
         for span in spans:
             span._.suicide_attempt_modality = span.label_

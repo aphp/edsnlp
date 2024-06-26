@@ -4,9 +4,14 @@
 
 ### Added
 
+- Added binary distribution for linux aarch64 (Streamlit's environment)
 - `data.set_processing(...)` now expose an `autocast` parameter to disable or tweak the automatic casting of the tensor
   during the processing. Autocasting should result in a slight speedup, but may lead to numerical instability.
 - Use `torch.inference_mode` to disable view tracking and version counter bumps during inference.
+- Added new separator option in eds.table and new input check
+- Added tables processing in eds.measurement
+- Added 'all' as possible input in eds.measurement measurements config
+- Added new units in eds.measurement
 
 ### Changed
 

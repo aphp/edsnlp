@@ -72,7 +72,9 @@ examples = [
 
 @fixture(autouse=True)
 def add_date_pipeline(blank_nlp: PipelineProtocol):
-    blank_nlp.add_pipe("eds.dates", config=dict(detect_periods=True, as_ents=True))
+    blank_nlp.add_pipe(
+        "eds.dates", config=dict(detect_periods=True, as_ents=True, explain=True)
+    )
 
 
 def test_dates_component(blank_nlp: PipelineProtocol):
@@ -89,6 +91,7 @@ def test_dates_component(blank_nlp: PipelineProtocol):
 
         for span, entity in zip(spans, entities):
             assert span.text == text[entity.start_char : entity.end_char]
+            assert bool(span._.date_cues)
 
             date = span._.date if span.label_ == "date" else span._.duration
             d = {modifier.key: modifier.value for modifier in entity.modifiers}

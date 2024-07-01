@@ -390,11 +390,7 @@ class StandoffDoc2DictConverter:
 
     def __call__(self, doc):
         spans = get_spans(doc, self.span_getter)
-        obj = {
-            FILENAME: doc._.note_id,
-            "doc_id": doc._.note_id,
-            "text": doc.text,
-            "entities": [
+        entities = [
                 {
                     "entity_id": i,
                     "fragments": [
@@ -411,8 +407,38 @@ class StandoffDoc2DictConverter:
                     "label": ent.label_,
                 }
                 for i, ent in enumerate(sorted(dict.fromkeys(spans)))
-            ],
+            ]
+        
+        # mapping between entities and their `entity_id`
+        entity_map = {(ent["fragments"][0]["begin"], ent["fragments"][0]["end"], ent["label"]): ent["entity_id"] for ent in entities}
+        
+        # doesn't include 'inv_' relations
+        relations = []
+        relation_idx = 1
+        for span_label, span_list in doc.spans.items():
+            for spa in span_list:
+                source_entity_id = entity_map.get((spa.start_char, spa.end_char, spa.label_))
+                for rel in spa._.rel:
+                    if not rel['type'].startswith('inv_'):
+                        target_entity_id = entity_map.get((rel['target'].start_char, rel['target'].end_char, rel['target'].label_))
+                        if source_entity_id is not None and target_entity_id is not None:
+                            relations.append({
+                                "rel_id": relation_idx,
+                                "from_entity_id": source_entity_id,
+                                "relation_type": rel['type'],
+                                "to_entity_id": target_entity_id
+                            })
+                            relation_idx += 1
+                            
+        # final object
+        obj = {
+            FILENAME: doc._.note_id,
+            "doc_id": doc._.note_id,
+            "text": doc.text,
+            "entities": entities,
+            "relations": relations
         }
+
         return obj
 
 

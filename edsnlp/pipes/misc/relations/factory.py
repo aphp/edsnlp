@@ -6,7 +6,7 @@ DEFAULT_CONFIG = dict(
     scheme=None,
     use_sentences=False,
     clean_rel=False,
-    proximity_method = "right",
+    proximity_method="right",
     max_dist=45,
 )
 

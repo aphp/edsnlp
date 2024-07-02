@@ -1,41 +1,43 @@
-from typing import Dict, Iterable, List, Union
+import json
+from typing import Any, Dict, List, Union
 
+import numpy as np
 from loguru import logger
-
-from spacy.tokens import Doc, Span
-from typing import Any
 from numpy.typing import NDArray
+from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
 from edsnlp.pipes.misc.relations import patterns
-import math as m
-import numpy as np
-import json
 
 
 class RelationsMatcher:
     '''
     The `eds.relations` component links source and target Named Entities +/- Attributes.
-    This component is rule-based and utilizes character proximity 
+    This component is rule-based and utilizes character proximity
     to determine relationships.
 
 
     Examples
     --------
-    In this simple example, we extract drugs and dates from a text and link them together.
+    In this simple example, we extract drugs and dates \
+        from a text and link them together.
     ```python
     import edsnlp, edsnlp.pipes as eds
 
     text = """
-        Prise pendant 3 semaines d'Amlodipine 5mg per os une fois par jour mais l'HTA reste mal contrôlée. 
-        Metformine 500 mg deux fois par jour à partir du 27/05/2022.  
-        Consultation chez un cardiologue le 11/07 pour évaluation de l'HTA, dans l'attente majoration de l'AMLODIPINE à 10 mg. 
+        Prise pendant 3 semaines d'Amlodipine 5mg per os une fois par jour \
+            mais l'HTA reste mal contrôlée.
+        Metformine 500 mg deux fois par jour à partir du 27/05/2022.
+        Consultation chez un cardiologue le 11/07 pour évaluation de l'HTA, \
+            dans l'attente majoration de l'AMLODIPINE à 10 mg.
         """
 
     scheme = {
         "source": [{"label": "drug", "attr": None}],
-        "target": [{"label": "dates", "attr": None}, 
-                    {"label": "durations", "attr": None}],
+        "target": [
+            {"label": "dates", "attr": None},
+            {"label": "durations", "attr": None},
+        ],
         "type": "Temporal",
         "inv_type": "inv_Temporal",
     }
@@ -65,24 +67,29 @@ class RelationsMatcher:
         for span in doc.spans[label]:
             print("\t Entity :", span, "\t Relations :", span._.rel)
 
-    # Out: Label:  drug 	 Entities : [Amlodipine, Metformine, AMLODIPINE]
-        # Entity : Amlodipine 	 Relations : [{'type': 'Temporal', 'target': pendant 3 semaines}]
-        # Entity : Metformine 	 Relations : [{'type': 'Temporal', 'target': 27/05/2022}]
+        # Out: Label:  drug 	 \
+        # Entities : [Amlodipine, Metformine, AMLODIPINE]
+        # Entity : Amlodipine 	 Relations : \
+        # [{'type': 'Temporal', target': pendant 3 semaines}]
+        # Entity : Metformine 	 Relations : \
+        [{"type": "Temporal", "target": 27 / 05 / 2022}]
         # Entity : AMLODIPINE 	 Relations : []
 
-    # Label:  dates 	 Entities : [27/05/2022, 11/07]
-        # Entity : 27/05/2022 	 Relations : [{'type': 'inv_Temporal', 'target': Metformine}]
+        # Label:  dates 	 Entities : [27/05/2022, 11/07]
+        # Entity : 27/05/2022 	 Relations : \
+        [{"type": "inv_Temporal", "target": Metformine}]
         # Entity : 11/07 	 Relations : []
 
-    # Label:  durations 	 Entities : [pendant 3 semaines]
-        # Entity : pendant 3 semaines 	 Relations : [{'type': 'inv_Temporal', 'target': Amlodipine}]
+        # Label:  durations 	 Entities : [pendant 3 semaines]
+        # Entity : pendant 3 semaines 	\
+        Relations: [{"type": "inv_Temporal", "target": Amlodipine}]
 
     # Label:  periods 	 Entities : []
     ```
 
     Extensions
     ----------
-    The `eds.relations` pipeline adds and declares one extension 
+    The `eds.relations` pipeline adds and declares one extension
     on the `Span` objects called `rel`. By default rel is an empty list.
 
     The `rel` extension is a list of dictionaries
@@ -111,19 +118,23 @@ class RelationsMatcher:
         The maximum distance between the entities to consider them as related
     clean_rel: bool = True
         Whether or not to clean the relations before adding new ones
-    
+
     Scheme
     ------
-    It can be a dictionary (one relation), a list of dictionaries (one or more relations) 
+    It can be a dictionary (one relation), \
+        a list of dictionaries (one or more relations)
     or a string indicating the path of a json file.
 
-    Each dictionary should contain the keys `source`, `target`, `type` and `inv_type`.
+    Each dictionary should contain the keys \
+        `source`, `target`, `type` and `inv_type`.
 
-    `source` and `target` are lists of dictionaries containing the keys `label` and `attr`.
+    `source` and `target` are lists of dictionaries \
+        containing the keys `label` and `attr`.
 
     `label` is the label of the entity to match.
 
-    `attr` is a dictionary containing the attributes to match on or None if no attribute is needed.
+    `attr` is a dictionary containing the attributes \
+        to match on or None if no attribute is needed.
 
     `type` is the type of the relation.
 
@@ -176,13 +187,13 @@ class RelationsMatcher:
     The `eds.relations` was developed by AP-HP's Data Science team.
 
     '''
-    
+
     def __init__(
         self,
         nlp: PipelineProtocol,
         name: str = "relations",
         *,
-        scheme: Union[Union[Dict, List[Dict]],str] = None,
+        scheme: Union[Union[Dict, List[Dict]], str] = None,
         use_sentences: bool = False,
         proximity_method: str = "right",
         clean_rel: bool = True,
@@ -196,7 +207,6 @@ class RelationsMatcher:
         if scheme is None:
             scheme = patterns.scheme
         if isinstance(scheme, str):
-            #ouvrir le fichier json et le lire pour le mettre dans une variable
             if not scheme.endswith(".json"):
                 raise ValueError("scheme must be a json file")
             with open(scheme) as f:
@@ -234,7 +244,7 @@ class RelationsMatcher:
         self.max_dist = max_dist
 
         self.set_extensions()
-    
+
     def check_scheme(self, schemes):
         for scheme in schemes:
             if not isinstance(scheme, dict):
@@ -264,7 +274,9 @@ class RelationsMatcher:
                     raise ValueError("scheme['source']['label'] must be a string")
                 if "attr" in sub:
                     if sub["attr"] is not None and not isinstance(sub["attr"], dict):
-                        raise ValueError("scheme['source']['attr'] must be a dictionary or None")
+                        raise ValueError(
+                            "scheme['source']['attr'] must be a dictionary or None"
+                        )
             for obj in scheme["target"]:
                 if not isinstance(obj, dict):
                     raise ValueError("scheme['target'] must contain dictionaries")
@@ -274,16 +286,17 @@ class RelationsMatcher:
                     raise ValueError("scheme['target']['label'] must be a string")
                 if "attr" in obj:
                     if obj["attr"] is not None and not isinstance(obj["attr"], dict):
-                        raise ValueError("scheme['target']['attr'] must be a dictionary or None")
+                        raise ValueError(
+                            "scheme['target']['attr'] must be a dictionary or None"
+                        )
         return True
 
     @classmethod
     def set_extensions(cls) -> None:
-        """Set the extension rel for the Span target.
-        """
+        """Set the extension rel for the Span target."""
         if not Span.has_extension("rel"):
             Span.set_extension("rel", default=[])
-    
+
     def clean_relations(self, doc: Doc) -> Doc:
         """Remove the relations from the doc
 
@@ -300,7 +313,8 @@ class RelationsMatcher:
         return doc
 
     def __call__(self, doc: Doc) -> Doc:
-        """find the relations in the doc based on the proximity of the entities attributes
+        """find the relations in the doc based \
+            on the proximity of the entities attributes
 
         Args:
             doc (Doc): the doc to be processed
@@ -321,19 +335,31 @@ class RelationsMatcher:
                 for i, span_obj in enumerate(dict_r[r]["spans_obj"]):
                     if distances[min_distance_indices[i]][i] <= self.max_dist:
                         span_sub = dict_r[r]["spans_sub"][min_distance_indices[i]]
-                        if self.use_sentences and not self.sentences(doc, span_obj["span"], span_sub["span"]):
+                        if self.use_sentences and not self.sentences(
+                            doc, span_obj["span"], span_sub["span"]
+                        ):
                             continue
-                        doc.spans[span_obj['label']][span_obj['num_span']]._.rel.append(
-                                    {"type": dict_r[r]["inv_type"], "target": doc.spans[span_sub["label"]][span_sub["num_span"]]}
-                                )
+                        doc.spans[span_obj["label"]][span_obj["num_span"]]._.rel.append(
+                            {
+                                "type": dict_r[r]["inv_type"],
+                                "target": doc.spans[span_sub["label"]][
+                                    span_sub["num_span"]
+                                ],
+                            }
+                        )
 
-                        doc.spans[span_sub['label']][span_sub['num_span']]._.rel.append(
-                                    {"type": dict_r[r]["type"], "target": doc.spans[span_obj["label"]][span_obj["num_span"]]}
-                                )
+                        doc.spans[span_sub["label"]][span_sub["num_span"]]._.rel.append(
+                            {
+                                "type": dict_r[r]["type"],
+                                "target": doc.spans[span_obj["label"]][
+                                    span_obj["num_span"]
+                                ],
+                            }
+                        )
         return doc
-    
+
     def sentences(self, doc: Doc, span_obj: Span, span_sub: Span) -> bool:
-        """ Check if span_obj and span_sub are in the same sentence.
+        """Check if span_obj and span_sub are in the same sentence.
 
         Args:
             doc (Doc): EDSNLP Doc target
@@ -341,13 +367,18 @@ class RelationsMatcher:
             span_sub (Span): span representing the source
 
         Returns:
-            bool: True if span_obj and span_sub are in the same sentence, False otherwise.
+            bool: True if span_obj and span_sub \
+                are in the same sentence, False otherwise.
         """
         for sent in doc.sents:
-            if span_obj.start >= sent.start and span_obj.end <= sent.end and span_sub.start >= sent.start and span_sub.end <= sent.end:
+            if (
+                span_obj.start >= sent.start
+                and span_obj.end <= sent.end
+                and span_sub.start >= sent.start
+                and span_sub.end <= sent.end
+            ):
                 return True
         return False
-
 
     def find_relations(self, doc: Doc) -> Dict:
         """
@@ -382,13 +413,25 @@ class RelationsMatcher:
                                 dict_r[r]["mat_obj"].append(
                                     [span_obj.start_char, span_obj.end_char]
                                 )
-                                dict_r[r]["spans_obj"].append({'label': label_obj, 'num_span': num_span_obj, 'span': span_obj})
+                                dict_r[r]["spans_obj"].append(
+                                    {
+                                        "label": label_obj,
+                                        "num_span": num_span_obj,
+                                        "span": span_obj,
+                                    }
+                                )
                     else:
                         for num_span_obj, span_obj in enumerate(doc.spans[label_obj]):
                             dict_r[r]["mat_obj"].append(
                                 [span_obj.start_char, span_obj.end_char]
                             )
-                            dict_r[r]["spans_obj"].append({'label': label_obj, 'num_span': num_span_obj, 'span': span_obj})
+                            dict_r[r]["spans_obj"].append(
+                                {
+                                    "label": label_obj,
+                                    "num_span": num_span_obj,
+                                    "span": span_obj,
+                                }
+                            )
 
             # Treatment of sources
             for sub in relation["source"]:
@@ -403,13 +446,25 @@ class RelationsMatcher:
                                 dict_r[r]["mat_sub"].append(
                                     [span_sub.start_char, span_sub.end_char]
                                 )
-                                dict_r[r]["spans_sub"].append({'label': label_sub, 'num_span': num_span_sub, 'span': span_sub})
+                                dict_r[r]["spans_sub"].append(
+                                    {
+                                        "label": label_sub,
+                                        "num_span": num_span_sub,
+                                        "span": span_sub,
+                                    }
+                                )
                     else:
                         for num_span_sub, span_sub in enumerate(doc.spans[label_sub]):
                             dict_r[r]["mat_sub"].append(
                                 [span_sub.start_char, span_sub.end_char]
                             )
-                            dict_r[r]["spans_sub"].append({'label': label_sub, 'num_span': num_span_sub, 'span': span_sub})
+                            dict_r[r]["spans_sub"].append(
+                                {
+                                    "label": label_sub,
+                                    "num_span": num_span_sub,
+                                    "span": span_sub,
+                                }
+                            )
 
             # Convert lists to numpy arrays for easier manipulation later
         for r in dict_r:
@@ -418,8 +473,10 @@ class RelationsMatcher:
 
         return dict_r
 
-    def calculate_min_distances(self, sources:NDArray[Any], targets:NDArray[Any]) -> NDArray[Any]:
-        """ calculate the minimum distance between sources and targets
+    def calculate_min_distances(
+        self, sources: NDArray[Any], targets: NDArray[Any]
+    ) -> NDArray[Any]:
+        """calculate the minimum distance between sources and targets
 
         Args:
             sources (NDArray[Any]): entities to be used as sources
@@ -438,8 +495,8 @@ class RelationsMatcher:
         distance_start_to_start = sources_expanded[:, :, 0] - targets_expanded[:, :, 0]
         distance_end_to_end = targets_expanded[:, :, 1] - sources_expanded[:, :, 1]
         distance_middle = (
-            sources_expanded[:, :, 0] + sources_expanded[:, :, 1]
-        ) / 2 - (targets_expanded[:, :, 0] + targets_expanded[:, :, 1]) / 2
+            np.abs(distance_start_to_start) + np.abs(distance_end_to_end)
+        ) / 2
 
         if self.proximity_method == "sym":
             distance_middle = np.abs(
@@ -485,7 +542,7 @@ class RelationsMatcher:
             min_distance_indices = np.argmin(distances, axis=0)
 
         return min_distance_indices, distances
-    
+
     def filter_spans(
         self, span: Span, attr_name: str, attr_values: list, label: str
     ) -> bool:
@@ -501,9 +558,7 @@ class RelationsMatcher:
             bool: _description_
         """
         # Get the attribute value or None if it doesn't exist
-        attr_value = getattr(span._, attr_name, None)  
+        attr_value = getattr(span._, attr_name, None)
         if attr_value in attr_values:
             return True
         return False
-
-

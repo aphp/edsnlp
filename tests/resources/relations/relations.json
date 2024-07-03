@@ -1,6 +1,6 @@
 [
     {
-        "subject": [
+        "source": [
             {
                 "label": "Chemical_and_drugs",
                 "attr": {
@@ -10,7 +10,7 @@
                 }
             }
         ],
-        "object": [
+        "target": [
             {
                 "label": "Temporal",
                 "attr": {

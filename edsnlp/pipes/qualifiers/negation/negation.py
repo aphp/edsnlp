@@ -184,6 +184,7 @@ class NegationQualifier(RuleBasedQualifier):
             explain=explain,
             terms=terms,
             regex=regex,
+            attributes=["_.negation"],
             on_ents_only=on_ents_only,
             span_getter=span_getter,
         )

@@ -151,27 +151,28 @@ class LinearChainCRF(torch.nn.Module):
             )
         path = torch.zeros(*emissions.shape[:-1], dtype=torch.long)
 
-        emissions[..., 1:][~mask] = IMPOSSIBLE
-        emissions = emissions.unbind(1)  # 1 is axis for words
+        if 0 not in emissions.shape:
+            emissions[..., 1:][~mask] = IMPOSSIBLE
+            emissions = emissions.unbind(1)  # 1 is axis for words
 
-        # emissions: n_tokens * n_samples * n_tags
-        out = [emissions[0] + start_transitions]
-        backtrack = []
+            # emissions: n_tokens * n_samples * n_tags
+            out = [emissions[0] + start_transitions]
+            backtrack = []
 
-        for k in range(1, len(emissions)):
-            res, indices = max_reduce(out[-1], transitions)
-            backtrack.append(indices)
-            out.append(res + emissions[k])
+            for k in range(1, len(emissions)):
+                res, indices = max_reduce(out[-1], transitions)
+                backtrack.append(indices)
+                out.append(res + emissions[k])
 
-        res, indices = max_reduce(out[-1], end_transitions.unsqueeze(-1))
-        path[:, -1] = indices.squeeze(-1)
+            res, indices = max_reduce(out[-1], end_transitions.unsqueeze(-1))
+            path[:, -1] = indices.squeeze(-1)
 
-        # If make has shape n_samples * n_tokens,
-        # we only need range(n_samples)
-        if len(backtrack) > 1:
-            # Backward max path following
-            for k, b in enumerate(backtrack[::-1]):
-                path[:, -k - 2] = index_dim(b, path[:, -k - 1], dim=-1)
+            # If make has shape n_samples * n_tokens,
+            # we only need range(n_samples)
+            if len(backtrack) > 1:
+                # Backward max path following
+                for k, b in enumerate(backtrack[::-1]):
+                    path[:, -k - 2] = index_dim(b, path[:, -k - 1], dim=-1)
 
         return path.to(transitions.device)
 

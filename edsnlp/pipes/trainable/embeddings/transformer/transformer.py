@@ -1,42 +1,54 @@
-import math
+import warnings
 from pathlib import Path
 from typing import List, Optional, Set, Tuple, Union
 
+import foldedtensor as ft
 import tokenizers
+import tokenizers.normalizers
 import torch
-from confit import validate_arguments
-from foldedtensor import as_folded_tensor
+from confit import VisibleDeprecationWarning, validate_arguments
 from transformers import AutoModel, AutoTokenizer
 from transformers import BitsAndBytesConfig as BitsAndBytesConfig_
 from typing_extensions import Literal, TypedDict
 
 from edsnlp import Pipeline
+from edsnlp.core.torch_component import cached
 from edsnlp.pipes.trainable.embeddings.typing import WordEmbeddingComponent
-from edsnlp.utils.span_getters import SpanGetterArg, get_spans
+from edsnlp.utils.span_getters import SpanGetterArg
 
 INITIAL_MAX_TOKENS_PER_DEVICE = 32 * 128
 TransformerBatchInput = TypedDict(
     "TransformerBatchInput",
     {
-        "input_ids": torch.LongTensor,
-        "attention_mask": torch.BoolTensor,
-        "token_window_indices": torch.LongTensor,
-        "words_offsets": torch.LongTensor,
-        "mask": torch.BoolTensor,
+        "input_ids": ft.FoldedTensor,
+        "word_indices": torch.Tensor,
+        "word_offsets": ft.FoldedTensor,
+        "empty_word_indices": torch.Tensor,
     },
 )
+"""
+input_ids: FoldedTensor
+    Tokenized input (prompt + text) to embed
+word_indices: torch.LongTensor
+    Flattened indices of the word's wordpieces in the flattened input_ids
+word_offsets: FoldedTensor
+    Offsets of the word's wordpieces in the flattened input_ids
+empty_word_indices: torch.LongTensor
+    Indices of empty words in the flattened input_ids
+"""
+
+TransformerBatchOutput = TypedDict(
+    "TransformerBatchOutput",
+    {
+        "embeddings": ft.FoldedTensor,
+    },
+)
+"""
+embeddings: FoldedTensor
+    The embeddings of the words
+"""
 
 BitsAndBytesConfig = validate_arguments(BitsAndBytesConfig_)
-
-
-def compute_contextualization_scores(windows):
-    ramp = torch.arange(0, windows.shape[1], 1)
-    scores = (
-        torch.min(ramp, windows.mask.sum(1, keepdim=True) - 1 - ramp)
-        .clamp(min=0)
-        .view(-1)
-    )
-    return scores
 
 
 class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
@@ -103,6 +115,10 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
     stride: int
         The stride (distance between windows) to use when splitting long documents into
         smaller windows: (default: 96)
+    training_stride: bool
+        If False, the stride will be set to the window size during training, meaning
+        that there will be no overlap between windows. If True, the stride will be set
+        to the `stride` parameter during training, just like during inference.
     max_tokens_per_device: Union[int, Literal["auto"]]
         The maximum number of tokens that can be processed by the model on a single
         device. This does not affect the results but can be used to reduce the memory
@@ -123,6 +139,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         model: Union[str, Path],
         window: int = 128,
         stride: int = 96,
+        training_stride: bool = True,
         max_tokens_per_device: Union[int, Literal["auto"]] = "auto",
         span_getter: Optional[SpanGetterArg] = None,
         new_tokens: Optional[List[Tuple[str, str]]] = [],
@@ -130,6 +147,14 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         **kwargs,
     ):
         super().__init__(nlp, name)
+
+        if span_getter is not None:
+            warnings.warn(
+                "The `span_getter` parameter of the `eds.transformer` component is "
+                "deprecated. Please use the `context_getter` parameter of the "
+                "other higher level task components instead.",
+                VisibleDeprecationWarning,
+            )
         self.transformer = AutoModel.from_pretrained(
             model,
             quantization_config=quantization,
@@ -138,6 +163,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         self.tokenizer = AutoTokenizer.from_pretrained(model)
         self.window = window
         self.stride = stride
+        self.training_stride = training_stride
         self.output_size = self.transformer.config.hidden_size
         self.empty_word_embedding = torch.nn.Parameter(
             torch.randn(
@@ -154,7 +180,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
             original_normalizer = self.tokenizer.backend_tokenizer.normalizer
             self.tokenizer.backend_tokenizer.normalizer = (
                 tokenizers.normalizers.Sequence(
-                    [
+                    [  # type: ignore
                         *(
                             tokenizers.normalizers.Replace(
                                 tokenizers.Regex(pattern), replacement
@@ -182,164 +208,220 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         cfg["model"] = f"./{path.as_posix()}"
         return cfg
 
-    def preprocess(self, doc):
+    @cached(
+        key=lambda self, doc, *, contexts=None, prompts=(): (
+            (
+                hash(doc),
+                tuple(hash(c) for c in ([doc[:]] if contexts is None else contexts)),
+                tuple(prompts),
+            )
+        )
+    )
+    def preprocess(self, doc, *, contexts=None, prompts=()):
         res = {
             "input_ids": [],
             "word_tokens": [],
             "word_lengths": [],
+            "prompts": [],
         }
 
-        for span in get_spans(doc, self.span_getter):
+        # Tokenize prompts
+        prompts_input_ids = [
+            self.tokenizer(
+                prompt,
+                is_split_into_words=False,
+                add_special_tokens=False,
+                return_attention_mask=False,
+                return_offsets_mapping=False,
+            ).input_ids
+            for prompt in prompts
+        ] or [[]]
+        if contexts is None:
+            contexts = [doc[:]] * len(prompts_input_ids)
+        elif not prompts:
+            prompts_input_ids = [[]] * len(contexts)
+        else:
+            assert len(contexts) == len(prompts_input_ids), (
+                "The number of spans and prompts passed in the `preprocess` "
+                "method should be the same."
+            )
+
+        for ctx, prompt in zip(contexts, prompts_input_ids):
             # Preprocess it using LayoutLMv3
             prep = self.tokenizer(
-                span.text,
+                ctx.text,
                 is_split_into_words=False,
                 return_offsets_mapping=True,
                 return_attention_mask=False,
+                add_special_tokens=False,
             )
 
             span_word_tokens, span_word_lengths = self.align_words_with_trf_tokens(
-                span, prep.pop("offset_mapping")
+                ctx, prep.pop("offset_mapping")
             )
             res["input_ids"].append(prep["input_ids"])
             res["word_tokens"].append(span_word_tokens)
             res["word_lengths"].append(span_word_lengths)
+            res["prompts"].append(prompt)
 
         return res
 
     def collate(self, batch):
-        # Flatten most of these arrays to process batches page per page and
-        # not sample per sample
+        """
+        How this works:
+        1. Iterate over samples, and in each sample over spans of text to embed
+           independently, and extract their input ids (and optionally prompts)
+           in a list `input_ids` that will be passed to the transformer.
 
-        S = self.stride
-        W = self.window
+           `embeds = self.embedding(input_ids)`
+        2. Since we want to aggregate over words, and have overlapping spans, we need
+           to process indices carefully. Once the individual spans are embedded, we
+           will flatten them...
 
-        offset = 0
-        window_max_size = 0
-        window_count = 0
-        windows = []
-        windows_count_per_page = []
-        for sample_input_ids in batch["input_ids"]:
-            for span_input_ids in sample_input_ids:
-                span_size = len(span_input_ids)
-                num_span_windows = 1 + max(0, math.ceil((span_size - 2 - W) / S))
-                windows.append(
-                    [
-                        [
-                            offset + 0,
-                            *range(
-                                1 + offset + win_i * S,
-                                1 + offset + min(win_i * S + W, span_size - 2),
-                            ),
-                            offset + len(span_input_ids) - 1,
-                        ]
-                        for win_i in range(0, num_span_windows)
-                    ]
+           `flat_embeds = embeds.view(-1, embeds.size(2))[indexer]`
+
+        Parameters
+        ----------
+        batch
+
+        Returns
+        -------
+
+        """
+        stride = (
+            self.window if self.training and not self.training_stride else self.stride
+        )
+        max_seq_size = max(
+            [
+                2  # CLS and SEP tokens
+                + (  # Prompt tokens (prompt + [SEP])
+                    len(span_prompt_input_ids) + 1 if span_prompt_input_ids else 0
                 )
-                windows_count_per_page.append(len(windows[-1]))
-                offset += len(span_input_ids)
-                window_max_size = max(window_max_size, max(map(len, windows[-1])))
-                window_count += len(windows[-1])
-
-        windows = as_folded_tensor(
-            windows,
-            full_names=("sample", "window", "token"),
-            data_dims=("window", "token"),
-            dtype=torch.long,
+                + min(self.window, len(span_text_input_ids))  # Text tokens
+                for sample_text_input_ids, sample_prompt_input_ids in zip(
+                    batch["input_ids"],
+                    batch["prompts"],
+                )
+                for span_text_input_ids, span_prompt_input_ids in zip(
+                    sample_text_input_ids,
+                    sample_prompt_input_ids,
+                )
+            ]
+            or [0]
         )
-        indexer = torch.zeros(
-            (0 if 0 in windows.shape else windows.max()) + 1, dtype=torch.long
-        )
-
-        # Sort each occurrence of an initial token by its contextualization score:
-        # We can only use the amax reduction, so to retrieve the best occurrence, we
-        # insert the index of the token output by the transformer inside the score
-        # using a lexicographic approach
-        # (score + index / n_tokens) ~ (score * n_tokens + index), taking the max,
-        # and then retrieving the index of the token using the modulo operator.
-        scores = compute_contextualization_scores(windows)
-        scores = scores * len(scores) + torch.arange(len(scores))
-
-        indexer.index_reduce_(
-            dim=0,
-            source=scores,
-            index=windows.view(-1),
-            reduce="amax",
-        )
-        indexer %= max(len(scores), 1)
-        indexer = indexer.tolist()
-        # Indexer: flattened, unpadded mapping tensor, that for each wordpiece in the
-        # batch gives its position inside the flattened padded windows before/after the
-        # transformer
-
-        input_ids = as_folded_tensor(
-            batch["input_ids"],
-            data_dims=("subword",),
-            full_names=("sample", "span", "subword"),
-            dtype=torch.long,
-        ).as_tensor()[windows]
-        empty_id = input_ids.numel()
-
+        input_ids = []
+        token_indices = []
         word_indices = []
         word_offsets = []
-        offset = 0
-        indexer_offset = 0
-        mask = []
-        for sample_word_lengths, sample_word_tokens, sample_input_ids in zip(
-            batch["word_lengths"], batch["word_tokens"], batch["input_ids"]
+        empty_word_indices = []
+        overlap = self.window - stride
+        word_offset = 0
+        all_word_wp_offset = 0
+        for (
+            sample_text_input_ids,
+            sample_prompt_input_ids,
+            sample_word_lengths,
+            sample_word_tokens,
+        ) in zip(
+            batch["input_ids"],
+            batch["prompts"],
+            batch["word_lengths"],
+            batch["word_tokens"],
         ):
-            for span_word_lengths, span_word_tokens, span_input_ids in zip(
-                sample_word_lengths, sample_word_tokens, sample_input_ids
+            sample_word_offsets = []
+            word_offsets.append(sample_word_offsets)
+            for (
+                span_text_input_ids,
+                span_prompt_input_ids,
+                span_word_lengths,
+                span_word_tokens,
+            ) in zip(
+                sample_text_input_ids,
+                sample_prompt_input_ids,
+                sample_word_lengths,
+                sample_word_tokens,
             ):
-                offset = 0
-                for length in span_word_lengths:
-                    word_offsets.append(len(word_indices))
-                    word_indices.extend(
-                        [
-                            indexer[indexer_offset + i] if i >= 0 else empty_id
-                            for i in span_word_tokens[offset : offset + length]
-                        ]
+                prompt_input_ids = [self.tokenizer.cls_token_id]
+                if span_prompt_input_ids:
+                    prompt_input_ids.extend(
+                        [*span_prompt_input_ids, self.tokenizer.sep_token_id]
                     )
-                    offset += length
-                indexer_offset += len(span_input_ids)
-                mask.append([True] * len(span_word_lengths))
+                windows_offsets = list(
+                    range(0, max(len(span_text_input_ids) - overlap, 1), stride)
+                )
+                span_token_indices = []
+                for idx, offset in enumerate(windows_offsets):
+                    total_offset = len(input_ids) * max_seq_size + len(prompt_input_ids)
+                    window_text_input_ids = span_text_input_ids[
+                        offset : offset + self.window
+                    ]
+                    window_input_ids = (
+                        prompt_input_ids
+                        + window_text_input_ids
+                        + [self.tokenizer.sep_token_id]
+                    )
+                    left_overlap = overlap // 2 if offset > 0 else 0
+                    right_overlap = (
+                        (overlap + 1) // 2 if idx < len(windows_offsets) - 1 else 0
+                    )
+                    wp_indices = list(
+                        range(
+                            total_offset + left_overlap,
+                            total_offset + len(window_text_input_ids) - right_overlap,
+                        )
+                    )
+                    span_token_indices.extend(wp_indices)
+                    input_ids.append(window_input_ids)
+
+                token_indices.append(span_token_indices)
+
+                span_word_wp_offsets = []
+                sample_word_offsets.append(span_word_wp_offsets)
+                word_wp_offset = 0
+                for length in span_word_lengths:
+                    if length == 0:
+                        empty_word_indices.append(word_offset)
+                    span_word_wp_offsets.append(all_word_wp_offset + word_wp_offset)
+                    word_wp_indices = [
+                        span_token_indices[i]
+                        for i in span_word_tokens[
+                            word_wp_offset : word_wp_offset + length
+                        ]
+                    ]
+                    word_indices.extend(word_wp_indices)
+                    word_wp_offset += length
+                    word_offset += 1
+                all_word_wp_offset += word_wp_offset
 
         return {
-            "input_ids": input_ids.as_tensor(),
-            "input_mask": input_ids.mask,
-            "word_indices": torch.as_tensor(word_indices),
-            "word_offsets": torch.as_tensor(word_offsets),
-            "mask": as_folded_tensor(
-                mask,
-                data_dims=(
-                    "span",
-                    "subword",
-                ),
-                full_names=("span", "subword"),
-                dtype=torch.bool,
-            ).as_tensor(),
+            "input_ids": ft.as_folded_tensor(
+                input_ids,
+                data_dims=("context", "subword"),
+                full_names=("context", "subword"),
+                dtype=torch.long,
+            ),
+            "word_offsets": ft.as_folded_tensor(
+                word_offsets,
+                data_dims=("word",),
+                full_names=("sample", "context", "word"),
+                dtype=torch.long,
+            ),
+            "word_indices": torch.as_tensor(word_indices, dtype=torch.long),
+            "empty_word_indices": torch.as_tensor(empty_word_indices, dtype=torch.long),
         }
 
-    def forward(self, batch):
+    def forward(self, batch: TransformerBatchInput) -> TransformerBatchOutput:
         device = batch["input_ids"].device
-        if len(batch["input_ids"]) == 0:
-            return {
-                "embeddings": torch.zeros(
-                    (*batch["mask"].shape, self.output_size),
-                    dtype=torch.float,
-                    device=device,
-                ),
-                "mask": batch["mask"].clone(),
-            }
-
+        input_ids = batch["input_ids"].as_tensor()
+        attention_mask = batch["input_ids"].mask
         kwargs = dict(
-            input_ids=batch["input_ids"],
-            attention_mask=batch["input_mask"],
+            input_ids=input_ids,
+            attention_mask=attention_mask,
         )
         auto_batch_size = device.type == "cuda" and self.max_tokens_per_device == "auto"
         trial_idx = 1
         while True:
-            total_tokens = batch["input_ids"].numel()
+            total_tokens = input_ids.numel()
             if auto_batch_size:  # pragma: no cover
                 max_tokens = INITIAL_MAX_TOKENS_PER_DEVICE
                 torch.cuda.synchronize(device)
@@ -357,8 +439,8 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                     else INITIAL_MAX_TOKENS_PER_DEVICE
                 )
 
-            max_windows = max(1, max_tokens // batch["input_ids"].size(1))
-            total_windows = batch["input_ids"].size(0)
+            max_windows = max(1, max_tokens // input_ids.size(1))
+            total_windows = input_ids.size(0)
             try:
                 wordpiece_embeddings = [
                     self.transformer.base_model(
@@ -398,30 +480,31 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                 raise
             break
 
-        mask = batch["mask"].clone()
-        word_embeddings = torch.zeros(
-            (mask.size(0), mask.size(1), wordpiece_embeddings.size(2)),
-            dtype=torch.float,
-            device=device,
-        )
-        embeddings_plus_empty = torch.cat(
-            [
-                wordpiece_embeddings.view(-1, wordpiece_embeddings.size(2)),
-                self.empty_word_embedding,
-            ],
-            dim=0,
-        )
-        word_embeddings[mask] = torch.nn.functional.embedding_bag(
+        # mask = batch["mask"].clone()
+        # word_embeddings = torch.zeros(
+        #     (mask.size(0), mask.size(1), wordpiece_embeddings.size(2)),
+        #     dtype=torch.float,
+        #     device=device,
+        # )
+        # embeddings_plus_empty = torch.cat(
+        #     [
+        #         wordpiece_embeddings.view(-1, wordpiece_embeddings.size(2)),
+        #         self.empty_word_embedding,
+        #     ],
+        #     dim=0,
+        # )
+        word_embeddings = torch.nn.functional.embedding_bag(
             input=batch["word_indices"],
-            weight=embeddings_plus_empty,
+            weight=wordpiece_embeddings.view(-1, wordpiece_embeddings.size(2)),
             offsets=batch["word_offsets"],
         )
+        word_embeddings[batch["empty_word_indices"]] = self.empty_word_embedding
         return {
-            "embeddings": word_embeddings,
-            "mask": mask,
+            "embeddings": word_embeddings.refold("context", "word"),
         }
 
-    def align_words_with_trf_tokens(self, doc, trf_char_indices):
+    @staticmethod
+    def align_words_with_trf_tokens(doc, trf_char_indices):
         token_i = 0
         n_trf_tokens = len(trf_char_indices)
         word_tokens = []
@@ -441,10 +524,5 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                 else:
                     length += 1
                     word_tokens.append(j)
-            if length > 0:
-                word_lengths[word_i] = length
-            else:
-                word_tokens.append(-1)
-                word_lengths[word_i] = 1
-
+            word_lengths[word_i] = length
         return word_tokens, word_lengths

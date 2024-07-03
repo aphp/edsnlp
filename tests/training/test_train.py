@@ -1,3 +1,9 @@
+# ruff: noqa: E402
+
+import pytest
+
+pytest.importorskip("rich")
+
 import shutil
 from typing import (
     Optional,
@@ -87,8 +93,11 @@ def test_ner_qualif_train(run_in_test_dir, tmp_path):
     scorer = GenericScorer(**kwargs["scorer"])
     last_scores = scorer(nlp, Reader(**kwargs["val_data"])(nlp))
 
-    assert last_scores["exact_ner"]["micro"]["f"] > 0.4
-    assert last_scores["qualifier"]["micro"]["f"] > 0.4
+    # Check empty doc
+    nlp("")
+
+    assert last_scores["ner"]["micro"]["f"] > 0.4
+    assert last_scores["qual"]["micro"]["f"] > 0.4
 
 
 def test_qualif_train(run_in_test_dir, tmp_path):
@@ -100,7 +109,10 @@ def test_qualif_train(run_in_test_dir, tmp_path):
     scorer = GenericScorer(**kwargs["scorer"])
     last_scores = scorer(nlp, Reader(**kwargs["val_data"])(nlp))
 
-    assert last_scores["qualifier"]["micro"]["f"] >= 0.4
+    # Check empty doc
+    nlp("")
+
+    assert last_scores["qual"]["micro"]["f"] >= 0.4
 
 
 def test_optimizer():

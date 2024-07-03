@@ -3,11 +3,7 @@ from typing import Any, Dict, List
 
 import pandas as pd
 import pytest
-from pyspark.sql import types as T
-from pyspark.sql.session import SparkSession
 from spacy.tokens import Doc
-
-from edsnlp.processing import pipe
 
 text = """
 Motif :
@@ -27,6 +23,9 @@ Possible infection au coronavirus
 
 
 def note(module):
+    from pyspark.sql import types as T
+    from pyspark.sql.session import SparkSession
+
     data = [(i, i // 5, text, datetime(2021, 1, 1)) for i in range(20)]
 
     if module == "pandas":
@@ -110,6 +109,10 @@ except ImportError:
 
 @pytest.mark.parametrize("param", params)
 def test_pipelines(param, model):
+    from pyspark.sql import types as T
+
+    from edsnlp.processing import pipe
+
     module = param["module"]
 
     note_nlp = pipe(
@@ -125,7 +128,17 @@ def test_pipelines(param, model):
             "reported_speech": T.BooleanType(),
             "date.year": T.IntegerType(),
             "date.month": T.IntegerType(),
-        },
+        }
+        if module in ("pyspark", "koalas")
+        else [
+            "score_method",
+            "negation",
+            "hypothesis",
+            "family",
+            "reported_speech",
+            "date_year",
+            "date_month",
+        ],
         additional_spans=["dates"],
     )
 
@@ -155,6 +168,8 @@ def test_pipelines(param, model):
 
 
 def test_spark_missing_types(model):
+    from edsnlp.processing import pipe
+
     with pytest.warns(Warning) as warned:
         pipe(
             note(module="pyspark"),
@@ -169,6 +184,10 @@ def test_spark_missing_types(model):
 
 @pytest.mark.parametrize("param", params)
 def test_arbitrary_callback(param, model):
+    from pyspark.sql import types as T
+
+    from edsnlp.processing import pipe
+
     # We need to test PySpark with an installed function
     def dummy_extractor(doc: Doc) -> List[Dict[str, Any]]:
         return [

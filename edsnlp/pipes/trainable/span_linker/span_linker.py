@@ -24,7 +24,7 @@ from typing_extensions import Literal, NotRequired, TypedDict
 import edsnlp.data
 from edsnlp.core import PipelineProtocol
 from edsnlp.core.torch_component import BatchInput, BatchOutput, TorchComponent
-from edsnlp.pipes.base import BaseComponent
+from edsnlp.pipes.base import BaseSpanAttributeClassifierComponent
 from edsnlp.pipes.trainable.embeddings.typing import (
     SpanEmbeddingComponent,
 )
@@ -34,7 +34,12 @@ from edsnlp.utils.collections import (
     decompress_dict,
     ld_to_dl,
 )
-from edsnlp.utils.span_getters import get_spans, get_spans_with_group
+from edsnlp.utils.span_getters import (
+    SpanGetter,
+    SpanGetterArg,
+    get_spans,
+    get_spans_with_group,
+)
 
 SpanLinkerBatchInput = TypedDict(
     "SpanLinkerBatchInput",
@@ -57,7 +62,8 @@ targets: NotRequired[List[torch.LongTensor]]
 
 
 class TrainableSpanLinker(
-    TorchComponent[BatchOutput, SpanLinkerBatchInput], BaseComponent
+    TorchComponent[BatchOutput, SpanLinkerBatchInput],
+    BaseSpanAttributeClassifierComponent,
 ):
     """
     The `eds.span_linker` component is a trainable span concept predictor, typically
@@ -132,7 +138,7 @@ class TrainableSpanLinker(
 
     First, initialize the component:
 
-    ```{ .python .no-check }
+    ```python
     import pandas as pd
     import edsnlp, edsnlp.pipes as eds
 
@@ -144,11 +150,10 @@ class TrainableSpanLinker(
             metric="cosine",
             reference_mode="synonym",
             probability_mode="sigmoid",
+            span_getter=["ents"],
             embedding=eds.span_pooler(
-                span_getter=["ents"],
                 hidden_size=128,
                 embedding=eds.transformer(
-                    span_getter=["ents"],
                     model="prajjwal1/bert-tiny",
                     window=128,
                     stride=96,
@@ -198,7 +203,8 @@ class TrainableSpanLinker(
     doc.ents = [span]
 
     doc = nlp(doc)
-    print(doc.ents[0]._.cui)  # "B01AC06"
+    print(doc.ents[0]._.cui)
+    # "B01AC06"
     ```
 
     To use the `eds.span_linker` component in `class` mode, we refer to the following
@@ -227,6 +233,11 @@ class TrainableSpanLinker(
         Whether to compare the embeddings with the concepts embeddings (one per concept)
         or the synonyms embeddings (one per concept per synonym). See above for more
         details.
+    span_getter : SpanGetterArg
+        How to extract the candidate spans to predict or train on.
+    context_getter : Optional[SpanGetterArg]
+        What context to use when computing the span embeddings (defaults to the entity
+        only, so no context)
     probability_mode : Literal["softmax", "sigmoid"]
         Whether to compute the probabilities using a softmax or a sigmoid function.
         This will also determine the loss function to use, either cross-entropy or
@@ -267,23 +278,38 @@ class TrainableSpanLinker(
         rescale: float = 20,
         threshold: float = 0.5,
         attribute: str = "cui",
+        span_getter: SpanGetterArg = {"ents": True},
+        context_getter: Optional[SpanGetterArg] = None,
         reference_mode: Literal["concept", "synonym"] = "concept",
         probability_mode: Literal["softmax", "sigmoid"] = "sigmoid",
         init_weights: bool = True,
     ):
         self.attribute = attribute
 
-        super().__init__(nlp, name)
+        sub_span_getter = getattr(embedding, "span_getter", None)
+        if sub_span_getter is not None and span_getter is None:  # pragma: no cover
+            span_getter = sub_span_getter
+        sub_context_getter = getattr(embedding, "context_getter", None)
+        if (
+            sub_context_getter is not None and context_getter is None
+        ):  # pragma: no cover
+            context_getter = sub_context_getter
+
+        super().__init__(
+            nlp,
+            name,
+            span_getter=span_getter,
+        )
 
         self.embedding = embedding
         self.concepts: List = []
-        self.qualifiers = ["_." + self.attribute]
         self.concepts_to_idx: Dict[str, int] = {}
         self.span_labels_to_idx: Dict[str, int] = {}
         self.threshold = threshold
         self.reference_mode = reference_mode
         self.probability_mode = probability_mode
         self.init_weights = init_weights
+        self.context_getter: SpanGetter = context_getter or span_getter
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)
             self.classifier = Metric(
@@ -295,8 +321,8 @@ class TrainableSpanLinker(
             )
 
     @property
-    def span_getter(self):
-        return self.embedding.span_getter
+    def attributes(self) -> List[str]:
+        return [self.attribute]
 
     def to_disk(self, path, *, exclude=set()):
         repr_id = object.__repr__(self)
@@ -433,10 +459,18 @@ class TrainableSpanLinker(
 
         def prepare_batch(docs, device=None):
             res = {}
-            if self.init_weights:
+            if with_embeddings:
                 device = device or embedding.device
-                batch = [embedding.preprocess(doc) for doc in docs]
-                spans = [span for prep in batch for span in prep["$spans"]]
+                spans = [list(get_spans(doc, self.span_getter)) for doc in docs]
+                batch = [
+                    embedding.preprocess(
+                        doc,
+                        spans=doc_spans,
+                        contexts=list(get_spans(doc, self.context_getter)),
+                    )
+                    for doc, doc_spans in zip(docs, spans)
+                ]
+                spans = [span for doc in spans for span in doc]
                 batch = decompress_dict(list(batch_compress_dict(batch)))
                 inputs = embedding.collate(batch)
                 inputs = embedding.batch_to_device(inputs, device=device)
@@ -460,9 +494,9 @@ class TrainableSpanLinker(
                 "concepts": batch["concepts"],
                 "labels": batch["labels"],
             }
-            if self.init_weights:
+            if with_embeddings:
                 res["embeds"] = F.normalize(
-                    embedding.module_forward(batch["inputs"])["embeddings"]
+                    embedding(batch["inputs"])["embeddings"]
                 ).cpu()
             return res
 
@@ -473,7 +507,7 @@ class TrainableSpanLinker(
                 forward=run_forward,
                 prepare_batch=prepare_batch,
             )
-            if self.init_weights
+            if with_embeddings
             else docs.map_batches(prepare_batch)
         )
         all_embeds = (
@@ -506,20 +540,23 @@ class TrainableSpanLinker(
         )
 
     def preprocess(self, doc: Doc) -> Dict[str, Any]:
-        embedding = self.embedding.preprocess(doc)
+        spans_and_groups = list(get_spans_with_group(doc, self.span_getter))
+        spans = [span for span, _ in spans_and_groups]
+        groups = [group for _, group in spans_and_groups]
+        contexts = list(get_spans(doc, self.context_getter))
+        embedding = self.embedding.preprocess(doc, spans=spans, contexts=contexts)
 
         # "$" prefix means this field won't be accessible from the outside.
-        spans = embedding["$spans"]
         return {
             "embedding": embedding,
-            "span_labels": [
-                self.span_labels_to_idx.get(span.label_, 0) for span in spans
-            ],
+            "span_labels": [self.span_labels_to_idx.get(s.label_, 0) for s in spans],
+            "$spans": spans,
+            "$groups": groups,
         }
 
     def preprocess_supervised(self, doc: Doc) -> Dict[str, Any]:
         preps = self.preprocess(doc)
-        spans = preps["embedding"]["$spans"]
+        spans = preps["$spans"]
         return {
             **preps,
             "concepts": [self.concepts_to_idx.get(span._.cui, -100) for span in spans],
@@ -546,7 +583,7 @@ class TrainableSpanLinker(
         return collated
 
     def forward(self, inputs: SpanLinkerBatchInput) -> BatchOutput:
-        span_embeds = self.embedding.module_forward(inputs["embedding"])["embeddings"]
+        span_embeds = self.embedding(inputs["embedding"])["embeddings"].refold("span")
 
         span_labels = inputs["span_labels"]
         targets = inputs.get("concepts")
@@ -584,17 +621,21 @@ class TrainableSpanLinker(
             "probs": top_probs,
         }
 
-    def postprocess(self, docs: Sequence[Doc], res: BatchOutput) -> Sequence[Doc]:
-        spans = [
-            (s, group)
-            for doc in docs
-            for s, group in get_spans_with_group(doc, self.span_getter)
-        ]
+    def postprocess(
+        self,
+        docs: Sequence[Doc],
+        results: BatchOutput,
+        inputs: List[Dict[str, Any]],
+    ) -> Sequence[Doc]:
         ents = {doc: {} for doc in docs}
-        for (span, group), concept_idx, prob in zip(
+        spans = [span for sample in inputs for span in sample["$spans"]]
+        groups = [group for sample in inputs for group in sample["$groups"]]
+
+        for span, group, concept_idx, prob in zip(
             spans,
-            res["concepts"].tolist(),
-            res["probs"].tolist(),
+            groups,
+            results["concepts"].tolist(),
+            results["probs"].tolist(),
         ):
             span._.set(
                 self.attribute,

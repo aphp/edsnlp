@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Generic, List, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, List, TypeVar, Union
 
 import pydantic
 from confit.errors import patch_errors
@@ -37,4 +37,4 @@ class AsList(Generic[T], metaclass=MetaAsList):
 
 
 if TYPE_CHECKING:
-    AsList = List[T]  # noqa: F811
+    AsList = Union[T, List[T]]  # noqa: F811

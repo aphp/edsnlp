@@ -1,13 +1,17 @@
+import warnings
 from itertools import chain
 from typing import Dict, List, Optional, Set, Union
 
-from loguru import logger
 from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.phrase import EDSPhraseMatcher
 from edsnlp.matchers.regex import RegexMatcher
-from edsnlp.pipes.base import BaseComponent, SpanGetterArg, validate_span_getter
+from edsnlp.pipes.base import (
+    BaseSpanAttributeClassifierComponent,
+    SpanGetterArg,
+    validate_span_getter,
+)
 
 
 def check_normalizer(nlp: PipelineProtocol) -> None:
@@ -15,7 +19,7 @@ def check_normalizer(nlp: PipelineProtocol) -> None:
     normalizer = components.get("normalizer")
 
     if normalizer and not normalizer.lowercase:
-        logger.warning(
+        warnings.warn(
             "You have chosen the NORM attribute, but disabled lowercasing "
             "in your normalisation pipeline. "
             "This WILL hurt performance : you might want to use the "
@@ -23,20 +27,10 @@ def check_normalizer(nlp: PipelineProtocol) -> None:
         )
 
 
-def get_qualifier_extensions(nlp: PipelineProtocol):
+class RuleBasedQualifier(BaseSpanAttributeClassifierComponent):
     """
-    Check for all qualifiers present in the pipe and return its corresponding extension
-    """
-    return {
-        name: nlp.get_pipe_meta(name).assigns[0].split("span.")[-1]
-        for name, pipe in nlp.pipeline
-        if isinstance(pipe, RuleBasedQualifier)
-    }
-
-
-class RuleBasedQualifier(BaseComponent):
-    """
-    Implements the NegEx algorithm.
+    Implements the ConText algorithm (eq. NegEx for negations) for detecting contextual
+    attributes text.
 
     Parameters
     ----------
@@ -69,14 +63,13 @@ class RuleBasedQualifier(BaseComponent):
         name: Optional[str] = None,
         *,
         attr: str,
+        attributes: List[str],
         span_getter: SpanGetterArg,
         on_ents_only: Union[bool, str, List[str], Set[str]],
         explain: bool,
         terms: Dict[str, Optional[List[str]]],
         regex: Dict[str, Optional[List[str]]] = {},
     ):
-        super().__init__(nlp=nlp, name=name)
-
         if attr.upper() == "NORM":
             check_normalizer(nlp)
 
@@ -85,6 +78,7 @@ class RuleBasedQualifier(BaseComponent):
 
         self.regex_matcher = RegexMatcher(attr=attr)
         self.regex_matcher.build_patterns(regex=regex)
+        self.attributes = attributes
 
         self.on_ents_only = on_ents_only
 
@@ -103,8 +97,12 @@ class RuleBasedQualifier(BaseComponent):
             span_getter = "ents" if on_ents_only is True else on_ents_only
         else:
             span_getter = "ents"
-        self.span_getter = validate_span_getter(span_getter)
         self.explain = explain
+        super().__init__(
+            nlp=nlp,
+            name=name,
+            span_getter=validate_span_getter(span_getter),
+        )
 
     def get_matches(self, doc: Doc) -> List[Span]:
         """

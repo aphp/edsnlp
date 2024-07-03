@@ -2,7 +2,7 @@ import inspect
 import types
 from dataclasses import dataclass
 from functools import wraps
-from typing import Any, Callable, Dict, Iterable, Optional, Sequence
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
 from weakref import WeakKeyDictionary
 
 import catalogue
@@ -13,6 +13,11 @@ from spacy.pipe_analysis import validate_attrs
 
 import edsnlp
 from edsnlp.utils.collections import FrozenDict, FrozenList
+
+try:
+    import importlib.metadata as importlib_metadata
+except ImportError:
+    import importlib_metadata
 
 PIPE_META = WeakKeyDictionary()
 
@@ -227,6 +232,8 @@ class FactoryRegistry(Registry):
         # Steps 1 & 2
         func = check_and_return()
         if func is None and self.entry_points:
+            # Update entry points in case packages lookup paths have changed
+            catalogue.AVAILABLE_ENTRY_POINTS = importlib_metadata.entry_points()
             # Otherwise, step 3
             self.get_entry_point(name)
             # Then redo steps 1 & 2
@@ -259,6 +266,13 @@ class FactoryRegistry(Registry):
                 )
                 or "none",
             )
+        )
+
+    def _get_entry_points(self) -> List[importlib_metadata.EntryPoint]:
+        return (
+            catalogue.AVAILABLE_ENTRY_POINTS.select(group=self.entry_point_namespace)
+            if hasattr(catalogue.AVAILABLE_ENTRY_POINTS, "select")
+            else catalogue.AVAILABLE_ENTRY_POINTS.get(self.entry_point_namespace, [])
         )
 
     def register(

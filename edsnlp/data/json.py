@@ -36,9 +36,7 @@ class JsonReader(BaseReader):
         self.files = (
             [
                 file
-                for file in walk_match(
-                    self.fs, os.path.dirname(self.path), ".*[.]json.*"
-                )
+                for file in walk_match(self.fs, self.path, ".*[.]json.*")
                 if keep_ipynb_checkpoints or ".ipynb_checkpoints" not in str(file)
             ]
             if self.fs.isdir(self.path)

@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
     Iterable,
     List,
     Optional,
@@ -33,8 +32,10 @@ import edsnlp
 from edsnlp.core.pipeline import Pipeline
 from edsnlp.core.registries import registry
 from edsnlp.optimization import LinearSchedule, ScheduledOptimizer
+from edsnlp.pipes.base import BaseNERComponent, BaseSpanAttributeClassifierComponent
 from edsnlp.pipes.trainable.embeddings.transformer.transformer import Transformer
-from edsnlp.scorers import Scorer
+from edsnlp.scorers.ner import NerScorer
+from edsnlp.scorers.span_attributes import SpanAttributeScorer
 from edsnlp.utils.bindings import BINDING_SETTERS
 from edsnlp.utils.collections import batchify
 from edsnlp.utils.span_getters import get_spans
@@ -49,21 +50,15 @@ LOGGER_FIELDS = {
         "format": "{:.2e}",
         "goal_wait": 2,
     },
-    "exact_ner/micro/(f|r|p)$": {
-        "goal": "higher_is_better",
-        "format": "{:.2%}",
-        "goal_wait": 1,
-        "name": r"ner_\1",
-    },
-    "qualifier/micro/(f|r|p)$": {
-        "goal": "higher_is_better",
-        "format": "{:.2%}",
-        "goal_wait": 1,
-        "name": r"qual_\1",
-    },
     "lr": {"format": "{:.2e}"},
     "speed/(.*)": {"format": "{:.2f}", r"name": r"\1"},
     "labels": {"format": "{:.2f}"},
+    "(.*?)/micro/(f|r|p)$": {
+        "goal": "higher_is_better",
+        "format": "{:.2%}",
+        "goal_wait": 1,
+        "name": r"\1_\2",
+    },
 }
 
 
@@ -338,10 +333,10 @@ class Reader(BaseModel, arbitrary_types_allowed=True):
         filter_fn = eval(f"lambda doc:{self.filter_expr}") if self.filter_expr else None
 
         blank_nlp = edsnlp.Pipeline(nlp.lang, vocab=nlp.vocab, vocab_config=None)
-        blank_nlp.add_pipe("eds.normalizer")
-        blank_nlp.add_pipe("eds.sentences")
+        if self.max_length > 0:
+            blank_nlp.add_pipe("eds.sentences")
 
-        docs = blank_nlp.pipe(self.reader)
+        docs = blank_nlp.pipe(self.reader).set_processing(show_progress=True)
 
         count = 0
 
@@ -415,49 +410,65 @@ class Reader(BaseModel, arbitrary_types_allowed=True):
 
 @validate_arguments
 class GenericScorer:
-    def __init__(
-        self,
-        ner: Dict[str, Scorer] = {},
-        qualifier: Dict[str, Scorer] = {},
-    ):
-        self.ner_scorers = ner
-        self.qlf_scorers = qualifier
+    def __init__(self, speed=True, **scorers):
+        self.scorers = scorers
+        self.speed = speed
 
     def __call__(self, nlp: Pipeline, docs):
         scores = {}
         docs = list(docs)
 
         # Speed
-        t0 = time.time()
-        list(nlp.pipe(d.text for d in tqdm(docs, desc="Computing model speed")))
-        duration = time.time() - t0
-        scores["speed"] = dict(
-            wps=sum(len(d) for d in docs) / duration,
-            dps=len(docs) / duration,
-        )
+        if self.speed:
+            t0 = time.time()
+            list(nlp.pipe(d.copy() for d in tqdm(docs, desc="Computing model speed")))
+            duration = time.time() - t0
+            scores["speed"] = dict(
+                wps=sum(len(d) for d in docs) / duration,
+                dps=len(docs) / duration,
+            )
 
         # NER
-        if nlp.has_pipe("ner"):
+        ner_pipes = [
+            name for name, pipe in nlp.pipeline if isinstance(pipe, BaseNERComponent)
+        ]
+        ner_scorers = {
+            name: scorer
+            for name, scorer in self.scorers.items()
+            if isinstance(scorer, NerScorer)
+        }
+        if ner_pipes and ner_scorers:
             clean_ner_docs = [d.copy() for d in tqdm(docs, desc="Copying docs")]
             for d in clean_ner_docs:
                 d.ents = []
                 d.spans.clear()
-            with nlp.select_pipes(enable=["ner"]):
+            with nlp.select_pipes(enable=ner_pipes):
                 ner_preds = list(nlp.pipe(tqdm(clean_ner_docs, desc="Predicting")))
-            for name, scorer in self.ner_scorers.items():
+            for name, scorer in ner_scorers.items():
                 scores[name] = scorer(docs, ner_preds)
 
         # Qualification
-        if nlp.has_pipe("qualifier"):
-            qlf_pipe = nlp.get_pipe("qualifier")
+        qlf_pipes = [
+            name
+            for name, pipe in nlp.pipeline
+            if isinstance(pipe, BaseSpanAttributeClassifierComponent)
+        ]
+        span_attr_scorers = {
+            name: scorer
+            for name, scorer in self.scorers.items()
+            if isinstance(scorer, SpanAttributeScorer)
+        }
+        if qlf_pipes and span_attr_scorers:
             clean_qlf_docs = [d.copy() for d in tqdm(docs, desc="Copying docs")]
             for doc in clean_qlf_docs:
-                for span in get_spans(doc, qlf_pipe.span_getter):
-                    for qlf in qlf_pipe.qualifiers:
-                        BINDING_SETTERS[(qlf, None)](span)
-            with nlp.select_pipes(enable=["qualifier"]):
+                for name in qlf_pipes:
+                    pipe = nlp.get_pipe(name)
+                    for span in get_spans(doc, pipe.span_getter):
+                        for qlf in nlp.get_pipe(name).attributes:
+                            BINDING_SETTERS[(qlf, None)](span)
+            with nlp.select_pipes(disable=ner_pipes):
                 qlf_preds = list(nlp.pipe(tqdm(clean_qlf_docs, desc="Predicting")))
-            for name, scorer in self.qlf_scorers.items():
+            for name, scorer in span_attr_scorers.items():
                 scores[name] = scorer(docs, qlf_preds)
         return scores
 
@@ -490,90 +501,95 @@ def train(
     )
 
     set_seed(seed)
-    with RichTablePrinter(LOGGER_FIELDS, auto_refresh=False) as logger:
-        # Loading and adapting the training and validation data
-        with set_seed(data_seed):
-            train_docs: List[spacy.tokens.Doc] = list(
-                chain.from_iterable(td(nlp) for td in train_data)
-            )
-            val_docs: List[spacy.tokens.Doc] = list(
-                chain.from_iterable(td(nlp) for td in val_data)
-            )
+    # Loading and adapting the training and validation data
+    with set_seed(data_seed):
+        train_docs: List[spacy.tokens.Doc] = list(
+            chain.from_iterable(td(nlp) for td in train_data)
+        )
+        val_docs: List[spacy.tokens.Doc] = list(
+            chain.from_iterable(td(nlp) for td in val_data)
+        )
 
-        # Initialize pipeline with training documents
-        nlp.post_init(train_docs)
+    # Initialize pipeline with training documents
+    nlp.post_init(train_docs)
 
-        # Preprocessing training data
-        preprocessed = list(nlp.preprocess_many(train_docs, supervision=True))
-        dataloader = torch.utils.data.DataLoader(
+    # Preprocessing training data
+    preprocessed = list(
+        nlp.preprocess_many(train_docs, supervision=True).set_processing(
+            show_progress=True
+        )
+    )
+    dataloader = torch.utils.data.DataLoader(
+        preprocessed,
+        batch_sampler=LengthSortedBatchSampler(
             preprocessed,
-            batch_sampler=LengthSortedBatchSampler(
-                preprocessed,
-                batch_size=batch_size[0],
-                batch_unit=batch_size[1],
-            ),
-            collate_fn=SubBatchCollater(
-                nlp,
-                trf_pipe,
-                grad_accumulation_max_tokens=grad_accumulation_max_tokens,
-            ),
-        )
-        pipe_names, trained_pipes = zip(*nlp.torch_components())
-        print("Training", ", ".join(pipe_names))
+            batch_size=batch_size[0],
+            batch_unit=batch_size[1],
+        ),
+        collate_fn=SubBatchCollater(
+            nlp,
+            trf_pipe,
+            grad_accumulation_max_tokens=grad_accumulation_max_tokens,
+        ),
+    )
+    pipe_names, trained_pipes = zip(*nlp.torch_components())
+    print("Training", ", ".join(pipe_names))
 
-        trf_params = set(trf_pipe.parameters())
-        params = set(p for pipe in trained_pipes for p in pipe.parameters())
-        optimizer = ScheduledOptimizer(
-            torch.optim.AdamW(
-                [
-                    {
-                        "params": list(params - trf_params),
-                        "lr": task_lr,
-                        "schedules": LinearSchedule(
-                            total_steps=max_steps,
-                            warmup_rate=warmup_rate,
-                            start_value=task_lr,
-                        ),
-                    },
-                    {
-                        "params": list(trf_params),
-                        "lr": transformer_lr,
-                        "schedules": LinearSchedule(
-                            total_steps=max_steps,
-                            warmup_rate=warmup_rate,
-                            start_value=0,
-                        ),
-                    },
-                ][: 2 if transformer_lr else 1]
-            )
+    trf_params = set(trf_pipe.parameters())
+    params = set(p for pipe in trained_pipes for p in pipe.parameters())
+    optimizer = ScheduledOptimizer(
+        torch.optim.AdamW(
+            [
+                {
+                    "params": list(params - trf_params),
+                    "lr": task_lr,
+                    "schedules": LinearSchedule(
+                        total_steps=max_steps,
+                        warmup_rate=warmup_rate,
+                        start_value=task_lr,
+                    ),
+                },
+                {
+                    "params": list(trf_params),
+                    "lr": transformer_lr,
+                    "schedules": LinearSchedule(
+                        total_steps=max_steps,
+                        warmup_rate=warmup_rate,
+                        start_value=0,
+                    ),
+                },
+            ][: 2 if transformer_lr else 1]
         )
-        grad_params = {p for group in optimizer.param_groups for p in group["params"]}
-        print(
-            "Optimizing:"
-            + "".join(
-                f"\n - {len(group['params'])} params "
-                f"({sum(p.numel() for p in group['params'])} total)"
-                for group in optimizer.param_groups
-            )
+    )
+    grad_params = {p for group in optimizer.param_groups for p in group["params"]}
+    print(
+        "Optimizing:"
+        + "".join(
+            f"\n - {len(group['params'])} params "
+            f"({sum(p.numel() for p in group['params'])} total)"
+            for group in optimizer.param_groups
         )
-        print(f"Not optimizing {len(params - grad_params)} params")
-        for param in params - grad_params:
-            param.requires_grad_(False)
+    )
+    print(f"Not optimizing {len(params - grad_params)} params")
+    for param in params - grad_params:
+        param.requires_grad_(False)
 
-        accelerator = Accelerator(cpu=cpu)
-        print("Device:", accelerator.device)
-        [dataloader, optimizer, *trained_pipes] = accelerator.prepare(
-            dataloader,
-            optimizer,
-            *trained_pipes,
-        )
+    accelerator = Accelerator(cpu=cpu)
+    print("Device:", accelerator.device)
+    [dataloader, optimizer, *trained_pipes] = accelerator.prepare(
+        dataloader,
+        optimizer,
+        *trained_pipes,
+    )
 
-        cumulated_data = defaultdict(lambda: 0.0, count=0)
+    cumulated_data = defaultdict(lambda: 0.0, count=0)
 
-        iterator = itertools.chain.from_iterable(itertools.repeat(dataloader))
-        all_metrics = []
-        nlp.train(True)
-        set_seed(seed)
+    iterator = itertools.chain.from_iterable(itertools.repeat(dataloader))
+    all_metrics = []
+    nlp.train(True)
+    set_seed(seed)
+
+    with RichTablePrinter(LOGGER_FIELDS, auto_refresh=False) as logger:
         with tqdm(
             range(max_steps + 1),
             "Training model",
@@ -605,7 +621,7 @@ def train(
                     loss = torch.zeros((), device=accelerator.device)
                     with nlp.cache():
                         for name, pipe in zip(pipe_names, trained_pipes):
-                            output = pipe.module_forward(mini_batch[name])
+                            output = pipe(mini_batch[name])
                             if "loss" in output:
                                 loss += output["loss"]
                             for key, value in output.items():

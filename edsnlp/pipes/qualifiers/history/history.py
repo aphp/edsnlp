@@ -1,7 +1,7 @@
-from datetime import timedelta
+from datetime import timedelta, tzinfo
 from typing import List, Optional, Set, Union
 
-import pendulum
+import pytz
 from loguru import logger
 from spacy.tokens import Doc, Span, Token
 
@@ -162,6 +162,8 @@ class HistoryQualifier(RuleBasedQualifier):
         for each key in the iterable
     explain : bool
         Whether to keep track of cues for each entity.
+    tz : Optional[Union[str, tzinfo]]
+        The timezone to use. Defaults to "Europe/Paris".
 
     Authors and citation
     --------------------
@@ -186,6 +188,7 @@ class HistoryQualifier(RuleBasedQualifier):
         span_getter: Optional[SpanGetterArg] = None,
         on_ents_only: Optional[Union[bool, str, List[str], Set[str]]] = None,
         explain: bool = False,
+        tz: Optional[Union[str, tzinfo]] = None,
     ):
         terms = dict(
             history=patterns.history if history is None else history,
@@ -196,6 +199,7 @@ class HistoryQualifier(RuleBasedQualifier):
             nlp=nlp,
             name=name,
             attr=attr,
+            attributes=["history"],
             explain=explain,
             terms=terms,
             on_ents_only=on_ents_only,
@@ -205,6 +209,7 @@ class HistoryQualifier(RuleBasedQualifier):
         self.history_limit = timedelta(history_limit)
         self.exclude_birthdate = exclude_birthdate
         self.closest_dates_only = closest_dates_only
+        self.tz = pytz.timezone(tz) if tz is not None else None
 
         self.sections = use_sections and (
             "eds.sections" in nlp.pipe_names or "sections" in nlp.pipe_names
@@ -298,8 +303,11 @@ class HistoryQualifier(RuleBasedQualifier):
         note_datetime = None
         if doc._.note_datetime is not None:
             try:
-                note_datetime = pendulum.instance(doc._.note_datetime)
-                note_datetime = note_datetime.set(tz="Europe/Paris")
+                note_datetime = (
+                    self.tz.localize(doc._.note_datetime, is_dst=None)
+                    if doc._.note_datetime.tzinfo is None and self.tz is not None
+                    else doc._.note_datetime
+                )
             except ValueError:
                 logger.debug(
                     "note_datetime must be a datetime objects. "
@@ -310,8 +318,11 @@ class HistoryQualifier(RuleBasedQualifier):
         birth_datetime = None
         if doc._.birth_datetime is not None:
             try:
-                birth_datetime = pendulum.instance(doc._.birth_datetime)
-                birth_datetime = birth_datetime.set(tz="Europe/Paris")
+                birth_datetime = (
+                    self.tz.localize(doc._.birth_datetime, is_dst=None)
+                    if doc._.birth_datetime.tzinfo is None and self.tz is not None
+                    else doc._.birth_datetime
+                )
             except ValueError:
                 logger.debug(
                     "birth_datetime must be a datetime objects. "
@@ -364,7 +375,7 @@ class HistoryQualifier(RuleBasedQualifier):
                             -value.to_duration(
                                 note_datetime=doc._.note_datetime,
                                 infer_from_context=True,
-                                tz="Europe/Paris",
+                                tz=self.tz,
                                 default_day=15,
                             )
                             >= self.history_limit
@@ -381,7 +392,7 @@ class HistoryQualifier(RuleBasedQualifier):
                         absolute_date = value.to_datetime(
                             note_datetime=note_datetime,
                             infer_from_context=True,
-                            tz="Europe/Paris",
+                            tz=self.tz,
                             default_day=15,
                         )
                     except ValueError as e:
@@ -394,7 +405,7 @@ class HistoryQualifier(RuleBasedQualifier):
                             e,
                         )
                     if absolute_date:
-                        if note_datetime.diff(absolute_date) < self.history_limit:
+                        if note_datetime - absolute_date < self.history_limit:
                             recent_dates.append(
                                 Span(doc, date.start, date.end, label="absolute_date")
                             )

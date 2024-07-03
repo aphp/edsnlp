@@ -5,32 +5,31 @@ from decimal import Decimal
 
 import numpy as np
 import pytest
-from pyspark import Row
-from pyspark.sql.types import StringType
-
-from edsnlp.utils.spark_dtypes import (
-    PySparkPrettyPrinter,
-    infer_schema,
-    schema_warning,
-    spark_interpret_dicts_as_rows,
-)
 
 mytype = namedtuple("mytype", ["a", "b", "c", "z"])
 
 
-class CustomObj:
-    def __init__(self, value):
-        self.value = value
-
-
-class HasUDT:
-    __UDT__ = StringType()
-
-    def __init__(self, value: str):
-        self.value = value
-
-
 def test_infer_schema():
+    from pyspark import Row
+    from pyspark.sql.types import StringType
+
+    from edsnlp.utils.spark_dtypes import (
+        PySparkPrettyPrinter,
+        infer_schema,
+        schema_warning,
+        spark_interpret_dicts_as_rows,
+    )
+
+    class CustomObj:
+        def __init__(self, value):
+            self.value = value
+
+    class HasUDT:
+        __UDT__ = StringType()
+
+        def __init__(self, value: str):
+            self.value = value
+
     with spark_interpret_dicts_as_rows():
         result = infer_schema(
             {

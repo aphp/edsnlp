@@ -29,9 +29,15 @@ import dill
 from typing_extensions import TypedDict
 
 from edsnlp.core.lazy_collection import LazyCollection
-from edsnlp.data.converters import set_current_tokenizer
 from edsnlp.utils.batching import batchify_fns, batchify_with_counts
-from edsnlp.utils.collections import batchify, flatten
+from edsnlp.utils.collections import (
+    batch_compress_dict,
+    batchify,
+    decompress_dict,
+    flatten,
+)
+
+from .utils import apply_basic_pipes
 
 doc_size_fns = {
     "words": len,
@@ -49,16 +55,6 @@ Stage = TypedDict(
         "gpu_component": Optional[Any],
     },
 )
-
-
-def apply_basic_pipes(docs, pipes):
-    for name, pipe, kwargs, tok in pipes:
-        with set_current_tokenizer(tok):
-            if hasattr(pipe, "batch_process"):
-                docs = pipe.batch_process(docs)
-            else:
-                docs = [pipe(doc, **kwargs) for doc in docs]
-    return docs
 
 
 class ForkingPickler(dill.Pickler):
@@ -444,6 +440,7 @@ class CPUWorker:
                         if (batch_idx == len(batches) - 1)
                         and (chunk_idx == len(chunks) - 1)
                         else None,
+                        None,
                     )
                     next_batch_id += num_cpu
                     # gpu_idx = None
@@ -548,7 +545,7 @@ class CPUWorker:
             self.exchanger.put_results((None, 0, None, None))
 
             for stage, (gpu_idx, batch_id, result) in read_tasks():
-                docs, task_id = active_batches.pop(batch_id)
+                docs, task_id, inputs = active_batches.pop(batch_id)
                 count = len(docs)
                 for name, pipe, *rest in lc.pipeline:
                     if hasattr(pipe, "enable_cache"):
@@ -556,7 +553,7 @@ class CPUWorker:
                 if stage > 0:
                     gpu_pipe = stages[stage - 1]["gpu_component"]
                     docs = (
-                        gpu_pipe.postprocess(docs, result)
+                        gpu_pipe.postprocess(docs, result, inputs)
                         if getattr(gpu_pipe, "postprocess", None) is not None
                         else result
                     )
@@ -565,15 +562,23 @@ class CPUWorker:
 
                 gpu_pipe: "TorchComponent" = stages[stage]["gpu_component"]
                 if gpu_pipe is not None:
-                    active_batches[batch_id] = (docs, task_id)
                     if gpu_idx is None:
                         gpu_idx = batch_id % len(self.exchanger.gpu_worker_devices)
                     device = self.exchanger.gpu_worker_devices[gpu_idx]
+                    if hasattr(gpu_pipe, "preprocess"):
+                        inputs = [gpu_pipe.preprocess(doc) for doc in docs]
+                        batch = decompress_dict(list(batch_compress_dict(inputs)))
+                        batch = gpu_pipe.collate(batch)
+                        batch = gpu_pipe.batch_to_device(batch, device=device)
+                    else:
+                        batch = gpu_pipe.prepare_batch(docs, device=device)
+                        inputs = None
+                    active_batches[batch_id] = (docs, task_id, inputs)
                     self.exchanger.put_gpu(
                         item=(
                             self.cpu_idx,
                             batch_id,
-                            gpu_pipe.prepare_batch(docs, device=device),
+                            batch,
                         ),
                         idx=gpu_idx,
                         stage=stage,
@@ -651,13 +656,22 @@ class GPUWorker:
                 if name in self.gpu_pipe_names
             ]
 
+            autocast_ctx = (
+                torch.autocast(
+                    device_type=self.device,
+                    dtype=lc.autocast,
+                )
+                if lc.autocast is not None
+                else nullcontext()
+            )
+
             del lc
             logging.info(f"Starting {self} on {os.getpid()}")
 
             # Inform the main process that we are ready
             self.exchanger.put_results((None, 0, None, None))
 
-            with torch.no_grad():  # , torch.cuda.amp.autocast():
+            with torch.no_grad(), autocast_ctx, torch.inference_mode():
                 while True:
                     stage, task = self.exchanger.get_gpu_task(self.gpu_idx)
                     if task is None:
@@ -666,7 +680,7 @@ class GPUWorker:
                     cpu_idx, batch_id, batch = task
                     pipe = stage_components[stage]
                     pipe.enable_cache(batch_id)
-                    res = pipe.module_forward(batch)
+                    res = pipe(batch)
                     self.exchanger.put_cpu(
                         item=(
                             self.gpu_idx,
@@ -765,7 +779,7 @@ def execute_multiprocessing_backend(
     gpu_steps_candidates = [
         name
         for name, pipe, *_ in steps
-        if hasattr(pipe, "module_forward") and hasattr(pipe, "prepare_batch")
+        if hasattr(pipe, "forward") and hasattr(pipe, "prepare_batch")
     ]
     gpu_pipe_names = (
         gpu_steps_candidates if lc.gpu_pipe_names is None else lc.gpu_pipe_names
@@ -791,7 +805,7 @@ def execute_multiprocessing_backend(
         and num_gpu_workers > 0
     )
 
-    num_cpus = cpu_count()
+    num_cpus = int(os.environ.get("EDSNLP_MAX_CPU_WORKERS") or cpu_count())
     num_devices = 0
     if requires_gpu:
         import torch

@@ -1,9 +1,9 @@
-import polars
-
 import edsnlp
 
 
 def test_read_write(blank_nlp, text, df_notes_pandas):
+    import polars
+
     df_notes_polars = polars.from_pandas(df_notes_pandas)
     reader = edsnlp.data.from_polars(
         df_notes_polars,

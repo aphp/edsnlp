@@ -51,6 +51,7 @@ docs = [
         ("parquet", "omop", "spark", "parquet", "omop", False),
         ("parquet", "omop", "multiprocessing", "parquet", "omop", True),
         ("parquet", "omop", "spark", "parquet", "omop", True),
+        ("parquet", "omop", "multiprocessing", "iterable", None, False),
     ],
 )
 def test_end_to_end(
@@ -113,6 +114,8 @@ def test_end_to_end(
                 converter=writer_converter,
                 write_in_worker=worker_io,
             )
+    elif writer_format == "iterable":
+        list(data)
     else:
         raise ValueError(writer_format)
 
@@ -248,3 +251,23 @@ def test_multiprocessing_ml_error(ml_nlp):
         )
         list(docs)
     assert "Deep learning error" in str(e.value)
+
+
+@pytest.mark.parametrize(
+    "backend",
+    [
+        "simple",
+        "multiprocessing",
+        "spark",
+    ],
+)
+def test_generator(backend):
+    items = ["abc", "def", "ghij"]
+    items = edsnlp.data.from_iterable(items)
+
+    def gen(x):
+        for char in x:
+            yield char
+
+    items = items.map(gen).set_processing(backend=backend)
+    assert list(items) == ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]

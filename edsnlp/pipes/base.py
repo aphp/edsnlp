@@ -1,7 +1,9 @@
+import abc
 import inspect
 import warnings
 from operator import attrgetter
 from typing import (
+    Iterable,
     List,
     Optional,
     Tuple,
@@ -30,7 +32,7 @@ def value_getter(span: Span):
     return span._.get(span.label_) if span._.has(span.label_) else None
 
 
-class BaseComponentMeta(type):
+class BaseComponentMeta(abc.ABCMeta):
     def __init__(cls, name, bases, dct):
         super().__init__(name, bases, dct)
 
@@ -55,7 +57,7 @@ class BaseComponentMeta(type):
         return super().__call__(**bound.arguments)
 
 
-class BaseComponent(metaclass=BaseComponentMeta):
+class BaseComponent(abc.ABC, metaclass=BaseComponentMeta):
     """
     The `BaseComponent` adds a `set_extensions` method,
     called at the creation of the object.
@@ -154,7 +156,7 @@ class BaseComponent(metaclass=BaseComponentMeta):
         self.set_extensions()
 
 
-class BaseNERComponent(BaseComponent):
+class BaseNERComponent(BaseComponent, abc.ABC):
     span_setter: SpanSetter
 
     def __init__(
@@ -170,3 +172,28 @@ class BaseNERComponent(BaseComponent):
 
     def set_spans(self, doc, matches):
         return set_spans(doc, matches, self.span_setter)
+
+
+class BaseSpanAttributeClassifierComponent(BaseComponent, abc.ABC):
+    span_getter: SpanGetter
+    attributes: Iterable[str]
+
+    def __init__(
+        self,
+        nlp: PipelineProtocol = None,
+        name: str = None,
+        *args,
+        span_getter: SpanGetterArg,
+        **kwargs,
+    ):
+        super().__init__(nlp, name, *args, **kwargs)
+        self.span_getter: SpanGetter = validate_span_getter(span_getter)  # type: ignore
+
+    # For backwards compatibility
+    @property
+    def qualifiers(self):  # pragma: no cover
+        return self.attributes
+
+    @qualifiers.setter
+    def qualifiers(self, value):  # pragma: no cover
+        self.attributes = value

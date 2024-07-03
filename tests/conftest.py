@@ -1,4 +1,6 @@
 import logging
+import os
+import time
 from datetime import datetime
 
 import pandas as pd
@@ -9,6 +11,13 @@ from pytest import fixture
 
 import edsnlp
 
+os.environ["EDSNLP_MAX_CPU_WORKERS"] = "2"
+os.environ["TZ"] = "Europe/Paris"
+
+try:
+    time.tzset()
+except AttributeError:
+    pass
 logging.basicConfig(level=logging.INFO)
 
 

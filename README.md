@@ -2,7 +2,7 @@
 [![Documentation](https://img.shields.io/github/actions/workflow/status/aphp/edsnlp/documentation.yml?branch=master&label=docs&style=flat-square)](https://aphp.github.io/edsnlp/latest/)
 [![PyPI](https://img.shields.io/pypi/v/edsnlp?color=blue&style=flat-square)](https://pypi.org/project/edsnlp/)
 [![Demo](https://img.shields.io/badge/demo%20%F0%9F%9A%80-streamit-grean?style=flat-square)](https://aphp.github.io/edsnlp/demo/)
-[![Codecov](https://img.shields.io/codecov/c/github/aphp/edsnlp?logo=codecov&style=flat-square)](https://codecov.io/gh/aphp/edsnlp)
+[![Coverage](https://raw.githubusercontent.com/aphp/edsnlp/coverage/coverage.svg)](https://raw.githubusercontent.com/aphp/edsnlp/coverage/coverage.txt)
 [![DOI](https://zenodo.org/badge/467585436.svg)](https://zenodo.org/badge/latestdoi/467585436)
 
 
@@ -34,13 +34,13 @@ Check out our interactive [demo](https://aphp.github.io/edsnlp/demo/) !
 You can install EDS-NLP via `pip`. We recommend pinning the library version in your projects, or use a strict package manager like [Poetry](https://python-poetry.org/).
 
 ```shell
-pip install edsnlp==0.11.2
+pip install edsnlp==0.12.3
 ```
 
 or if you want to use the trainable components (using pytorch)
 
 ```shell
-pip install "edsnlp[ml]==0.11.2"
+pip install "edsnlp[ml]==0.12.3"
 ```
 
 ### A first pipeline

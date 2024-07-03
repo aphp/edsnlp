@@ -45,11 +45,14 @@ Batchable = namedtuple("Batchable", ["batch_process"])
 class GPUOp:
     def __init__(self, prepare_batch, forward, postprocess):
         self.prepare_batch = prepare_batch
-        self.module_forward = forward
+        self.forward = forward
         self.postprocess = postprocess
 
+    def __call__(self, *args, **kwargs):
+        return self.forward(*args, **kwargs)
+
     def batch_process(self, docs):
-        res = self.module_forward(self.prepare_batch(docs, None))
+        res = self.forward(self.prepare_batch(docs, None))
         return self.postprocess(docs, res) if self.postprocess is not None else res
 
     def enable_cache(self, cache_id=None):
@@ -129,6 +132,10 @@ class LazyCollection(metaclass=MetaLazyCollection):
         return self.config.get("cpu_worker_devices")
 
     @property
+    def autocast(self):
+        return self.config.get("autocast")
+
+    @property
     def backend(self):
         backend = self.config.get("backend")
         return {"mp": "multiprocessing"}.get(backend, backend)
@@ -153,8 +160,9 @@ class LazyCollection(metaclass=MetaLazyCollection):
         num_gpu_workers: Optional[int] = INFER,
         disable_implicit_parallelism: bool = True,
         backend: Optional[Literal["simple", "multiprocessing", "mp", "spark"]] = INFER,
-        gpu_pipe_names: Optional[List[str]] = INFER,
+        autocast: Union[bool, Any] = True,
         show_progress: bool = False,
+        gpu_pipe_names: Optional[List[str]] = INFER,
         process_start_method: Optional[Literal["fork", "spawn"]] = INFER,
         gpu_worker_devices: Optional[List[str]] = INFER,
         cpu_worker_devices: Optional[List[str]] = INFER,
@@ -200,10 +208,6 @@ class LazyCollection(metaclass=MetaLazyCollection):
         disable_implicit_parallelism: bool
             Whether to disable OpenMP and Huggingface tokenizers implicit parallelism in
             multiprocessing mode. Defaults to True.
-        gpu_pipe_names: Optional[List[str]]
-            List of pipe names to accelerate on a GPUWorker, defaults to all pipes
-            that inherit from TorchComponent. Only used with "multiprocessing" backend.
-            Inferred from the pipeline if not set.
         backend: Optional[Literal["simple", "multiprocessing", "spark"]]
             The backend to use for parallel processing. If not set, the backend is
             automatically selected based on the input data and the number of workers.
@@ -214,9 +218,20 @@ class LazyCollection(metaclass=MetaLazyCollection):
                 `num_gpu_workers` is greater than 0.
             - "spark" is used when the input data is a Spark dataframe and the output
                 writer is a Spark writer.
+        autocast: Union[bool, Any]
+            Whether to use
+            [automatic mixed precision (AMP)](https://pytorch.org/docs/stable/amp.html)
+            for the forward pass of the deep-learning components. If True (by default),
+            AMP will be used with the default settings. If False, AMP will not be used.
+            If a dtype is provided, it will be passed to the `torch.autocast` context
+            manager.
         show_progress: Optional[bool]
             Whether to show progress bars (only applicable with "simple" and
             "multiprocessing" backends).
+        gpu_pipe_names: Optional[List[str]]
+            List of pipe names to accelerate on a GPUWorker, defaults to all pipes
+            that inherit from TorchComponent. Only used with "multiprocessing" backend.
+            Inferred from the pipeline if not set.
         process_start_method: Optional[Literal["fork", "spawn"]]
             Whether to use "fork" or "spawn" as the start method for the multiprocessing
             backend. The default is "fork" on Unix systems and "spawn" on Windows.
@@ -449,11 +464,12 @@ class LazyCollection(metaclass=MetaLazyCollection):
                 pass
 
             def __exit__(ctx_self, type, value, traceback):
-                for name, proc in self.torch_components():
+                for name, proc in procs:
                     proc.train(was_training[name])
 
-        was_training = {name: proc.training for name, proc in self.torch_components()}
-        for name, proc in self.torch_components():
+        procs = [x for x in self.torch_components() if hasattr(x[1], "train")]
+        was_training = {name: proc.training for name, proc in procs}
+        for name, proc in procs:
             proc.train(mode)
 
         return context()

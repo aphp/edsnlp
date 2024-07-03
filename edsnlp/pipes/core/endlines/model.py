@@ -6,9 +6,6 @@ import pandas as pd
 from numpy.lib.function_base import iterable
 from pandas.api.types import CategoricalDtype
 from pandas.core.groupby import DataFrameGroupBy
-from scipy.sparse import hstack
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.preprocessing import OneHotEncoder
 from spacy.strings import StringStore
 from spacy.tokens import Doc
 
@@ -83,7 +80,7 @@ class EndLinesModel:
         )
 
         # Assign a sentence id to each token
-        df = df.groupby("DOC_ID").apply(self._retrieve_lines)
+        df = df.groupby("DOC_ID", as_index=False).apply(self._retrieve_lines)
         df["SENTENCE_ID"] = df["SENTENCE_ID"].astype("int")
 
         # Compute B1 and B2
@@ -404,6 +401,8 @@ class EndLinesModel:
             [description]
 
         """
+        from sklearn.naive_bayes import MultinomialNB
+
         # Encode classes to OneHotEncoder representation
         encoder_A1_A2 = self._fit_encoder_2S(A1, A2)
         self.encoder_A1_A2 = encoder_A1_A2
@@ -427,6 +426,7 @@ class EndLinesModel:
         B2 : pd.Series
         label : pd.Series
         """
+        from sklearn.naive_bayes import MultinomialNB
 
         # Encode classes to OneHotEncoder representation
         encoder_B1 = self._fit_encoder_1S(B1)
@@ -456,6 +456,8 @@ class EndLinesModel:
         -------
         np.ndarray
         """
+        from scipy.sparse import hstack
+
         A1_enc = self._encode_series(self.encoder_A1_A2, A1)
         A2_enc = self._encode_series(self.encoder_A1_A2, A2)
         A3_enc = self._encode_series(self.encoder_A3_A4, A3)
@@ -475,6 +477,8 @@ class EndLinesModel:
         -------
         np.ndarray
         """
+        from scipy.sparse import hstack
+
         B1_enc = self._encode_series(self.encoder_B1, B1)
         B2_enc = self._encode_series(self.encoder_B2, B2)
         X = hstack([B1_enc, B2_enc])
@@ -520,7 +524,7 @@ class EndLinesModel:
         outputs = {"predictions": predictions, "predictions_proba": predictions_proba}
         return outputs
 
-    def _fit_encoder_2S(self, S1: pd.Series, S2: pd.Series) -> OneHotEncoder:
+    def _fit_encoder_2S(self, S1: pd.Series, S2: pd.Series):
         """Fit a one hot encoder with 2 Series. It concatenates the series and after it
         fits.
 
@@ -539,7 +543,7 @@ class EndLinesModel:
         encoder = self._fit_one_hot_encoder(S)
         return encoder
 
-    def _fit_encoder_1S(self, S1: pd.Series) -> OneHotEncoder:
+    def _fit_encoder_1S(self, S1: pd.Series):
         """Fit a one hot encoder with 1 Series.
 
         Parameters
@@ -554,7 +558,7 @@ class EndLinesModel:
         encoder = self._fit_one_hot_encoder(_S1)
         return encoder
 
-    def _encode_series(self, encoder: OneHotEncoder, S: pd.Series) -> np.ndarray:
+    def _encode_series(self, encoder, S: pd.Series) -> np.ndarray:
         """Use the one hot encoder to transform a series.
 
         Parameters
@@ -751,7 +755,7 @@ class EndLinesModel:
         return string_store[_id]
 
     @classmethod
-    def _fit_one_hot_encoder(cls, X: np.ndarray) -> OneHotEncoder:
+    def _fit_one_hot_encoder(cls, X: np.ndarray):
         """Fit a one hot encoder.
 
         Parameters
@@ -763,6 +767,8 @@ class EndLinesModel:
         -------
         OneHotEncoder
         """
+        from sklearn.preprocessing import OneHotEncoder
+
         encoder = OneHotEncoder(handle_unknown="ignore")
         encoder.fit(X)
         return encoder

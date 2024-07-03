@@ -1,9 +1,12 @@
-from typing import Any, Callable, Dict, Iterable, Union, Sequence
+from typing import Any, Callable, Dict, Iterable, Union, Collection, Tuple
 
+import spacy
 from spacy.tokens import Doc
 from spacy.training import Example
 
 import numpy as np
+
+Examples = Union[Tuple[Iterable[Doc], Iterable[Doc]], Iterable[Example]]
 
 Scorer = Union[
     Callable[[Iterable[Doc], Iterable[Doc]], Dict[str, Dict[str, Any]]],
@@ -26,7 +29,7 @@ def average_precision(pred: Dict[Any, float], gold: Iterable[Any]):
     return ap
 
 
-def prf(pred: Sequence, gold: Sequence):
+def prf(pred: Collection, gold: Collection):
     tp = len(set(pred) & set(gold))
     num_pred = len(pred)
     num_gold = len(gold)
@@ -40,12 +43,16 @@ def prf(pred: Sequence, gold: Sequence):
     }
 
 
-def make_examples(*args):
-    if len(args) == 2:
-        return (
-            [Example(reference=g, predicted=p) for g, p in zip(*args)]
-            if len(args) == 2
-            else args[0]
+def make_examples(*examples):
+    while isinstance(examples, tuple) and len(examples) == 1:
+        examples = examples[0]
+    if isinstance(examples, tuple) and len(examples) == 2:
+        examples = (
+            [Example(reference=g, predicted=p) for g, p in zip(*examples)]
+            if len(examples) == 2
+            else examples[0]
         )
-    else:
-        raise ValueError("Expected either a list of examples or two lists of spans")
+    if not isinstance(examples, list):
+        raise ValueError("Expected either a list of examples "
+                         "or a tuple of two lists of docs")
+    return examples

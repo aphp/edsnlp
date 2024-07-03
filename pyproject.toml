@@ -9,46 +9,42 @@ readme = "README.md"
 requires-python = ">=3.7.1"
 dynamic = ['version']
 dependencies = [
-    "decorator",
     "loguru",
-    "pendulum>=2.1.2",
-    "pydantic>=1.10.2",
+    "pytz",
     "pysimstring>=1.2.1",
     "regex",
-    "rich>=12.0.0",
-    "scikit-learn>=1.0.0",
     "spacy>=3.1,<4.0.0",
     "confit>=0.5.5",
     "tqdm",
     "umls-downloader>=0.1.1",
     "numpy>=1.15.0,<1.23.2; python_version<'3.8'",
-    "numpy>=1.15.0; python_version>='3.8'",
-    "pandas>=1.1.0,<2.0.0; python_version<'3.8'",
-    "pandas>=1.4.0,<2.0.0; python_version>='3.8'",
+    "numpy>=1.15.0,<2.0.0; python_version>='3.8'",
+    "pandas>=1.1.0; python_version<'3.8'",
+    "pandas>=1.4.0; python_version>='3.8'",
     "typing-extensions>=4.0.0",
     "dill",
     # Packaging
     "build>=1.0.0",
     "toml",
+    "xxhash",
     "pyarrow>=3.0.0",  # support for fragment.metadata.num_rows
     "fsspec; python_version>='3.8'",
     "fsspec<2023.1.0; python_version<'3.8'",
     # this is only to avoid backtracking issues with spacy's capping
+    "pydantic>=1.10.2",
     "pydantic<2.0.0; python_version<'3.8'",
     "pydantic-core<2.0.0; python_version<'3.8'",
 ]
 [project.optional-dependencies]
 dev = [
-    "black>=22.3.0",
     "pre-commit>=2.0.0; python_version<'3.8'",
     "pre-commit>=2.21.0; python_version>='3.8'",
     "pytest>=7.1.0",
     "pytest-cov>=3.0.0",
-    "pytest-html>=3.1.1",
     "polars",
 
     # Distributed inference
-    "koalas>=1.8.1; python_version<'3.10'",
+    "koalas>=1.8.1; python_version<'3.8'",
     "pyspark",
 
     # Docs
@@ -61,6 +57,7 @@ dev = [
     "mkdocstrings~=0.20",
     "mkdocstrings-python~=1.1",
     "mkdocs-minify-plugin",
+    "mkdocs-redirects>=1.2.1;python_version>='3.8'",
     "pybtex~=0.24.0",
     "pathspec>=0.11.1",  # required by vendored mkdocs-autorefs PR
     "astunparse",
@@ -74,6 +71,7 @@ dev = [
     "safetensors>=0.3.0",
     "transformers>=4.0.0,<5.0.0",
     "accelerate>=0.20.3,<1.0.0",
+    "scikit-learn>=1.0.0",
 ]
 setup = [
     "typer"
@@ -81,10 +79,11 @@ setup = [
 ml = [
     "rich-logger>=0.3.1",
     "torch>=1.0.0",
-    "foldedtensor>=0.3.2",
+    "foldedtensor>=0.3.4",
     "safetensors>=0.3.0",
     "transformers>=4.0.0,<5.0.0",
     "accelerate>=0.20.3,<1.0.0",
+    "scikit-learn>=1.0.0",
 ]
 
 [project.urls]
@@ -159,7 +158,7 @@ where = ["."]
 "eds.solid_tumor"                 = "edsnlp.pipes.ner.disorders.solid_tumor.factory:create_component"
 "eds.tobacco"                     = "edsnlp.pipes.ner.behaviors.tobacco.factory:create_component"
 
-# Qualifiers
+# Span classifiers
 "eds.family"                      = "edsnlp.pipes.qualifiers.family.factory:create_component"
 "eds.history"                     = "edsnlp.pipes.qualifiers.history.factory:create_component"
 "eds.hypothesis"                  = "edsnlp.pipes.qualifiers.hypothesis.factory:create_component"
@@ -229,13 +228,18 @@ where = ["."]
 "eds.span_pooler"        = "edsnlp.pipes.trainable.embeddings.span_pooler.factory:create_component"
 "eds.ner_crf"            = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
 "eds.nested_ner"         = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
-"eds.span_qualifier"      = "edsnlp.pipes.trainable.span_qualifier.factory:create_component"
+"eds.span_qualifier"      = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
+"eds.span_classifier"     = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
 "eds.span_linker"        = "edsnlp.pipes.trainable.span_linker.factory:create_component"
 
 [project.entry-points."spacy_scorers"]
-"eds.ner_exact_scorer"           = "edsnlp.scorers.ner:create_ner_exact_scorer"
-"eds.ner_token_scorer"           = "edsnlp.scorers.ner:create_ner_token_scorer"
-"eds.span_classification_scorer" = "edsnlp.scorers.span_classification:create_span_classification_scorer"
+"eds.ner_exact_scorer"           = "edsnlp.scorers.ner:NerExactScorer"
+"eds.ner_token_scorer"           = "edsnlp.scorers.ner:NerTokenScorer"
+"eds.ner_overlap_scorer"           = "edsnlp.scorers.ner:NerOverlapScorer"
+"eds.span_attributes_scorer"     = "edsnlp.scorers.span_attributes:SpanAttributeScorer"
+
+# Deprecated
+"eds.span_classification_scorer" = "edsnlp.scorers.span_attributes:create_span_attributes_scorer"
 
 [project.entry-points."edsnlp_readers"]
 "spark" =    "edsnlp.data:from_spark"
@@ -353,6 +357,8 @@ omit-covered-files = false
 
 
 [tool.coverage.report]
+precision = 2
+include = ["edsnlp/*"]
 omit = [
     "tests/*",
 ]
@@ -375,7 +381,9 @@ exclude_lines = [
 ]
 
 [tool.coverage.run]
+include = ["edsnlp/*"]
 concurrency = ["multiprocessing"]
+parallel = true
 
 [tool.cibuildwheel]
 skip = [
@@ -385,7 +393,6 @@ skip = [
     "*-manylinux_i686", # Skip 32-bit Linux
     "*-win_arm64", # Skip experimental Windows on ARM
     "*-musllinux*", # Skip slow Linux
-    "*-manylinux_aarch64", # Skip slow Linux
     "*-manylinux_ppc64le", # Skip slow Linux
     "*-manylinux_s390x", # Skip slow Linux
 ]

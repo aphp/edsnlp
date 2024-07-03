@@ -1,13 +1,19 @@
 import pytest
-from mlconjug3 import Conjugator
 
-from edsnlp.conjugator import conjugate, conjugate_verb, get_conjugated_verbs
+pytest.importorskip("mlconjug3")
+
+from mlconjug3 import Conjugator  # noqa: E402
+
+from edsnlp.conjugator import (  # noqa: E402
+    conjugate,
+    conjugate_verb,
+    get_conjugated_verbs,
+)
 
 pytestmark = pytest.mark.filterwarnings("ignore")
 
 
 def test_conjugate_verb():
-
     conjugator = Conjugator("fr")
 
     tests = [
@@ -28,7 +34,6 @@ def test_conjugate_verb():
 
 
 def test_conjugate():
-
     tests = [
         (("aimer", "Indicatif", "Présent", "1s"), "aime"),
         (("aimer", "Indicatif", "Présent", "2s"), "aimes"),
@@ -51,7 +56,6 @@ def test_conjugate():
 
 
 def test_get_conjugated_verbs():
-
     terms = get_conjugated_verbs(
         ["aimer", "convaincre"],
         matches=[dict(mode="Indicatif", tense="Présent")],

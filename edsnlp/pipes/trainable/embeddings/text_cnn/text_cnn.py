@@ -6,6 +6,7 @@ from typing_extensions import Literal, TypedDict
 from edsnlp.core.pipeline import Pipeline
 from edsnlp.core.torch_component import BatchInput
 from edsnlp.pipes.trainable.embeddings.typing import (
+    WordContextualizerComponent,
     WordEmbeddingBatchOutput,
     WordEmbeddingComponent,
 )
@@ -21,7 +22,7 @@ TextCnnBatchInput = TypedDict(
 )
 
 
-class TextCnnEncoder(WordEmbeddingComponent):
+class TextCnnEncoder(WordContextualizerComponent):
     """
     The `eds.text_cnn` component is a simple 1D convolutional network to contextualize
     word embeddings (as computed by the `embedding` component passed as argument).
@@ -62,6 +63,13 @@ class TextCnnEncoder(WordEmbeddingComponent):
         residual: bool = True,
         normalize: Literal["pre", "post", "none"] = "pre",
     ):
+        sub_span_getter = getattr(embedding, "span_getter", None)
+        if sub_span_getter is not None:  # pragma: no cover
+            self.span_getter = sub_span_getter
+        sub_context_getter = getattr(embedding, "context_getter", None)
+        if sub_context_getter is not None:  # pragma: no cover
+            self.context_getter = sub_context_getter
+
         super().__init__(nlp, name)
         self.embedding = embedding
         self.output_size = output_size or embedding.output_size
@@ -74,10 +82,6 @@ class TextCnnEncoder(WordEmbeddingComponent):
             residual=residual,
             normalize=normalize,
         )
-
-    @property
-    def span_getter(self):
-        return self.embedding.span_getter
 
     def forward(self, batch: BatchInput) -> WordEmbeddingBatchOutput:
         """
@@ -95,15 +99,16 @@ class TextCnnEncoder(WordEmbeddingComponent):
             - embeddings: encoded embeddings of shape (batch_size, seq_len, input_size)
             - mask: (same) mask of shape (batch_size, seq_len)
         """
-        embedding_results = self.embedding.module_forward(batch["embedding"])
-        if embedding_results["embeddings"].size(0) == 0:
-            return embedding_results
-
-        convoluted = self.module(
-            embedding_results["embeddings"],
-            embedding_results["mask"],
+        embedding = self.embedding(batch["embedding"])["embeddings"]
+        embedding = embedding.refold("context", "word")
+        convoluted = (
+            self.module(
+                embedding.as_tensor(),
+                embedding.mask,
+            )
+            if embedding.size(0) > 0
+            else embedding
         )
         return {
-            "embeddings": convoluted,
-            "mask": embedding_results["mask"],
+            "embeddings": embedding.with_data(convoluted),
         }

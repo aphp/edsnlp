@@ -1,4 +1,2 @@
-sep = r"¦"
-regex = dict(
-    tables=rf"(\b.*{sep}.*\n)+",
-)
+sep = ["¦", "|"]
+regex_template = [r"(?:{sep}?(?:[^{sep}\n]*{sep})+[^{sep}\n]*{sep}?\n)+"]

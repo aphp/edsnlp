@@ -279,6 +279,11 @@ class StandoffDict2DocConverter:
                     if isinstance(ent["attributes"], list)
                     else ent["attributes"]
                 )
+                attributes = (
+                    {a["label"]: a["value"] for a in ent["attributes"]}
+                    if isinstance(ent["attributes"], list)
+                    else ent["attributes"]
+                )
                 if self.notes_as_span_attribute and ent["notes"]:
                     ent["attributes"][self.notes_as_span_attribute] = "|".join(
                         note["value"] for note in ent["notes"]

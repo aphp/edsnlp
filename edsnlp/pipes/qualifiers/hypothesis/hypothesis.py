@@ -176,6 +176,7 @@ class HypothesisQualifier(RuleBasedQualifier):
             nlp=nlp,
             name=name,
             attr=attr,
+            attributes=["_.hypothesis"],
             explain=explain,
             terms=terms,
             on_ents_only=on_ents_only,

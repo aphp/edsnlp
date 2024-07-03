@@ -46,8 +46,8 @@ class DatesMatcher(BaseNERComponent):
 
     ```python
     import edsnlp, edsnlp.pipes as eds
-
-    import pendulum
+    import datetime
+    import pytz
 
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(eds.dates())
@@ -70,9 +70,10 @@ class DatesMatcher(BaseNERComponent):
     dates[1]._.date.to_datetime()
     # Out: None
 
-    note_datetime = pendulum.datetime(2021, 8, 27, tz="Europe/Paris")
+    note_datetime = datetime.datetime(2021, 8, 27, tzinfo=pytz.timezone("Europe/Paris"))
+    doc._.note_datetime = note_datetime
 
-    dates[1]._.date.to_datetime(note_datetime=note_datetime)
+    dates[1]._.date.to_datetime()
     # Out: 2020-08-27T00:00:00+02:00
 
     date_2_output = dates[2]._.date.to_datetime(
@@ -86,6 +87,26 @@ class DatesMatcher(BaseNERComponent):
 
     doc.spans["durations"]
     # Out: [pendant une semaine]
+    ```
+
+    Example on a collection of documents stored in the OMOP schema :
+
+    ```{ .python .no-check }
+    import edsnlp, edsnlp.pipes as eds
+
+    # with cols "note_id", "note_text" and optionally "note_datetime"
+    my_omop_df = ...
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(eds.dates(as_ents=True))
+    docs = edsnlp.data.from_pandas(my_omop_df)
+    docs = docs.map_pipeline(nlp)
+    docs = docs.to_pandas(
+        converter="ents",
+        span_attributes={"date.datetime": "datetime"},
+    )
+    print(docs)
+    # note_id  start  end label lexical_variant span_type datetime
+    # ...
     ```
 
     Extensions
@@ -371,6 +392,7 @@ class DatesMatcher(BaseNERComponent):
                 if v is not None and "_" in k:
                     key, value = k.split("_")
                     date_cfg.update({key: value})
+            date_cfg["doc"] = span.doc
             if span.label_ == "relative":
                 parsed = RelativeDate.parse_obj(date_cfg)
                 span.label_ = self.date_label

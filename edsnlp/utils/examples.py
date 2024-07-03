@@ -1,8 +1,8 @@
-import json
 import re
 from typing import Any, Dict, List, Tuple, Union
 
 import regex
+from confit.utils.xjson import loads
 from pydantic import BaseModel, validator
 
 
@@ -19,14 +19,10 @@ class Modifier(BaseModel):
 
     @validator("value")
     def optional_dict_parsing(cls, v):
-        if v in ["True", "False"]:
-            return v == "True"
-        if isinstance(v, str):
-            try:
-                return json.loads(v.replace("'", '"'))
-            except json.JSONDecodeError:
-                return v
-        return v
+        try:
+            return loads(v)
+        except Exception:
+            return v
 
 
 class Entity(BaseModel):

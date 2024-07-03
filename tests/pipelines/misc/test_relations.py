@@ -1,10 +1,10 @@
 import os
+from pathlib import Path
 
 import pytest
 from pytest import mark
 from spacy.tokens import Doc, Span
 
-# Importation des modules après avoir ajouté le chemin
 import edsnlp
 
 
@@ -15,7 +15,7 @@ import edsnlp
 )
 @mark.parametrize("max_dist", [1, 45, 100])
 def test_relations(use_sentences, clean_rel, proximity_method, max_dist):
-    dossier = "../../resources/relations/"
+    dossier = Path(__file__).parent.parent.parent.resolve() / "resources" / "relations"
     doc_iterator = edsnlp.data.read_standoff(dossier)
     corpus = list(doc_iterator)
     assert len(corpus) > 0

@@ -53,6 +53,7 @@ _build/
 *.tar.gz
 *.tsv
 *.ann
+!text.ann
 
 # Editors
 .idea

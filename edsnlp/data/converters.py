@@ -217,7 +217,7 @@ class StandoffDict2DocConverter:
         tokenizer: Optional[Tokenizer] = None,
         span_setter: SpanSetterArg = {"ents": True, "*": True},
         span_attributes: Optional[AttributesMappingArg] = None,
-        span_rel: Optional[AttributesMappingArg] = None,  # à voir si on le garde
+        span_rel: Optional[AttributesMappingArg] = None,  # to keep ?
         keep_raw_attribute_values: bool = False,
         bool_attributes: SequenceStr = [],
         default_attributes: AttributesMappingArg = {},
@@ -227,7 +227,7 @@ class StandoffDict2DocConverter:
         self.tokenizer = tokenizer or (nlp.tokenizer if nlp is not None else None)
         self.span_setter = span_setter
         self.span_attributes = span_attributes  # type: ignore
-        self.span_rel = span_rel  # à voir si on le garde
+        self.span_rel = span_rel  # to keep ?
         self.keep_raw_attribute_values = keep_raw_attribute_values
         self.default_attributes = default_attributes
         self.notes_as_span_attribute = notes_as_span_attribute
@@ -249,14 +249,14 @@ class StandoffDict2DocConverter:
             if not Span.has_extension(dst):
                 Span.set_extension(dst, default=None)
 
-        ############## Modification pour les relations ###############
-        dict_entities = {}  ## dictionnaire pour stocker les entités
+        ############## Modifications for relations ###############
+        dict_entities = {}  ## dict for entity storage
         for ent in obj.get("entities") or ():
-            begin = min(f["begin"] for f in ent["fragments"])  # debut de l'entité
-            end = max(f["end"] for f in ent["fragments"])  # fin de l'entité
+            begin = min(f["begin"] for f in ent["fragments"])  # start of the entity
+            end = max(f["end"] for f in ent["fragments"])  # end of the entity
             dict_entities[ent["entity_id"]] = (
                 ent["label"] + ";" + str(begin) + ";" + str(end)
-            )  # stocker les entités
+            )
             fragments = (
                 [
                     {
@@ -272,7 +272,7 @@ class StandoffDict2DocConverter:
                     fragment["begin"],
                     fragment["end"],
                     label=ent["label"],
-                    alignment_mode="expand",  # ajout id
+                    alignment_mode="expand",
                 )
                 attributes = (
                     {a["label"]: a["value"] for a in ent["attributes"]}
@@ -319,14 +319,14 @@ class StandoffDict2DocConverter:
                 if span._.get(attr) is None:
                     span._.set(attr, value)
 
-        ############## Modification pour les relations ###############
-        # Ajout des relations en terme de span
+        ############## Modifications fo relations ###############
+        # add relations in spans
         if self.span_rel is None and not Span.has_extension("rel"):
             Span.set_extension("rel", default=[])
 
-        for rel in obj.get("relations") or ():  # itere relation
-            for label in doc.spans:  # itere label source
-                for i, spa in enumerate(doc.spans[label]):  # itere spans source
+        for rel in obj.get("relations") or ():  # iterates relations
+            for label in doc.spans:  # iterates source labels
+                for i, spa in enumerate(doc.spans[label]):  # iterates source spans
                     bo = False
 
                     # relations
@@ -334,30 +334,30 @@ class StandoffDict2DocConverter:
                         label,
                         str(spa.start_char),
                         str(spa.end_char),
-                    ]:  # si l'entité source est la meme que celle du span
-                        for label2 in doc.spans:  # itere label target
+                    ]:  # sif source entity is the same as the span
+                        for label2 in doc.spans:  # iiterates target labels
                             for j, spa2 in enumerate(
                                 doc.spans[label2]
-                            ):  # iter label target
+                            ):  # iterates target label
                                 if dict_entities[rel["to_entity_id"]].split(";") == [
                                     label2,
                                     str(spa2.start_char),
                                     str(spa2.end_char),
-                                ]:  # si l'entité target est la meme que celle du span
+                                ]:  # if target entity is the same as the span
                                     relation = {
                                         "type": rel["relation_label"],
                                         "target": doc.spans[label2][j],
-                                    }  # creer la relation
+                                    }  # create the relation
                                     doc.spans[label][i]._.rel.append(
                                         relation
-                                    )  # ajouter la relation au span
+                                    )  # add the relation to the span
                                     bo = True
                                     break
                             if bo:
                                 break
                     bo = False
 
-                    # relations inverses
+                    # inverse relations
                     if dict_entities[rel["to_entity_id"]].split(";") == [
                         label,
                         str(spa.start_char),
@@ -773,7 +773,6 @@ def get_dict2doc_converter(
             converter = edsnlp.registry.factory.get(filtered[0])
             converter = converter(**kwargs).instantiate(nlp=None)
             kwargs = {}
-            print(converter, kwargs)
             return converter, kwargs
         except (KeyError, IndexError):
             available = [v for v in available if "dict2doc" in v]

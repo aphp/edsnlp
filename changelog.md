@@ -1,5 +1,119 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- Relation implementation in `doc.spans["<label>"][i]._.rel = [{'type':'rel_type', 'target': <span>},]`
+- Relation connector with brat2docs and docs2brat in `edsnlp.connectors.brat` compatible with `edsnlp.data.read_*` and `edsnlp.data.write_*` (modified files : `edsnlp.data.converters`, `edsnlp.data.standoff`)
+- Rule based relation model using proximity and/or sentence in `edsnlp.pipes.misc.relations` registered as `eds.relation`
+- Documentation using Mkdocs for relations `docs.pipes.misc.relations.md` and `docs.pipes.misc.index.md`
+- Tests for relations `tests.pipelines.misc.test_relations` and ressources `ressources.relations`
+- `data.set_processing(...)` now expose an `autocast` parameter to disable or tweak the automatic casting of the tensor
+  during the processing. Autocasting should result in a slight speedup, but may lead to numerical instability.
+- Use `torch.inference_mode` to disable view tracking and version counter bumps during inference.
+
+### Changed
+
+### Fixed
+
+- `edsnlp.load("your/huggingface-model", install_dependencies=True)` now correctly resolves the python pip
+  (especially on Colab) to auto-install the model dependencies
+- We now better handle empty documents in the `eds.transformer`, `eds.text_cnn` and `eds.ner_crf` components
+
+## v0.12.3
+
+### Changed
+
+Packages:
+
+- Pip-installable models are now built with `hatch` instead of poetry, which allows us to expose `artifacts` (weights)
+  at the root of the sdist package (uploadable to HF) and move them inside the package upon installation to avoid conflicts.
+- Dependencies are no longer inferred with dill-magic (this didn't work well before anyway)
+- Option to perform substitutions in the model's README.md file (e.g., for the model's name, metrics, ...)
+- Huggingface models are now installed with pip *editable* installations, which is faster since it doesn't copy around the weights
+
+## v0.12.1
+
+### Added
+
+- Added binary distribution for linux aarch64 (Streamlit's environment)
+- Added new separator option in eds.table and new input check
+
+### Fixed
+
+- Make catalogue & entrypoints compatible with py37-py312
+- Check that a data has a doc before trying to use the document's `note_datetime`
+
+## v0.12.0
+
+### Added
+
+- The `eds.transformer` component now accepts `prompts` (passed to its `preprocess` method, see breaking change below) to add before each window of text to embed.
+- `LazyCollection.map` / `map_batches` now support generator functions as arguments.
+- Window stride can now be disabled (i.e., stride = window) during training in the `eds.transformer` component by `training_stride = False`
+- Added a new `eds.ner_overlap_scorer` to evaluate matches between two lists of entities, counting true when the dice overlap is above a given threshold
+- `edsnlp.load` now accepts EDS-NLP models from the huggingface hub 🤗 !
+- New `python -m edsnlp.package` command to package a model for the huggingface hub or pypi-like registries
+- Improve table detection in `eds.tables` and support new options in `table._.to_pd_table(...)`:
+  - `header=True` to use first row as header
+  - `index=True` to use first column as index
+  - `as_spans=True` to fill cells as document spans instead of strings
+
+### Changed
+
+- :boom: Major breaking change in trainable components, moving towards a more "task-centric" design:
+  - the `eds.transformer` component is no longer responsible for deciding which spans of text ("contexts") should be embedded. These contexts are now passed via the `preprocess` method, which now accepts more arguments than just the docs to process.
+  - similarly the `eds.span_pooler` is now longer responsible for deciding which spans to pool, and instead pools all spans passed to it in the `preprocess` method.
+
+  Consequently, the `eds.transformer` and `eds.span_pooler` no longer accept their `span_getter` argument, and the `eds.ner_crf`, `eds.span_classifier`, `eds.span_linker` and `eds.span_qualifier` components now accept a `context_getter` argument instead, as well as a `span_getter` argument for the latter two. This refactoring can be summarized as follows:
+
+    ```diff
+    - eds.transformer.span_getter
+    + eds.ner_crf.context_getter
+    + eds.span_classifier.context_getter
+    + eds.span_linker.context_getter
+
+    - eds.span_pooler.span_getter
+    + eds.span_qualifier.span_getter
+    + eds.span_linker.span_getter
+    ```
+
+    and as an example for the `eds.span_linker` component:
+
+    ```diff
+    nlp.add_pipe(
+        eds.span_linker(
+            metric="cosine",
+            probability_mode="sigmoid",
+    +       span_getter="ents",
+    +       # context_getter="ents",  -> by default, same as span_getter
+            embedding=eds.span_pooler(
+                hidden_size=128,
+    -           span_getter="ents",
+                embedding=eds.transformer(
+    -               span_getter="ents",
+                    model="prajjwal1/bert-tiny",
+                    window=128,
+                    stride=96,
+                ),
+            ),
+        ),
+        name="linker",
+    )
+    ```
+- Trainable embedding components now all use `foldedtensor` to return embeddings, instead of returning a tensor of floats and a mask tensor.
+- :boom: TorchComponent `__call__` no longer applies the end to end method, and instead calls the `forward` method directly, like all torch modules.
+- The trainable `eds.span_qualifier` component has been renamed to `eds.span_classifier` to reflect its general purpose (it doesn't only predict qualifiers, but any attribute of a span using its context or not).
+- `omop` converter now takes the `note_datetime` field into account by default when building a document
+- `span._.date.to_datetime()` and `span._.date.to_duration()` now automatically take the `note_datetime` into account
+- `nlp.vocab` is no longer serialized when saving a model, as it may contain sensitive information and can be recomputed during inference anyway
+
+### Fixed
+
+- `edsnlp.data.read_json` now correctly read the files from the directory passed as an argument, and not from the parent directory.
+- Overwrite spacy's Doc, Span and Token pickling utils to allow recursively storing Doc, Span and Token objects in the extension values (in particular, span._.date.doc)
+- Removed pendulum dependency, solving various pickling, multiprocessing and missing attributes errors
+
 ## v0.11.2
 
 ### Fixed

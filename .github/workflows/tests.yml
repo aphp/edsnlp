@@ -64,8 +64,9 @@ jobs:
       - name: Install dependencies
         run: |
           uv venv
+          pip install poetry
           source .venv/bin/activate
-          uv pip install -e '.[dev,setup]' pytest-xdist poetry pip
+          uv pip install -e '.[dev,setup]' pytest-xdist pip
 
       - name: Test with Pytest on Python ${{ matrix.python-version }}
         env:

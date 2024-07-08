@@ -1,17 +1,17 @@
-from edsnlp.utils.examples import parse_example
+from edsnlp.utils.examples import Entity, parse_example
 
 examples = [
-    "J'ai vu le patient à cause d'une <ent>TS</ent> médicamenetuse."
-    "J'ai vu le patient à cause d'une ts médicamenetuse.",
-    "J'ai vu le patient à cause d'une <ent>IMV</ent>.",
-    "surface TS",
-    "Patiente hospitalisée à cause d'une <ent>Tentative d'autolyse</ent>.",
-    "Le patient exprime des idées de défenestration",
-    "vu aux urgences suite à une <ent>défenestration volontaire</ent>",
-    "amené par les pompiers à cause d'une <ent>phlebotomie</ent>",
-    "Antécédents :\n- <ent>pendaison</ent> (2010)",
-    "copain du patient : plusieurs événements d'<ent>autodestruction</ent>",
-    "suspicion d'<ent>ingestion de caustique</ent> avec des idées suicidaires",
+    "J'ai vu le patient à cause d'une <ent modality=suicide_attempt_unspecific>TS</ent> médicamenetuse."  # noqa: E501
+    "J'ai vu le patient à cause d'une ts médicamenetuse.",  # noqa: E501
+    "J'ai vu le patient à cause d'une <ent modality=intentional_drug_overdose>IMV</ent>.",  # noqa: E501
+    "surface TS",  # noqa: E501
+    "Patiente hospitalisée à cause d'une <ent modality=autolysis>Tentative d'autolyse</ent>.",  # noqa: E501
+    "Le patient exprime des idées de défenestration",  # noqa: E501
+    "vu aux urgences suite à une <ent modality=jumping_from_height>défenestration volontaire</ent>",  # noqa: E501
+    "amené par les pompiers à cause d'une <ent modality=cuts>phlebotomie</ent>",  # noqa: E501
+    "Antécédents :\n- <ent modality=strangling>pendaison</ent> (2010)",  # noqa: E501
+    "copain du patient : plusieurs événements d'<ent modality=self_destructive_behavior>autodestruction</ent>",  # noqa: E501
+    "suspicion d'<ent modality=burn_gas_caustic>ingestion de caustique</ent> avec des idées suicidaires",  # noqa: E501
 ]
 
 
@@ -24,4 +24,8 @@ def test_suicide_attempt(blank_nlp):
         assert len(doc.ents) == len(entities)
 
         for ent, entity in zip(doc.ents, entities):
+            entity: Entity
             assert ent.text == text[entity.start_char : entity.end_char]
+            assert ent._.suicide_attempt_modality == entity.modifiers_dict.get(
+                "modality"
+            )

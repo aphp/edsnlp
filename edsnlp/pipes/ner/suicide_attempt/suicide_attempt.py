@@ -17,25 +17,25 @@ class SuicideAttemptMatcher(BaseNERComponent):
     The `eds.suicide_attempt` pipeline component detects mentions of Suicide Attempt.
     It can be used with a span qualifier
     for contextualisation of the entity (history) and to detect false positives as
-    negation, hypothesis or family. We recomend to use a Machine Learning qualifier
+    negation, hypothesis or family. We recommend to use a machine learning qualifier
     to disambiguate polysemic words, as proposed in [@bey_natural_2024].
 
 
-    It sets the entity label `suicide_attempt`.
+    Every matched entity will be labelled `suicide_attempt`.
 
     Extensions
     ----------
     Each entity span will have the suicide attempt modality as an attribute.
     The available modalities are:
 
-        - suicide_attempt_unspecific
-        - autolysis
-        - intentional_drug_overdose
-        - jumping_from_height
-        - cuts
-        - strangling
-        - self_destructive_behavior
-        - burn_gas_caustic
+    - `suicide_attempt_unspecific`
+    - `autolysis`
+    - `intentional_drug_overdose`
+    - `jumping_from_height`
+    - `cuts`
+    - `strangling`
+    - `self_destructive_behavior`
+    - `burn_gas_caustic`
 
     Examples
     --------
@@ -55,7 +55,7 @@ class SuicideAttemptMatcher(BaseNERComponent):
     # Out: 'intentional_drug_overdose'
     ```
 
-    ??? info "Patterns used for the NER"
+    ??? info "Patterns used for the named entity recognition"
         ```{ .python .no-check }
         # fmt: off
         --8<-- "edsnlp/pipes/ner/suicide_attempt/patterns.py"

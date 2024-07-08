@@ -17,7 +17,7 @@ class Modifier(BaseModel):
     key: str
     value: Union[int, float, bool, str, Dict[str, Any]]
 
-    @validator("value")
+    @validator("value", allow_reuse=True)
     def optional_dict_parsing(cls, v):
         try:
             return loads(v)
@@ -29,6 +29,10 @@ class Entity(BaseModel):
     start_char: int
     end_char: int
     modifiers: List[Modifier]
+
+    @property
+    def modifiers_dict(self) -> Dict[str, Any]:
+        return {m.key: m.value for m in self.modifiers}
 
 
 entity_pattern = re.compile(r"(<ent[^<>]*>[^<>]+</ent>)", flags=re.DOTALL)

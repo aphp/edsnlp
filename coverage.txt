@@ -229,6 +229,10 @@ edsnlp/pipes/ner/scores/sofa/__init__.py                                        
 edsnlp/pipes/ner/scores/sofa/factory.py                                                    10      0 100.00%
 edsnlp/pipes/ner/scores/sofa/patterns.py                                                   11      0 100.00%
 edsnlp/pipes/ner/scores/sofa/sofa.py                                                       25      2  92.00%   33, 41
+edsnlp/pipes/ner/suicide_attempt/__init__.py                                                0      0 100.00%
+edsnlp/pipes/ner/suicide_attempt/factory.py                                                 3      0 100.00%
+edsnlp/pipes/ner/suicide_attempt/patterns.py                                                1      0 100.00%
+edsnlp/pipes/ner/suicide_attempt/suicide_attempt.py                                        28      0 100.00%
 edsnlp/pipes/ner/tnm/__init__.py                                                            0      0 100.00%
 edsnlp/pipes/ner/tnm/factory.py                                                             5      0 100.00%
 edsnlp/pipes/ner/tnm/model.py                                                             104      2  98.08%   140, 164
@@ -302,7 +306,7 @@ edsnlp/utils/bindings.py                                                        
 edsnlp/utils/collections.py                                                               155      0 100.00%
 edsnlp/utils/deprecation.py                                                                15      0 100.00%
 edsnlp/utils/doc_to_text.py                                                                62      0 100.00%
-edsnlp/utils/examples.py                                                                   51      0 100.00%
+edsnlp/utils/examples.py                                                                   54      0 100.00%
 edsnlp/utils/extensions.py                                                                  6      0 100.00%
 edsnlp/utils/file_system.py                                                                24      0 100.00%
 edsnlp/utils/filter.py                                                                     74      1  98.65%   207
@@ -316,4 +320,4 @@ edsnlp/utils/spark_dtypes.py                                                    
 edsnlp/utils/torch.py                                                                      31      0 100.00%
 edsnlp/utils/typing.py                                                                     27      0 100.00%
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                    9204    209  97.73%
+TOTAL                                                                                    9239    209  97.74%

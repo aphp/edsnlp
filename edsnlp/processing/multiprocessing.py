@@ -656,10 +656,14 @@ class GPUWorker:
                 if name in self.gpu_pipe_names
             ]
 
+            autocast_device_type = (
+                self.device if isinstance(self.device, str) else self.device.type
+            ).split(":")[0]
+            autocast_dtype = lc.autocast if lc.autocast is not True else None
             autocast_ctx = (
                 torch.autocast(
-                    device_type=self.device,
-                    dtype=lc.autocast,
+                    device_type=autocast_device_type,
+                    dtype=autocast_dtype,
                 )
                 if lc.autocast is not None
                 else nullcontext()

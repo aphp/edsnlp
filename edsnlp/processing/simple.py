@@ -27,12 +27,15 @@ def execute_simple_backend(
     try:
         torch = sys.modules["torch"]
         no_grad_ctx = torch.no_grad()
+        autocast_device_type = next(
+            (p.device for _ in lc.torch_components() for p in lc.parameters()),
+            torch.device("cpu"),
+        ).type.split(":")[0]
+        autocast_dtype = lc.autocast if lc.autocast is not True else None
         autocast_ctx = (
             torch.autocast(
-                device_type=next(
-                    p.device for pipe in lc.torch_components for p in lc.parameters
-                ),
-                dtype=lc.autocast,
+                device_type=autocast_device_type,
+                dtype=autocast_dtype,
             )
             if lc.autocast is not None
             else nullcontext()

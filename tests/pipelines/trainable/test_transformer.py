@@ -49,6 +49,7 @@ def test_span_getter(gold):
             model="prajjwal1/bert-tiny",
             window=128,
             stride=96,
+            quantization=None,
         ),
     )
     nlp.add_pipe(

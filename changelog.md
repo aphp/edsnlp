@@ -19,6 +19,7 @@
   (especially on Colab) to auto-install the model dependencies
 - We now better handle empty documents in the `eds.transformer`, `eds.text_cnn` and `eds.ner_crf` components
 - Support mixed precision in `eds.text_cnn` and `eds.ner_crf` components
+- Support pre-quantization (<4.30) transformers versions
 
 ## v0.12.3
 

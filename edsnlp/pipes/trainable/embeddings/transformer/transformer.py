@@ -8,13 +8,19 @@ import tokenizers.normalizers
 import torch
 from confit import VisibleDeprecationWarning, validate_arguments
 from transformers import AutoModel, AutoTokenizer
-from transformers import BitsAndBytesConfig as BitsAndBytesConfig_
 from typing_extensions import Literal, TypedDict
 
 from edsnlp import Pipeline
 from edsnlp.core.torch_component import cached
 from edsnlp.pipes.trainable.embeddings.typing import WordEmbeddingComponent
 from edsnlp.utils.span_getters import SpanGetterArg
+
+try:
+    from transformers import BitsAndBytesConfig as BitsAndBytesConfig_
+
+    BitsAndBytesConfig = validate_arguments(BitsAndBytesConfig_)
+except ImportError:  # pragma: no cover
+    BitsAndBytesConfig = None
 
 INITIAL_MAX_TOKENS_PER_DEVICE = 32 * 128
 TransformerBatchInput = TypedDict(
@@ -47,8 +53,6 @@ TransformerBatchOutput = TypedDict(
 embeddings: FoldedTensor
     The embeddings of the words
 """
-
-BitsAndBytesConfig = validate_arguments(BitsAndBytesConfig_)
 
 
 class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
@@ -155,11 +159,13 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                 "other higher level task components instead.",
                 VisibleDeprecationWarning,
             )
-        self.transformer = AutoModel.from_pretrained(
-            model,
-            quantization_config=quantization,
-            **kwargs,
-        )
+
+        kwargs = dict(kwargs)
+
+        if quantization is not None:
+            kwargs["quantization_config"] = quantization
+
+        self.transformer = AutoModel.from_pretrained(model, **kwargs)
         self.tokenizer = AutoTokenizer.from_pretrained(model)
         self.window = window
         self.stride = stride
@@ -247,7 +253,6 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
             )
 
         for ctx, prompt in zip(contexts, prompts_input_ids):
-            # Preprocess it using LayoutLMv3
             prep = self.tokenizer(
                 ctx.text,
                 is_split_into_words=False,

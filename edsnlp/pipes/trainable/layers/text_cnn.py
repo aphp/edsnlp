@@ -113,7 +113,12 @@ class TextCnn(torch.nn.Module):
 
         # Reshape the output to the original shape
         new_dim = flat_x.size(-1)
-        x = torch.empty(n_samples * n_words_with_pad, new_dim, device=flat_x.device)
+        x = torch.empty(
+            n_samples * n_words_with_pad,
+            new_dim,
+            device=flat_x.device,
+            dtype=flat_x.dtype,
+        )
         flat_mask = padded_mask.clone()
         flat_mask[-1, padded_mask[-1].sum() - right_pad :] = False
         flat_mask[0, :left_pad] = False

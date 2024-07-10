@@ -133,7 +133,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
 
     @property
     def autocast(self):
-        return self.config.get("autocast")
+        return self.config.get("autocast", True)
 
     @property
     def backend(self):
@@ -160,7 +160,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
         num_gpu_workers: Optional[int] = INFER,
         disable_implicit_parallelism: bool = True,
         backend: Optional[Literal["simple", "multiprocessing", "mp", "spark"]] = INFER,
-        autocast: Union[bool, Any] = True,
+        autocast: Union[bool, Any] = INFER,
         show_progress: bool = False,
         gpu_pipe_names: Optional[List[str]] = INFER,
         process_start_method: Optional[Literal["fork", "spawn"]] = INFER,

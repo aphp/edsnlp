@@ -1,6 +1,6 @@
 import torch
 
-IMPOSSIBLE = -100000
+IMPOSSIBLE = -10000
 
 
 def repeat_like(x, y):

@@ -27,7 +27,7 @@ def batchify_by_words(
     total = 0
     for item in iterable:
         count = len(item)
-        if total + count > batch_size and total > 0:
+        if total + count > batch_size and len(batch) > 0:
             yield batch
             batch = []
             total = 0
@@ -46,7 +46,7 @@ def batchify_by_padded_words(
     max_words = 0
     for item in iterable:
         count = len(item)
-        if (1 + len(batch)) * max(max_words, count) > batch_size:
+        if (1 + len(batch)) * max(max_words, count) > batch_size and len(batch) > 0:
             yield batch
             batch = []
             max_words = 0
@@ -66,7 +66,7 @@ def batchify_by_spans(
     total = 0
     for item in iterable:
         count = len(list(get_spans(item, span_getter)))
-        if total + count > batch_size:
+        if total + count > batch_size and len(batch) > 0:
             yield batch
             batch = []
             total = 0
@@ -83,7 +83,7 @@ def batchify_with_counts(
     total = 0
     batch = []
     for item, count in iterable:
-        if total + count > batch_size:
+        if total + count > batch_size and len(batch) > 0:
             yield batch, total
             batch = []
             total = 0

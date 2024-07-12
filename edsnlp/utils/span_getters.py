@@ -8,6 +8,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Tuple,
     Union,
 )
 
@@ -257,49 +258,77 @@ class make_span_context_getter:
 
     Parameters
     ----------
-    context_words : NonNegativeInt
-        Minimum number of words to include on each side of the span.
-    context_sents : Optional[NonNegativeInt]
+    context_words : Union[NonNegativeInt, Tuple[NonNegativeInt, NonNegativeInt]]
+        Minimum number of words to include on each side of the span. It could be asymmetric.
+        For example (5,2) will include 5 words before the start of the span and 2 after the end of the span
+    context_sents : Optional[
+            Union[NonNegativeInt, Tuple[NonNegativeInt, NonNegativeInt]]
+        ] = 1
         Minimum number of sentences to include on each side of the span:
 
         - 0: don't use sentences to build the context.
         - 1: include the sentence of the span.
-        - n: include n sentences on each side of the span.
+        - n: include n-1 sentences on each side of the span + the sentence of the span
+
 
         By default, 0 if the document has no sentence annotations, 1 otherwise.
-    """
+    """  # noqa: E501
 
     def __init__(
         self,
-        context_words: NonNegativeInt = 0,
-        context_sents: Optional[NonNegativeInt] = 1,
+        context_words: Union[NonNegativeInt, Tuple[NonNegativeInt, NonNegativeInt]] = 0,
+        context_sents: Optional[
+            Union[NonNegativeInt, Tuple[NonNegativeInt, NonNegativeInt]]
+        ] = 1,
         span_getter: Optional[SpanGetterArg] = None,
     ):
-        self.context_words = context_words
-        self.context_sents = context_sents
+        if isinstance(context_words, int):
+            self.n_words_left, self.n_words_right = (context_words, context_words)
+        else:
+            self.n_words_left, self.n_words_right = context_words
+
+        if isinstance(context_sents, int):
+            self.context_sents_left, self.context_sents_right = (
+                context_sents,
+                context_sents,
+            )
+        else:
+            self.context_sents_left, self.context_sents_right = context_sents
+            assert (
+                sum(context_sents) != 1
+            ), "Asymmetric sentence context should not be (0,1) or (1,0)"
         self.span_getter = validate_span_getter(span_getter, optional=True)
 
     def __call__(self, span: Union[Doc, Span]) -> Union[Span, List[Span]]:
         if isinstance(span, Doc):  # pragma: no cover
             return [self(s) for s in get_spans(span, self.span_getter)]
 
-        n_sents: int = self.context_sents
-        n_words = self.context_words
+        n_sents_left, n_sents_right = self.context_sents_left, self.context_sents_right
+        n_words_left = self.n_words_left
+        n_words_right = self.n_words_right
 
-        start = span.start - n_words
-        end = span.end + n_words
+        start = span.start - n_words_left
+        end = span.end + n_words_right
 
-        if n_sents > 0:
-            if n_sents == 1:
+        n_sents_max = max(n_sents_left, n_sents_right)
+        if n_sents_max > 0:
+            if n_sents_left == 1:
                 sent = span.sent
                 min_start_sent = sent.start
+            if n_sents_right == 1:
+                sent = span.sent
                 max_end_sent = sent.end
-            else:
-                sents = list(span.doc.sents) if n_sents > 1 else []
+            if (n_sents_left != 1) or (n_sents_right != 1):
+                sents = list(span.doc.sents) if n_sents_max > 1 else []
                 sent_i = sents.index(span.sent)
-                min_start_sent = sents[max(0, sent_i - n_sents)].start
-                max_end_sent = sents[min(len(sents) - 1, sent_i + n_sents)].end
+                min_start_sent = sents[max(0, sent_i - n_sents_left + 1)].start
+                max_end_sent = sents[
+                    min(len(sents) - 1, sent_i + n_sents_right - 1)
+                ].end
             start = max(0, min(start, min_start_sent))
             end = min(len(span.doc), max(end, max_end_sent))
+        else:
+            start = max(0, start)
+            end = min(len(span.doc), end)
 
         return span.doc[start:end]

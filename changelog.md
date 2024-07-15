@@ -6,6 +6,8 @@
 
 - `eds.tables` accepts a minimum_table_size (default 2) argument to reduce pollution
 - `RuleBasedQualifier` now expose a `process` method that only returns qualified entities and token without actually tagging them, defering this task to the `__call__` method.
+- Added new patterns for metastasis detection. Developed on CT-Scan reports.
+- Added citation of articles
 
 ### Fixed
 

@@ -8,9 +8,7 @@ from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.matchers.utils import get_text
 from edsnlp.pipes.base import SpanSetterArg
-from edsnlp.pipes.core.contextual_matcher.contextual_matcher import (
-    get_window,
-)
+from edsnlp.pipes.core.contextual_matcher.contextual_matcher import get_window
 
 from ..base import DisorderMatcher
 from .patterns import COMPLICATIONS, default_patterns
@@ -86,9 +84,9 @@ class DiabetesMatcher(DisorderMatcher):
 
     # Authors and citation
 
-    The `eds.diabetes` component was developed by AP-HP's Data Science team with a team
-    of medical experts. A paper describing in details the development of those
-    components is being drafted and will soon be available.
+    The `eds.diabetes` component was developed by AP-HP's Data Science team with a
+    team of medical experts, following the insights of the algorithm proposed
+    by [@petitjean_2024].
     """
 
     def __init__(

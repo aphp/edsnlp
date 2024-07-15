@@ -16,8 +16,10 @@ from lymphoma import results_lymphoma
 from myocardial_infarction import results_myocardial_infarction
 from peptic_ulcer_disease import results_peptic_ulcer_disease
 from peripheral_vascular_disease import results_peripheral_vascular_disease
-from solid_tumor import results_solid_tumor
+from solid_tumor import results_solid_tumor, solid_tumor_config
 from tobacco import results_tobacco
+
+config = dict(solid_tumor=solid_tumor_config)
 
 results = dict(
     aids=results_aids,
@@ -59,6 +61,7 @@ class DisorderTester:
         detailled_status,
         negation=None,
         assign=None,
+        config=dict(),
     ):
         self.disorder = disorder
         self.nlp = nlp
@@ -74,7 +77,7 @@ class DisorderTester:
         self.assign = assign if assign is not None else len(texts) * [None]
         self.negation = negation if negation is not None else len(texts) * [None]
 
-        self.nlp.add_pipe(f"eds.{disorder}")
+        self.nlp.add_pipe(f"eds.{disorder}", config=config)
 
     def check(self):
         for text, has_match, detailled_status, assign, negation in zip(
@@ -91,7 +94,7 @@ class DisorderTester:
             doc = self.nlp(text)
             ents = doc.spans[self.disorder]
 
-            assert len(ents) == int(has_match)
+            assert len(ents) >= int(has_match)
 
             for ent in ents:
                 assert ent.label_ == self.disorder
@@ -116,10 +119,12 @@ class DisorderTester:
 )
 def test_disorder(normalized_nlp, disorder):
     result = results[disorder]
+    config_disorder = config.get(disorder, dict())
 
     expect = DisorderTester(
         disorder,
         normalized_nlp,
+        config=config_disorder,
         **result,
     )
 

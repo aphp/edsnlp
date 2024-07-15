@@ -3,6 +3,9 @@
 ## Presentation
 
 The following components extract 16 different conditions from the [Charlson Comorbidity Index](https://www.rdplf.org/calculateurs/pages/charlson/charlson.html). Each component is based on the ContextualMatcher component.
+
+The components were developed by AP-HP's Data Science team with a team of medical experts, following the insights of the algorithm proposed by [@petitjean_2024]
+
 Some general considerations about those components:
 
 - Extracted entities are stored in `doc.ents` and `doc.spans`. For instance, the `eds.tobacco` component stores matches in `doc.spans["tobacco"]`.

@@ -76,9 +76,9 @@ class LymphomaMatcher(DisorderMatcher):
 
     Authors and citation
     --------------------
-    The `eds.lymphoma` component was developed by AP-HP's Data Science team with a team
-    of medical experts. A paper describing in details the development of those
-    components is being drafted and will soon be available.
+    The `eds.lymphoma` component was developed by AP-HP's Data Science team with a
+    team of medical experts, following the insights of the algorithm proposed
+    by [@petitjean_2024].
     """
 
     def __init__(

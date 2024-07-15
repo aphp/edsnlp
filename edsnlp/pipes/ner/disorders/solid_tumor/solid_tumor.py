@@ -9,7 +9,7 @@ from edsnlp.pipes.base import SpanSetterArg
 from edsnlp.utils.numbers import parse_digit
 
 from ..base import DisorderMatcher
-from .patterns import default_patterns
+from .patterns import default_patterns, metastasis_ct_scan
 
 
 class SolidTumorMatcher(DisorderMatcher):
@@ -79,12 +79,15 @@ class SolidTumorMatcher(DisorderMatcher):
         How to set matches on the doc
     use_tnm : bool
         Whether to use TNM scores matching as well
+    use_patterns_metastasis_ct_scan : bool
+        Whether to use the metastasis patterns developed for the CT-Scans
 
     Authors and citation
     --------------------
     The `eds.solid_tumor` component was developed by AP-HP's Data Science team with a
-    team of medical experts. A paper describing in details the development of those
-    components is being drafted and will soon be available.
+    team of medical experts, following the insights of the algorithm proposed
+    by [@petitjean_2024] and [@kempf:hal-03519085].
+
     """
 
     def __init__(
@@ -94,9 +97,13 @@ class SolidTumorMatcher(DisorderMatcher):
         *,
         patterns: Union[Dict[str, Any], List[Dict[str, Any]]] = default_patterns,
         use_tnm: bool = False,
+        use_patterns_metastasis_ct_scan: bool = False,
         label: str = "solid_tumor",
         span_setter: SpanSetterArg = {"ents": True, "solid_tumor": True},
     ):
+        if use_patterns_metastasis_ct_scan:
+            patterns.append(metastasis_ct_scan)
+
         super().__init__(
             nlp=nlp,
             name=name,
@@ -130,7 +137,7 @@ class SolidTumorMatcher(DisorderMatcher):
 
     def process(self, doc: Doc) -> List[Span]:
         for span in super().process(doc):
-            if (span._.source == "metastasis") or (
+            if (span._.source in ["metastasis", "metastasis_ct_scan"]) or (
                 "metastasis" in span._.assigned.keys()
             ):
                 span._.status = 2

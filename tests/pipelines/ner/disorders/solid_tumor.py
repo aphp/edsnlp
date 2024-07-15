@@ -1,13 +1,5 @@
 results_solid_tumor = dict(
-    has_match=[
-        True,
-        True,
-        False,
-        True,
-        True,
-        True,
-        True,
-    ],
+    has_match=[True, True, False, True, True, True, True, True, True],
     detailled_status=[
         "LOCALIZED",
         "LOCALIZED",
@@ -15,6 +7,8 @@ results_solid_tumor = dict(
         "METASTASIS",
         "METASTASIS",
         "LOCALIZED",
+        "METASTASIS",
+        "METASTASIS",
         "METASTASIS",
     ],
     assign=None,
@@ -26,5 +20,9 @@ results_solid_tumor = dict(
         "Cancer du poumon au stade 4",
         "Cancer du poumon au stade 2",
         "Présence de nombreuses lésions secondaires",
+        "Patient avec fracture abcddd secondaire. Cancer de",
+        "Patient avec lesions non ciblées",
     ],
 )
+
+solid_tumor_config = dict(use_patterns_metastasis_ct_scan=True)

@@ -83,6 +83,30 @@ metastasis_pattern = dict(
     ),
 )
 
+# Patterns developed for CT-Scan reports
+metastasis_ct_scan = dict(
+    source="metastasis_ct_scan",
+    regex=[
+        r"(?i)(m[ée]tasta(se|tique)s?)",
+        r"(diss[ée]min[ée]e?s?)",
+        r"(carcinose)",
+        r"(((allure|l[ée]sion|localisation|progression)s?\s)(suspecte?s?)?.{0,50}(secondaire)s?)",
+        r"(l(a|â)ch(é|e|er)\sde\sballons?)",
+        r"(l[ée]sions?\s(non\s)?cibles?)",
+        r"(rupture.{1,20}corticale)",
+        r"(envahissement.{0,15}parties\smolles)",
+        r"((l[i,y]se).{1,20}os)|ost[eé]ol[i,y]|rupture.{1,20}corticale|envahissement.{1,20}parties\smolles|ost[eé]ocondensa.{1,20}(suspect|secondaire|[ée]volutive)",
+        r"(l[ée]sion|anomalie|image).{1,20}os.{1,30}(suspect|secondaire|[ée]volutive)",
+        r"os.{1,30}(l[ée]sion|anomalie|image).{1,20}(suspect|secondaire|[ée]volutive)",
+        r"(l[ée]sion|anomalie|image).{1,20}l[i,y]tique",
+        r"(l[ée]sion|anomalie|image).{1,20}condensant.{1,20}(suspect|secondaire|[ée]volutive)",
+        r"fracture.{1,30}(suspect|secondaire|[ée]volutive)",
+        r"((l[ée]sion|anomalie|image|nodule).{1,80}(secondaire))",
+        r"((l[ée]sion|anomalie|image|nodule)s.{1,40}suspec?ts?)",
+    ],
+    regex_attr="NORM",
+)
+
 default_patterns = [
     main_pattern,
     metastasis_pattern,

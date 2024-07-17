@@ -80,7 +80,7 @@ edsnlp/pipes/misc/consultation_dates/consultation_dates.py                      
 edsnlp/pipes/misc/consultation_dates/factory.py                                             4      0 100.00%
 edsnlp/pipes/misc/consultation_dates/patterns.py                                            3      0 100.00%
 edsnlp/pipes/misc/dates/__init__.py                                                         1      0 100.00%
-edsnlp/pipes/misc/dates/dates.py                                                          148     15  89.86%   244, 246, 248, 349-357, 440, 451-452
+edsnlp/pipes/misc/dates/dates.py                                                          152     15  90.13%   249, 251, 253, 357-365, 451, 462-463
 edsnlp/pipes/misc/dates/factory.py                                                          4      0 100.00%
 edsnlp/pipes/misc/dates/models.py                                                         196     11  94.39%   153, 157-162, 171-172, 189, 205
 edsnlp/pipes/misc/dates/patterns/__init__.py                                                5      0 100.00%
@@ -320,4 +320,4 @@ edsnlp/utils/spark_dtypes.py                                                    
 edsnlp/utils/torch.py                                                                      31      0 100.00%
 edsnlp/utils/typing.py                                                                     27      0 100.00%
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                    9239    209  97.74%
+TOTAL                                                                                    9243    209  97.74%

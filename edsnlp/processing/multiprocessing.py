@@ -458,11 +458,8 @@ class CPUWorker:
             expect_new_tasks = True
 
             while expect_new_tasks or len(active_batches) > 0:
-                # Check that there are no more than `chunk_size` docs being processed.
-                # If there is still room, we can process new batches
-                has_room_for_new_batches = (
-                    sum(len(ab[0]) for ab in active_batches.values()) < lc.chunk_size
-                )
+                # Check that there are no more than a few batches active (say 8)
+                has_room_for_new_batches = len(active_batches) < 8
 
                 # if new_batch_iterator is not None and len(active_batches) == 0:
                 #     yield next(new_batch_iterator)

@@ -63,7 +63,7 @@ class EDSTokenizer(Tokenizer):
         sep = rf"\d{punct}'\n[:space:]"
         default = rf"[^{sep}]+(?:['ˊ](?=[[:alpha:]]|$))?"
         exceptions = "|".join(TOKENIZER_EXCEPTIONS)
-        acronym = r"[A-Z][A-Z0-9]*[.](?=[A-Z0-9])"
+        acronym = r"[A-Z][A-Z0-9]*[.](?=[^\W])"
         self.word_regex = regex.compile(
             rf"""(?x)
         (

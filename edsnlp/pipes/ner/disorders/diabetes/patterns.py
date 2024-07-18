@@ -55,7 +55,7 @@ main_pattern = dict(
         ),
         dict(
             name="corticoid",
-            regex=r"(bctc\b|cortico(?:.?induit)?)",
+            regex=r"(\bctc\b|cortico(?:.?induit)?)",
             window=6,
         ),
     ],

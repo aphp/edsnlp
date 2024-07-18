@@ -15,6 +15,8 @@ de 25 mm size de grade II de
 malignité selon Elston et Ellis (3+2+1), sans composante
 Score ACR5 de chaque coté`'.
 On se donne rendez-vous pour le 23/11/1967.
+On fait des mesures de E.coli dans la seine.
+Le sang est de type O. Promis !
 """
     nlp = spacy.blank("eds")
     tokens = nlp(text)
@@ -31,9 +33,9 @@ On se donne rendez-vous pour le 23/11/1967.
 |malignité |selon |Elston |et |Ellis |(|3|+|2|+|1|)|, |sans |composante|
 |Score |ACR|5 |de |chaque |coté|`|'|.|
 |On |se |donne |rendez|-|vous |pour |le |23|/|11|/|1967|.|
-""".split(
-            "|"
-        )
+|On |fait |des |mesures |de |E.|coli |dans |la |seine|.|
+|Le |sang |est |de |type |O|. |Promis |!|
+""".split("|")
     )
 
 

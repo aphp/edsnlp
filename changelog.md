@@ -26,6 +26,8 @@
 - Support pre-quantization (<4.30) transformers versions
 - Verify that all batches are non empty
 - Fix `span_context_getter` for `context_words` = 0, `context_sents` > 2 and support assymetric contexts
+- Don't split sentences on rare unicode symbols
+- Better detect abbreviations, like `E.coli`, now split as [`E.`, `coli`] and not [`E`, `.`, `coli`]
 
 ## v0.12.3
 

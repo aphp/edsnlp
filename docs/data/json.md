@@ -5,7 +5,7 @@
     ```{ .python .no-check }
     import edsnlp
 
-    docs = edsnlp.data.from_json(df, converter="omop")
+    docs = edsnlp.data.read_json(df, converter="omop")
     docs = docs.map_pipeline(nlp)
     res = edsnlp.data.to_json(docs, converter="omop")
     ```

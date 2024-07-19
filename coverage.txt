@@ -315,9 +315,9 @@ edsnlp/utils/lazy_module.py                                                     
 edsnlp/utils/numbers.py                                                                    16      4  75.00%   35, 39-41
 edsnlp/utils/regex.py                                                                      17      0 100.00%
 edsnlp/utils/resources.py                                                                  24      1  95.83%   34
-edsnlp/utils/span_getters.py                                                              141     14  90.07%   52-54, 59-60, 62-63, 66, 75-77, 82, 124, 162
+edsnlp/utils/span_getters.py                                                              153     14  90.85%   53-55, 60-61, 63-64, 67, 76-78, 83, 125, 163
 edsnlp/utils/spark_dtypes.py                                                               92      0 100.00%
 edsnlp/utils/torch.py                                                                      31      0 100.00%
 edsnlp/utils/typing.py                                                                     27      0 100.00%
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                    9292    209  97.75%
+TOTAL                                                                                    9304    209  97.75%

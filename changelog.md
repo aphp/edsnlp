@@ -25,7 +25,7 @@
 - Support mixed precision in `eds.text_cnn` and `eds.ner_crf` components
 - Support pre-quantization (<4.30) transformers versions
 - Verify that all batches are non empty
-- Fix `span_context_getter` for `context_sents` > 2 and support assymetric contexts
+- Fix `span_context_getter` for `context_words` = 0, `context_sents` > 2 and support assymetric contexts
 
 ## v0.12.3
 

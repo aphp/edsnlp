@@ -307,11 +307,13 @@ class make_span_context_getter:
         n_words_left = self.n_words_left
         n_words_right = self.n_words_right
 
-        start = span.start - n_words_left
-        end = span.end + n_words_right
+        start = max(0, span.start - n_words_left)
+        end = min(len(span.doc), span.end + n_words_right)
 
         n_sents_max = max(n_sents_left, n_sents_right)
         if n_sents_max > 0:
+            min_start_sent = start
+            max_end_sent = end
             if n_sents_left == 1:
                 sent = span.sent
                 min_start_sent = sent.start
@@ -325,10 +327,7 @@ class make_span_context_getter:
                 max_end_sent = sents[
                     min(len(sents) - 1, sent_i + n_sents_right - 1)
                 ].end
-            start = max(0, min(start, min_start_sent))
-            end = min(len(span.doc), max(end, max_end_sent))
-        else:
-            start = max(0, start)
-            end = min(len(span.doc), end)
+            start = min(start, min_start_sent)
+            end = max(end, max_end_sent)
 
         return span.doc[start:end]

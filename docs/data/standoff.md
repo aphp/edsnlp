@@ -5,7 +5,7 @@
     ```{ .python .no-check }
     import edsnlp
 
-    doc_iterator = edsnlp.data.from_standoff(path)
+    doc_iterator = edsnlp.data.read_standoff(path)
     res = edsnlp.data.write_standoff(docs, path)
     ```
 

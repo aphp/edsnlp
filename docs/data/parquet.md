@@ -5,7 +5,7 @@
     ```{ .python .no-check }
     import edsnlp
 
-    docs = edsnlp.data.from_parquet(df, converter="omop")
+    docs = edsnlp.data.read_parquet(df, converter="omop")
     docs = docs.map_pipeline(nlp)
     res = edsnlp.data.to_parquet(docs, converter="omop")
     ```

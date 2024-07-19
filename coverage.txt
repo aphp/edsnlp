@@ -101,7 +101,7 @@ edsnlp/pipes/misc/dates/patterns/false_positive.py                              
 edsnlp/pipes/misc/dates/patterns/relative.py                                               30      0 100.00%
 edsnlp/pipes/misc/measurements/__init__.py                                                  3      0 100.00%
 edsnlp/pipes/misc/measurements/factory.py                                                   5      0 100.00%
-edsnlp/pipes/misc/measurements/measurements.py                                            388     19  95.10%   147-148, 160-162, 166, 195, 234, 245, 259, 499, 712, 876-877, 921, 928-929, 1035-1036
+edsnlp/pipes/misc/measurements/measurements.py                                            429     20  95.34%   148-149, 161-163, 167, 194, 199, 238, 249, 263, 853, 1027, 1058-1059, 1103, 1110-1111, 1223-1224
 edsnlp/pipes/misc/measurements/patterns.py                                                  7      0 100.00%
 edsnlp/pipes/misc/reason/__init__.py                                                        2      0 100.00%
 edsnlp/pipes/misc/reason/factory.py                                                         4      0 100.00%
@@ -320,4 +320,4 @@ edsnlp/utils/spark_dtypes.py                                                    
 edsnlp/utils/torch.py                                                                      31      0 100.00%
 edsnlp/utils/typing.py                                                                     27      0 100.00%
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                    9251    208  97.75%
+TOTAL                                                                                    9292    209  97.75%

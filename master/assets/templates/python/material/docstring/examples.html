@@ -1,0 +1,8 @@
+{{ "# Examples\n"|convert_markdown(heading_level, html_id) }}
+{% for section_type, sub_section in section.value %}
+  {% if section_type.value == "text" %}
+    {{ sub_section|convert_markdown(heading_level, html_id) }}
+  {% elif section_type.value == "examples" %}
+    {{ sub_section|convert_markdown(heading_level, html_id) }}
+  {% endif %}
+{% endfor %}

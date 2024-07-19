@@ -189,7 +189,10 @@ class SimpleMeasurement(Measurement):
         return self.value
 
     def __getattr__(self, other_unit):
-        return self.convert_to(other_unit)
+        try:
+            return self.convert_to(other_unit)
+        except KeyError:
+            raise AttributeError(f"Unit {other_unit} not found")
 
     @classmethod
     def verify(cls, ent):
@@ -346,6 +349,7 @@ class MeasurementsMatcher(BaseNERComponent):
         1. 100-110mg, 2 à 4 jours ...
         2. If True `eds.tables` must be called
         3. Which measurements are available ? See [Availability](#availability)
+
     Scope
     -----
     The `eds.measurements` matcher can extract simple (e.g. `3cm`) measurements.
@@ -431,6 +435,83 @@ class MeasurementsMatcher(BaseNERComponent):
     # Out: [178.0, 0.12, 0.24, 1.25]
     ```
 
+    To extract the measurements from many texts, you can use the following snippet:
+
+    ```python
+    import edsnlp, edsnlp.pipes as eds
+
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(
+        eds.measurements(measurements="weight", extract_ranges=True, as_ents=True),
+    )
+    texts = ["Le patient mesure 40000,0 g (aussi noté 40 kg)"]
+    docs = edsnlp.data.from_iterable(texts)
+    docs = docs.map_pipeline(nlp)
+    docs.to_pandas(
+        converter="ents",
+        span_attributes={"value.unit": "original_unit", "value.kg": "kg"},
+    )
+    #   note_id  start  end   label lexical_variant span_type original_unit    kg
+    # 0    None     18   27  weight       40000,0 g      ents             g  40.0
+    # 1    None     40   45  weight           40 kg      ents            kg  40.0
+    ```
+
+    Available units and measurements
+    --------------------------------
+
+    Feel free to propose any missing raw unit or predefined measurement.
+
+    Raw units and their derivations (g, mg, mgr ...) and their
+    compositions (g/ml, cac/j ...) can be detected.
+
+    __Available raw units :__
+
+    `g, m, m2, m3, mol, ui, Pa, %, log, mmHg, s/min/h/d/w/m/y,
+    arc-second, °, °C, cac, goutte, l, x10*4, x10*5`
+
+    __Available predefined measurements :__
+
+    | measurement_name | Example                |
+    |------------------|------------------------|
+    | `size`           | `1m50`, `1.50m`...     |
+    | `weight`         | `1kg`, `Poids : 65`... |
+    | `bmi`            | `BMI: 24`, `24 kg.m-2` |
+    | `volume`         | `2 cac`, `8ml`...      |
+
+    See the [patterns](https://github.com/aphp/edsnlp/blob/master/edsnlp/pipes/misc/measurements/patterns.py)
+    for exhaustive definition.
+
+    Customization
+    -------------
+    You can declare custom measurements by altering the patterns:
+
+    ```python
+    import edsnlp, edsnlp.pipes as eds
+
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(
+        eds.measurements(
+            measurements={
+                "my_custom_surface_measurement": {
+                    # This measurement unit is homogenous to square meters
+                    "unit": "m2",
+                    # Handle cases like "surface: 1.8" (implied m2),
+                    # vs "surface: 50" (implied cm2)
+                    "unitless_patterns": [
+                        {
+                            "terms": ["surface", "aire"],
+                            "ranges": [
+                                {"unit": "m2", "min": 0, "max": 9},
+                                {"unit": "cm2", "min": 10, "max": 100},
+                            ],
+                        }
+                    ],
+                },
+            }
+        ),
+    )
+    ```
+
     Extensions
     ----------
     The `eds.measurements` pipeline declares its extensions dynamically, depending
@@ -502,94 +583,39 @@ class MeasurementsMatcher(BaseNERComponent):
           instead, and assign all the parsed information (`._.date` / `._.duration`)
           to it. Otherwise, don't return the date.
 
-    Availability
-    ------------
-
-    Feel free to propose any missing raw unit or predefined measurement.
-
-    Raw units and their derivations (g, mg, mgr ...) and their
-    compositions (g/ml, cac/j ...) can be detected.
-
-    __Available raw units :__
-
-    `g, m, m2, m3, mol, ui, Pa, %, log, mmHg, s/min/h/d/w/m/y,
-    arc-second, °, °C, cac, goutte, l, x10*4, x10*5`
-
-    __Available predefined measurements :__
-
-    | measurement_name | Example                |
-    |------------------|------------------------|
-    | `size`           | `1m50`, `1.50m`...     |
-    | `weight`         | `1kg`, `Poids : 65`... |
-    | `bmi`            | `BMI: 24`, `24 kg.m-2` |
-    | `volume`         | `2 cac`, `8ml`...      |
-
-    See `edsnlp.pipes.misc.measurements.patterns` for exhaustive definition.
-
-    Customization
-    -------------
-    You can declare custom measurements by altering the patterns:
-
-    ```python
-    import edsnlp, edsnlp.pipes as eds
-
-    nlp = edsnlp.blank("eds")
-    nlp.add_pipe(
-        eds.measurements(
-            measurements={
-                "my_custom_surface_measurement": {
-                    # This measurement unit is homogenous to square meters
-                    "unit": "m2",
-                    # Handle cases like "surface: 1.8" (implied m2),
-                    # vs "surface: 50" (implied cm2)
-                    "unitless_patterns": [
-                        {
-                            "terms": ["surface", "aire"],
-                            "ranges": [
-                                {"unit": "m2", "min": 0, "max": 9},
-                                {"unit": "cm2", "min": 10, "max": 100},
-                            ],
-                        }
-                    ],
-                },
-            }
-        ),
-    )
-    ```
-
     Authors and citation
     --------------------
     The `eds.measurements` pipeline was developed by AP-HP's Data Science team.
-    '''
+    '''  # noqa: E501
 
     # fmt: off
     def __init__(
-          self,
-          nlp: PipelineProtocol,
-          name: str = "measurements",
-          *,
-          measurements: Union[str, List[Union[str, MsrConfig]], Dict[str, MsrConfig]] = list(patterns.common_measurements.keys()),  # noqa: E501
-          units_config: Dict[str, UnitConfig] = patterns.units_config,
-          number_terms: Dict[str, List[str]] = patterns.number_terms,
-          number_regex: str = patterns.number_regex,
-          stopwords: List[str] = patterns.stopwords,
-          unit_divisors: List[str] = patterns.unit_divisors,
-          ignore_excluded: bool = True,
-          compose_units: bool = True,
-          attr: str = "NORM",
-          extract_ranges: bool = False,
-          range_patterns: List[Tuple[Optional[str], Optional[str]]] = patterns.range_patterns,  # noqa: E501
-          after_snippet_limit: int = 6,
-          before_snippet_limit: int = 10,
-          span_getter: Optional[SpanGetterArg] = None,
-          merge_mode: Literal["intersect", "align"] = "intersect",
-          as_ents: bool = False,
-          span_setter: Optional[SpanSetterArg] = None,
-          use_tables : bool = True
+            self,
+            nlp: PipelineProtocol,
+            name: str = "measurements",
+            *,
+            measurements: Union[str, List[Union[str, MsrConfig]], Dict[str, MsrConfig]] = list(patterns.common_measurements.keys()),  # noqa: E501
+            units_config: Dict[str, UnitConfig] = patterns.units_config,
+            number_terms: Dict[str, List[str]] = patterns.number_terms,
+            number_regex: str = patterns.number_regex,
+            stopwords: List[str] = patterns.stopwords,
+            unit_divisors: List[str] = patterns.unit_divisors,
+            ignore_excluded: bool = True,
+            compose_units: bool = True,
+            attr: str = "NORM",
+            extract_ranges: bool = False,
+            range_patterns: List[Tuple[Optional[str], Optional[str]]] = patterns.range_patterns,  # noqa: E501
+            after_snippet_limit: int = 6,
+            before_snippet_limit: int = 10,
+            span_getter: Optional[SpanGetterArg] = None,
+            merge_mode: Literal["intersect", "align"] = "intersect",
+            as_ents: bool = False,
+            span_setter: Optional[SpanSetterArg] = None,
+            use_tables: bool = True
     ):
 
         self.use_tables = use_tables and (
-            "eds.tables" in nlp.pipe_names or "tables" in nlp.pipe_names
+                "eds.tables" in nlp.pipe_names or "tables" in nlp.pipe_names
         )
         if use_tables and not self.use_tables:
             logger.warning(
@@ -688,7 +714,7 @@ class MeasurementsMatcher(BaseNERComponent):
                     self.unitless_patterns[pattern_name] = {"name": name, **pattern}
 
         # NUMBER PATTERNS
-        self.regex_matcher.add("number",[number_regex])
+        self.regex_matcher.add("number", [number_regex])
         self.number_label_hashes = {nlp.vocab.strings["number"]}
         for number, terms in number_terms.items():
             self.term_matcher.build_patterns(nlp, {number: terms})
@@ -746,15 +772,15 @@ class MeasurementsMatcher(BaseNERComponent):
             if unit_part.label not in self.unit_part_label_hashes:
                 continue
             if last is not None and (
-                  (
-                        unit_part.doc[last.end: unit_part.start].text.strip() != ""
-                        and len(current)
-                  )
-                  or (
-                        not self.compose_units
-                        and len(current)
-                        and current[-1].label_ != "per"
-                  )
+                    (
+                            unit_part.doc[last.end: unit_part.start].text.strip() != ""
+                            and len(current)
+                    )
+                    or (
+                            not self.compose_units
+                            and len(current)
+                            and current[-1].label_ != "per"
+                    )
             ):
                 doc = current[0].doc
                 # Last non "per" match: we don't want our units to be like `g_per`
@@ -784,10 +810,10 @@ class MeasurementsMatcher(BaseNERComponent):
 
     @classmethod
     def make_pseudo_sentence(
-          cls,
-          doclike: Union[Doc, Span],
-          matches: List[Tuple[Span, bool]],
-          pseudo_mapping: Dict[int, str],
+            cls,
+            doclike: Union[Doc, Span],
+            matches: List[Tuple[Span, bool]],
+            pseudo_mapping: Dict[int, str],
     ) -> Tuple[str, List[int]]:
         """
         Creates a pseudo sentence (one letter per entity)
@@ -816,8 +842,8 @@ class MeasurementsMatcher(BaseNERComponent):
         offsets = []
         for ent, is_sent_split in matches:
             if (
-                  ent.start != last
-                  and not doclike.doc[last: ent.start].text.strip() == ""
+                    ent.start != last
+                    and not doclike.doc[last: ent.start].text.strip() == ""
             ):
                 pseudo.append("w")
             offsets.append(len(pseudo))
@@ -909,6 +935,7 @@ class MeasurementsMatcher(BaseNERComponent):
             table_matches = list(doc.spans["tables"])
 
         matches, unit_label_hashes = self.get_matches(doclike)
+
         # Make match slice function to query them
         def get_matches_after(i):
             anchor = matches[i][0]
@@ -986,7 +1013,7 @@ class MeasurementsMatcher(BaseNERComponent):
                 pass
 
             # Check if number is in table with a unit in the same row
-            if unit_norm is None :
+            if unit_norm is None:
                 for table in table_matches:
                     if (number.start >= table.start) and (number.end <= table.end):
                         table_pd = table._.to_pd_table(as_spans=True)
@@ -998,6 +1025,7 @@ class MeasurementsMatcher(BaseNERComponent):
                                              if item is not None), None)
                             if start_line is None:
                                 continue
+
                             def is_within_row(x):
                                 return (x.start >= start_line) and (x.end <= end_line)
 
@@ -1041,8 +1069,8 @@ class MeasurementsMatcher(BaseNERComponent):
                     )
                     unit_norm = None
                     if re.fullmatch(
-                          r"[,:n]*",
-                          pseudo[offsets[unitless_idx] + 1: offsets[number_idx]],
+                            r"[,:n]*",
+                            pseudo[offsets[unitless_idx] + 1: offsets[number_idx]],
                     ):
                         unitless_pattern = self.unitless_patterns[unitless_text.label_]
                         unit_norm = next(
@@ -1062,15 +1090,15 @@ class MeasurementsMatcher(BaseNERComponent):
             # TODO: handle this part better without .text.strip(), with cases for
             #  stopwords, etc
             if (
-                  unit_text
-                  and number.start <= unit_text.end
-                  and doc[number.end: unit_text.start].text.strip() == ""
+                    unit_text
+                    and number.start <= unit_text.end
+                    and doc[number.end: unit_text.start].text.strip() == ""
             ):
                 ent = doc[number.start: unit_text.end]
             elif (
-                  unit_text
-                  and unit_text.start <= number.end
-                  and doc[unit_text.end: number.start].text.strip() == ""
+                    unit_text
+                    and unit_text.start <= number.end
+                    and doc[unit_text.end: number.start].text.strip() == ""
             ):
                 ent = doc[unit_text.start: number.end]
             else:
@@ -1109,10 +1137,10 @@ class MeasurementsMatcher(BaseNERComponent):
         unmatched = []
         for idx, (match, _) in enumerate(matches):
             if (
-                  match.label in unit_label_hashes
-                  and idx not in matched_unit_indices
-                  or match.label in self.number_label_hashes
-                  and idx not in matched_number_indices
+                    match.label in unit_label_hashes
+                    and idx not in matched_unit_indices
+                    or match.label in self.number_label_hashes
+                    and idx not in matched_number_indices
             ):
                 unmatched.append(match)
 
@@ -1200,9 +1228,9 @@ class MeasurementsMatcher(BaseNERComponent):
         return merged
 
     def merge_with_existing(
-          self,
-          extracted: List[Span],
-          existing: List[Span],
+            self,
+            extracted: List[Span],
+            existing: List[Span],
     ) -> List[Span]:
         """
         Merges the extracted measurements with the existing measurements in the

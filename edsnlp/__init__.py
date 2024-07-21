@@ -15,7 +15,7 @@ import edsnlp.data  # noqa: F401
 import edsnlp.pipes
 from . import reducers
 
-__version__ = "0.12.3"
+__version__ = "0.13.0"
 
 BASE_DIR = Path(__file__).parent
 

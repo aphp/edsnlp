@@ -662,7 +662,7 @@ class GPUWorker:
                     device_type=autocast_device_type,
                     dtype=autocast_dtype,
                 )
-                if lc.autocast is not None
+                if lc.autocast
                 else nullcontext()
             )
 

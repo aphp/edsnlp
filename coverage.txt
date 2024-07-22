@@ -8,7 +8,7 @@ edsnlp/connectors/labeltool.py                                                  
 edsnlp/connectors/omop.py                                                                  84      4  95.24%   70, 88, 128, 172
 edsnlp/core/__init__.py                                                                     2      0 100.00%
 edsnlp/core/lazy_collection.py                                                            151      2  98.68%   52, 449
-edsnlp/core/pipeline.py                                                                   408      1  99.75%   552
+edsnlp/core/pipeline.py                                                                   410      1  99.76%   553
 edsnlp/core/registries.py                                                                 164      1  99.39%   79
 edsnlp/core/torch_component.py                                                            179      2  98.88%   391, 437
 edsnlp/data/__init__.py                                                                     3      0 100.00%
@@ -320,4 +320,4 @@ edsnlp/utils/spark_dtypes.py                                                    
 edsnlp/utils/torch.py                                                                      31      0 100.00%
 edsnlp/utils/typing.py                                                                     27      0 100.00%
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                    9304    209  97.75%
+TOTAL                                                                                    9306    209  97.75%

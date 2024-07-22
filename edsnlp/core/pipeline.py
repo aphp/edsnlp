@@ -3,6 +3,7 @@ import functools
 import importlib
 import inspect
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -1229,8 +1230,9 @@ def load_from_huggingface(
     missing_deps = []
     # Check if the dependencies are installed, with the correct version
     for req in reqs:
+        req_without_extra = re.sub(r"\[.*\]", "", req)
         try:
-            pkg_resources.require(req)
+            pkg_resources.require(req_without_extra)
         except (pkg_resources.VersionConflict, pkg_resources.DistributionNotFound):
             missing_deps.append(req)
 

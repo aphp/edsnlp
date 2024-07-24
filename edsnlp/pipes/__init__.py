@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from .misc.dates.factory import create_component as dates
     from .misc.measurements.factory import create_component as measurements
     from .misc.reason.factory import create_component as reason
+    from .misc.relations.factory import create_component as relations
     from .misc.sections.factory import create_component as sections
     from .misc.tables.factory import create_component as tables
     from .ner.adicap.factory import create_component as adicap

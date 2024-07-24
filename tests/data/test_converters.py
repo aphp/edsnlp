@@ -182,6 +182,7 @@ def test_write_standoff_dict(blank_nlp):
                 "label": "test",
             },
         ],
+        "relations": [],
     }
     assert (
         get_doc2dict_converter(

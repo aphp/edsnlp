@@ -183,6 +183,7 @@ def assert_doc_read(doc):
 
 
 def assert_doc_write(exported_ann_text):
+    print(exported_ann_text)
     assert exported_ann_text == (
         "T1	sosy 30 38	douleurs\n"
         "A1	etat T1 test\n"
@@ -207,6 +208,8 @@ def assert_doc_write(exported_ann_text):
         "A10	assertion T11 absent\n"
         "T12	test label 0 378 386	anomalie\n"
         "A11	assertion T12 absent\n"
+        "R1\tlieu Arg1:T1 Arg2:T2\n"
+        "R2\tlieu Arg1:T8 Arg2:T9\n"
     )
 
 

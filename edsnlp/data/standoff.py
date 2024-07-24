@@ -264,20 +264,20 @@ def dump_standoff_file(
                                     file=f,
                                 )
                                 attribute_idx += 1
-
-                    # fmt: off
-                    # if "relations" in doc:
-                    #     for i, relation in enumerate(doc["relations"]):
-                    #         entity_from = entities_ids[relation["from_entity_id"]]
-                    #         entity_to = entities_ids[relation["to_entity_id"]]
-                    #         print(
-                    #             "R{}\t{} Arg1:{} Arg2:{}\t".format(
-                    #                 i + 1, str(relation["label"]), entity_from,
-                    #                 entity_to
-                    #             ),
-                    #             file=f,
-                    #         )
-                    # fmt: on
+            # Ajout du traitement des relations
+            relation_idx = 1
+            if "relations" in doc:
+                for relation in doc["relations"]:
+                    print(
+                        "R{}\t{} Arg1:{} Arg2:{}".format(
+                            relation_idx,
+                            relation["relation_type"],
+                            entities_ids[relation["from_entity_id"]],
+                            entities_ids[relation["to_entity_id"]],
+                        ),
+                        file=f,
+                    )
+                    relation_idx += 1
 
 
 class StandoffReader(BaseReader):

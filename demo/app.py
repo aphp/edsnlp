@@ -68,7 +68,7 @@ PIPES = {
     "Drugs": "drugs",
     "CIM10": "cim10",
     "Dates": "dates",
-    "Measurements": "measurements",
+    "Quantities": "quantities",
     "Charlson": "charlson",
     "SOFA": "sofa",
     "Elston & Ellis": "elston_ellis",
@@ -220,7 +220,7 @@ text = st.text_area(
 
 doc = nlp(text)
 doc.ents = filter_spans(
-    (*doc.ents, *doc.spans.get("dates", []), *doc.spans.get("measurements", []))
+    (*doc.ents, *doc.spans.get("dates", []), *doc.spans.get("quantities", []))
 )
 
 st.header("Visualisation")

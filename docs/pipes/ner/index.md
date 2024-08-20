@@ -2,7 +2,7 @@
 
 We provide several Named Entity Recognition (NER) components.
 Named Entity Recognition is the task of identifying short relevant spans of text, named entities, and classifying them into pre-defined categories.
-In the case of clinical documents, these entities can be scores, disorders, behaviors, codes, dates, measurements, etc.
+In the case of clinical documents, these entities can be scores, disorders, behaviors, codes, dates, quantities, etc.
 
 ## Span setters: where are stored extracted entities ? {: #edsnlp.pipes.base.SpanSetterArg }
 

@@ -57,7 +57,7 @@ number_regex = r"""(?x)
 )?"""
 
 
-common_measurements = {
+common_quantities = {
     "weight": {
         "unit": "kg",
         "unitless_patterns": [

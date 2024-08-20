@@ -37,6 +37,6 @@ def make_nlp(lang):
     model.add_pipe("eds.reported_speech")
 
     model.add_pipe("eds.dates")
-    model.add_pipe("eds.measurements")
+    model.add_pipe("eds.quantities")
 
     return model

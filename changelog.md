@@ -6,6 +6,10 @@
 
 - Numbers are now only detected without trying to remove the pollution in between digits, ie `55 @ 77777` could be detected as a full number before, but not anymore.
 
+### Changed
+
+- Rename `eds.measurements` to `eds.quantities`
+
 ## v0.13.0
 
 ### Added

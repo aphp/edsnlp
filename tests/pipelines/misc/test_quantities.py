@@ -5,7 +5,7 @@ from pytest import fixture, raises
 from spacy.tokens.span import Span
 
 from edsnlp.core import PipelineProtocol
-from edsnlp.pipelines.misc.measurements import MeasurementsMatcher
+from edsnlp.pipelines.misc.quantities import QuantitiesMatcher
 
 text = (
     "Le patient fait 1 m 50 kg. La tumeur fait 2.0cm x 3cm. \n"
@@ -30,34 +30,32 @@ def blank_nlp():
 
 @fixture
 def matcher(blank_nlp: PipelineProtocol):
-    return MeasurementsMatcher(blank_nlp, extract_ranges=True, use_tables=True)
+    return QuantitiesMatcher(blank_nlp, extract_ranges=True, use_tables=True)
 
 
 def test_default_factory(blank_nlp: PipelineProtocol):
     blank_nlp.add_pipe("matcher", config=dict(terms={"patient": "patient"}))
     blank_nlp.add_pipe(
-        "eds.measurements",
-        config=dict(measurements=["size", "weight", "bmi"], use_tables=True),
+        "eds.quantities",
+        config=dict(quantities=["size", "weight", "bmi"], use_tables=True),
     )
 
     doc = blank_nlp(text)
 
     assert len(doc.ents) == 1
 
-    assert len(doc.spans["measurements"]) == 15
+    assert len(doc.spans["quantities"]) == 15
 
 
-def test_measurements_component(
-    blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher
-):
+def test_quantities_component(blank_nlp: PipelineProtocol, matcher: QuantitiesMatcher):
     doc = blank_nlp(text)
 
     with raises(KeyError):
-        doc.spans["measurements"]
+        doc.spans["quantities"]
 
     doc = matcher(doc)
 
-    m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13 = doc.spans["measurements"]
+    m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13 = doc.spans["quantities"]
 
     assert str(m1._.value) == "1 m"
     assert str(m2._.value) == "50 kg"
@@ -74,17 +72,17 @@ def test_measurements_component(
     assert str(m13._.value) == "13-14 g"
 
 
-def test_measurements_component_scaling(
-    blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher
+def test_quantities_component_scaling(
+    blank_nlp: PipelineProtocol, matcher: QuantitiesMatcher
 ):
     doc = blank_nlp(text)
 
     with raises(KeyError):
-        doc.spans["measurements"]
+        doc.spans["quantities"]
 
     doc = matcher(doc)
 
-    m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13 = doc.spans["measurements"]
+    m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13 = doc.spans["quantities"]
 
     assert abs(m1._.value.cm - 100) < 1e-6
     assert abs(m2._.value.mg - 50000000.0) < 1e-6
@@ -103,11 +101,11 @@ def test_measurements_component_scaling(
     assert abs(m13._.value.g[1] - 14.0) < 1e-6
 
 
-def test_measure_label(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
+def test_measure_label(blank_nlp: PipelineProtocol, matcher: QuantitiesMatcher):
     doc = blank_nlp(text)
     doc = matcher(doc)
 
-    m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13 = doc.spans["measurements"]
+    m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13 = doc.spans["quantities"]
 
     assert m1.label_ == "size"
     assert m2.label_ == "weight"
@@ -124,23 +122,21 @@ def test_measure_label(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher
     assert m13.label_ == "weight"
 
 
-def test_measurements_all_input(
-    blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher
-):
+def test_quantities_all_input(blank_nlp: PipelineProtocol, matcher: QuantitiesMatcher):
     all_text = "On mesure 13 mol/ml de ..." "On compte 16x10*9 ..."
     blank_nlp.add_pipe(
-        "eds.measurements",
-        config=dict(measurements="all", extract_ranges=True),
+        "eds.quantities",
+        config=dict(quantities="all", extract_ranges=True),
     )
 
     doc = blank_nlp(all_text)
-    m1, m2 = doc.spans["measurements"]
+    m1, m2 = doc.spans["quantities"]
 
     assert str(m1._.value) == "13 mol_per_ml"
     assert str(m2._.value) == "16 x10*9"
 
 
-def test_measure_str(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
+def test_measure_str(blank_nlp: PipelineProtocol, matcher: QuantitiesMatcher):
     for text, res in [
         ("1m50", "1.5 m"),
         ("1,50cm", "1.5 cm"),
@@ -148,39 +144,39 @@ def test_measure_str(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
         doc = blank_nlp(text)
         doc = matcher(doc)
 
-        assert str(doc.spans["measurements"][0]._.value) == res
+        assert str(doc.spans["quantities"][0]._.value) == res
 
 
-def test_measure_repr(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
+def test_measure_repr(blank_nlp: PipelineProtocol, matcher: QuantitiesMatcher):
     for text, res in [
         (
             "1m50",
-            "Measurement(1.5, 'm')",
+            "Quantity(1.5, 'm')",
         ),
         (
             "1,50cm",
-            "Measurement(1.5, 'cm')",
+            "Quantity(1.5, 'cm')",
         ),
     ]:
         doc = blank_nlp(text)
         doc = matcher(doc)
 
-        print(doc.spans["measurements"])
+        print(doc.spans["quantities"])
 
-        assert repr(doc.spans["measurements"][0]._.value) == res
+        assert repr(doc.spans["quantities"][0]._.value) == res
 
 
-def test_compare(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
+def test_compare(blank_nlp: PipelineProtocol, matcher: QuantitiesMatcher):
     m1, m2 = "1m0", "120cm"
-    m1 = matcher(blank_nlp(m1)).spans["measurements"][0]
-    m2 = matcher(blank_nlp(m2)).spans["measurements"][0]
+    m1 = matcher(blank_nlp(m1)).spans["quantities"][0]
+    m2 = matcher(blank_nlp(m2)).spans["quantities"][0]
     assert m1._.value <= m2._.value
     assert m2._.value > m1._.value
 
     m3 = "Entre deux et trois metres"
     m4 = "De 2 à 3 metres"
-    m3 = matcher(blank_nlp(m3)).spans["measurements"][0]
-    m4 = matcher(blank_nlp(m4)).spans["measurements"][0]
+    m3 = matcher(blank_nlp(m3)).spans["quantities"][0]
+    m4 = matcher(blank_nlp(m4)).spans["quantities"][0]
     print(blank_nlp("Entre deux et trois metres"))
     assert str(m3._.value) == "2-3 m"
     assert str(m4._.value) == "2-3 m"
@@ -193,7 +189,7 @@ def test_compare(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
     assert max(list(chain(m1._.value, m2._.value, m3._.value, m4._.value))).cm == 300
 
 
-def test_unitless(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
+def test_unitless(blank_nlp: PipelineProtocol, matcher: QuantitiesMatcher):
     for text, res in [
         ("BMI: 24 .", "24 kg_per_m2"),
         ("Le patient mesure 1.5 ", "1.5 m"),
@@ -203,10 +199,10 @@ def test_unitless(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
         doc = blank_nlp(text)
         doc = matcher(doc)
 
-        assert str(doc.spans["measurements"][0]._.value) == res
+        assert str(doc.spans["quantities"][0]._.value) == res
 
 
-def test_non_matches(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
+def test_non_matches(blank_nlp: PipelineProtocol, matcher: QuantitiesMatcher):
     for text in [
         "On délivre à 10 g / h.",
         "Le patient grandit de 10 cm par jour ",
@@ -217,10 +213,10 @@ def test_non_matches(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
         print(list(doc))
         doc = matcher(doc)
 
-        assert len(doc.spans["measurements"]) == 0
+        assert len(doc.spans["quantities"]) == 0
 
 
-def test_numbers(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
+def test_numbers(blank_nlp: PipelineProtocol, matcher: QuantitiesMatcher):
     for text, res in [
         ("deux m", "2 m"),
         ("2 m", "2 m"),
@@ -231,10 +227,10 @@ def test_numbers(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
         doc = blank_nlp(text)
         doc = matcher(doc)
 
-        assert str(doc.spans["measurements"][0]._.value) == res
+        assert str(doc.spans["quantities"][0]._.value) == res
 
 
-def test_ranges(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
+def test_ranges(blank_nlp: PipelineProtocol, matcher: QuantitiesMatcher):
     for text, res, snippet in [
         ("Le patient fait entre 1 et 2m", "1-2 m", "entre 1 et 2m"),
         ("On mesure de 2 à 2.5 dl d'eau", "2-2.5 dl", "de 2 à 2.5 dl"),
@@ -242,10 +238,10 @@ def test_ranges(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
         doc = blank_nlp(text)
         doc = matcher(doc)
 
-        measurement = doc.spans["measurements"][0]
-        print(doc.spans["measurements"])
-        assert str(measurement._.value) == res
-        assert measurement.text == snippet
+        quantity = doc.spans["quantities"][0]
+        print(doc.spans["quantities"])
+        assert str(quantity._.value) == res
+        assert quantity.text == snippet
 
 
 def test_merge_align(blank_nlp, matcher):
@@ -261,7 +257,7 @@ def test_merge_align(blank_nlp, matcher):
     assert str(ent._.value) == "2.0 cm"
 
 
-def test_merge_intersect(blank_nlp, matcher: MeasurementsMatcher):
+def test_merge_intersect(blank_nlp, matcher: QuantitiesMatcher):
     matcher.merge_mode = "intersect"
     matcher.span_setter = {**matcher.span_setter, "ents": True}
     matcher.span_getter = {"lookup_zones": True}
@@ -271,12 +267,12 @@ def test_merge_intersect(blank_nlp, matcher: MeasurementsMatcher):
     doc = matcher(doc)
 
     assert len(doc.ents) == 2
-    assert len(doc.spans["measurements"]) == 2
+    assert len(doc.spans["quantities"]) == 2
     assert [doc.ents[0].text, doc.ents[1].text] == ["2.0cm", "3cm"]
     assert [doc.ents[0]._.value.cm, doc.ents[1]._.value.cm] == [2.0, 3]
 
 
-def test_measurement_snippets(blank_nlp, matcher: MeasurementsMatcher):
+def test_quantity_snippets(blank_nlp, matcher: QuantitiesMatcher):
     for text, result in [
         ("0.50g", ["0.5 g"]),
         ("0.050g", ["0.05 g"]),
@@ -291,10 +287,10 @@ def test_measurement_snippets(blank_nlp, matcher: MeasurementsMatcher):
         doc = blank_nlp(text)
         doc = matcher(doc)
 
-        assert [str(span._.value) for span in doc.spans["measurements"]] == result
+        assert [str(span._.value) for span in doc.spans["quantities"]] == result
 
 
-def test_error_management(blank_nlp, matcher: MeasurementsMatcher):
+def test_error_management(blank_nlp, matcher: QuantitiesMatcher):
     text = """
         Leucocytes ¦ ¦ ¦4.2 ¦ ¦4.0-10.0
         Hémoglobine ¦ ¦9.0 - ¦ ¦13-14
@@ -302,4 +298,4 @@ def test_error_management(blank_nlp, matcher: MeasurementsMatcher):
     doc = blank_nlp(text)
     doc = matcher(doc)
 
-    assert len(doc.spans["measurements"]) == 0
+    assert len(doc.spans["quantities"]) == 0

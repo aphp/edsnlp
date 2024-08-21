@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from typing_extensions import Literal
 
@@ -28,6 +28,7 @@ def create_component(
     name: str = "cim10",
     *,
     attr: str = "NORM",
+    cim10: List[str] = None,
     ignore_excluded: bool = False,
     ignore_space_tokens: bool = False,
     term_matcher: Literal["exact", "simstring"] = "exact",
@@ -75,6 +76,9 @@ def create_component(
         The pipeline object
     name : str
         The name of the component
+    cim10 : str
+        List of cim10 to retrieve. If None, all cim10 will be searched,
+        resulting in higher computation time.
     attr : str
         The default attribute to use for matching.
     ignore_excluded : bool
@@ -104,7 +108,7 @@ def create_component(
         nlp=nlp,
         name=name,
         regex=dict(),
-        terms=get_patterns(),
+        terms=get_patterns(cim10),
         attr=attr,
         ignore_excluded=ignore_excluded,
         ignore_space_tokens=ignore_space_tokens,

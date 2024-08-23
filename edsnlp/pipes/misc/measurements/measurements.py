@@ -714,7 +714,12 @@ class MeasurementsMatcher(BaseNERComponent):
                     self.unitless_patterns[pattern_name] = {"name": name, **pattern}
 
         # NUMBER PATTERNS
-        self.regex_matcher.add("number", [number_regex])
+        self.regex_matcher.add(
+            "number",
+            [number_regex],
+            ignore_excluded=False,
+            ignore_space_tokens=False,
+        )
         self.number_label_hashes = {nlp.vocab.strings["number"]}
         for number, terms in number_terms.items():
             self.term_matcher.build_patterns(nlp, {number: terms})

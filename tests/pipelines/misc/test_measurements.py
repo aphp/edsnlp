@@ -226,6 +226,7 @@ def test_numbers(blank_nlp: PipelineProtocol, matcher: MeasurementsMatcher):
         ("2 m", "2 m"),
         ("⅛ m", "0.125 m"),
         ("0 m", "0 m"),
+        ("55 @ 77777 cm", "77777 cm"),
     ]:
         doc = blank_nlp(text)
         doc = matcher(doc)

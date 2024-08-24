@@ -101,7 +101,7 @@ edsnlp/pipes/misc/dates/patterns/false_positive.py                              
 edsnlp/pipes/misc/dates/patterns/relative.py                                               30      0 100.00%
 edsnlp/pipes/misc/measurements/__init__.py                                                  3      0 100.00%
 edsnlp/pipes/misc/measurements/factory.py                                                   5      0 100.00%
-edsnlp/pipes/misc/measurements/measurements.py                                            429     20  95.34%   148-149, 161-163, 167, 194, 199, 238, 249, 263, 853, 1027, 1058-1059, 1103, 1110-1111, 1223-1224
+edsnlp/pipes/misc/measurements/measurements.py                                            429     20  95.34%   148-149, 161-163, 167, 194, 199, 238, 249, 263, 858, 1032, 1063-1064, 1108, 1115-1116, 1228-1229
 edsnlp/pipes/misc/measurements/patterns.py                                                  7      0 100.00%
 edsnlp/pipes/misc/reason/__init__.py                                                        2      0 100.00%
 edsnlp/pipes/misc/reason/factory.py                                                         4      0 100.00%
@@ -274,7 +274,7 @@ edsnlp/pipes/trainable/embeddings/text_cnn/factory.py                           
 edsnlp/pipes/trainable/embeddings/text_cnn/text_cnn.py                                     22      0 100.00%
 edsnlp/pipes/trainable/embeddings/transformer/__init__.py                                   0      0 100.00%
 edsnlp/pipes/trainable/embeddings/transformer/factory.py                                    3      0 100.00%
-edsnlp/pipes/trainable/embeddings/transformer/transformer.py                              150      1  99.33%   166
+edsnlp/pipes/trainable/embeddings/transformer/transformer.py                              157      1  99.36%   166
 edsnlp/pipes/trainable/embeddings/typing.py                                                18      0 100.00%
 edsnlp/pipes/trainable/layers/__init__.py                                                   0      0 100.00%
 edsnlp/pipes/trainable/layers/crf.py                                                      137      5  96.35%   22, 30, 98, 108, 117
@@ -320,4 +320,4 @@ edsnlp/utils/spark_dtypes.py                                                    
 edsnlp/utils/torch.py                                                                      31      0 100.00%
 edsnlp/utils/typing.py                                                                     27      0 100.00%
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                    9306    209  97.75%
+TOTAL                                                                                    9313    209  97.76%

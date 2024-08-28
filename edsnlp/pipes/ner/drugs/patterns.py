@@ -5,6 +5,7 @@ from edsnlp import BASE_DIR
 
 drugs_file = BASE_DIR / "resources" / "drugs.json"
 
+
 def get_patterns(atc: List[str] = None) -> Dict[str, List[str]]:
     with open(drugs_file, "r") as f:
         patterns = json.load(f)

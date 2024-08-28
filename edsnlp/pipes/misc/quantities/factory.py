@@ -1,10 +1,10 @@
 from edsnlp.core import registry
 
 from . import patterns
-from .measurements import MeasurementsMatcher
+from .quantities import QuantitiesMatcher
 
 DEFAULT_CONFIG = dict(
-    measurements=list(patterns.common_measurements.keys()),  # noqa: E501
+    quantities=list(patterns.common_quantities.keys()),  # noqa: E501
     units_config=patterns.units_config,
     number_terms=patterns.number_terms,
     number_regex=patterns.number_regex,
@@ -24,7 +24,7 @@ DEFAULT_CONFIG = dict(
 )
 
 create_component = registry.factory.register(
-    "eds.measurements",
+    "eds.quantities",
     assigns=["doc.spans", "doc.ents"],
-    deprecated=["eds.measures"],
-)(MeasurementsMatcher)
+    deprecated=["eds.measures", "eds.measurements"],
+)(QuantitiesMatcher)

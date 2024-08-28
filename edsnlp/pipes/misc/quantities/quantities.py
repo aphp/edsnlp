@@ -22,10 +22,10 @@ from edsnlp.pipes.base import (
     get_spans,
     validate_span_getter,
 )
-from edsnlp.pipes.misc.measurements import patterns
+from edsnlp.pipes.misc.quantities import patterns
 from edsnlp.utils.filter import align_spans, filter_spans, get_span_group
 
-__all__ = ["MeasurementsMatcher"]
+__all__ = ["QuantitiesMatcher"]
 
 AFTER_SNIPPET_LIMIT = 6
 BEFORE_SNIPPET_LIMIT = 10
@@ -62,31 +62,31 @@ class MsrConfig(TypedDict):
     name: NotRequired[str]
 
 
-class Measurement(abc.ABC):
+class Quantity(abc.ABC):
     @abc.abstractmethod
-    def __len__(self) -> Iterable["SimpleMeasurement"]:
+    def __len__(self) -> Iterable["SimpleQuantity"]:
         """
-        Number of items in the measure (only one for SimpleMeasurement)
+        Number of items in the measure (only one for SimpleQuantity)
 
         Returns
         -------
-        Iterable["SimpleMeasurement"]
+        Iterable["SimpleQuantity"]
         """
 
     @abc.abstractmethod
-    def __iter__(self) -> Iterable["SimpleMeasurement"]:
+    def __iter__(self) -> Iterable["SimpleQuantity"]:
         """
-        Iter over items of the measure (only one for SimpleMeasurement)
+        Iter over items of the measure (only one for SimpleQuantity)
 
         Returns
         -------
-        Iterable["SimpleMeasurement"]
+        Iterable["SimpleQuantity"]
         """
 
     @abc.abstractmethod
-    def __getitem__(self, item) -> "SimpleMeasurement":
+    def __getitem__(self, item) -> "SimpleQuantity":
         """
-        Access items of the measure (only one for SimpleMeasurement)
+        Access items of the measure (only one for SimpleQuantity)
 
         Parameters
         ----------
@@ -94,7 +94,7 @@ class Measurement(abc.ABC):
 
         Returns
         -------
-        SimpleMeasurement
+        SimpleQuantity
         """
 
 
@@ -125,10 +125,10 @@ class UnitRegistry:
         return str(dict(sorted(degrees.items()))), scale
 
 
-class SimpleMeasurement(Measurement):
+class SimpleQuantity(Quantity):
     def __init__(self, value, unit, registry):
         """
-        The SimpleMeasurement class contains the value and unit
+        The SimpleQuantity class contains the value and unit
         for a single non-composite measure
 
         Parameters
@@ -155,24 +155,24 @@ class SimpleMeasurement(Measurement):
         return 1
 
     def __repr__(self):
-        return f"Measurement({self.value}, {repr(self.unit)})"
+        return f"Quantity({self.value}, {repr(self.unit)})"
 
     def __eq__(self, other: Any):
-        if isinstance(other, SimpleMeasurement):
+        if isinstance(other, SimpleQuantity):
             return self.convert_to(other.unit) == other.value
         return False
 
-    def __add__(self, other: "SimpleMeasurement"):
+    def __add__(self, other: "SimpleQuantity"):
         if other.unit == self.unit:
             return self.__class__(self.value + other.value, self.unit, self.registry)
         return self.__class__(
             self.value + other.convert_to(self.unit), self.unit, self.registry
         )
 
-    def __lt__(self, other: Union["SimpleMeasurement", "RangeMeasurement"]):
+    def __lt__(self, other: Union["SimpleQuantity", "RangeQuantity"]):
         return self.convert_to(other.unit) < min((part.value for part in other))
 
-    def __le__(self, other: Union["SimpleMeasurement", "RangeMeasurement"]):
+    def __le__(self, other: Union["SimpleQuantity", "RangeQuantity"]):
         return self.convert_to(other.unit) <= min((part.value for part in other))
 
     def convert_to(self, other_unit):
@@ -199,7 +199,7 @@ class SimpleMeasurement(Measurement):
         return True
 
 
-class RangeMeasurement(Measurement):
+class RangeQuantity(Quantity):
     def __init__(self, from_value, to_value, unit, registry):
         super().__init__()
         self.value = (from_value, to_value)
@@ -207,10 +207,10 @@ class RangeMeasurement(Measurement):
         self.registry = registry
 
     @classmethod
-    def from_measurements(cls, a, b):
+    def from_quantities(cls, a, b):
         a_value = a.value
         b_value = b.convert_to(a.unit)
-        return RangeMeasurement(a_value, b_value, a.unit, a.registry)
+        return RangeQuantity(a_value, b_value, a.unit, a.registry)
 
     def convert_to(self, other_unit):
         self_degrees, self_scale = self.registry.parse_unit(self.unit)
@@ -234,17 +234,17 @@ class RangeMeasurement(Measurement):
     def __len__(self):
         return 2
 
-    def __lt__(self, other: Union[SimpleMeasurement, "RangeMeasurement"]):
+    def __lt__(self, other: Union[SimpleQuantity, "RangeQuantity"]):
         return max(self.convert_to(other.unit)) < min((part.value for part in other))
 
-    def __le__(self, other: Union[SimpleMeasurement, "RangeMeasurement"]):
+    def __le__(self, other: Union[SimpleQuantity, "RangeQuantity"]):
         return max(self.convert_to(other.unit)) <= max((part.value for part in other))
 
     def __getattr__(self, other_unit):
         return self.convert_to(other_unit)
 
     def __eq__(self, other: Any):
-        if isinstance(other, RangeMeasurement):
+        if isinstance(other, RangeQuantity):
             return self.convert_to(other.unit) == other.value
         return False
 
@@ -252,26 +252,26 @@ class RangeMeasurement(Measurement):
         return f"{self.value[0]}-{self.value[1]} {self.unit}"
 
     def __repr__(self):
-        return f"RangeMeasurement({self.value}, {repr(self.unit)})"
+        return f"RangeQuantity({self.value}, {repr(self.unit)})"
 
     def __getitem__(self, item: int):
         assert isinstance(item, int)
-        return SimpleMeasurement(self.value[item], self.unit, self.registry)
+        return SimpleQuantity(self.value[item], self.unit, self.registry)
 
     @classmethod
     def verify(cls, ent):
         return True
 
 
-class MeasurementsMatcher(BaseNERComponent):
+class QuantitiesMatcher(BaseNERComponent):
     r'''
-    The `eds.measurements` matcher detects and normalizes numerical measurements
+    The `eds.quantities` matcher detects and normalizes numerical quantities
     within a medical document.
 
     !!! warning
 
-        The ``measurements`` pipeline is still in active development and has not
-        been rigorously validated. If you come across a measurement expression that
+        The ``quantities`` pipeline is still in active development and has not
+        been rigorously validated. If you come across a quantity expression that
         goes undetected, please file an issue !
 
     Pipe definition
@@ -281,7 +281,7 @@ class MeasurementsMatcher(BaseNERComponent):
               On mesure ... à 3mmol/l ; pression : 100mPa-110mPa.
               Acte réalisé par ... à 12h13"""
     ```
-    === "All measurements"
+    === "All quantities"
         ```python
         import edsnlp
 
@@ -289,19 +289,19 @@ class MeasurementsMatcher(BaseNERComponent):
         nlp.add_pipe("eds.sentences")
         nlp.add_pipe("eds.tables")
         nlp.add_pipe(
-            "eds.measurements",
+            "eds.quantities",
             config=dict(
-                measurements="all", extract_ranges=True, use_tables=True  # (3)  # (1)
+                quantities="all", extract_ranges=True, use_tables=True  # (3)  # (1)
             ),  # (2)
         )
-        nlp(text).spans["measurements"]
+        nlp(text).spans["quantities"]
         # Out: [65, 1.75, 3mmol/l, 100mPa-110mPa, 12h13]
         ```
 
         1. 100-110mg, 2 à 4 jours ...
         2. If True `eds.tables` must be called
         3. All units from [Availability](#availability) will be detected
-    === "Custom measurements"
+    === "Custom quantities"
         ```python
         import edsnlp
 
@@ -309,9 +309,9 @@ class MeasurementsMatcher(BaseNERComponent):
         nlp.add_pipe("eds.sentences")
         nlp.add_pipe("eds.tables")
         nlp.add_pipe(
-            "eds.measurements",
+            "eds.quantities",
             config=dict(
-                measurements={
+                quantities={
                     "concentration": {"unit": "mol_per_l"},
                     "pressure": {"unit": "Pa"},
                 },  # (3)
@@ -319,7 +319,7 @@ class MeasurementsMatcher(BaseNERComponent):
                 use_tables=True,
             ),  # (2)
         )
-        nlp(text).spans["measurements"]
+        nlp(text).spans["quantities"]
         # Out: [3mmol/l, 100mPa-110mPa]
         ```
 
@@ -327,7 +327,7 @@ class MeasurementsMatcher(BaseNERComponent):
         2. If True `eds.tables` must be called
         3. Which units are available ? See [Availability](#availability).
            More on customization ? See [Customization](#customization)
-    === "Predefined measurements"
+    === "Predefined quantities"
         ```python
         import edsnlp
 
@@ -335,31 +335,31 @@ class MeasurementsMatcher(BaseNERComponent):
         nlp.add_pipe("eds.sentences")
         nlp.add_pipe("eds.tables")
         nlp.add_pipe(
-            "eds.measurements",
+            "eds.quantities",
             config=dict(
-                measurements=["weight", "size"],  # (3)
+                quantities=["weight", "size"],  # (3)
                 extract_ranges=True,  # (1)
                 use_tables=True,
             ),  # (2)
         )
-        nlp(text).spans["measurements"]
+        nlp(text).spans["quantities"]
         # Out: [65, 1.75]
         ```
 
         1. 100-110mg, 2 à 4 jours ...
         2. If True `eds.tables` must be called
-        3. Which measurements are available ? See [Availability](#availability)
+        3. Which quantities are available ? See [Availability](#availability)
 
     Scope
     -----
-    The `eds.measurements` matcher can extract simple (e.g. `3cm`) measurements.
-    It can also detect elliptic enumerations (eg `32, 33 et 34kg`) of measurements
-    of the same type and split the measurements accordingly.
+    The `eds.quantities` matcher can extract simple (e.g. `3cm`) quantities.
+    It can also detect elliptic enumerations (eg `32, 33 et 34kg`) of quantities
+    of the same type and split the quantities accordingly.
 
     The normalized value can then be accessed via the `span._.{measure_name}` attribute,
     for instance `span._.size` or `span._.weight` and be converted on the fly to a
     desired unit. Like for other components, the `span._.value` extension can also be
-    used to access the normalized value for any measurement span.
+    used to access the normalized value for any quantity span.
 
     See Availability section for details on which units are handled
 
@@ -370,8 +370,8 @@ class MeasurementsMatcher(BaseNERComponent):
 
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(
-        eds.measurements(
-            measurements=["size", "weight", "bmi"],
+        eds.quantities(
+            quantities=["size", "weight", "bmi"],
             extract_ranges=True,
         ),
     )
@@ -386,63 +386,63 @@ class MeasurementsMatcher(BaseNERComponent):
 
     doc = nlp(text)
 
-    measurements = doc.spans["measurements"]
+    quantities = doc.spans["quantities"]
 
-    measurements
+    quantities
     # Out: [1m78, 76kg, 1,2, 2.4mm, 24, entre 1 et 1.5 cm]
 
-    measurements[0]
+    quantities[0]
     # Out: 1m78
 
-    str(measurements[0]._.size), str(measurements[0]._.value)
+    str(quantities[0]._.size), str(quantities[0]._.value)
     # Out: ('1.78 m', '1.78 m')
 
-    measurements[0]._.value.cm
+    quantities[0]._.value.cm
     # Out: 178.0
 
-    measurements[2]
+    quantities[2]
     # Out: 1,2
 
-    str(measurements[2]._.value)
+    str(quantities[2]._.value)
     # Out: '1.2 mm'
 
-    str(measurements[2]._.value.mm)
+    str(quantities[2]._.value.mm)
     # Out: 1.2
 
-    measurements[4]
+    quantities[4]
     # Out: 24
 
-    str(measurements[4]._.value)
+    str(quantities[4]._.value)
     # Out: '24 kg_per_m2'
 
-    str(measurements[4]._.value.kg_per_m2)
+    str(quantities[4]._.value.kg_per_m2)
     # Out: 24
 
-    str(measurements[5]._.value)
+    str(quantities[5]._.value)
     # Out: 1-1.5 cm
     ```
 
-    To extract all sizes in centimeters, and average range measurements, you can
+    To extract all sizes in centimeters, and average range quantities, you can
     use the following snippet:
 
     ```python
     sizes = [
         sum(item.cm for item in m._.value) / len(m._.value)
-        for m in doc.spans["measurements"]
+        for m in doc.spans["quantities"]
         if m.label_ == "size"
     ]
     sizes
     # Out: [178.0, 0.12, 0.24, 1.25]
     ```
 
-    To extract the measurements from many texts, you can use the following snippet:
+    To extract the quantities from many texts, you can use the following snippet:
 
     ```python
     import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(
-        eds.measurements(measurements="weight", extract_ranges=True, as_ents=True),
+        eds.quantities(quantities="weight", extract_ranges=True, as_ents=True),
     )
     texts = ["Le patient mesure 40000,0 g (aussi noté 40 kg)"]
     docs = edsnlp.data.from_iterable(texts)
@@ -456,10 +456,10 @@ class MeasurementsMatcher(BaseNERComponent):
     # 1    None     40   45  weight           40 kg      ents            kg  40.0
     ```
 
-    Available units and measurements
+    Available units and quantities
     --------------------------------
 
-    Feel free to propose any missing raw unit or predefined measurement.
+    Feel free to propose any missing raw unit or predefined quantity.
 
     Raw units and their derivations (g, mg, mgr ...) and their
     compositions (g/ml, cac/j ...) can be detected.
@@ -469,31 +469,31 @@ class MeasurementsMatcher(BaseNERComponent):
     `g, m, m2, m3, mol, ui, Pa, %, log, mmHg, s/min/h/d/w/m/y,
     arc-second, °, °C, cac, goutte, l, x10*4, x10*5`
 
-    __Available predefined measurements :__
+    __Available predefined quantities :__
 
-    | measurement_name | Example                |
+    | quantity_name | Example                |
     |------------------|------------------------|
     | `size`           | `1m50`, `1.50m`...     |
     | `weight`         | `1kg`, `Poids : 65`... |
     | `bmi`            | `BMI: 24`, `24 kg.m-2` |
     | `volume`         | `2 cac`, `8ml`...      |
 
-    See the [patterns](https://github.com/aphp/edsnlp/blob/master/edsnlp/pipes/misc/measurements/patterns.py)
+    See the [patterns](https://github.com/aphp/edsnlp/blob/master/edsnlp/pipes/misc/quantities/patterns.py)
     for exhaustive definition.
 
     Customization
     -------------
-    You can declare custom measurements by altering the patterns:
+    You can declare custom quantities by altering the patterns:
 
     ```python
     import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(
-        eds.measurements(
-            measurements={
-                "my_custom_surface_measurement": {
-                    # This measurement unit is homogenous to square meters
+        eds.quantities(
+            quantities={
+                "my_custom_surface_quantity": {
+                    # This quantity unit is homogenous to square meters
                     "unit": "m2",
                     # Handle cases like "surface: 1.8" (implied m2),
                     # vs "surface: 50" (implied cm2)
@@ -514,8 +514,8 @@ class MeasurementsMatcher(BaseNERComponent):
 
     Extensions
     ----------
-    The `eds.measurements` pipeline declares its extensions dynamically, depending
-    on the `measurements` parameter: each measurement gets its own extension, and
+    The `eds.quantities` pipeline declares its extensions dynamically, depending
+    on the `quantities` parameter: each quantity gets its own extension, and
     is assigned to a different span group.
 
     Parameters
@@ -524,7 +524,7 @@ class MeasurementsMatcher(BaseNERComponent):
         The pipeline object
     name : str
         The name of the component.
-    measurements : Union[str, List[Union[str, MsrConfig]], Dict[str, MsrConfig]]
+    quantities : Union[str, List[Union[str, MsrConfig]], Dict[str, MsrConfig]]
         A mapping from measure names to MsrConfig
         Each measure's configuration has the following shape:
         ```{ .python .no-check }
@@ -544,7 +544,7 @@ class MeasurementsMatcher(BaseNERComponent):
           }
         }
         ```
-        Set `measurements="all"` to extract all raw measurements from units_config file.
+        Set `quantities="all"` to extract all raw quantities from units_config file.
     number_terms: Dict[str, List[str]
         A mapping of numbers to their lexical variants
     stopwords: List[str]
@@ -562,17 +562,17 @@ class MeasurementsMatcher(BaseNERComponent):
     extract_ranges: bool
         Whether to extract ranges (like "entre 1 et 2 cm")
     range_patterns: List[Tuple[str, str]]
-        A list of "{FROM} xx {TO} yy" patterns to match range measurements
+        A list of "{FROM} xx {TO} yy" patterns to match range quantities
     after_snippet_limit: int
-        Maximum word distance after to link a part of a measurement after its number
+        Maximum word distance after to link a part of a quantity after its number
     before_snippet_limit: int
-        Maximum word distance after to link a part of a measurement before its number
+        Maximum word distance after to link a part of a quantity before its number
     span_setter: Optional[SpanSetterArg]
-        How to set the spans in the document. By default, each measurement will
+        How to set the spans in the document. By default, each quantity will
         be assigned to its own span group (using either the "name" field of the
-        config, or the key if you passed a dict), and to the "measurements" group.
+        config, or the key if you passed a dict), and to the "quantities" group.
     span_getter : SpanGetterArg
-        Where to look for measurements in the doc. By default, look in the whole doc.
+        Where to look for quantities in the doc. By default, look in the whole doc.
         You can combine this with the `merge_mode` argument for interesting results.
     merge_mode : Literal["intersect", "align"]
         How to merge matches with the spans from `span_getter`, if given:
@@ -585,16 +585,16 @@ class MeasurementsMatcher(BaseNERComponent):
 
     Authors and citation
     --------------------
-    The `eds.measurements` pipeline was developed by AP-HP's Data Science team.
+    The `eds.quantities` pipeline was developed by AP-HP's Data Science team.
     '''  # noqa: E501
 
     # fmt: off
     def __init__(
             self,
             nlp: PipelineProtocol,
-            name: str = "measurements",
+            name: str = "quantities",
             *,
-            measurements: Union[str, List[Union[str, MsrConfig]], Dict[str, MsrConfig]] = list(patterns.common_measurements.keys()),  # noqa: E501
+            quantities: Union[str, List[Union[str, MsrConfig]], Dict[str, MsrConfig]] = list(patterns.common_quantities.keys()),  # noqa: E501
             units_config: Dict[str, UnitConfig] = patterns.units_config,
             number_terms: Dict[str, List[str]] = patterns.number_terms,
             number_regex: str = patterns.number_regex,
@@ -624,22 +624,22 @@ class MeasurementsMatcher(BaseNERComponent):
                 "Skipping that step."
             )
 
-        self.all_measurements = (measurements == "all")
-        if self.all_measurements:
-            measurements = []
+        self.all_quantities = (quantities == "all")
+        if self.all_quantities:
+            quantities = []
 
         # fmt: on
-        if isinstance(measurements, str):
-            measurements = [measurements]
-        if isinstance(measurements, (list, tuple)):
-            measurements = [
+        if isinstance(quantities, str):
+            quantities = [quantities]
+        if isinstance(quantities, (list, tuple)):
+            quantities = [
                 m
                 if isinstance(m, dict)
-                else {**patterns.common_measurements[m], "name": m}
-                for m in measurements
+                else {**patterns.common_quantities[m], "name": m}
+                for m in quantities
             ]
-        elif isinstance(measurements, dict):
-            measurements = [{"name": k, **m} for k, m in measurements.items()]
+        elif isinstance(quantities, dict):
+            quantities = [{"name": k, **m} for k, m in quantities.items()]
 
         self.unit_registry = UnitRegistry(units_config)
         self.unitless_patterns: Dict[str, UnitlessPatternConfigWithName] = {}
@@ -660,13 +660,13 @@ class MeasurementsMatcher(BaseNERComponent):
         self.after_snippet_limit = after_snippet_limit
 
         # MEASURES
-        for m in measurements:
+        for m in quantities:
             self.measure_names[self.unit_registry.parse_unit(m["unit"])[0]] = m["name"]
 
         if span_setter is None:
             span_setter = {
                 "ents": as_ents,
-                "measurements": True,
+                "quantities": True,
                 **{
                     name: [name]
                     for name in self.measure_names.values()
@@ -691,13 +691,13 @@ class MeasurementsMatcher(BaseNERComponent):
             ignore_space_tokens=True,
         )
 
-        if self.all_measurements:
-            measurements = [
-                {"name": name, **common_measurement}
-                for name, common_measurement in patterns.common_measurements.items()
+        if self.all_quantities:
+            quantities = [
+                {"name": name, **common_quantity}
+                for name, common_quantity in patterns.common_quantities.items()
             ]
 
-        for measure_config in measurements:
+        for measure_config in quantities:
             name = measure_config["name"]
             unit = measure_config["unit"]
             self.measure_names[self.unit_registry.parse_unit(unit)[0]] = name
@@ -744,7 +744,7 @@ class MeasurementsMatcher(BaseNERComponent):
 
     def set_extensions(self) -> None:
         """
-        Set extensions for the measurements pipeline.
+        Set extensions for the quantities pipeline.
         """
         super().set_extensions()
 
@@ -863,7 +863,7 @@ class MeasurementsMatcher(BaseNERComponent):
     def get_matches(self, doc):
         """
         Extract and filter regex and phrase matches in the document
-        to prepare the measurement extraction.
+        to prepare the quantity extraction.
         Returns the matches and a list of hashes to quickly find unit matches
 
         Parameters
@@ -892,14 +892,14 @@ class MeasurementsMatcher(BaseNERComponent):
             if term.label not in self.unit_part_label_hashes
         ]
 
-        # Filter out measurement-related spans that overlap already matched
+        # Filter out quantity-related spans that overlap already matched
         # entities (in doc.ents or doc.spans["dates"])
         # Note: we also include sentence ends tokens as 1-token spans in those matches
-        # Prevent from matching over ents that are not measurement related
+        # Prevent from matching over ents that are not quantity related
         ents = (e for e in doc.ents if e.label_ not in self.measure_names.values())
         spans__keep__is_sent_end = filter_spans(
             [
-                # Tuples (span, keep = is measurement related, is sentence end)
+                # Tuples (span, keep = is quantity related, is sentence end)
                 *zip(get_span_group(doc, "dates"), repeat(False), repeat(False)),
                 *zip(regex_matches, repeat(True), repeat(False)),
                 *zip(non_unit_terms, repeat(True), repeat(False)),
@@ -909,7 +909,7 @@ class MeasurementsMatcher(BaseNERComponent):
             ]
         )
 
-        # Remove non-measurement related spans (keep = False) and sort the matches
+        # Remove non-quantity related spans (keep = False) and sort the matches
         matches_and_is_sentence_end: List[(Span, bool)] = sorted(
             [
                 (span, is_sent_end)
@@ -921,7 +921,7 @@ class MeasurementsMatcher(BaseNERComponent):
 
         return matches_and_is_sentence_end, unit_label_hashes
 
-    def extract_measurements(self, doclike: Doc):
+    def extract_quantities(self, doclike: Doc):
         """
         Extracts measure entities from the document
 
@@ -971,7 +971,7 @@ class MeasurementsMatcher(BaseNERComponent):
             },
         )
 
-        measurements = []
+        quantities = []
         matched_unit_indices = set()
         matched_number_indices = set()
 
@@ -1117,10 +1117,10 @@ class MeasurementsMatcher(BaseNERComponent):
 
             # If the measure was not requested, dismiss it
             # Otherwise, relabel the entity and create the value attribute
-            if (dims not in self.measure_names) and not self.all_measurements:
+            if (dims not in self.measure_names) and not self.all_quantities:
                 continue
 
-            if self.all_measurements:
+            if self.all_quantities:
                 if not Span.has_extension(unit_norm):
                     Span.set_extension(unit_norm, default=None)
                 ent.label_ = unit_norm
@@ -1129,10 +1129,10 @@ class MeasurementsMatcher(BaseNERComponent):
                 ent.label_ = self.measure_names[dims]
             ent._.set(
                 ent.label_,
-                SimpleMeasurement(value, unit_norm, self.unit_registry)
+                SimpleQuantity(value, unit_norm, self.unit_registry)
             )
 
-            measurements.append(ent)
+            quantities.append(ent)
 
             if unit_idx is not None:
                 matched_unit_indices.add(unit_idx)
@@ -1149,26 +1149,26 @@ class MeasurementsMatcher(BaseNERComponent):
             ):
                 unmatched.append(match)
 
-        return measurements, unmatched
+        return quantities, unmatched
 
     @classmethod
-    def merge_adjacent_measurements(cls, measurements: List[Span]) -> List[Span]:
+    def merge_adjacent_quantities(cls, quantities: List[Span]) -> List[Span]:
         """
-        Aggregates extracted measurements together when they are adjacent to handle
+        Aggregates extracted quantities together when they are adjacent to handle
         cases like
         - 1 meter 50 cm
         - 30° 4' 54"
 
         Parameters
         ----------
-        measurements: List[Span]
+        quantities: List[Span]
 
         Returns
         -------
         List[Span]
         """
-        merged = measurements[:1]
-        for ent in measurements[1:]:
+        merged = quantities[:1]
+        for ent in quantities[1:]:
             last = merged[-1]
 
             if last.end == ent.start and last._.value.unit != ent._.value.unit:
@@ -1184,26 +1184,26 @@ class MeasurementsMatcher(BaseNERComponent):
 
         return merged
 
-    def merge_measurements_in_ranges(self, measurements: List[Span]) -> List[Span]:
+    def merge_quantities_in_ranges(self, quantities: List[Span]) -> List[Span]:
         """
-        Aggregates extracted measurements together when they are adjacent to handle
+        Aggregates extracted quantities together when they are adjacent to handle
         cases like
         - 1 meter 50 cm
         - 30° 4' 54"
 
         Parameters
         ----------
-        measurements: List[Span]
+        quantities: List[Span]
 
         Returns
         -------
         List[Span]
         """
         if not self.extract_ranges or not self.range_patterns:
-            return measurements
+            return quantities
 
-        merged = measurements[:1]
-        for ent in measurements[1:]:
+        merged = quantities[:1]
+        for ent in quantities[1:]:
             last = merged[-1]
 
             from_text = last.doc[last.start - 1].norm_ if last.start > 0 else None
@@ -1215,7 +1215,7 @@ class MeasurementsMatcher(BaseNERComponent):
             ]
             if len(matching_patterns):
                 try:
-                    new_value = RangeMeasurement.from_measurements(
+                    new_value = RangeQuantity.from_quantities(
                         last._.value, ent._.value
                     )
                     merged[-1] = last = last.doc[
@@ -1238,41 +1238,41 @@ class MeasurementsMatcher(BaseNERComponent):
             existing: List[Span],
     ) -> List[Span]:
         """
-        Merges the extracted measurements with the existing measurements in the
+        Merges the extracted quantities with the existing quantities in the
         document.
 
         Parameters
         ----------
         extracted: List[Span]
-            The extracted measurements
+            The extracted quantities
         existing: List[Span]
-            The existing measurements in the document
+            The existing quantities in the document
 
         Returns
         -------
         List[Span]
         """
         if self.merge_mode == "align":
-            spans_measurements = align_spans(extracted, existing, sort_by_overlap=True)
+            spans_quantities = align_spans(extracted, existing, sort_by_overlap=True)
 
             extracted = []
-            for span, span_measurements in zip(existing, spans_measurements):
-                if len(span_measurements):
-                    span._.set(span.label_, span_measurements[0]._.get(span.label_))
+            for span, span_quantities in zip(existing, spans_quantities):
+                if len(span_quantities):
+                    span._.set(span.label_, span_quantities[0]._.get(span.label_))
                     extracted.append(span)
 
         elif self.merge_mode == "intersect":
-            spans_measurements = align_spans(extracted, existing)
+            spans_quantities = align_spans(extracted, existing)
             extracted = []
-            for span, span_measurements in zip(existing, spans_measurements):
-                extracted.extend(span_measurements)
+            for span, span_quantities in zip(existing, spans_quantities):
+                extracted.extend(span_quantities)
             extracted = list(dict.fromkeys(extracted))
 
         return extracted
 
     def __call__(self, doc):
         """
-        Adds measurements to document's "measurements" SpanGroup.
+        Adds quantities to document's "quantities" SpanGroup.
 
         Parameters
         ----------
@@ -1282,7 +1282,7 @@ class MeasurementsMatcher(BaseNERComponent):
         Returns
         -------
         doc:
-            spaCy Doc object, annotated for extracted measurements.
+            spaCy Doc object, annotated for extracted quantities.
         """
         existing = (
             list(get_spans(doc, self.span_getter))
@@ -1293,12 +1293,12 @@ class MeasurementsMatcher(BaseNERComponent):
             if self.span_getter is not None
             else [doc]
         )
-        measurements = [m for s in snippets for m in self.extract_measurements(s)[0]]
-        measurements = self.merge_adjacent_measurements(measurements)
-        measurements = self.merge_measurements_in_ranges(measurements)
+        quantities = [m for s in snippets for m in self.extract_quantities(s)[0]]
+        quantities = self.merge_adjacent_quantities(quantities)
+        quantities = self.merge_quantities_in_ranges(quantities)
         if self.span_getter is not None:
-            measurements = self.merge_with_existing(measurements, existing)
+            quantities = self.merge_with_existing(quantities, existing)
 
-        self.set_spans(doc, measurements)
+        self.set_spans(doc, quantities)
 
         return doc

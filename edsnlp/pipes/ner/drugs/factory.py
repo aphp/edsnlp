@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from typing_extensions import Literal
 
@@ -28,6 +28,7 @@ def create_component(
     name: str = "drugs",
     *,
     attr: str = "NORM",
+    atc: List[str] = None,
     ignore_excluded: bool = False,
     ignore_space_tokens: bool = False,
     term_matcher: Literal["exact", "simstring"] = "exact",
@@ -83,6 +84,9 @@ def create_component(
         The name of the component
     attr : str
         The default attribute to use for matching.
+    atc : str
+        List of atc to retrieve. If None, all atc will be searched,
+        resulting in higher computation time.
     ignore_excluded : bool
         Whether to skip excluded tokens (requires an upstream
         pipeline to mark excluded tokens).
@@ -111,7 +115,7 @@ def create_component(
         nlp=nlp,
         name=name,
         regex=dict(),
-        terms=get_patterns(),
+        terms=get_patterns(atc),
         attr=attr,
         ignore_excluded=ignore_excluded,
         ignore_space_tokens=ignore_space_tokens,

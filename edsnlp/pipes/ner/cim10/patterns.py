@@ -5,7 +5,7 @@ import pandas as pd
 from edsnlp import BASE_DIR
 
 
-def get_patterns() -> Dict[str, List[str]]:
+def get_patterns(cim10: List[str] = None) -> Dict[str, List[str]]:
     df = pd.read_csv(BASE_DIR / "resources" / "cim10.csv.gz")
 
     df["code_pattern"] = df["code"]
@@ -29,5 +29,7 @@ def get_patterns() -> Dict[str, List[str]]:
     )
 
     patterns = df.groupby("code")["patterns"].agg(list).to_dict()
+
+    patterns = {k: v for k, v in patterns.items() if k in cim10} if cim10 else patterns
 
     return patterns

@@ -547,30 +547,30 @@ class OmopDoc2DictConverter:
             ]
             for ext_name, obj_name in self.span_attributes.items()
         }
-        obj = {
-            FILENAME: doc._.note_id,
-            "note_id": doc._.note_id,
-            "note_text": doc.text,
-            **{
-                obj_name: getattr(doc._, ext_name)
-                for ext_name, obj_name in self.doc_attributes.items()
-                if doc._.has(ext_name)
-            },
-            "entities": [
-                {
-                    "note_nlp_id": i,
-                    "start_char": ent.start_char,
-                    "end_char": ent.end_char,
-                    "lexical_variant": ent.text,
-                    "note_nlp_source_value": ent.label_,
-                    **{
-                        obj_name: getter(ent)
-                        for obj_name, getter in span_binding_getters.items()
-                    },
-                }
-                for i, ent in enumerate(sorted(dict.fromkeys(spans)))
-            ],
-        }
+
+        obj = [
+            {
+                FILENAME: doc._.note_id,
+                "note_id": doc._.note_id,
+                "note_text": doc.text,
+                **{
+                    obj_name: getattr(doc._, ext_name)
+                    for ext_name, obj_name in self.doc_attributes.items()
+                    if doc._.has(ext_name)
+                },
+                "note_nlp_id": i,
+                "start_char": ent.start_char,
+                "end_char": ent.end_char,
+                "lexical_variant": ent.text,
+                "note_nlp_source_value": ent.label_,
+                **{
+                    obj_name: getter(ent)
+                    for obj_name, getter in span_binding_getters.items()
+                },
+            }
+            for i, ent in enumerate(sorted(dict.fromkeys(spans)))
+        ]
+
         return obj
 
 

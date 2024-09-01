@@ -5,6 +5,7 @@
 ### Fixed
 
 - Numbers are now only detected without trying to remove the pollution in between digits, ie `55 @ 77777` could be detected as a full number before, but not anymore.
+- Fix fsspec open file encoding to "utf-8".
 
 ## v0.13.0
 

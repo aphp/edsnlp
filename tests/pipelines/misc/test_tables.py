@@ -17,6 +17,13 @@ qdfsdf
 
 2/2Pat : <NOM> <Prenom> |<date> | <ipp> |Intitulé RCP
 
+Table de taille <= 3 :
+
+ |Libellé | Unité | Valeur | Intervalle |
+ |Leucocytes |x10*9/L |4.97 | 4.09-11 |
+
+qdfsdf
+
  |Libellé | Unité | Valeur | Intervalle |
  |Leucocytes |x10*9/L |4.97 | 4.09-11 |
  |Hématies |x10*12/L|4.68 | 4.53-5.79 |
@@ -35,7 +42,7 @@ def test_tables(blank_nlp):
     if blank_nlp.lang != "eds":
         pytest.skip("Test only for eds language")
     blank_nlp.add_pipe("eds.normalizer")
-    blank_nlp.add_pipe("eds.tables")
+    blank_nlp.add_pipe("eds.tables", config=dict(min_rows=3))
 
     doc = blank_nlp(TEXT)
 

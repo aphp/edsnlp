@@ -111,6 +111,8 @@ class TablesMatcher(BaseComponent):
     sep_pattern : Optional[str]
         The regex pattern to identify the separator pattern.
         Used when calling `to_pd_table`.
+    min_rows : Optional[int]
+        Only tables with more then `min_rows` lines will be detected.
     attr : str
         spaCy's attribute to use:
         a string with the value "TEXT" or "NORM", or a dict with
@@ -130,6 +132,7 @@ class TablesMatcher(BaseComponent):
         *,
         tables_pattern: Optional[AsList[str]] = None,
         sep_pattern: Optional[AsList[str]] = None,
+        min_rows: int = 2,
         attr: Union[Dict[str, str], str] = "TEXT",
         ignore_excluded: bool = True,
     ):
@@ -145,7 +148,7 @@ class TablesMatcher(BaseComponent):
             "table",
             list(
                 dict.fromkeys(
-                    template.format(sep=re.escape(sep))
+                    template.format(sep=re.escape(sep), n=re.escape(str(min_rows)))
                     for sep in sep_pattern
                     for template in tables_pattern
                 )

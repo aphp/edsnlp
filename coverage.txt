@@ -99,10 +99,10 @@ edsnlp/pipes/misc/dates/patterns/current.py                                     
 edsnlp/pipes/misc/dates/patterns/duration.py                                                3      0 100.00%
 edsnlp/pipes/misc/dates/patterns/false_positive.py                                          5      0 100.00%
 edsnlp/pipes/misc/dates/patterns/relative.py                                               30      0 100.00%
-edsnlp/pipes/misc/measurements/__init__.py                                                  3      0 100.00%
-edsnlp/pipes/misc/measurements/factory.py                                                   5      0 100.00%
-edsnlp/pipes/misc/measurements/measurements.py                                            429     20  95.34%   148-149, 161-163, 167, 194, 199, 238, 249, 263, 858, 1032, 1063-1064, 1108, 1115-1116, 1228-1229
-edsnlp/pipes/misc/measurements/patterns.py                                                  7      0 100.00%
+edsnlp/pipes/misc/quantities/__init__.py                                                    3      0 100.00%
+edsnlp/pipes/misc/quantities/factory.py                                                     5      0 100.00%
+edsnlp/pipes/misc/quantities/patterns.py                                                    7      0 100.00%
+edsnlp/pipes/misc/quantities/quantities.py                                                432     20  95.37%   148-149, 161-163, 167, 194, 199, 238, 249, 263, 867, 1041, 1072-1073, 1117, 1124-1125, 1237-1238
 edsnlp/pipes/misc/reason/__init__.py                                                        2      0 100.00%
 edsnlp/pipes/misc/reason/factory.py                                                         4      0 100.00%
 edsnlp/pipes/misc/reason/patterns.py                                                        3      0 100.00%
@@ -320,4 +320,4 @@ edsnlp/utils/spark_dtypes.py                                                    
 edsnlp/utils/torch.py                                                                      31      0 100.00%
 edsnlp/utils/typing.py                                                                     27      0 100.00%
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                    9313    209  97.76%
+TOTAL                                                                                    9316    209  97.76%

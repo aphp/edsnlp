@@ -27,6 +27,10 @@ class TextCnnEncoder(WordContextualizerComponent):
     The `eds.text_cnn` component is a simple 1D convolutional network to contextualize
     word embeddings (as computed by the `embedding` component passed as argument).
 
+    To be memory efficient when handling batches of variable-length sequences, this
+    module employs sequence packing, while taking care of avoiding contamination between
+    the different docs.
+
     Parameters
     ----------
     nlp : PipelineProtocol

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Support for setuptools based projects in `edsnlp.package` command
+
 ## v0.13.1
 
 ### Added

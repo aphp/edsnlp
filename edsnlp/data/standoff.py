@@ -1,5 +1,6 @@
 # ruff: noqa: F401
 import os
+import random
 import re
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -17,17 +18,18 @@ from typing import (
 import spacy.tokenizer
 from fsspec import filesystem as fsspec
 from loguru import logger
+from typing_extensions import Literal
 
 from edsnlp import registry
 from edsnlp.core.lazy_collection import LazyCollection
-from edsnlp.data.base import BaseReader, BaseWriter
+from edsnlp.data.base import BaseWriter, FileBasedReader
 from edsnlp.data.converters import (
     FILENAME,
     AttributesMappingArg,
     get_dict2doc_converter,
     get_doc2dict_converter,
 )
-from edsnlp.utils.collections import flatten_once
+from edsnlp.utils.collections import flatten
 from edsnlp.utils.file_system import FileSystem, normalize_fs_path, walk_match
 from edsnlp.utils.span_getters import SpanSetterArg
 
@@ -280,7 +282,7 @@ def dump_standoff_file(
                     # fmt: on
 
 
-class StandoffReader(BaseReader):
+class StandoffReader(FileBasedReader):
     DATA_FIELDS = ()
 
     def __init__(
@@ -290,8 +292,14 @@ class StandoffReader(BaseReader):
         keep_ipynb_checkpoints: bool = False,
         keep_txt_only_docs: bool = False,
         filesystem: Optional[FileSystem] = None,
+        loop: bool = False,
+        shuffle: Literal["dataset", False] = False,
+        seed: Optional[int] = None,
     ):
         super().__init__()
+        self.shuffle = shuffle
+        self.rng = random.Random(seed)
+        self.loop = loop
         self.fs, self.path = normalize_fs_path(filesystem, path)
         files = {
             file
@@ -314,17 +322,27 @@ class StandoffReader(BaseReader):
         assert len(self.files), f"No .txt files found in the BRAT directory {self.path}"
         logger.info(f"The BRAT directory contains {len(self.files)} .txt files.")
 
-    def read_main(self) -> Iterable[Tuple[str, int]]:
-        return ((f, 1) for f in self.files)
+    def read_records(self) -> Iterable[Any]:
+        while True:
+            files = list(self.files)
+            if self.shuffle:
+                self.rng.shuffle(files)
+            for item in files:
+                txt_path, ann_paths = item
+                anns = parse_standoff_file(txt_path, ann_paths, fs=self.fs)
+                anns[FILENAME] = os.path.relpath(txt_path, self.path).rsplit(".", 1)[0]
+                anns["doc_id"] = anns[FILENAME]
+                yield anns
+            if not self.loop:
+                break
 
-    def read_worker(self, fragment: List[str]):
-        tasks = []
-        for txt_path, ann_paths in fragment:
-            anns = parse_standoff_file(txt_path, ann_paths, fs=self.fs)
-            anns[FILENAME] = os.path.relpath(txt_path, self.path).rsplit(".", 1)[0]
-            anns["doc_id"] = anns[FILENAME]
-            tasks.append(anns)
-        return tasks
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}("
+            f"path={self.path!r}, "
+            f"shuffle={self.shuffle}, "
+            f"loop={self.loop})"
+        )
 
 
 class StandoffWriter(BaseWriter):
@@ -355,9 +373,10 @@ class StandoffWriter(BaseWriter):
 
         super().__init__()
 
-    def write_worker(self, records: List[Dict]) -> Tuple[List[str], int]:
+    def handle_record(self, record: Union[Dict, List[Dict]]):
+        # TODO support write_in_worker = False (default is True ATM)
         results = []
-        for rec in records:
+        for rec in flatten(record):
             filename = str(rec[FILENAME])
             path = os.path.join(self.path, f"{filename}.txt")
             dump_standoff_file(
@@ -368,10 +387,10 @@ class StandoffWriter(BaseWriter):
                 fs=self.fs,
             )
             results.append(path)
-        return results, len(results)
+        return results
 
-    def write_main(self, fragments) -> List[str]:
-        return list(flatten_once(fragments))
+    def consolidate(self, items: Iterable[Any]):
+        return list(flatten(items))
 
 
 # noinspection PyIncorrectDocstring
@@ -383,6 +402,9 @@ def read_standoff(
     keep_txt_only_docs: bool = False,
     converter: Optional[Union[str, Callable]] = "standoff",
     filesystem: Optional[FileSystem] = None,
+    shuffle: Literal["dataset", False] = False,
+    seed: Optional[int] = None,
+    loop: bool = False,
     **kwargs,
 ) -> LazyCollection:
     """
@@ -440,6 +462,13 @@ def read_standoff(
     path : Union[str, Path]
         Path to the directory containing the BRAT files (will recursively look for
         files in subdirectories).
+    shuffle: Literal["dataset", False]
+        Whether to shuffle the data. If "dataset", the whole dataset will be shuffled
+        before starting iterating on it (at the start of every epoch if looping).
+    seed: Optional[int]
+        The seed to use for shuffling.
+    loop: bool
+        Whether to loop over the data indefinitely.
     nlp : Optional[PipelineProtocol]
         The pipeline object (optional and likely not needed, prefer to use the
         `tokenizer` directly argument instead).
@@ -491,6 +520,9 @@ def read_standoff(
             keep_ipynb_checkpoints=keep_ipynb_checkpoints,
             keep_txt_only_docs=keep_txt_only_docs,
             filesystem=filesystem,
+            loop=loop,
+            shuffle=shuffle,
+            seed=seed,
         )
     )
     if converter:
@@ -504,8 +536,9 @@ def write_standoff(
     data: Union[Any, LazyCollection],
     path: Union[str, Path],
     overwrite: bool = False,
-    converter: Optional[Union[str, Callable]] = "standoff",
     filesystem: Optional[FileSystem] = None,
+    execute: bool = True,
+    converter: Optional[Union[str, Callable]] = "standoff",
     **kwargs,
 ) -> None:
     """
@@ -549,16 +582,26 @@ def write_standoff(
         be exported.
     overwrite: bool
         Whether to overwrite existing directories.
-    converter: Optional[Union[str, Callable]]
-        Converter to use to convert the documents to dictionary objects.
-        Defaults to the "standoff" format converter.
     filesystem: Optional[FileSystem] = None,
         The filesystem to use to write the files. If None, the filesystem will be
         inferred from the path (e.g. `s3://` will use S3).
+    execute: bool
+        Whether to execute the writing operation immediately or to return a lazy
+        collection
+    converter: Optional[Union[str, Callable]]
+        Converter to use to convert the documents to dictionary objects.
+        Defaults to the "standoff" format converter.
     """
     data = LazyCollection.ensure_lazy(data)
     if converter:
         converter, kwargs = get_doc2dict_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)
 
-    return data.write(StandoffWriter(path, overwrite=overwrite, filesystem=filesystem))
+    return data.write(
+        StandoffWriter(
+            path,
+            overwrite=overwrite,
+            filesystem=filesystem,
+        ),
+        execute=execute,
+    )

@@ -3,26 +3,25 @@ from typing import (
     Callable,
     Dict,
     Iterable,
+    List,
     Optional,
-    Sequence,
-    Tuple,
-    TypeVar,
     Union,
 )
 
 from edsnlp.core.lazy_collection import LazyCollection
 
-from .converters import get_dict2doc_converter, get_doc2dict_converter
+from ..utils.collections import flatten
+from .converters import FILENAME, get_dict2doc_converter, get_doc2dict_converter
 
 
 class BaseReader:
     """
     The BaseReader servers as a base class for all readers. It expects two methods:
 
-    - `read_main` method which is called in the main process and should return a
+    - `read_records` method which is called in the main process and should return a
         generator of fragments (like filenames) with their estimated size (number of
         documents)
-    - `read_worker` method which is called in the worker processes and receives
+    - `unpack_tasks` method which is called in the worker processes and receives
         batches of fragments and should return a list of dictionaries (one per
         document), ready to be converted to a Doc object by the converter.
 
@@ -34,14 +33,14 @@ class BaseReader:
     """
 
     DATA_FIELDS = ()
+    read_in_worker: bool
 
-    def read_main(self) -> Iterable[Tuple[Any, int]]:
-        raise NotImplementedError()
-
-    def read_worker(self, fragment: Iterable[Any]) -> Iterable[Dict]:
+    def read_records(self) -> Iterable[Any]:
         raise NotImplementedError()
 
     def worker_copy(self):
+        if self.read_in_worker:
+            return self
         # new reader without data, this will not call __init__ since we use __dict__
         # to set the data
         reader = self.__class__.__new__(self.__class__)
@@ -54,38 +53,58 @@ class BaseReader:
         return reader
 
 
-T = TypeVar("T")
+class FileBasedReader(BaseReader):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.read_in_worker = True
+
+
+class MemoryBasedReader(BaseReader):
+    def __init__(self, read_in_worker: bool = False, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.read_in_worker = False
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(data={object.__repr__(self.data)})"
 
 
 class BaseWriter:
-    def write_worker(self, records: Sequence[Any]) -> T:
+    def handle_record(self, record: Union[Dict, List[Dict]]):
+        for subitem in flatten(record):
+            if isinstance(subitem, dict):
+                subitem.pop(FILENAME, None)
+        return record
+
+    def consolidate(self, items: Iterable):
         raise NotImplementedError()
 
-    def write_main(self, fragments: Iterable[T]):
+
+class BatchWriter(BaseWriter):
+    batch_size: Optional[int] = None
+    batch_by: Callable
+    batch_in_worker: bool = False
+
+    def handle_batch(self, batch):
         raise NotImplementedError()
 
-    def finalize(self):
-        return None, 0
 
-
-class IterableReader(BaseReader):
+class IterableReader(MemoryBasedReader):
     DATA_FIELDS = ("data",)
 
-    def __init__(self, data: Iterable):
+    def __init__(self, data: Iterable, read_in_worker: bool = False):
         self.data = data
+        self.read_in_worker = read_in_worker
 
         super().__init__()
 
-    def read_main(self) -> Iterable[Tuple[Any, int]]:
-        return ((item, 1) for item in self.data)
-
-    def read_worker(self, fragments):
-        return [task for task in fragments]
+    def read_records(self) -> Iterable[Any]:
+        return self.data
 
 
 def from_iterable(
     data: Iterable,
     converter: Union[str, Callable] = None,
+    read_in_worker: bool = False,
     **kwargs,
 ) -> LazyCollection:
     """
@@ -122,6 +141,12 @@ def from_iterable(
         The data to read
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the JSON rows of the data source to Doc objects
+    read_in_worker: bool
+        In multiprocessing mode, whether to read the data in the worker processes.
+        If `True`, the data will be read in the worker processes, requires pickling the
+        input iterable: this is mostly useful if the pickled iterable is smaller than
+        the data itself (eg, an infinite generator of synthetic data). If `False`, the
+        data will be read in the main process and distributed to the workers.
     kwargs:
         Additional keyword arguments to pass to the converter. These are documented
         on the [Converters](/data/converters) page.
@@ -130,7 +155,8 @@ def from_iterable(
     -------
     LazyCollection
     """
-    data = LazyCollection.ensure_lazy(data)
+    if not isinstance(data, LazyCollection):
+        data = LazyCollection(IterableReader(data, read_in_worker=read_in_worker))
     if converter:
         converter, kwargs = get_dict2doc_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)

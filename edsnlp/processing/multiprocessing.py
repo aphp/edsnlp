@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copyreg
-import gc
 import io
 import logging
 import math
@@ -10,10 +9,10 @@ import multiprocessing.reduction
 import os
 import sys
 import tempfile
+import threading
 import warnings
-from contextlib import nullcontext
+from itertools import chain, cycle, islice
 from multiprocessing.connection import wait
-from random import shuffle
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -26,18 +25,15 @@ from typing import (
 )
 
 import dill
+from tqdm import tqdm
 from typing_extensions import TypedDict
 
 from edsnlp.core.lazy_collection import LazyCollection
-from edsnlp.utils.batching import batchify_fns, batchify_with_counts
+from edsnlp.data.base import BaseReader, BaseWriter, BatchWriter
 from edsnlp.utils.collections import (
     batch_compress_dict,
-    batchify,
     decompress_dict,
-    flatten,
 )
-
-from .utils import apply_basic_pipes
 
 doc_size_fns = {
     "words": len,
@@ -46,8 +42,6 @@ doc_size_fns = {
 if TYPE_CHECKING:
     import torch
 
-    from edsnlp.core.torch_component import TorchComponent
-
 Stage = TypedDict(
     "Stage",
     {
@@ -55,6 +49,24 @@ Stage = TypedDict(
         "gpu_component": Optional[Any],
     },
 )
+
+
+class StopType:
+    # Singleton is important since the STOP object may be passed to
+    # other processes, i.e. pickled, depickled, while it should
+    # always be the same object.
+    instance = None
+
+    def __repr__(self):
+        return "STOP"
+
+    def __new__(cls, *args, **kwargs):
+        if cls.instance is None:
+            cls.instance = super().__new__(cls)
+        return cls.instance
+
+
+STOP = StopType()
 
 
 class ForkingPickler(dill.Pickler):
@@ -123,7 +135,7 @@ def replace_pickler():
     old_pickler.loads = ForkingPickler.loads
     old_pickler.register = ForkingPickler.register
     ForkingPickler._extra_reducers.update(
-        multiprocessing.reduction.ForkingPickler._extra_reducers
+        multiprocessing.reduction.ForkingPickler._extra_reducers  # noqa
     )
 
     def revert():
@@ -165,7 +177,7 @@ def cpu_count():  # pragma: no cover
 
         _MAX_WINDOWS_WORKERS = 60
         if sys.version_info >= (3, 8):
-            from concurrent.futures.process import _MAX_WINDOWS_WORKERS
+            from concurrent.futures.process import _MAX_WINDOWS_WORKERS  # noqa
 
             if sys.version_info < (3, 10):
                 _MAX_WINDOWS_WORKERS = _MAX_WINDOWS_WORKERS - 1
@@ -280,11 +292,8 @@ try:
         MAP_LOCATION = map_location
         if torch.__version__ >= "2.1" and isinstance(args[0], str):
             kwargs["mmap"] = True
-        # with open(args[0], "rb") as f:
-        #     result = dill.load(f, **kwargs)
         try:
             if torch.__version__ < "2.0.0":
-                pickle = torch_load.__globals__["pickle"]
                 torch_load.__globals__["pickle"] = dill
             result = torch_load(
                 *args,
@@ -300,7 +309,7 @@ try:
         return result
 
 except (ImportError, AttributeError):  # pragma: no cover
-
+    # noinspection PyUnusedLocal
     def load(file, *args, map_location=None, **kwargs):
         # check if path
         if isinstance(file, str):
@@ -311,74 +320,51 @@ except (ImportError, AttributeError):  # pragma: no cover
     dump = dill.dump
 
 
-class Exchanger:
-    def __init__(
-        self,
-        mp: multiprocessing.context.BaseContext,
-        num_stages: int,
-        num_gpu_workers: int,
-        num_cpu_workers: int,
-        gpu_worker_devices: List[Any],
-    ):
-        # queue for cpu input tasks
-        self.gpu_worker_devices = gpu_worker_devices
-        self.num_cpu_workers = num_cpu_workers
-        self.num_gpu_workers = num_gpu_workers
-        # We add prioritized queue at the end for STOP signals
-        self.cpu_inputs_queues = [
-            [mp.Queue()] + [mp.SimpleQueue() for _ in range(num_stages + 1)]
-            # The input queue is not shared between processes, since calling `wait`
-            # on a queue reader from multiple processes may lead to a deadlock
-            for _ in range(num_cpu_workers)
-        ]
-        self.gpu_inputs_queues = [
-            [mp.Queue() for _ in range(num_stages + 1)] for _ in range(num_gpu_workers)
-        ]
-        self.outputs_queue = mp.Queue()
-        self.num_stages = num_stages
+def get_dispatch_schedule(cpu_idx: int, cpus: range, gpus: range) -> List[int]:
+    """
+    To which GPU worker should a given CPU worker dispatch its data to. This function
+    returns a list of GPU workers over a period to be determined by the function.
+    This is actually a fun problem, because we want:
+    - to distribute the data evenly between the GPU workers
+    - minimize the number of distinct unique CPU workers sending data to the same GPU
+      (because we move the tensors to the GPU inside the CPU worker, which
+       creates takes a bit of VRAM for each CPU worker)
 
-    # noinspection PyUnresolvedReferences
-    def get_cpu_task(self, idx, get_instant_active_or_skip: bool = False):
-        queues = self.cpu_inputs_queues[idx]
-        if get_instant_active_or_skip:
-            # Don't get new tasks
-            queues = queues[1:]
-        queue_readers = wait(
-            [queue._reader for queue in queues],
-            timeout=0 if get_instant_active_or_skip else None,
-        )
-        if len(queue_readers) == 0:
-            return None, None
-        stage, queue = next(
-            (stage, q)
-            for stage, q in reversed(list(enumerate(self.cpu_inputs_queues[idx])))
-            if q._reader in queue_readers
-        )
-        item = queue.get()
-        return stage, item
+    Parameters
+    ----------
+    cpu_idx: int
+        Index of the CPU worker
+    cpus: range
+        Range of CPU workers
+    gpus: range
+        Range of GPU workers
 
-    def put_cpu(self, item, stage, idx):
-        return self.cpu_inputs_queues[idx][stage].put(item)
+    Returns
+    -------
+    List[int]
+    """
+    idx = cpus.index(cpu_idx)
+    base = []
 
-    def get_gpu_task(self, idx):
-        queue_readers = wait([queue._reader for queue in self.gpu_inputs_queues[idx]])
-        stage, queue = next(
-            (stage, q)
-            for stage, q in reversed(list(enumerate(self.gpu_inputs_queues[idx])))
-            if q._reader in queue_readers
-        )
-        item = queue.get()
-        return stage, item
-
-    def put_gpu(self, item, stage, idx):
-        return self.gpu_inputs_queues[idx][stage].put(item)
-
-    def put_results(self, items):
-        self.outputs_queue.put(items)
-
-    def iter_results(self):
-        for out in iter(self.outputs_queue.get, None):
-            yield out
+    if gpus:
+        if len(gpus) < len(cpus):
+            r = len(cpus) % len(gpus)  # number of CPU without an easy to assign GPU
+            R = cpus[len(cpus) - r :]
+            if cpu_idx not in R:
+                base = [gpus[idx % len(gpus)]]
+                base = base * (len(gpus) // len(base))
+            else:
+                base = get_dispatch_schedule(cpu_idx, R, gpus)
+        else:
+            idx = cpus.index(cpu_idx)
+            r = len(gpus) % len(cpus)
+            d = len(gpus) // len(cpus)
+            base = list(gpus[idx * d : (idx + 1) * d])
+            base = base * len(cpus)  # (len(G) // len(G))
+            R = gpus[-r:]
+            if r > 0:
+                base = base + get_dispatch_schedule(cpu_idx, cpus, R)
+    return base
 
 
 class CPUWorker:
@@ -386,7 +372,6 @@ class CPUWorker:
         self,
         cpu_idx: int,
         exchanger: Exchanger,
-        gpu_pipe_names: List[str],
         lazy_collection_path: str,
         device: Union[str, "torch.device"],
     ):
@@ -394,228 +379,164 @@ class CPUWorker:
 
         self.cpu_idx = cpu_idx
         self.exchanger = exchanger
-        self.gpu_pipe_names = gpu_pipe_names
         self.lazy_collection_path = lazy_collection_path
         self.device = device
 
     def run(self):
+        def handle_stage(stage_idx):
+            nonlocal reader, writer
+
+            if reader.read_in_worker and stage_idx == 0:
+
+                def dequeue():
+                    items = iter(reader.read_records())
+                    items = islice(items, self.cpu_idx, None, num_cpu_workers)
+                    yield from items
+            else:
+
+                def dequeue():
+                    num_prod_alive = self.exchanger.num_producers_for_cpu(stage_idx)
+
+                    while num_prod_alive > 0:
+                        item = self.exchanger.get_cpu(self.cpu_idx, stage_idx)
+                        if item is STOP:
+                            num_prod_alive -= 1
+                            continue
+                        yield item
+
+            try:
+                gpu_queue_schedule = iter(
+                    cycle(
+                        get_dispatch_schedule(
+                            self.cpu_idx,
+                            range(self.exchanger.num_cpu_workers),
+                            range(self.exchanger.num_gpu_workers),
+                        )
+                    )
+                )
+
+                # Get items from the previous stage
+                items = dequeue()
+
+                last_torch_pipe = (
+                    getattr(stages[stage_idx - 1], "gpu_op", None)
+                    if stage_idx > 0
+                    else None
+                )
+                if hasattr(last_torch_pipe, "postprocess"):
+
+                    def pipe_postprocess(items):
+                        x = active_batches[stage_idx - 1]
+                        for batch_id, result in items:
+                            slot = next(s for s in x if s[0] == batch_id)
+                            _, docs, inputs, _ = slot
+                            docs = last_torch_pipe.postprocess(docs, result, inputs)
+                            slot[3] = docs
+                            if lc.deterministic:
+                                while x and x[0][3] is not None:
+                                    yield x.pop(0)[3]
+                            else:
+                                x.remove(slot)
+                                yield docs
+
+                    items = pipe_postprocess(items)
+
+                stage = stages[stage_idx]
+                for op in stage.cpu_ops:
+                    items = op(items)
+                if stage.gpu_op is not None:
+                    torch_pipe = stage.gpu_op
+                    for docs in items:
+                        batch_id = hash(tuple(id(x) for x in docs))
+                        torch_pipe.enable_cache(batch_id)
+                        inputs = [torch_pipe.preprocess(x) for x in docs]
+                        batch = decompress_dict(list(batch_compress_dict(inputs)))
+                        batch = torch_pipe.collate(batch)
+                        gpu_idx = next(gpu_queue_schedule)
+                        device = self.exchanger.gpu_worker_devices[gpu_idx]
+                        batch = torch_pipe.batch_to_device(batch, device)
+                        active_batches[stage_idx].append([batch_id, docs, inputs, None])
+                        self.exchanger.send_to_gpu_worker(
+                            item=(self.cpu_idx, batch_id, batch),
+                            idx=gpu_idx,
+                            stage=stage_idx,
+                        )
+                        if stage_idx == len(stages) - 2:
+                            torch_pipe.disable_cache(batch_id)
+                else:
+                    if writer is not None:
+                        items = (writer.handle_record(rec) for rec in items)
+                    if getattr(writer, "batch_in_worker", None) is True:
+                        items = writer.batch_by(items, writer.batch_size)
+                        items = (writer.handle_batch(b) for b in items)
+                    else:
+                        items = ((x, 1) for x in items)
+                    for out in items:
+                        self.exchanger.put_results(out, self.cpu_idx)
+
+                self.exchanger.notify_cpu(
+                    "DONE",
+                    self.cpu_idx,
+                    stage_idx,
+                )
+                self.exchanger.stop_consumers_from_cpu(self.cpu_idx, stage_idx)
+            except BaseException as e:
+                import traceback
+
+                print(f"Error in {self}:\n{traceback.format_exc()}", flush=True)
+                self.exchanger.notify_cpu("STOP", self.cpu_idx, None)
+                self.exchanger.notify_main(e)
+
         # Cannot pass torch tensor during init i think ? otherwise i get
         # ValueError: bad value(s) in fds_to_keep
         # mp._prctl_pr_set_pdeathsig(signal.SIGINT)
-        next_batch_id = self.cpu_idx
-        new_batch_iterator = None
-
-        def split_task_into_new_batches(task):
-            nonlocal next_batch_id, new_batch_iterator
-            task_id, fragments = task
-            chunks = list(batchify(lc.reader.read_worker(fragments), lc.chunk_size))
-            for chunk_idx, docs in enumerate(chunks):
-                # If we sort by size, we must first create the documents
-                # to have features against which we will sort
-                docs = apply_basic_pipes(docs, preprocess_pipes)
-
-                if lc.sort_chunks:
-                    docs.sort(key=doc_size_fns.get(lc.sort_chunks, len))
-
-                batches = [
-                    batch
-                    for batch in batchify_fns[lc.batch_by](
-                        docs,
-                        batch_size=lc.batch_size,
-                    )
-                ]
-
-                for batch_idx, batch in enumerate(batches):
-                    assert len(batch) > 0
-                    batch_id = next_batch_id
-
-                    # We mark the task id only for the last batch of a task
-                    # since the purpose of storing the task id is to know
-                    # when the worker has finished processing the task,
-                    # which is true only when the last batch has been
-                    # processed
-                    active_batches[batch_id] = (
-                        batch,
-                        task_id
-                        if (batch_idx == len(batches) - 1)
-                        and (chunk_idx == len(chunks) - 1)
-                        else None,
-                        None,
-                    )
-                    next_batch_id += num_cpu
-                    # gpu_idx = None
-                    # batch_id = we have just created a new batch
-                    # result from the last stage = None
-                    if batch_idx == len(batches) - 1 and chunk_idx == len(chunks) - 1:
-                        new_batch_iterator = None
-                    yield 0, (None, batch_id, None)
-
-            new_batch_iterator = None
-
-        def read_tasks():
-            nonlocal new_batch_iterator
-
-            expect_new_tasks = True
-
-            while expect_new_tasks or len(active_batches) > 0:
-                # Check that there are no more than a few batches active (say 8)
-                has_room_for_new_batches = len(active_batches) < 8
-
-                # if new_batch_iterator is not None and len(active_batches) == 0:
-                #     yield next(new_batch_iterator)
-                #     continue
-
-                stage, task = self.exchanger.get_cpu_task(
-                    idx=self.cpu_idx,
-                    # We don't have to wait for new active batches to come back if:
-                    get_instant_active_or_skip=(
-                        # - we have room for more batches
-                        has_room_for_new_batches
-                        # - and the batch iterator is still active
-                        and new_batch_iterator is not None
-                    ),
-                )
-
-                # No active batch was returned, and by construction we have room for
-                # new batches, so we can start a new batch
-                if stage is None:
-                    yield next(new_batch_iterator)
-                    continue
-
-                # stage, task = next(iterator)
-                # Prioritized STOP signal: something bad happened in another process
-                # -> stop listening to input queues and raise StopIteration (return)
-                if task is None and stage == self.exchanger.num_stages + 1:
-                    return
-                # Non prioritized STOP signal: there are no more tasks to process
-                # and we should smoothly stop (wait that there are no more active
-                # tasks, and finalize the writer)
-                if stage == 0 and task is None:
-                    expect_new_tasks = False
-                    continue
-
-                # If first stage, we receive tasks that may require batching
-                # again => we split them into chunks
-                if stage == 0:
-                    new_batch_iterator = split_task_into_new_batches(task)
-                    yield next(new_batch_iterator)
-                else:
-                    yield stage, task
-
         try:
             lc: LazyCollection = load(
                 self.lazy_collection_path, map_location=self.device
             )
+            reader = lc.reader
+            writer: Union[BaseWriter, BatchWriter] = lc.writer
+            num_cpu_workers = self.exchanger.num_cpu_workers
             lc.eval()
-            preprocess_pipes = []
-            num_cpu = self.exchanger.num_cpu_workers
-            split_into_batches_after = lc.split_into_batches_after
-            if split_into_batches_after is None and (
-                lc.batch_by != "docs" or lc.sort_chunks
-            ):
-                split_into_batches_after = next(
-                    (s[0] for s in lc.pipeline if s[0] == "_ensure_doc"), None
-                )
-            is_before_split = split_into_batches_after is not None
-
-            stages: List[Stage] = [{"cpu_components": [], "gpu_component": None}]
-            for name, pipe, *rest in lc.pipeline:
-                if name in self.gpu_pipe_names:
-                    is_before_split = False
-                    stages[-1]["gpu_component"] = pipe
-                    stages.append({"cpu_components": [], "gpu_component": None})
-                else:
-                    if is_before_split:
-                        preprocess_pipes.append((name, pipe, *rest))
-                    else:
-                        stages[-1]["cpu_components"].append((name, pipe, *rest))
-                if name is split_into_batches_after:
-                    is_before_split = False
-
-            # Start at cpu_idx to avoid having all workers sending their
-            # first batch (0 % num_device, cf below) to the same gpu
-            active_batches = {}
-
-            logging.info(f"Starting {self} on {os.getpid()}")
+            stages = lc._make_stages(len(self.exchanger.gpu_worker_devices) > 0)
+            active_batches = [[] for _ in range(len(stages) - 1)]
 
             # Inform the main process that we are ready
-            self.exchanger.put_results((None, 0, None, None))
+            self.exchanger.notify_main("READY")
 
-            for stage, (gpu_idx, batch_id, result) in read_tasks():
-                docs, task_id, inputs = active_batches.pop(batch_id)
-                count = len(docs)
-                for name, pipe, *rest in lc.pipeline:
-                    if hasattr(pipe, "enable_cache"):
-                        pipe.enable_cache(batch_id)
-                if stage > 0:
-                    gpu_pipe = stages[stage - 1]["gpu_component"]
-                    docs = (
-                        gpu_pipe.postprocess(docs, result, inputs)
-                        if getattr(gpu_pipe, "postprocess", None) is not None
-                        else result
-                    )
+            stage_threads = []
+            alive_threads = set()
+            for stage_idx in range(len(stages)):
+                thread = threading.Thread(
+                    target=handle_stage,
+                    args=(stage_idx,),
+                    daemon=True,
+                    name=f"EDSNLP-CPUWorker-{self.cpu_idx}-stage-{stage_idx}",
+                )
+                thread.start()
+                alive_threads.add(stage_idx)
+                stage_threads.append(thread)
 
-                docs = apply_basic_pipes(docs, stages[stage]["cpu_components"])
+            while alive_threads:
+                msg, stage_idx = self.exchanger.get_cpu_notification(self.cpu_idx)
+                if msg == "STOP":
+                    return
+                if msg == "DONE":
+                    alive_threads.remove(stage_idx)
+                    continue
 
-                gpu_pipe: "TorchComponent" = stages[stage]["gpu_component"]
-                if gpu_pipe is not None:
-                    if gpu_idx is None:
-                        gpu_idx = batch_id % len(self.exchanger.gpu_worker_devices)
-                    device = self.exchanger.gpu_worker_devices[gpu_idx]
-                    if hasattr(gpu_pipe, "preprocess"):
-                        inputs = [gpu_pipe.preprocess(doc) for doc in docs]
-                        batch = decompress_dict(list(batch_compress_dict(inputs)))
-                        batch = gpu_pipe.collate(batch)
-                        batch = gpu_pipe.batch_to_device(batch, device=device)
-                    else:
-                        batch = gpu_pipe.prepare_batch(docs, device=device)
-                        inputs = None
-                    active_batches[batch_id] = (docs, task_id, inputs)
-                    self.exchanger.put_gpu(
-                        item=(
-                            self.cpu_idx,
-                            batch_id,
-                            batch,
-                        ),
-                        idx=gpu_idx,
-                        stage=stage,
-                    )
-                else:
-                    for name, pipe, *rest in lc.pipeline:
-                        if hasattr(pipe, "disable_cache"):
-                            pipe.disable_cache(batch_id)
-                    results, count = (
-                        lc.writer.write_worker(docs)
-                        if lc.writer is not None
-                        else (docs, count)
-                    )
-                    self.exchanger.put_results(
-                        (
-                            results,
-                            count,
-                            self.cpu_idx,
-                            task_id,
-                        )
-                    )
+            import edsnlp.core.torch_component
 
-            results, count = lc.writer.finalize() if lc.writer is not None else ([], 0)
-            self.exchanger.put_results((results, count, self.cpu_idx, "finalize"))
+            assert list(edsnlp.core.torch_component._caches) == []
 
-        except BaseException as e:
+            for thread in stage_threads:
+                thread.join()
+
+        except BaseException as e:  # pragma: no cover
             import traceback
 
             print(f"Error in {self}:\n{traceback.format_exc()}", flush=True)
-            self.exchanger.put_results((e, 0, self.cpu_idx, None))
-        # We need to drain the queues of GPUWorker fed inputs (pre-moved to GPU)
-        # to ensure no tensor allocated on producer processes (CPUWorker via
-        # collate) are left in consumer processes
-        task = True  # anything but None
-        stage = None
-        while (stage, task) != (0, None):
-            try:
-                stage, task = self.exchanger.get_cpu_task(self.cpu_idx)
-            finally:
-                pass
+            self.exchanger.notify_main(e)
 
     def __repr__(self):
         return f"<CPUWorker idx={self.cpu_idx}>"
@@ -624,107 +545,242 @@ class CPUWorker:
 class GPUWorker:
     def __init__(
         self,
-        gpu_idx,
+        gpu_idx: int,
         exchanger: Exchanger,
-        gpu_pipe_names: List[str],
         lazy_collection_path: str,
         device: Union[str, "torch.device"],
     ):
-        super().__init__()
+        super(GPUWorker, self).__init__()
 
-        self.device = device
         self.gpu_idx = gpu_idx
         self.exchanger = exchanger
-
-        self.gpu_pipe_names = gpu_pipe_names
         self.lazy_collection_path = lazy_collection_path
+        self.device = device
 
     def run(self):
-        import torch
+        def handle_stage(stage_idx):
+            num_prod_alive = self.exchanger.num_producers_for_gpu(stage_idx)
+            cpu_idx = 0
 
-        # mp._prctl_pr_set_pdeathsig(signal.SIGINT)
+            try:
+                # Get items from the previous stage
+                while num_prod_alive > 0:
+                    item = self.exchanger.get_gpu_task(self.gpu_idx, stage_idx)
+                    if item is STOP:
+                        num_prod_alive -= 1
+                        continue
+
+                    cpu_idx, batch_id, batch = item
+
+                    pipe = stages[stage_idx].gpu_op
+                    pipe.enable_cache(batch_id)
+                    batch = pipe(batch)
+                    batch = {
+                        k: v.to("cpu") if hasattr(v, "to") else v
+                        for k, v in batch.items()
+                    }
+                    self.exchanger.send_to_cpu_worker(
+                        item=(batch_id, batch),
+                        idx=cpu_idx,
+                        stage_idx=stage_idx + 1,
+                    )
+                    del batch
+                    if stage_idx == len(stages) - 2:  # Last GPU stage
+                        pipe.disable_cache(batch_id)
+
+                self.exchanger.notify_gpu("DONE", self.gpu_idx, stage_idx)
+                self.exchanger.stop_cpu_consumers(stage_idx + 1)
+            except BaseException as e:
+                import traceback
+
+                print(f"Error in {self}:\n{traceback.format_exc()}", flush=True)
+                self.exchanger.notify_gpu("STOP", self.gpu_idx, None)
+                self.exchanger.notify_main(e)
+
         try:
-            lc = load(self.lazy_collection_path, map_location=self.device)
-            lc.eval()
-            stage_components = [
-                pipe
-                # move_to_device(pipe, self.device)
-                for name, pipe, *_ in lc.pipeline
-                if name in self.gpu_pipe_names
-            ]
-
-            autocast_device_type = (
-                self.device if isinstance(self.device, str) else self.device.type
-            ).split(":")[0]
-            autocast_dtype = lc.autocast if lc.autocast is not True else None
-            autocast_ctx = (
-                torch.autocast(
-                    device_type=autocast_device_type,
-                    dtype=autocast_dtype,
-                )
-                if lc.autocast
-                else nullcontext()
+            lc: LazyCollection = load(
+                self.lazy_collection_path, map_location=self.device
             )
-
-            del lc
-            logging.info(f"Starting {self} on {os.getpid()}")
+            lc.eval()
+            stages = lc._make_stages(len(self.exchanger.gpu_worker_devices) > 0)
 
             # Inform the main process that we are ready
-            self.exchanger.put_results((None, 0, None, None))
+            self.exchanger.notify_main("READY")
 
-            with torch.no_grad(), autocast_ctx, torch.inference_mode():
-                while True:
-                    stage, task = self.exchanger.get_gpu_task(self.gpu_idx)
-                    if task is None:
-                        break
+            stage_threads = []
+            alive_threads = set()
+            for stage_idx in range(len(stages) - 1):
+                thread = threading.Thread(
+                    target=handle_stage,
+                    args=(stage_idx,),
+                    daemon=True,
+                    name=f"EDSNLP-GPUWorker-{self.gpu_idx}-stage-{stage_idx}",
+                )
+                thread.start()
+                alive_threads.add(stage_idx)
+                stage_threads.append(thread)
 
-                    cpu_idx, batch_id, batch = task
-                    pipe = stage_components[stage]
-                    pipe.enable_cache(batch_id)
-                    res = pipe(batch)
-                    self.exchanger.put_cpu(
-                        item=(
-                            self.gpu_idx,
-                            batch_id,
-                            {
-                                k: v.to("cpu") if hasattr(v, "to") else v
-                                for k, v in res.items()
-                            },
-                        ),
-                        stage=stage + 1,
-                        idx=cpu_idx,
-                    )
-                    if stage == len(stage_components) - 1:
-                        pipe.disable_cache(batch_id)
-                    del batch, task
+            while alive_threads:
+                msg, stage_idx = self.exchanger.get_gpu_notification(self.gpu_idx)
+                if msg == "STOP":
+                    return
+                if msg == "DONE":
+                    alive_threads.remove(stage_idx)
+                    continue
+            import edsnlp.core.torch_component
 
-                task = batch = res = None  # noqa
-        except BaseException as e:
+            assert list(edsnlp.core.torch_component._caches) == []
+            for thread in stage_threads:
+                thread.join()
+
+        except BaseException as e:  # pragma: no cover
             import traceback
 
             print(f"Error in {self}:\n{traceback.format_exc()}", flush=True)
-            self.exchanger.put_results((e, 0, None, None))
-
-        from edsnlp.core.torch_component import _caches
-
-        task = batch = res = None  # noqa
-        _caches.clear()
-        gc.collect()
-        sys.modules["torch"].cuda.empty_cache()
-
-        # We need to drain the queues of CPUWorker fed inputs (pre-moved to GPU)
-        # to ensure no tensor allocated on producer processes (CPUWorker via
-        # collate) are left in consumer processes
-        stage = None
-        task = None
-        while (stage, task) != (0, None):
-            try:
-                stage, task = self.exchanger.get_gpu_task(self.gpu_idx)
-            finally:
-                pass
+            self.exchanger.notify_main(e)
 
     def __repr__(self):
         return f"<GPUWorker idx={self.gpu_idx}>"
+
+
+class Exchanger:
+    def __init__(
+        self,
+        mp: multiprocessing.context.BaseContext,
+        num_cpu_workers: int,
+        num_gpu_workers: int,
+        num_stages: int,
+        gpu_worker_devices: List[Any],
+        share_input_queue: bool = False,
+        share_output_queue: bool = False,
+    ):
+        self.gpu_worker_devices = gpu_worker_devices
+        self.num_cpu_workers = num_cpu_workers
+        self.num_gpu_workers = num_gpu_workers
+        self.num_stages = num_stages
+        input_queue = mp.Queue() if share_input_queue else None
+        self._output_queues = (
+            [mp.Queue(maxsize=4)] * num_cpu_workers
+            if share_output_queue
+            else [mp.Queue(maxsize=4) for _ in range(num_cpu_workers)]
+        )
+        self._cpu_queues = [
+            ([input_queue] if share_input_queue else [mp.Queue()])
+            + [mp.Queue(maxsize=2) for _ in range(num_stages - 1)]
+            for _ in range(num_cpu_workers)
+        ]
+        self._gpu_queues = [
+            [mp.Queue(maxsize=2) for _ in range(num_stages - 1)]
+            for _ in range(num_gpu_workers)
+        ]
+        self._cpu_notify_queues = [mp.Queue() for _ in range(num_cpu_workers)]
+        self._gpu_notify_queues = [mp.Queue() for _ in range(num_gpu_workers)]
+        self._main_notify_queue = mp.Queue()
+
+    def get_output_or_error(self, idx):
+        ready = wait(
+            [self._output_queues[idx]._reader, self._main_notify_queue._reader]
+        )
+        if self._main_notify_queue._reader in ready:
+            raise self._main_notify_queue.get()
+        return self._output_queues[idx].get()
+
+    def send_input(self, item, idx: int, timeout):
+        self._cpu_queues[idx][0].put(item, timeout=timeout)
+
+    def put_results(self, item, idx):
+        self._output_queues[idx].put(item)
+
+    def get_cpu(self, idx: int, stage: int, nowait=False):
+        return (
+            self._cpu_queues[idx][stage].get()
+            if not nowait
+            else self._cpu_queues[idx][stage].get_nowait()
+        )
+
+    def send_to_cpu_worker(self, item, idx: int, stage_idx: int):
+        self._cpu_queues[idx][stage_idx].put(item)
+
+    def get_gpu_task(self, idx: int, stage: int):
+        return self._gpu_queues[idx][stage].get()
+
+    def send_to_gpu_worker(self, item, idx: int, stage: int):
+        self._gpu_queues[idx][stage].put(item)
+
+    def stop_consumers_from_cpu(self, cpu_idx, stage_idx):
+        if stage_idx == self.num_stages - 1:
+            self._output_queues[cpu_idx].put(STOP)
+        else:
+            for queue in self._gpu_queues:
+                queue[stage_idx].put(STOP)
+
+    def stop_cpu_consumers(self, stage_idx):
+        for queue in self._cpu_queues:
+            queue[stage_idx].put(STOP)
+
+    def num_producers_for_cpu(self, stage_idx):
+        return 1 if stage_idx == 0 else self.num_gpu_workers
+
+    def num_producers_for_gpu(self, stage_idx):
+        return self.num_cpu_workers
+
+    def stop_everything(self):
+        for queues in (*self._cpu_queues, *self._gpu_queues, self._output_queues):
+            for queue in queues:
+                if not queue._closed:
+                    try:
+                        while True:
+                            queue.get_nowait()
+                    except multiprocessing.queues.Empty:  # pragma: no cover
+                        pass
+                    try:
+                        queue.put_nowait(STOP)
+                    except multiprocessing.queues.Full:  # pragma: no cover
+                        pass
+        for queue in (
+            *self._cpu_notify_queues,
+            *self._gpu_notify_queues,
+        ):
+            if not queue._closed:
+                queue.put_nowait(("STOP", None))
+        for q in (
+            *self._output_queues,
+            *chain.from_iterable(self._cpu_queues),
+            *chain.from_iterable(self._gpu_queues),
+            *self._cpu_notify_queues,
+            *self._gpu_notify_queues,
+            self._main_notify_queue,
+        ):
+            q.close()
+        assert all(
+            q._closed
+            for q in (
+                *self._output_queues,
+                *chain.from_iterable(self._cpu_queues),
+                *chain.from_iterable(self._gpu_queues),
+                *self._cpu_notify_queues,
+                *self._gpu_notify_queues,
+                self._main_notify_queue,
+            )
+        )
+
+    def notify_cpu(self, msg, cpu_idx, stage_idx):
+        self._cpu_notify_queues[cpu_idx].put_nowait((msg, stage_idx))
+
+    def notify_gpu(self, msg, gpu_idx, stage_idx):
+        self._gpu_notify_queues[gpu_idx].put_nowait((msg, stage_idx))
+
+    def notify_main(self, msg):
+        self._main_notify_queue.put_nowait(msg)
+
+    def get_cpu_notification(self, cpu_idx):
+        return self._cpu_notify_queues[cpu_idx].get()
+
+    def get_gpu_notification(self, gpu_idx):
+        return self._gpu_notify_queues[gpu_idx].get()
+
+    def get_main_notification(self):
+        return self._main_notify_queue.get()
 
 
 def execute_multiprocessing_backend(
@@ -768,102 +824,230 @@ def execute_multiprocessing_backend(
 
         Since workers can produce their results in any order, the order of the results
         may not be the same as the order of the input tasks.
-
     """
-    steps = lc.pipeline
-    num_cpu_workers = lc.num_cpu_workers
-    num_gpu_workers = lc.num_gpu_workers
-    show_progress = lc.show_progress
-    process_start_method = lc.process_start_method
+    global glob_workers
+    (
+        num_cpu_workers,
+        num_gpu_workers,
+        cpu_worker_devices,
+        gpu_worker_devices,
+        has_torch_pipes,
+    ) = adjust_num_workers(lc)
+    stages = lc._make_stages(split_torch_pipes=num_gpu_workers > 0)
+    reader: BaseReader = lc.reader
+    writer: BaseWriter = lc.writer
+    mp = get_multiprocessing_context(has_torch_pipes, lc.process_start_method)
 
-    # Infer which pipes should be accelerated on GPU
-    gpu_steps_candidates = [
-        name
-        for name, pipe, *_ in steps
-        if hasattr(pipe, "forward") and hasattr(pipe, "prepare_batch")
-    ]
-    gpu_pipe_names = (
-        gpu_steps_candidates if lc.gpu_pipe_names is None else lc.gpu_pipe_names
+    # Queues definition
+    exchanger = Exchanger(
+        mp=mp,
+        num_cpu_workers=num_cpu_workers,
+        num_gpu_workers=num_gpu_workers,
+        num_stages=len(stages),
+        gpu_worker_devices=gpu_worker_devices,
+        share_input_queue=not lc.deterministic,
+        share_output_queue=not lc.deterministic,
     )
-    if set(gpu_pipe_names) - set(gpu_steps_candidates):
-        raise ValueError(
-            "GPU accelerated pipes {} could not be found in the model".format(
-                sorted(set(gpu_pipe_names) - set(gpu_steps_candidates))
-            )
+
+    lc_to_dump = lc.worker_copy()
+    with tempfile.NamedTemporaryFile(delete=False) as fp:
+        dump(lc_to_dump, fp)
+        fp.close()
+
+    del lc_to_dump
+
+    revert_pickler = replace_pickler()
+    revert_environ = setup_environ(lc.disable_implicit_parallelism)
+
+    cpu_workers = []
+    for cpu_idx in range(num_cpu_workers):
+        worker = CPUWorker(
+            cpu_idx=cpu_idx,
+            exchanger=exchanger,
+            lazy_collection_path=fp.name,
+            device=cpu_worker_devices[cpu_idx],
+        )
+        cpu_workers.append(
+            mp.Process(target=CPUWorker.run, args=(worker,), daemon=True)
         )
 
-    old_environ = {
-        k: os.environ.get(k) for k in ("TOKENIZERS_PARALLELISM", "OMP_NUM_THREADS")
-    }
-    if lc.disable_implicit_parallelism:
-        os.environ["TOKENIZERS_PARALLELISM"] = "false"
-        os.environ["OMP_NUM_THREADS"] = "1"
+    gpu_workers = []
+    for gpu_idx in range(num_gpu_workers):
+        worker = GPUWorker(
+            gpu_idx=gpu_idx,
+            exchanger=exchanger,
+            lazy_collection_path=fp.name,
+            device=gpu_worker_devices[gpu_idx],
+        )
+        gpu_workers.append(
+            mp.Process(target=GPUWorker.run, args=(worker,), daemon=True)
+        )
 
-    requires_gpu = (
-        num_gpu_workers is None
-        and len(gpu_pipe_names)
-        or num_gpu_workers is not None
-        and num_gpu_workers > 0
+    logging.debug(f"Main PID {os.getpid()}")
+    logging.debug(
+        f"Starting {num_cpu_workers} cpu workers and {num_gpu_workers} gpu workers on "
+        f"{gpu_worker_devices} in {mp.get_start_method()} mode to run {len(stages)} "
+        f"stage{'s' if len(stages) > 1 else ''}.",
     )
 
+    for worker in (*cpu_workers, *gpu_workers):
+        glob_workers.append(worker)
+        worker.start()
+
+    for _ in range(len(cpu_workers) + len(gpu_workers)):
+        outputs = exchanger.get_main_notification()
+
+        if isinstance(outputs, BaseException):
+            raise outputs
+
+    logging.debug("Workers are ready")
+
+    os.unlink(fp.name)
+
+    bar = tqdm(smoothing=0.1, mininterval=1.0, disable=not lc.show_progress)
+
+    keep_going = True
+
+    def stop():
+        nonlocal keep_going
+        keep_going = False
+        revert_pickler()
+        revert_environ()
+
+        # Send gpu and cpu process the order to stop processing data
+        # We use the prioritized queue to ensure the stop signal is processed
+        # before the next batch of data
+        exchanger.stop_everything()
+        for worker in (*cpu_workers, *gpu_workers):
+            if not worker._closed:
+                try:
+                    worker.join(10)
+                except multiprocessing.TimeoutError:  # pragma: no cover
+                    worker.kill()
+                    print("Killed worker", worker, flush=True)
+                worker.close()
+            assert worker._popen is None
+        assert all(w._closed for w in (*cpu_workers, *gpu_workers))
+
+    def enqueue_inputs():
+        try:
+            items = iter(reader.read_records())
+            # TODO: handle WORLD_SIZE env vars here
+            # items = islice(items, self.cpu_idx, None, lc.num_cpu_workers)
+            item = None
+            last_item_sent = True
+            worker_idx = 0
+            while keep_going:
+                if last_item_sent:
+                    try:
+                        item = next(items)
+                        last_item_sent = False
+                    except StopIteration:
+                        exchanger.stop_cpu_consumers(0)
+                        break
+                try:
+                    # worker_idx doesn't matter if share_output_queue is True
+                    exchanger.send_input(item, worker_idx, timeout=1.0)
+                    worker_idx = (worker_idx + 1) % num_cpu_workers
+                    last_item_sent = True
+
+                except multiprocessing.queues.Full:  # pragma: no cover
+                    continue
+        except BaseException as e:
+            exchanger.notify_main(e)
+            raise e
+
+    def dequeue_outputs():
+        try:
+            with bar:
+                active_workers = [True] * num_cpu_workers
+                worker_idx = -1
+                while keep_going and sum(active_workers) > 0:
+                    worker_idx = (worker_idx + 1) % len(active_workers)
+                    if active_workers[worker_idx] is False:
+                        continue
+                    out = exchanger.get_output_or_error(worker_idx)
+                    # worker_idx doesn't matter if share_input_queue is True
+                    if out is STOP:
+                        active_workers[worker_idx] = False
+                        continue
+                    item, count = out
+                    yield item
+                    bar.update(count)
+        finally:
+            stop()
+
+    # If we don't read the data in the worker, then each worker will have its own copy
+    # of the data (usually file paths in this mode), so we don't need to send the data
+    if not reader.read_in_worker:
+        enqueue_inputs_thread = threading.Thread(
+            target=enqueue_inputs,
+            name="EDSNLP-enqueue-inputs",
+            daemon=True,
+        )
+        enqueue_inputs_thread.start()
+
+    items = dequeue_outputs()
+    if getattr(writer, "batch_in_worker", None) is False:
+        writer: BatchWriter
+        items = writer.batch_by(items, writer.batch_size)
+        # get the 1st element (2nd is the count)
+        items = (writer.handle_batch(b)[0] for b in items)
+
+    if writer is not None:
+        items = writer.consolidate(items)
+
+    return items
+
+
+glob_workers = []
+
+
+def adjust_num_workers(
+    lc: LazyCollection,
+):
+    num_gpu_workers = (
+        lc.num_gpu_workers
+        if lc.num_gpu_workers is not None or lc.gpu_worker_devices is None
+        else len(lc.gpu_worker_devices)
+    )
+    has_torch_pipes = any(lc.torch_components())
+    requires_gpu_workers = has_torch_pipes and (
+        num_gpu_workers is None or num_gpu_workers is not None and num_gpu_workers > 0
+    )
     num_cpus = int(os.environ.get("EDSNLP_MAX_CPU_WORKERS") or cpu_count())
     num_devices = 0
-    if requires_gpu:
+    if requires_gpu_workers:
         import torch
 
         num_devices = torch.cuda.device_count()
-        logging.info(f"Number of available devices: {num_devices}")
+        logging.debug(f"Number of available devices: {num_devices}")
 
         if num_gpu_workers is None:
             num_gpu_workers = min(num_devices, num_cpus // 2)
     else:
         num_gpu_workers = 0
 
-    if "torch" in sys.modules:
-        try:
-            import torch.multiprocessing
-
-            os.environ[
-                "TORCH_SHARING_STRATEGY"
-            ] = torch.multiprocessing.get_sharing_strategy()
-        except ImportError:  # pragma: no cover
-            pass
-
-    if any(gpu_steps_candidates):
-        if process_start_method == "fork":
-            warnings.warn(
-                "Using fork start method with GPU workers may lead to deadlocks. "
-                "Consider using process_start_method='spawn' instead."
-            )
-
-        process_start_method = process_start_method or "spawn"
-
-    default_method = multiprocessing.get_start_method()
-    if process_start_method is not None and default_method != process_start_method:
-        logging.info(f"Switching process start method to {process_start_method}")
-
-    mp = multiprocessing.get_context(process_start_method)
     max_cpu_workers = max(num_cpus - num_gpu_workers - 1, 0)
     num_cpu_workers = (
         max_cpu_workers
-        if num_cpu_workers is None
-        else max_cpu_workers + num_cpu_workers + 1
-        if num_cpu_workers < 0
-        else num_cpu_workers
+        if lc.num_cpu_workers is None
+        else max_cpu_workers + lc.num_cpu_workers + 1
+        if lc.num_cpu_workers < 0
+        else lc.num_cpu_workers
     )
 
-    if num_gpu_workers == 0:
-        gpu_pipe_names = []
-
     gpu_worker_devices = (
-        [
-            f"cuda:{gpu_idx * num_devices // num_gpu_workers}"
-            for gpu_idx in range(num_gpu_workers)
-        ]
-        if requires_gpu and lc.gpu_worker_devices is None
+        (
+            [
+                f"cuda:{gpu_idx * num_devices // num_gpu_workers}"
+                for gpu_idx in range(num_gpu_workers)
+            ]
+            if lc.gpu_worker_devices is None
+            else lc.gpu_worker_devices
+        )
+        if requires_gpu_workers
         else []
-        if lc.gpu_worker_devices is None
-        else lc.gpu_worker_devices
     )
     cpu_worker_devices = (
         ["cpu"] * num_cpu_workers
@@ -878,186 +1062,62 @@ def execute_multiprocessing_backend(
             num_gpu_workers,
             cpu_worker_devices,
             gpu_worker_devices,
-            gpu_pipe_names,
-        ) = (num_gpu_workers, 0, gpu_worker_devices, [], [])
+        ) = (num_gpu_workers, 0, gpu_worker_devices, [])
 
-    exchanger = Exchanger(
-        mp,
-        num_stages=len(gpu_pipe_names),
-        num_cpu_workers=num_cpu_workers,
-        num_gpu_workers=num_gpu_workers,
-        gpu_worker_devices=gpu_worker_devices,
+    return (
+        num_cpu_workers,
+        num_gpu_workers,
+        cpu_worker_devices,
+        gpu_worker_devices,
+        has_torch_pipes,
     )
 
-    # lc = lc.to("cpu")
 
-    cpu_workers = []
-    gpu_workers = []
-
-    with tempfile.NamedTemporaryFile(delete=False) as fp:
-        dump(lc.worker_copy(), fp)
-        fp.close()
-
-    revert_pickler = replace_pickler()
-
-    for gpu_idx in range(num_gpu_workers):
-        gpu_workers.append(
-            mp.Process(
-                target=GPUWorker.run,
-                args=(
-                    GPUWorker(
-                        gpu_idx=gpu_idx,
-                        exchanger=exchanger,
-                        gpu_pipe_names=gpu_pipe_names,
-                        lazy_collection_path=fp.name,
-                        device=gpu_worker_devices[gpu_idx],
-                    ),
-                ),
+def get_multiprocessing_context(has_torch_pipes, process_start_method):
+    if has_torch_pipes:
+        if process_start_method == "fork":
+            warnings.warn(
+                "Using fork start method with GPU workers may lead to deadlocks. "
+                "Consider using process_start_method='spawn' instead."
             )
-        )
 
-    for cpu_idx in range(num_cpu_workers):
-        cpu_workers.append(
-            mp.Process(
-                target=CPUWorker.run,
-                args=(
-                    CPUWorker(
-                        cpu_idx=cpu_idx,
-                        exchanger=exchanger,
-                        gpu_pipe_names=gpu_pipe_names,
-                        lazy_collection_path=fp.name,
-                        device=cpu_worker_devices[cpu_idx],
-                    ),
-                ),
-            )
-        )
+        process_start_method = process_start_method or "spawn"
 
-    logging.info(f"Main PID {os.getpid()}")
-
-    logging.info(
-        f"Starting {num_cpu_workers} cpu workers and {num_gpu_workers} gpu workers on "
-        f"{gpu_worker_devices}, with accelerated pipes: {gpu_pipe_names}",
+    default_method = (
+        "fork" if "fork" in multiprocessing.get_all_start_methods() else "spawn"
     )
+    if process_start_method is not None and default_method != process_start_method:
+        logging.info(f"Switching process start method to {process_start_method}")
+    process_start_method = process_start_method or default_method
 
-    for worker in (*cpu_workers, *gpu_workers):
-        worker.start()
+    return multiprocessing.get_context(process_start_method)
 
-    logging.info("Workers are ready")
 
-    for i in range(len((*cpu_workers, *gpu_workers))):
-        outputs, count, cpu_idx, output_task_id = exchanger.outputs_queue.get()
-        if isinstance(outputs, BaseException):
-            raise outputs
+def setup_environ(disable_implicit_parallelism):
+    old_environ = {
+        k: os.environ[k]
+        for k in (
+            "TOKENIZERS_PARALLELISM",
+            "OMP_NUM_THREADS",
+            "TORCH_SHARING_STRATEGY",
+        )
+        if k in os.environ
+    }
+    if disable_implicit_parallelism:
+        os.environ["TOKENIZERS_PARALLELISM"] = "false"
+        os.environ["OMP_NUM_THREADS"] = "1"
 
-    os.unlink(fp.name)
-
-    num_max_enqueued = 1
-    # Number of input/output batch per process
-    outputs_iterator = exchanger.iter_results()
-
-    cpu_worker_indices = list(range(num_cpu_workers))
-    inputs_iterator = lc.reader.read_main()
-    active_chunks = [{} for i in cpu_worker_indices]
-    non_finalized = {i for i in cpu_worker_indices}
-    max_workload = lc.chunk_size * num_max_enqueued
-
-    bar = nullcontext()
-    if show_progress:
-        from tqdm import tqdm
-
-        bar = tqdm(smoothing=0.1, mininterval=1.0)
-
-    def get_and_process_output():
-        outputs, count, cpu_idx, output_task_id = next(outputs_iterator)
-        if output_task_id == "finalize":
-            non_finalized.discard(cpu_idx)
-        if isinstance(outputs, BaseException):
-            raise outputs
-        if show_progress:
-            bar.update(count)
-        if count > 0:
-            yield outputs
-        if output_task_id is not None:
-            active_chunks[cpu_idx].pop(output_task_id, None)
-
-    def process():
+    if "torch" in sys.modules:
         try:
-            with bar, lc.eval():
-                for input_task_id, (batch, batch_size) in enumerate(
-                    batchify_with_counts(inputs_iterator, lc.chunk_size)
-                ):
-                    while all(sum(wl.values()) >= max_workload for wl in active_chunks):
-                        yield from get_and_process_output()
+            import torch.multiprocessing
 
-                    # Shuffle to ensure the first process does not receive all the
-                    # documents in case of workload equality
-                    shuffle(cpu_worker_indices)
-                    cpu_idx = min(
-                        cpu_worker_indices,
-                        key=lambda i: sum(active_chunks[i].values()),
-                    )
-                    exchanger.put_cpu((input_task_id, batch), stage=0, idx=cpu_idx)
-                    active_chunks[cpu_idx][input_task_id] = batch_size
+            os.environ["TORCH_SHARING_STRATEGY"] = (
+                torch.multiprocessing.get_sharing_strategy()
+            )
+        except ImportError:  # pragma: no cover
+            pass
 
-                # Inform the CPU workers that there are no more tasks to process
-                for i, worker in enumerate(cpu_workers):
-                    exchanger.cpu_inputs_queues[i][0].put(None)
+    def revert():
+        os.environ.update(old_environ)
 
-                while any(active_chunks):
-                    yield from get_and_process_output()
-
-                while len(non_finalized):
-                    yield from get_and_process_output()
-
-        finally:
-            revert_pickler()
-
-            for k, v in old_environ.items():
-                os.environ.pop(k, None)
-                if v is not None:
-                    os.environ[k] = v
-
-            # Send gpu and cpu process the order to stop processing data
-            # We use the prioritized queue to ensure the stop signal is processed
-            # before the next batch of data
-            for i, worker in enumerate(gpu_workers):
-                exchanger.gpu_inputs_queues[i][-1].put(None)
-            for i, worker in enumerate(cpu_workers):
-                exchanger.cpu_inputs_queues[i][-1].put(None)
-
-            # Enqueue a final non prioritized STOP signal to ensure there remains no
-            # data in the queues (cf drain loop in CPUWorker / GPUWorker)
-            for i, worker in enumerate(gpu_workers):
-                exchanger.gpu_inputs_queues[i][0].put(None)
-            for i, worker in enumerate(gpu_workers):
-                worker.join(timeout=5)
-            for i, worker in enumerate(cpu_workers):
-                exchanger.cpu_inputs_queues[i][0].put(None)
-            for i, worker in enumerate(cpu_workers):
-                worker.join(timeout=1)
-
-            # If a worker is still alive, kill it
-            # This should not happen, but for a reason I cannot explain, it does in
-            # some CPU workers sometimes when we catch an error, even though each run
-            # method of the workers completes cleanly. Maybe this has something to do
-            # with the cleanup of these processes ?
-            for i, worker in enumerate(gpu_workers):  # pragma: no cover
-                if worker.is_alive():
-                    logging.error(f"Killing <GPUWorker idx={i}>")
-                    worker.kill()
-            for i, worker in enumerate(cpu_workers):  # pragma: no cover
-                if worker.is_alive():
-                    logging.error(f"Killing <CPUWorker idx={i}>")
-                    worker.kill()
-
-            for queue_group in (
-                *exchanger.cpu_inputs_queues,
-                *exchanger.gpu_inputs_queues,
-                [exchanger.outputs_queue],
-            ):
-                for queue in queue_group:
-                    if hasattr(queue, "cancel_join_thread"):
-                        queue.cancel_join_thread()
-
-    gen = process()
-    return flatten(gen) if lc.writer is None else lc.writer.write_main(gen)
+    return revert

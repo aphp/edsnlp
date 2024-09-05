@@ -1,7 +1,9 @@
 import json
+from itertools import islice
 from pathlib import Path
 
 import pytest
+from typing_extensions import Literal
 
 import edsnlp
 
@@ -259,3 +261,28 @@ def test_read_to_json(blank_nlp, tmpdir):
     with open(output_dir / "subfolder" / "doc-1.json") as f:
         exported_obj = json.loads(f.read())
     assert_doc_write(exported_obj)
+
+
+@pytest.mark.parametrize("num_cpu_workers", [0, 2])
+@pytest.mark.parametrize("shuffle", ["dataset", "file"])
+def test_read_shuffle_loop(num_cpu_workers: int, shuffle: Literal["dataset", "file"]):
+    input_dir = Path(__file__).parent.parent.resolve() / "resources" / "docs.jsonl"
+    notes = (
+        edsnlp.data.read_json(
+            input_dir,
+            shuffle=shuffle,
+            seed=42,
+            loop=True,
+        )
+        .map(lambda x: x["note_id"])
+        .set_processing(num_cpu_workers=num_cpu_workers)
+    )
+    notes = list(islice(notes, 6))
+    assert notes == [
+        "subfolder/doc-2",
+        "subfolder/doc-1",
+        "subfolder/doc-3",
+        "subfolder/doc-3",
+        "subfolder/doc-2",
+        "subfolder/doc-1",
+    ]

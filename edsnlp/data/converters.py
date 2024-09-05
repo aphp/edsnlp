@@ -3,6 +3,7 @@ Converters are used to convert documents between python dictionaries and Doc obj
 There are two types of converters: readers and writers. Readers convert dictionaries to
 Doc objects, and writers convert Doc objects to dictionaries.
 """
+
 import contextlib
 import inspect
 from copy import copy
@@ -46,23 +47,48 @@ def without_filename(d):
     return d
 
 
-def validate_kwargs(converter, kwargs):
-    converter: FunctionType = copy(converter)
-    spec = inspect.getfullargspec(converter)
-    first = spec.args[0]
-    converter.__annotations__[first] = Optional[Any]
-    converter.__defaults__ = (None, *(spec.defaults or ())[-len(spec.args) + 1 :])
-    vd = ValidatedFunction(converter, {"arbitrary_types_allowed": True})
-    model = vd.init_model_instance(**kwargs)
-    d = {
-        k: v
-        for k, v in model._iter()
-        if (k in model.__fields__ or model.__fields__[k].default_factory)
-    }
-    d.pop("v__duplicate_kwargs", None)  # see pydantic ValidatedFunction code
-    d.pop(vd.v_args_name, None)
-    d.pop(first, None)
-    return {**(d.pop(vd.v_kwargs_name, None) or {}), **d}
+def validate_kwargs(func, kwargs):
+    spec = inspect.getfullargspec(func)
+    has_self = restore = False
+    try:
+        if hasattr(func, "__func__"):
+            has_self = hasattr(func, "__self__")
+            func = func.__func__.__get__(None, func.__func__.__class__)
+            old_annotations = func.__annotations__
+            old_defaults = func.__defaults__
+            restore = True
+            func.__annotations__ = copy(func.__annotations__)
+            func.__annotations__[spec.args[0]] = Optional[Any]
+            func.__annotations__[spec.args[1]] = Optional[Any]
+            func.__defaults__ = (
+                None,
+                None,
+                *(spec.defaults or ())[-len(spec.args) + 2 :],
+            )
+        else:
+            func: FunctionType = copy(func)
+            old_annotations = func.__annotations__
+            old_defaults = func.__defaults__
+            restore = True
+            func.__annotations__[spec.args[0]] = Optional[Any]
+            func.__defaults__ = (None, *(spec.defaults or ())[-len(spec.args) + 1 :])
+        vd = ValidatedFunction(func, {"arbitrary_types_allowed": True})
+        model = vd.init_model_instance(**kwargs)
+        d = {
+            k: v
+            for k, v in model._iter()
+            if (k in model.__fields__ or model.__fields__[k].default_factory)
+        }
+        d.pop("v__duplicate_kwargs", None)  # see pydantic ValidatedFunction code
+        d.pop(vd.v_args_name, None)
+        d.pop(spec.args[0], None)
+        if has_self:
+            d.pop(spec.args[1], None)
+        return {**(d.pop(vd.v_kwargs_name, None) or {}), **d}
+    finally:
+        if restore:
+            func.__annotations__ = old_annotations
+            func.__defaults__ = old_defaults
 
 
 class SequenceStr:
@@ -228,8 +254,9 @@ class StandoffDict2DocConverter:
         for attr in bool_attributes:
             self.default_attributes[attr] = False
 
-    def __call__(self, obj):
-        tok = get_current_tokenizer() if self.tokenizer is None else self.tokenizer
+    def __call__(self, obj, tokenizer=None):
+        # tok = get_current_tokenizer() if self.tokenizer is None else self.tokenizer
+        tok = tokenizer or self.tokenizer or get_current_tokenizer()
         doc = tok(obj["text"] or "")
         doc._.note_id = obj.get("doc_id", obj.get(FILENAME))
 
@@ -442,8 +469,9 @@ class OmopDict2DocConverter:
         for attr in bool_attributes:
             self.default_attributes[attr] = False
 
-    def __call__(self, obj):
-        tok = get_current_tokenizer() if self.tokenizer is None else self.tokenizer
+    def __call__(self, obj, tokenizer=None):
+        # tok = get_current_tokenizer() if self.tokenizer is None else self.tokenizer
+        tok = tokenizer or self.tokenizer or get_current_tokenizer()
         doc = tok(obj["note_text"] or "")
         doc._.note_id = obj.get("note_id", obj.get(FILENAME))
         for obj_name, ext_name in self.doc_attributes.items():

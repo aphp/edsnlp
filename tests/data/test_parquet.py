@@ -1,9 +1,11 @@
 import os
+from itertools import islice
 from pathlib import Path
 
 import pyarrow.dataset
 import pyarrow.fs
 import pytest
+from typing_extensions import Literal
 
 import edsnlp
 from edsnlp.data.converters import get_dict2doc_converter, get_doc2dict_converter
@@ -213,7 +215,7 @@ def assert_doc_write_ents(exported_objs):
 
 
 def test_read_write_in_worker(blank_nlp, tmpdir):
-    input_dir = Path(__file__).parent.parent.resolve() / "resources" / "docs.pq"
+    input_dir = Path(__file__).parent.parent.resolve() / "resources" / "docs.parquet"
     output_dir = Path(tmpdir)
     edsnlp.data.read_parquet(
         input_dir,
@@ -222,7 +224,7 @@ def test_read_write_in_worker(blank_nlp, tmpdir):
         doc_attributes=["context_var"],
         read_in_worker=True,
     ).write_parquet(
-        output_dir / "docs.pq",
+        output_dir / "docs.parquet",
         converter="omop",
         doc_attributes=["context_var"],
         span_attributes=["etat", "assertion"],
@@ -231,14 +233,14 @@ def test_read_write_in_worker(blank_nlp, tmpdir):
     )
     # fmt: off
     assert (
-          list(dl_to_ld(pyarrow.dataset.dataset(output_dir / "docs.pq").to_table().to_pydict()))  # noqa: E501
-          == list(dl_to_ld(pyarrow.dataset.dataset(input_dir).to_table().to_pydict()))
+            list(dl_to_ld(pyarrow.dataset.dataset(output_dir / "docs.parquet").to_table().to_pydict()))  # noqa: E501
+            == list(dl_to_ld(pyarrow.dataset.dataset(input_dir).to_table().to_pydict()))
     )
     # fmt: on
 
 
 def test_read_to_parquet(blank_nlp, tmpdir):
-    input_dir = Path(__file__).parent.parent.resolve() / "resources" / "docs.pq"
+    input_dir = Path(__file__).parent.parent.resolve() / "resources" / "docs.parquet"
     output_dir = Path(tmpdir)
     fs = pyarrow.fs.LocalFileSystem()
     doc = list(
@@ -288,7 +290,7 @@ def test_read_to_parquet(blank_nlp, tmpdir):
 
 
 def test_read_to_parquet_ents(blank_nlp, tmpdir):
-    input_dir = Path(__file__).parent.parent.resolve() / "resources" / "docs.pq"
+    input_dir = Path(__file__).parent.parent.resolve() / "resources" / "docs.parquet"
     output_dir = Path(tmpdir)
     fs = pyarrow.fs.LocalFileSystem()
     doc = list(
@@ -310,6 +312,7 @@ def test_read_to_parquet_ents(blank_nlp, tmpdir):
         doc_attributes=["context_var"],
         span_attributes=["etat", "assertion"],
         span_getter=["ents", "sosy", "localisation", "anatomie", "pathologie"],
+        num_rows_per_file=1024,  # deprecated but test for backward compatibility
     )
 
     assert_doc_write_ents(
@@ -325,3 +328,28 @@ def test_read_to_parquet_ents(blank_nlp, tmpdir):
             span_attributes=["etat", "assertion"],
             span_getter=["ents", "sosy", "localisation", "anatomie", "pathologie"],
         )
+
+
+@pytest.mark.parametrize("num_cpu_workers", [0, 2])
+@pytest.mark.parametrize("shuffle", ["dataset", "file"])
+def test_read_shuffle_loop(num_cpu_workers: int, shuffle: Literal["dataset", "file"]):
+    input_dir = Path(__file__).parent.parent.resolve() / "resources" / "docs.parquet"
+    notes = (
+        edsnlp.data.read_parquet(
+            input_dir,
+            shuffle=shuffle,
+            seed=42,
+            loop=True,
+        )
+        .map(lambda x: x["note_id"])
+        .set_processing(num_cpu_workers=num_cpu_workers)
+    )
+    notes = list(islice(notes, 6))
+    assert notes == [
+        "subfolder/doc-2",
+        "subfolder/doc-1",
+        "subfolder/doc-3",
+        "subfolder/doc-3",
+        "subfolder/doc-2",
+        "subfolder/doc-1",
+    ]

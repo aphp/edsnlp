@@ -253,7 +253,7 @@ def test_config_validation_error():
     with pytest.raises(ConfitValidationError) as e:
         Pipeline.from_config(Config.from_str(fail_config))
 
-    assert "1 validation error for edsnlp.core.pipeline.Pipeline()" in str(e.value)
+    assert "1 validation error for" in str(e.value)
     assert "got 'error-mode'" in str(e.value)
 
 

@@ -7,7 +7,7 @@ from edsnlp.utils.collections import ld_to_dl
 def test_map_batches():
     items = [1, 2, 3, 4, 5]
     lazy = edsnlp.data.from_iterable(items)
-    lazy = lazy.map(lambda x: x + 1)
+    lazy = lazy.map(lambda x: x + 1)  # 2, 3, 4, 5, 6
     lazy = lazy.map_batches(lambda x: [sum(x)])
     lazy = lazy.set_processing(
         num_cpu_workers=2,
@@ -15,7 +15,7 @@ def test_map_batches():
         batch_size=2,
     )
     res = list(lazy)
-    assert set(res) == {5, 9, 6}
+    assert res == [6, 8, 6]  # 2+4, 3+5, 6
 
 
 @pytest.mark.parametrize("num_cpu_workers", [1, 2])
@@ -24,6 +24,7 @@ def test_flat_iterable(num_cpu_workers):
     lazy = edsnlp.data.from_iterable(items)
     lazy = lazy.set_processing(num_cpu_workers=num_cpu_workers)
     lazy = lazy.map(lambda x: [x] * x)
+    lazy = lazy.flatten()
     res = list(lazy)
     assert sorted(res) == [1, 2, 2, 3, 3, 3, 4, 4, 4, 4]
 
@@ -41,6 +42,10 @@ def test_map_gpu(num_gpu_workers):
     items = [1, 2, 3, 4, 5]
     lazy = edsnlp.data.from_iterable(items)
     lazy = lazy.map(lambda x: x + 1)
+    if num_gpu_workers == 0:
+        # this is just to fuse tests, and test map_gpu
+        # following a map_batches without specifying a batch size
+        lazy = lazy.map_batches(lambda x: x)
     lazy = lazy.map_gpu(prepare_batch, forward)
     lazy = lazy.set_processing(
         num_gpu_workers=num_gpu_workers,
@@ -54,17 +59,19 @@ def test_map_gpu(num_gpu_workers):
     assert set(res.tolist()) == {4, 6, 8, 10, 12}
 
 
-@pytest.mark.parametrize("num_cpu_workers", [1, 2])
 @pytest.mark.parametrize(
-    "batch_by,expected",
+    "sort,num_cpu_workers,batch_by,expected",
     [
-        ("words", [3, 1, 3, 1, 3, 1]),
-        ("padded_words", [2, 1, 1, 2, 1, 1, 2, 1, 1]),
-        ("docs", [10, 2]),
-        ("ents", [3, 2, 3, 3, 1]),
+        (False, 1, "words", [3, 1, 3, 1, 3, 1]),
+        (False, 1, "padded_words", [2, 1, 1, 2, 1, 1, 2, 1, 1]),
+        (False, 1, "docs", [10, 2]),
+        (False, 2, "words", [2, 1, 2, 1, 2, 1, 1, 1, 1]),
+        (False, 2, "padded_words", [2, 1, 2, 1, 2, 1, 1, 1, 1]),
+        (False, 2, "docs", [6, 6]),
+        (True, 2, "padded_words", [3, 3, 2, 1, 1, 1, 1]),
     ],
 )
-def test_map_with_batching(num_cpu_workers, batch_by, expected):
+def test_map_with_batching(sort, num_cpu_workers, batch_by, expected):
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(
         "eds.matcher",
@@ -82,15 +89,29 @@ def test_map_with_batching(num_cpu_workers, batch_by, expected):
         "This is a very very long sentence that will make more than 10 words",
     ] * 3
     lazy = edsnlp.data.from_iterable(samples)
+    if sort:
+        lazy = lazy.map_batches(lambda x: sorted(x, key=len), batch_size=1000)
     lazy = lazy.map_pipeline(nlp)
     lazy = lazy.map_batches(len)
-    lazy = lazy.to("cpu")
     lazy = lazy.set_processing(
         num_cpu_workers=num_cpu_workers,
         batch_size=10,
         batch_by=batch_by,
-        chunk_size=1000,
+        chunk_size=1000,  # deprecated
         split_into_batches_after="matcher",
         show_progress=True,
     )
     assert list(lazy) == expected
+
+
+def test_repr(frozen_ml_nlp, tmp_path):
+    items = ["ceci est un test", "ceci est un autre test"]
+    stream = (
+        edsnlp.data.from_iterable(items, converter=frozen_ml_nlp.make_doc)
+        .map(lambda x: x)
+        .map_pipeline(frozen_ml_nlp, batch_size=2)
+        .map_batches(lambda b: sorted(b, key=len))
+        .set_processing(num_cpu_workers=2)
+        .write_json(tmp_path / "out_test.jsonl", lines=True, execute=False)
+    )
+    assert "LazyCollection" in repr(stream)

@@ -2,10 +2,14 @@ import edsnlp
 
 
 def test_read_write(blank_nlp, text, df_notes_pyspark):
+    # line below is just to mix params to avoid running too many tests
+    shuffle = "dataset" if blank_nlp.lang == "eds" else False
+
     reader = edsnlp.data.from_spark(
         df_notes_pyspark,
         converter="omop",
         nlp=blank_nlp,
+        shuffle=shuffle,
     ).set_processing(backend="simple")
     doc = list(reader)[0]
     assert doc.text == text

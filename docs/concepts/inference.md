@@ -60,9 +60,27 @@ nlp = edsnlp.load("path/to/model")
 # Read some data (this is lazy, no data will be read until the end of of this snippet)
 data = edsnlp.data.read_json("path/to/json_folder", converter="...")
 
-# Apply each pipe of the model to our documents
-data = data.map_pipeline(nlp)
-# or equivalently : data = nlp.pipe(data)
+# Apply each pipe of the model to our documents and split the data
+# into batches such that each contains at most 100 000 padded words
+# (padded_words = max doc size in batch * batch size)
+data = data.map_pipeline(
+    nlp,
+    # optional arguments
+    batch_size=100_000,
+    batch_by="padded_words",
+)
+# or equivalently : data = nlp.pipe(data, batch_size=100_000, batch_by="padded_words")
+
+# Sort the documents in chunks of 1024 documents
+data = data.map_batches(
+    lambda batch: sorted(batch, key=lambda doc: len(doc)),
+    batch_size=1024,
+)
+
+data = data.map_batches(
+    # Apply a function to each batch of documents
+    lambda batch: [doc._.my_custom_attribute for doc in batch]
+)
 
 # Configure the execution
 data = data.set_processing(
@@ -71,15 +89,6 @@ data = data.set_processing(
     # 2 GPUs to accelerate deep-learning pipes
     num_gpu_workers=2,
 
-    # Below are further options to finetune the inference throughput:
-    # Read chunks of 1024 documents before splitting them into batches
-    chunk_size=1024,
-    # Sort the documents by length before splitting them into batches
-    sort_chunks=True,
-    # Split batches such that each contains at most 100 000 padded words
-    # (padded_words = max doc size in batch * batch size)
-    batch_size=100_000,
-    batch_by="padded_words",
 )
 
 # Write the result, this will execute the lazy collection

@@ -1,5 +1,7 @@
 import copy
 import itertools
+import random
+import types
 from collections import defaultdict
 from typing import (
     Any,
@@ -353,9 +355,15 @@ def flatten_once(items):
             yield item
 
 
-def flatten(items):
-    for item in items:
-        if isinstance(item, list):
-            yield from flatten(item)
-        else:
-            yield item
+def flatten(item):
+    if not isinstance(item, (list, types.GeneratorType)):
+        yield item
+        return
+    for sub in item:
+        yield from flatten(sub)
+
+
+def shuffle(items, rng=random):
+    items = list(items)
+    rng.shuffle(items)
+    return items

@@ -1,45 +1,69 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Optional, Tuple, Union
+import random
+from typing import Any, Callable, Iterable, Optional, Union
 
+import polars
 import polars as pl
+from typing_extensions import Literal
 
 from edsnlp import registry
 from edsnlp.core.lazy_collection import LazyCollection
-from edsnlp.data.base import BaseReader, BaseWriter
+from edsnlp.data.base import BaseWriter, MemoryBasedReader
 from edsnlp.data.converters import (
-    FILENAME,
     get_dict2doc_converter,
     get_doc2dict_converter,
 )
 from edsnlp.utils.collections import flatten
 
 
-class PolarsReader(BaseReader):
+class PolarsReader(MemoryBasedReader):
     DATA_FIELDS = ("data",)
 
     def __init__(
         self,
         data: Union[pl.DataFrame, pl.LazyFrame],
-        **kwargs,
+        shuffle: Literal["dataset", False] = False,
+        seed: Optional[int] = None,
+        loop: bool = False,
     ):
+        super().__init__()
+        self.shuffle = shuffle
+        self.rng = random.Random(seed)
+        self.loop = loop
+
         if hasattr(data, "collect"):
             data = data.collect()
         assert isinstance(data, pl.DataFrame)
         self.data = data
 
-        super().__init__(**kwargs)
+    def read_records(self, work_unit: str = "record") -> Iterable[Any]:
+        data: polars.DataFrame = self.data
+        while True:
+            if self.shuffle:
+                data = self.data.sample(
+                    fraction=1.0,
+                    seed=self.rng.getrandbits(32),
+                    shuffle=True,
+                )
+            yield from data.iter_rows(named=True)
+            if not self.loop:
+                break
 
-    def read_main(self) -> Iterable[Tuple[Any, int]]:
-        return ((item, 1) for item in self.data.iter_rows(named=True))
-
-    def read_worker(self, fragments):
-        return [task for task in fragments]
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}(data={object.__repr__(self.data)}, "
+            f"shuffle={self.shuffle}, "
+            f"loop={self.loop})"
+        )
 
 
 @registry.readers.register("polars")
 def from_polars(
     data: Union[pl.DataFrame, pl.LazyFrame],
+    shuffle: Literal["dataset", False] = False,
+    seed: Optional[int] = None,
+    loop: bool = False,
     converter: Optional[Union[str, Callable]] = None,
     **kwargs,
 ) -> LazyCollection:
@@ -75,6 +99,13 @@ def from_polars(
     ----------
     data: Union[pl.DataFrame, pl.LazyFrame]
         Polars object
+    shuffle: Literal["dataset", False]
+        Whether to shuffle the data. If "dataset", the whole dataset will be shuffled
+        at the beginning (of every epoch if looping).
+    seed: int
+        The seed to use for shuffling.
+    loop: bool
+        Whether to loop over the data indefinitely.
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the rows of the DataFrame (represented as dicts)
         to Doc objects. These are documented on the [Converters](/data/converters) page.
@@ -87,7 +118,14 @@ def from_polars(
     LazyCollection
     """
 
-    data = LazyCollection(reader=PolarsReader(data))
+    data = LazyCollection(
+        reader=PolarsReader(
+            data,
+            shuffle=shuffle,
+            seed=seed,
+            loop=loop,
+        )
+    )
     if converter:
         converter, kwargs = get_dict2doc_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)
@@ -98,15 +136,8 @@ class PolarsWriter(BaseWriter):
     def __init__(self, dtypes: Optional[dict] = None):
         self.dtypes = dtypes
 
-    def write_worker(self, records):
-        # If write as jsonl, we will perform the actual writing in the `write` method
-        for rec in records:
-            if isinstance(rec, dict):
-                rec.pop(FILENAME, None)
-        return records, len(records)
-
-    def write_main(self, fragments):
-        return pl.from_dicts(flatten(fragments), schema=self.dtypes)
+    def consolidate(self, items: Iterable[Any]):
+        return pl.from_dicts(flatten(items), schema=self.dtypes)
 
 
 @registry.writers.register("polars")
@@ -114,6 +145,7 @@ def to_polars(
     data: Union[Any, LazyCollection],
     converter: Optional[Union[str, Callable]] = None,
     dtypes: Optional[dict] = None,
+    execute: bool = True,
     **kwargs,
 ) -> pl.DataFrame:
     """
@@ -144,6 +176,9 @@ def to_polars(
         Converter to use to convert the documents to dictionary objects before storing
         them in the dataframe. These are documented on the
         [Converters](/data/converters) page.
+    execute: bool
+        Whether to execute the writing operation immediately or to return a lazy
+        collection
     kwargs:
         Additional keyword arguments to pass to the converter. These are documented on
         the [Converters](/data/converters) page.
@@ -153,4 +188,4 @@ def to_polars(
         converter, kwargs = get_doc2dict_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)
 
-    return data.write(PolarsWriter(dtypes))
+    return data.write(PolarsWriter(dtypes), execute=execute)

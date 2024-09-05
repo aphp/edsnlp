@@ -1,6 +1,7 @@
 import pytest
 from spacy.tokens import Span
 
+import edsnlp.data
 from edsnlp.data.converters import (
     FILENAME,
     get_dict2doc_converter,
@@ -247,3 +248,28 @@ def test_callable_converter():
     raw = lambda x: x  # noqa: E731
     assert get_dict2doc_converter(raw, {}) == (raw, {})
     assert get_doc2dict_converter(raw, {}) == (raw, {})
+
+
+def test_method_converter(blank_nlp):
+    data = ["Ceci", "est", "un", "test"]
+    texts = list(
+        edsnlp.data.from_iterable(data, converter=blank_nlp.make_doc).map(
+            lambda x: x.text
+        )
+    )
+    assert texts == data
+
+
+def test_converter_types(blank_nlp):
+    class Text:
+        def __init__(self, text):
+            self.text = text
+
+    for converter in (blank_nlp.make_doc, Text, lambda x, k=2: Text(x)):
+        data = ["Ceci", "est", "un", "test"]
+        texts = list(
+            edsnlp.data.from_iterable(data, converter=blank_nlp.make_doc).map(
+                lambda x: x.text
+            )
+        )
+        assert texts == data

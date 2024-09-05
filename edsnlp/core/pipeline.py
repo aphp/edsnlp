@@ -398,6 +398,7 @@ class Pipeline:
         inputs: Union[Iterable, LazyCollection],
         batch_size: Optional[int] = None,
         n_process: int = None,
+        **kwargs,
     ) -> LazyCollection:
         """
         Process a stream of documents by applying each component successively on
@@ -423,16 +424,14 @@ class Pipeline:
 
         if batch_size is None:
             batch_size = self.batch_size
+            kwargs = {"batch_size": batch_size, **kwargs}
 
-        lazy_collection = (
-            LazyCollection.ensure_lazy(inputs)
-            .map_pipeline(self)
-            .set_processing(batch_size=batch_size)
-        )
+        stream = edsnlp.data.from_iterable(inputs)
+        stream = stream.map_pipeline(self, **kwargs)
         if n_process is not None:
-            lazy_collection = lazy_collection.set_processing(num_cpu_workers=n_process)
+            stream = stream.set_processing(num_cpu_workers=n_process)
 
-        return lazy_collection
+        return stream
 
     @contextlib.contextmanager
     def cache(self):

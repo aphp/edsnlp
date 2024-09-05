@@ -1,44 +1,62 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Optional, Tuple, Union
+import random
+from typing import Any, Callable, Iterable, Optional, Union
 
 import pandas as pd
+from typing_extensions import Literal
 
 from edsnlp import registry
 from edsnlp.core.lazy_collection import LazyCollection
-from edsnlp.data.base import BaseReader, BaseWriter
+from edsnlp.data.base import BaseWriter, MemoryBasedReader
 from edsnlp.data.converters import (
-    FILENAME,
     get_dict2doc_converter,
     get_doc2dict_converter,
 )
-from edsnlp.utils.collections import dl_to_ld, flatten, ld_to_dl
+from edsnlp.utils.collections import dl_to_ld, flatten, ld_to_dl, shuffle
 
 
-class PandasReader(BaseReader):
+class PandasReader(MemoryBasedReader):
     DATA_FIELDS = ("data",)
 
     def __init__(
         self,
         data: pd.DataFrame,
-        **kwargs,
+        shuffle: Literal["dataset", False] = False,
+        seed: Optional[int] = None,
+        loop: bool = False,
     ):
-        assert isinstance(data, pd.DataFrame)
+        super().__init__()
+        self.shuffle = shuffle
+        self.rng = random.Random(seed)
+        self.loop = loop
         self.data = data
+        assert isinstance(data, pd.DataFrame)
 
-        super().__init__(**kwargs)
+    def read_records(self) -> Iterable[Any]:
+        while True:
+            records = dl_to_ld(dict(self.data))
+            if self.shuffle:
+                records = shuffle(list(records), self.rng)
+            yield from records
+            if not self.loop:
+                break
 
-    def read_main(self) -> Iterable[Tuple[Any, int]]:
-        return ((item, 1) for item in dl_to_ld(dict(self.data)))
-
-    def read_worker(self, fragments):
-        return [task for task in fragments]
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}(data={object.__repr__(self.data)}, "
+            f"shuffle={self.shuffle}, "
+            f"loop={self.loop})"
+        )
 
 
 @registry.readers.register("pandas")
 def from_pandas(
     data,
     converter: Optional[Union[str, Callable]] = None,
+    shuffle: Literal["dataset", False] = False,
+    seed: Optional[int] = None,
+    loop: bool = False,
     **kwargs,
 ) -> LazyCollection:
     """
@@ -73,6 +91,13 @@ def from_pandas(
     ----------
     data: pd.DataFrame
         Pandas object
+    shuffle: Literal["dataset", False]
+        Whether to shuffle the data. If "dataset", the whole dataset will be shuffled
+        before starting iterating on it (at the start of every epoch if looping).
+    seed: Optional[int]
+        The seed to use for shuffling.
+    loop: bool
+        Whether to loop over the data indefinitely.
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the rows of the DataFrame (represented as dicts)
         to Doc objects. These are documented on the [Converters](/data/converters) page.
@@ -85,7 +110,14 @@ def from_pandas(
     LazyCollection
     """
 
-    data = LazyCollection(reader=PandasReader(data))
+    data = LazyCollection(
+        reader=PandasReader(
+            data,
+            shuffle=shuffle,
+            seed=seed,
+            loop=loop,
+        )
+    )
     if converter:
         converter, kwargs = get_dict2doc_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)
@@ -96,17 +128,8 @@ class PandasWriter(BaseWriter):
     def __init__(self, dtypes: Optional[dict] = None):
         self.dtypes = dtypes
 
-    def write_worker(self, records):
-        # If write as jsonl, we will perform the actual writing in the `write` method
-        for rec in records:
-            if isinstance(rec, dict):
-                rec.pop(FILENAME, None)
-        return records, len(records)
-
-    def write_main(self, fragments):
-        import pandas as pd
-
-        columns = ld_to_dl(flatten(fragments))
+    def consolidate(self, items):
+        columns = ld_to_dl(flatten(items))
         res = pd.DataFrame(columns)
         return res.astype(self.dtypes) if self.dtypes else res
 
@@ -114,6 +137,7 @@ class PandasWriter(BaseWriter):
 @registry.writers.register("pandas")
 def to_pandas(
     data: Union[Any, LazyCollection],
+    execute: bool = True,
     converter: Optional[Union[str, Callable]] = None,
     dtypes: Optional[dict] = None,
     **kwargs,
@@ -141,6 +165,9 @@ def to_pandas(
         The data to write (either a list of documents or a LazyCollection).
     dtypes: Optional[dict]
         Dictionary of column names to dtypes. This is passed to `pd.DataFrame.astype`.
+    execute: bool
+        Whether to execute the writing operation immediately or to return a lazy
+        collection
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the documents to dictionary objects before storing
         them in the dataframe. These are documented on the
@@ -154,4 +181,4 @@ def to_pandas(
         converter, kwargs = get_doc2dict_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)
 
-    return data.write(PandasWriter(dtypes))
+    return data.write(PandasWriter(dtypes), execute=execute)

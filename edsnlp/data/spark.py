@@ -1,45 +1,71 @@
 from __future__ import annotations
 
+import random
 from itertools import chain
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Iterable, Optional, Union
 
 import pyspark.sql.dataframe
+from typing_extensions import Literal
 
 from edsnlp import registry
 from edsnlp.core.lazy_collection import LazyCollection
-from edsnlp.data.base import BaseReader, BaseWriter
+from edsnlp.data.base import BaseWriter, MemoryBasedReader
 from edsnlp.data.converters import (
-    FILENAME,
     get_dict2doc_converter,
     get_doc2dict_converter,
     without_filename,
 )
-from edsnlp.utils.collections import flatten_once
+from edsnlp.utils.collections import flatten
+from edsnlp.utils.spark_dtypes import (
+    schema_warning,
+    spark_interpret_dicts_as_rows,
+)
 
 
-class SparkReader(BaseReader):
+class SparkReader(MemoryBasedReader):
     DATA_FIELDS = ("data",)
 
-    def __init__(self, data: pyspark.sql.dataframe.DataFrame):
+    def __init__(
+        self,
+        data: pyspark.sql.dataframe.DataFrame,
+        shuffle: Literal["dataset", False] = False,
+        seed: Optional[int] = None,
+        loop: bool = False,
+    ):
         import pyspark.sql.dataframe
 
         self.data = data
+        self.shuffle = shuffle
+        self.rng = random.Random(seed)
+        self.loop = loop
         assert isinstance(
             self.data, (pyspark.sql.dataframe.DataFrame, chain)
         ), f"`data` should be a pyspark or koalas DataFrame got {type(data)}"
         super().__init__()
 
-    def read_main(self):
-        return ((d, 1) for d in self.data.toLocalIterator())
+    def read_records(self) -> Iterable[Any]:
+        while True:
+            data: "pyspark.sql.dataframe.DataFrame" = self.data
+            files = (item.asDict(recursive=True) for item in data.toLocalIterator())
+            yield from files
+            if not self.loop:
+                break
 
-    def read_worker(self, fragment):
-        return [task.asDict(recursive=True) for task in fragment]
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}(data={object.__repr__(self.data)}, "
+            f"shuffle={self.shuffle}, "
+            f"loop={self.loop})"
+        )
 
 
 @registry.readers.register("spark")
 def from_spark(
     data,
     converter: Optional[Union[str, Callable]] = None,
+    shuffle: Literal["dataset", False] = False,
+    seed: Optional[int] = None,
+    loop: bool = False,
     **kwargs,
 ) -> LazyCollection:
     """
@@ -73,6 +99,13 @@ def from_spark(
     ----------
     data: pyspark.sql.dataframe.DataFrame
         The DataFrame to read.
+    shuffle: Literal["dataset", False]
+        Whether to shuffle the data. If "dataset", the whole dataset will be shuffled
+        before starting iterating on it (at the start of every epoch if looping).
+    seed: Optional[int]
+        The seed to use for shuffling.
+    loop: bool
+        Whether to loop over the data indefinitely.
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the rows of the DataFrame to Doc objects.
         These are documented on the [Converters](/data/converters) page.
@@ -84,7 +117,14 @@ def from_spark(
     -------
     LazyCollection
     """
-    data = LazyCollection(reader=SparkReader(data))
+    data = LazyCollection(
+        reader=SparkReader(
+            data,
+            shuffle=shuffle,
+            seed=seed,
+            loop=loop,
+        )
+    )
     if converter:
         converter, kwargs = get_dict2doc_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)
@@ -103,27 +143,13 @@ class SparkWriter(BaseWriter):
 
         super().__init__()
 
-    def write_worker(self, records):
-        # We flatten in case the converter returns a list
-        records = list(flatten_once(records))
-        for rec in records:
-            rec.pop(FILENAME, None)
-        return records, len(records)
-
-    def write_main(self, fragments):
-        import pyspark
-
-        from edsnlp.utils.spark_dtypes import (
-            schema_warning,
-            spark_interpret_dicts_as_rows,
-        )
-
-        fragments = map(without_filename, flatten_once(fragments))
+    def consolidate(self, items: Iterable[Any]):
+        items = map(without_filename, flatten(items))
         spark = pyspark.sql.SparkSession.builder.enableHiveSupport().getOrCreate()
         rdd = (
-            fragments
-            if isinstance(fragments, pyspark.RDD)
-            else spark.sparkContext.parallelize(fragments)
+            items
+            if isinstance(items, pyspark.RDD)
+            else spark.sparkContext.parallelize(items)
         )
         with spark_interpret_dicts_as_rows():
             result = spark.createDataFrame(rdd, schema=self.dtypes)
@@ -140,6 +166,7 @@ def to_spark(
     converter: Optional[Union[str, Callable]] = None,
     dtypes: Any = None,
     show_dtypes: bool = True,
+    execute: bool = True,
     **kwargs,
 ):
     """
@@ -190,6 +217,9 @@ def to_spark(
         The schema to use for the DataFrame.
     show_dtypes: bool
         Whether to print the inferred schema (only if `dtypes` is None).
+    execute: bool
+        Whether to execute the writing operation immediately or to return a lazy
+        collection
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the documents to dictionary objects before storing
         them in the dataframe. These are documented on the
@@ -203,4 +233,6 @@ def to_spark(
         converter, kwargs = get_doc2dict_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)
 
-    return data.write(SparkWriter(dtypes=dtypes, show_dtypes=show_dtypes))
+    return data.write(
+        SparkWriter(dtypes=dtypes, show_dtypes=show_dtypes), execute=execute
+    )

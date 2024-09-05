@@ -2,16 +2,14 @@ from __future__ import annotations
 
 import pickle
 import sys
-from typing import Optional
+from typing import Optional, Union
 
 import dill
 
 from edsnlp.core.lazy_collection import LazyCollection
-from edsnlp.data.base import BaseWriter
+from edsnlp.data.base import BaseWriter, BatchWriter
 from edsnlp.data.spark import SparkReader, SparkWriter
-from edsnlp.utils.collections import batchify, flatten
-
-from .utils import apply_basic_pipes
+from edsnlp.utils.collections import flatten, flatten_once
 
 try:
     from koalas.dataframe import DataFrame as KoalasDataFrame
@@ -75,60 +73,73 @@ def execute_spark_backend(
     spark = getActiveSession() or SparkSession.builder.getOrCreate()
 
     reader = lc.reader
-    writer = lc.writer
+    writer: Union[BaseWriter, BatchWriter] = lc.writer
 
-    if (
-        writer is not None
-        # check if finalize has been overridden
-        and writer.finalize.__func__ is not BaseWriter.finalize
-    ):
-        raise ValueError(
-            "The Spark backend does not support writers that need to be finalized."
+    if isinstance(reader, SparkReader):
+        df = reader.data
+        assert not reader.loop, "Looping is not supported with Spark backend."
+        df = (
+            df.sample(fraction=1.0, seed=reader.rng.randbytes(32))
+            if reader.shuffle
+            else df
         )
-
-    if isinstance(lc.reader, SparkReader):
-        df = lc.reader.data
     else:
         with spark_interpret_dicts_as_rows():
             df = spark.sparkContext.parallelize(
-                [
-                    {"content": pickle.dumps(item, -1)}
-                    for item, count in reader.read_main()
-                ]
+                [{"content": pickle.dumps(item, -1)} for item in reader.read_records()]
             ).toDF(T.StructType([T.StructField("content", T.BinaryType())]))
 
-    def process_partition(iterator):  # pragma: no cover
+    def make_torch_pipe(torch_pipe, disable_after):  # pragma: no cover
+        def wrapped(batches):
+            for batch in batches:
+                batch_id = hash(tuple(id(x) for x in batch))
+                torch_pipe.enable_cache(batch_id)
+                batch = torch_pipe.batch_process(batch)
+                if disable_after:
+                    torch_pipe.disable_cache(batch_id)
+                yield batch
+
+        return wrapped
+
+    def process_partition(items):  # pragma: no cover
         lc: LazyCollection = bc.value
+        writer = lc.writer
         try:
             sys.modules["torch"].set_grad_enabled(False)
         except (AttributeError, KeyError):
             pass
+        stages = lc._make_stages(split_torch_pipes=True)
+
+        if not isinstance(lc.reader, SparkReader):
+            items = (pickle.loads(row.content) for row in items)
+        else:
+            items = (item.asDict(recursive=True) for item in items)
+
+        for stage_idx, stage in enumerate(stages):
+            for op in stage.cpu_ops:
+                items = op(items)
+
+            if stage.gpu_op is not None:
+                pipe = make_torch_pipe(stage.gpu_op, stage_idx == len(stages) - 2)
+                items = pipe(items)
+
+        if writer is not None:
+            items = (writer.handle_record(item) for item in items)
 
         results = []
-        tasks = (
-            # Maybe we should skip read_worker here ? it's a no-op for SparkReader
-            lc.reader.read_worker(iterator)
-            if isinstance(lc.reader, SparkReader)
-            else (
-                task
-                for row in iterator
-                for task in lc.reader.read_worker([pickle.loads(row["content"])])
-            )
-        )
-        for batch in batchify(
-            tasks,
-            batch_size=lc.batch_size,
-        ):
-            with lc.cache():
-                batch = apply_basic_pipes(batch, lc.pipeline)
-            results.extend(batch)
-
-        if lc.writer:
-            results, count = lc.writer.write_worker(results)
-
-        if isinstance(lc.writer, SparkWriter):
-            return results
+        if getattr(writer, "batch_in_worker", None) is True:
+            items = writer.batch_by(items, writer.batch_size)
+            # get the 1st element (2nd is the count)
+            for b in items:
+                item, count = writer.handle_batch(b)
+                results.append(item)
         else:
+            results = list(items)
+
+        if isinstance(writer, SparkWriter):
+            return list(flatten(results))
+        else:
+            print("RESULTS", results)
             return [{"content": pickle.dumps(results, -1)}]
 
     with lc.eval():
@@ -143,8 +154,14 @@ def execute_spark_backend(
                 schema_warning(results.schema)
             return results
 
-        results = (
+        items = flatten_once(
             pickle.loads(item["content"])
             for item in df.rdd.mapPartitions(process_partition).toLocalIterator()
         )
-        return flatten(results) if writer is None else writer.write_main(results)
+
+        if getattr(writer, "batch_in_worker", None) is False:
+            writer: BatchWriter
+            items = writer.batch_by(items, writer.batch_size)
+            # get the 1st element (2nd is the count)
+            items = (writer.handle_batch(b)[0] for b in items)
+        return items if writer is None else writer.consolidate(items)

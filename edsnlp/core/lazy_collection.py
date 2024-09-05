@@ -1,25 +1,31 @@
 from __future__ import annotations
 
-import contextlib
+import abc
+import inspect
 import sys
+import textwrap
+import types
+import warnings
 from collections import namedtuple
+from copy import copy
 from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Container,
-    Dict,
     Iterable,
     List,
     Optional,
-    Tuple,
+    TypeVar,
     Union,
 )
 
+from confit import VisibleDeprecationWarning
 from typing_extensions import Literal
 
 import edsnlp.data
+from edsnlp.utils.batching import batchify_fns
+from edsnlp.utils.collections import flatten, flatten_once
 
 if TYPE_CHECKING:
     import torch
@@ -28,10 +34,31 @@ if TYPE_CHECKING:
     from edsnlp.core.torch_component import TorchComponent
     from edsnlp.data.base import BaseReader, BaseWriter
 
-INFER = type("INFER", (), {"__repr__": lambda self: "INFER"})()
+
+class _InferType:
+    # Singleton is important since the INFER object may be passed to
+    # other processes, i.e. pickled, depickled, while it should
+    # always be the same object.
+    instance = None
+
+    def __repr__(self):
+        return "INFER"
+
+    def __new__(cls, *args, **kwargs):
+        if cls.instance is None:
+            cls.instance = super().__new__(cls)
+        return cls.instance
+
+    def __bool__(self):
+        return False
 
 
-def with_non_default_args(fn: Callable) -> Callable:
+INFER = _InferType()
+
+T = TypeVar("T")
+
+
+def with_non_default_args(fn: T) -> T:
     @wraps(fn)
     def wrapper(self, **kwargs):
         return fn(self, **kwargs, _non_default_args=kwargs.keys())
@@ -42,24 +69,132 @@ def with_non_default_args(fn: Callable) -> Callable:
 Batchable = namedtuple("Batchable", ["batch_process"])
 
 
+def make_kwargs_str(kwargs, first=True):
+    pre_sep, join_sep = ("", ", ") if first else (", ", "")
+    return join_sep.join(pre_sep + f"{k}={v!r}" for k, v in kwargs.items())
+
+
+class Op(abc.ABC):
+    def __call__(self, items):
+        raise NotImplementedError()
+
+
+class FlattenOp(Op):
+    def __call__(self, items):
+        return flatten(items)
+
+    def __repr__(self):
+        return "flatten()"
+
+
+class UnbatchifyOp(Op):
+    def __call__(self, items):
+        return flatten_once(items)
+
+    def __repr__(self):
+        return "unbatchify()"
+
+
+class BatchifyOp(Op):
+    def __init__(self, size, batch_fn: Callable[[Iterable, int], Iterable]):
+        if batch_fn is None:
+            if size is None:
+                size = INFER
+                batch_fn = INFER
+            else:
+                batch_fn = batchify_fns["docs"]
+        self.size = size
+        self.batch_fn = batch_fn
+
+    def __call__(self, items):
+        return self.batch_fn(items, self.size)
+
+    def __repr__(self):
+        return "batchify({}, {})".format(self.size, self.batch_fn)
+
+
+class MapOp(Op):
+    def __init__(self, pipe, kwargs):
+        self.pipe = pipe
+        self.kwargs = kwargs
+
+    def __call__(self, items):
+        for item in items:
+            res = self.pipe(item, **self.kwargs)
+            if isinstance(res, types.GeneratorType):
+                res = list(res)
+            yield res
+
+    def __repr__(self):
+        if hasattr(self.pipe, "__self__"):
+            op_str = f"{self.pipe.__name__}[{object.__repr__(self.pipe.__self__)}]"
+        else:
+            op_str = object.__repr__(self.pipe)
+        return "map({}{})".format(op_str, make_kwargs_str(self.kwargs, False))
+
+
+class MapBatchesOp(Op):
+    def __init__(self, pipe, kwargs):
+        self.pipe = pipe
+        self.kwargs = kwargs
+
+    def __call__(self, batches):
+        if hasattr(self.pipe, "batch_process"):
+            for batch in batches:
+                res = self.pipe.batch_process(batch, **self.kwargs)
+                res = list(res) if isinstance(res, types.GeneratorType) else res
+                yield res
+        else:
+            for batch in batches:
+                results = []
+                for item in batch:
+                    res = self.pipe(item, **self.kwargs)
+                    res = list(res) if isinstance(res, types.GeneratorType) else res
+                    results.append(res)
+                yield results
+
+    def __repr__(self):
+        pipe = (
+            self.pipe.batch_process if isinstance(self.pipe, Batchable) else self.pipe
+        )
+        if hasattr(pipe, "__self__"):
+            op_str = f"{pipe.__name__}[{object.__repr__(pipe.__self__)}]"
+        else:
+            op_str = object.__repr__(pipe)
+
+        return f"map_batches_op({op_str}{make_kwargs_str(self.kwargs, False)})"
+
+
 class GPUOp:
     def __init__(self, prepare_batch, forward, postprocess):
         self.prepare_batch = prepare_batch
         self.forward = forward
         self.postprocess = postprocess
 
-    def __call__(self, *args, **kwargs):
-        return self.forward(*args, **kwargs)
-
-    def batch_process(self, docs):
-        res = self.forward(self.prepare_batch(docs, None))
-        return self.postprocess(docs, res) if self.postprocess is not None else res
+    def __call__(self, batches):
+        for batch in batches:
+            res = self.forward(self.prepare_batch(batch, None))
+            yield self.postprocess(batch, res) if self.postprocess is not None else res
 
     def enable_cache(self, cache_id=None):
         pass
 
     def disable_cache(self, cache_id=None):
         pass
+
+
+class Stage:
+    def __init__(self, cpu_ops: List[Op], gpu_op: Optional[TorchComponent]):
+        self.cpu_ops = cpu_ops
+        self.gpu_op = gpu_op
+
+    def __repr__(self):
+        args_str = ",\n".join(textwrap.indent(repr(op), "    ") for op in self.cpu_ops)
+        return (
+            f"Stage(\n"
+            f"  cpu_ops=[\n{args_str}\n  ],\n"
+            f"  gpu_op={object.__repr__(self.gpu_op) if self.gpu_op else None})"
+        )
 
 
 class MetaLazyCollection(type):
@@ -79,12 +214,12 @@ class LazyCollection(metaclass=MetaLazyCollection):
         self,
         reader: Optional[BaseReader] = None,
         writer: Optional[BaseWriter] = None,
-        pipeline: List[Any] = [],
+        ops: List[Any] = [],
         config={},
     ):
         self.reader = reader
         self.writer = writer
-        self.pipeline: List[Tuple[str, Callable, Dict, Any]] = pipeline
+        self.ops: List[Op] = ops
         self.config = config
 
     @property
@@ -94,18 +229,6 @@ class LazyCollection(metaclass=MetaLazyCollection):
     @property
     def batch_by(self):
         return self.config.get("batch_by", "docs")
-
-    @property
-    def sort_chunks(self):
-        return self.config.get("sort_chunks", False)
-
-    @property
-    def split_into_batches_after(self):
-        return self.config.get("split_into_batches_after", None)
-
-    @property
-    def chunk_size(self):
-        return self.config.get("chunk_size", self.config.get("batch_size", 128))
 
     @property
     def disable_implicit_parallelism(self):
@@ -118,10 +241,6 @@ class LazyCollection(metaclass=MetaLazyCollection):
     @property
     def num_gpu_workers(self):
         return self.config.get("num_gpu_workers")
-
-    @property
-    def gpu_pipe_names(self):
-        return self.config.get("gpu_pipe_names")
 
     @property
     def gpu_worker_devices(self):
@@ -148,13 +267,16 @@ class LazyCollection(metaclass=MetaLazyCollection):
     def process_start_method(self):
         return self.config.get("process_start_method")
 
+    @property
+    def deterministic(self):
+        return self.config.get("deterministic", True)
+
+    # noinspection PyIncorrectDocstring
     @with_non_default_args
     def set_processing(
         self,
         batch_size: int = INFER,
         batch_by: Literal["docs", "words", "padded_words"] = "docs",
-        chunk_size: int = INFER,
-        sort_chunks: bool = False,
         split_into_batches_after: str = INFER,
         num_cpu_workers: Optional[int] = INFER,
         num_gpu_workers: Optional[int] = INFER,
@@ -166,6 +288,10 @@ class LazyCollection(metaclass=MetaLazyCollection):
         process_start_method: Optional[Literal["fork", "spawn"]] = INFER,
         gpu_worker_devices: Optional[List[str]] = INFER,
         cpu_worker_devices: Optional[List[str]] = INFER,
+        deterministic: bool = True,
+        work_unit: Literal["record", "fragment"] = "record",
+        chunk_size: int = INFER,
+        sort_chunks: bool = False,
         _non_default_args: Iterable[str] = (),
     ) -> "LazyCollection":
         """
@@ -181,22 +307,6 @@ class LazyCollection(metaclass=MetaLazyCollection):
             - "words" is the total number of words in the documents.
             - "padded_words" is the total number of words in the documents, including
                padding, assuming the documents are padded to the same length.
-        chunk_size: int
-            Number of documents to build before splitting into batches. Only used
-            with "simple" and "multiprocessing" backends. This is also the number of
-            documents that will be passed through the first components of the pipeline
-            until a GPU worker is used (then the chunks will be split according to the
-            `batch_size` and `batch_by` arguments).
-
-            By default, the chunk size is equal to the batch size, or 128 if the batch
-            size is not set.
-        sort_chunks: bool
-            Whether to sort the documents by size before splitting into batches.
-        split_into_batches_after: str
-            The name of the component after which to split the documents into batches.
-            Only used with "simple" and "multiprocessing" backends.
-            By default, the documents are split into batches as soon as the input
-            are converted into Doc objects.
         num_cpu_workers: int
             Number of CPU workers. A CPU worker handles the non deep-learning components
             and the preprocessing, collating and postprocessing of deep-learning
@@ -247,16 +357,35 @@ class LazyCollection(metaclass=MetaLazyCollection):
             devices, one worker per device. Only used with "multiprocessing" backend.
         cpu_worker_devices: Optional[List[str]]
             List of GPU devices to use for the CPU workers. Used for debugging purposes.
+        deterministic: bool
+            Whether to try and preserve the order of the documents in "multiprocessing"
+            mode. If set to False, workers will process documents whenever they are
+            available in a dynamic fashion, which may result in out-of-order processing.
+            If set to true, tasks will be distributed in a static, round-robin fashion
+            to workers. Defaults to True.
 
         Returns
         -------
         LazyCollection
         """
         kwargs = {k: v for k, v in locals().items() if k in _non_default_args}
+        if (
+            kwargs.pop("chunk_size", INFER) is not INFER
+            or kwargs.pop("sort_chunks", INFER) is not INFER
+        ):
+            warnings.warn(
+                """chunk_size and sort_chunks are deprecated, use \
+                map_batched(sort_fn, batch_size=chunk_size) instead.""",
+                VisibleDeprecationWarning,
+            )
+        if kwargs.pop("split_into_batches_after", INFER) is not INFER:
+            warnings.warn(
+                "split_into_batches_after is deprecated.", VisibleDeprecationWarning
+            )
         return LazyCollection(
             reader=self.reader,
             writer=self.writer,
-            pipeline=self.pipeline,
+            ops=self.ops,
             config={
                 **self.config,
                 **{k: v for k, v in kwargs.items() if v is not INFER},
@@ -288,16 +417,35 @@ class LazyCollection(metaclass=MetaLazyCollection):
         -------
         LazyCollection
         """
-        name = name or f"{repr(pipe)}-{id(kwargs)}"
         return LazyCollection(
             reader=self.reader,
             writer=self.writer,
-            pipeline=[*self.pipeline, (name, pipe, kwargs, None)],
+            ops=[*self.ops, MapOp(pipe, kwargs)],
+            config=self.config,
+        )
+
+    def flatten(self) -> "LazyCollection":
+        """
+        Flattens the stream.
+
+        Returns
+        -------
+        LazyCollection
+        """
+        return LazyCollection(
+            reader=self.reader,
+            writer=self.writer,
+            ops=[*self.ops, FlattenOp()],
             config=self.config,
         )
 
     def map_batches(
-        self, pipe, name: Optional[str] = None, kwargs={}
+        self,
+        pipe,
+        name: Optional[str] = None,
+        kwargs={},
+        batch_size: Optional[int] = None,
+        batch_by: Optional[Union[str, Callable]] = None,
     ) -> "LazyCollection":
         """
         Maps a callable to a batch of documents. The callable should take a list of
@@ -311,12 +459,34 @@ class LazyCollection(metaclass=MetaLazyCollection):
             The name of the pipeline step.
         kwargs: Dict
             The keyword arguments to pass to the callable.
+        batch_size: Optional[int]
+            The number of elements to process at a time in a GPU worker.
+        batch_by: Optional[Union[str, Callable]]
+            Function to compute the batches. If set, it should take an iterable of
+            documents and return an iterable of batches. Defaults to "docs". You can
+            also set it to "words" or "padded_words" to use predefined batching
+            functions.
 
         Returns
         -------
         LazyCollection
         """
-        return self.map(Batchable(pipe), name, kwargs)
+        assert batch_by is None or batch_by in batchify_fns or callable(batch_by)
+        batch_fn = batchify_fns.get(batch_by, batch_by)
+        infer_batch = batch_size is None and batch_by is None
+        ops = list(self.ops)
+        if infer_batch and len(ops) and isinstance(ops[-1], UnbatchifyOp):
+            ops.pop()
+        else:
+            ops.append(BatchifyOp(batch_size, batch_fn))
+        ops.append(MapBatchesOp(Batchable(pipe), kwargs))
+        ops.append(UnbatchifyOp())
+        return LazyCollection(
+            reader=self.reader,
+            writer=self.writer,
+            ops=ops,
+            config=self.config,
+        )
 
     def map_gpu(
         self,
@@ -324,6 +494,8 @@ class LazyCollection(metaclass=MetaLazyCollection):
         forward: Callable[[Any], Any],
         postprocess: Optional[Callable[[List, Any], Any]] = None,
         name: Optional[str] = None,
+        batch_size: Optional[int] = None,
+        batch_by: Optional[Union[str, Callable]] = None,
     ) -> "LazyCollection":
         """
         Maps a deep learning operation to a batch of documents, on a GPU worker.
@@ -343,22 +515,93 @@ class LazyCollection(metaclass=MetaLazyCollection):
             on the same CPU-bound worker that called the `prepare_batch` function.
         name: Optional[str]
             The name of the pipeline step.
+        batch_size: Optional[int]
+            The number of elements to process at a time in a GPU worker.
+        batch_by: Optional[Union[str, Callable]]
+            Function to compute the batches. If set, it should take an iterable of
+            documents and return an iterable of batches. Defaults to "docs". You can
+            also set it to "words" or "padded_words" to use predefined batching
+            functions.
 
         Returns
         -------
         LazyCollection
         """
-        return self.map(GPUOp(prepare_batch, forward, postprocess), name, {})
+        assert batch_by is None or batch_by in batchify_fns or callable(batch_by)
+        batch_fn = batchify_fns.get(batch_by, batch_by)
+        infer_batch = batch_size is None and batch_by is None
+        ops = list(self.ops)
+        if infer_batch and len(ops) and isinstance(ops[-1], UnbatchifyOp):
+            ops.pop()
+        else:
+            ops.append(BatchifyOp(batch_size, batch_fn))
+        ops.append(GPUOp(prepare_batch, forward, postprocess))
+        ops.append(UnbatchifyOp())
+        return LazyCollection(
+            reader=self.reader,
+            writer=self.writer,
+            ops=ops,
+            config=self.config,
+        )
 
-    def map_pipeline(self, model: Pipeline) -> "LazyCollection":
-        new_steps = []
+    def map_pipeline(
+        self,
+        model: Pipeline,
+        batch_size: Optional[int] = INFER,
+        batch_by: Optional[Union[str, Callable]] = INFER,
+    ) -> "LazyCollection":
+        """
+        Maps a pipeline to the documents.
+
+        Parameters
+        ----------
+        model: Pipeline
+            The pipeline to map to the documents.
+        batch_size: Optional[int]
+            The number of elements to process at a time in a GPU worker.
+        batch_by: Optional[Union[str, Callable]]
+            Function to compute the batches. If set, it should take an iterable of
+            documents and return an iterable of batches. Defaults to "docs". You can
+            also set it to "words" or "padded_words" to use predefined batching
+            functions.
+
+        Returns
+        -------
+        LazyCollection
+        """
+        new_ops = []
         tokenizer = model.tokenizer
-        for name, pipe, kwargs, pipe_tokenizer in self.pipeline:
-            new_steps.append((name, pipe, kwargs, pipe_tokenizer or tokenizer))
-        new_steps.append(("_ensure_doc", model._ensure_doc, {}, tokenizer))
+        for op in self.ops:
+            # check if the pipe has a "tokenizer" kwarg and update the kwargs if needed
+            op = copy(op)
+            if (
+                (
+                    isinstance(op, MapOp)
+                    and "tokenizer" in inspect.signature(op.pipe).parameters
+                    and "tokenizer" not in op.kwargs
+                )
+                or (
+                    isinstance(op, MapBatchesOp)
+                    and hasattr(op.pipe, "batch_process")
+                    and "tokenizer"
+                    in inspect.signature(op.pipe.batch_process).parameters
+                    and "tokenizer" not in op.kwargs
+                )
+                or (
+                    isinstance(op, MapBatchesOp)
+                    and callable(op.pipe)
+                    and "tokenizer" in inspect.signature(op.pipe).parameters
+                    and "tokenizer" not in op.kwargs
+                )
+            ):
+                op.kwargs["tokenizer"] = tokenizer
+            new_ops.append(op)
+        new_ops.append(MapOp(model._ensure_doc, {}))
+        new_ops.append(BatchifyOp(batch_size, batchify_fns.get(batch_by, batch_by)))
         for name, pipe in model.pipeline:
             if name not in model._disabled:
-                new_steps.append((name, pipe, {}, tokenizer))
+                new_ops.append((MapBatchesOp(pipe, {})))
+        new_ops.append(UnbatchifyOp())
         config = (
             {**self.config, "batch_size": model.batch_size}
             if self.batch_size is None
@@ -367,15 +610,17 @@ class LazyCollection(metaclass=MetaLazyCollection):
         return LazyCollection(
             reader=self.reader,
             writer=self.writer,
-            pipeline=new_steps,
+            ops=new_ops,
             config=config,
         )
 
     def write(self, writer: BaseWriter, execute: bool = True) -> Any:
+        if self.writer is not None:
+            raise ValueError("A writer is already set.")
         lc = LazyCollection(
             reader=self.reader,
             writer=writer,
-            pipeline=self.pipeline,
+            ops=self.ops,
             config=self.config,
         )
         return lc.execute() if execute else lc
@@ -401,7 +646,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
                 self.num_cpu_workers is not None or self.num_gpu_workers is not None
             ) and (
                 self.num_cpu_workers is not None
-                and self.num_cpu_workers > 1
+                and self.num_cpu_workers > 0
                 or self.num_gpu_workers is not None
                 and self.num_gpu_workers > 0
             ):
@@ -414,40 +659,17 @@ class LazyCollection(metaclass=MetaLazyCollection):
     def __iter__(self):
         return iter(self.execute())
 
-    @contextlib.contextmanager
-    def cache(self):
-        for name, pipe, *_ in self.pipeline:
-            if hasattr(pipe, "enable_cache"):
-                pipe.enable_cache()
-        yield
-        for name, pipe, *_ in self.pipeline:
-            if hasattr(pipe, "disable_cache"):
-                pipe.disable_cache()
-
-    def torch_components(
-        self, disable: Container[str] = ()
-    ) -> Iterable[Tuple[str, "TorchComponent"]]:
+    def torch_components(self) -> Iterable["TorchComponent"]:
         """
         Yields components that are PyTorch modules.
 
-        Parameters
-        ----------
-        disable: Container[str]
-            The names of disabled components, which will be skipped.
-
         Returns
         -------
-        Iterable[Tuple[str, 'edsnlp.core.torch_component.TorchComponent']]
+        Iterable['edsnlp.core.torch_component.TorchComponent']
         """
-        for name, pipe, *_ in self.pipeline:
-            if name not in disable and hasattr(pipe, "forward"):
-                yield name, pipe
-
-    def to(self, device: Union[str, Optional["torch.device"]] = None):  # noqa F821
-        """Moves the pipeline to a given device"""
-        for name, pipe, *_ in self.torch_components():
-            pipe.to(device)
-        return self
+        for op in self.ops:
+            if hasattr(op, "pipe") and hasattr(op.pipe, "forward"):
+                yield op.pipe
 
     def train(self, mode=True):
         """
@@ -464,12 +686,12 @@ class LazyCollection(metaclass=MetaLazyCollection):
                 pass
 
             def __exit__(ctx_self, type, value, traceback):
-                for name, proc in procs:
-                    proc.train(was_training[name])
+                for proc in procs:
+                    proc.train(was_training[proc])
 
-        procs = [x for x in self.torch_components() if hasattr(x[1], "train")]
-        was_training = {name: proc.training for name, proc in procs}
-        for name, proc in procs:
+        procs = [x for x in self.torch_components() if hasattr(x, "train")]
+        was_training = {proc: proc.training for proc in procs}
+        for proc in procs:
             proc.train(mode)
 
         return context()
@@ -484,7 +706,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
         return LazyCollection(
             reader=self.reader.worker_copy(),
             writer=self.writer,
-            pipeline=self.pipeline,
+            ops=self.ops,
             config=self.config,
         )
 
@@ -494,7 +716,51 @@ class LazyCollection(metaclass=MetaLazyCollection):
     def __getattr__(self, item):
         return getattr(LazyCollection, item).__get__(self)
 
+    def _make_stages(
+        self,
+        split_torch_pipes: bool,
+    ) -> List[Stage]:
+        current_ops = []
+        stages = []
+        self_batch_fn = batchify_fns.get(self.batch_by, self.batch_by)
+        self_batch_size = self.batch_size
+        assert self_batch_size is not None
 
-if TYPE_CHECKING:
-    # just to add read/from_* and write/to_* methods to the static type hints
-    LazyCollection = edsnlp.data  # noqa: F811
+        for op in self.ops:
+            op = copy(op)
+            if isinstance(op, BatchifyOp):
+                op.batch_fn = op.batch_fn or self_batch_fn
+                op.size = op.size or self_batch_size
+            if (
+                isinstance(op, MapBatchesOp)
+                and hasattr(op.pipe, "forward")
+                and split_torch_pipes
+            ):
+                stages.append(Stage(current_ops, op.pipe))
+                current_ops = []
+            else:
+                current_ops.append(op)
+
+        if len(current_ops) or len(stages) == 0:
+            stages.append(Stage(current_ops, None))
+
+        return stages
+
+    def __repr__(self):
+        ops_str = ",\n".join(textwrap.indent(repr(op), "    ") for op in self.ops)
+        return (
+            f"LazyCollection(\n"
+            f"  reader={self.reader},\n"
+            f"  ops=[\n{ops_str}\n  ],\n"
+            f"  writer={self.writer})\n"
+        )
+
+    if TYPE_CHECKING:
+        to_spark = edsnlp.data.to_spark  # noqa: F811
+        to_pandas = edsnlp.data.to_pandas  # noqa: F811
+        to_polars = edsnlp.data.to_polars  # noqa: F811
+        to_iterable = edsnlp.data.to_iterable  # noqa: F811
+        write_parquet = edsnlp.data.write_parquet  # noqa: F811
+        write_standoff = edsnlp.data.write_standoff  # noqa: F811
+        write_brat = edsnlp.data.write_brat  # noqa: F811
+        write_json = edsnlp.data.write_json  # noqa: F811

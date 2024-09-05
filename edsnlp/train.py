@@ -31,11 +31,11 @@ from tqdm import tqdm
 import edsnlp
 from edsnlp.core.pipeline import Pipeline
 from edsnlp.core.registries import registry
+from edsnlp.metrics.ner import NerMetric
+from edsnlp.metrics.span_attributes import SpanAttributeMetric
 from edsnlp.optimization import LinearSchedule, ScheduledOptimizer
 from edsnlp.pipes.base import BaseNERComponent, BaseSpanAttributeClassifierComponent
 from edsnlp.pipes.trainable.embeddings.transformer.transformer import Transformer
-from edsnlp.scorers.ner import NerScorer
-from edsnlp.scorers.span_attributes import SpanAttributeScorer
 from edsnlp.utils.bindings import BINDING_SETTERS
 from edsnlp.utils.collections import batchify
 from edsnlp.utils.span_getters import get_spans
@@ -435,7 +435,7 @@ class GenericScorer:
         ner_scorers = {
             name: scorer
             for name, scorer in self.scorers.items()
-            if isinstance(scorer, NerScorer)
+            if isinstance(scorer, NerMetric)
         }
         if ner_pipes and ner_scorers:
             clean_ner_docs = [d.copy() for d in tqdm(docs, desc="Copying docs")]
@@ -456,7 +456,7 @@ class GenericScorer:
         span_attr_scorers = {
             name: scorer
             for name, scorer in self.scorers.items()
-            if isinstance(scorer, SpanAttributeScorer)
+            if isinstance(scorer, SpanAttributeMetric)
         }
         if qlf_pipes and span_attr_scorers:
             clean_qlf_docs = [d.copy() for d in tqdm(docs, desc="Copying docs")]

@@ -413,7 +413,8 @@ class registry(RegistryCollection):
     misc = Registry(("spacy", "misc"), entry_points=True)
     languages = Registry(("spacy", "languages"), entry_points=True)
     tokenizers = Registry(("spacy", "tokenizers"), entry_points=True)
-    scorers = Registry(("spacy", "scorers"), entry_points=True)
+    metrics = Registry(("spacy", "scorers"), entry_points=True)
+    scorers = metrics
     accelerator = Registry(("edsnlp", "accelerator"), entry_points=True)
     adapters = Registry(("edsnlp", "adapters"), entry_points=True)
     readers = Registry(("edsnlp", "readers"), entry_points=True)

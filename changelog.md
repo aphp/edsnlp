@@ -15,6 +15,7 @@
 ### Fixed
 
 - Numbers are now only detected without trying to remove the pollution in between digits, ie `55 @ 77777` could be detected as a full number before, but not anymore.
+- Chunk size (used when applying a pipeline to a collection of docs) is not set to 128 if the batch unit is != docs
 
 ### Changed
 

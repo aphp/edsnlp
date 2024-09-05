@@ -105,7 +105,8 @@ class LazyCollection(metaclass=MetaLazyCollection):
 
     @property
     def chunk_size(self):
-        return self.config.get("chunk_size", self.config.get("batch_size", 128))
+        doc_batch_size = self.batch_size if self.batch_by == "docs" else 128
+        return self.config.get("chunk_size", doc_batch_size)
 
     @property
     def disable_implicit_parallelism(self):

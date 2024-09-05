@@ -75,12 +75,28 @@ We provide step-by-step guides to get you started. We cover the following use-ca
     ---
     Deploy your pipeline as an API.
 
-=== card {: href=/tutorials/make-a-training-script }
+=== card {: href=/tutorials/visualization }
 
-    :fontawesome-solid-brain:
-    **Make a training script**
+    :fontawesome-solid-eye:
+    **Visualization**
 
     ---
-    Learn how to train a NER pipeline with EDS-NLP.
+    Quickly visualize the results of your pipeline as annotations or tables.
+
+=== card {: href=/tutorials/training }
+
+    :fontawesome-solid-brain:
+    **Training**
+
+    ---
+    Learn how to train a deep-learning model, focusing on named entity recognition.
+
+=== card {: href=/tutorials/make-a-training-script }
+
+    :fontawesome-solid-flask:
+    **Make a custom training script**
+
+    ---
+    Learn how to write a custom deep-learning training script.
 
 <!-- --8<-- [end:tutorials] -->

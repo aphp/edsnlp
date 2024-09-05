@@ -51,6 +51,7 @@ nav:
       - tutorials/endlines.md
       - tutorials/aggregating-results.md
       - advanced-tutorials/fastapi.md
+      - tutorials/training.md
       - tutorials/make-a-training-script.md
       - tutorials/quick-examples.md
   - Pipes:

@@ -1,6 +1,6 @@
-# Making a training script
+# Custom training script
 
-In this tutorial, we'll see how we can train a deep learning model with EDS-NLP. We will implement a script to train a named-entity recognition (NER) model.
+In this tutorial, we'll see how we can write our own deep learning model training script with EDS-NLP. We will implement a script to train a named-entity recognition (NER) model.
 
 ## Step-by-step walkthrough
 
@@ -179,16 +179,16 @@ training loop
 Finally, the model is evaluated on the validation dataset and saved at regular intervals.
 
 ```{ .python .no-check }
-from edsnlp.scorers.ner import create_ner_exact_scorer
+from edsnlp.metrics.ner import create_ner_exact_metric
 from copy import deepcopy
 
-scorer = create_ner_exact_scorer(nlp.pipes.ner.target_span_getter)
+metric = create_ner_exact_metric(nlp.pipes.ner.target_span_getter)
 
     ...
 
     if (step % 100) == 0:
         with nlp.select_pipes(enable=["ner"]):  # (1)
-            print(scorer(val_docs, nlp.pipe(deepcopy(val_docs))))  # (2)
+            print(metric(val_docs, nlp.pipe(deepcopy(val_docs))))  # (2)
 
     nlp.to_disk("model")  # (3)
 ```
@@ -217,7 +217,7 @@ Let's wrap the training code in a function, and make it callable from the comman
 
     import edsnlp, edsnlp.pipes as eds
     from edsnlp import registry, Pipeline
-    from edsnlp.scorers.ner import create_ner_exact_scorer
+    from edsnlp.metrics.ner import create_ner_exact_metric
 
 
     @registry.adapters.register("ner_adapter")
@@ -277,7 +277,7 @@ Let's wrap the training code in a function, and make it callable from the comman
             shuffle=True,
         )
 
-        scorer = create_ner_exact_scorer(nlp.pipes.ner.target_span_getter)
+        metric = create_ner_exact_metric(nlp.pipes.ner.target_span_getter)
 
         optimizer = torch.optim.AdamW(
             params=nlp.parameters(),
@@ -305,7 +305,7 @@ Let's wrap the training code in a function, and make it callable from the comman
             # Evaluating the model
             if (step % 100) == 0:
                 with nlp.select_pipes(enable=["ner"]):  #
-                    print(scorer(val_docs, nlp.pipe(deepcopy(val_docs))))  #
+                    print(metric(val_docs, nlp.pipe(deepcopy(val_docs))))  #
 
             nlp.to_disk("model")
 

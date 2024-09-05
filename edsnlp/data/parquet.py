@@ -1,82 +1,95 @@
-from itertools import chain
+import random
+import warnings
 from pathlib import Path
-from typing import Any, Callable, Iterable, List, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pyarrow.dataset
 import pyarrow.fs
 import pyarrow.parquet
+from confit import VisibleDeprecationWarning
 from pyarrow.dataset import ParquetFileFragment
+from typing_extensions import Literal
 
 from edsnlp import registry
 from edsnlp.core.lazy_collection import LazyCollection
-from edsnlp.data.base import BaseReader, BaseWriter
+from edsnlp.data.base import BatchWriter, FileBasedReader
 from edsnlp.data.converters import (
-    FILENAME,
     get_dict2doc_converter,
     get_doc2dict_converter,
 )
-from edsnlp.utils.collections import dl_to_ld, flatten, flatten_once, ld_to_dl
+from edsnlp.utils.collections import batchify, dl_to_ld, flatten, ld_to_dl, shuffle
 from edsnlp.utils.file_system import FileSystem, normalize_fs_path
 
 
-class ParquetReader(BaseReader):
-    DATA_FIELDS = ("dataset",)
+class ParquetReader(FileBasedReader):
+    DATA_FIELDS = ()
 
     def __init__(
         self,
         path: Union[str, Path],
         *,
-        read_in_worker: bool,
         filesystem: Optional[FileSystem] = None,
+        shuffle: Literal["dataset", "file", False] = False,
+        seed: Optional[int] = None,
+        loop: bool = False,
     ):
         super().__init__()
+        self.shuffle = shuffle
+        self.rng = random.Random(seed)
+        self.loop = loop
         # Either the filesystem has not been passed
         # or the path is a URL (e.g. s3://) => we need to infer the filesystem
         self.fs, self.path = normalize_fs_path(filesystem, path)
-        self.read_in_worker = read_in_worker
-        self.dataset: pyarrow.dataset.FileSystemDataset = (  # type: ignore
+        self.fragments: List[ParquetFileFragment] = list(
             pyarrow.dataset.dataset(
                 self.path,
                 format="parquet",
                 filesystem=self.fs,
-            )
+            ).get_fragments()
         )
 
-    def read_main(self):
-        fragments: List[ParquetFileFragment] = self.dataset.get_fragments()
-        if self.read_in_worker:
-            # read in worker -> each task is a file to read from
-            return ((f, f.metadata.num_rows) for f in fragments)
-        else:
-            # read in worker -> each task is a non yet parsed line
-            return (
-                (line, 1)
-                for f in fragments
-                # for line in make_longer(dl_to_ld(f.to_table().to_pydict()))
-                for line in dl_to_ld(f.to_table().to_pydict())
-            )
+    def read_fragment(self, fragment: ParquetFileFragment) -> Iterable[Dict]:
+        return dl_to_ld(fragment.to_table().to_pydict())
 
-    def read_worker(self, tasks):
-        if self.read_in_worker:
-            tasks = list(
-                chain.from_iterable(
-                    dl_to_ld(task.to_table().to_pydict()) for task in tasks
+    def read_records(self) -> Iterable[Any]:
+        while True:
+            files = list(self.fragments)
+            if self.shuffle == "file":
+                yield from (
+                    line
+                    for file in shuffle(files, self.rng)
+                    for line in shuffle(list(self.read_fragment(file)), self.rng)
                 )
-            )
-        return tasks
+            else:
+                records = (line for file in files for line in self.read_fragment(file))
+                if self.shuffle == "dataset":
+                    yield from shuffle(
+                        list(records),
+                        self.rng,
+                    )
+                else:
+                    yield from records
+            if not self.loop:
+                break
+
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}("
+            f"path={self.path!r}, "
+            f"shuffle={self.shuffle}, "
+            f"loop={self.loop})"
+        )
 
 
-T = TypeVar("T")
-
-
-class ParquetWriter(BaseWriter):
+class ParquetWriter(BatchWriter):
     def __init__(
         self,
+        *,
         path: Union[str, Path],
-        num_rows_per_file: int,
+        batch_size: Optional[Union[int]] = None,
+        batch_by: Union[Callable, Literal["record"]] = "record",
+        batch_in_worker: bool = False,
         overwrite: bool,
-        write_in_worker: bool,
-        accumulate: bool = True,
         filesystem: Optional[FileSystem] = None,
     ):
         super().__init__()
@@ -101,58 +114,40 @@ class ParquetWriter(BaseWriter):
             for file in dataset.files:
                 self.fs.rm_file(file)
         self.fs = filesystem
-        self.write_in_worker = write_in_worker
+        self.batch_by = {
+            "record": batchify,
+            # "file": batchify_by_fragment,
+        }.get(batch_by, batch_by)
+        if (
+            batch_by in ("record", "doc")
+            or self.batch_by is batchify
+            and batch_size is None
+        ):
+            warnings.warn(
+                "You should specify a batch size when using record-wise batch writing. "
+                "Setting batch size to 1024."
+            )
+            batch_size = 1024
+
+        self.batch_size = batch_size
+        self.batch_in_worker = batch_in_worker
         self.batch = []
-        self.num_rows_per_file = num_rows_per_file
         self.closed = False
-        self.finalized = False
-        self.accumulate = accumulate
-        if not self.accumulate:
-            self.finalize = super().finalize
 
-    def write_worker(self, records, last=False):
-        # Results will contain a batches of samples ready to be written (or None if
-        # write_in_worker is True) and they have already been written.
-        results = []
-        count = 0
+    def handle_batch(self, batch: List[Dict]) -> Tuple[ParquetFileFragment, int]:
+        fragment = pyarrow.Table.from_pydict(ld_to_dl(flatten(batch)))
+        pyarrow.parquet.write_to_dataset(
+            table=fragment,
+            root_path=self.path,
+            filesystem=self.fs,
+        )
+        return (fragment, len(batch))
 
-        for rec in records:
-            if isinstance(rec, dict):
-                rec.pop(FILENAME, None)
-
-        # While there is something to write
-        greedy = last or not self.accumulate
-        while len(records) or greedy and len(self.batch):
-            n_to_fill = self.num_rows_per_file - len(self.batch)
-            self.batch.extend(records[:n_to_fill])
-            records = records[n_to_fill:]
-            if greedy or len(self.batch) >= self.num_rows_per_file:
-                fragment = pyarrow.Table.from_pydict(ld_to_dl(flatten(self.batch)))  # type: ignore
-                count += len(self.batch)
-                self.batch = []
-                if self.write_in_worker:
-                    pyarrow.parquet.write_to_dataset(
-                        table=fragment,
-                        root_path=self.path,
-                        filesystem=self.fs,
-                    )
-                    fragment = None
-                results.append(fragment)
-        return results, count
-
-    def finalize(self):
-        if not self.finalized:
-            self.finalized = True
-            return self.write_worker([], last=True)
-
-    def write_main(self, fragments: Iterable[List[Union[pyarrow.Table, Path]]]):
-        for table in flatten_once(fragments):
-            if not self.write_in_worker:
-                pyarrow.parquet.write_to_dataset(
-                    table=table,
-                    root_path=self.path,
-                    filesystem=self.fs,
-                )
+    def consolidate(
+        self, items: Iterable[ParquetFileFragment]
+    ) -> pyarrow.dataset.Dataset:
+        for _ in items:
+            pass
         return pyarrow.dataset.dataset(self.path, format="parquet", filesystem=self.fs)
 
 
@@ -161,8 +156,10 @@ def read_parquet(
     path: Union[str, Path],
     converter: Optional[Union[str, Callable]] = None,
     *,
-    read_in_worker: bool = False,
     filesystem: Optional[FileSystem] = None,
+    shuffle: Literal["dataset", "file", False] = False,
+    seed: Optional[int] = None,
+    loop: bool = False,
     **kwargs,
 ) -> LazyCollection:
     """
@@ -197,11 +194,25 @@ def read_parquet(
     path: Union[str, Path]
         Path to the directory containing the parquet files (will recursively look for
         files in subdirectories). Supports any filesystem supported by pyarrow.
-    read_in_worker: bool
-        Whether to read the files in the worker or in the main process.
     filesystem: Optional[AbstractFileSystem] = None,
         The filesystem to use to write the files. If None, the filesystem will be
         inferred from the path (e.g. `s3://` will use S3).
+    shuffle: Literal["dataset", "file", False]
+        Whether to shuffle the data. If "dataset", the whole dataset will be shuffled
+        before starting iterating on it (at the start of every epoch if looping). If
+        "file", shuffling will occur between and inside the parquet files, but not
+        across them.
+
+        !!! warning "Dataset shuffling"
+
+            Shuffling the dataset can be expensive, especially for large datasets,
+            since it requires reading the entire dataset into memory. If you have a
+            large dataset, consider shuffling at the "file" level.
+
+    seed: Optional[int]
+        The seed to use for shuffling.
+    loop: bool
+        Whether to loop over the data indefinitely.
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the parquet rows of the data source to Doc objects
         These are documented on the [Converters](/data/converters) page.
@@ -213,11 +224,21 @@ def read_parquet(
     -------
     LazyCollection
     """
+    if "read_in_worker" in kwargs:
+        warnings.warn(
+            "The `read_in_worker` parameter of edsnlp.data.read_parquet is deprecated "
+            "and set to True by default.",
+            FutureWarning,
+        )
+        kwargs.pop("read_in_worker")
+
     data = LazyCollection(
         reader=ParquetReader(
             path,
-            read_in_worker=read_in_worker,
             filesystem=filesystem,
+            shuffle=shuffle,
+            seed=seed,
+            loop=loop,
         )
     )
     if converter:
@@ -231,14 +252,15 @@ def write_parquet(
     data: Union[Any, LazyCollection],
     path: Union[str, Path],
     *,
-    write_in_worker: bool = False,
-    num_rows_per_file: int = 1024,
+    batch_size: Optional[int] = None,
+    batch_by: Union[Callable, Literal["record"]] = "record",
+    batch_in_worker: bool = True,
     overwrite: bool = False,
     filesystem: Optional[FileSystem] = None,
-    accumulate: bool = True,
+    execute: bool = True,
     converter: Optional[Union[str, Callable]] = None,
     **kwargs,
-) -> None:
+) -> pyarrow.dataset.Dataset:
     """
     `edsnlp.data.write_parquet` writes a list of documents as a parquet dataset.
 
@@ -269,24 +291,29 @@ def write_parquet(
     path: Union[str, Path]
         Path to the directory containing the parquet files (will recursively look for
         files in subdirectories). Supports any filesystem supported by pyarrow.
-    num_rows_per_file: int
+    batch_size: Optional[int]
         The maximum number of documents to write in each parquet file.
+    batch_by: Union[Callable, Literal["record", "file"]]
+        The method to batch the documents. If "record", the batch size is the number of
+        documents. If "file", each batch corresponds to a parquet file fragment from
+        the input data.
+    batch_in_worker: bool
+        In multiprocessing or spark mode, whether to batch the documents in the workers
+        or in the main process.
+
+        For instance, a worker may read the 1st, 3rd, 5th, ... documents, while another
+        reads the 2nd, 4th, 6th, ... documents. If `batch_in_worker` is False and
+        `deterministic` is True (default), the original order of the documents will be
+        recovered in the main process, and batching there can produce fragments that
+        respect the original order.
     overwrite: bool
         Whether to overwrite existing directories.
-    write_in_worker: bool
-        Whether to write the files in the workers or in the main process.
-    accumulate: bool
-        Whether to accumulate the results sent to the writer by workers until the
-        batch is full or the writer is finalized. If False, each file will not be larger
-        than the size of the batches it receives. This option requires that the writer
-        is finalized before the end of the processing, which may not be compatible with
-        some backends, such as `spark`.
-
-        If `write_in_worker` is True, documents will be accumulated in each worker but
-        not across workers, therefore leading to a larger number of files.
     filesystem: Optional[AbstractFileSystem] = None,
         The filesystem to use to write the files. If None, the filesystem will be
         inferred from the path (e.g. `s3://` will use S3).
+    execute: bool
+        Whether to execute the writing operation immediately or to return a lazy
+        collection
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the documents to dictionary objects before writing
         them as Parquet rows. These are documented on the [Converters](/data/converters)
@@ -297,17 +324,35 @@ def write_parquet(
     """
 
     data = LazyCollection.ensure_lazy(data)
+    if "num_rows_per_file" in kwargs:
+        assert (
+            batch_size is None
+        ), "Cannot specify both 'batch_size' and deprecated 'num_rows_per_file'."
+        batch_size = kwargs.pop("num_rows_per_file")
+        assert batch_by == "record", "Cannot use 'num_rows_per_file' with 'batch_by'."
+    if "write_in_worker" in kwargs:
+        warnings.warn(
+            "The 'write_in_worker' parameter is deprecated. To perform "
+            "batching in the worker processes, set 'batch_in_worker=True'.",
+            VisibleDeprecationWarning,
+        )
+        batch_in_worker = kwargs.pop("write_in_worker")
+    if "accumulate" in kwargs:
+        warnings.warn(
+            "The 'accumulate' parameter is deprecated.", VisibleDeprecationWarning
+        )
     if converter:
         converter, kwargs = get_doc2dict_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)
 
     return data.write(
         ParquetWriter(
-            path,
-            num_rows_per_file=num_rows_per_file,
+            path=path,
+            batch_size=batch_size,
+            batch_by=batch_by,
+            batch_in_worker=batch_in_worker,
             overwrite=overwrite,
-            write_in_worker=write_in_worker,
-            accumulate=accumulate,
             filesystem=filesystem,
-        )
+        ),
+        execute=execute,
     )

@@ -1,25 +1,30 @@
 import json
 import os
+import random
 import warnings
 from collections import Counter
 from pathlib import Path
-from typing import Any, Callable, Iterable, List, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, TypeVar, Union
 
 from loguru import logger
+from typing_extensions import Literal
 
 from edsnlp import registry
 from edsnlp.core.lazy_collection import LazyCollection
-from edsnlp.data.base import BaseReader, BaseWriter
+from edsnlp.data.base import (
+    BaseWriter,
+    FileBasedReader,
+)
 from edsnlp.data.converters import (
     FILENAME,
     get_dict2doc_converter,
     get_doc2dict_converter,
 )
-from edsnlp.utils.collections import flatten_once
+from edsnlp.utils.collections import flatten, shuffle
 from edsnlp.utils.file_system import FileSystem, normalize_fs_path, walk_match
 
 
-class JsonReader(BaseReader):
+class JsonReader(FileBasedReader):
     DATA_FIELDS = ()
 
     def __init__(
@@ -27,11 +32,18 @@ class JsonReader(BaseReader):
         path: Union[str, Path],
         *,
         keep_ipynb_checkpoints: bool,
-        read_in_worker: bool,
         filesystem: Optional[FileSystem] = None,
+        shuffle: Literal["dataset", "file", False] = False,
+        seed: Optional[int] = None,
+        loop: bool = False,
+        write_in_worker: Optional[bool] = None,
+        **kwargs,
     ):
         super().__init__()
-
+        self.shuffle = shuffle
+        self.rng = random.Random(seed)
+        self.write_in_worker = write_in_worker
+        self.loop = loop
         self.fs, self.path = normalize_fs_path(filesystem, path)
         self.files = sorted(
             [
@@ -43,7 +55,15 @@ class JsonReader(BaseReader):
             else [self.path]
         )
         self.keep_ipynb_checkpoints = keep_ipynb_checkpoints
-        self.read_in_worker = read_in_worker
+        self.shuffle = shuffle
+        self.loop = loop
+        self.rng = random.Random(seed)
+        if self.read_in_worker is not None:
+            warnings.warn(
+                "The `read_in_worker` parameter of EDS-NLP readers is "
+                "deprecated, please use `data.set_processing(work_unit='fragment').`",
+                FutureWarning,
+            )
         for file in self.files:
             if not self.fs.exists(file):
                 raise FileNotFoundError(f"File {file} does not exist")
@@ -56,47 +76,46 @@ class JsonReader(BaseReader):
     # TODO: implement read in worker = True / False
 
     def read_file(self, file: str):
-        with self.fs.open(file, "r", encoding="utf8") as f:
-            return (
-                [line for line in f]
-                if os.path.splitext(file)[1].startswith(".jsonl")
-                else [f.read()]
-            )
+        try:
+            with self.fs.open(file, "r", encoding="utf8") as f:
+                is_jsonl = os.path.splitext(file)[1].startswith(".jsonl")
+                records = (
+                    [{**json.loads(line), FILENAME: file} for line in f]
+                    if is_jsonl
+                    else [json.loads(f.read())]
+                )
+                return records
+        except Exception as e:
+            raise Exception(f"Cannot read {file}: {e}")
 
-    def read_main(self):
-        if self.read_in_worker:
-            # read in worker -> each task is a file to read from
-            return (
-                (f, 0 if os.path.splitext(f)[1].startswith(".jsonl") else 1)
-                for f in self.files
-            )
-        else:
-            # read in worker -> each task is a non yet parsed line
-            return (
-                ((f, line, os.path.splitext(f)[1].startswith(".jsonl")), 1)
-                for f in self.files
-                for line in self.read_file(f)
-            )
-
-    def read_worker(self, tasks):
-        results = []
-        for task in tasks:
-            if self.read_in_worker:
-                filename = task
-                content = self.read_file(filename)
-                is_jsonl = os.path.splitext(filename)[1].startswith(".jsonl")
+    def read_records(self) -> Iterable[Any]:
+        while True:
+            files = list(self.files)
+            if self.shuffle == "file":
+                yield from (
+                    line
+                    for file in shuffle(files, self.rng)
+                    for line in shuffle(self.read_file(file), self.rng)
+                )
             else:
-                filename, content, is_jsonl = task
-                content = [content]
-            try:
-                for line in content:
-                    obj = json.loads(line)
-                    if not is_jsonl:
-                        obj[FILENAME] = filename
-                    results.append(obj)
-            except Exception:
-                raise Exception(f"Cannot parse {filename}")
-        return results
+                records = (line for file in files for line in self.read_file(file))
+                if self.shuffle == "dataset":
+                    yield from shuffle(
+                        list(records),
+                        self.rng,
+                    )
+                else:
+                    yield from records
+            if not self.loop:
+                break
+
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}("
+            f"path={self.path!r}, "
+            f"shuffle={self.shuffle}, "
+            f"loop={self.loop})"
+        )
 
 
 T = TypeVar("T")
@@ -115,7 +134,7 @@ class JsonWriter(BaseWriter):
 
         path_exists = self.fs.exists(self.path)
         path_is_file = path_exists and self.fs.isfile(self.path)
-        might_be_file = path_exists and Path(self.path).suffix != "" or path_is_file
+        might_be_file = Path(self.path).suffix != "" or path_is_file
 
         lines = lines if lines is not None else might_be_file
         self.lines = lines
@@ -162,17 +181,14 @@ class JsonWriter(BaseWriter):
 
         super().__init__()
 
-    def write_worker(self, records):
-        # If write as jsonl, we will perform the actual writing in the `write` method
+    def handle_record(self, record: Union[Dict, List[Dict]]):
         if self.lines:
-            results = []
-            for rec in records:
-                rec.pop(FILENAME, None)
-                results.append(json.dumps(rec))
-            return results, len(results)
+            # If write as jsonl, we will perform the actual writing in the
+            # `consolidate` method
+            return record
         else:
             results = []
-            for rec in records:
+            for rec in flatten(record):
                 filename = rec.pop(FILENAME, None)
                 if filename is None:
                     raise KeyError(
@@ -187,16 +203,20 @@ class JsonWriter(BaseWriter):
                 with self.fs.open(file_path, "w", encoding="utf-8") as f:
                     json.dump(rec, f)
                 results.append(file_path)
-            return results, len(results)
+            return results
 
-    def write_main(self, fragments: Iterable[Union[List[Path], List[str]]]):
-        fragments = list(flatten_once(fragments))
+    def consolidate(self, items: Union[Iterable[Path], Iterable[Dict]]):
         if self.lines:
             with self.fs.open(self.path, "w", encoding="utf-8") as f:
-                f.write("\n".join(fragments))
+                out = []
+                for record in flatten(items):
+                    record.pop(FILENAME, None)
+                    out.append(json.dumps(record))
+                f.write("\n".join(out))
             return [self.path]
         else:
-            return [f for f in fragments]
+            items: Iterable[Path]
+            return list(items)
 
 
 @registry.readers.register("json")
@@ -205,8 +225,10 @@ def read_json(
     converter: Optional[Union[str, Callable]] = None,
     *,
     keep_ipynb_checkpoints: bool = False,
-    read_in_worker: bool = False,
     filesystem: Optional[FileSystem] = None,
+    shuffle: Literal["dataset", "file", False] = False,
+    loop: bool = False,
+    seed: int = 42,
     **kwargs,
 ) -> LazyCollection:
     """
@@ -243,14 +265,21 @@ def read_json(
         files in subdirectories).
     keep_ipynb_checkpoints: bool
         Whether to keep the files have ".ipynb_checkpoints" in their path.
-    read_in_worker: bool
-        Whether to read the files in the worker or in the main process.
-    converter: Optional[Union[str, Callable]]
-        Converter to use to convert the JSON objects to Doc objects.
-        These are documented on the [Converters](/data/converters) page.
     filesystem: Optional[FileSystem]
         The filesystem to use to write the files. If None, the filesystem will be
         inferred from the path (e.g. `s3://` will use S3).
+    shuffle: Literal["dataset", "file", False]
+        Whether to shuffle the data. If "dataset", the whole dataset will be shuffled
+        before starting iterating on it (at the start of every epoch if looping). If
+        "file", shuffling will occur between and inside the parquet files, but not
+        across them.
+    seed: Optional[int]
+        The seed to use for shuffling.
+    loop: bool
+        Whether to loop over the data indefinitely.
+    converter: Optional[Union[str, Callable]]
+        Converter to use to convert the JSON objects to Doc objects.
+        These are documented on the [Converters](/data/converters) page.
     kwargs:
         Additional keyword arguments to pass to the converter. These are documented on
         the [Converters](/data/converters) page.
@@ -259,12 +288,23 @@ def read_json(
     -------
     LazyCollection
     """
+    if "read_in_worker" in kwargs:
+        warnings.warn(
+            "The `read_in_worker` parameter of "
+            "edsnlp.data.read_parquet is deprecated and set "
+            "to True by default.",
+            FutureWarning,
+        )
+
     data = LazyCollection(
         reader=JsonReader(
             path,
             keep_ipynb_checkpoints=keep_ipynb_checkpoints,
-            read_in_worker=read_in_worker,
             filesystem=filesystem,
+            shuffle=shuffle,
+            seed=seed,
+            loop=loop,
+            **{k: kwargs.pop(k) for k in ("read_in_worker",) if k in kwargs},
         )
     )
     if converter:
@@ -280,6 +320,7 @@ def write_json(
     *,
     lines: bool = None,
     overwrite: bool = False,
+    execute: bool = True,
     converter: Optional[Union[str, Callable]] = None,
     filesystem: Optional[FileSystem] = None,
     **kwargs,
@@ -330,6 +371,9 @@ def write_json(
         assumed to be true, otherwise it is assumed to be false.
     overwrite: bool
         Whether to overwrite existing directories.
+    execute: bool
+        Whether to execute the writing operation immediately or to return a lazy
+        collection
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the documents to dictionary objects before writing
         them. These are documented on the [Converters](/data/converters) page.
@@ -352,5 +396,6 @@ def write_json(
             lines=lines,
             overwrite=overwrite,
             filesystem=filesystem,
-        )
+        ),
+        execute=execute,
     )

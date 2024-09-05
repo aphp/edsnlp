@@ -1,6 +1,5 @@
 from typing import Any, Callable, Dict, Iterable, Union, Collection, Tuple
 
-import spacy
 from spacy.tokens import Doc
 from spacy.training import Example
 
@@ -8,7 +7,7 @@ import numpy as np
 
 Examples = Union[Tuple[Iterable[Doc], Iterable[Doc]], Iterable[Example]]
 
-Scorer = Union[
+Metric = Union[
     Callable[[Iterable[Doc], Iterable[Doc]], Dict[str, Dict[str, Any]]],
     Callable[[Iterable[Example]], Dict[str, Dict[str, Any]]],
 ]

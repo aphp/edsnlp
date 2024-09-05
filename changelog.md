@@ -6,6 +6,11 @@
 
 - `eds.tables` accepts a minimum_table_size (default 2) argument to reduce pollution
 
+### Changed
+
+- Renamed `edsnlp.scorers` to `edsnlp.metrics` and removed the `_scorer` suffix from their
+  registry name (e.g, `@scorers = ner_overlap_scorer` → `@metrics = ner_overlap`)
+
 ### Fixed
 
 - Numbers are now only detected without trying to remove the pollution in between digits, ie `55 @ 77777` could be detected as a full number before, but not anymore.

@@ -21,12 +21,12 @@ from spacy.tokens import Span
 from edsnlp.core.registries import registry
 from edsnlp.data.converters import AttributesMappingArg, get_current_tokenizer
 from edsnlp.optimization import LinearSchedule, ScheduledOptimizer
-from edsnlp.train import GenericScorer, Reader, train
+from edsnlp.train import GenericScorer, SampleGenerator, train
 from edsnlp.utils.span_getters import SpanSetterArg, set_spans
 
 
 @registry.factory.register("myproject.custom_dict2doc", spacy_compatible=False)
-class PseudoDictReader:
+class CustomSampleGenerator:
     def __init__(
         self,
         *,
@@ -91,7 +91,7 @@ def test_ner_qualif_train(run_in_test_dir, tmp_path):
     kwargs = config["train"].resolve(registry=registry, root=config)
     nlp = train(**kwargs, output_path=tmp_path, cpu=True)
     scorer = GenericScorer(**kwargs["scorer"])
-    last_scores = scorer(nlp, Reader(**kwargs["val_data"])(nlp))
+    last_scores = scorer(nlp, SampleGenerator(**kwargs["val_data"])(nlp))
 
     # Check empty doc
     nlp("")
@@ -107,7 +107,7 @@ def test_qualif_train(run_in_test_dir, tmp_path):
     kwargs = config["train"].resolve(registry=registry, root=config)
     nlp = train(**kwargs, output_path=tmp_path, cpu=True)
     scorer = GenericScorer(**kwargs["scorer"])
-    last_scores = scorer(nlp, Reader(**kwargs["val_data"])(nlp))
+    last_scores = scorer(nlp, SampleGenerator(**kwargs["val_data"])(nlp))
 
     # Check empty doc
     nlp("")

@@ -1,8 +1,10 @@
 import itertools
 import json
 import math
+import os
 import random
 import time
+import typing
 from collections import defaultdict
 from collections.abc import Sized
 from itertools import chain, repeat
@@ -10,6 +12,7 @@ from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
+    Dict,
     Iterable,
     List,
     Optional,
@@ -25,17 +28,21 @@ from confit.registry import validate_arguments
 from confit.utils.random import set_seed
 from pydantic import BaseModel
 from rich_logger import RichTablePrinter
-from spacy.tokens import Doc
-from tqdm import tqdm
+from spacy.tokens import Doc, Span
+from torch.utils.data import DataLoader
+from tqdm import tqdm, trange
 
 import edsnlp
 from edsnlp.core.pipeline import Pipeline
 from edsnlp.core.registries import registry
+from edsnlp.metrics.ner import NerMetric
+from edsnlp.metrics.span_attributes import SpanAttributeMetric
 from edsnlp.optimization import LinearSchedule, ScheduledOptimizer
-from edsnlp.pipes.base import BaseNERComponent, BaseSpanAttributeClassifierComponent
+from edsnlp.pipes.base import (
+    BaseNERComponent,
+    BaseSpanAttributeClassifierComponent,
+)
 from edsnlp.pipes.trainable.embeddings.transformer.transformer import Transformer
-from edsnlp.scorers.ner import NerScorer
-from edsnlp.scorers.span_attributes import SpanAttributeScorer
 from edsnlp.utils.bindings import BINDING_SETTERS
 from edsnlp.utils.collections import batchify
 from edsnlp.utils.span_getters import get_spans
@@ -255,15 +262,67 @@ class SubBatchCollater:
                 for p in sample_features[key]
             )
             if total + num_tokens > self.grad_accumulation_max_tokens:
-                print(
-                    f"Mini batch size was becoming too large: {total} > "
-                    f"{self.grad_accumulation_max_tokens} so it was split"
-                )
+                # print(
+                #     f"Mini batch size was becoming too large: {total + num_tokens} > "
+                #     f"{self.grad_accumulation_max_tokens} so it was split"
+                # )
                 total = 0
                 mini_batches.append([])
             total += num_tokens
             mini_batches[-1].append(sample_features)
         return [self.nlp.collate(b) for b in mini_batches]
+
+
+def connected_pipes(pipeline: Iterable[Tuple[str, Any]]) -> List[List[str]]:
+    pipe_to_params = {}
+    for name, pipe in pipeline:
+        pipe_to_params[name] = {id(p) for p in pipe.parameters()}
+    remaining_pipes = list(pipe_to_params)
+    results = []
+    while len(remaining_pipes):
+        current = [remaining_pipes.pop(0)]
+        i = 0
+        while i < len(current):
+            a = current[i]
+            i += 1
+            for j, b in enumerate(list(remaining_pipes)):
+                if a is not b and pipe_to_params[a] & pipe_to_params[b]:
+                    current.append(b)
+                    remaining_pipes[j] = None
+            remaining_pipes = [p for p in remaining_pipes if p is not None]
+
+        results.append(current)
+    return results
+
+
+EMPTY = object()
+
+
+def shift_spans(obj, start, end, new_doc):
+    if isinstance(obj, Span):
+        if obj.end > start and obj.start < end:
+            return spacy.tokens.Span(
+                new_doc,
+                max(0, obj.start - start),
+                min(obj.end - start, end - start),
+                obj.label,
+            )
+        return EMPTY
+    elif isinstance(obj, (list, tuple, set)):
+        return type(obj)(
+            filter(
+                lambda x: x is not EMPTY,
+                (shift_spans(span, start, end, new_doc) for span in obj),
+            )
+        )
+    elif isinstance(obj, dict):
+        res = {}
+        for k, v in obj.items():
+            new_v = shift_spans(v, start, end, new_doc)
+            if new_v is not EMPTY:
+                res[k] = new_v
+        return res
+    return obj
 
 
 def subset_doc(doc: Doc, start: int, end: int) -> Doc:
@@ -287,29 +346,24 @@ def subset_doc(doc: Doc, start: int, end: int) -> Doc:
     new_doc = doc[start:end].as_doc(copy_user_data=True)
     new_doc.user_data.update(doc.user_data)
 
+    for key, val in new_doc.user_data.items():
+        new_doc.user_data[key] = shift_spans(val, start, end, new_doc)
+
     for name, group in doc.spans.items():
-        new_doc.spans[name] = [
-            spacy.tokens.Span(
-                new_doc,
-                max(0, span.start - start),
-                min(end, span.end) - start,
-                span.label,
-            )
-            for span in group
-            if span.end > start and span.start < end
-        ]
+        new_doc.spans[name] = shift_spans(list(group), start, end, new_doc)
 
     return new_doc
 
 
-class Reader(BaseModel, arbitrary_types_allowed=True):
+class SampleGenerator(BaseModel, arbitrary_types_allowed=True):
     """
-    Reader that reads docs from a file or a generator, and adapts them to the pipeline.
+    Sample generator that reads docs from a file or a generator, and adapts them to the
+    pipeline.
 
     Parameters
     ----------
-    reader: Callable[..., Iterable[Doc]]
-        The reader object
+    reader: Iterable[Doc]
+        The source of documents (e.g. `edsnlp.data.from_json(...)` or something else)
     limit: Optional[int]
         The maximum number of docs to read
     max_length: int
@@ -408,6 +462,10 @@ class Reader(BaseModel, arbitrary_types_allowed=True):
             yield subset_doc(doc, start, end)
 
 
+if typing.TYPE_CHECKING:
+    SampleGenerator = typing.Union[SampleGenerator, Dict]
+
+
 @validate_arguments
 class GenericScorer:
     def __init__(self, speed=True, **scorers):
@@ -435,7 +493,7 @@ class GenericScorer:
         ner_scorers = {
             name: scorer
             for name, scorer in self.scorers.items()
-            if isinstance(scorer, NerScorer)
+            if isinstance(scorer, NerMetric)
         }
         if ner_pipes and ner_scorers:
             clean_ner_docs = [d.copy() for d in tqdm(docs, desc="Copying docs")]
@@ -456,7 +514,7 @@ class GenericScorer:
         span_attr_scorers = {
             name: scorer
             for name, scorer in self.scorers.items()
-            if isinstance(scorer, SpanAttributeScorer)
+            if isinstance(scorer, SpanAttributeMetric)
         }
         if qlf_pipes and span_attr_scorers:
             clean_qlf_docs = [d.copy() for d in tqdm(docs, desc="Copying docs")]
@@ -470,170 +528,273 @@ class GenericScorer:
                 qlf_preds = list(nlp.pipe(tqdm(clean_qlf_docs, desc="Predicting")))
             for name, scorer in span_attr_scorers.items():
                 scores[name] = scorer(docs, qlf_preds)
+
         return scores
+
+
+if typing.TYPE_CHECKING:
+    GenericScorer = typing.Union[GenericScorer, Dict]
+
+
+@validate_arguments
+class TrainingDataLoaderFactory:
+    """
+    Parameters
+    ----------
+    data: AsList[EdsMedicReader]
+        The training data, can be a EdsMedicReader or a list of EdsMedicReaders
+    seed: int
+        The seed to use for random number generators when shuffling the data
+    batch_size: BatchSizeArg
+        The batch size to use for training, support the following units:
+
+        - <int> samples: the number of samples per batch
+        - <int> words: the number of words per batch
+    grad_accumulation_max_tokens: int
+        The maximum number of tokens to accumulate in a single batch
+
+    """
+
+    def __init__(
+        self,
+        data: AsList[SampleGenerator],
+        batch_size: BatchSizeArg,
+        grad_accumulation_max_tokens: int = 96 * 128,
+        pipe_names: Optional[List[str]] = None,
+        seed: int = 42,
+    ):
+        self.data = data
+        self.seed = seed
+        self.batch_size = batch_size
+        self.grad_accumulation_max_tokens = grad_accumulation_max_tokens
+        self.pipe_names = pipe_names
+
+    def __call__(self, nlp):
+        with nlp.select_pipes(enable=self.pipe_names), set_seed(self.seed):
+            trf_pipe = next(
+                module
+                for name, pipe in nlp.torch_components()
+                for module_name, module in pipe.named_component_modules()
+                if isinstance(module, Transformer)
+            )
+            train_docs = [d for td in self.data for d in td(nlp)]
+            nlp.post_init(train_docs)
+            preprocessed = list(nlp.preprocess_many(train_docs, supervision=True))
+            names_str = ", ".join(self.pipe_names) if self.pipe_names else "all pipes"
+            print(f"Training samples count for {names_str}: {len(preprocessed)}")
+            return DataLoader(
+                preprocessed,
+                batch_sampler=LengthSortedBatchSampler(
+                    preprocessed,
+                    batch_size=self.batch_size[0],
+                    batch_unit=self.batch_size[1],
+                ),
+                collate_fn=SubBatchCollater(
+                    nlp,
+                    trf_pipe,
+                    grad_accumulation_max_tokens=self.grad_accumulation_max_tokens,
+                ),
+            )
+
+
+def ensure_train_dataloader(train_dataloader, kwargs):
+    if train_dataloader is None and "train_data" in kwargs:
+        kwargs: Dict[str, Any] = dict(kwargs)
+        train_data = kwargs["train_data"]
+        dl_kwargs = {
+            u: kwargs.pop(v)
+            for u, v in {
+                "batch_size": "batch_size",
+                "grad_accumulation_max_tokens": "grad_accumulation_max_tokens",
+                "pipe_names": "pipe_names",
+                "seed": "data_seed",
+            }.items()
+            if v in kwargs
+        }
+        train_dataloader = [
+            TrainingDataLoaderFactory(
+                data=train_data,
+                **dl_kwargs,
+            )
+        ]
+    return train_dataloader, kwargs
 
 
 @app.command(name="train", registry=registry)
 def train(
     *,
-    output_path: Path = Path("model"),
+    output_dir: Path = Path("model"),
     nlp: Pipeline,
-    train_data: AsList[Reader],
-    val_data: AsList[Reader],
+    train_dataloader: AsList[TrainingDataLoaderFactory] = None,
+    val_data: AsList[SampleGenerator],
     seed: int = 42,
-    data_seed: int = 42,
     max_steps: int = 1000,
-    batch_size: BatchSizeArg = 2000,
     transformer_lr: float = 5e-5,
     task_lr: float = 3e-4,
     validation_interval: int = 10,
     max_grad_norm: float = 5.0,
     warmup_rate: float = 0.1,
+    loss_scales: Dict[str, float] = {},
     scorer: GenericScorer = GenericScorer(),
-    grad_accumulation_max_tokens: int = 96 * 128,
     cpu: bool = False,
+    **kwargs,
 ):
-    trf_pipe = next(
-        module
-        for name, pipe in nlp.torch_components()
-        for module_name, module in pipe.named_component_modules()
-        if isinstance(module, Transformer)
-    )
+    output_dir = Path(output_dir or Path.cwd() / "artifacts")
+    model_path = output_dir / "model-last"
+    train_metrics_path = output_dir / "train_metrics.json"
+    os.makedirs(output_dir, exist_ok=True)
+    train_dataloader, kwargs = ensure_train_dataloader(train_dataloader, kwargs)
+    val_docs: List[Doc] = [d for vd in val_data for d in vd(nlp)]
 
-    set_seed(seed)
-    # Loading and adapting the training and validation data
-    with set_seed(data_seed):
-        train_docs: List[spacy.tokens.Doc] = list(
-            chain.from_iterable(td(nlp) for td in train_data)
-        )
-        val_docs: List[spacy.tokens.Doc] = list(
-            chain.from_iterable(td(nlp) for td in val_data)
-        )
-
-    # Initialize pipeline with training documents
-    nlp.post_init(train_docs)
-
-    # Preprocessing training data
-    preprocessed = list(
-        nlp.preprocess_many(train_docs, supervision=True).set_processing(
-            show_progress=True
-        )
-    )
-    dataloader = torch.utils.data.DataLoader(
-        preprocessed,
-        batch_sampler=LengthSortedBatchSampler(
-            preprocessed,
-            batch_size=batch_size[0],
-            batch_unit=batch_size[1],
-        ),
-        collate_fn=SubBatchCollater(
-            nlp,
-            trf_pipe,
-            grad_accumulation_max_tokens=grad_accumulation_max_tokens,
-        ),
-    )
-    pipe_names, trained_pipes = zip(*nlp.torch_components())
-    print("Training", ", ".join(pipe_names))
-
-    trf_params = set(trf_pipe.parameters())
-    params = set(p for pipe in trained_pipes for p in pipe.parameters())
-    optimizer = ScheduledOptimizer(
-        torch.optim.AdamW(
-            [
-                {
-                    "params": list(params - trf_params),
-                    "lr": task_lr,
-                    "schedules": LinearSchedule(
-                        total_steps=max_steps,
-                        warmup_rate=warmup_rate,
-                        start_value=task_lr,
-                    ),
-                },
-                {
-                    "params": list(trf_params),
-                    "lr": transformer_lr,
-                    "schedules": LinearSchedule(
-                        total_steps=max_steps,
-                        warmup_rate=warmup_rate,
-                        start_value=0,
-                    ),
-                },
-            ][: 2 if transformer_lr else 1]
-        )
-    )
-    grad_params = {p for group in optimizer.param_groups for p in group["params"]}
+    trainable_pipe_names = {name for name, pipe in nlp.torch_components()}
+    print("Trainable components: " + ", ".join(trainable_pipe_names))
+    phases = connected_pipes(nlp.torch_components())
     print(
-        "Optimizing:"
-        + "".join(
-            f"\n - {len(group['params'])} params "
-            f"({sum(p.numel() for p in group['params'])} total)"
-            for group in optimizer.param_groups
-        )
+        "Training phases:"
+        + "".join(f"\n - {i + 1}: {', '.join(n)}" for i, n in enumerate(phases))
     )
-    print(f"Not optimizing {len(params - grad_params)} params")
-    for param in params - grad_params:
-        param.requires_grad_(False)
+    for phase_i, pipe_names in enumerate(phases):
+        logger = RichTablePrinter(LOGGER_FIELDS, auto_refresh=False)
+        with logger, nlp.select_pipes(disable=trainable_pipe_names - set(pipe_names)):
+            print(f"Phase {phase_i + 1}: training {', '.join(pipe_names)}")
+            set_seed(seed)
 
-    accelerator = Accelerator(cpu=cpu)
-    print("Device:", accelerator.device)
-    [dataloader, optimizer, *trained_pipes] = accelerator.prepare(
-        dataloader,
-        optimizer,
-        *trained_pipes,
-    )
+            trained_pipes = [nlp.get_pipe(name) for name in pipe_names]
+            trf_pipe = next(
+                (
+                    module
+                    for pipe in trained_pipes
+                    for name, module in pipe.named_component_modules()
+                    if isinstance(module, Transformer)
+                ),
+                None,
+            )
 
-    cumulated_data = defaultdict(lambda: 0.0, count=0)
+            # Preprocessing training data
+            print("Preprocessing data")
+            dataloaders = [
+                dl(nlp)
+                for dl in train_dataloader
+                if not dl.pipe_names or set(dl.pipe_names) & set(pipe_names)
+            ]
+            # Initialize pipeline with training documents
+            nlp.post_init(
+                doc
+                for dl in train_dataloader
+                for reader in dl.data
+                for doc in reader(nlp)
+            )
 
-    iterator = itertools.chain.from_iterable(itertools.repeat(dataloader))
-    all_metrics = []
-    nlp.train(True)
-    set_seed(seed)
+            # Optimizer
+            params = set(p for pipe in trained_pipes for p in pipe.parameters())
+            trf_params = params & set(trf_pipe.parameters() if trf_pipe else ())
+            optim = ScheduledOptimizer(
+                torch.optim.AdamW(
+                    [
+                        {
+                            "params": list(params - trf_params),
+                            "lr": task_lr,
+                            "schedules": LinearSchedule(
+                                total_steps=max_steps,
+                                warmup_rate=warmup_rate,
+                                start_value=task_lr,
+                            ),
+                        }
+                    ]
+                    + [
+                        {
+                            "params": list(trf_params),
+                            "lr": transformer_lr,
+                            "schedules": LinearSchedule(
+                                total_steps=max_steps,
+                                warmup_rate=warmup_rate,
+                                start_value=0,
+                            ),
+                        },
+                    ][: 1 if transformer_lr else 0]
+                )
+            )
+            grad_params = {p for group in optim.param_groups for p in group["params"]}
+            print(
+                "Optimizing groups:"
+                + "".join(
+                    f"\n - {len(group['params'])} weight tensors "
+                    f"({sum(p.numel() for p in group['params']):,} parameters)"
+                    for group in optim.param_groups
+                )
+            )
+            print(
+                f"Keeping frozen {len(params - grad_params):} weight tensors "
+                f"({sum(p.numel() for p in params - grad_params):,} parameters)"
+            )
+            for param in params - grad_params:
+                param.requires_grad_(False)
 
-    with RichTablePrinter(LOGGER_FIELDS, auto_refresh=False) as logger:
-        with tqdm(
-            range(max_steps + 1),
-            "Training model",
-            leave=True,
-            mininterval=5.0,
-        ) as bar:
-            for step in bar:
+            accelerator = Accelerator(cpu=cpu)
+            print("Device:", accelerator.device)
+            prep = accelerator.prepare(optim, *dataloaders, *trained_pipes)
+            optim = prep[0]
+            dataloaders = prep[1 : 1 + len(dataloaders)]
+            trained_pipes = prep[1 + len(dataloaders) :]
+
+            cumulated_data = defaultdict(lambda: 0.0, count=0)
+
+            iterators = [
+                itertools.chain.from_iterable(itertools.repeat(dl))
+                for dl in dataloaders
+            ]
+            all_metrics = []
+            nlp.train(True)
+            set_seed(seed)
+
+            # Training loop
+            for step in trange(
+                max_steps + 1,
+                desc="Training model",
+                leave=True,
+                mininterval=5.0,
+            ):
                 if (step % validation_interval) == 0:
                     scores = scorer(nlp, val_docs)
                     all_metrics.append(
                         {
                             "step": step,
-                            "lr": optimizer.param_groups[0]["lr"],
+                            "lr": optim.param_groups[0]["lr"],
                             **cumulated_data,
                             **scores,
                         }
                     )
-                    cumulated_data = defaultdict(lambda: 0.0, count=0)
-                    nlp.to_disk(output_path)
-                    (output_path / "train_metrics.json").write_text(
-                        json.dumps(all_metrics, indent=2)
-                    )
+                    cumulated_data.clear()
+                    nlp.to_disk(model_path)
+                    train_metrics_path.write_text(json.dumps(all_metrics, indent=2))
                     logger.log_metrics(flatten_dict(all_metrics[-1]))
+
                 if step == max_steps:
                     break
-                mini_batches = next(iterator)
-                optimizer.zero_grad()
-                for mini_batch in mini_batches:
+
+                optim.zero_grad()
+                for mini_batch in (b for it in iterators for b in next(it)):
                     loss = torch.zeros((), device=accelerator.device)
                     with nlp.cache():
                         for name, pipe in zip(pipe_names, trained_pipes):
-                            output = pipe(mini_batch[name])
-                            if "loss" in output:
-                                loss += output["loss"]
-                            for key, value in output.items():
+                            if name not in mini_batch:
+                                continue
+                            res = dict(pipe(mini_batch[name]))
+                            if "loss" in res:
+                                res["loss"] = res["loss"] * loss_scales.get(name, 1)
+                                loss += res["loss"]
+                                res[f"{name}_loss"] = res["loss"]
+                            for key, value in res.items():
                                 if key.endswith("loss"):
                                     cumulated_data[key] += float(value)
                             if torch.isnan(loss):
                                 raise ValueError(f"NaN loss at component {name}")
 
                     accelerator.backward(loss)
+                    del loss, res, key, value, mini_batch, name, pipe
 
                 torch.nn.utils.clip_grad_norm_(grad_params, max_grad_norm)
-                optimizer.step()
+                optim.step()
 
     return nlp
 

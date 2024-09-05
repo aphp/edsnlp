@@ -3,11 +3,11 @@ from collections import defaultdict
 from typing import Any, Dict, Optional
 
 from edsnlp import registry
-from edsnlp.scorers import Examples, make_examples, prf
+from edsnlp.metrics import Examples, make_examples, prf
 from edsnlp.utils.span_getters import SpanGetter, SpanGetterArg, get_spans
 
 
-def ner_exact_scorer(
+def ner_exact_metric(
     examples: Examples,
     span_getter: SpanGetter,
     micro_key: str = "micro",
@@ -59,7 +59,7 @@ def ner_exact_scorer(
     return {name: prf(pred, gold) for name, (pred, gold) in labels.items()}
 
 
-def ner_token_scorer(
+def ner_token_metric(
     examples: Examples,
     span_getter: SpanGetter,
     micro_key: str = "micro",
@@ -123,7 +123,7 @@ def dice(span1, span2):
     return 2 * intersection / (span1.end - span1.start + span2.end - span2.start)
 
 
-def ner_overlap_scorer(
+def ner_overlap_metric(
     examples: Examples,
     span_getter: SpanGetter,
     micro_key: str = "micro",
@@ -227,15 +227,18 @@ def ner_overlap_scorer(
     return results
 
 
-class NerScorer(abc.ABC):
+class NerMetric(abc.ABC):
     span_getter: SpanGetter
 
     def __call__(self, *examples) -> Dict[str, Any]:
         raise NotImplementedError()
 
 
-@registry.scorers.register("eds.ner_exact_scorer")
-class NerExactScorer(NerScorer):
+@registry.metrics.register(
+    "eds.ner_exact",
+    deprecated=["eds.ner_exact_metric"],
+)
+class NerExactMetric(NerMetric):
     def __init__(
         self,
         span_getter: SpanGetterArg,
@@ -246,10 +249,10 @@ class NerExactScorer(NerScorer):
         self.micro_key = micro_key
         self.filter_expr = filter_expr
 
-    __init__.__doc__ = ner_exact_scorer.__doc__
+    __init__.__doc__ = ner_exact_metric.__doc__
 
     def __call__(self, *examples):
-        return ner_exact_scorer(
+        return ner_exact_metric(
             examples,
             span_getter=self.span_getter,
             micro_key=self.micro_key,
@@ -257,8 +260,11 @@ class NerExactScorer(NerScorer):
         )
 
 
-@registry.scorers.register("eds.ner_token_scorer")
-class NerTokenScorer(NerScorer):
+@registry.metrics.register(
+    "eds.ner_token",
+    deprecated=["eds.ner_token_metric"],
+)
+class NerTokenMetric(NerMetric):
     def __init__(
         self,
         span_getter: SpanGetterArg,
@@ -269,10 +275,10 @@ class NerTokenScorer(NerScorer):
         self.micro_key = micro_key
         self.filter_expr = filter_expr
 
-    __init__.__doc__ = ner_token_scorer.__doc__
+    __init__.__doc__ = ner_token_metric.__doc__
 
     def __call__(self, *examples):
-        return ner_token_scorer(
+        return ner_token_metric(
             examples,
             span_getter=self.span_getter,
             micro_key=self.micro_key,
@@ -280,8 +286,11 @@ class NerTokenScorer(NerScorer):
         )
 
 
-@registry.scorers.register("eds.ner_overlap_scorer")
-class NerOverlapScorer(NerScorer):
+@registry.metrics.register(
+    "eds.ner_overlap",
+    deprecated=["eds.ner_overlap_metric"],
+)
+class NerOverlapMetric(NerMetric):
     def __init__(
         self,
         span_getter: SpanGetterArg,
@@ -294,10 +303,10 @@ class NerOverlapScorer(NerScorer):
         self.filter_expr = filter_expr
         self.threshold = threshold
 
-    __init__.__doc__ = ner_overlap_scorer.__doc__
+    __init__.__doc__ = ner_overlap_metric.__doc__
 
     def __call__(self, *examples):
-        return ner_overlap_scorer(
+        return ner_overlap_metric(
             examples,
             span_getter=self.span_getter,
             micro_key=self.micro_key,
@@ -307,6 +316,19 @@ class NerOverlapScorer(NerScorer):
 
 
 # For backward compatibility
-create_ner_exact_scorer = NerExactScorer
-create_ner_token_scorer = NerTokenScorer
-create_ner_overlap_scorer = NerOverlapScorer
+ner_exact_scorer = ner_exact_metric
+ner_token_scorer = ner_token_metric
+ner_overlap_scorer = ner_overlap_metric
+create_ner_exact_scorer = NerExactScorer = NerExactMetric
+create_ner_token_scorer = NerTokenScorer = NerTokenMetric
+create_ner_overlap_scorer = NerOverlapScorer = NerOverlapMetric
+
+__all__ = [
+    "NerMetric",
+    "NerExactMetric",
+    "NerTokenMetric",
+    "NerOverlapMetric",
+    "ner_exact_metric",
+    "ner_token_metric",
+    "ner_overlap_metric",
+]

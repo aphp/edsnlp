@@ -9,6 +9,11 @@
 - Added new patterns for metastasis detection. Developed on CT-Scan reports.
 - Added citation of articles
 
+### Changed
+
+- Renamed `edsnlp.scorers` to `edsnlp.metrics` and removed the `_scorer` suffix from their
+  registry name (e.g, `@scorers = ner_overlap_scorer` → `@metrics = ner_overlap`)
+
 ### Fixed
 
 - Disorder and Behavior pipes don't use a "PRESENT" or "ABSENT" `status` anymore. Instead, `status=None` by default,

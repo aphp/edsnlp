@@ -5,6 +5,7 @@
 ### Added
 
 - `eds.tables` accepts a minimum_table_size (default 2) argument to reduce pollution
+- Support for setuptools based projects in `edsnlp.package` command
 
 ### Changed
 

@@ -266,17 +266,17 @@ def dump_standoff_file(
                                 attribute_idx += 1
 
                     # fmt: off
-                    # if "relations" in doc:
-                    #     for i, relation in enumerate(doc["relations"]):
-                    #         entity_from = entities_ids[relation["from_entity_id"]]
-                    #         entity_to = entities_ids[relation["to_entity_id"]]
-                    #         print(
-                    #             "R{}\t{} Arg1:{} Arg2:{}\t".format(
-                    #                 i + 1, str(relation["label"]), entity_from,
-                    #                 entity_to
-                    #             ),
-                    #             file=f,
-                    #         )
+                    if "relations" in doc:
+                        for i, relation in enumerate(doc["relations"]):
+                            entity_from = entities_ids[relation["from_entity_id"]]
+                            entity_to = entities_ids[relation["to_entity_id"]]
+                            print(
+                                "R{}\t{} Arg1:{} Arg2:{}\t".format(
+                                    i + 1, str(relation["label"]), entity_from,
+                                    entity_to
+                                ),
+                                file=f,
+                            )
                     # fmt: on
 
 

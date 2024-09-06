@@ -197,3 +197,24 @@ class BaseSpanAttributeClassifierComponent(BaseComponent, abc.ABC):
     @qualifiers.setter
     def qualifiers(self, value):  # pragma: no cover
         self.attributes = value
+
+
+class BaseRelationDetectorComponent(BaseComponent, abc.ABC):
+    head_getter: SpanGetter
+    tail_getter: SpanGetter
+    labels: List[str]
+
+    def __init__(
+        self,
+        nlp: PipelineProtocol = None,
+        name: str = None,
+        *args,
+        head_getter: SpanGetterArg,
+        tail_getter: SpanGetterArg,
+        labels: List[str],
+        **kwargs,
+    ):
+        super().__init__(nlp, name, *args, **kwargs)
+        self.head_getter: SpanGetter = validate_span_getter(head_getter)  # type: ignore
+        self.tail_getter: SpanGetter = validate_span_getter(tail_getter)  # type: ignore
+        self.labels = labels

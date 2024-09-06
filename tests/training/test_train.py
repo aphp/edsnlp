@@ -115,6 +115,21 @@ def test_qualif_train(run_in_test_dir, tmp_path):
     assert last_scores["qual"]["micro"]["f"] >= 0.4
 
 
+def test_rel_train(run_in_test_dir, tmp_path):
+    set_seed(42)
+    config = Config.from_disk("rel_config.cfg")
+    shutil.rmtree(tmp_path, ignore_errors=True)
+    kwargs = config["train"].resolve(registry=registry, root=config)
+    nlp = train(**kwargs, output_path=tmp_path, cpu=True)
+    scorer = GenericScorer(**kwargs["scorer"])
+    last_scores = scorer(nlp, SampleGenerator(**kwargs["val_data"])(nlp))
+
+    # Check empty doc
+    nlp("")
+
+    assert last_scores["rel"]["micro"]["f"] >= 0.4
+
+
 def test_optimizer():
     net = torch.nn.Linear(10, 10)
     optim = ScheduledOptimizer(

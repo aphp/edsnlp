@@ -36,10 +36,12 @@ import edsnlp
 from edsnlp.core.pipeline import Pipeline
 from edsnlp.core.registries import registry
 from edsnlp.metrics.ner import NerMetric
+from edsnlp.metrics.relations import RelationsMetric
 from edsnlp.metrics.span_attributes import SpanAttributeMetric
 from edsnlp.optimization import LinearSchedule, ScheduledOptimizer
 from edsnlp.pipes.base import (
     BaseNERComponent,
+    BaseRelationDetectorComponent,
     BaseSpanAttributeClassifierComponent,
 )
 from edsnlp.pipes.trainable.embeddings.transformer.transformer import Transformer
@@ -529,6 +531,33 @@ class GenericScorer:
             for name, scorer in span_attr_scorers.items():
                 scores[name] = scorer(docs, qlf_preds)
 
+        # Relations
+        rel_pipes = [
+            name
+            for name, pipe in nlp.pipeline
+            if isinstance(pipe, BaseRelationDetectorComponent)
+        ]
+        rel_scorers = {
+            name: scorer
+            for name, scorer in self.scorers.items()
+            if isinstance(scorer, RelationsMetric)
+        }
+        if rel_pipes and rel_scorers:
+            clean_rel_docs = [d.copy() for d in tqdm(docs, desc="Copying docs")]
+            for doc in clean_rel_docs:
+                for name in rel_pipes:
+                    pipe = nlp.get_pipe(name)
+                    for span in (
+                        *get_spans(doc, pipe.head_getter),
+                        *get_spans(doc, pipe.tail_getter),
+                    ):
+                        for label in nlp.get_pipe(name).labels:
+                            if label in span._.rel:
+                                span._.rel[label].clear()
+            with nlp.select_pipes(disable=ner_pipes):
+                rel_preds = list(nlp.pipe(tqdm(clean_rel_docs, desc="Predicting")))
+            for name, scorer in rel_scorers.items():
+                scores[name] = scorer(docs, rel_preds)
         return scores
 
 

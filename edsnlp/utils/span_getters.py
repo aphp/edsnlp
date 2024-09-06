@@ -9,6 +9,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Union,
 )
@@ -16,6 +17,7 @@ from typing import (
 import numpy as np
 from pydantic import NonNegativeInt
 from spacy.tokens import Doc, Span
+from typing_extensions import NotRequired, TypedDict
 
 from edsnlp import registry
 from edsnlp.utils.filter import filter_spans
@@ -46,21 +48,34 @@ def get_spans(doclike, span_getter, deduplicate=True):
         return
     seen = set()
     for k, span_filter in span_getter.items():
-        doc = doclike if isinstance(doclike, Doc) else doclike.doc
-        if k == "*":
-            candidates = (s for grp in doc.spans.values() for s in grp)
-        elif k == "ents":
-            candidates = doc.ents
-        elif k == "sents":
-            candidates = doc.sents
+        if isinstance(doclike, Doc):
+            if k == "*":
+                candidates = (s for grp in doclike.spans.values() for s in grp)
+            elif k == "ents":
+                candidates = doclike.ents
+            elif k == "doc":
+                candidates = (doclike[:],)
+            else:
+                candidates = doclike.spans.get(k, ()) if k != "ents" else doclike.ents
         else:
-            candidates = doc.spans.get(k, ())
-        if not isinstance(doclike, Doc):
-            candidates = (
-                s
-                for s in candidates
-                if not (s.end < doclike.start or s.start > doclike.end)
-            )
+            doc = doclike.doc
+            if k == "*":
+                candidates = (
+                    s
+                    for grp in doc.spans.values()
+                    for s in grp
+                    if not (s.end < doclike.start or s.start > doclike.end)
+                )
+            elif k == "ents":
+                candidates = doclike.ents
+            elif k == "doc":
+                candidates = (doclike[:],)
+            else:
+                candidates = (
+                    s
+                    for s in (doc.spans.get(k, ()))
+                    if not (s.end < doclike.start or s.start > doclike.end)
+                )
         for span in candidates:
             if (span_filter is True) or (span.label_ in span_filter):
                 if span not in seen:
@@ -82,18 +97,13 @@ def get_spans_with_group(doclike, span_getter):
             candidates = (
                 (span, name) for name, group in doc.spans.items() for span in group
             )
-        elif key == "sents":
-            candidates = ((sent, key) for sent in doc.sents)
         elif key == "ents":
-            candidates = ((ent, key) for ent in doc.ents)
+            candidates = ((span, key) for span in doc.ents)
+        elif key == "doc":
+            candidates = ((doc[:], "doc"),)
         else:
-            candidates = ((span, key) for span in doc.spans.get(key, ()))
-        if not isinstance(doclike, Doc):
-            candidates = (
-                x
-                for x in candidates
-                if not (x[0].end < doclike.start or x[0].start > doclike.end)
-            )
+            candidates = doc.spans.get(key, ())
+            candidates = ((span, key) for span in candidates)
         if span_filter is True:
             yield from candidates
         else:
@@ -554,3 +564,15 @@ class IntersectionContextWindow(ContextWindow):
 
     def __repr__(self):
         return " & ".join(repr(context) for context in self.contexts)
+
+
+RelationCandidateGetter = TypedDict(
+    "RelationCandidateGetter",
+    {
+        "head": SpanGetterArg,
+        "tail": SpanGetterArg,
+        "labels": AsList[str],
+        "label_filter": NotRequired[Optional[Dict[str, Set[str]]]],
+        "symmetric": Optional[bool],
+    },
+)

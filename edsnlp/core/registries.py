@@ -2,7 +2,7 @@ import inspect
 import types
 from dataclasses import dataclass
 from functools import wraps
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Union
 from weakref import WeakKeyDictionary
 
 import catalogue
@@ -63,6 +63,23 @@ class CurriedFactory:
         self.factory = func
         self.instantiated = None
         self.error = None
+
+    def maybe_nlp(self) -> Union["CurriedFactory", Any]:
+        """
+        If the factory requires an nlp argument and the user has explicitly
+        provided it (this is unusual, we usually expect the factory to be
+        instantiated via add_pipe, or a config), then we should instantiate
+        it.
+
+        Returns
+        -------
+        Union["CurriedFactory", Any]
+        """
+        sig = inspect.signature(self.factory)
+        # and sig.parameters["nlp"].default is sig.empty
+        if "nlp" not in sig.parameters or "nlp" in self.kwargs:
+            return self.factory(**self.kwargs)
+        return self
 
     def instantiate(
         obj: Any,
@@ -145,8 +162,9 @@ class CurriedFactory:
 
     def _raise_curried_factory_error(self):
         raise TypeError(
-            f"This component ({self}) has not been instantiated yet, likely because it "
-            f"was missing an `nlp` pipeline argument. You should either:\n"
+            f"This component CurriedFactory({self.factory}) has not been instantiated "
+            f"yet, likely because it was missing an `nlp` pipeline argument. You "
+            f"should either:\n"
             f"- add it to a pipeline: `pipe = nlp.add_pipe(pipe)`\n"
             f"- or fill its `nlp` argument: `pipe = factory(nlp=nlp, ...)`"
         )
@@ -227,7 +245,7 @@ class FactoryRegistry(Registry):
 
             if catalogue.check_exists(*registry_path):
                 func = catalogue._get(registry_path)
-                return lambda **kwargs: CurriedFactory(func, kwargs=kwargs)
+                return lambda **kwargs: CurriedFactory(func, kwargs=kwargs).maybe_nlp()
 
         # Steps 1 & 2
         func = check_and_return()
@@ -379,24 +397,8 @@ class FactoryRegistry(Registry):
                     )
 
             @wraps(fn)
-            def curried_registered_fn(
-                nlp=inspect.Signature.empty,
-                name=inspect.Signature.empty,
-                **kwargs,
-            ):
-                sig = inspect.signature(fn)
-                if nlp is not inspect.Signature.empty:
-                    kwargs["nlp"] = nlp
-                if name is not inspect.Signature.empty:
-                    kwargs["name"] = name
-                bound = sig.bind_partial(**kwargs)
-                if (
-                    "nlp" in sig.parameters
-                    and sig.parameters["nlp"].default is sig.empty
-                    and bound.arguments.get("nlp", sig.empty) is sig.empty
-                ):
-                    return CurriedFactory(registered_fn, dict(bound.arguments))
-                return registered_fn(**bound.arguments)
+            def curried_registered_fn(**kwargs):
+                return CurriedFactory(registered_fn, kwargs).maybe_nlp()
 
             return (
                 curried_registered_fn

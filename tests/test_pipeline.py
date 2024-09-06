@@ -338,13 +338,14 @@ def test_curried_nlp_pipe():
     nlp.add_pipe(eds.sections(), name="sections")
     pipe = CustomComponent()
 
+    assert isinstance(pipe, CurriedFactory)
     err = (
-        f"This component ({pipe}) has not been instantiated yet, likely because it was"
-        " missing an `nlp` pipeline argument. You should either:\n"
+        f"This component CurriedFactory({pipe.factory}) has not been instantiated "
+        f"yet, likely because it was missing an `nlp` pipeline argument. You should "
+        f"either:\n"
         "- add it to a pipeline: `pipe = nlp.add_pipe(pipe)`\n"
         "- or fill its `nlp` argument: `pipe = factory(nlp=nlp, ...)`"
     )
-    assert isinstance(pipe, CurriedFactory)
     with pytest.raises(TypeError) as exc_info:
         pipe("Demo texte")
     assert str(exc_info.value) == err

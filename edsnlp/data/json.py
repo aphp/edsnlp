@@ -184,7 +184,7 @@ class JsonWriter(BaseWriter):
 
                 file_path = os.path.join(self.path, f"{filename}.json")
                 self.fs.makedirs(os.path.dirname(file_path), exist_ok=True)
-                with self.fs.open(file_path, "w") as f:
+                with self.fs.open(file_path, "w", encoding="utf-8") as f:
                     json.dump(rec, f)
                 results.append(file_path)
             return results, len(results)
@@ -192,7 +192,7 @@ class JsonWriter(BaseWriter):
     def write_main(self, fragments: Iterable[Union[List[Path], List[str]]]):
         fragments = list(flatten_once(fragments))
         if self.lines:
-            with self.fs.open(self.path, "w") as f:
+            with self.fs.open(self.path, "w", encoding="utf-8") as f:
                 f.write("\n".join(fragments))
             return [self.path]
         else:

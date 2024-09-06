@@ -77,7 +77,7 @@ def parse_standoff_file(
     relations = []
     events = {}
 
-    with fs.open(txt_path, "r") as f:
+    with fs.open(txt_path, "r", encoding="utf-8") as f:
         text = f.read()
 
     if not len(ann_paths):
@@ -86,7 +86,7 @@ def parse_standoff_file(
         }
 
     for ann_file in ann_paths:
-        with fs.open(ann_file, "r") as f:
+        with fs.open(ann_file, "r", encoding="utf-8") as f:
             for line_idx, line in enumerate(f):
                 try:
                     if line.startswith("T"):
@@ -220,14 +220,14 @@ def dump_standoff_file(
     if parent_dir and not fs.exists(parent_dir):
         fs.makedirs(parent_dir, exist_ok=True)
     if not fs.exists(txt_filename) or overwrite_txt:
-        with fs.open(txt_filename, "w") as f:
+        with fs.open(txt_filename, "w", encoding="utf-8") as f:
             f.write(doc["text"])
 
     ann_filename = txt_filename.replace(".txt", ".ann")
     attribute_idx = 1
     entities_ids = defaultdict(lambda: "T" + str(len(entities_ids) + 1))
     if not fs.exists(ann_filename) or overwrite_ann:
-        with fs.open(ann_filename, "w") as f:
+        with fs.open(ann_filename, "w", encoding="utf-8") as f:
             if "entities" in doc:
                 for entity in doc["entities"]:
                     spans = []

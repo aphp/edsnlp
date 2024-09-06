@@ -24,7 +24,6 @@ from spacy.tokens import Doc, Span
 
 import edsnlp
 from edsnlp import registry
-from edsnlp.core import PipelineProtocol
 from edsnlp.utils.bindings import BINDING_GETTERS
 from edsnlp.utils.span_getters import (
     SpanGetterArg,
@@ -177,7 +176,7 @@ class StandoffDict2DocConverter:
     nlp: Optional[PipelineProtocol]
         The pipeline object (optional and likely not needed, prefer to use the
         `tokenizer` directly argument instead).
-    tokenizer: Optional[spacy.tokenizer.Tokenizer]
+    tokenizer: Optional[Tokenizer]
         The tokenizer instance used to tokenize the documents. Likely not needed since
         by default it uses the current context tokenizer :
 
@@ -209,7 +208,6 @@ class StandoffDict2DocConverter:
 
     def __init__(
         self,
-        nlp: Optional[PipelineProtocol] = None,
         *,
         tokenizer: Optional[Tokenizer] = None,
         span_setter: SpanSetterArg = {"ents": True, "*": True},
@@ -220,7 +218,7 @@ class StandoffDict2DocConverter:
         notes_as_span_attribute: Optional[str] = None,
         split_fragments: bool = True,
     ):
-        self.tokenizer = tokenizer or (nlp.tokenizer if nlp is not None else None)
+        self.tokenizer = tokenizer
         self.span_setter = span_setter
         self.span_attributes = span_attributes  # type: ignore
         self.keep_raw_attribute_values = keep_raw_attribute_values
@@ -402,7 +400,7 @@ class OmopDict2DocConverter:
     nlp: Optional[PipelineProtocol]
         The pipeline object (optional and likely not needed, prefer to use the
         `tokenizer` directly argument instead).
-    tokenizer: Optional[spacy.tokenizer.Tokenizer]
+    tokenizer: Optional[Tokenizer]
         The tokenizer instance used to tokenize the documents. Likely not needed since
         by default it uses the current context tokenizer :
 
@@ -428,16 +426,15 @@ class OmopDict2DocConverter:
 
     def __init__(
         self,
-        nlp: Optional[PipelineProtocol] = None,
         *,
-        tokenizer: Optional[PipelineProtocol] = None,
+        tokenizer: Optional[Tokenizer] = None,
         span_setter: SpanSetterArg = {"ents": True, "*": True},
         doc_attributes: AttributesMappingArg = {"note_datetime": "note_datetime"},
         span_attributes: Optional[AttributesMappingArg] = None,
         default_attributes: AttributesMappingArg = {},
         bool_attributes: SequenceStr = [],
     ):
-        self.tokenizer = tokenizer or (nlp.tokenizer if nlp is not None else None)
+        self.tokenizer = tokenizer
         self.span_setter = span_setter
         self.doc_attributes = doc_attributes
         self.span_attributes = span_attributes
@@ -647,7 +644,10 @@ def get_dict2doc_converter(
                 if converter == name or (converter in name and "dict2doc" in name)
             ]
             converter = edsnlp.registry.factory.get(filtered[0])
-            converter = converter(**kwargs).instantiate(nlp=None)
+            nlp = kwargs.pop("nlp", None)
+            if nlp is not None and "tokenizer" not in kwargs:
+                kwargs["tokenizer"] = nlp.tokenizer
+            converter = converter(**kwargs)
             kwargs = {}
             return converter, kwargs
         except (KeyError, IndexError):
@@ -673,7 +673,7 @@ def get_doc2dict_converter(
                 if converter == name or (converter in name and "doc2dict" in name)
             ]
             converter = edsnlp.registry.factory.get(filtered[0])
-            converter = converter(**kwargs).instantiate(nlp=None)
+            converter = converter(**kwargs)
             kwargs = {}
             return converter, kwargs
         except (KeyError, IndexError):

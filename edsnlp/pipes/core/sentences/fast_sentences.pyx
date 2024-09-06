@@ -30,27 +30,34 @@ cdef class FastSentenceSegmenter(object):
     """
 
     def __init__(
-          self,
-          vocab,
-          *,
-          punct_chars,
-          use_endlines = None,
-          ignore_excluded = True,
+            self,
+            vocab,
+            *,
+            punct_chars,
+            use_endlines = None,
+            ignore_excluded = True,
+            check_capitalized = True,
+            min_newline_count = 1,
     ):
         if punct_chars is None:
             punct_chars = punctuation
 
         if use_endlines is not None:
-            print("The use_endlines parameter of eds.sentences is deprecated and has been replaced by the ignore_excluded parameter")
+            print(
+                "The use_endlines parameter of eds.sentences is deprecated and has been "
+                "replaced by the ignore_excluded parameter"
+            )
 
         self.ignore_excluded = builtins.bool(ignore_excluded or use_endlines)
         self.newline_hash = vocab.strings["\n"]
         self.excluded_hash = vocab.strings["EXCLUDED"]
         self.endline_hash = vocab.strings["ENDLINE"]
         self.punct_chars_hash = {vocab.strings[c] for c in punct_chars}
+        self.check_capitalized = check_capitalized
+        self.min_newline_count = min_newline_count
         self.capitalized_shapes_hash = {
             vocab.strings[shape]
-            for shape in ("Xx", "Xxx", "Xxxx", "Xxxxx")
+            for shape in (("X'", "Xx", "Xxx", "Xxxx", "Xxxxx") if check_capitalized else ())
         }
 
     def __call__(self, doc: spacy.tokens.Doc):
@@ -71,9 +78,10 @@ cdef class FastSentenceSegmenter(object):
         cdef cbool seen_newline
         cdef cbool is_in_punct_chars
         cdef cbool is_newline
+        cdef int newline_count
 
         seen_period = False
-        seen_newline = False
+        newline_count = 0
 
         if doc.length == 0:
             return
@@ -88,37 +96,39 @@ cdef class FastSentenceSegmenter(object):
                 continue
 
             is_in_punct_chars = (
-                  self.punct_chars_hash.const_find(token.lex.orth)
-                  != self.punct_chars_hash.const_end()
+                    self.punct_chars_hash.const_find(token.lex.orth)
+                    != self.punct_chars_hash.const_end()
             )
             is_newline = (
-                  Lexeme.c_check_flag(token.lex, IS_SPACE)
-                  and token.lex.orth == self.newline_hash
+                    Lexeme.c_check_flag(token.lex, IS_SPACE)
+                    and token.lex.orth == self.newline_hash
             )
 
-            if seen_period or seen_newline:
+            if seen_period or newline_count >= self.min_newline_count:
                 if seen_period and Lexeme.c_check_flag(token.lex, IS_DIGIT):
                     continue
-                if (
-                      is_in_punct_chars
-                      or is_newline
-                      or Lexeme.c_check_flag(token.lex, IS_PUNCT)
+                if not (
+                        is_in_punct_chars
+                        or is_newline
+                        or Lexeme.c_check_flag(token.lex, IS_PUNCT)
                 ):
+                    if seen_period:
+                        doc.c[i].sent_start = 1
+                        newline_count = 0
+                        seen_period = False
+                    else:
+                        doc.c[i].sent_start = (
+                            1 if not self.check_capitalized or (
+                                    self.capitalized_shapes_hash.const_find(token.lex.shape)
+                                    != self.capitalized_shapes_hash.const_end()
+                            ) else -1
+                        )
+                        newline_count = 0
+                        seen_period = False
                     continue
-                if seen_period:
-                    doc.c[i].sent_start = 1
-                    seen_newline = False
-                    seen_period = False
-                else:
-                    doc.c[i].sent_start = (
-                        1 if (
-                              self.capitalized_shapes_hash.const_find(token.lex.shape)
-                              != self.capitalized_shapes_hash.const_end()
-                        ) else -1
-                    )
-                    seen_newline = False
-                    seen_period = False
-            elif is_in_punct_chars:
+            if is_in_punct_chars:
                 seen_period = True
-            elif is_newline:
-                seen_newline = True
+            if is_newline:
+                newline_count += 1
+            else:
+                newline_count = 0

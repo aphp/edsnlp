@@ -9,10 +9,14 @@
 - `edsnlp.load` now correctly takes disable, enable and exclude parameters into account
 - Pipeline now has a basic repr showing is base langage (mostly useful to know its tokenizer) and its pipes
 - New `python -m edsnlp.evaluate` script to evaluate a model on a dataset
+- Sentence detection can now be configured to change the minimum number of newlines to consider a newline-triggered sentence, and disable capitalization checking.
+
+### Changed
 
 ### Fixed
 
 - Sort files before iterating over a standoff or json folder to ensure reproducibility
+- Sentence detection now correctly match capitalized letters + apostrophe
 
 ### Data API changes
 

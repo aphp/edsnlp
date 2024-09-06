@@ -7,6 +7,7 @@
 - `eds.tables` accepts a minimum_table_size (default 2) argument to reduce pollution
 - Support for setuptools based projects in `edsnlp.package` command
 - New trainable `eds.relation_detector_ffn` component to detect relations between entities. These relations are stored in each entity: `head._.rel[relation_label] = [tail1, tail2, ...]`.
+- New `python -m edsnlp.evaluate` script to evaluate a model on a dataset
 
 ### Changed
 

@@ -63,3 +63,49 @@ def test_false_positives(blank_nlp):
     for fp in false_positives:
         doc = blank_nlp(fp)
         assert len(list(doc.sents)) == 1
+
+
+def test_newlines_double():
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(
+        "eds.sentences",
+        config={
+            "punct_chars": [],
+            "ignore_excluded": False,
+            "check_capitalized": False,
+            "min_newline_count": 2,
+        },
+    )
+
+    doc = nlp(
+        """\
+Lundi
+Mardi
+Mercredi
+Le patient est admis. Des douleurs dans le bras droit
+\n\n
+jeudi."""
+    )
+    assert len(list(doc.sents)) == 2
+
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(
+        "eds.sentences",
+        config={
+            "punct_chars": [],
+            "ignore_excluded": False,
+            "check_capitalized": True,
+            "min_newline_count": 2,
+        },
+    )
+
+    doc = nlp(
+        """\
+Lundi
+Mardi
+Mercredi
+Le patient est admis. Des douleurs dans le bras droit
+\n
+jeudi."""
+    )
+    assert len(list(doc.sents)) == 1

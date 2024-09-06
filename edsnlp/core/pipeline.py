@@ -514,7 +514,7 @@ class Pipeline:
                 config["nlp"]["components"] = Reference("components")
             config = config["nlp"]
 
-        config = dict(Config(config).resolve(root=root_config))
+        config = dict(Config(config).resolve(root=root_config, registry=registry))
         components = config.pop("components", {})
         pipeline = config.pop("pipeline", ())
         tokenizer = config.pop("tokenizer", None)
@@ -532,9 +532,9 @@ class Pipeline:
         for name, component in components.items():
             if not isinstance(component, CurriedFactory):
                 raise ValueError(
-                    f"Component {repr(name)} is not instantiable. Please make sure "
-                    "that you didn't forget to add a '@factory' key to the component "
-                    "config."
+                    f"Component {repr(name)} is not instantiable (got {component}). "
+                    f"Please make sure that you didn't forget to add a '@factory' "
+                    f"key to the component config."
                 )
 
         try:
@@ -919,6 +919,7 @@ class Pipeline:
                 raise ValueError("Inconsistent values for `enable` and `disable`")
             disable = to_disable
 
+        disable = disable or ()
         if set(disable) - pipe_names:
             raise ValueError(
                 "Disabled pipes {} not found in pipeline.".format(

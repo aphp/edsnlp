@@ -1,0 +1,90 @@
+# 🤖 PIPELINE DEFINITION
+nlp:
+  "@core": pipeline
+
+  lang: eds
+
+  components:
+    normalizer:
+      '@factory': eds.normalizer
+
+    sentencizer:
+      '@factory': eds.sentences
+
+    covid:
+      '@factory': eds.covid
+
+    relations:
+      '@factory': "eds.relation_detector_ffn"
+      candidate_getter:
+        head: { "ents": "covid" }
+        tail: { "ents": "date" }
+        labels: [ "linked" ]
+      symmetric: true
+
+      word_embedding:
+        '@factory': eds.text_cnn
+        kernel_sizes: [ 3 ]
+
+        embedding:
+          '@factory': eds.transformer
+          model: hf-internal-testing/tiny-bert
+          window: 128
+          stride: 96
+
+      span_embedding:
+        '@factory': eds.span_pooler
+        embedding: ${nlp.components.relations.word_embedding}
+
+# 📈 SCORERS
+scorer:
+  speed: true
+  batch_size: 2 docs
+  rel:
+    "@metrics": eds.relations
+    candidate_getter: ${nlp.components.relations.candidate_getter}
+
+# 🎛️ OPTIMIZER
+# (disabled to test the default optimizer)
+# optimizer:
+#   "@optimizers": adam
+#   groups:
+#     "*.transformer.*":
+#       lr: 1e-3
+#       schedules:
+#         "@schedules": linear
+#         "warmup_rate": 0.1
+#         "start_value": 0
+#     "*":
+#       lr: 1e-3
+#       schedules:
+#         "@schedules": linear
+#         "warmup_rate": 0.1
+#         "start_value": 1e-3
+
+# 📚 DATA
+train_data:
+  - data:
+      '@readers': standoff
+      path: ./dataset_2/
+      converter:
+        - '@factory': eds.standoff_dict2doc
+    shuffle: dataset
+    batch_size: 1 docs
+
+val_data:
+  '@readers': standoff
+  path: ./dataset_2/
+  converter:
+    - '@factory': eds.standoff_dict2doc
+
+# 🚀 TRAIN SCRIPT OPTIONS
+train:
+  nlp: ${ nlp }
+  train_data: ${ train_data }
+  val_data: ${ val_data }
+  max_steps: 40
+  validation_interval: 10
+  max_grad_norm: 1.0
+  scorer: ${ scorer }
+  num_workers: 1

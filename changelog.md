@@ -8,6 +8,13 @@
 - Pipelines can now be instantiated directly from a config file (instead of having to cast a dict containing their arguments) by putting the @pipelines = "base" or "load" field in the pipeline section)
 - Pipeline now has a basic repr showing is base langage (mostly useful to know its tokenizer) and its pipes
 - New `python -m edsnlp.evaluate` script to evaluate a model on a dataset
+- Sentence detection can now be configured to change the minimum number of newlines to consider a newline-triggered sentence, and disable capitalization checking.
+
+### Changed
+
+### Fixed
+
+- Sentence detection now correctly match capitalized letters + apostrophe
 
 ### Data API changes
 

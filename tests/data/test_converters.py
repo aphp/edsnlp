@@ -83,6 +83,14 @@ def test_read_standoff_dict(blank_nlp):
                 "label": "test",
             },
         ],
+        "relations": [
+            {
+                "relation_id": "R1",
+                "relation_label": "linked",
+                "from_entity_id": 1,
+                "to_entity_id": 0,
+            }
+        ],
     }
     doc = get_dict2doc_converter(
         "standoff",
@@ -98,6 +106,7 @@ def test_read_standoff_dict(blank_nlp):
     assert doc.ents[0].text == "This"
     assert doc.ents[0]._.negation is True
     assert doc.ents[1]._.negation is False
+    assert doc.ents[1]._.rel["linked"] == {doc.ents[0]}
 
 
 def test_write_omop_dict(blank_nlp):

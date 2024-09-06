@@ -244,6 +244,7 @@ class StandoffDict2DocConverter:
         doc = tok(obj["text"] or "")
         doc._.note_id = obj.get("doc_id", obj.get(FILENAME))
 
+        entities = {}
         spans = []
 
         for dst in (
@@ -303,6 +304,7 @@ class StandoffDict2DocConverter:
                             )
                         span._.set(new_name, value)
 
+                entities.setdefault(ent["entity_id"], []).append(span)
                 spans.append(span)
 
         set_spans(doc, spans, span_setter=self.span_setter)
@@ -310,6 +312,16 @@ class StandoffDict2DocConverter:
             for span in spans:
                 if span._.get(attr) is None:
                     span._.set(attr, value)
+
+        for relation in obj.get("relations", []):
+            relation_label = relation["relation_label"]
+            from_entity_id = relation["from_entity_id"]
+            to_entity_id = relation["to_entity_id"]
+
+            for head in entities[from_entity_id]:
+                for tail in entities[to_entity_id]:
+                    head._.rel.setdefault(relation_label, set()).add(tail)
+                    print("NEW REL FROM", head, "TO", tail, "WITH", relation_label)
 
         return doc
 

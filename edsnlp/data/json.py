@@ -33,7 +33,7 @@ class JsonReader(BaseReader):
         super().__init__()
 
         self.fs, self.path = normalize_fs_path(filesystem, path)
-        self.files = (
+        self.files = sorted(
             [
                 file
                 for file in walk_match(self.fs, self.path, ".*[.]json.*")

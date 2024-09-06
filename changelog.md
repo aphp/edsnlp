@@ -6,6 +6,10 @@
 
 - Support for setuptools based projects in `edsnlp.package` command
 
+### Fixed
+
+- Sort files before iterating over a standoff or json folder to ensure reproducibility
+
 ## v0.13.1
 
 ### Added

@@ -303,12 +303,14 @@ class StandoffReader(BaseReader):
             name, ext = os.path.splitext(f)
             if ext.startswith(".a"):
                 ann_files.setdefault(name, []).append(f)
-        self.files = [
-            (file, ann_files.get(file.replace(".txt", ""), []))
-            for file in files
-            if file.endswith(".txt")
-            and (keep_txt_only_docs or file.replace(".txt", "") in ann_files)
-        ]
+        self.files = sorted(
+            [
+                (file, ann_files.get(file.replace(".txt", ""), []))
+                for file in files
+                if file.endswith(".txt")
+                and (keep_txt_only_docs or file.replace(".txt", "") in ann_files)
+            ]
+        )
         assert len(self.files), f"No .txt files found in the BRAT directory {self.path}"
         logger.info(f"The BRAT directory contains {len(self.files)} .txt files.")
 

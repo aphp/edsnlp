@@ -26,7 +26,7 @@
   and `ent._.negation` is set to True instead of setting `status` to "ABSENT". To this end, the *tobacco* and *alcohol*
   now use the `NegationQualifier` internally.
 - Numbers are now only detected without trying to remove the pollution in between digits, ie `55 @ 77777` could be detected as a full number before, but not anymore.
-- Fix fsspec open file encoding to "utf-8".
+- Resolve encoding-related data reading issues by forcing utf-8
 
 ### Changed
 

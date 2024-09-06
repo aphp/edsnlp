@@ -13,6 +13,8 @@
 - Added grad spike detection to the `edsnlp.train` script, and per weight layer gradient logging.
 - Added support for multiple loggers (`tensorboard`, `wandb`, `comet_ml`, `aim`, `mlflow`, `clearml`, `dvclive`, `csv`, `json`, `rich`) in `edsnlp.train` via the `logger` parameter. Default is [`json` and `rich`] for backward compatibility.
 - Added clickable snippets in the documentation for more registered functions
+- New trainable `eds.relation_detector_ffn` component to detect relations between entities. These relations are stored in each entity: `head._.rel[relation_label] = [tail1, tail2, ...]`.
+- Load "Status" annotator notes as `status` dict attribute
 
 ### Changed
 

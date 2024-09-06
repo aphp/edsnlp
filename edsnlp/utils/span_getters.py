@@ -8,12 +8,14 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Union,
 )
 
 from pydantic import NonNegativeInt
 from spacy.tokens import Doc, Span
+from typing_extensions import NotRequired, TypedDict
 
 from edsnlp import registry
 from edsnlp.utils.filter import filter_spans
@@ -45,8 +47,12 @@ def get_spans(doc, span_getter):
     for key, span_filter in span_getter.items():
         if key == "*":
             candidates = (span for group in doc.spans.values() for span in group)
+        elif key == "ents":
+            candidates = doc.ents
+        elif key == "doc":
+            candidates = (doc[:],)
         else:
-            candidates = doc.spans.get(key, ()) if key != "ents" else doc.ents
+            candidates = doc.spans.get(key, ())
         if span_filter is True:
             yield from candidates
         else:
@@ -67,8 +73,12 @@ def get_spans_with_group(doc, span_getter):
             candidates = (
                 (span, group) for group in doc.spans.values() for span in group
             )
+        elif key == "ents":
+            candidates = ((span, key) for span in doc.ents)
+        elif key == "doc":
+            candidates = ((doc[:], "doc"),)
         else:
-            candidates = doc.spans.get(key, ()) if key != "ents" else doc.ents
+            candidates = doc.spans.get(key, ())
             candidates = ((span, key) for span in candidates)
         if span_filter is True:
             yield from candidates
@@ -321,3 +331,15 @@ class make_span_context_getter:
             end = max(end, max_end_sent)
 
         return span.doc[start:end]
+
+
+RelationCandidateGetter = TypedDict(
+    "RelationCandidateGetter",
+    {
+        "head": SpanGetterArg,
+        "tail": SpanGetterArg,
+        "labels": AsList[str],
+        "label_filter": NotRequired[Dict[str, Set[str]]],
+        "symmetric": Optional[bool],
+    },
+)

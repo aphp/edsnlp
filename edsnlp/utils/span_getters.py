@@ -9,6 +9,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Union,
 )
@@ -16,6 +17,7 @@ from typing import (
 import numpy as np
 from pydantic import NonNegativeInt
 from spacy.tokens import Doc, Span
+from typing_extensions import NotRequired, TypedDict
 
 from edsnlp import registry
 from edsnlp.utils.filter import filter_spans
@@ -554,3 +556,15 @@ class IntersectionContextWindow(ContextWindow):
 
     def __repr__(self):
         return " & ".join(repr(context) for context in self.contexts)
+
+
+RelationCandidateGetter = TypedDict(
+    "RelationCandidateGetter",
+    {
+        "head": SpanGetterArg,
+        "tail": SpanGetterArg,
+        "labels": AsList[str],
+        "label_filter": NotRequired[Optional[Dict[str, Set[str]]]],
+        "symmetric": Optional[bool],
+    },
+)

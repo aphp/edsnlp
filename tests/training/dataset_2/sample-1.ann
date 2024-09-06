@@ -1,0 +1,6 @@
+#1000   Status #1000  CHECKED
+T1	date 6 18	19 juin 1987
+T2	covid 52 57	covid
+T3	date 69 84	12 octobre 1983
+T3	covid 103 108	covid
+R1	linked Arg1:T2 Arg2:T1

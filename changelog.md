@@ -6,6 +6,9 @@
 
 - New `attention` pooling mode in `eds.span_pooler`
 - New `word_pooling_mode=False` in `eds.transformer` to allow returning the worpiece embeddings directly, instead of the mean-pooled word embeddings. At the moment, this only works with `eds.span_pooler` which can pool over wordpieces or words seamlessly.
+- New trainable `eds.relation_detector_ffn` component to detect relations between entities. These relations are stored in each entity: `head._.rel[relation_label] = [tail1, tail2, ...]`.
+- Load "Status" annotator notes as `status` dict attribute
+- Support different poolers for span embedding and inter-span embeddings in `eds.relation_detector_ffn`
 
 ### Changed
 

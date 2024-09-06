@@ -384,13 +384,23 @@ class SampleGenerator(BaseModel, arbitrary_types_allowed=True):
     randomize: bool = False
     multi_sentence: bool = True
     filter_expr: Optional[str] = None
+    punct_chars: Optional[List[str]] = None
+    check_capitalized: bool = True
+    min_newline_count: int = 1
 
     def __call__(self, nlp) -> List[Doc]:
         filter_fn = eval(f"lambda doc:{self.filter_expr}") if self.filter_expr else None
 
         blank_nlp = edsnlp.Pipeline(nlp.lang, vocab=nlp.vocab, vocab_config=None)
-        if self.max_length > 0:
-            blank_nlp.add_pipe("eds.sentences")
+        if self.max_length > 0 or not self.multi_sentence:
+            blank_nlp.add_pipe(
+                "eds.sentences",
+                config={
+                    "punct_chars": self.punct_chars,
+                    "check_capitalized": self.check_capitalized,
+                    "min_newline_count": self.min_newline_count,
+                },
+            )
 
         docs = blank_nlp.pipe(self.reader).set_processing(show_progress=True)
 
@@ -433,7 +443,7 @@ class SampleGenerator(BaseModel, arbitrary_types_allowed=True):
         max_length = self.max_length
         randomize = self.randomize
 
-        if max_length <= 0:
+        if max_length <= 0 and self.multi_sentence:
             yield doc
         else:
             start = 0
@@ -443,7 +453,7 @@ class SampleGenerator(BaseModel, arbitrary_types_allowed=True):
                     token.is_sent_start = False
             for sent in doc.sents if doc.has_annotation("SENT_START") else (doc[:],):
                 # If the sentence adds too many tokens
-                if sent.end - start > max_length:
+                if sent.end - start > max_length > 0:
                     # But the current buffer too large
                     while sent.end - start > max_length:
                         subset_end = start + int(
@@ -454,7 +464,7 @@ class SampleGenerator(BaseModel, arbitrary_types_allowed=True):
                     yield subset_doc(doc, start, sent.end)
                     start = sent.end
 
-                if not self.multi_sentence:
+                if not self.multi_sentence and sent.end > start:
                     yield subset_doc(doc, start, sent.end)
                     start = sent.end
 

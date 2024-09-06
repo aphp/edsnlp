@@ -8,6 +8,7 @@
 - Support for setuptools based projects in `edsnlp.package` command
 - New trainable `eds.relation_detector_ffn` component to detect relations between entities. These relations are stored in each entity: `head._.rel[relation_label] = [tail1, tail2, ...]`.
 - New `python -m edsnlp.evaluate` script to evaluate a model on a dataset
+- Sentence detection can now be configured to change the minimum number of newlines to consider a newline-triggered sentence, and disable capitalization checking.
 
 ### Changed
 
@@ -20,6 +21,7 @@
 - Chunk size (used when applying a pipeline to a collection of docs) is not set to 128 if the batch unit is != docs
 - Resolve encoding-related data reading issues by forcing utf-8
 - Sort files before iterating over a standoff or json folder to ensure reproducibility
+- Sentence detection now correctly match capitalized letters + apostrophe
 
 ### Changed
 

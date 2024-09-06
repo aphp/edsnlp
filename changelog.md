@@ -19,6 +19,7 @@
 - Numbers are now only detected without trying to remove the pollution in between digits, ie `55 @ 77777` could be detected as a full number before, but not anymore.
 - Chunk size (used when applying a pipeline to a collection of docs) is not set to 128 if the batch unit is != docs
 - Resolve encoding-related data reading issues by forcing utf-8
+- Sort files before iterating over a standoff or json folder to ensure reproducibility
 
 ### Changed
 

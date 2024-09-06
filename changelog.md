@@ -7,6 +7,9 @@
 - `edsnlp.package` now supports `code="dependency"` and `code="none"` to build model packages without embedding project code, which is better for model finetuning with custom code, since finetuned models only require the custom code and not the original model weights. Dependency mode infers the project package requirement from `pyproject.toml` and can check the selected uv index for unreleased local code changes.
 - Add attention pooling to `eds.span_pooler`
 - Add `word_pooling_mode=False` to `eds.transformer` to return wordpiece embeddings for `eds.span_pooler`
+- Add `eds.relation_detector_ffn` to predict relations between entities, stored as sets of tail spans in `head._.rel`
+- Load "Status" annotator notes as `status` dict attribute
+- Support different poolers for span embedding and inter-span embeddings in `eds.relation_detector_ffn`
 
 ### Changed
 
@@ -23,6 +26,10 @@
 - `eds.contextual_matcher` now checks `span_getter` in span-only `include` rules instead of rejecting every anchor
 - Correctly normalize two-digit years matched by `eds.dates`, allowing at most one year after the report date
 - Restore Spark inference functions after successful and failed schema inference
+
+### Fixed
+
+- Correctly initialize labels when training pipe names are left unset
 
 ## v0.22.0 (2026-06-17)
 

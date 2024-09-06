@@ -1,0 +1,4 @@
+T1	date 11 24	29 avril 2020
+T2	date 62 70	30 avril
+T3	covid 101 106	covid
+R1	linked Arg1:T3 Arg2:T1

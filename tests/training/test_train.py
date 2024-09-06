@@ -21,6 +21,7 @@ from typing import (
     Sequence,
     Union,
 )
+from unittest.mock import patch
 
 import pytest
 import spacy.tokenizer
@@ -29,12 +30,15 @@ from confit import Config
 from confit.utils.random import set_seed
 from spacy.tokens import Doc, Span
 
+import edsnlp
+import edsnlp.pipes as eds
 from edsnlp.core.registries import registry
+from edsnlp.core.stream import Stream
 from edsnlp.data.converters import AttributesMappingArg, get_current_tokenizer
 from edsnlp.metrics.dep_parsing import DependencyParsingMetric
 from edsnlp.training.loggers import CSVLogger
 from edsnlp.training.optimizer import LinearSchedule, ScheduledOptimizer
-from edsnlp.training.trainer import GenericScorer, train
+from edsnlp.training.trainer import GenericScorer, TrainingData, train
 from edsnlp.utils.span_getters import SpanSetterArg, set_spans
 
 
@@ -215,6 +219,34 @@ def test_dep_parser_train(run_in_test_dir, tmp_path):
     assert last_scores["dep"]["las"] >= 0.4
 
 
+@pytest.mark.parametrize("inter_span", [False, True])
+@pytest.mark.parametrize("pooling_mode", ["mean", "attention"])
+def test_rel_train(run_in_test_dir, tmp_path, inter_span, pooling_mode):
+    set_seed(42)
+    config = Config.from_disk("rel_config.yml")
+    config["nlp.components.relations.span_embedding.pooling_mode"] = pooling_mode
+    if inter_span:
+        config["nlp.components.relations.inter_span_embedding"] = (
+            "${nlp.components.relations.span_embedding}"
+        )
+    shutil.rmtree(tmp_path, ignore_errors=True)
+    kwargs = Config.resolve(config["train"], registry=registry, root=config)
+    nlp = train(**kwargs, output_dir=tmp_path, cpu=True)
+    scorer = GenericScorer(**kwargs["scorer"])
+    val_data = kwargs["val_data"]
+    last_scores = scorer(nlp, val_data)
+
+    # Check empty doc
+    nlp("")
+
+    assert last_scores["rel"]["micro"]["f"] >= 0.4
+    rel = nlp.pipes.relations
+    empty = rel.prepare_batch([nlp.make_doc("")], supervision=True)
+    loss = rel(empty)["loss"]
+    assert loss.item() == 0
+    loss.backward()
+
+
 def test_optimizer():
     net = torch.nn.Linear(10, 10)
     optim = ScheduledOptimizer(
@@ -257,3 +289,73 @@ def test_optimizer():
             0.0,
         ]
     )
+
+
+@pytest.mark.parametrize("pipe_names", [None, ["ner", "relations"]])
+@pytest.mark.parametrize("reverse", [False, True])
+def test_joint_training_shared_transformer(tmp_path, pipe_names, reverse):
+    # Infer NER labels and reuse transformer activations with empty relation candidates
+    nlp = edsnlp.blank("eds")
+    transformer = eds.transformer(model="hf-internal-testing/tiny-random-bert")
+    ner = nlp.add_pipe(
+        eds.ner_crf(
+            name="ner",
+            embedding=transformer,
+            mode="independent",
+            target_span_getter="gold_spans",
+            infer_span_setter=False,
+        )
+    )
+    nlp.add_pipe(
+        eds.relation_detector_ffn(
+            name="relations",
+            span_embedding=eds.span_pooler(embedding=transformer, pooling_mode="mean"),
+            inter_span_embedding=eds.span_pooler(
+                embedding=transformer, pooling_mode="mean"
+            ),
+            candidate_getter=[
+                {
+                    "head": {"gold_spans": ["drug"]},
+                    "tail": {"gold_spans": ["problem"]},
+                    "labels": ["treats"],
+                    "symmetric": False,
+                }
+            ],
+        )
+    )
+    doc = nlp.make_doc("Aspirin treats pain")
+    head, tail = Span(doc, 0, 1, label="drug"), Span(doc, 2, 3, label="problem")
+    doc.spans["gold_spans"] = [head, tail]
+    head._.rel = {"treats": {tail}}
+    empty = nlp.make_doc("Rien à signaler")
+    empty.spans["gold_spans"] = []
+    docs = [empty, doc] if reverse else [doc, empty]
+    weight = transformer.transformer.embeddings.word_embeddings.weight
+    before = weight.detach().clone()
+    with patch.object(
+        transformer.transformer, "forward", wraps=transformer.transformer.forward
+    ) as forward:
+        train(
+            nlp=nlp,
+            train_data=TrainingData(
+                data=Stream.ensure_stream(docs),
+                batch_size="2 docs",
+                shuffle=False,
+                pipe_names=pipe_names,
+            ),
+            val_data=[],
+            max_steps=1,
+            validation_interval=1,
+            optimizer=ScheduledOptimizer(
+                "AdamW", module=nlp, groups={".*": {"lr": 0.001}}
+            ),
+            cpu=True,
+            logger=False,
+            save_model=False,
+            output_dir=tmp_path,
+        )
+    assert ner.labels == ["drug", "problem"]
+    assert forward.call_count == 1
+    assert not torch.equal(before, weight)
+    assert torch.isfinite(weight).all()
+    assert not doc.ents

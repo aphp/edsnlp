@@ -163,8 +163,8 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         Align spans to embedding contexts and record word boundaries for collation
         """
         if contexts is None:
-            contexts = [doc[:]] * len(spans)
-            pre_aligned = True
+            contexts = [doc[:]]
+            pre_aligned = False
 
         context_indices = []
         begins = []

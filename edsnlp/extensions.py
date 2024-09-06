@@ -2,7 +2,7 @@ import warnings
 from datetime import date, datetime
 
 from dateutil.parser import parse as parse_date
-from spacy.tokens import Doc
+from spacy.tokens import Doc, Span
 
 if not Doc.has_extension("note_id"):
     Doc.set_extension("note_id", default=None)
@@ -43,3 +43,6 @@ if not Doc.has_extension("note_datetime"):
 
 if not Doc.has_extension("birth_datetime"):
     Doc.set_extension("birth_datetime", default=None)
+
+if not Span.has_extension("rel"):
+    Span.set_extension("rel", default={})

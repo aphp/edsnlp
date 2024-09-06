@@ -203,7 +203,9 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
                 "embeddings": batch["begins"].with_data(span_embeds),
             }
 
-        embeds = self.embedding(batch["embedding"])["embeddings"]
+        embeds = self.embedding(batch["embedding"])["embeddings"].refold(
+            ["context", "word"]
+        )
         _, n_words, dim = embeds.shape
         device = embeds.device
 

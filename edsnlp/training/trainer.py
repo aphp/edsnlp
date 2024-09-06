@@ -35,6 +35,7 @@ from edsnlp.metrics.ner import NerMetric
 from edsnlp.metrics.span_attribute import SpanAttributeMetric
 from edsnlp.pipes.base import (
     BaseNERComponent,
+    BaseRelationDetectorComponent,
     BaseSpanAttributeClassifierComponent,
 )
 from edsnlp.utils.batching import BatchSizeArg, stat_batchify
@@ -50,6 +51,7 @@ from edsnlp.utils.span_getters import get_spans
 from edsnlp.utils.typing import AsList
 
 from ..core.torch_component import TorchComponent
+from ..metrics.relations import RelationsMetric
 from .optimizer import LinearSchedule, ScheduledOptimizer
 
 
@@ -188,6 +190,35 @@ class GenericScorer:
                 )
             for name, metric in span_attr_metrics.items():
                 scores[name] = metric(docs, qlf_preds)
+
+        # Relations
+        rel_pipes = [
+            name
+            for name, pipe in nlp.pipeline
+            if isinstance(pipe, BaseRelationDetectorComponent)
+        ]
+        rel_metrics: Dict[str, RelationsMetric] = {  # type: ignore
+            name: metrics.pop(name)
+            for name in list(metrics)
+            if isinstance(metrics[name], RelationsMetric)
+        }
+        if rel_pipes and rel_metrics:
+            clean_rel_docs = [d.copy() for d in tqdm(docs, desc="Copying docs")]
+            for doc in clean_rel_docs:
+                for name in rel_pipes:
+                    pipe: BaseRelationDetectorComponent = nlp.get_pipe(name)  # type: ignore
+                    for candidate_getter in pipe.candidate_getter:
+                        for span in (
+                            *get_spans(doc, candidate_getter["head"]),
+                            *get_spans(doc, candidate_getter["tail"]),
+                        ):
+                            for label in pipe.labels:
+                                if label in span._.rel:
+                                    span._.rel[label].clear()
+            with nlp.select_pipes(disable=ner_pipes):
+                rel_preds = list(nlp.pipe(tqdm(clean_rel_docs, desc="Predicting")))
+            for name, scorer in rel_metrics.items():
+                scores[name] = scorer(docs, rel_preds)
 
         # Custom metrics
         for name, metric in metrics.items():

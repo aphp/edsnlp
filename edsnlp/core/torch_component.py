@@ -124,13 +124,15 @@ def _cached_preprocess_supervised(fn):
 def _cached_collate(fn):
     if hasattr(fn, "_cached"):  # pragma: no cover
         return fn
-    return cached(lambda self, batch: hash_batch(batch), store_key=True)(fn)
+    return cached(
+        lambda self, batch, *args, **kwargs: hash_batch(batch), store_key=True
+    )(fn)
 
 
 def _cached_forward(fn):
     if hasattr(fn, "_cached"):  # pragma: no cover
         return fn
-    return cached(lambda self, batch: hash_batch(batch))(fn)
+    return cached(lambda self, batch, *args, **kwargs: hash_batch(batch))(fn)
 
 
 def _cached_batch_to_device(fn):
@@ -455,8 +457,7 @@ class TorchComponent(
 
     if TYPE_CHECKING:
 
-        def __call__(self, BatchInput) -> BatchOutput:
-            ...
+        def __call__(self, batch: BatchInput) -> BatchOutput: ...
 
     def to_disk(self, path, *, exclude: Optional[Set[str]]):
         if object.__repr__(self) in exclude:

@@ -130,6 +130,10 @@ version = { attr = "edsnlp.__version__" }
 [tool.setuptools.packages.find]
 where = ["."]
 
+[project.entry-points."edsnlp_pipelines"]
+"base" = "edsnlp.core.pipeline:Pipeline"
+"load" = "edsnlp.core.pipeline:load"
+
 [project.entry-points."spacy_factories"]
 # Core
 "eds.accents"                     = "edsnlp.pipes.core.normalizer.accents.factory:create_component"

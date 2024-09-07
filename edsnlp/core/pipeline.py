@@ -41,7 +41,7 @@ from spacy.tokenizer import Tokenizer
 from spacy.tokens import Doc
 from spacy.util import get_lang_class
 from spacy.vocab import Vocab, create_vocab
-from typing_extensions import Literal
+from typing_extensions import Literal, Self
 
 from ..core.registries import PIPE_META, CurriedFactory, FactoryMeta, registry
 from ..utils.collections import (
@@ -63,6 +63,7 @@ except ModuleNotFoundError:
     import importlib_metadata
 
 import edsnlp
+from edsnlp.utils.collections import flatten
 
 EMPTY_LIST = FrozenList()
 FORBIDDEN_AUTO_HF_OWNERS = {
@@ -84,6 +85,7 @@ class CacheEnum(str, Enum):
 Pipe = TypeVar("Pipe", bound=Callable[[Doc], Doc])
 
 
+@registry.pipelines.register("base")
 class Pipeline:
     """
     New pipeline to use as a drop-in replacement for spaCy's pipeline.
@@ -96,18 +98,23 @@ class Pipeline:
     def __init__(
         self,
         lang: str,
-        create_tokenizer: Callable[["Pipeline"], Optional[Tokenizer]] = None,
+        create_tokenizer: Callable[[Self], Optional[Tokenizer]] = None,
         vocab: Union[bool, Vocab] = True,
         batch_size: Optional[int] = 128,
         vocab_config: Type[BaseDefaults] = None,
         meta: Dict[str, Any] = None,
+        pipeline: Sequence[str] = (),
+        components: Dict[str, CurriedFactory] = {},
+        disable: AsList[str] = EMPTY_LIST,
+        enable: AsList[str] = EMPTY_LIST,
+        exclude: AsList = EMPTY_LIST,
     ):
         """
         Parameters
         ----------
         lang: str
             Language code
-        create_tokenizer: Callable[['Pipeline'], Optional[Tokenizer]]
+        create_tokenizer: Callable[[Self], Optional[Tokenizer]]
             Function that creates a tokenizer for the pipeline
         vocab: Union[bool, Vocab]
             Whether to create a new vocab or use an existing one
@@ -146,6 +153,8 @@ class Pipeline:
         self.meta = dict(meta) if meta is not None else {}
         self.lang: str = lang
         self._cache: Optional[Dict] = None
+
+        self._add_pipes(pipeline, components, exclude, enable, disable)
 
     @property
     def pipeline(self) -> List[Tuple[str, Pipe]]:
@@ -518,15 +527,31 @@ class Pipeline:
         components = config.pop("components", {})
         pipeline = config.pop("pipeline", ())
         tokenizer = config.pop("tokenizer", None)
-        disable = (config.pop("disabled", ()), disable)
+        exclude = list(flatten([*config.pop("exclude", ()), exclude]))
+        enable = list(flatten([*config.pop("enable", ()), enable]))
+        disable = list(flatten([*config.pop("disable", ()), disable]))
 
         nlp = Pipeline(
             vocab=vocab,
             create_tokenizer=tokenizer,
             meta=meta,
+            pipeline=pipeline,
+            components=components,
+            exclude=exclude,
+            enable=enable,
+            disable=disable,
             **config,
         )
+        return nlp
 
+    def _add_pipes(
+        self,
+        pipeline: Sequence[str],
+        components: Dict[str, CurriedFactory],
+        exclude: Container[str],
+        enable: Container[str],
+        disable: Container[str],
+    ):
         # Since components are actually resolved as curried factories,
         # we need to instantiate them here
         for name, component in components.items():
@@ -538,12 +563,12 @@ class Pipeline:
                 )
 
         try:
-            components = CurriedFactory.instantiate(components, nlp=nlp)
+            components = CurriedFactory.instantiate(components, nlp=self)
         except ConfitValidationError as e:
             e = ConfitValidationError(
                 e.raw_errors,
-                model=cls,
-                name=cls.__module__ + "." + cls.__qualname__,
+                model=self.__class__,
+                name=self.__class__.__module__ + "." + self.__class__.__qualname__,
             )
             e.raw_errors = patch_errors(e.raw_errors, ("components",))
             raise e
@@ -553,16 +578,15 @@ class Pipeline:
                 continue
             if name not in components:
                 raise ValueError(f"Component {repr(name)} not found in config")
-            nlp.add_pipe(components[name], name=name)
+            self.add_pipe(components[name], name=name)
 
         # Set of components name if it's in the disable list
         # or if it's not in the enable list and the enable list is not empty
-        nlp._disabled = [
+        self._disabled = [
             name
-            for name in nlp.pipe_names
+            for name in self.pipe_names
             if name in disable or (enable and name not in enable)
         ]
-        return nlp
 
     @property
     def disabled(self):
@@ -1022,11 +1046,14 @@ def blank(
     return Pipeline.from_config({"lang": lang, **config})
 
 
+@registry.pipelines.register("load")
 def load(
-    model: Union[Path, str, Config],
+    model: Union[str, Path, Config],
     overrides: Optional[Dict[str, Any]] = None,
     *,
-    exclude: Optional[Union[str, Iterable[str]]] = None,
+    exclude: Optional[AsList[str]] = EMPTY_LIST,
+    disable: Optional[AsList[str]] = EMPTY_LIST,
+    enable: Optional[AsList[str]] = EMPTY_LIST,
     auto_update: bool = False,
     install_dependencies: bool = False,
     **kwargs,
@@ -1048,7 +1075,7 @@ def load(
 
     Parameters
     ----------
-    model: Union[Path, str, Config]
+    model: Union[str, Path, Config]
         The config to use for the pipeline, or the path to a config file or a directory.
     overrides: Optional[Dict[str, Any]]
         Overrides to apply to the config when loading the pipeline. These are the
@@ -1079,7 +1106,13 @@ def load(
         "- or a model on the huggingface hub if edsnlp[ml] has been installed\n"
         f"but got {model!r} which is neither"
     )
-    if isinstance(model, (Path, str)):
+    pipe_selection = {
+        "exclude": exclude,
+        "disable": disable,
+        "enable": enable,
+    }
+    pipe_selection = {k: v for k, v in pipe_selection.items() if v is not EMPTY_LIST}
+    if isinstance(model, (str, Path)):
         path = Path(model)
         is_dir = path.is_dir()
         is_config = path.is_file() and path.suffix == ".cfg"
@@ -1103,7 +1136,7 @@ def load(
             pwd = os.getcwd()
             try:
                 os.chdir(path)
-                nlp = Pipeline.from_config(config)
+                nlp = Pipeline.from_config(config, **pipe_selection)
                 nlp.from_disk(path, exclude=exclude)
                 nlp.train(False)
             finally:
@@ -1113,10 +1146,7 @@ def load(
             model = Config.from_disk(path)
         elif is_package:
             # Load as package
-            available_kwargs = {
-                "overrides": overrides,
-                "exclude": exclude,
-            }
+            available_kwargs = {"overrides": overrides, **pipe_selection}
             signature_kwargs = inspect.signature(module.load).parameters
             kwargs = {
                 name: available_kwargs[name]
@@ -1125,8 +1155,9 @@ def load(
             }
             return module.load(**kwargs)
         elif (
-            len(str(model).split("/")) == 2
-            and str(model).split("/")[0] not in FORBIDDEN_AUTO_HF_OWNERS
+            isinstance(model, str)
+            and len(model.split("/")) == 2
+            and model.split("/")[0] not in FORBIDDEN_AUTO_HF_OWNERS
         ):
             try:
                 return load_from_huggingface(

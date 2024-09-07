@@ -124,13 +124,15 @@ def _cached_preprocess_supervised(fn):
 def _cached_collate(fn):
     if hasattr(fn, "_cached"):  # pragma: no cover
         return fn
-    return cached(lambda self, batch: hash_batch(batch), store_key=True)(fn)
+    return cached(
+        lambda self, batch, *args, **kwargs: hash_batch(batch), store_key=True
+    )(fn)
 
 
 def _cached_forward(fn):
     if hasattr(fn, "_cached"):  # pragma: no cover
         return fn
-    return cached(lambda self, batch: hash_batch(batch))(fn)
+    return cached(lambda self, batch, *args, **kwargs: hash_batch(batch))(fn)
 
 
 def _cached_batch_to_device(fn):

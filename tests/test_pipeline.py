@@ -90,8 +90,8 @@ def test_disk_serialization(tmp_path, ml_nlp):
     assert (tmp_path / "model" / "transformer" / "parameters.safetensors").exists()
     # fmt: off
     assert (
-          (tmp_path / "model" / "transformer" / "pytorch_model.bin").exists() or
-          (tmp_path / "model" / "transformer" / "model.safetensors").exists()
+            (tmp_path / "model" / "transformer" / "pytorch_model.bin").exists() or
+            (tmp_path / "model" / "transformer" / "model.safetensors").exists()
     )
     # fmt: on
 
@@ -397,3 +397,16 @@ def test_missing_huggingface():
         )
 
     assert "The load function expects either :" in str(exc_info.value)
+
+
+def test_repr(frozen_ml_nlp):
+    with frozen_ml_nlp.select_pipes(disable=["sentences"]):
+        assert (
+            repr(frozen_ml_nlp)
+            == """\
+Pipeline(lang=eds, pipes={
+  "sentences": [disabled] eds.sentences,
+  "transformer": eds.transformer,
+  "ner": eds.ner_crf
+})"""
+        )

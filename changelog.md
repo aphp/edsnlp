@@ -6,6 +6,7 @@
 
 - Support for setuptools based projects in `edsnlp.package` command
 - Pipelines can now be instantiated directly from a config file (instead of having to cast a dict containing their arguments) by putting the @pipelines = "base" or "load" field in the pipeline section)
+- Pipeline now has a basic repr showing is base langage (mostly useful to know its tokenizer) and its pipes
 
 ## v0.13.1
 

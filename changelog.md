@@ -6,6 +6,7 @@
 
 - `eds.tables` accepts a minimum_table_size (default 2) argument to reduce pollution
 - Support for setuptools based projects in `edsnlp.package` command
+- Pipelines can now be instantiated directly from a config file (instead of having to cast a dict containing their arguments) by putting the @pipelines = "base" or "load" field in the pipeline section)
 
 ### Changed
 
@@ -17,6 +18,7 @@
 - Numbers are now only detected without trying to remove the pollution in between digits, ie `55 @ 77777` could be detected as a full number before, but not anymore.
 - Resolve encoding-related data reading issues by forcing utf-8
 - Sort files before iterating over a standoff or json folder to ensure reproducibility
+- edsnlp.load now correctly takes disable, enable and exclude parameters into account
 
 ### Changed
 

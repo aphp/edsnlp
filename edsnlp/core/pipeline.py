@@ -11,6 +11,7 @@ import sysconfig
 import warnings
 from enum import Enum
 from pathlib import Path
+from types import FunctionType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -1002,6 +1003,25 @@ class Pipeline:
         for (name, pipe), meta in zip(self.pipeline, state["_pipe_meta"]):
             PIPE_META[pipe] = meta
         del state["_pipe_meta"]
+
+    def __repr__(self):
+        pipes_str = ""
+        for name, pipe in self.pipeline:
+            if pipes_str:
+                pipes_str += ","
+            try:
+                factory_name = Config.serialize(pipe)["@factory"]
+            except KeyError:
+                if isinstance(pipe, FunctionType):
+                    factory_name = pipe
+                else:
+                    factory_name = pipe.__class__.__name__
+            disabled = " [disabled] " if name in self._disabled else " "
+            pipe_str = f'"{name}":{disabled}{factory_name}'
+            pipes_str += f"\n  {pipe_str}"
+        if pipes_str:
+            pipes_str += "\n"
+        return f"Pipeline(lang={self.lang}, pipes={{{pipes_str}}})"
 
 
 def blank(

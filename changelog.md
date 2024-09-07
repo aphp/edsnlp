@@ -9,6 +9,7 @@
 - New trainable `eds.relation_detector_ffn` component to detect relations between entities. These relations are stored in each entity: `head._.rel[relation_label] = [tail1, tail2, ...]`.
 - New `python -m edsnlp.evaluate` script to evaluate a model on a dataset
 - Sentence detection can now be configured to change the minimum number of newlines to consider a newline-triggered sentence, and disable capitalization checking.
+- Pipelines can now be instantiated directly from a config file (instead of having to cast a dict containing their arguments) by putting the @pipelines = "base" or "load" field in the pipeline section)
 
 ### Changed
 
@@ -22,6 +23,7 @@
 - Resolve encoding-related data reading issues by forcing utf-8
 - Sort files before iterating over a standoff or json folder to ensure reproducibility
 - Sentence detection now correctly match capitalized letters + apostrophe
+- edsnlp.load now correctly takes disable, enable and exclude parameters into account
 
 ### Changed
 

@@ -77,7 +77,7 @@ def parse_standoff_file(
     relations = []
     events = {}
 
-    with fs.open(txt_path, "r") as f:
+    with fs.open(txt_path, "r", encoding="utf-8") as f:
         text = f.read()
 
     if not len(ann_paths):
@@ -86,7 +86,7 @@ def parse_standoff_file(
         }
 
     for ann_file in ann_paths:
-        with fs.open(ann_file, "r") as f:
+        with fs.open(ann_file, "r", encoding="utf-8") as f:
             for line_idx, line in enumerate(f):
                 try:
                     if line.startswith("T"):

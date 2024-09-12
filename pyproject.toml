@@ -13,7 +13,7 @@ dependencies = [
     "pytz",
     "pysimstring>=1.2.1",
     "regex",
-    "spacy>=3.1,<4.0.0",
+    "spacy>=3.1,<4.0.0,!=3.8.0",
     "confit>=0.5.5",
     "tqdm",
     "umls-downloader>=0.1.1",

@@ -47,6 +47,7 @@ class UnitlessRange(TypedDict):
 
 class UnitlessPatternConfig(TypedDict):
     terms: List[str]
+    regex: List[str]
     ranges: List[UnitlessRange]
 
 
@@ -713,12 +714,21 @@ class QuantitiesMatcher(BaseNERComponent):
             if "unitless_patterns" in measure_config:
                 for pattern in measure_config["unitless_patterns"]:
                     pattern_name = f"unitless_{len(self.unitless_patterns)}"
-                    self.term_matcher.build_patterns(
+                    if pattern["terms"]:
+                        self.term_matcher.build_patterns(
                         nlp,
                         terms={
                             pattern_name: pattern["terms"],
                         },
                     )
+                    if pattern["regex"]:
+                        self.regex_matcher.build_patterns(
+                            nlp,
+                            terms={
+                                pattern_name: pattern["regex"],
+                            },
+                            )
+
                     self.unitless_label_hashes.add(nlp.vocab.strings[pattern_name])
                     self.unitless_patterns[pattern_name] = {"name": name, **pattern}
 

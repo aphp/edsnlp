@@ -274,7 +274,7 @@ where = ["."]
 requires = [
     "setuptools",
     "cython>=0.25",
-    "spacy>=3.2,<4.0",
+    "spacy>=3.2,<4.0,!=3.8.0",
     # to update from https://github.com/scipy/oldest-supported-numpy/blob/main/setup.cfg
     # while setting numpy >= 1.15.0 due to spacy reqs
     "numpy==1.15.0; python_version=='3.7' and platform_machine not in 'arm64|aarch64|loongarch64' and platform_system!='AIX' and platform_python_implementation != 'PyPy'",

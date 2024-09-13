@@ -707,6 +707,7 @@ class QuantitiesMatcher(BaseNERComponent):
                 for name, common_quantity in patterns.common_quantities.items()
             ]
 
+        self.mapper = {}
         for measure_config in quantities:
             name = measure_config["name"]
             unit = measure_config["unit"]
@@ -720,17 +721,18 @@ class QuantitiesMatcher(BaseNERComponent):
                         terms={
                             pattern_name: pattern["terms"],
                         },
-                    )
-                    if pattern["regex"]:
-                        self.regex_matcher.build_patterns(
-                            nlp,
-                            terms={
-                                pattern_name: pattern["regex"],
-                            },
-                            )
+                        )
+                        self.unitless_label_hashes.add(nlp.vocab.strings[pattern_name])
+                        self.unitless_patterns[pattern_name] = {"name": name, **pattern}
 
-                    self.unitless_label_hashes.add(nlp.vocab.strings[pattern_name])
-                    self.unitless_patterns[pattern_name] = {"name": name, **pattern}
+                    if pattern["regex"]:
+                        self.regex_matcher.add(
+                            pattern_name,
+                            [pattern["regex"]],
+                            ignore_excluded=False,
+                            ignore_space_tokens=False,
+                        )
+                        self.mapper[pattern_name] = {"name": name, **pattern}
 
         # NUMBER PATTERNS
         self.regex_matcher.add(
@@ -1089,7 +1091,9 @@ class QuantitiesMatcher(BaseNERComponent):
                     (unitless_idx, unitless_text) = next(
                         (j, e)
                         for j, e in get_matches_before(number_idx)
-                        if e.label in self.unitless_label_hashes
+                        if (
+                            (e.label in self.unitless_label_hashes)
+                        )
                     )
                     unit_norm = None
                     if re.fullmatch(
@@ -1104,7 +1108,28 @@ class QuantitiesMatcher(BaseNERComponent):
                             and ("max" not in scope or value < scope["max"])
                         )
                 except StopIteration:
-                    pass
+                    try:
+                        (unitless_idx, unitless_text) = next(
+                            (j, e)
+                            for j, e in get_matches_before(number_idx)
+                            if (
+                                (e.label_ in self.mapper.keys())
+                            )
+                        )
+                        unit_norm = None
+                        if re.fullmatch(
+                                r"[,:n]*",
+                                pseudo[offsets[unitless_idx] + 1: offsets[number_idx]],
+                        ):
+                            unitless_pattern = self.mapper[unitless_text.label_]
+                            unit_norm = next(
+                                scope["unit"]
+                                for scope in unitless_pattern["ranges"]
+                                if ("min" not in scope or value >= scope["min"])
+                                and ("max" not in scope or value < scope["max"])
+                            )
+                    except StopIteration:
+                        pass
 
             # Otherwise, skip this number
             if not unit_norm:

@@ -6,14 +6,13 @@ from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
 from edsnlp.pipes.base import SpanSetterArg
-from edsnlp.pipes.qualifiers.negation import NegationQualifier
 from edsnlp.utils.numbers import parse_digit
 
-from ...disorders.base import DisorderMatcher
+from ..alcohol.alcohol import AlcoholMatcher
 from .patterns import default_patterns
 
 
-class TobaccoMatcher(DisorderMatcher):
+class TobaccoMatcher(AlcoholMatcher):
     """
     The `eds.tobacco` pipeline component extracts mentions of tobacco consumption.
 
@@ -108,27 +107,12 @@ class TobaccoMatcher(DisorderMatcher):
             nlp=nlp,
             name=name,
             patterns=patterns,
-            detailed_status_mapping={
-                1: None,
-                2: "ABSTINENCE",
-            },
             label=label,
             span_setter=span_setter,
-            include_assigned=True,
         )
-        self.nlp = nlp
-        self.negation = NegationQualifier(nlp)
 
     def process(self, doc: Doc) -> List[Span]:
         for span in super().process(doc):
-            if "stopped" in span._.assigned.keys():
-                stopped = self.negation.process(span)
-                if not any(stopped_token.negation for stopped_token in stopped.tokens):
-                    span._.status = 2
-
-            if "zero_after" in span._.assigned.keys():
-                span._.negation = True
-
             if "secondhand" in span._.assigned.keys():
                 span._.negation = True
 

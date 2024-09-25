@@ -1,9 +1,15 @@
+from dataclasses import dataclass
 from typing import List, Optional, Set, Union
 
 from spacy.tokens import Doc, Span, Token
 
 from edsnlp.core import PipelineProtocol
-from edsnlp.pipes.qualifiers.base import RuleBasedQualifier
+from edsnlp.pipes.qualifiers.base import (
+    BaseEntQualifierResults,
+    BaseQualifierResults,
+    BaseTokenQualifierResults,
+    RuleBasedQualifier,
+)
 from edsnlp.pipes.terminations import termination as default_termination
 from edsnlp.utils.deprecation import deprecated_getter_factory
 from edsnlp.utils.filter import consume_spans, filter_spans
@@ -21,6 +27,26 @@ def negation_getter(token: Union[Token, Span]) -> Optional[str]:
         return "AFF"
     else:
         return None
+
+
+@dataclass
+class TokenNegationResults(BaseTokenQualifierResults):
+    # Single token
+    negation: bool
+
+
+@dataclass
+class EntNegationResults(BaseEntQualifierResults):
+    # Single entity
+    negation: bool
+    cues: List[Span]
+
+
+@dataclass
+class NegationResults(BaseQualifierResults):
+    # All qualified tokens and entities
+    tokens: List[TokenNegationResults]
+    ents: List[EntNegationResults]
 
 
 class NegationQualifier(RuleBasedQualifier):
@@ -246,7 +272,30 @@ class NegationQualifier(RuleBasedQualifier):
 
         return list_neg_verbs_preceding, list_neg_verbs_following
 
-    def process(self, doc: Doc) -> Doc:
+    def __call__(self, doc: Doc) -> Doc:
+        results = self.process(doc)
+        if not self.on_ents_only:
+            for token_results in results.tokens:
+                token_results.token._.negation = (
+                    token_results.token._.negation or token_results.negation
+                )
+        for ent_results in results.ents:
+            ent, cues, negation = (
+                ent_results.ent,
+                ent_results.cues,
+                ent_results.negation,
+            )
+            ent._.negation = ent._.negation or negation
+
+            if self.explain and negation:
+                ent._.negation_cues += cues
+
+            if not self.on_ents_only and negation:
+                for token in ent:
+                    token._.negation = True
+        return doc
+
+    def process(self, doc: Doc) -> NegationResults:
         matches = self.get_matches(doc)
 
         terminations = [m for m in matches if m.label_ == "termination"]
@@ -257,6 +306,8 @@ class NegationQualifier(RuleBasedQualifier):
 
         entities = list(get_spans(doc, self.span_getter))
         ents = None
+
+        token_results, ent_results = [], []
 
         for start, end in boundaries:
             ents, entities = consume_spans(
@@ -281,10 +332,14 @@ class NegationQualifier(RuleBasedQualifier):
 
             if not self.on_ents_only:
                 for token in doc[start:end]:
-                    token._.negation = (
-                        token._.negation
-                        or any(m.end <= token.i for m in sub_preceding)
-                        or any(m.start > token.i for m in sub_following)
+                    token_results.append(
+                        TokenNegationResults(
+                            token=token,
+                            negation=(
+                                any(m.end <= token.i for m in sub_preceding)
+                                or any(m.start > token.i for m in sub_following)
+                            ),
+                        )
                     )
 
             for ent in ents:
@@ -296,13 +351,13 @@ class NegationQualifier(RuleBasedQualifier):
                     cues += [m for m in sub_following if m.start >= ent.end]
 
                 negation = bool(cues)
-                ent._.negation = ent._.negation or negation
 
-                if self.explain and negation:
-                    ent._.negation_cues += cues
+                ent_results.append(
+                    EntNegationResults(
+                        ent=ent,
+                        cues=cues,
+                        negation=negation,
+                    )
+                )
 
-                if not self.on_ents_only and negation:
-                    for token in ent:
-                        token._.negation = True
-
-        return doc
+        return NegationResults(tokens=token_results, ents=ent_results)

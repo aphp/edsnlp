@@ -1,10 +1,16 @@
+from dataclasses import dataclass
 from typing import List, Optional, Set, Union
 
 from spacy.tokens import Doc, Span, Token
 
 from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.regex import RegexMatcher
-from edsnlp.pipes.qualifiers.base import RuleBasedQualifier
+from edsnlp.pipes.qualifiers.base import (
+    BaseEntQualifierResults,
+    BaseQualifierResults,
+    BaseTokenQualifierResults,
+    RuleBasedQualifier,
+)
 from edsnlp.utils.filter import consume_spans, filter_spans
 from edsnlp.utils.inclusion import check_inclusion
 from edsnlp.utils.resources import get_verbs
@@ -20,6 +26,26 @@ def reported_speech_getter(token: Union[Token, Span]) -> Optional[str]:
         return "DIRECT"
     else:
         return None
+
+
+@dataclass
+class TokenReportedSpeechResults(BaseTokenQualifierResults):
+    # Single token
+    reported_speech: bool
+
+
+@dataclass
+class EntReportedSpeechResults(BaseEntQualifierResults):
+    # Single entity
+    reported_speech: bool
+    cues: List[Span]
+
+
+@dataclass
+class ReportedSpeechResults(BaseQualifierResults):
+    # All qualified tokens and entities
+    tokens: List[TokenReportedSpeechResults]
+    ents: List[EntReportedSpeechResults]
 
 
 class ReportedSpeechQualifier(RuleBasedQualifier):
@@ -162,6 +188,12 @@ class ReportedSpeechQualifier(RuleBasedQualifier):
             if not cls.has_extension("reported_speech_"):
                 cls.set_extension("reported_speech_", getter=reported_speech_getter)
 
+            if not cls.has_extension("rspeech"):
+                cls.set_extension("rspeech", default=None)
+
+            if not cls.has_extension("rspeech_"):
+                cls.set_extension("rspeech_", getter=reported_speech_getter)
+
         if not Span.has_extension("reported_speech_cues"):
             Span.set_extension("reported_speech_cues", default=[])
 
@@ -194,7 +226,7 @@ class ReportedSpeechQualifier(RuleBasedQualifier):
 
         return list_rep_verbs
 
-    def process(self, doc: Doc) -> Doc:
+    def process(self, doc: Doc) -> ReportedSpeechResults:
         matches = self.get_matches(doc)
         matches += list(self.regex_matcher(doc, as_spans=True))
 
@@ -205,6 +237,8 @@ class ReportedSpeechQualifier(RuleBasedQualifier):
 
         entities = list(get_spans(doc, self.span_getter))
         ents = None
+
+        token_results, ent_results = [], []
 
         for start, end in boundaries:
             ents, entities = consume_spans(
@@ -227,14 +261,20 @@ class ReportedSpeechQualifier(RuleBasedQualifier):
 
             if not self.on_ents_only:
                 for token in doc[start:end]:
-                    token._.reported_speech = (
-                        any(m.end <= token.i for m in sub_preceding + sub_verbs)
-                        or any(m.start > token.i for m in sub_following)
-                        or any(
-                            ((m.start < token.i) & (m.end > token.i + 1))
-                            for m in sub_quotation
+                    token_results.append(
+                        TokenReportedSpeechResults(
+                            token=token,
+                            reported_speech=(
+                                any(m.end <= token.i for m in sub_preceding + sub_verbs)
+                                or any(m.start > token.i for m in sub_following)
+                                or any(
+                                    ((m.start < token.i) & (m.end > token.i + 1))
+                                    for m in sub_quotation
+                                )
+                            ),
                         )
                     )
+
             for ent in ents:
                 if self.within_ents:
                     cues = [m for m in sub_preceding + sub_verbs if m.end <= ent.end]
@@ -250,13 +290,36 @@ class ReportedSpeechQualifier(RuleBasedQualifier):
                 ]
 
                 reported_speech = bool(cues)
-                ent._.reported_speech = ent._.reported_speech or reported_speech
+                ent_results.append(
+                    EntReportedSpeechResults(
+                        ent=ent,
+                        cues=cues,
+                        reported_speech=reported_speech,
+                    )
+                )
 
-                if self.explain and reported_speech:
-                    ent._.reported_speech_cues += cues
+        return ReportedSpeechResults(tokens=token_results, ents=ent_results)
 
-                if not self.on_ents_only and reported_speech:
-                    for token in ent:
-                        token._.reported_speech = True
+    def __call__(self, doc: Doc) -> Doc:
+        results = self.process(doc)
+        if not self.on_ents_only:
+            for token_results in results.tokens:
+                token_results.token._.reported_speech = (
+                    token_results.token._.reported_speech
+                    or token_results.reported_speech
+                )
+        for ent_results in results.ents:
+            ent, cues, reported_speech = (
+                ent_results.ent,
+                ent_results.cues,
+                ent_results.reported_speech,
+            )
+            ent._.reported_speech = ent._.reported_speech or reported_speech
 
+            if self.explain and reported_speech:
+                ent._.reported_speech_cues += cues
+
+            if not self.on_ents_only and reported_speech:
+                for token in ent:
+                    token._.reported_speech = True
         return doc

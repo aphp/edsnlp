@@ -1,9 +1,11 @@
 """`eds.alcohol` pipeline"""
+
 from typing import Any, Dict, List, Optional, Union
 
 from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
+from edsnlp.pipes.qualifiers.negation import NegationQualifier
 
 from ...disorders.base import DisorderMatcher
 from .patterns import default_patterns
@@ -25,10 +27,13 @@ class AlcoholMatcher(DisorderMatcher):
     ----------
     On each span `span` that match, the following attributes are available:
 
-    - `span._.detailed_status`: set to either
-        - `"PRESENT"`
-        - `"ABSTINENCE"` if the patient stopped its consumption
-        - `"ABSENT"` if the patient has no alcohol dependence
+    - `span._.detailed_status`: either None or `"ABSTINENCE"`
+    if the patient stopped its consumption
+    - `span._.negation`: set to True when a mention such as "alcool: 0" is found
+
+    !!! warning "Use qualifiers !"
+        Although the alcohol pipe sometime sets value for the `negation` attribute,
+        *generic* qualifier should still be used after the pipe.
 
     Examples
     --------
@@ -95,20 +100,26 @@ class AlcoholMatcher(DisorderMatcher):
             name=name,
             patterns=patterns,
             detailed_status_mapping={
-                0: "ABSENT",
-                1: "PRESENT",
+                1: None,
                 2: "ABSTINENCE",
             },
             label=label,
             span_setter=span_setter,
+            include_assigned=True,
         )
+        self.nlp = nlp
+        self.negation = NegationQualifier(nlp)
 
     def process(self, doc: Doc) -> List[Span]:
         for span in super().process(doc):
             if "stopped" in span._.assigned.keys():
-                span._.status = 2
+                # using nlp(text) so that we don't assign negation flags on
+                # the original document
+                stopped = self.negation.process(span)
+                if not any(stopped_token.negation for stopped_token in stopped.tokens):
+                    span._.status = 2
 
-            elif "zero_after" in span._.assigned.keys():
-                span._.status = 0
+            if "zero_after" in span._.assigned.keys():
+                span._.negation = True
 
             yield span

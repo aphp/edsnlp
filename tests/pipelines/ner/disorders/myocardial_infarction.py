@@ -6,7 +6,7 @@ results_myocardial_infarction = dict(
         False,
         True,
     ],
-    detailled_status="PRESENT",
+    detailled_status=None,
     assign=None,
     texts=[
         "Une cardiopathie ischémique",

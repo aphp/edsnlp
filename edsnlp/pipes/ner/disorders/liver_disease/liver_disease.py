@@ -1,4 +1,5 @@
 """`eds.liver_disease` pipeline"""
+
 from typing import Any, Dict, List, Optional, Union
 
 from spacy.tokens import Doc, Span
@@ -94,7 +95,6 @@ class LiverDiseaseMatcher(DisorderMatcher):
             name=name,
             patterns=patterns,
             detailed_status_mapping={
-                0: "ABSENT",
                 1: "MILD",
                 2: "MODERATE_TO_SEVERE",
             },

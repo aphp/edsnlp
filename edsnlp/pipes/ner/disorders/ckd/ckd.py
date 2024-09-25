@@ -1,4 +1,5 @@
 """`eds.ckd` pipeline"""
+
 from typing import Any, Dict, List, Optional, Union
 
 from loguru import logger
@@ -37,7 +38,7 @@ class CKDMatcher(DisorderMatcher):
     ----------
     On each span `span` that match, the following attributes are available:
 
-    - `span._.detailed_status`: set to `"PRESENT"`
+    - `span._.detailed_status`: set to None
     - `span._.assigned`: dictionary with the following keys, if relevant:
         - `stage`: mentioned renal failure stage
         - `status`: mentioned renal failure severity (e.g. modérée, sévère, terminale,

@@ -1,4 +1,5 @@
 """`eds.aids` pipeline"""
+
 import itertools
 from typing import Any, Dict, List, Optional, Union
 
@@ -39,7 +40,7 @@ class AIDSMatcher(DisorderMatcher):
     ----------
     On each span `span` that match, the following attributes are available:
 
-    - `span._.detailed_status`: set to `"PRESENT"`
+    - `span._.detailed_status`: set to None
     - `span._.assigned`: dictionary with the following keys, if relevant:
         - `opportunist`: list of opportunist infections extracted around the HIV mention
         - `stage`: stage of the HIV infection

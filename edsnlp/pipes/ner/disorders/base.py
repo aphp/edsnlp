@@ -48,9 +48,8 @@ class DisorderMatcher(ContextualMatcher):
         include_assigned: bool = True,
         ignore_excluded: bool = True,
         ignore_space_tokens: bool = True,
-        detailed_status_mapping: Dict[int, str] = {
-            0: "ABSENT",
-            1: "PRESENT",
+        detailed_status_mapping: Dict[int, Union[str, None]] = {
+            1: None,
         },
         alignment_mode: str = "expand",
         regex_flags: Union[re.RegexFlag, int] = re.S,
@@ -81,7 +80,7 @@ class DisorderMatcher(ContextualMatcher):
         if not Span.has_extension("negation"):
             Span.set_extension("negation", default=None)
         if not Span.has_extension("detailed_status"):
-            Span.set_extension("detailed_status", default="PRESENT")
+            Span.set_extension("detailed_status", default=None)
         if not Span.has_extension("detailled_status"):
             Span.set_extension(
                 "detailled_status",
@@ -116,8 +115,6 @@ class DisorderMatcher(ContextualMatcher):
         spans = list(self.process(doc))
         for span in spans:
             span._.detailed_status = self.detailed_status_mapping[span._.status]
-            if span._.status == 0:
-                span._.negation = True
 
         self.set_spans(doc, filter_spans(spans))
 

@@ -1,4 +1,5 @@
 """`eds.connective_tissue_disease` pipeline"""
+
 from typing import Any, Dict, List, Optional, Union
 
 from spacy.tokens import Doc, Span
@@ -26,7 +27,7 @@ class ConnectiveTissueDiseaseMatcher(DisorderMatcher):
     ----------
     On each span `span` that match, the following attributes are available:
 
-    - `span._.detailed_status`: set to `"PRESENT"`
+    - `span._.detailed_status`: set to None
 
     Examples
     --------

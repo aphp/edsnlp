@@ -7,7 +7,7 @@ results_copd = dict(
         False,
         True,
     ],
-    detailled_status="PRESENT",
+    detailled_status=None,
     assign=None,
     texts=[
         "Une fibrose interstitielle diffuse idiopathique",

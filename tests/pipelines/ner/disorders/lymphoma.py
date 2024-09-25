@@ -5,7 +5,7 @@ results_lymphoma = dict(
         True,
         False,
     ],
-    detailled_status="PRESENT",
+    detailled_status=None,
     assign=None,
     texts=[
         "Un lymphome de Hodgkin.",

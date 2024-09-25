@@ -6,10 +6,10 @@ results_aids = dict(
         True,
     ],
     detailled_status=[
-        "PRESENT",
         None,
-        "PRESENT",
-        "PRESENT",
+        None,
+        None,
+        None,
     ],
     assign=None,
     texts=[

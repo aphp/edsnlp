@@ -1,4 +1,5 @@
 """`eds.leukemia` pipeline"""
+
 from typing import Any, Dict, List, Optional, Union
 
 from edsnlp.core import PipelineProtocol
@@ -23,7 +24,7 @@ class LeukemiaMatcher(DisorderMatcher):
     ----------
     On each span `span` that match, the following attributes are available:
 
-    - `span._.detailed_status`: set to `"PRESENT"`
+    - `span._.detailed_status`: set to None
 
     Examples
     --------

@@ -57,6 +57,7 @@ class DisorderTester:
         texts,
         has_match,
         detailled_status,
+        negation=None,
         assign=None,
     ):
         self.disorder = disorder
@@ -71,13 +72,22 @@ class DisorderTester:
             else len(texts) * [detailled_status]
         )
         self.assign = assign if assign is not None else len(texts) * [None]
+        self.negation = negation if negation is not None else len(texts) * [None]
 
         self.nlp.add_pipe(f"eds.{disorder}")
 
     def check(self):
-        for text, has_match, detailled_status, assign in zip(
-            self.texts, self.has_match, self.detailled_status, self.assign
+        for text, has_match, detailled_status, assign, negation in zip(
+            self.texts,
+            self.has_match,
+            self.detailled_status,
+            self.assign,
+            self.negation,
         ):
+            if f"eds.{self.disorder}" in set(["eds.tobacco", "eds.alcohol"]) - set(
+                self.nlp.pipe_names
+            ):
+                self.nlp.add_pipe("eds.negation")
             doc = self.nlp(text)
             ents = doc.spans[self.disorder]
 
@@ -85,6 +95,8 @@ class DisorderTester:
 
             for ent in ents:
                 assert ent.label_ == self.disorder
+                if negation is not None:
+                    assert ent._.negation == negation
 
             if not ents:
                 continue
@@ -103,7 +115,6 @@ class DisorderTester:
     list(results.keys()),
 )
 def test_disorder(normalized_nlp, disorder):
-
     result = results[disorder]
 
     expect = DisorderTester(
@@ -113,26 +124,3 @@ def test_disorder(normalized_nlp, disorder):
     )
 
     expect.check()
-
-
-def test_behavior_negation(blank_nlp):
-    blank_nlp.add_pipe("eds.normalizer")
-    blank_nlp.add_pipe("eds.tobacco")
-    blank_nlp.add_pipe("eds.alcohol")
-    blank_nlp.add_pipe("eds.negation")
-
-    negated_texts = [
-        "Le patient ne fume aucun truc.",
-        "Le patient fume 0 PA.",
-        "Il ne boit pas d'alcool." "Boit très rarement de l'alcool.",
-    ]
-
-    positive_texts = ["Le patient ne fume que le soir.", "Il ne boit plus d'alcool."]
-
-    for text in negated_texts:
-        doc = blank_nlp(text)
-        assert doc.ents[0]._.negation is True, text
-
-    for text in positive_texts:
-        doc = blank_nlp(text)
-        assert doc.ents[0]._.negation is False, text

@@ -54,7 +54,7 @@
     # Out: ABSTINENCE
 
     span._.assigned
-    # Out: {'stopped': [ancien]}
+    # Out: {'stopped': ancien}
     ```
 
 
@@ -71,7 +71,10 @@
     span = spans[0]
 
     span._.detailed_status
-    # Out: ABSENT
+    # Out: None
+
+    span._.negation
+    # Out: True
 
     span._.assigned
     # Out: {'zero_after': [0]}
@@ -91,7 +94,10 @@
     span = spans[0]
 
     span._.detailed_status
-    # Out: ABSENT
+    # Out: None
+
+    span._.negation
+    # Out: True
 
     span._.assigned
     # Out: {'secondhand': passif}
@@ -114,5 +120,5 @@
     # Out: ABSTINENCE
 
     span._.assigned
-    # Out: {'stopped': [sevré]}
+    # Out: {'stopped': sevré}
     ```

@@ -1,10 +1,12 @@
 """`eds.tobacco` pipeline"""
+
 from typing import Any, Dict, List, Optional, Union
 
 from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
 from edsnlp.pipes.base import SpanSetterArg
+from edsnlp.pipes.qualifiers.negation import NegationQualifier
 from edsnlp.utils.numbers import parse_digit
 
 from ...disorders.base import DisorderMatcher
@@ -26,13 +28,20 @@ class TobaccoMatcher(DisorderMatcher):
     ----------
     On each span `span` that match, the following attributes are available:
 
-    - `span._.detailed_status`: set to either
-        - `"PRESENT"`
-        - `"ABSTINENCE"` if the patient stopped its consumption
-        - `"ABSENT"` if the patient has no tobacco dependence
+    - `span._.detailed_status`: either None or `"ABSTINENCE"`
+    if the patient stopped its consumption
     - `span._.assigned`: dictionary with the following keys, if relevant:
         - `PA`: the mentioned *year-pack* (= *paquet-année*)
         - `secondhand`: if secondhand smoking
+    - `span._.negation`: set to True when either
+        - A pack-year value of 0 is extracted
+        - A mention such as "tabac: 0" is found
+        - The patient experiences secondhand smoking
+
+    !!! warning "Use qualifiers !"
+        Although the tobacco pipe sometime sets value for the `negation` attribute,
+        *generic* qualifier should still be used after the pipe.
+
 
     Examples
     --------
@@ -100,24 +109,28 @@ class TobaccoMatcher(DisorderMatcher):
             name=name,
             patterns=patterns,
             detailed_status_mapping={
-                0: "ABSENT",
-                1: "PRESENT",
+                1: None,
                 2: "ABSTINENCE",
             },
             label=label,
             span_setter=span_setter,
+            include_assigned=True,
         )
+        self.nlp = nlp
+        self.negation = NegationQualifier(nlp)
 
     def process(self, doc: Doc) -> List[Span]:
         for span in super().process(doc):
             if "stopped" in span._.assigned.keys():
-                span._.status = 2
+                stopped = self.negation.process(span)
+                if not any(stopped_token.negation for stopped_token in stopped.tokens):
+                    span._.status = 2
 
             if "zero_after" in span._.assigned.keys():
-                span._.status = 0
+                span._.negation = True
 
             if "secondhand" in span._.assigned.keys():
-                span._.status = 0
+                span._.negation = True
 
             elif "PA" in span._.assigned.keys():
                 pa = parse_digit(
@@ -126,6 +139,6 @@ class TobaccoMatcher(DisorderMatcher):
                     ignore_excluded=True,
                 )
                 if (pa == 0) and ("stopped" not in span._.assigned.keys()):
-                    span._.status = 0
+                    span._.negation = True
 
             yield span

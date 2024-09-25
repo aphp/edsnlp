@@ -1,4 +1,5 @@
 """`eds.solid_tumor` pipeline"""
+
 from typing import Any, Dict, List, Optional, Union
 
 from spacy.tokens import Doc, Span
@@ -101,7 +102,6 @@ class SolidTumorMatcher(DisorderMatcher):
             name=name,
             patterns=patterns,
             detailed_status_mapping={
-                0: "ABSENT",
                 1: "LOCALIZED",
                 2: "METASTASIS",
             },

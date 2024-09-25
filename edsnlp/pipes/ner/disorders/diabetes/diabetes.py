@@ -1,4 +1,5 @@
 """`eds.diabetes` pipeline"""
+
 from typing import Any, Dict, List, Optional, Union
 
 from spacy.tokens import Doc, Span
@@ -104,7 +105,6 @@ class DiabetesMatcher(DisorderMatcher):
             name=name,
             patterns=patterns,
             detailed_status_mapping={
-                0: "ABSENT",
                 1: "WITHOUT_COMPLICATION",
                 2: "WITH_COMPLICATION",
             },

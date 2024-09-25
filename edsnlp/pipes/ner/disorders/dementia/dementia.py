@@ -24,7 +24,7 @@ class DementiaMatcher(DisorderMatcher):
     ----------
     On each span `span` that match, the following attributes are available:
 
-    - `span._.detailed_status`: set to `"PRESENT"`
+    - `span._.detailed_status`: set to None
 
     Examples
     --------

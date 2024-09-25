@@ -61,7 +61,7 @@
     # Out: ABSTINENCE
 
     span._.assigned
-    # Out: {'stopped': [sevré]}
+    # Out: {'stopped': sevré}
     ```
 
 
@@ -73,7 +73,12 @@
     spans = doc.spans["alcohol"]
 
     spans
-    # Out: [Alcoolisme]
+    # Out: [Alcoolism non sevré]
+
+    span = spans[0]
+
+    span._.detailed_status
+    # Out: None # "sevré" is negated, so no "ABTINENCE" status
     ```
 
 
@@ -89,11 +94,11 @@
 
     span = spans[0]
 
-    span._.detailed_status
-    # Out: ABSENT
+    span._.negation
+    # Out: True
 
     span._.assigned
-    # Out: {'zero_after': [0]}
+    # Out: {'zero_after': 0}
     ```
 
 
@@ -113,5 +118,5 @@
     # Out: ABSTINENCE
 
     span._.assigned
-    # Out: {'stopped': [sevrage]}
+    # Out: {'stopped': sevrage}
     ```

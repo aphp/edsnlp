@@ -6,7 +6,7 @@ results_congestive_heart_failure = dict(
         True,
         False,
     ],
-    detailled_status="PRESENT",
+    detailled_status=None,
     assign=None,
     texts=[
         "Présence d'un oedème pulmonaire",

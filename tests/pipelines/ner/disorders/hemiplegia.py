@@ -4,7 +4,7 @@ results_hemiplegia = dict(
         True,
         True,
     ],
-    detailled_status="PRESENT",
+    detailled_status=None,
     assign=None,
     texts=[
         "Patient hémiplégique",

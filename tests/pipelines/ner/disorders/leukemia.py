@@ -5,7 +5,7 @@ results_leukemia = dict(
         True,
         True,
     ],
-    detailled_status="PRESENT",
+    detailled_status=None,
     assign=None,
     texts=[
         "Sydrome myéloprolifératif",

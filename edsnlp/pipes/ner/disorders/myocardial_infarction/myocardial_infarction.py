@@ -1,4 +1,5 @@
 """`eds.myocardial_infarction` pipeline"""
+
 from typing import Any, Dict, List, Optional, Union
 
 from spacy.tokens import Doc, Span
@@ -29,7 +30,7 @@ class MyocardialInfarctionMatcher(DisorderMatcher):
     ----------
     On each span `span` that match, the following attributes are available:
 
-    - `span._.detailed_status`: set to `"PRESENT"`
+    - `span._.detailed_status`: set to None
     - `span._.assigned`: dictionary with the following keys, if relevant:
         - `heart_localized`: localization of the stent or bypass
 

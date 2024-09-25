@@ -27,13 +27,15 @@ default_patterns = [
         assign=[
             dict(
                 name="stopped",
-                regex=r"(?<!non )(?<!pas )(\bex\b|sevr|arret|stop|ancien)",
+                regex=r"(\bex\b|sevr|arret|stop|ancien)",
                 window=(-3, 15),
+                reduce_mode="keep_first",
             ),
             dict(
                 name="zero_after",
-                regex=r"(?=^[a-z]*\s*:?[\s-]*(0|non(?! sevr)))",
-                window=6,
+                regex=r"(?=^[a-z]*\s*:?[\s-]*(0|non|aucun|jamais))",
+                window=3,
+                reduce_mode="keep_first",
             ),
             dict(
                 name="PA",

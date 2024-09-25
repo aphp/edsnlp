@@ -1,8 +1,9 @@
 import warnings
+from dataclasses import dataclass
 from itertools import chain
 from typing import Dict, List, Optional, Set, Union
 
-from spacy.tokens import Doc, Span
+from spacy.tokens import Doc, Span, Token
 
 from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.phrase import EDSPhraseMatcher
@@ -25,6 +26,22 @@ def check_normalizer(nlp: PipelineProtocol) -> None:
             "This WILL hurt performance : you might want to use the "
             "LOWER attribute instead."
         )
+
+
+@dataclass
+class BaseTokenQualifierResults:
+    token: Token
+
+
+@dataclass
+class BaseEntQualifierResults:
+    ent: Span
+
+
+@dataclass
+class BaseQualifierResults:
+    tokens: List[BaseTokenQualifierResults]
+    ents: List[BaseEntQualifierResults]
 
 
 class RuleBasedQualifier(BaseSpanAttributeClassifierComponent):
@@ -139,5 +156,9 @@ class RuleBasedQualifier(BaseSpanAttributeClassifierComponent):
 
         return list(matches)
 
+    def process(self, doc: Doc) -> BaseQualifierResults:
+        raise NotImplementedError
+
     def __call__(self, doc: Doc) -> Doc:
-        return self.process(doc)
+        results = self.process(doc)
+        raise NotImplementedError(f"{type(results)} should be used to tag the document")

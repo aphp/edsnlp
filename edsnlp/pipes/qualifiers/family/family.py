@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import List, Optional, Set, Union
 
 from loguru import logger
@@ -5,7 +6,12 @@ from spacy.tokens import Doc, Span, Token
 
 from edsnlp.core import PipelineProtocol
 from edsnlp.pipes.base import SpanGetterArg, get_spans
-from edsnlp.pipes.qualifiers.base import RuleBasedQualifier
+from edsnlp.pipes.qualifiers.base import (
+    BaseEntQualifierResults,
+    BaseQualifierResults,
+    BaseTokenQualifierResults,
+    RuleBasedQualifier,
+)
 from edsnlp.pipes.terminations import termination as default_termination
 from edsnlp.utils.filter import consume_spans, filter_spans
 from edsnlp.utils.inclusion import check_inclusion
@@ -20,6 +26,26 @@ def family_getter(token: Union[Token, Span]) -> Optional[str]:
         return "PATIENT"
     else:
         return None
+
+
+@dataclass
+class TokenFamilyResults(BaseTokenQualifierResults):
+    # Single token
+    family: bool
+
+
+@dataclass
+class EntFamilyResults(BaseEntQualifierResults):
+    # Single entity
+    family: bool
+    cues: List[Span]
+
+
+@dataclass
+class FamilyResults(BaseQualifierResults):
+    # All qualified tokens and entities
+    tokens: List[TokenFamilyResults]
+    ents: List[EntFamilyResults]
 
 
 class FamilyContextQualifier(RuleBasedQualifier):
@@ -161,7 +187,7 @@ class FamilyContextQualifier(RuleBasedQualifier):
         if not Doc.has_extension("family"):
             Doc.set_extension("family", default=[])
 
-    def process(self, doc: Doc) -> Doc:
+    def process(self, doc: Doc) -> FamilyResults:
         matches = self.get_matches(doc)
 
         terminations = [m for m in matches if m.label_ == "termination"]
@@ -173,6 +199,7 @@ class FamilyContextQualifier(RuleBasedQualifier):
         entities = list(get_spans(doc, self.span_getter))
         ents = None
 
+        token_results, ent_results = [], []
         sections = []
 
         if self.sections:
@@ -205,11 +232,37 @@ class FamilyContextQualifier(RuleBasedQualifier):
 
             if not self.on_ents_only:
                 for token in doc[start:end]:
-                    token._.family = token._.family or family
+                    token_results.append(TokenFamilyResults(token=token, family=family))
 
             for ent in ents:
-                ent._.family = family
-                if self.explain:
-                    ent._.family_cues += cues
+                ent_results.append(
+                    EntFamilyResults(
+                        ent=ent,
+                        cues=cues,
+                        family=family,
+                    )
+                )
+
+        return FamilyResults(tokens=token_results, ents=ent_results)
+
+    def __call__(self, doc: Doc) -> Doc:
+        results = self.process(doc)
+
+        if not self.on_ents_only:
+            for token_results in results.tokens:
+                token_results.token._.family = (
+                    token_results.token._.family or token_results.family
+                )
+
+        for ent_results in results.ents:
+            ent, cues, family = (
+                ent_results.ent,
+                ent_results.cues,
+                ent_results.family,
+            )
+            ent._.family = ent._.family or family
+
+            if self.explain:
+                ent._.family_cues += cues
 
         return doc

@@ -1,10 +1,16 @@
+from dataclasses import dataclass
 from typing import List, Optional, Set, Union
 
 from spacy.tokens import Doc, Span, Token
 
 from edsnlp.core import PipelineProtocol
 from edsnlp.pipes.base import SpanGetterArg, get_spans
-from edsnlp.pipes.qualifiers.base import RuleBasedQualifier
+from edsnlp.pipes.qualifiers.base import (
+    BaseEntQualifierResults,
+    BaseQualifierResults,
+    BaseTokenQualifierResults,
+    RuleBasedQualifier,
+)
 from edsnlp.pipes.terminations import termination as default_termination
 from edsnlp.utils.filter import consume_spans, filter_spans
 from edsnlp.utils.inclusion import check_inclusion
@@ -20,6 +26,26 @@ def hypothesis_getter(token: Union[Token, Span]) -> Optional[str]:
         return "CERT"
     else:
         return None
+
+
+@dataclass
+class TokenHypothesisResults(BaseTokenQualifierResults):
+    # Single token
+    hypothesis: bool
+
+
+@dataclass
+class EntHypothesisResults(BaseEntQualifierResults):
+    # Single entity
+    hypothesis: bool
+    cues: List[Span]
+
+
+@dataclass
+class HypothesisResults(BaseQualifierResults):
+    # All qualified tokens and entities
+    tokens: List[TokenHypothesisResults]
+    ents: List[EntHypothesisResults]
 
 
 class HypothesisQualifier(RuleBasedQualifier):
@@ -96,7 +122,7 @@ class HypothesisQualifier(RuleBasedQualifier):
 
         The NegParHyp corpus was built by matching a subset of the MeSH terminology with
         around 300 documents from AP-HP's clinical data warehouse. Matched entities were
-        then labelled for negation, speculation and family context.
+        then labelled for hypothesis, speculation and hypothesis context.
 
     Parameters
     ----------
@@ -236,7 +262,7 @@ class HypothesisQualifier(RuleBasedQualifier):
             list_hypo_verbs_following,
         )
 
-    def process(self, doc: Doc) -> Doc:
+    def process(self, doc: Doc) -> HypothesisResults:
         matches = self.get_matches(doc)
 
         terminations = [m for m in matches if m.label_ == "termination"]
@@ -247,6 +273,8 @@ class HypothesisQualifier(RuleBasedQualifier):
 
         entities = list(get_spans(doc, self.span_getter))
         ents = None
+
+        token_results, ent_results = [], []
 
         for start, end in boundaries:
             ents, entities = consume_spans(
@@ -271,9 +299,15 @@ class HypothesisQualifier(RuleBasedQualifier):
 
             if not self.on_ents_only:
                 for token in doc[start:end]:
-                    token._.hypothesis = any(
-                        m.end <= token.i for m in sub_preceding
-                    ) or any(m.start > token.i for m in sub_following)
+                    token_results.append(
+                        TokenHypothesisResults(
+                            token=token,
+                            hypothesis=(
+                                any(m.end <= token.i for m in sub_preceding)
+                                or any(m.start > token.i for m in sub_following)
+                            ),
+                        )
+                    )
 
             for ent in ents:
                 if self.within_ents:
@@ -284,13 +318,36 @@ class HypothesisQualifier(RuleBasedQualifier):
                     cues += [m for m in sub_following if m.start >= ent.end]
 
                 hypothesis = bool(cues)
-                ent._.hypothesis = ent._.hypothesis or hypothesis
 
-                if self.explain and hypothesis:
-                    ent._.hypothesis_cues += cues
+                ent_results.append(
+                    EntHypothesisResults(
+                        ent=ent,
+                        cues=cues,
+                        hypothesis=hypothesis,
+                    )
+                )
 
-                if not self.on_ents_only and hypothesis:
-                    for token in ent:
-                        token._.hypothesis = token._.hypothesis or hypothesis
+        return HypothesisResults(tokens=token_results, ents=ent_results)
 
+    def __call__(self, doc: Doc) -> Doc:
+        results = self.process(doc)
+        if not self.on_ents_only:
+            for token_results in results.tokens:
+                token_results.token._.hypothesis = (
+                    token_results.token._.hypothesis or token_results.hypothesis
+                )
+        for ent_results in results.ents:
+            ent, cues, hypothesis = (
+                ent_results.ent,
+                ent_results.cues,
+                ent_results.hypothesis,
+            )
+            ent._.hypothesis = ent._.hypothesis or hypothesis
+
+            if self.explain and hypothesis:
+                ent._.hypothesis_cues += cues
+
+            if not self.on_ents_only and hypothesis:
+                for token in ent:
+                    token._.hypothesis = True
         return doc

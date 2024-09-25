@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import timedelta, tzinfo
 from typing import List, Optional, Set, Union
 
@@ -7,7 +8,12 @@ from spacy.tokens import Doc, Span, Token
 
 from edsnlp.core import PipelineProtocol
 from edsnlp.pipes.base import SpanGetterArg, get_spans
-from edsnlp.pipes.qualifiers.base import RuleBasedQualifier
+from edsnlp.pipes.qualifiers.base import (
+    BaseEntQualifierResults,
+    BaseQualifierResults,
+    BaseTokenQualifierResults,
+    RuleBasedQualifier,
+)
 from edsnlp.pipes.terminations import termination as default_termination
 from edsnlp.utils.deprecation import deprecated_getter_factory
 from edsnlp.utils.filter import consume_spans, filter_spans
@@ -24,6 +30,27 @@ def history_getter(token: Union[Token, Span]) -> Optional[str]:
         return "CURRENT"
     else:
         return None
+
+
+@dataclass
+class TokenHistoryResults(BaseTokenQualifierResults):
+    # Single token
+    history: bool
+
+
+@dataclass
+class EntHistoryResults(BaseEntQualifierResults):
+    # Single entity
+    history: bool
+    recent_cues: List[Span]
+    history_cues: List[Span]
+
+
+@dataclass
+class HistoryResults(BaseQualifierResults):
+    # All qualified tokens and entities
+    tokens: List[TokenHistoryResults]
+    ents: List[EntHistoryResults]
 
 
 class HistoryQualifier(RuleBasedQualifier):
@@ -299,7 +326,7 @@ class HistoryQualifier(RuleBasedQualifier):
                 getter=deprecated_getter_factory("antecedent_cues", "history_cues"),
             )
 
-    def process(self, doc: Doc) -> Doc:
+    def process(self, doc: Doc) -> HistoryResults:
         note_datetime = None
         if doc._.note_datetime is not None:
             try:
@@ -417,6 +444,7 @@ class HistoryQualifier(RuleBasedQualifier):
                             history_dates.append(
                                 Span(doc, date.start, date.end, label="absolute_date")
                             )
+        token_results, ent_results = [], []
 
         for start, end in boundaries:
             ents, entities = consume_spans(
@@ -534,13 +562,43 @@ class HistoryQualifier(RuleBasedQualifier):
             history = bool(history_cues) and not bool(recent_cues)
 
             for ent in ents:
-                ent._.history = ent._.history or history
+                ent_results.append(
+                    EntHistoryResults(
+                        ent=ent,
+                        history_cues=history_cues,
+                        recent_cues=recent_cues,
+                        history=history,
+                    )
+                )
 
-                if self.explain:
-                    ent._.history_cues += history_cues
-                    ent._.recent_cues += recent_cues
                 if not self.on_ents_only:
                     for token in ent:
-                        token._.history = token._.history or history
+                        token_results.append(
+                            TokenHistoryResults(
+                                token=token,
+                                history=history,
+                            )
+                        )
 
+        return HistoryResults(tokens=token_results, ents=ent_results)
+
+    def __call__(self, doc: Doc) -> Doc:
+        results = self.process(doc)
+        if not self.on_ents_only:
+            for token_results in results.tokens:
+                token_results.token._.history = (
+                    token_results.token._.history or token_results.history
+                )
+
+        for ent_results in results.ents:
+            ent, history_cues, recent_cues, history = (
+                ent_results.ent,
+                ent_results.history_cues,
+                ent_results.recent_cues,
+                ent_results.history,
+            )
+            ent._.history = ent._.history or history
+            if self.explain:
+                ent._.history_cues += history_cues
+                ent._.recent_cues += recent_cues
         return doc

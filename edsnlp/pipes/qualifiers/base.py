@@ -30,16 +30,32 @@ def check_normalizer(nlp: PipelineProtocol) -> None:
 
 @dataclass
 class BaseTokenQualifierResults:
+    """
+    Base dataclass to store qualification informations for each token.
+    Specific qualifier pipes should inherit from this class and
+    add specific fields as needed
+    """
+
     token: Token
 
 
 @dataclass
 class BaseEntQualifierResults:
+    """
+    Base dataclass to store qualification informations for each entity.
+    Specific qualifier pipes should inherit from this class and
+    add specific fields as needed
+    """
+
     ent: Span
 
 
 @dataclass
 class BaseQualifierResults:
+    """
+    Base dataclass to store qualification informations for all tokens and entities.
+    """
+
     tokens: List[BaseTokenQualifierResults]
     ents: List[BaseEntQualifierResults]
 

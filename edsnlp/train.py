@@ -31,11 +31,11 @@ from tqdm import tqdm
 import edsnlp
 from edsnlp.core.pipeline import Pipeline
 from edsnlp.core.registries import registry
+from edsnlp.metrics.ner import NerMetric
+from edsnlp.metrics.span_attributes import SpanAttributeMetric
 from edsnlp.optimization import LinearSchedule, ScheduledOptimizer
 from edsnlp.pipes.base import BaseNERComponent, BaseSpanAttributeClassifierComponent
 from edsnlp.pipes.trainable.embeddings.transformer.transformer import Transformer
-from edsnlp.scorers.ner import NerScorer
-from edsnlp.scorers.span_attributes import SpanAttributeScorer
 from edsnlp.utils.bindings import BINDING_SETTERS
 from edsnlp.utils.collections import batchify
 from edsnlp.utils.span_getters import get_spans
@@ -328,13 +328,23 @@ class Reader(BaseModel, arbitrary_types_allowed=True):
     randomize: bool = False
     multi_sentence: bool = True
     filter_expr: Optional[str] = None
+    punct_chars: Optional[List[str]] = None
+    check_capitalized: bool = True
+    min_newline_count: int = 1
 
     def __call__(self, nlp) -> List[Doc]:
         filter_fn = eval(f"lambda doc:{self.filter_expr}") if self.filter_expr else None
 
         blank_nlp = edsnlp.Pipeline(nlp.lang, vocab=nlp.vocab, vocab_config=None)
-        if self.max_length > 0:
-            blank_nlp.add_pipe("eds.sentences")
+        if self.max_length > 0 or not self.multi_sentence:
+            blank_nlp.add_pipe(
+                "eds.sentences",
+                config={
+                    "punct_chars": self.punct_chars,
+                    "check_capitalized": self.check_capitalized,
+                    "min_newline_count": self.min_newline_count,
+                },
+            )
 
         docs = blank_nlp.pipe(self.reader).set_processing(show_progress=True)
 
@@ -377,7 +387,7 @@ class Reader(BaseModel, arbitrary_types_allowed=True):
         max_length = self.max_length
         randomize = self.randomize
 
-        if max_length <= 0:
+        if max_length <= 0 and self.multi_sentence:
             yield doc
         else:
             start = 0
@@ -387,7 +397,7 @@ class Reader(BaseModel, arbitrary_types_allowed=True):
                     token.is_sent_start = False
             for sent in doc.sents if doc.has_annotation("SENT_START") else (doc[:],):
                 # If the sentence adds too many tokens
-                if sent.end - start > max_length:
+                if sent.end - start > max_length > 0:
                     # But the current buffer too large
                     while sent.end - start > max_length:
                         subset_end = start + int(
@@ -398,7 +408,7 @@ class Reader(BaseModel, arbitrary_types_allowed=True):
                     yield subset_doc(doc, start, sent.end)
                     start = sent.end
 
-                if not self.multi_sentence:
+                if not self.multi_sentence and sent.end > start:
                     yield subset_doc(doc, start, sent.end)
                     start = sent.end
 
@@ -435,7 +445,7 @@ class GenericScorer:
         ner_scorers = {
             name: scorer
             for name, scorer in self.scorers.items()
-            if isinstance(scorer, NerScorer)
+            if isinstance(scorer, NerMetric)
         }
         if ner_pipes and ner_scorers:
             clean_ner_docs = [d.copy() for d in tqdm(docs, desc="Copying docs")]
@@ -456,7 +466,7 @@ class GenericScorer:
         span_attr_scorers = {
             name: scorer
             for name, scorer in self.scorers.items()
-            if isinstance(scorer, SpanAttributeScorer)
+            if isinstance(scorer, SpanAttributeMetric)
         }
         if qlf_pipes and span_attr_scorers:
             clean_qlf_docs = [d.copy() for d in tqdm(docs, desc="Copying docs")]

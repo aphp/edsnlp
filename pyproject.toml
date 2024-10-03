@@ -109,6 +109,10 @@ version = { attr = "edsnlp.__version__" }
 [tool.setuptools.packages.find]
 where = ["."]
 
+[project.entry-points."edsnlp_pipelines"]
+"base" = "edsnlp.core.pipeline:Pipeline"
+"load" = "edsnlp.core.pipeline:load"
+
 [project.entry-points."spacy_factories"]
 # Core
 "eds.accents"                     = "edsnlp.pipes.core.normalizer.accents.factory:create_component"
@@ -234,13 +238,20 @@ where = ["."]
 "eds.span_linker"        = "edsnlp.pipes.trainable.span_linker.factory:create_component"
 
 [project.entry-points."spacy_scorers"]
-"eds.ner_exact_scorer"           = "edsnlp.scorers.ner:NerExactScorer"
-"eds.ner_token_scorer"           = "edsnlp.scorers.ner:NerTokenScorer"
-"eds.ner_overlap_scorer"           = "edsnlp.scorers.ner:NerOverlapScorer"
-"eds.span_attributes_scorer"     = "edsnlp.scorers.span_attributes:SpanAttributeScorer"
+"eds.ner_exact_metric"           = "edsnlp.metrics.ner:NerExactMetric"
+"eds.ner_token_metric"           = "edsnlp.metrics.ner:NerTokenMetric"
+"eds.ner_overlap_metric"         = "edsnlp.metrics.ner:NerOverlapMetric"
+"eds.span_attributes_metric"     = "edsnlp.metrics.span_attributes:SpanAttributeMetric"
 
 # Deprecated
-"eds.span_classification_scorer" = "edsnlp.scorers.span_attributes:create_span_attributes_scorer"
+"eds.ner_exact_scorer"           = "edsnlp.metrics.ner:NerExactMetric"
+"eds.ner_token_scorer"           = "edsnlp.metrics.ner:NerTokenMetric"
+"eds.ner_overlap_scorer"         = "edsnlp.metrics.ner:NerOverlapMetric"
+"eds.span_attributes_scorer"     = "edsnlp.metrics.span_attributes:SpanAttributeMetric"
+"eds.ner_exact"                  = "edsnlp.metrics.ner:NerExactMetric"
+"eds.ner_token"                  = "edsnlp.metrics.ner:NerTokenMetric"
+"eds.ner_overlap"                = "edsnlp.metrics.ner:NerOverlapMetric"
+"eds.span_attributes"            = "edsnlp.metrics.span_attributes:SpanAttributeMetric"
 
 [project.entry-points."edsnlp_readers"]
 "spark" =    "edsnlp.data:from_spark"
@@ -315,21 +326,21 @@ extend-exclude = [
     "edsnlp/pipes/factories.py",
 ]
 line-length = 88
-select = [
+lint.select = [
     "E",
     "F",
     "W",
     "I001"
 ]
 
-[tool.ruff.flake8-tidy-imports]
+[tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "parents"
 
-[tool.ruff.extend-per-file-ignores]
+[tool.ruff.lint.extend-per-file-ignores]
 "__init__.py" = ["F401"]
 "edsnlp/pipes/factories.py" = [ "F401", "E501" ]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = ["edsnlp"]
 known-third-party = ["build"]
 order-by-type = true
@@ -383,7 +394,7 @@ exclude_lines = [
 
 [tool.coverage.run]
 include = ["edsnlp/*"]
-concurrency = ["multiprocessing"]
+concurrency = ["multiprocessing", "thread"]
 parallel = true
 
 [tool.cibuildwheel]

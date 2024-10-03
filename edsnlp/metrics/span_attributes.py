@@ -3,12 +3,12 @@ from collections import defaultdict
 from typing import Any, Dict, Optional
 
 from edsnlp import registry
-from edsnlp.scorers import Examples, average_precision, make_examples, prf
+from edsnlp.metrics import Examples, average_precision, make_examples, prf
 from edsnlp.utils.bindings import BINDING_GETTERS, Attributes, AttributesArg
 from edsnlp.utils.span_getters import SpanGetterArg, get_spans
 
 
-def span_attribute_scorer(
+def span_attribute_metric(
     examples: Examples,
     span_getter: SpanGetterArg,
     attributes: Attributes,
@@ -22,7 +22,7 @@ def span_attribute_scorer(
 
     Parameters
     ----------
-    args : Examples
+    examples : Examples
         The examples to score, either a tuple of (golds, preds) or a list of
         spacy.training.Example objects
     span_getter : SpanGetterArg
@@ -111,11 +111,11 @@ def span_attribute_scorer(
     }
 
 
-@registry.scorers.register(
-    "eds.span_attribute_scorer",
-    deprecated="eds.span_classification_scorer",
+@registry.metrics.register(
+    "eds.span_attribute",
+    deprecated=["eds.span_classification_scorer", "eds.span_attribute_scorer"],
 )
-class SpanAttributeScorer:
+class SpanAttributeMetric:
     attributes: Attributes
 
     def __init__(
@@ -140,10 +140,10 @@ class SpanAttributeScorer:
         self.micro_key = micro_key
         self.filter_expr = filter_expr
 
-    __init__.__doc__ = span_attribute_scorer.__doc__
+    __init__.__doc__ = span_attribute_metric.__doc__
 
     def __call__(self, *examples: Any):
-        return span_attribute_scorer(
+        return span_attribute_metric(
             examples,
             span_getter=self.span_getter,
             attributes=self.attributes,
@@ -155,5 +155,10 @@ class SpanAttributeScorer:
 
 
 # For backward compatibility
-span_classification_scorer = span_attribute_scorer
-create_span_attributes_scorer = SpanAttributeScorer
+span_classification_scorer = span_attribute_scorer = span_attribute_metric
+create_span_attributes_scorer = SpanAttributeScorer = SpanAttributeMetric
+
+__all__ = [
+    "span_attribute_metric",
+    "SpanAttributeMetric",
+]

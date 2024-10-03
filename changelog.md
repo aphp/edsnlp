@@ -5,15 +5,36 @@
 ### Added
 
 - `eds.tables` accepts a minimum_table_size (default 2) argument to reduce pollution
+- Support for setuptools based projects in `edsnlp.package` command
+- Pipelines can now be instantiated directly from a config file (instead of having to cast a dict containing their arguments) by putting the @pipelines = "base" or "load" field in the pipeline section)
+- Pipeline now has a basic repr showing is base langage (mostly useful to know its tokenizer) and its pipes
+- New `python -m edsnlp.evaluate` script to evaluate a model on a dataset
+- Sentence detection can now be configured to change the minimum number of newlines to consider a newline-triggered sentence, and disable capitalization checking.
+
+### Changed
+
+- Renamed `edsnlp.scorers` to `edsnlp.metrics` and removed the `_scorer` suffix from their
+  registry name (e.g, `@scorers = ner_overlap_scorer` → `@metrics = ner_overlap`)
+- Rename `eds.measurements` to `eds.quantities`
 
 ### Fixed
 
 - Numbers are now only detected without trying to remove the pollution in between digits, ie `55 @ 77777` could be detected as a full number before, but not anymore.
-- Fix fsspec open file encoding to "utf-8".
+- Chunk size (used when applying a pipeline to a collection of docs) is not set to 128 if the batch unit is != docs
+- Resolve encoding-related data reading issues by forcing utf-8
+- Sort files before iterating over a standoff or json folder to ensure reproducibility
+- edsnlp.load now correctly takes disable, enable and exclude parameters into account
+- Sentence detection now correctly match capitalized letters + apostrophe
 
-### Changed
+### Data API changes
 
-- Rename `eds.measurements` to `eds.quantities`
+- By default, `multiprocessing` backend now preserves the order of the input data
+- The `.map_batches`, `.map_pipeline` and `.map_gpu` methods now support a specific `batch_size` and batching function, instead of having a single batch size for all pipes
+- Readers now have a `loop` parameter to cycle over the data indefinitely (useful for training)
+- Readers now have a `shuffle` parameter to shuffle the data before iterating over it
+- In `multiprocessing` mode, file based readers now read the data in the workers (was an option before)
+- :boom: Breaking change: a `map` function returning a list or a generator won't be automatically flattened anymore. Use `flatten()` to flatten the output if needed. This shouldn't change the behavior for most users since most writers (to_pandas, to_polars, to_parquet, ...) still flatten the output
+- :boom: Breaking change: the `chunk_size` and `sort_chunks` are now deprecated : to sort data before applying a transformation, use `.map_batches(custom_sort_fn, batch_size=...)`
 
 ## v0.13.0
 

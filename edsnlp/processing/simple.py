@@ -4,10 +4,7 @@ import sys
 from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
-from edsnlp.utils.batching import batchify_fns
-from edsnlp.utils.collections import batchify, flatten
-
-from .utils import apply_basic_pipes
+from tqdm import tqdm
 
 if TYPE_CHECKING:
     from edsnlp.core.lazy_collection import LazyCollection
@@ -17,9 +14,7 @@ doc_size_fns = {
 }
 
 
-def execute_simple_backend(
-    lc: LazyCollection,
-):
+def execute_simple_backend(lc: LazyCollection):
     """
     This is the default execution mode which batches the documents and processes each
     batch on the current process in a sequential manner.
@@ -28,11 +23,7 @@ def execute_simple_backend(
         torch = sys.modules["torch"]
         no_grad_ctx = torch.no_grad()
         autocast_device_type = next(
-            (
-                p.device
-                for name, pipe in lc.torch_components()
-                for p in pipe.parameters()
-            ),
+            (p.device for pipe in lc.torch_components() for p in pipe.parameters()),
             torch.device("cpu"),
         ).type.split(":")[0]
         autocast_dtype = lc.autocast if lc.autocast is not True else None
@@ -49,62 +40,57 @@ def execute_simple_backend(
             if hasattr(torch, "inference_mode")
             else nullcontext()
         )
-    except (KeyError, AttributeError):
+    except (KeyError, AttributeError):  # pragma: no cover
         no_grad_ctx = autocast_ctx = inference_mode_ctx = nullcontext()
     reader = lc.reader
     writer = lc.writer
     show_progress = lc.show_progress
+    stages = lc._make_stages(split_torch_pipes=True)
 
-    split_into_batches_after = lc.split_into_batches_after
-    if split_into_batches_after is None and (lc.batch_by != "docs" or lc.sort_chunks):
-        split_into_batches_after = next(
-            (s[0] for s in lc.pipeline if s[0] == "_ensure_doc"), None
-        )
-    names = [None] + [step[0] for step in lc.pipeline]
-    chunk_components = lc.pipeline[: names.index(split_into_batches_after)]
-    batch_components = lc.pipeline[names.index(split_into_batches_after) :]
+    def make_torch_pipe(torch_pipe, disable_after):
+        def wrapped(batches):
+            for batch in batches:
+                batch_id = hash(tuple(id(x) for x in batch))
+                torch_pipe.enable_cache(batch_id)
+                batch = torch_pipe.batch_process(batch)
+                if disable_after:
+                    torch_pipe.disable_cache(batch_id)
+                yield batch
+
+        return wrapped
 
     def process():
-        bar = nullcontext()
-        if show_progress:
-            from tqdm import tqdm
+        bar = tqdm(smoothing=0.1, mininterval=5.0, disable=not show_progress)
 
-            bar = tqdm(smoothing=0.1, mininterval=5.0)
+        with bar, lc.eval(), autocast_ctx, inference_mode_ctx, no_grad_ctx:
+            items = reader.read_records()
 
-        with bar, lc.eval(), autocast_ctx, inference_mode_ctx:
-            for docs in batchify(
-                (
-                    subtask
-                    for task, count in reader.read_main()
-                    for subtask in reader.read_worker([task])
-                ),
-                batch_size=lc.chunk_size,
-            ):
-                docs = apply_basic_pipes(docs, chunk_components)
+            for stage_idx, stage in enumerate(stages):
+                for op in stage.cpu_ops:
+                    items = op(items)
 
-                if lc.sort_chunks:
-                    docs.sort(key=doc_size_fns.get(lc.sort_chunks, len))
+                if stage.gpu_op is not None:
+                    pipe = make_torch_pipe(stage.gpu_op, stage_idx == len(stages) - 2)
+                    items = pipe(items)
 
-                for batch in batchify_fns[lc.batch_by](docs, lc.batch_size):
-                    count = len(batch)
-                    with no_grad_ctx, lc.cache():
-                        batch = apply_basic_pipes(batch, batch_components)
-
-                    if writer is not None:
-                        result, count = writer.write_worker(batch)
-                        if show_progress:
-                            bar.update(count)
-                        yield result
-                    else:
-                        if show_progress:
-                            bar.update(count)
-                        yield batch
             if writer is not None:
-                result, count = writer.finalize()
-                if show_progress:
-                    bar.update(count)
-                if count:
-                    yield result
+                items = (writer.handle_record(item) for item in items)
 
-    gen = process()
-    return flatten(gen) if writer is None else writer.write_main(gen)
+            if getattr(writer, "batch_by", None) is not None:
+                items = writer.batch_by(items, writer.batch_size)
+                # get the 1st element (2nd is the count)
+                for b in items:
+                    item, count = writer.handle_batch(b)
+                    bar.update(count)
+                    yield item
+            else:
+                for item in items:
+                    bar.update(1)
+                    yield item
+
+    items = process()
+
+    if writer is not None:
+        items = writer.consolidate(items)
+
+    return items

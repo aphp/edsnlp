@@ -113,7 +113,7 @@ We use `MkDocs` for EDS-NLP's documentation. You can checkout the changes you ma
 
 ```console
 # Install the requirements
-$ pip install -e '.[dev]'
+$ pip install -e '.[docs]'
 ---> 100%
 color:green Installation successful
 

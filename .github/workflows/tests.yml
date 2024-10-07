@@ -6,6 +6,11 @@ on:
   push:
     branches: [master]
 
+env:
+  # UV_INDEX_STRATEGY: "unsafe-first-match"
+  # UV_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
+  PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
+
 jobs:
   linting:
     name: Linting
@@ -16,7 +21,11 @@ jobs:
         with:
           # requites to grab the history of the PR
           fetch-depth: 0
+
       - uses: actions/setup-python@v4
+        with:
+          cache: 'pip'
+
       - uses: pre-commit/action@v3.0.0
         with:
           extra_args: --color=always --from-ref ${{ github.event.pull_request.base.sha }} --to-ref ${{ github.event.pull_request.head.sha }}
@@ -46,9 +55,9 @@ jobs:
       - run: echo WEEK=$(date +%V) >>$GITHUB_ENV
         shell: bash
 
-      - uses: hynek/setup-cached-uv@v1
-        with:
-          cache-suffix: -tests-${{ matrix.python-version }}-${{ env.WEEK }}
+      # - uses: hynek/setup-cached-uv@v1
+      #   with:
+      #     cache-suffix: -tests-${{ matrix.python-version }}-${{ env.WEEK }}
 
       - name: Set up Java
         uses: actions/setup-java@v2
@@ -60,32 +69,34 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'
 
       - name: Install dependencies
         run: |
-          uv venv
           pip install poetry
-          source .venv/bin/activate
-          uv pip install -e '.[dev,setup]' pytest-xdist pip
+          pip install -e '.[dev,setup]' pytest-xdist pip
+#          uv venv
+#          source .venv/bin/activate
+#          uv pip install -e '.[dev,setup]' pytest-xdist pip
 
       - name: Test with Pytest on Python ${{ matrix.python-version }}
         env:
           UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
         run: |
-          source .venv/bin/activate
           coverage run -m pytest --ignore tests/test_docs.py # -n auto
           # coverage combine
           # mv .coverage .coverage.${{ matrix.python-version }}
+#          source .venv/bin/activate
         if: matrix.python-version != '3.9'
 
       - name: Test with Pytest on Python ${{ matrix.python-version }}
         env:
           UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
         run: |
-          source .venv/bin/activate
           coverage run -m pytest # -n auto
           # coverage combine
           # mv .coverage .coverage.${{ matrix.python-version }}
+#          source .venv/bin/activate
         if: matrix.python-version == '3.9'
 
       - name: Upload coverage data
@@ -116,24 +127,26 @@ jobs:
     - uses: actions/setup-python@v4
       with:
         python-version: "3.9"
-        # cache: 'pip'
+        cache: 'pip'
 
     - run: echo WEEK=$(date +%V) >>$GITHUB_ENV
       shell: bash
 
-    - uses: hynek/setup-cached-uv@v1
-      with:
-        cache-suffix: -docs-${{ matrix.python-version }}-${{ env.WEEK }}
+    # - uses: hynek/setup-cached-uv@v1
+    #   with:
+    #     cache-suffix: -docs-${{ matrix.python-version }}-${{ env.WEEK }}
 
     - name: Install dependencies
       run: |
-        uv venv
-        uv pip install '.[dev]'
+        pip install '.[docs]'
+#        uv venv
+#        uv pip install '.[docs]'
+
 
     - name: Build documentation
       run: |
-        source .venv/bin/activate
         mkdocs build --clean
+#        source .venv/bin/activate
 
   simple-installation:
     name: Simple installation
@@ -148,15 +161,17 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'
 
       - run: echo WEEK=$(date +%V) >>$GITHUB_ENV
         shell: bash
 
-      - uses: hynek/setup-cached-uv@v1
-        with:
-          cache-suffix: -simple-install-${{ matrix.python-version }}-${{ env.WEEK }}
+      # - uses: hynek/setup-cached-uv@v1
+      #   with:
+      #     cache-suffix: -simple-install-${{ matrix.python-version }}-${{ env.WEEK }}
 
       - name: Install library
         run: |
-          uv venv
-          uv pip install .
+          pip install .
+#          uv venv
+#          uv pip install .

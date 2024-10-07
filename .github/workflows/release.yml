@@ -13,6 +13,11 @@ on:
   release:
     types: [published]
 
+env:
+  # UV_INDEX_STRATEGY: "unsafe-first-match"
+  # UV_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
+  PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
+
 jobs:
   build_wheels:
     name: Build wheels on ${{ matrix.os }}/${{ matrix.arch || '*' }}
@@ -70,18 +75,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+
     - uses: actions/setup-python@v4
       with:
         python-version: "3.9"
         cache: 'pip'
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install '.[dev]'
+        pip install '.[docs]'
+
     - name: Set up Git
       run: |
         git config user.name ${{ github.actor }}
         git config user.email ${{ github.actor }}@users.noreply.github.com
+
     - name: Build documentation
       run: |
         git fetch origin gh-pages

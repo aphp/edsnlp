@@ -21,7 +21,7 @@ install : .venv
 
 documentation: .venv
 	. .venv/bin/activate
-	pip install -e '.[dev]'
+	pip install -e '.[docs]'
 	mkdocs serve
 
 test: .venv

@@ -10,7 +10,7 @@ from loguru import logger
 from typing_extensions import Literal
 
 from edsnlp import registry
-from edsnlp.core.lazy_collection import LazyCollection
+from edsnlp.core.stream import Stream
 from edsnlp.data.base import (
     BaseWriter,
     FileBasedReader,
@@ -100,10 +100,7 @@ class JsonReader(FileBasedReader):
             else:
                 records = (line for file in files for line in self.read_file(file))
                 if self.shuffle == "dataset":
-                    yield from shuffle(
-                        list(records),
-                        self.rng,
-                    )
+                    yield from shuffle(list(records), self.rng)
                 else:
                     yield from records
             if not self.loop:
@@ -230,7 +227,7 @@ def read_json(
     loop: bool = False,
     seed: int = 42,
     **kwargs,
-) -> LazyCollection:
+) -> Stream:
     """
     The JsonReader (or `edsnlp.data.read_json`) reads a directory of JSON files and
     yields documents. At the moment, only entities and attributes are loaded.
@@ -250,7 +247,7 @@ def read_json(
     !!! note "Generator vs list"
 
         `edsnlp.data.read_json` returns a
-        [LazyCollection][edsnlp.core.lazy_collection.LazyCollection].
+        [Stream][edsnlp.core.stream.Stream].
         To iterate over the documents multiple times efficiently or to access them by
         index, you must convert it to a list
 
@@ -286,7 +283,7 @@ def read_json(
 
     Returns
     -------
-    LazyCollection
+    Stream
     """
     if "read_in_worker" in kwargs:
         warnings.warn(
@@ -296,7 +293,7 @@ def read_json(
             FutureWarning,
         )
 
-    data = LazyCollection(
+    data = Stream(
         reader=JsonReader(
             path,
             keep_ipynb_checkpoints=keep_ipynb_checkpoints,
@@ -315,7 +312,7 @@ def read_json(
 
 @registry.writers.register("json")
 def write_json(
-    data: Union[Any, LazyCollection],
+    data: Union[Any, Stream],
     path: Union[str, Path],
     *,
     lines: bool = None,
@@ -357,8 +354,8 @@ def write_json(
 
     Parameters
     ----------
-    data: Union[Any, LazyCollection],
-        The data to write (either a list of documents or a LazyCollection).
+    data: Union[Any, Stream],
+        The data to write (either a list of documents or a Stream).
     path: Union[str, Path]
         Path to either
         - a file if `lines` is true : this will write the documents as a JSONL file
@@ -385,7 +382,7 @@ def write_json(
         the [Converters](/data/converters) page.
     """
 
-    data = LazyCollection.ensure_lazy(data)
+    data = Stream.ensure_stream(data)
     if converter:
         converter, kwargs = get_doc2dict_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)

@@ -32,6 +32,10 @@ class AliasPathFinder(importlib.abc.MetaPathFinder):
             new_name = "edsnlp.pipes" + fullname[16:]
             spec = importlib.util.spec_from_loader(fullname, AliasLoader(new_name))
             return spec
+        if fullname.startswith("edsnlp.core.lazy_collection"):
+            new_name = "edsnlp.core.stream" + fullname[27:]
+            spec = importlib.util.spec_from_loader(fullname, AliasLoader(new_name))
+            return spec
         if fullname.startswith("edsnlp.scorers"):
             new_name = "edsnlp.metrics" + fullname[14:]
             spec = importlib.util.spec_from_loader(fullname, AliasLoader(new_name))

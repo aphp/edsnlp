@@ -8,7 +8,7 @@ import pyspark.sql.dataframe
 from typing_extensions import Literal
 
 from edsnlp import registry
-from edsnlp.core.lazy_collection import LazyCollection
+from edsnlp.core.stream import Stream
 from edsnlp.data.base import BaseWriter, MemoryBasedReader
 from edsnlp.data.converters import (
     get_dict2doc_converter,
@@ -67,7 +67,7 @@ def from_spark(
     seed: Optional[int] = None,
     loop: bool = False,
     **kwargs,
-) -> LazyCollection:
+) -> Stream:
     """
     The SparkReader (or `edsnlp.data.from_spark`) reads a pyspark (or koalas) DataFrame
     and yields documents. At the moment, only entities and span attributes are loaded.
@@ -87,7 +87,7 @@ def from_spark(
     !!! note "Generator vs list"
 
         `edsnlp.data.from_spark` returns a
-        [LazyCollection][edsnlp.core.lazy_collection.LazyCollection]
+        [Stream][edsnlp.core.stream.Stream]
         To iterate over the documents multiple times efficiently or to access them by
         index, you must convert it to a list
 
@@ -115,9 +115,9 @@ def from_spark(
 
     Returns
     -------
-    LazyCollection
+    Stream
     """
-    data = LazyCollection(
+    data = Stream(
         reader=SparkReader(
             data,
             shuffle=shuffle,
@@ -162,7 +162,7 @@ class SparkWriter(BaseWriter):
 
 @registry.writers.register("spark")
 def to_spark(
-    data: Union[Any, LazyCollection],
+    data: Union[Any, Stream],
     converter: Optional[Union[str, Callable]] = None,
     dtypes: Any = None,
     show_dtypes: bool = True,
@@ -211,8 +211,8 @@ def to_spark(
 
     Parameters
     ----------
-    data: Union[Any, LazyCollection],
-        The data to write (either a list of documents or a LazyCollection).
+    data: Union[Any, Stream],
+        The data to write (either a list of documents or a Stream).
     dtypes: pyspark.sql.types.StructType
         The schema to use for the DataFrame.
     show_dtypes: bool
@@ -228,7 +228,7 @@ def to_spark(
         Additional keyword arguments to pass to the converter. These are documented on
         the [Converters](/data/converters) page.
     """
-    data = LazyCollection.ensure_lazy(data)
+    data = Stream.ensure_stream(data)
     if converter:
         converter, kwargs = get_doc2dict_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)

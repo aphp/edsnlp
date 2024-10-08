@@ -32,22 +32,22 @@ doc = nlp(text)
 
 To leverage multiple GPUs when processing multiple documents, refer to the [multiprocessing backend][edsnlp.processing.multiprocessing.execute_multiprocessing_backend] description below.
 
-## Inference on multiple documents {: #edsnlp.core.lazy_collection.LazyCollection }
+## Inference on multiple documents {: #edsnlp.core.stream.Stream }
 
 When processing multiple documents, we can optimize the inference by parallelizing the computation on a single core, multiple cores and GPUs or even multiple machines.
 
-### Lazy collection
+### Streams
 
-These optimizations are enabled by performing *lazy inference* : the operations (e.g., reading a document, converting it to a Doc, running the different pipes of a model or writing the result somewhere) are not executed immediately but are instead scheduled in a [LazyCollection][edsnlp.core.lazy_collection.LazyCollection] object. It can then be executed by calling the `execute` method, iterating over it or calling a writing method (e.g., `to_pandas`). In fact, data connectors like `edsnlp.data.read_json` return a lazy collection, as well as the `nlp.pipe` method.
+These optimizations are enabled by performing *lazy inference* : the operations (e.g., reading a document, converting it to a Doc, running the different pipes of a model or writing the result somewhere) are not executed immediately but are instead scheduled in a [Stream][edsnlp.core.stream.Stream] object. It can then be executed by calling the `execute` method, iterating over it or calling a writing method (e.g., `to_pandas`). In fact, data connectors like `edsnlp.data.read_json` return a stream, as well as the `nlp.pipe` method.
 
-A lazy collection contains :
+A stream contains :
 
 - a `reader`: the source of the data (e.g., a file, a database, a list of strings, etc.)
 - the list of operations to perform under a `pipeline` attribute containing the name if any, function / pipe, keyword arguments and context for each operation
 - an optional `writer`: the destination of the data (e.g., a file, a database, a list of strings, etc.)
 - the execution `config`, containing the backend to use and its configuration such as the number of workers, the batch size, etc.
 
-All methods (`.map`, `.map_batches`, `.map_gpu`, `.map_pipeline`, `.set_processing`) of the lazy collection are chainable, meaning that they return a new lazy collection object (no in-place modification).
+All methods (`.map`, `.map_batches`, `.map_gpu`, `.map_pipeline`, `.set_processing`) of the stream are chainable, meaning that they return a new stream object (no in-place modification).
 
 For instance, the following code will load a model, read a folder of JSON files, apply the model to each document and write the result in a Parquet folder, using 4 CPUs and 2 GPUs.
 
@@ -91,15 +91,15 @@ data = data.set_processing(
 
 )
 
-# Write the result, this will execute the lazy collection
+# Write the result, this will execute the stream
 data.write_parquet("path/to/output_folder", converter="...", write_in_worker=True)
 ```
 
-### Applying operations to a lazy collection
+### Applying operations to a stream
 
-To apply an operation to a lazy collection, you can use the `.map` method. It takes a callable as input and an optional dictionary of keyword arguments. The function will be applied to each element of the collection.
+To apply an operation to a stream, you can use the `.map` method. It takes a callable as input and an optional dictionary of keyword arguments. The function will be applied to each element of the collection.
 
-To apply an operation to a lazy collection in batches, you can use the `.map_batches` method. It takes a callable as input and an optional dictionary of keyword arguments. The function will be applied to each batch of the collection (as a list of elements), and should return a list of results, that will be concatenated at the end.
+To apply an operation to a stream in batches, you can use the `.map_batches` method. It takes a callable as input and an optional dictionary of keyword arguments. The function will be applied to each batch of the collection (as a list of elements), and should return a list of results, that will be concatenated at the end.
 
 To apply a model, you can use the `.map_pipeline` method. It takes a model as input and will add every pipe of the model to the scheduled operations.
 
@@ -107,11 +107,11 @@ To run a specific function on a GPU (for advanced users, otherwise `map_pipeline
 
 In each cases, the operations will not be executed immediately but will be scheduled to be executed when iterating of the collection, or calling the `.execute`, `.to_*` or `.write_*` methods.
 
-### Execution of a lazy collection {: #edsnlp.core.lazy_collection.LazyCollection.set_processing }
+### Execution of a stream {: #edsnlp.core.stream.Stream.set_processing }
 
-You can configure how the operations performed in the lazy collection is executed by calling its `set_processing(...)` method. The following options are available :
+You can configure how the operations performed in the stream is executed by calling its `set_processing(...)` method. The following options are available :
 
-::: edsnlp.core.lazy_collection.LazyCollection.set_processing
+::: edsnlp.core.stream.Stream.set_processing
     options:
         heading_level: 3
         only_parameters: "no-header"

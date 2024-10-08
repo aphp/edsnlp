@@ -8,7 +8,7 @@ from typing import (
     Union,
 )
 
-from edsnlp.core.lazy_collection import LazyCollection
+from edsnlp.core.stream import Stream
 
 from ..utils.collections import flatten
 from .converters import FILENAME, get_dict2doc_converter, get_doc2dict_converter
@@ -106,7 +106,7 @@ def from_iterable(
     converter: Union[str, Callable] = None,
     read_in_worker: bool = False,
     **kwargs,
-) -> LazyCollection:
+) -> Stream:
     """
     The IterableReader (or `edsnlp.data.from_iterable`) reads a list of Python objects (
     texts, dictionaries, ...) and yields documents by passing them through the
@@ -127,7 +127,7 @@ def from_iterable(
     !!! note "Generator vs list"
 
         `edsnlp.data.from_iterable` returns a
-        [LazyCollection][edsnlp.core.lazy_collection.LazyCollection].
+        [Stream][edsnlp.core.stream.Stream].
         To iterate over the documents multiple times efficiently or to access them by
         index, you must convert it to a list
 
@@ -153,10 +153,10 @@ def from_iterable(
 
     Returns
     -------
-    LazyCollection
+    Stream
     """
-    if not isinstance(data, LazyCollection):
-        data = LazyCollection(IterableReader(data, read_in_worker=read_in_worker))
+    if not isinstance(data, Stream):
+        data = Stream(IterableReader(data, read_in_worker=read_in_worker))
     if converter:
         converter, kwargs = get_dict2doc_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)
@@ -164,13 +164,13 @@ def from_iterable(
 
 
 def to_iterable(
-    data: Union[Any, LazyCollection],
+    data: Union[Any, Stream],
     converter: Optional[Union[str, Callable]] = None,
     **kwargs,
 ):
     """
     `edsnlp.data.to_items` returns an iterator of documents, as converted by the
-    `converter`. In comparison to just iterating over a LazyCollection, this will
+    `converter`. In comparison to just iterating over a Stream, this will
     also apply the `converter` to the documents, which can lower the data transfer
     overhead when using multiprocessing.
 
@@ -190,15 +190,15 @@ def to_iterable(
 
     Parameters
     ----------
-    data: Union[Any, LazyCollection],
-        The data to write (either a list of documents or a LazyCollection).
+    data: Union[Any, Stream],
+        The data to write (either a list of documents or a Stream).
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the documents to dictionary objects.
     kwargs:
         Additional keyword arguments passed to the converter. These are documented
         on the [Converters](/data/converters) page.
     """
-    data = LazyCollection.ensure_lazy(data)
+    data = Stream.ensure_stream(data)
     if converter:
         converter, kwargs = get_doc2dict_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)

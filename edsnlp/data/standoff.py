@@ -21,7 +21,7 @@ from loguru import logger
 from typing_extensions import Literal
 
 from edsnlp import registry
-from edsnlp.core.lazy_collection import LazyCollection
+from edsnlp.core.stream import Stream
 from edsnlp.data.base import BaseWriter, FileBasedReader
 from edsnlp.data.converters import (
     FILENAME,
@@ -406,7 +406,7 @@ def read_standoff(
     seed: Optional[int] = None,
     loop: bool = False,
     **kwargs,
-) -> LazyCollection:
+) -> Stream:
     """
     The BratReader (or `edsnlp.data.read_standoff`) reads a directory of BRAT files and
     yields documents. At the moment, only entities and attributes are loaded. Relations
@@ -427,7 +427,7 @@ def read_standoff(
     !!! note "Generator vs list"
 
         `edsnlp.data.read_standoff` returns a
-        [LazyCollection][edsnlp.core.lazy_collection.LazyCollection].
+        [Stream][edsnlp.core.stream.Stream].
         To iterate over the documents multiple times efficiently or to access them by
         index, you must convert it to a list :
 
@@ -477,7 +477,7 @@ def read_standoff(
         by default it uses the current context tokenizer :
 
         - the tokenizer of the next pipeline run by `.map_pipeline` in a
-          [LazyCollection][edsnlp.core.lazy_collection.LazyCollection].
+          [Stream][edsnlp.core.stream.Stream].
         - or the `eds` tokenizer by default.
     span_setter : SpanSetterArg
         The span setter to use when setting the spans in the documents. Defaults to
@@ -512,9 +512,9 @@ def read_standoff(
 
     Returns
     -------
-    LazyCollection
+    Stream
     """
-    data = LazyCollection(
+    data = Stream(
         reader=StandoffReader(
             path,
             keep_ipynb_checkpoints=keep_ipynb_checkpoints,
@@ -533,7 +533,7 @@ def read_standoff(
 
 @registry.writers.register("standoff")
 def write_standoff(
-    data: Union[Any, LazyCollection],
+    data: Union[Any, Stream],
     path: Union[str, Path],
     overwrite: bool = False,
     filesystem: Optional[FileSystem] = None,
@@ -569,8 +569,8 @@ def write_standoff(
 
     Parameters
     ----------
-    data: Union[Any, LazyCollection],
-        The data to write (either a list of documents or a LazyCollection).
+    data: Union[Any, Stream],
+        The data to write (either a list of documents or a Stream).
     path: Union[str, Path]
         Path to the directory containing the BRAT files (will recursively look for
         files in subdirectories).
@@ -592,7 +592,7 @@ def write_standoff(
         Converter to use to convert the documents to dictionary objects.
         Defaults to the "standoff" format converter.
     """
-    data = LazyCollection.ensure_lazy(data)
+    data = Stream.ensure_stream(data)
     if converter:
         converter, kwargs = get_doc2dict_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)

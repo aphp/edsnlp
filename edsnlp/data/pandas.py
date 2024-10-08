@@ -7,7 +7,7 @@ import pandas as pd
 from typing_extensions import Literal
 
 from edsnlp import registry
-from edsnlp.core.lazy_collection import LazyCollection
+from edsnlp.core.stream import Stream
 from edsnlp.data.base import BaseWriter, MemoryBasedReader
 from edsnlp.data.converters import (
     get_dict2doc_converter,
@@ -58,7 +58,7 @@ def from_pandas(
     seed: Optional[int] = None,
     loop: bool = False,
     **kwargs,
-) -> LazyCollection:
+) -> Stream:
     """
     The PandasReader (or `edsnlp.data.from_pandas`) handles reading from a table and
     yields documents. At the moment, only entities and attributes are loaded. Relations
@@ -79,7 +79,7 @@ def from_pandas(
     !!! note "Generator vs list"
 
         `edsnlp.data.from_pandas` returns a
-        [LazyCollection][edsnlp.core.lazy_collection.LazyCollection].
+        [Stream][edsnlp.core.stream.Stream].
         To iterate over the documents multiple times efficiently or to access them by
         index, you must convert it to a list
 
@@ -107,10 +107,10 @@ def from_pandas(
 
     Returns
     -------
-    LazyCollection
+    Stream
     """
 
-    data = LazyCollection(
+    data = Stream(
         reader=PandasReader(
             data,
             shuffle=shuffle,
@@ -136,7 +136,7 @@ class PandasWriter(BaseWriter):
 
 @registry.writers.register("pandas")
 def to_pandas(
-    data: Union[Any, LazyCollection],
+    data: Union[Any, Stream],
     execute: bool = True,
     converter: Optional[Union[str, Callable]] = None,
     dtypes: Optional[dict] = None,
@@ -161,8 +161,8 @@ def to_pandas(
 
     Parameters
     ----------
-    data: Union[Any, LazyCollection],
-        The data to write (either a list of documents or a LazyCollection).
+    data: Union[Any, Stream],
+        The data to write (either a list of documents or a Stream).
     dtypes: Optional[dict]
         Dictionary of column names to dtypes. This is passed to `pd.DataFrame.astype`.
     execute: bool
@@ -176,7 +176,7 @@ def to_pandas(
         Additional keyword arguments to pass to the converter. These are documented on
         the [Converters](/data/converters) page.
     """
-    data = LazyCollection.ensure_lazy(data)
+    data = Stream.ensure_stream(data)
     if converter:
         converter, kwargs = get_doc2dict_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)

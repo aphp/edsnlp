@@ -11,7 +11,7 @@ from pyarrow.dataset import ParquetFileFragment
 from typing_extensions import Literal
 
 from edsnlp import registry
-from edsnlp.core.lazy_collection import LazyCollection
+from edsnlp.core.stream import Stream
 from edsnlp.data.base import BatchWriter, FileBasedReader
 from edsnlp.data.converters import (
     get_dict2doc_converter,
@@ -161,7 +161,7 @@ def read_parquet(
     seed: Optional[int] = None,
     loop: bool = False,
     **kwargs,
-) -> LazyCollection:
+) -> Stream:
     """
     The ParquetReader (or `edsnlp.data.read_parquet`) reads a directory of parquet files
     (or a single file) and yields documents.
@@ -181,7 +181,7 @@ def read_parquet(
     !!! note "Generator vs list"
 
         `edsnlp.data.read_parquet` returns a
-        [LazyCollection][edsnlp.core.lazy_collection.LazyCollection].
+        [Stream][edsnlp.core.stream.Stream].
         To iterate over the documents multiple times efficiently or to access them by
         index, you must convert it to a list
 
@@ -222,7 +222,7 @@ def read_parquet(
 
     Returns
     -------
-    LazyCollection
+    Stream
     """
     if "read_in_worker" in kwargs:
         warnings.warn(
@@ -232,7 +232,7 @@ def read_parquet(
         )
         kwargs.pop("read_in_worker")
 
-    data = LazyCollection(
+    data = Stream(
         reader=ParquetReader(
             path,
             filesystem=filesystem,
@@ -249,7 +249,7 @@ def read_parquet(
 
 @registry.writers.register("parquet")
 def write_parquet(
-    data: Union[Any, LazyCollection],
+    data: Union[Any, Stream],
     path: Union[str, Path],
     *,
     batch_size: Optional[int] = None,
@@ -286,8 +286,8 @@ def write_parquet(
 
     Parameters
     ----------
-    data: Union[Any, LazyCollection],
-        The data to write (either a list of documents or a LazyCollection).
+    data: Union[Any, Stream],
+        The data to write (either a list of documents or a Stream).
     path: Union[str, Path]
         Path to the directory containing the parquet files (will recursively look for
         files in subdirectories). Supports any filesystem supported by pyarrow.
@@ -323,7 +323,7 @@ def write_parquet(
         the [Converters](/data/converters) page.
     """
 
-    data = LazyCollection.ensure_lazy(data)
+    data = Stream.ensure_stream(data)
     if "num_rows_per_file" in kwargs:
         assert (
             batch_size is None

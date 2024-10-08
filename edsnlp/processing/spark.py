@@ -6,7 +6,7 @@ from typing import Optional, Union
 
 import dill
 
-from edsnlp.core.lazy_collection import LazyCollection
+from edsnlp.core.stream import Stream
 from edsnlp.data.base import BaseWriter, BatchWriter
 from edsnlp.data.spark import SparkReader, SparkWriter
 from edsnlp.utils.collections import flatten, flatten_once
@@ -29,7 +29,7 @@ class Broadcasted:
 
 
 def execute_spark_backend(
-    lc: LazyCollection,
+    stream: Stream,
 ):
     """
     This execution mode uses Spark to parallelize the processing of the documents.
@@ -72,8 +72,8 @@ def execute_spark_backend(
     # Get current spark session
     spark = getActiveSession() or SparkSession.builder.getOrCreate()
 
-    reader = lc.reader
-    writer: Union[BaseWriter, BatchWriter] = lc.writer
+    reader = stream.reader
+    writer: Union[BaseWriter, BatchWriter] = stream.writer
 
     if isinstance(reader, SparkReader):
         df = reader.data
@@ -102,15 +102,15 @@ def execute_spark_backend(
         return wrapped
 
     def process_partition(items):  # pragma: no cover
-        lc: LazyCollection = bc.value
-        writer = lc.writer
+        stream: Stream = bc.value
+        writer = stream.writer
         try:
             sys.modules["torch"].set_grad_enabled(False)
         except (AttributeError, KeyError):
             pass
-        stages = lc._make_stages(split_torch_pipes=True)
+        stages = stream._make_stages(split_torch_pipes=True)
 
-        if not isinstance(lc.reader, SparkReader):
+        if not isinstance(stream.reader, SparkReader):
             items = (pickle.loads(row.content) for row in items)
         else:
             items = (item.asDict(recursive=True) for item in items)
@@ -142,8 +142,8 @@ def execute_spark_backend(
             print("RESULTS", results)
             return [{"content": pickle.dumps(results, -1)}]
 
-    with lc.eval():
-        bc = Broadcasted(lc.worker_copy())
+    with stream.eval():
+        bc = Broadcasted(stream.worker_copy())
 
         if isinstance(writer, SparkWriter):
             rdd = df.rdd.mapPartitions(process_partition)

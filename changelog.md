@@ -20,6 +20,7 @@
 
 ### Data API changes
 
+- `LazyCollection` objects are now called `Stream` objects
 - By default, `multiprocessing` backend now preserves the order of the input data
 - The `.map_batches`, `.map_pipeline` and `.map_gpu` methods now support a specific `batch_size` and batching function, instead of having a single batch size for all pipes
 - Readers now have a `loop` parameter to cycle over the data indefinitely (useful for training)

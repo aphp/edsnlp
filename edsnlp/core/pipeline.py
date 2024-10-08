@@ -53,7 +53,7 @@ from ..utils.collections import (
     decompress_dict,
 )
 from ..utils.typing import AsList
-from .lazy_collection import LazyCollection
+from .stream import Stream
 
 if TYPE_CHECKING:
     import torch
@@ -395,11 +395,11 @@ class Pipeline:
 
     def pipe(
         self,
-        inputs: Union[Iterable, LazyCollection],
+        inputs: Union[Iterable, Stream],
         batch_size: Optional[int] = None,
         n_process: int = None,
         **kwargs,
-    ) -> LazyCollection:
+    ) -> Stream:
         """
         Process a stream of documents by applying each component successively on
         batches of documents.
@@ -413,13 +413,13 @@ class Pipeline:
             object will be used.
         n_process: int
             Deprecated. Use the ".set(num_cpu_workers=n_process)" method on the returned
-            data lazy collection instead.
+            data stream instead.
             The number of parallel workers to use. If 0, the operations will be
             executed sequentially.
 
         Returns
         -------
-        LazyCollection
+        Stream
         """
 
         if batch_size is None:
@@ -678,9 +678,9 @@ class Pipeline:
 
         Returns
         -------
-        LazyCollection
+        Stream
         """
-        res = LazyCollection.ensure_lazy(docs)
+        res = Stream.ensure_stream(docs)
         res = res.map(functools.partial(self.preprocess, supervision=supervision))
         if compress:
             res = res.map(batch_compress_dict())

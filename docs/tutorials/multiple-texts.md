@@ -97,23 +97,23 @@ There are a few issues with this approach:
 - We would also like to perform the Doc -> Dict conversion step in parallel and avoid transferring full Doc instances back and forth between processes.
 - And ideally, being able to switch between input/output formats, or sequential/parallel processing, without changing the code too much.
 
-## Lazy inference and parallelization
+## Streams, lazy inference and parallelization
 
-To efficiently perform the same operations on multiple documents at once, EDS-NLP uses [lazy collections][edsnlp.core.lazy_collection.LazyCollection], which record the operations to perform on the
+To efficiently perform the same operations on multiple documents at once, EDS-NLP uses [streams][edsnlp.core.stream.Stream], which record the operations to perform on the
 documents without actually executing them directly, similar to the way Spark does, or polars with its LazyFrame.
 
 This allows EDS-NLP to distribute these operations on multiple cores or machines when it is time to execute them. We can configure how the collection operations are run (how many jobs/workers, how
-many gpus, whether to use the spark engine) via the lazy collection [`.set_processing(...)`][edsnlp.core.lazy_collection.LazyCollection.set_processing] method.
+many gpus, whether to use the spark engine) via the stream [`.set_processing(...)`][edsnlp.core.stream.Stream.set_processing] method.
 
 For instance,
 
 ```python
 docs = edsnlp.data.from_iterable(corpus)
 print(docs)
-# <edsnlp.core.lazy_collection.LazyCollection object at 0x7f3e3c3e3d90>
+# <edsnlp.core.stream.Stream object at 0x7f3e3c3e3d90>
 ```
 
-as well as any `edsnlp.data.read_*` or `edsnlp.data.from_*` return a lazy collection, that we can iterate over or complete with more operations. To apply the model on our collection of documents, we
+as well as any `edsnlp.data.read_*` or `edsnlp.data.from_*` return a stream, that we can iterate over or complete with more operations. To apply the model on our collection of documents, we
 can simply do:
 
 ```python
@@ -124,18 +124,18 @@ docs = docs.map_pipeline(nlp)
 
 ??? warning "SpaCy vs EDS-NLP"
 
-    SpaCy's `nlp.pipe` method is not the same as EDS-NLP's `nlp.pipe` method, and will iterate over anything you pass to it, therefore executing the operations scheduled in our lazy collection.
+    SpaCy's `nlp.pipe` method is not the same as EDS-NLP's `nlp.pipe` method, and will iterate over anything you pass to it, therefore executing the operations scheduled in our stream.
 
     We recommend you instantiate your models using `nlp = edsnlp.blank(...)` or `nlp = edsnlp.load(...)`.
 
-    Otherwise, use the following to apply a spaCy model on a lazy collection `docs` without triggering its execution:
+    Otherwise, use the following to apply a spaCy model on a stream `docs` without triggering its execution:
 
     ```{ .python .no-check }
     docs = docs.map_pipeline(nlp)
     ```
 
 Finally, we can convert the documents to a DataFrame (or other formats / files) using the `edsnlp.data.to_*` or `edsnlp.data.write_*` methods. This triggers the execution of the operations scheduled
-in the lazy collection and produces the rows of the DataFrame.
+in the stream and produces the rows of the DataFrame.
 
 We can pass our previous Doc to Dict code as a function to the `converter` parameter of the `to_pandas` method. Note that this specific conversion is already implemented in EDS-NLP, so you can just
 pass the string `"ents"` to the `converter` parameter, and customize the conversion by passing more parameters to the `to_pandas` method, as described [here](/data/converters#ents).
@@ -184,7 +184,7 @@ df = docs.to_pandas(
 )
 ```
 
-We can also iterate over the documents, which also triggers the execution of the operations scheduled in the lazy collection.
+We can also iterate over the documents, which also triggers the execution of the operations scheduled in the stream.
 
 ```python
 for doc in docs:
@@ -308,7 +308,7 @@ docs = edsnlp.data.from_pandas(data, converter="omop")
 # Add the pipeline to operations that will be run
 docs = docs.map_pipeline(nlp)
 
-# The operations of our lazy collection will be distributed on multiple workers
+# The operations of our stream will be distributed on multiple workers
 docs = docs.set_processing(backend="multiprocessing")
 
 # Convert each doc to a list of dicts (one by entity)
@@ -333,7 +333,7 @@ note_nlp = docs.to_pandas(
 
 ### In a distributed fashion with spark
 
-To use the Spark engine to distribute the computation, we create our lazy collection from the Spark dataframe directly and write the result to a new Spark dataframe. EDS-NLP will automatically
+To use the Spark engine to distribute the computation, we create our stream from the Spark dataframe directly and write the result to a new Spark dataframe. EDS-NLP will automatically
 distribute the operations on the cluster (setting `backend="spark"` behind the scenes), but you can change the backend (for instance to `multiprocessing` to run locally).
 
 ```{ .python hl_lines="2 9" .no-check }

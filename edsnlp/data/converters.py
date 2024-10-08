@@ -207,7 +207,7 @@ class StandoffDict2DocConverter:
         by default it uses the current context tokenizer :
 
         - the tokenizer of the next pipeline run by `.map_pipeline` in a
-          [LazyCollection][edsnlp.core.lazy_collection.LazyCollection].
+          [Stream][edsnlp.core.stream.Stream].
         - or the `eds` tokenizer by default.
     span_setter : SpanSetterArg
         The span setter to use when setting the spans in the documents. Defaults to
@@ -347,7 +347,7 @@ class StandoffDoc2DictConverter:
         span_attributes={"negation": "negated"},
     )
     # or docs.to_standoff(...) if it's already a
-    # [LazyCollection][edsnlp.core.lazy_collection.LazyCollection]
+    # [Stream][edsnlp.core.stream.Stream]
     ```
 
     Parameters
@@ -432,7 +432,7 @@ class OmopDict2DocConverter:
         by default it uses the current context tokenizer :
 
         - the tokenizer of the next pipeline run by `.map_pipeline` in a
-          [LazyCollection][edsnlp.core.lazy_collection.LazyCollection].
+          [Stream][edsnlp.core.stream.Stream].
         - or the `eds` tokenizer by default.
     span_setter: SpanSetterArg
         The span setter to use when setting the spans in the documents. Defaults to
@@ -535,7 +535,7 @@ class OmopDoc2DictConverter:
         span_attributes=["negation", "family"],
     )
     # or docs.to_pandas(...) if it's already a
-    # [LazyCollection][edsnlp.core.lazy_collection.LazyCollection]
+    # [Stream][edsnlp.core.stream.Stream]
     ```
 
     Parameters

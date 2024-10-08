@@ -6,26 +6,26 @@ from edsnlp.utils.collections import ld_to_dl
 
 def test_map_batches():
     items = [1, 2, 3, 4, 5]
-    lazy = edsnlp.data.from_iterable(items)
-    lazy = lazy.map(lambda x: x + 1)  # 2, 3, 4, 5, 6
-    lazy = lazy.map_batches(lambda x: [sum(x)])
-    lazy = lazy.set_processing(
+    stream = edsnlp.data.from_iterable(items)
+    stream = stream.map(lambda x: x + 1)  # 2, 3, 4, 5, 6
+    stream = stream.map_batches(lambda x: [sum(x)])
+    stream = stream.set_processing(
         num_cpu_workers=2,
         sort_chunks=False,
         batch_size=2,
     )
-    res = list(lazy)
+    res = list(stream)
     assert res == [6, 8, 6]  # 2+4, 3+5, 6
 
 
 @pytest.mark.parametrize("num_cpu_workers", [1, 2])
 def test_flat_iterable(num_cpu_workers):
     items = [1, 2, 3, 4]
-    lazy = edsnlp.data.from_iterable(items)
-    lazy = lazy.set_processing(num_cpu_workers=num_cpu_workers)
-    lazy = lazy.map(lambda x: [x] * x)
-    lazy = lazy.flatten()
-    res = list(lazy)
+    stream = edsnlp.data.from_iterable(items)
+    stream = stream.set_processing(num_cpu_workers=num_cpu_workers)
+    stream = stream.map(lambda x: [x] * x)
+    stream = stream.flatten()
+    res = list(stream.to_iterable(converter=lambda x: x))
     assert sorted(res) == [1, 2, 2, 3, 3, 3, 4, 4, 4, 4]
 
 
@@ -40,21 +40,21 @@ def test_map_gpu(num_gpu_workers):
         return {"outputs": batch["tensor"] * 2}
 
     items = [1, 2, 3, 4, 5]
-    lazy = edsnlp.data.from_iterable(items)
-    lazy = lazy.map(lambda x: x + 1)
+    stream = edsnlp.data.from_iterable(items)
+    stream = stream.map(lambda x: x + 1)
     if num_gpu_workers == 0:
         # this is just to fuse tests, and test map_gpu
         # following a map_batches without specifying a batch size
-        lazy = lazy.map_batches(lambda x: x)
-    lazy = lazy.map_gpu(prepare_batch, forward)
-    lazy = lazy.set_processing(
+        stream = stream.map_batches(lambda x: x)
+    stream = stream.map_gpu(prepare_batch, forward)
+    stream = stream.set_processing(
         num_gpu_workers=num_gpu_workers,
         gpu_worker_devices=["cpu"] * num_gpu_workers,
         sort_chunks=False,
         batch_size=2,
     )
 
-    res = ld_to_dl(lazy)
+    res = ld_to_dl(stream)
     res = torch.cat(res["outputs"])
     assert set(res.tolist()) == {4, 6, 8, 10, 12}
 
@@ -88,12 +88,12 @@ def test_map_with_batching(sort, num_cpu_workers, batch_by, expected):
         "Short snippet too",
         "This is a very very long sentence that will make more than 10 words",
     ] * 3
-    lazy = edsnlp.data.from_iterable(samples)
+    stream = edsnlp.data.from_iterable(samples)
     if sort:
-        lazy = lazy.map_batches(lambda x: sorted(x, key=len), batch_size=1000)
-    lazy = lazy.map_pipeline(nlp)
-    lazy = lazy.map_batches(len)
-    lazy = lazy.set_processing(
+        stream = stream.map_batches(lambda x: sorted(x, key=len), batch_size=1000)
+    stream = stream.map_pipeline(nlp)
+    stream = stream.map_batches(len)
+    stream = stream.set_processing(
         num_cpu_workers=num_cpu_workers,
         batch_size=10,
         batch_by=batch_by,
@@ -101,7 +101,7 @@ def test_map_with_batching(sort, num_cpu_workers, batch_by, expected):
         split_into_batches_after="matcher",
         show_progress=True,
     )
-    assert list(lazy) == expected
+    assert list(stream) == expected
 
 
 def test_repr(frozen_ml_nlp, tmp_path):
@@ -114,4 +114,4 @@ def test_repr(frozen_ml_nlp, tmp_path):
         .set_processing(num_cpu_workers=2)
         .write_json(tmp_path / "out_test.jsonl", lines=True, execute=False)
     )
-    assert "LazyCollection" in repr(stream)
+    assert "Stream" in repr(stream)

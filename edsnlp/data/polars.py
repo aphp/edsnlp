@@ -8,7 +8,7 @@ import polars as pl
 from typing_extensions import Literal
 
 from edsnlp import registry
-from edsnlp.core.lazy_collection import LazyCollection
+from edsnlp.core.stream import Stream
 from edsnlp.data.base import BaseWriter, MemoryBasedReader
 from edsnlp.data.converters import (
     get_dict2doc_converter,
@@ -66,7 +66,7 @@ def from_polars(
     loop: bool = False,
     converter: Optional[Union[str, Callable]] = None,
     **kwargs,
-) -> LazyCollection:
+) -> Stream:
     """
     The PolarsReader (or `edsnlp.data.from_polars`) handles reading from a table and
     yields documents. At the moment, only entities and attributes are loaded. Relations
@@ -87,7 +87,7 @@ def from_polars(
     !!! note "Generator vs list"
 
         `edsnlp.data.from_polars` returns a
-        [LazyCollection][edsnlp.core.lazy_collection.LazyCollection].
+        [Stream][edsnlp.core.stream.Stream].
         To iterate over the documents multiple times efficiently or to access them by
         index, you must convert it to a list
 
@@ -115,10 +115,10 @@ def from_polars(
 
     Returns
     -------
-    LazyCollection
+    Stream
     """
 
-    data = LazyCollection(
+    data = Stream(
         reader=PolarsReader(
             data,
             shuffle=shuffle,
@@ -142,7 +142,7 @@ class PolarsWriter(BaseWriter):
 
 @registry.writers.register("polars")
 def to_polars(
-    data: Union[Any, LazyCollection],
+    data: Union[Any, Stream],
     converter: Optional[Union[str, Callable]] = None,
     dtypes: Optional[dict] = None,
     execute: bool = True,
@@ -167,8 +167,8 @@ def to_polars(
 
     Parameters
     ----------
-    data: Union[Any, LazyCollection],
-        The data to write (either a list of documents or a LazyCollection).
+    data: Union[Any, Stream],
+        The data to write (either a list of documents or a Stream).
     dtypes: Optional[dict]
         Dictionary of column names to dtypes. This is passed to the schema parameter of
         `pl.from_dicts`.
@@ -183,7 +183,7 @@ def to_polars(
         Additional keyword arguments to pass to the converter. These are documented on
         the [Converters](/data/converters) page.
     """
-    data = LazyCollection.ensure_lazy(data)
+    data = Stream.ensure_stream(data)
     if converter:
         converter, kwargs = get_doc2dict_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)

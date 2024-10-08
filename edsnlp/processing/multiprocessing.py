@@ -28,7 +28,7 @@ import dill
 from tqdm import tqdm
 from typing_extensions import TypedDict
 
-from edsnlp.core.lazy_collection import LazyCollection
+from edsnlp.core.stream import Stream
 from edsnlp.data.base import BaseReader, BaseWriter, BatchWriter
 from edsnlp.utils.collections import (
     batch_compress_dict,
@@ -256,7 +256,7 @@ try:
         from accelerate.hooks import AlignDevicesHook
 
         # We need to replace the "execution_device" attribute of the AlignDevicesHook
-        # using map_location when unpickling the lazy collection
+        # using map_location when unpickling the stream
 
         def save_align_devices_hook(pickler: Any, obj: Any):
             pickler.save_reduce(load_align_devices_hook, (obj.__dict__,), obj=obj)
@@ -272,7 +272,7 @@ try:
 
     def dump(*args, **kwargs):
         # We need to replace the "execution_device" attribute of the AlignDevicesHook
-        # using map_location when pickling the lazy collection
+        # using map_location when pickling the stream
         old = None
         try:
             if AlignDevicesHook is not None:
@@ -372,14 +372,14 @@ class CPUWorker:
         self,
         cpu_idx: int,
         exchanger: Exchanger,
-        lazy_collection_path: str,
+        stream_path: str,
         device: Union[str, "torch.device"],
     ):
         super(CPUWorker, self).__init__()
 
         self.cpu_idx = cpu_idx
         self.exchanger = exchanger
-        self.lazy_collection_path = lazy_collection_path
+        self.stream_path = stream_path
         self.device = device
 
     def run(self):
@@ -432,7 +432,7 @@ class CPUWorker:
                             _, docs, inputs, _ = slot
                             docs = last_torch_pipe.postprocess(docs, result, inputs)
                             slot[3] = docs
-                            if lc.deterministic:
+                            if stream.deterministic:
                                 while x and x[0][3] is not None:
                                     yield x.pop(0)[3]
                             else:
@@ -491,14 +491,12 @@ class CPUWorker:
         # ValueError: bad value(s) in fds_to_keep
         # mp._prctl_pr_set_pdeathsig(signal.SIGINT)
         try:
-            lc: LazyCollection = load(
-                self.lazy_collection_path, map_location=self.device
-            )
-            reader = lc.reader
-            writer: Union[BaseWriter, BatchWriter] = lc.writer
+            stream: Stream = load(self.stream_path, map_location=self.device)
+            reader = stream.reader
+            writer: Union[BaseWriter, BatchWriter] = stream.writer
             num_cpu_workers = self.exchanger.num_cpu_workers
-            lc.eval()
-            stages = lc._make_stages(len(self.exchanger.gpu_worker_devices) > 0)
+            stream.eval()
+            stages = stream._make_stages(len(self.exchanger.gpu_worker_devices) > 0)
             active_batches = [[] for _ in range(len(stages) - 1)]
 
             # Inform the main process that we are ready
@@ -547,14 +545,14 @@ class GPUWorker:
         self,
         gpu_idx: int,
         exchanger: Exchanger,
-        lazy_collection_path: str,
+        stream_path: str,
         device: Union[str, "torch.device"],
     ):
         super(GPUWorker, self).__init__()
 
         self.gpu_idx = gpu_idx
         self.exchanger = exchanger
-        self.lazy_collection_path = lazy_collection_path
+        self.stream_path = stream_path
         self.device = device
 
     def run(self):
@@ -598,11 +596,9 @@ class GPUWorker:
                 self.exchanger.notify_main(e)
 
         try:
-            lc: LazyCollection = load(
-                self.lazy_collection_path, map_location=self.device
-            )
-            lc.eval()
-            stages = lc._make_stages(len(self.exchanger.gpu_worker_devices) > 0)
+            stream: Stream = load(self.stream_path, map_location=self.device)
+            stream.eval()
+            stages = stream._make_stages(len(self.exchanger.gpu_worker_devices) > 0)
 
             # Inform the main process that we are ready
             self.exchanger.notify_main("READY")
@@ -784,7 +780,7 @@ class Exchanger:
 
 
 def execute_multiprocessing_backend(
-    lc: LazyCollection,
+    stream: Stream,
 ):
     """
     If you have multiple CPU cores, and optionally multiple GPUs, we provide the
@@ -832,11 +828,11 @@ def execute_multiprocessing_backend(
         cpu_worker_devices,
         gpu_worker_devices,
         has_torch_pipes,
-    ) = adjust_num_workers(lc)
-    stages = lc._make_stages(split_torch_pipes=num_gpu_workers > 0)
-    reader: BaseReader = lc.reader
-    writer: BaseWriter = lc.writer
-    mp = get_multiprocessing_context(has_torch_pipes, lc.process_start_method)
+    ) = adjust_num_workers(stream)
+    stages = stream._make_stages(split_torch_pipes=num_gpu_workers > 0)
+    reader: BaseReader = stream.reader
+    writer: BaseWriter = stream.writer
+    mp = get_multiprocessing_context(has_torch_pipes, stream.process_start_method)
 
     # Queues definition
     exchanger = Exchanger(
@@ -845,26 +841,26 @@ def execute_multiprocessing_backend(
         num_gpu_workers=num_gpu_workers,
         num_stages=len(stages),
         gpu_worker_devices=gpu_worker_devices,
-        share_input_queue=not lc.deterministic,
-        share_output_queue=not lc.deterministic,
+        share_input_queue=not stream.deterministic,
+        share_output_queue=not stream.deterministic,
     )
 
-    lc_to_dump = lc.worker_copy()
+    stream_to_dump = stream.worker_copy()
     with tempfile.NamedTemporaryFile(delete=False) as fp:
-        dump(lc_to_dump, fp)
+        dump(stream_to_dump, fp)
         fp.close()
 
-    del lc_to_dump
+    del stream_to_dump
 
     revert_pickler = replace_pickler()
-    revert_environ = setup_environ(lc.disable_implicit_parallelism)
+    revert_environ = setup_environ(stream.disable_implicit_parallelism)
 
     cpu_workers = []
     for cpu_idx in range(num_cpu_workers):
         worker = CPUWorker(
             cpu_idx=cpu_idx,
             exchanger=exchanger,
-            lazy_collection_path=fp.name,
+            stream_path=fp.name,
             device=cpu_worker_devices[cpu_idx],
         )
         cpu_workers.append(
@@ -876,7 +872,7 @@ def execute_multiprocessing_backend(
         worker = GPUWorker(
             gpu_idx=gpu_idx,
             exchanger=exchanger,
-            lazy_collection_path=fp.name,
+            stream_path=fp.name,
             device=gpu_worker_devices[gpu_idx],
         )
         gpu_workers.append(
@@ -904,7 +900,7 @@ def execute_multiprocessing_backend(
 
     os.unlink(fp.name)
 
-    bar = tqdm(smoothing=0.1, mininterval=1.0, disable=not lc.show_progress)
+    bar = tqdm(smoothing=0.1, mininterval=1.0, disable=not stream.show_progress)
 
     keep_going = True
 
@@ -933,7 +929,7 @@ def execute_multiprocessing_backend(
         try:
             items = iter(reader.read_records())
             # TODO: handle WORLD_SIZE env vars here
-            # items = islice(items, self.cpu_idx, None, lc.num_cpu_workers)
+            # items = islice(items, self.cpu_idx, None, stream.num_cpu_workers)
             item = None
             last_item_sent = True
             worker_idx = 0
@@ -1004,14 +1000,14 @@ glob_workers = []
 
 
 def adjust_num_workers(
-    lc: LazyCollection,
+    stream: Stream,
 ):
     num_gpu_workers = (
-        lc.num_gpu_workers
-        if lc.num_gpu_workers is not None or lc.gpu_worker_devices is None
-        else len(lc.gpu_worker_devices)
+        stream.num_gpu_workers
+        if stream.num_gpu_workers is not None or stream.gpu_worker_devices is None
+        else len(stream.gpu_worker_devices)
     )
-    has_torch_pipes = any(lc.torch_components())
+    has_torch_pipes = any(stream.torch_components())
     requires_gpu_workers = has_torch_pipes and (
         num_gpu_workers is None or num_gpu_workers is not None and num_gpu_workers > 0
     )
@@ -1031,10 +1027,10 @@ def adjust_num_workers(
     max_cpu_workers = max(num_cpus - num_gpu_workers - 1, 0)
     num_cpu_workers = (
         max_cpu_workers
-        if lc.num_cpu_workers is None
-        else max_cpu_workers + lc.num_cpu_workers + 1
-        if lc.num_cpu_workers < 0
-        else lc.num_cpu_workers
+        if stream.num_cpu_workers is None
+        else max_cpu_workers + stream.num_cpu_workers + 1
+        if stream.num_cpu_workers < 0
+        else stream.num_cpu_workers
     )
 
     gpu_worker_devices = (
@@ -1043,16 +1039,16 @@ def adjust_num_workers(
                 f"cuda:{gpu_idx * num_devices // num_gpu_workers}"
                 for gpu_idx in range(num_gpu_workers)
             ]
-            if lc.gpu_worker_devices is None
-            else lc.gpu_worker_devices
+            if stream.gpu_worker_devices is None
+            else stream.gpu_worker_devices
         )
         if requires_gpu_workers
         else []
     )
     cpu_worker_devices = (
         ["cpu"] * num_cpu_workers
-        if lc.cpu_worker_devices is None
-        else lc.cpu_worker_devices
+        if stream.cpu_worker_devices is None
+        else stream.cpu_worker_devices
     )
     assert len(cpu_worker_devices) == num_cpu_workers
     assert len(gpu_worker_devices) == num_gpu_workers

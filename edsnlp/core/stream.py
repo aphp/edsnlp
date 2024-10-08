@@ -13,6 +13,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Dict,
     Iterable,
     List,
     Optional,
@@ -122,8 +123,9 @@ class MapOp(Op):
         for item in items:
             res = self.pipe(item, **self.kwargs)
             if isinstance(res, types.GeneratorType):
-                res = list(res)
-            yield res
+                yield from res
+            else:
+                yield res
 
     def __repr__(self):
         if hasattr(self.pipe, "__self__"):
@@ -142,15 +144,15 @@ class MapBatchesOp(Op):
         if hasattr(self.pipe, "batch_process"):
             for batch in batches:
                 res = self.pipe.batch_process(batch, **self.kwargs)
-                res = list(res) if isinstance(res, types.GeneratorType) else res
-                yield res
+                res = list(res) if isinstance(res, types.GeneratorType) else (res,)
+                yield from res
         else:
             for batch in batches:
                 results = []
                 for item in batch:
                     res = self.pipe(item, **self.kwargs)
-                    res = list(res) if isinstance(res, types.GeneratorType) else res
-                    results.append(res)
+                    res = list(res) if isinstance(res, types.GeneratorType) else (res,)
+                    results.extend(res)
                 yield results
 
     def __repr__(self):
@@ -197,7 +199,7 @@ class Stage:
         )
 
 
-class MetaLazyCollection(type):
+class MetaStream(type):
     def __getattr__(self, item):
         if item in edsnlp.data.__all__:
             fn = getattr(edsnlp.data, item)
@@ -209,13 +211,13 @@ class MetaLazyCollection(type):
         return (*super().__dir__(), *edsnlp.data.__all__)
 
 
-class LazyCollection(metaclass=MetaLazyCollection):
+class Stream(metaclass=MetaStream):
     def __init__(
         self,
         reader: Optional[BaseReader] = None,
         writer: Optional[BaseWriter] = None,
         ops: List[Any] = [],
-        config={},
+        config: Dict = {},
     ):
         self.reader = reader
         self.writer = writer
@@ -293,7 +295,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
         chunk_size: int = INFER,
         sort_chunks: bool = False,
         _non_default_args: Iterable[str] = (),
-    ) -> "LazyCollection":
+    ) -> "Stream":
         """
         Parameters
         ----------
@@ -366,7 +368,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
 
         Returns
         -------
-        LazyCollection
+        Stream
         """
         kwargs = {k: v for k, v in locals().items() if k in _non_default_args}
         if (
@@ -382,7 +384,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
             warnings.warn(
                 "split_into_batches_after is deprecated.", VisibleDeprecationWarning
             )
-        return LazyCollection(
+        return Stream(
             reader=self.reader,
             writer=self.writer,
             ops=self.ops,
@@ -393,14 +395,17 @@ class LazyCollection(metaclass=MetaLazyCollection):
         )
 
     @classmethod
-    def ensure_lazy(cls, data):
+    def ensure_stream(cls, data):
         from edsnlp.data.base import IterableReader
 
         if isinstance(data, cls):
             return data
         return cls(reader=IterableReader(data))
 
-    def map(self, pipe, name: Optional[str] = None, kwargs={}) -> "LazyCollection":
+    # For backwards compatibility
+    ensure_lazy = ensure_stream
+
+    def map(self, pipe, name: Optional[str] = None, kwargs={}) -> "Stream":
         """
         Maps a callable to the documents.
 
@@ -415,24 +420,24 @@ class LazyCollection(metaclass=MetaLazyCollection):
 
         Returns
         -------
-        LazyCollection
+        Stream
         """
-        return LazyCollection(
+        return Stream(
             reader=self.reader,
             writer=self.writer,
             ops=[*self.ops, MapOp(pipe, kwargs)],
             config=self.config,
         )
 
-    def flatten(self) -> "LazyCollection":
+    def flatten(self) -> "Stream":
         """
         Flattens the stream.
 
         Returns
         -------
-        LazyCollection
+        Stream
         """
-        return LazyCollection(
+        return Stream(
             reader=self.reader,
             writer=self.writer,
             ops=[*self.ops, FlattenOp()],
@@ -446,7 +451,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
         kwargs={},
         batch_size: Optional[int] = None,
         batch_by: Optional[Union[str, Callable]] = None,
-    ) -> "LazyCollection":
+    ) -> "Stream":
         """
         Maps a callable to a batch of documents. The callable should take a list of
         inputs and return a **list** of outputs (not a single output).
@@ -469,7 +474,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
 
         Returns
         -------
-        LazyCollection
+        Stream
         """
         assert batch_by is None or batch_by in batchify_fns or callable(batch_by)
         batch_fn = batchify_fns.get(batch_by, batch_by)
@@ -481,7 +486,40 @@ class LazyCollection(metaclass=MetaLazyCollection):
             ops.append(BatchifyOp(batch_size, batch_fn))
         ops.append(MapBatchesOp(Batchable(pipe), kwargs))
         ops.append(UnbatchifyOp())
-        return LazyCollection(
+        return Stream(
+            reader=self.reader,
+            writer=self.writer,
+            ops=ops,
+            config=self.config,
+        )
+
+    def batchify(
+        self,
+        batch_size: Optional[int] = None,
+        batch_by: Optional[Union[str, Callable]] = None,
+    ) -> "Stream":
+        """
+        Batches the documents.
+
+        Parameters
+        ----------
+        batch_size: Optional[int]
+            The number of elements to process at a time in a GPU worker.
+        batch_by: Optional[Union[str, Callable]]
+            Function to compute the batches. If set, it should take an iterable of
+            documents and return an iterable of batches. Defaults to "docs". You can
+            also set it to "words" or "padded_words" to use predefined batching
+            functions.
+
+        Returns
+        -------
+        Stream
+        """
+        assert batch_by is None or batch_by in batchify_fns or callable(batch_by)
+        batch_fn = batchify_fns.get(batch_by, batch_by)
+        ops = list(self.ops)
+        ops.append(BatchifyOp(batch_size, batch_fn))
+        return Stream(
             reader=self.reader,
             writer=self.writer,
             ops=ops,
@@ -496,7 +534,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
         name: Optional[str] = None,
         batch_size: Optional[int] = None,
         batch_by: Optional[Union[str, Callable]] = None,
-    ) -> "LazyCollection":
+    ) -> "Stream":
         """
         Maps a deep learning operation to a batch of documents, on a GPU worker.
 
@@ -525,7 +563,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
 
         Returns
         -------
-        LazyCollection
+        Stream
         """
         assert batch_by is None or batch_by in batchify_fns or callable(batch_by)
         batch_fn = batchify_fns.get(batch_by, batch_by)
@@ -537,7 +575,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
             ops.append(BatchifyOp(batch_size, batch_fn))
         ops.append(GPUOp(prepare_batch, forward, postprocess))
         ops.append(UnbatchifyOp())
-        return LazyCollection(
+        return Stream(
             reader=self.reader,
             writer=self.writer,
             ops=ops,
@@ -549,7 +587,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
         model: Pipeline,
         batch_size: Optional[int] = INFER,
         batch_by: Optional[Union[str, Callable]] = INFER,
-    ) -> "LazyCollection":
+    ) -> "Stream":
         """
         Maps a pipeline to the documents.
 
@@ -567,7 +605,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
 
         Returns
         -------
-        LazyCollection
+        Stream
         """
         new_ops = []
         tokenizer = model.tokenizer
@@ -607,7 +645,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
             if self.batch_size is None
             else self.config
         )
-        return LazyCollection(
+        return Stream(
             reader=self.reader,
             writer=self.writer,
             ops=new_ops,
@@ -617,13 +655,13 @@ class LazyCollection(metaclass=MetaLazyCollection):
     def write(self, writer: BaseWriter, execute: bool = True) -> Any:
         if self.writer is not None:
             raise ValueError("A writer is already set.")
-        lc = LazyCollection(
+        stream = Stream(
             reader=self.reader,
             writer=writer,
             ops=self.ops,
             config=self.config,
         )
-        return lc.execute() if execute else lc
+        return stream.execute() if execute else stream
 
     def execute(self):
         import edsnlp.processing
@@ -703,18 +741,32 @@ class LazyCollection(metaclass=MetaLazyCollection):
         return self.train(False)
 
     def worker_copy(self):
-        return LazyCollection(
+        return Stream(
             reader=self.reader.worker_copy(),
             writer=self.writer,
             ops=self.ops,
             config=self.config,
         )
 
+    def copy(
+        self,
+        reader: bool = False,
+        writer: bool = False,
+        ops: bool = False,
+        config: bool = False,
+    ):
+        return Stream(
+            reader=copy(self.reader) if reader else self.reader,
+            writer=copy(self.writer) if writer else self.writer,
+            ops=copy(self.ops) if ops else self.ops,
+            config=copy(self.config) if config else self.config,
+        )
+
     def __dir__(self):  # pragma: no cover
         return (*super().__dir__(), *edsnlp.data.__all__)
 
     def __getattr__(self, item):
-        return getattr(LazyCollection, item).__get__(self)
+        return getattr(Stream, item).__get__(self)
 
     def _make_stages(
         self,
@@ -749,7 +801,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
     def __repr__(self):
         ops_str = ",\n".join(textwrap.indent(repr(op), "    ") for op in self.ops)
         return (
-            f"LazyCollection(\n"
+            f"Stream(\n"
             f"  reader={self.reader},\n"
             f"  ops=[\n{ops_str}\n  ],\n"
             f"  writer={self.writer})\n"
@@ -764,3 +816,7 @@ class LazyCollection(metaclass=MetaLazyCollection):
         write_standoff = edsnlp.data.write_standoff  # noqa: F811
         write_brat = edsnlp.data.write_brat  # noqa: F811
         write_json = edsnlp.data.write_json  # noqa: F811
+
+
+# For backwards compatibility
+LazyCollection = Stream

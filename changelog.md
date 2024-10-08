@@ -6,6 +6,14 @@
 
 - `eds.tables` accepts a minimum_table_size (default 2) argument to reduce pollution
 - `RuleBasedQualifier` now expose a `process` method that only returns qualified entities and token without actually tagging them, defering this task to the `__call__` method.
+- Relation implementation in `doc.spans["<label>"][i]._.rel = [{'type':'rel_type', 'target': <span>},]`
+- Relation connector with brat2docs and docs2brat in `edsnlp.connectors.brat` compatible with `edsnlp.data.read_*` and `edsnlp.data.write_*` (modified files : `edsnlp.data.converters`, `edsnlp.data.standoff`)
+- Rule based relation model using proximity and/or sentence in `edsnlp.pipes.misc.relations` registered as `eds.relation`
+- Documentation using Mkdocs for relations `docs.pipes.misc.relations.md` and `docs.pipes.misc.index.md`
+- Tests for relations `tests.pipelines.misc.test_relations` and ressources `ressources.relations`
+- `data.set_processing(...)` now expose an `autocast` parameter to disable or tweak the automatic casting of the tensor
+  during the processing. Autocasting should result in a slight speedup, but may lead to numerical instability.
+- Use `torch.inference_mode` to disable view tracking and version counter bumps during inference.
 
 ### Fixed
 

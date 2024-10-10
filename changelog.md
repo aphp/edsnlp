@@ -1,19 +1,19 @@
 # Changelog
 
-## Unreleased
+## v0.13.1
 
 ### Added
 
 - `eds.tables` accepts a minimum_table_size (default 2) argument to reduce pollution
-- `RuleBasedQualifier` now expose a `process` method that only returns qualified entities and token without actually tagging them, defering this task to the `__call__` method.
+- `RuleBasedQualifier` now expose a `process` method that only returns qualified entities and token without actually tagging them, deferring this task to the `__call__` method.
 - Added new patterns for metastasis detection. Developed on CT-Scan reports.
 - Added citation of articles
 
 ### Fixed
 
-- Disorder and Behavor pipes don't use a "PRESENT" or "ABSENT" `status` anymore. Instead, `status=None` by default,
+- Disorder and Behavior pipes don't use a "PRESENT" or "ABSENT" `status` anymore. Instead, `status=None` by default,
   and `ent._.negation` is set to True instead of setting `status` to "ABSENT". To this end, the *tobacco* and *alcohol*
-  now use the `NegationQualifier` internaly.
+  now use the `NegationQualifier` internally.
 - Numbers are now only detected without trying to remove the pollution in between digits, ie `55 @ 77777` could be detected as a full number before, but not anymore.
 - Fix fsspec open file encoding to "utf-8".
 

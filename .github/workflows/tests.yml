@@ -154,7 +154,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.7", "3.8", "3.9"]
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v2
 
@@ -172,6 +172,7 @@ jobs:
 
       - name: Install library
         run: |
-          pip install .
+          pip install ".[ml]" pytest
+          pytest tests/pipelines/test_pipelines.py
 #          uv venv
 #          uv pip install .

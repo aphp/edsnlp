@@ -105,7 +105,6 @@ ml = [
     "safetensors>=0.3.0",
     "transformers>=4.0.0,<5.0.0",
     "accelerate>=0.20.3,<1.0.0",
-    "scikit-learn>=1.0.0",
 ]
 
 [project.urls]

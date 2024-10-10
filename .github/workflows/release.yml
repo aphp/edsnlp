@@ -27,16 +27,17 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.5
+        uses: pypa/cibuildwheel@v2.21.3
         env:
           CIBW_ARCHS_MACOS: "x86_64 arm64"
           PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
 
       - uses: actions/upload-artifact@v4
         with:
+          name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
 
   build_sdist:
@@ -50,6 +51,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
+          name: cibw-sdist
           path: dist/*.tar.gz
 
   PyPI:
@@ -59,10 +61,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/download-artifact@v4.1.7
+    - uses: actions/download-artifact@v4
       with:
         name: artifact
+        pattern: cibw-*
         path: dist
+        merge-multiple: true
     - name: Publish package
       uses: pypa/gh-action-pypi-publish@v1.5.0
       with:

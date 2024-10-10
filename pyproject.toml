@@ -417,6 +417,7 @@ skip = [
     "*-musllinux*", # Skip slow Linux
     "*-manylinux_ppc64le", # Skip slow Linux
     "*-manylinux_s390x", # Skip slow Linux
+    "*p313-*", # skip 3.13 for now (spacy build issue): users will have to build it on their own
 ]
 
 before-test = 'pip install pytest "urllib3<2"'

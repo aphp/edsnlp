@@ -612,7 +612,7 @@ class QuantitiesMatcher(BaseNERComponent):
             as_ents: bool = False,
             span_setter: Optional[SpanSetterArg] = None,
             use_tables: bool = True,
-            measurements: Union[str, List[Union[str, MsrConfig]], Dict[str, MsrConfig]] = None # deprecated # noqa: E501
+            measurements: Optional[Union[str, List[Union[str, MsrConfig]], Dict[str, MsrConfig]]] = None,  # deprecated # noqa: E501
     ):
 
         if measurements:
@@ -632,7 +632,7 @@ class QuantitiesMatcher(BaseNERComponent):
                 "Skipping that step."
             )
 
-        self.all_quantities = (quantities == "all")
+        self.all_quantities = quantities == "all"
         if self.all_quantities:
             quantities = []
 
@@ -659,9 +659,7 @@ class QuantitiesMatcher(BaseNERComponent):
         self.extract_ranges = extract_ranges
         self.range_patterns = range_patterns
         self.span_getter = (
-            validate_span_getter(span_getter)
-            if span_getter is not None
-            else None
+            validate_span_getter(span_getter) if span_getter is not None else None
         )
         self.merge_mode = merge_mode
         self.before_snippet_limit = before_snippet_limit
@@ -676,10 +674,7 @@ class QuantitiesMatcher(BaseNERComponent):
                 "ents": as_ents,
                 "measurements": True,
                 "quantities": True,
-                **{
-                    name: [name]
-                    for name in self.measure_names.values()
-                }
+                **{name: [name] for name in self.measure_names.values()},
             }
 
         super().__init__(nlp=nlp, name=name, span_setter=span_setter)
@@ -1033,10 +1028,17 @@ class QuantitiesMatcher(BaseNERComponent):
                         table_pd = table._.to_pd_table(as_spans=True)
                         # Find out the number's row
                         for _, row in table_pd.iterrows():
-                            start_line = next((item.start for item in row
-                                               if item is not None), None)
-                            end_line = next((item.end for item in reversed(row)
-                                             if item is not None), None)
+                            start_line = next(
+                                (item.start for item in row if item is not None), None
+                            )
+                            end_line = next(
+                                (
+                                    item.end
+                                    for item in reversed(row)
+                                    if item is not None
+                                ),
+                                None,
+                            )
                             if start_line is None:
                                 continue
 
@@ -1136,10 +1138,7 @@ class QuantitiesMatcher(BaseNERComponent):
 
             else:
                 ent.label_ = self.measure_names[dims]
-            ent._.set(
-                ent.label_,
-                SimpleQuantity(value, unit_norm, self.unit_registry)
-            )
+            ent._.set(ent.label_, SimpleQuantity(value, unit_norm, self.unit_registry))
 
             quantities.append(ent)
 
@@ -1224,9 +1223,7 @@ class QuantitiesMatcher(BaseNERComponent):
             ]
             if len(matching_patterns):
                 try:
-                    new_value = RangeQuantity.from_quantities(
-                        last._.value, ent._.value
-                    )
+                    new_value = RangeQuantity.from_quantities(last._.value, ent._.value)
                     merged[-1] = last = last.doc[
                                         last.start
                                         if matching_patterns[0][0] is None
@@ -1296,7 +1293,8 @@ class QuantitiesMatcher(BaseNERComponent):
         existing = (
             list(get_spans(doc, self.span_getter))
             if self.span_getter is not None
-            else ())
+            else ()
+        )
         snippets = (
             dict.fromkeys(ent.sent for ent in existing)
             if self.span_getter is not None

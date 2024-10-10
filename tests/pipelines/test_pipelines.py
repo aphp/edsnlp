@@ -12,5 +12,5 @@ def test_import_all():
     import edsnlp.pipes
 
     for name in dir(edsnlp.pipes):
-        if not name.startswith("_"):
+        if not name.startswith("_") and "endlines" not in name:
             getattr(edsnlp.pipes, name)

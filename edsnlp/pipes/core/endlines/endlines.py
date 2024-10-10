@@ -22,6 +22,10 @@ class EndLinesMatcher(GenericMatcher):
     Behind the scenes, it uses a `endlinesmodel` instance, which is an unsupervised
     algorithm based on the work of [@zweigenbaum2016].
 
+    !!! warning "Installation"
+
+        To use this component, you need to install the `scikit-learn` library.
+
     Training
     --------
     ```python
@@ -93,12 +97,12 @@ class EndLinesMatcher(GenericMatcher):
 
     Extensions
     ----------
-    The `eds.endlines` pipeline declares one extension, on both `Span` and `Token`
-    objects. The `end_line` attribute is a boolean, set to `True` if the pipeline
+    The `eds.endlines` pipe declares one extension, on both `Span` and `Token`
+    objects. The `end_line` attribute is a boolean, set to `True` if the pipe
     predicts that the new line is an end line character. Otherwise, it is set to
     `False` if the new line is classified as a space.
 
-    The pipeline also sets the `excluded` custom attribute on newlines that are
+    The pipe also sets the `excluded` custom attribute on newlines that are
     classified as spaces. It lets downstream matchers skip excluded tokens
     (see [normalisation](/pipes/core/normalisation/)) for more detail.
 
@@ -113,7 +117,7 @@ class EndLinesMatcher(GenericMatcher):
 
     Authors and citation
     --------------------
-    The `eds.endlines` pipeline was developed by AP-HP's Data Science team based on
+    The `eds.endlines` pipe was developed by AP-HP's Data Science team based on
     the work of [@zweigenbaum2016].
     '''
 

@@ -20,6 +20,7 @@
 ### Changed
 
 - Rename `eds.measurements` to `eds.quantities`
+- scikit-learn (used in `eds.endlines`) is no longer installed by default when installing `edsnlp[ml]`
 
 ## v0.13.0
 

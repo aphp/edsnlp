@@ -167,7 +167,7 @@ edsnlp/pipes/ner/disorders/dementia/dementia.py                                 
 edsnlp/pipes/ner/disorders/dementia/factory.py                                              5      0 100.00%
 edsnlp/pipes/ner/disorders/dementia/patterns.py                                             4      0 100.00%
 edsnlp/pipes/ner/disorders/diabetes/__init__.py                                             0      0 100.00%
-edsnlp/pipes/ner/disorders/diabetes/diabetes.py                                            31      3  90.32%   134, 137, 149
+edsnlp/pipes/ner/disorders/diabetes/diabetes.py                                            31      3  90.32%   132, 135, 147
 edsnlp/pipes/ner/disorders/diabetes/factory.py                                              5      0 100.00%
 edsnlp/pipes/ner/disorders/diabetes/patterns.py                                             4      0 100.00%
 edsnlp/pipes/ner/disorders/hemiplegia/__init__.py                                           0      0 100.00%
@@ -200,8 +200,8 @@ edsnlp/pipes/ner/disorders/peripheral_vascular_disease/patterns.py              
 edsnlp/pipes/ner/disorders/peripheral_vascular_disease/peripheral_vascular_disease.py      15      1  93.33%   108
 edsnlp/pipes/ner/disorders/solid_tumor/__init__.py                                          0      0 100.00%
 edsnlp/pipes/ner/disorders/solid_tumor/factory.py                                           5      0 100.00%
-edsnlp/pipes/ner/disorders/solid_tumor/patterns.py                                          5      0 100.00%
-edsnlp/pipes/ner/disorders/solid_tumor/solid_tumor.py                                      35     12  65.71%   115-117, 120-129, 150
+edsnlp/pipes/ner/disorders/solid_tumor/patterns.py                                          6      0 100.00%
+edsnlp/pipes/ner/disorders/solid_tumor/solid_tumor.py                                      37     12  67.57%   122-124, 127-136, 157
 edsnlp/pipes/ner/disorders/terms.py                                                         4      0 100.00%
 edsnlp/pipes/ner/drugs/__init__.py                                                          0      0 100.00%
 edsnlp/pipes/ner/drugs/factory.py                                                          10      0 100.00%
@@ -320,4 +320,4 @@ edsnlp/utils/spark_dtypes.py                                                    
 edsnlp/utils/torch.py                                                                      31      0 100.00%
 edsnlp/utils/typing.py                                                                     27      0 100.00%
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                    9439    210  97.78%
+TOTAL                                                                                    9442    210  97.78%

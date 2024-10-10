@@ -40,7 +40,7 @@ edsnlp/pipes/core/contextual_matcher/contextual_matcher.py                      
 edsnlp/pipes/core/contextual_matcher/factory.py                                             4      0 100.00%
 edsnlp/pipes/core/contextual_matcher/models.py                                            115      2  98.26%   20-23
 edsnlp/pipes/core/endlines/__init__.py                                                      0      0 100.00%
-edsnlp/pipes/core/endlines/endlines.py                                                     87      7  91.95%   152-155, 159-160, 192, 279
+edsnlp/pipes/core/endlines/endlines.py                                                     87      7  91.95%   156-159, 163-164, 196, 283
 edsnlp/pipes/core/endlines/factory.py                                                       4      0 100.00%
 edsnlp/pipes/core/endlines/functional.py                                                   13      0 100.00%
 edsnlp/pipes/core/endlines/model.py                                                       256      0 100.00%
@@ -102,7 +102,7 @@ edsnlp/pipes/misc/dates/patterns/relative.py                                    
 edsnlp/pipes/misc/quantities/__init__.py                                                    3      0 100.00%
 edsnlp/pipes/misc/quantities/factory.py                                                     5      0 100.00%
 edsnlp/pipes/misc/quantities/patterns.py                                                    7      0 100.00%
-edsnlp/pipes/misc/quantities/quantities.py                                                432     20  95.37%   148-149, 161-163, 167, 194, 199, 238, 249, 263, 867, 1041, 1072-1073, 1117, 1124-1125, 1237-1238
+edsnlp/pipes/misc/quantities/quantities.py                                                432     20  95.37%   148-149, 161-163, 167, 194, 199, 238, 249, 263, 862, 1043, 1074-1075, 1119, 1126-1127, 1234-1235
 edsnlp/pipes/misc/reason/__init__.py                                                        2      0 100.00%
 edsnlp/pipes/misc/reason/factory.py                                                         4      0 100.00%
 edsnlp/pipes/misc/reason/patterns.py                                                        3      0 100.00%

@@ -30,6 +30,8 @@ Some general considerations about those components:
   )
   ```
 
+--8<-- "docs/pipes/ner/disorders/warning.md"
+
 !!! warning "Use qualifiers"
     Those components **should be used with a qualification pipeline** to avoid extracted unwanted matches. At the very least, you can use available rule-based qualifiers (`eds.negation`, `eds.hypothesis` and `eds.family`). Better, a machine learning qualification component was developed and trained specifically for those components. For privacy reason, the model isn't publicly available yet.
 

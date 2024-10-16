@@ -82,8 +82,8 @@ def aggregate_tokens(
         else:
             keep_list = [True] * len(arr)
 
-        for i, (str_hash, space, keep) in enumerate(
-            zip(tokens_text, tokens_space, keep_list)
+        for i, (str_hash, tag_hash, space, keep) in enumerate(
+            zip(tokens_text, tokens_tag, tokens_space, keep_list)
         ):
             if keep:
                 if space:
@@ -99,6 +99,12 @@ def aggregate_tokens(
                     offset += len(part)
                     ends[i] = offset
             else:
+                if i > 0 and tag_hash == space_hash:
+                    if text_parts[i - 1][-1:] and (
+                        text_parts[i - 1][-1:] not in (" ", "\n")
+                    ):
+                        text_parts[i - 1] += " "
+                        offset += 1
                 begins[i] = offset
                 ends[i] = offset
 

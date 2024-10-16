@@ -40,6 +40,9 @@ page = r"((^\d\/\d\s?)|(^\d\d?\/\d\d\?))"
 footer = rf"(?i)({page}.*\n?pat.*(ipp)?.*\n?(courrier valid.*)?)"
 footer += rf"|(.*{date}.*{ipp}.*)|(imprim.\sle\s{date}.*\d/\d.*\n?pat.*{date})"
 
+# Word split in the middle due to line break
+intraword_split = r"-\n"
+
 pollution = dict(
     information=information,
     bars=bars,
@@ -48,6 +51,7 @@ pollution = dict(
     web=web,
     coding=coding,
     footer=footer,
+    intraword_split=intraword_split,
 )
 
 default_enabled = dict(
@@ -58,4 +62,5 @@ default_enabled = dict(
     web=True,
     coding=False,
     footer=True,
+    intraword_split=True,
 )

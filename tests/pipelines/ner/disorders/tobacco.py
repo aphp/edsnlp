@@ -9,6 +9,7 @@ results_tobacco = dict(
         True,
         True,
         True,
+        True,
     ],
     detailled_status=[
         None,
@@ -18,6 +19,7 @@ results_tobacco = dict(
         None,
         None,
         "ABSTINENCE",
+        None,
         None,
         None,
     ],
@@ -31,6 +33,7 @@ results_tobacco = dict(
         None,
         True,
         True,
+        False,
     ],
     assign=[{"PA": 15}] + 8 * [None],
     texts=[
@@ -38,10 +41,11 @@ results_tobacco = dict(
         "Patient tabagique",
         "Tabagisme festif",
         "On a un tabagisme ancien",
-        "Tabac: 0",
-        "Tabagisme passif",
-        "Tabac: sevré depuis 5 ans",
+        "Pour le tabac: 0",
+        "Notion de tabagisme passif",
+        "Concernant le tabac: sevré depuis 5 ans",
         "Le patient ne fume aucun truc.",
         "Le patient fume 0 PA.",
+        "On a un tabagique non sevré depuis 10 ans.",
     ],
 )

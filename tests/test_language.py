@@ -58,6 +58,18 @@ def test_eds_tokenizer_whitespace():
     ]
 
 
+def test_eds_tokenizer_intraword_split():
+    nlp = spacy.blank("eds")
+    tokenized = [(w.text, w.whitespace_) for w in nlp("Un dia-\nbete ici")]
+    assert tokenized == [
+        ("Un", " "),
+        ("dia", ""),
+        ("-\n", ""),
+        ("bete", " "),
+        ("ici", ""),
+    ]
+
+
 def test_eds_tokenizer_numbers():
     nlp = spacy.blank("eds")
     tokenized = [(w.text, w.whitespace_) for w in nlp("Il fait 5.3/5.4mm")]

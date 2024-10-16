@@ -15,7 +15,7 @@ jobs:
   linting:
     name: Linting
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -32,7 +32,7 @@ jobs:
 
   pytest:
     name: Pytest
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: true
       matrix:
@@ -120,7 +120,7 @@ jobs:
 
   documentation:
     name: Documentation
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
 
@@ -150,7 +150,7 @@ jobs:
 
   simple-installation:
     name: Simple installation
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: true
       matrix:

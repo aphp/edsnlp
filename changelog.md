@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `EDS.Tokenizer` now handles `-\n` (found in text when spliting a long word with a linebreak) as a specific token, which can be discarded by the normalizer pipe.
+
+### Fixed
+
+- Use `ubuntu-22` instead of `ubuntu-latest` in CI to keep `python 3.7` compatibility
+- When using `ignore_space_tokens=True`, words separated only by linebreaks will be collected (via `get_text()`) with spaces inbetween
+- The `process` method of `Qualifiers` now accepts `Span` as input, an treats it as a `Doc` to avoid alignment issues
+- The `detailed_status_mapping` of disorder/behavior pipes not handles the previous `KeyError: None` that can occur when loading pre-annotated docs without instanciating pipes beforehands
+- Various fixes on the Alcohol and Tobacco pipes
+
 ## v0.13.1
 
 ### Added

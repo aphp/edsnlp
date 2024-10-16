@@ -1,3 +1,4 @@
+import spacy
 from pytest import fixture
 
 from edsnlp.matchers.utils import get_text
@@ -25,7 +26,6 @@ def test_full_normalization(doc):
 @fixture
 def nlp_factory(blank_nlp):
     def f(a=False, lc=False, q=False, p=False):
-
         if a:
             a = dict(accents=accents)
         if q:
@@ -48,7 +48,6 @@ def nlp_factory(blank_nlp):
 
 
 def test_normalization_accents(nlp_factory, text):
-
     nlp = nlp_factory(a=True)
     doc = nlp(text)
 
@@ -58,7 +57,6 @@ def test_normalization_accents(nlp_factory, text):
 
 
 def test_normalization_spaces(nlp_factory, text):
-
     nlp = nlp_factory(a=True)
     doc = nlp("Phrase    avec des espaces \n et un retour à la ligne")
 
@@ -67,7 +65,6 @@ def test_normalization_spaces(nlp_factory, text):
 
 
 def test_normalization_quotes(nlp_factory, text):
-
     nlp = nlp_factory(q=True)
     doc = nlp(text)
 
@@ -79,7 +76,6 @@ def test_normalization_quotes(nlp_factory, text):
 
 
 def test_normalization_lowercase(nlp_factory, text):
-
     nlp = nlp_factory(lc=True)
     doc = nlp(text)
 
@@ -88,8 +84,24 @@ def test_normalization_lowercase(nlp_factory, text):
     assert norm.startswith("l'aïeul")
 
 
-def test_normalization_pollution(nlp_factory, text):
+def test_normalization_pollution_with_eds_lang():
+    nlp = spacy.blank("eds")
+    nlp.add_pipe("eds.normalizer")
+    text = "Il faut soigner ce diab-\nete"
+    doc = nlp(text)
+    norm = get_text(doc, attr="NORM", ignore_excluded=True)
+    assert norm == "il faut soigner ce diabete"
 
+
+def test_normalization_linebreak_no_space(nlp_factory):
+    nlp = nlp_factory()
+    text = "Mode de vie: \nTabac\nAlcool\nPas de sport"
+    doc = nlp(text)
+    norm = get_text(doc, attr="NORM", ignore_excluded=True, ignore_space_tokens=True)
+    assert norm == "Mode de vie: Tabac Alcool Pas de sport"
+
+
+def test_normalization_pollution(nlp_factory, text):
     nlp = nlp_factory(p=True)
     doc = nlp(text)
 

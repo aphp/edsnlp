@@ -99,7 +99,10 @@ class DisorderTester:
             for ent in ents:
                 assert ent.label_ == self.disorder
                 if negation is not None:
-                    assert ent._.negation == negation
+                    if negation:
+                        assert ent._.negation == negation
+                    else:
+                        assert ent._.negation is None
 
             if not ents:
                 continue

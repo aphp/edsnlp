@@ -24,7 +24,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-22.04, windows-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -42,7 +42,7 @@ jobs:
 
   build_sdist:
     name: Build source distribution
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v2
 
@@ -58,7 +58,7 @@ jobs:
     name: Upload to PyPI
 
     needs: [build_wheels, build_sdist]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/download-artifact@v4
@@ -76,7 +76,7 @@ jobs:
         # repository_url: https://test.pypi.org/legacy/
 
   Documentation:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v3
 

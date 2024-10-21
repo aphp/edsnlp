@@ -25,6 +25,7 @@ SpanPoolerBatchInput = TypedDict(
         "begins": ft.FoldedTensor,
         "ends": ft.FoldedTensor,
         "sequence_idx": torch.Tensor,
+        "stats": TypedDict("SpanPoolerBatchStats", {"spans": int}),
     },
 )
 """
@@ -146,6 +147,7 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
             "sequence_idx": sequence_idx,
             "num_sequences": len(contexts),
             "embedding": self.embedding.preprocess(doc, contexts=contexts, **kwargs),
+            "stats": {"spans": len(begins)},
         }
 
     def collate(self, batch: Dict[str, Sequence[Any]]) -> SpanPoolerBatchInput:
@@ -170,6 +172,7 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
                 dtype=torch.long,
             ),
             "sequence_idx": torch.as_tensor(sequence_idx),
+            "stats": {"spans": sum(batch["stats"]["spans"])},
         }
         return collated
 

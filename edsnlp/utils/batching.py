@@ -376,3 +376,52 @@ batchify_fns = {
     "fragment": batchify_by_fragment,
     "docs": batchify,
 }
+
+
+def stat_batchify(key):
+    def rec(
+        iterable,
+        batch_size,
+        drop_last=False,
+        sentinel_mode="drop",
+    ):
+        batch = []
+        num_items = 0
+        total = 0
+        exact_key = None
+        for item in iterable:
+            if isinstance(item, StreamSentinel):
+                if sentinel_mode == "split":
+                    if num_items > 0:
+                        yield batch
+                    yield item
+                    batch = []
+                    num_items = 0
+                    total = 0
+                elif sentinel_mode == "keep":
+                    batch.append(item)
+                continue
+            if exact_key is None:
+                candidates = [k for k in item if "/stats/" in k and key in k]
+                if len(candidates) != 1:
+                    raise ValueError(
+                        f"Batching key {key!r} should match exactly one "
+                        f"candidate in {[k for k in item if '/stats/' in k]}"
+                    )
+                exact_key = candidates[0]
+            value = item[exact_key]
+            if num_items > 0 and total + value > batch_size:
+                yield batch
+                batch = []
+                num_items = 0
+                total = 0
+            total += value
+            batch.append(item)
+            num_items += 1
+        if num_items > 0 and not drop_last:
+            yield batch
+
+    if key == "docs":
+        return batchify
+
+    return rec

@@ -20,6 +20,7 @@ from edsnlp.data.converters import (
 from edsnlp.utils.collections import flatten, shuffle
 from edsnlp.utils.file_system import FileSystem, normalize_fs_path, walk_match
 from edsnlp.utils.stream_sentinels import DatasetEndSentinel
+from edsnlp.utils.typing import AsList
 
 
 class JsonReader(FileBasedReader):
@@ -211,7 +212,7 @@ class JsonWriter(BaseWriter):
 @registry.readers.register("json")
 def read_json(
     path: Union[str, Path],
-    converter: Optional[Union[str, Callable]] = None,
+    converter: Optional[AsList[Union[str, Callable]]] = None,
     *,
     keep_ipynb_checkpoints: bool = False,
     filesystem: Optional[FileSystem] = None,
@@ -264,8 +265,8 @@ def read_json(
         The seed to use for shuffling.
     loop: bool
         Whether to loop over the data indefinitely.
-    converter: Optional[Union[str, Callable]]
-        Converter to use to convert the JSON objects to Doc objects.
+    converter: Optional[AsList[Union[str, Callable]]]
+        Converters to use to convert the JSON objects to Doc objects.
         These are documented on the [Converters](/data/converters) page.
     kwargs:
         Additional keyword arguments to pass to the converter. These are documented on
@@ -295,8 +296,9 @@ def read_json(
         )
     )
     if converter:
-        converter, kwargs = get_dict2doc_converter(converter, kwargs)
-        data = data.map(converter, kwargs=kwargs)
+        for conv in converter:
+            conv, kwargs = get_dict2doc_converter(conv, kwargs)
+            data = data.map(conv, kwargs=kwargs)
     return data
 
 

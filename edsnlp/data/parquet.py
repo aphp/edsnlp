@@ -18,6 +18,7 @@ from edsnlp.utils.batching import batchify_fns
 from edsnlp.utils.collections import batchify, dl_to_ld, flatten, ld_to_dl, shuffle
 from edsnlp.utils.file_system import FileSystem, normalize_fs_path
 from edsnlp.utils.stream_sentinels import DatasetEndSentinel, FragmentEndSentinel
+from edsnlp.utils.typing import AsList
 
 
 class ParquetReader(FileBasedReader):
@@ -150,7 +151,7 @@ class ParquetWriter(BatchWriter):
 @registry.readers.register("parquet")
 def read_parquet(
     path: Union[str, Path],
-    converter: Optional[Union[str, Callable]] = None,
+    converter: Optional[AsList[Union[str, Callable]]] = None,
     *,
     filesystem: Optional[FileSystem] = None,
     shuffle: Literal["dataset", "fragment", False] = False,
@@ -209,8 +210,8 @@ def read_parquet(
         The seed to use for shuffling.
     loop: bool
         Whether to loop over the data indefinitely.
-    converter: Optional[Union[str, Callable]]
-        Converter to use to convert the parquet rows of the data source to Doc objects
+    converter: Optional[AsList[Union[str, Callable]]]
+        Converters to use to convert the parquet rows of the data source to Doc objects
         These are documented on the [Converters](/data/converters) page.
     kwargs:
         Additional keyword arguments to pass to the converter. These are documented on
@@ -238,8 +239,9 @@ def read_parquet(
         )
     )
     if converter:
-        converter, kwargs = get_dict2doc_converter(converter, kwargs)
-        data = data.map(converter, kwargs=kwargs)
+        for conv in converter:
+            conv, kw = get_dict2doc_converter(conv, kwargs)
+            data = data.map(conv, kwargs=kw)
     return data
 
 
@@ -337,8 +339,8 @@ def write_parquet(
             "The 'accumulate' parameter is deprecated.", VisibleDeprecationWarning
         )
     if converter:
-        converter, kwargs = get_doc2dict_converter(converter, kwargs)
-        data = data.map(converter, kwargs=kwargs)
+        converter, kw = get_doc2dict_converter(converter, kwargs)
+        data = data.map(converter, kwargs=kw)
 
     return data.write(
         ParquetWriter(

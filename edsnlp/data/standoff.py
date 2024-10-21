@@ -24,6 +24,7 @@ from edsnlp.utils.collections import flatten, shuffle
 from edsnlp.utils.file_system import FileSystem, normalize_fs_path, walk_match
 from edsnlp.utils.span_getters import SpanSetterArg
 from edsnlp.utils.stream_sentinels import DatasetEndSentinel
+from edsnlp.utils.typing import AsList
 
 REGEX_ENTITY = re.compile(r"^(T\d+)\t(.*) (\d+ \d+(?:;\d+ \d+)*)\t(.*)$")
 REGEX_NOTE = re.compile(r"^(#\d+)\tAnnotatorNotes ([^\t]+)\t(.*)$")
@@ -394,7 +395,7 @@ def read_standoff(
     *,
     keep_ipynb_checkpoints: bool = False,
     keep_txt_only_docs: bool = False,
-    converter: Optional[Union[str, Callable]] = "standoff",
+    converter: Optional[AsList[Union[str, Callable]]] = ["standoff"],
     filesystem: Optional[FileSystem] = None,
     shuffle: Literal["dataset", False] = False,
     seed: Optional[int] = None,
@@ -498,7 +499,7 @@ def read_standoff(
         Whether to keep the files that are in the `.ipynb_checkpoints` directory.
     keep_txt_only_docs : bool
         Whether to keep the `.txt` files that do not have corresponding `.ann` files.
-    converter : Optional[Union[str, Callable]]
+    converter : Optional[AsList[Union[str, Callable]]]
         Converter to use to convert the documents to dictionary objects.
     filesystem: Optional[FileSystem] = None,
         The filesystem to use to write the files. If None, the filesystem will be
@@ -520,8 +521,9 @@ def read_standoff(
         )
     )
     if converter:
-        converter, kwargs = get_dict2doc_converter(converter, kwargs)
-        data = data.map(converter, kwargs=kwargs)
+        for conv in converter:
+            conv, kwargs = get_dict2doc_converter(conv, kwargs)
+            data = data.map(conv, kwargs=kwargs)
     return data
 
 

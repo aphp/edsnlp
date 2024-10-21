@@ -343,3 +343,11 @@ def shuffle(items=None, rng=random):
     items = list(items)
     rng.shuffle(items)
     return items
+
+
+class chain_zip:
+    def __init__(self, iterables):
+        self.iterables = list(iterables)
+
+    def __iter__(self):
+        return itertools.chain.from_iterable(zip(*self.iterables))

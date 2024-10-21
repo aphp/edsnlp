@@ -10,6 +10,10 @@
 - Pipeline now has a basic repr showing is base langage (mostly useful to know its tokenizer) and its pipes
 - New `python -m edsnlp.evaluate` script to evaluate a model on a dataset
 - Sentence detection can now be configured to change the minimum number of newlines to consider a newline-triggered sentence, and disable capitalization checking.
+- New `eds.split` pipe to split a document into multiple documents based on a splitting pattern (useful for training)
+- Allow `converter` argument of `edsnlp.data.read/from_...` to be a list of converters instead of a single converter
+- New revamped and documented `edsnlp.train` script and API
+- Support YAML config files (supported only CFG/INI files before)
 
 ### Changed
 

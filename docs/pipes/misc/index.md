@@ -12,9 +12,10 @@ For instance, the date detection and normalisation pipeline falls in this catego
 |--------------------------|---------------------------------------------|
 | `eds.dates`              | Date extraction and normalisation           |
 | `eds.consultation_dates` | Identify consultation dates                 |
-| `eds.quantities`         | Quantity extraction and normalisation        |
+| `eds.quantities`         | Quantity extraction and normalisation       |
 | `eds.sections`           | Section detection                           |
 | `eds.reason`             | Rule-based hospitalisation reason detection |
 | `eds.tables`             | Tables detection                            |
+| `eds.split`              | Doc splitting                               |
 
 <!-- --8<-- [end:components] -->

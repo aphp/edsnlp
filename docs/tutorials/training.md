@@ -69,115 +69,129 @@ uv pip install -e ".[dev]" -p $(uv python find)
 
     EDS-NLP makes heavy use of [Confit](https://aphp.github.io/confit/), a configuration library that allows you call functions from Python or the CLI, and validate and optionally cast their arguments.
 
-    The EDS-NLP function used in this script is the `train` function of the `edsnlp.train` module. When passing a dict to a type-hinted argument (either from a `config.cfg` file, or by calling the function in Python), Confit will instantiate the correct class with the arguments provided in the dict. For instance, we pass a dict to the `val_data` parameter, which is actually type hinted as a `SampleGenerator`. Therefore, you can also instantiate a `SampleGenerator` object directly and pass it to the function.
+    The EDS-NLP function used in this script is the `train` function of the `edsnlp.train` module. When passing a dict to a type-hinted argument (either from a `config.yml` file, or by calling the function in Python), Confit will instantiate the correct class with the arguments provided in the dict. For instance, we pass a dict to the `val_data` parameter, which is actually type hinted as a `SampleGenerator`. Therefore, you can also instantiate a `SampleGenerator` object directly and pass it to the function.
 
     You can also tell Confit specifically which class you want to instantiate by using the `@register_name = "name_of_the_registered_class"` key and value in a dict or config section. We make a heavy use of this mechanism to build pipeline architectures.
 
 === "From the command line"
 
-    Create a `config.cfg` file in the `configs` folder with the following content:
+    Create a `config.yml` file in the `configs` folder with the following content:
 
-    ```{ .toml title="configs/config.cfg" }
+    ```{ .yaml title="configs/config.yml" }
+    # Some variables are grouped here for conviency but we could also
+    # put their values directly in the config in place of their reference
+    vars:
+      train: './data/dataset/train'
+      dev: './data/dataset/test'
+
     # 🤖 PIPELINE DEFINITION
+    nlp:
+      lang: eds  # Word-level tokenization: use the "eds" tokenizer
 
-    [nlp]
-    # Word-level tokenization: use the "eds" tokenizer
-    lang = "eds"
-    # Our pipeline will contain a single NER pipe
-    pipeline = ["ner"]
-    batch_size = 1
-    components = ${components}
+      # Our pipeline will contain a single NER pipe
+      # The NER pipe will be a CRF model
+      components:
+        ner:
+          '@factory': eds.ner_crf
+          mode: 'joint'
+          target_span_getter: 'gold_spans'
+          # Set spans as both to ents and in separate `ent.label` groups
+          span_setter: [ "ents", "*" ]
+          infer_span_setter: true
 
-    # The NER pipe will be a CRF model
-    [components.ner]
-    @factory = "eds.ner_crf"
-    mode = "joint"
-    target_span_getter = ${vars.gold_span_group}
-    # Set spans as both to ents and in separate `ent.label` groups
-    span_setter = [ "ents", "*" ]
-    infer_span_setter = true
+          # The CRF model will use a CNN to re-contextualize embeddings
+          embedding:
+            '@factory': eds.text_cnn
+            kernel_sizes: [ 3 ]
 
-    # The CRF model will use a CNN to re-contextualize embeddings
-    [components.ner.embedding]
-    @factory = "eds.text_cnn"
-    kernel_sizes = [3]
-
-    # The base embeddings will be computed by a transformer
-    # with a sliding window to reduce memory usage, increase
-    # speed and allow for sequences longer than 512 wordpieces
-    [components.ner.embedding.embedding]
-    @factory = "eds.transformer"
-    model = "camembert-base"
-    window = 128
-    stride = 96
+            # The base embeddings will be computed by a transformer
+            embedding:
+              '@factory': eds.transformer
+              model: 'camembert-base'
+              window: 128
+              stride: 96
 
     # 📈 SCORERS
+    scorer:
+      ner:
+        '@metrics': eds.ner_exact
+        span_getter: ${nlp.components.ner.target_span_getter}
 
-    # that we will use to evaluate our model
-    [scorer.ner]
-    @metrics = "eds.ner_exact"
-    span_getter = ${vars.gold_span_group}
+    # 🎛️ OPTIMIZER
+    optim:
+      '@optimizers': adam
+      groups:
+        "*.transformer.*":
+          lr: 5e-5
+          schedules:
+            '@schedules': linear
+            "warmup_rate": 0.1
+            "start_value": 0
+        "*":
+          lr: 3e-4
+          schedules:
+            '@schedules': linear
+            "warmup_rate": 0.1
+            "start_value": 3e-4
 
-    # Some variables grouped here, we could also
-    # put their values directly in the config
-    [vars]
-    train = "./data/dataset/train"
-    dev = "./data/dataset/test"
-    gold_span_group = "gold_spans"
+    # 📚 DATA
+    train_data:
+      - data:
+          # In what kind of files (ie. their extensions) is our
+          # training data stored
+          '@readers': standoff
+          path: ${vars.train}
+          converter:
+            # What schema is used in the data files
+            - '@factory': eds.standoff_dict2doc
+              span_setter: 'gold_spans'
+            # How to preprocess each doc for training
+            - '@factory': eds.split
+              nlp: null
+              max_length: 2000
+              regex: '\n\n+'
+        batch_size: 2000 words
+        pipe_names: [ "ner" ]
+
+    val_data:
+      '@readers': standoff
+      path: ${vars.dev}
+      # What schema is used in the data files
+      converter:
+        - '@factory': eds.standoff_dict2doc
+          span_setter: 'gold_spans'
 
     # 🚀 TRAIN SCRIPT OPTIONS
-    # -> python -m edsnlp.train --config configs/config.cfg
-
-    [train]
-    nlp = ${nlp}
-    max_steps = 2000
-    validation_interval = ${train.max_steps//10}
-    warmup_rate = 0.1
-    # Adapt to the VRAM of your GPU
-    grad_accumulation_max_tokens = 48000
-    batch_size = 2000 words
-    transformer_lr = 5e-5
-    task_lr = 1e-4
-    scorer = ${scorer}
-    output_path = "artifacts/model-last"
-
-    [train.train_data]
-    randomize = true
-    # Documents will be split into sub-documents of 384 words
-    # at most, covering multiple sentences. This makes the
-    # assumption that entities do not span more than 384 words.
-    max_length = 384
-    multi_sentence = true
-    [train.train_data.reader]
-    # In what kind of files (ie. their extensions) is our
-    # training data stored
-    @readers = "standoff"
-    path = ${vars.train}
-    # What schema is used in the data files
-    converter = "standoff"  # by default when readers==standoff
-    span_setter = ${vars.gold_span_group}
-
-    [train.val_data]
-    [train.val_data.reader]
-    @readers = "standoff"
-    path = ${vars.dev}
-    span_setter = ${vars.gold_span_group}
+    # -> python -m edsnlp.train --config configs/config.yml
+    train:
+      nlp: ${ nlp }
+      output_dir: 'artifacts'
+      train_data: ${ train_data }
+      val_data: ${ val_data }
+      max_steps: 2000
+      validation_interval: ${ train.max_steps//10 }
+      max_grad_norm: 1.0
+      scorer: ${ scorer }
+      optim: ${ optim }
+      # Do preprocessing in parallel on 1 worker
+      num_workers: 1
+      # Enable on Mac OS X or if you don't want to use available GPUs
+      # cpu: true
 
     # 📦 PACKAGE SCRIPT OPTIONS
-    # -> python -m edsnlp.package --config configs/config.cfg
-
-    [package]
-    pipeline = ${train.output_path}
-    name = "my_ner_model"
+    # -> python -m edsnlp.package --config configs/config.yml
+    package:
+      pipeline: ${train.output_dir}
+      name: 'my_ner_model'
     ```
 
     To train the model, you can use the following command:
 
     ```{ .bash data-md-color-scheme="slate" }
-    python -m edsnlp.train --config configs/config.cfg --seed 42
+    python -m edsnlp.train --config configs/config.yml --seed 42
     ```
 
-    *Any option can also be set either via the CLI or in `config.cfg` under `[train]`.*
+    *Any option can also be set either via the CLI or in `config.yml` under `[train]`.*
 
 === "From a script or a notebook"
 
@@ -185,9 +199,10 @@ uv pip install -e ".[dev]" -p $(uv python find)
 
     ```{ .python .no-check }
     import edsnlp
-    from edsnlp.train import train
+    from edsnlp.training import train, create_optimizer, TrainingData
     from edsnlp.metrics.ner import NerExactMetric
     import edsnlp.pipes as eds
+    import torch
 
     # 🤖 PIPELINE DEFINITION
     nlp = edsnlp.blank("eds")
@@ -216,11 +231,31 @@ uv pip install -e ".[dev]" -p $(uv python find)
     ner_metric = NerExactMetric(span_getter="gold_spans")
 
     # 📚 DATA
-    train_data_reader = edsnlp.data.read_standoff(
-        path="./data/dataset/train", span_setter="gold_spans"
+    train_data = (
+        edsnlp.data
+        .read_standoff("./data/dataset/train", span_setter="gold_spans")
+        .map(eds.split(nlp=None, max_length=2000, regex="\n\n+"))
     )
-    val_data_reader = edsnlp.data.read_standoff(
-        path="./data/dataset/test", span_setter="gold_spans"
+    val_data = (
+        edsnlp.data
+        .read_standoff("./data/dataset/test", span_setter="gold_spans")
+    )
+
+    # 🎛️ OPTIMIZER
+    # partial optimizer creation, but we could pass nlp=... and total_steps=...
+    # to instantiate the optimizer directly
+    optim = create_optimizer(
+        optim=torch.optim.Adam,
+        groups={
+            "*.transformer.*": {
+                "lr": 5e-5,
+                "schedules": {"@schedules": "linear", "warmup_rate": 0.1, "start_value": 0},
+            },
+            "*": {
+                "lr": 3e-4,
+                "schedules": {"@schedules": "linear", "warmup_rate": 0.1, "start_value": 3e-4},
+            },
+        }
     )
 
     # 🚀 TRAIN
@@ -228,41 +263,46 @@ uv pip install -e ".[dev]" -p $(uv python find)
         nlp=nlp,
         max_steps=2000,
         validation_interval=200,
-        warmup_rate=0.1,
-        # Adapt to the VRAM of your GPU
-        grad_accumulation_max_tokens=48000,
-        batch_size=2000,
-        transformer_lr=5e-5,
-        task_lr=1e-4,
+        train_data=TrainingData(
+            data=train_data,
+            batch_size="2000 words",
+            pipe_names=["ner"],
+            shuffle="dataset",
+        ),
+        val_data=val_data,
         scorer={"ner": ner_metric},
-        output_path="artifacts/model-last",
-        train_data={
-            "randomize": True,
-            # Documents will be split into sub-documents of 384 words
-            # at most, covering multiple sentences. This makes the
-            # assumption that entities do not span more than 384 words.
-            "max_length": 384,
-            "multi_sentence": True,
-            "reader": train_data_reader,
-        },
-        val_data={
-            "reader": val_data_reader,
-        },
+        optim=optim,
+        max_grad_norm=1.0,
+        output_dir="artifacts",
+        # Do preprocessing in parallel on 1 worker
+        num_workers=1,
+        # Enable on Mac OS X or if you don't want to use available GPUs
+        # cpu=True,
     )
     ```
 
-    or use the config file:
+or use the config file:
 
-    ```{ .python .no-check }
-    from edsnlp.train import train
-    import edsnlp
-    import confit
+```{ .python .no-check }
+from edsnlp.train import train
+import edsnlp
+import confit
 
-    cfg = confit.Config.from_disk(
-        "configs/config.cfg", resolve=True, registry=edsnlp.registry
-    )
-    nlp = train(**cfg["train"])
-    ```
+cfg = confit.Config.from_disk(
+    "configs/config.yml", resolve=True, registry=edsnlp.registry
+)
+nlp = train(**cfg["train"])
+```
+
+Here are the parameters you can pass to the `train` function:
+
+::: edsnlp.training.trainer.train
+    options:
+        heading_level: 4
+        only_parameters: true
+        skip_parameters: []
+        show_source: false
+        show_toc: false
 
 ## Use the model
 
@@ -285,7 +325,7 @@ To package the model and share it with friends or family (if the model does not 
 python -m edsnlp.package --pipeline artifacts/model-last/ --name my_ner_model --distributions sdist
 ```
 
-*Parametrize either via the CLI or in `config.cfg` under `[package]`.*
+*Parametrize either via the CLI or in `config.yml` under `[package]`.*
 
 Tthe model saved at the train script output path (`artifacts/model-last`) will be named `my_ner_model` and will be saved in the `dist` folder. You can upload it to a package registry or install it directly with
 

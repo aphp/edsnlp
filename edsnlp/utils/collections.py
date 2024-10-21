@@ -16,6 +16,8 @@ from typing import (
     Union,
 )
 
+from .batching import batchify  # noqa: F401
+
 T = TypeVar("T")
 
 
@@ -156,32 +158,6 @@ def decompress_dict(seq: Union[Iterable[Dict[str, Any]], Dict[str, Any]]):
                 current = current.setdefault(part, {})
             current[parts[-1]] = value
     return res
-
-
-def batchify(
-    iterable: Iterable[T],
-    batch_size: int,
-    drop_last: bool = False,
-) -> Iterable[List[T]]:
-    """
-    Yields batch that contain at most `batch_size` elements.
-    If an item contains more than `batch_size` elements, it will be yielded as a single
-    batch.
-
-    Parameters
-    ----------
-    iterable
-    batch_size
-    drop_last
-    """
-    batch = []
-    for item in iterable:
-        if len(batch) >= batch_size:
-            yield batch
-            batch = []
-        batch.append(item)
-    if len(batch) > 0 and not drop_last:
-        yield batch
 
 
 def get_attr_item(base, attr):
@@ -363,7 +339,7 @@ def flatten(item):
         yield from flatten(sub)
 
 
-def shuffle(items, rng=random):
+def shuffle(items=None, rng=random):
     items = list(items)
     rng.shuffle(items)
     return items

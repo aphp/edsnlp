@@ -10,6 +10,7 @@ from edsnlp.core.stream import Stream
 from edsnlp.data.base import BaseWriter, BatchWriter
 from edsnlp.data.spark import SparkReader, SparkWriter
 from edsnlp.utils.collections import flatten, flatten_once
+from edsnlp.utils.stream_sentinels import StreamSentinel
 
 try:
     from koalas.dataframe import DataFrame as KoalasDataFrame
@@ -86,7 +87,11 @@ def execute_spark_backend(
     else:
         with spark_interpret_dicts_as_rows():
             df = spark.sparkContext.parallelize(
-                [{"content": pickle.dumps(item, -1)} for item in reader.read_records()]
+                [
+                    {"content": pickle.dumps(item, -1)}
+                    for item in reader.read_records()
+                    if not isinstance(item, StreamSentinel)
+                ]
             ).toDF(T.StructType([T.StructField("content", T.BinaryType())]))
 
     def make_torch_pipe(torch_pipe, disable_after):  # pragma: no cover
@@ -130,8 +135,8 @@ def execute_spark_backend(
         if getattr(writer, "batch_in_worker", None) is True:
             items = writer.batch_by(items, writer.batch_size)
             # get the 1st element (2nd is the count)
-            for b in items:
-                item, count = writer.handle_batch(b)
+            for item in items:
+                item, count = writer.handle_batch(item)
                 results.append(item)
         else:
             results = list(items)
@@ -139,7 +144,6 @@ def execute_spark_backend(
         if isinstance(writer, SparkWriter):
             return list(flatten(results))
         else:
-            print("RESULTS", results)
             return [{"content": pickle.dumps(results, -1)}]
 
     with stream.eval():

@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import sys
 from contextlib import nullcontext
-from typing import TYPE_CHECKING
 
 from tqdm import tqdm
 
-if TYPE_CHECKING:
-    from edsnlp.core.stream import Stream
+from edsnlp.core.stream import Stream, StreamSentinel
 
 doc_size_fns = {
     "words": len,
@@ -75,10 +73,15 @@ def execute_simple_backend(stream: Stream):
                     items = pipe(items)
 
             if writer is not None:
-                items = (writer.handle_record(item) for item in items)
+                items = (
+                    item
+                    if isinstance(item, StreamSentinel)
+                    else writer.handle_record(item)
+                    for item in items
+                )
 
             if getattr(writer, "batch_by", None) is not None:
-                items = writer.batch_by(items, writer.batch_size)
+                items = writer.batch_by(items, writer.batch_size, sentinel_mode="drop")
                 # get the 1st element (2nd is the count)
                 for b in items:
                     item, count = writer.handle_batch(b)
@@ -86,8 +89,9 @@ def execute_simple_backend(stream: Stream):
                     yield item
             else:
                 for item in items:
-                    bar.update(1)
-                    yield item
+                    if not isinstance(item, StreamSentinel):
+                        bar.update(1)
+                        yield item
 
     items = process()
 

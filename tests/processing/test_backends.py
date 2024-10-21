@@ -310,7 +310,12 @@ def test_generator(backend):
             yield char
 
     items = items.map(gen).set_processing(backend=backend, num_cpu_workers=2)
-    assert list(items) == [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i", "j"]]
+    # output from workers will be read in a round-robin fashion
+    # ie zip(
+    #   ("a",      "b",      "c",      "g", "h", "i", "j")  # worker 1
+    #        ("d",      "e",      "f")  # worker 2
+    # )
+    assert set(items) == {"a", "d", "b", "e", "c", "f", "g", "h", "i", "j"}
 
 
 @pytest.mark.parametrize(
@@ -351,7 +356,6 @@ class InnerComponent(TorchComponent):
         return {"sizes": torch.as_tensor([len(x) for x in batch["text"]])}
 
     def forward(self, batch):
-        print(batch)
         assert not self.called_forward
         self.called_forward = True
         return {"sizes": batch["sizes"] * 2}

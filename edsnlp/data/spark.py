@@ -20,6 +20,7 @@ from edsnlp.utils.spark_dtypes import (
     schema_warning,
     spark_interpret_dicts_as_rows,
 )
+from edsnlp.utils.stream_sentinels import DatasetEndSentinel
 
 
 class SparkReader(MemoryBasedReader):
@@ -36,6 +37,7 @@ class SparkReader(MemoryBasedReader):
 
         self.data = data
         self.shuffle = shuffle
+        self.emitted_sentinels = {"dataset"}
         self.rng = random.Random(seed)
         self.loop = loop
         assert isinstance(
@@ -46,8 +48,11 @@ class SparkReader(MemoryBasedReader):
     def read_records(self) -> Iterable[Any]:
         while True:
             data: "pyspark.sql.dataframe.DataFrame" = self.data
-            files = (item.asDict(recursive=True) for item in data.toLocalIterator())
-            yield from files
+            if self.shuffle == "dataset":
+                data = data.sample(fraction=1.0, seed=self.rng.getrandbits(32))
+            items = (item.asDict(recursive=True) for item in data.toLocalIterator())
+            yield from items
+            yield DatasetEndSentinel()
             if not self.loop:
                 break
 
@@ -218,8 +223,7 @@ def to_spark(
     show_dtypes: bool
         Whether to print the inferred schema (only if `dtypes` is None).
     execute: bool
-        Whether to execute the writing operation immediately or to return a lazy
-        collection
+        Whether to execute the writing operation immediately or to return a stream
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the documents to dictionary objects before storing
         them in the dataframe. These are documented on the

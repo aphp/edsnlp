@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import abc
-import inspect
+import random
 import sys
 import textwrap
-import types
 import warnings
 from collections import namedtuple
 from copy import copy
 from functools import wraps
+from inspect import isgeneratorfunction, signature
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -25,8 +25,9 @@ from confit import VisibleDeprecationWarning
 from typing_extensions import Literal
 
 import edsnlp.data
-from edsnlp.utils.batching import batchify_fns
-from edsnlp.utils.collections import flatten, flatten_once
+from edsnlp.utils.batching import BatchBy, BatchFn, BatchSizeArg, batchify_fns
+from edsnlp.utils.collections import flatten, flatten_once, shuffle
+from edsnlp.utils.stream_sentinels import StreamSentinel
 
 if TYPE_CHECKING:
     import torch
@@ -34,6 +35,12 @@ if TYPE_CHECKING:
     from edsnlp import Pipeline
     from edsnlp.core.torch_component import TorchComponent
     from edsnlp.data.base import BaseReader, BaseWriter
+
+
+def deep_isgeneratorfunction(x):
+    if hasattr(x, "__call__"):
+        return isgeneratorfunction(x) or isgeneratorfunction(x.__call__)
+    return isgeneratorfunction(x)
 
 
 class _InferType:
@@ -76,11 +83,19 @@ def make_kwargs_str(kwargs, first=True):
 
 
 class Op(abc.ABC):
+    elementwise: bool
+
     def __call__(self, items):
         raise NotImplementedError()
 
+    @property
+    def expected_sentinels(self):
+        return set()
+
 
 class FlattenOp(Op):
+    elementwise = False
+
     def __call__(self, items):
         return flatten(items)
 
@@ -89,6 +104,8 @@ class FlattenOp(Op):
 
 
 class UnbatchifyOp(Op):
+    elementwise = True
+
     def __call__(self, items):
         return flatten_once(items)
 
@@ -97,7 +114,14 @@ class UnbatchifyOp(Op):
 
 
 class BatchifyOp(Op):
-    def __init__(self, size, batch_fn: Callable[[Iterable, int], Iterable]):
+    elementwise = True
+
+    def __init__(
+        self,
+        size,
+        batch_fn: BatchFn,
+        sentinel_mode: Optional[Literal["drop", "split", "auto"]] = None,
+    ):
         if batch_fn is None:
             if size is None:
                 size = INFER
@@ -106,23 +130,45 @@ class BatchifyOp(Op):
                 batch_fn = batchify_fns["docs"]
         self.size = size
         self.batch_fn = batch_fn
+        self.sentinel_mode = sentinel_mode
 
     def __call__(self, items):
-        return self.batch_fn(items, self.size)
+        assert self.sentinel_mode != "auto"
+        return self.batch_fn(
+            items,
+            self.size,
+            **{"sentinel_mode": self.sentinel_mode}
+            if self.sentinel_mode is not None
+            else {},
+        )
 
     def __repr__(self):
-        return "batchify({}, {})".format(self.size, self.batch_fn)
+        return (
+            "batchify("
+            f"size={self.size}, "
+            f"fn={self.batch_fn}, "
+            f"sentinel_mode={self.sentinel_mode})"
+        )
+
+    @property
+    def expected_sentinels(self):
+        return getattr(self.batch_fn, "expected_sentinels", set())
 
 
 class MapOp(Op):
     def __init__(self, pipe, kwargs):
         self.pipe = pipe
         self.kwargs = kwargs
+        self.is_generator = deep_isgeneratorfunction(pipe)
+        self.elementwise = not self.is_generator
 
     def __call__(self, items):
         for item in items:
+            if isinstance(item, StreamSentinel):
+                yield item
+                continue
             res = self.pipe(item, **self.kwargs)
-            if isinstance(res, types.GeneratorType):
+            if self.is_generator:
                 yield from res
             else:
                 yield res
@@ -136,22 +182,36 @@ class MapOp(Op):
 
 
 class MapBatchesOp(Op):
-    def __init__(self, pipe, kwargs):
+    def __init__(self, pipe, kwargs, elementwise=False):
         self.pipe = pipe
         self.kwargs = kwargs
+        self.is_generator = deep_isgeneratorfunction(pipe)
+        if elementwise and self.is_generator:
+            raise ValueError("Cannot use elementwise=True with a generator function")
+        self.elementwise = elementwise
 
     def __call__(self, batches):
         if hasattr(self.pipe, "batch_process"):
             for batch in batches:
+                if isinstance(batch, StreamSentinel):
+                    yield batch
+                    continue
                 res = self.pipe.batch_process(batch, **self.kwargs)
-                res = list(res) if isinstance(res, types.GeneratorType) else (res,)
+                res = list(res) if self.is_generator else (res,)
                 yield from res
         else:
             for batch in batches:
+                if isinstance(batch, StreamSentinel):
+                    yield batch
+                    continue
                 results = []
                 for item in batch:
-                    res = self.pipe(item, **self.kwargs)
-                    res = list(res) if isinstance(res, types.GeneratorType) else (res,)
+                    res = (
+                        item
+                        if isinstance(item, StreamSentinel)
+                        else self.pipe(item, **self.kwargs)
+                    )
+                    res = list(res) if self.is_generator else (res,)
                     results.extend(res)
                 yield results
 
@@ -167,16 +227,16 @@ class MapBatchesOp(Op):
         return f"map_batches_op({op_str}{make_kwargs_str(self.kwargs, False)})"
 
 
-class GPUOp:
-    def __init__(self, prepare_batch, forward, postprocess):
+class QuickTorchPipe:
+    def __init__(self, prepare_batch, forward, postprocess, elementwise=False):
         self.prepare_batch = prepare_batch
         self.forward = forward
         self.postprocess = postprocess
+        self.elementwise = elementwise
 
-    def __call__(self, batches):
-        for batch in batches:
-            res = self.forward(self.prepare_batch(batch, None))
-            yield self.postprocess(batch, res) if self.postprocess is not None else res
+    def batch_process(self, batch):
+        res = self.forward(self.prepare_batch(batch, None))
+        return self.postprocess(batch, res) if self.postprocess is not None else res
 
     def enable_cache(self, cache_id=None):
         pass
@@ -223,6 +283,31 @@ class Stream(metaclass=MetaStream):
         self.writer = writer
         self.ops: List[Op] = ops
         self.config = config
+
+    @classmethod
+    def validate_batching(self, batch_size, batch_by):
+        if isinstance(batch_size, str):
+            if batch_by is not None:
+                raise ValueError(
+                    "Cannot use both a batch_size expression and a batch_by function"
+                )
+            batch_size, batch_by = BatchSizeArg.validate(batch_size)
+        if (
+            batch_size is not None
+            and batch_size is not INFER
+            and not isinstance(batch_size, int)
+        ):
+            raise ValueError(
+                f"Invalid batch_size (must be an integer or None): {batch_size}"
+            )
+        if (
+            batch_by is not None
+            and batch_by is not INFER
+            and batch_by not in batchify_fns
+            and not callable(batch_by)
+        ):
+            raise ValueError(f"Invalid batch_by function: {batch_by}")
+        return batch_size, batch_by
 
     @property
     def batch_size(self):
@@ -278,7 +363,7 @@ class Stream(metaclass=MetaStream):
     def set_processing(
         self,
         batch_size: int = INFER,
-        batch_by: Literal["docs", "words", "padded_words"] = "docs",
+        batch_by: BatchBy = "docs",
         split_into_batches_after: str = INFER,
         num_cpu_workers: Optional[int] = INFER,
         num_gpu_workers: Optional[int] = INFER,
@@ -450,7 +535,7 @@ class Stream(metaclass=MetaStream):
         name: Optional[str] = None,
         kwargs={},
         batch_size: Optional[int] = None,
-        batch_by: Optional[Union[str, Callable]] = None,
+        batch_by: BatchBy = None,
     ) -> "Stream":
         """
         Maps a callable to a batch of documents. The callable should take a list of
@@ -464,19 +549,20 @@ class Stream(metaclass=MetaStream):
             The name of the pipeline step.
         kwargs: Dict
             The keyword arguments to pass to the callable.
-        batch_size: Optional[int]
-            The number of elements to process at a time in a GPU worker.
-        batch_by: Optional[Union[str, Callable]]
+        batch_size: Optional[Union[int, str]]
+            The batch size. Can also be a batching expression like
+            "32 docs", "1024 words", "dataset", "fragment", etc.
+        batch_by: Optional[Union[str, BatchFn]]
             Function to compute the batches. If set, it should take an iterable of
-            documents and return an iterable of batches. Defaults to "docs". You can
-            also set it to "words" or "padded_words" to use predefined batching
-            functions.
+            documents and return an iterable of batches. You can also set it to
+            "docs", "words" or "padded_words" to use predefined batching functions.
+            Defaults to "docs".
 
         Returns
         -------
         Stream
         """
-        assert batch_by is None or batch_by in batchify_fns or callable(batch_by)
+        batch_size, batch_by = self.validate_batching(batch_size, batch_by)
         batch_fn = batchify_fns.get(batch_by, batch_by)
         infer_batch = batch_size is None and batch_by is None
         ops = list(self.ops)
@@ -486,45 +572,50 @@ class Stream(metaclass=MetaStream):
             ops.append(BatchifyOp(batch_size, batch_fn))
         ops.append(MapBatchesOp(Batchable(pipe), kwargs))
         ops.append(UnbatchifyOp())
-        return Stream(
+        stream = Stream(
             reader=self.reader,
             writer=self.writer,
             ops=ops,
             config=self.config,
         )
+        stream.validate_ops(ops=stream.ops, update=False)
+        return stream
 
     def batchify(
         self,
         batch_size: Optional[int] = None,
-        batch_by: Optional[Union[str, Callable]] = None,
+        batch_by: BatchBy = None,
     ) -> "Stream":
         """
         Batches the documents.
 
         Parameters
         ----------
-        batch_size: Optional[int]
-            The number of elements to process at a time in a GPU worker.
-        batch_by: Optional[Union[str, Callable]]
+        batch_size: Optional[Union[int, str]]
+            The batch size. Can also be a batching expression like
+            "32 docs", "1024 words", "dataset", "fragment", etc.
+        batch_by: Optional[Union[str, BatchFn]]
             Function to compute the batches. If set, it should take an iterable of
-            documents and return an iterable of batches. Defaults to "docs". You can
-            also set it to "words" or "padded_words" to use predefined batching
-            functions.
+            documents and return an iterable of batches. You can also set it to
+            "docs", "words" or "padded_words" to use predefined batching functions.
+            Defaults to "docs".
 
         Returns
         -------
         Stream
         """
-        assert batch_by is None or batch_by in batchify_fns or callable(batch_by)
+        batch_size, batch_by = self.validate_batching(batch_size, batch_by)
         batch_fn = batchify_fns.get(batch_by, batch_by)
         ops = list(self.ops)
         ops.append(BatchifyOp(batch_size, batch_fn))
-        return Stream(
+        stream = Stream(
             reader=self.reader,
             writer=self.writer,
             ops=ops,
             config=self.config,
         )
+        stream.validate_ops(ops=stream.ops, update=False)
+        return stream
 
     def map_gpu(
         self,
@@ -533,7 +624,7 @@ class Stream(metaclass=MetaStream):
         postprocess: Optional[Callable[[List, Any], Any]] = None,
         name: Optional[str] = None,
         batch_size: Optional[int] = None,
-        batch_by: Optional[Union[str, Callable]] = None,
+        batch_by: BatchBy = None,
     ) -> "Stream":
         """
         Maps a deep learning operation to a batch of documents, on a GPU worker.
@@ -553,19 +644,20 @@ class Stream(metaclass=MetaStream):
             on the same CPU-bound worker that called the `prepare_batch` function.
         name: Optional[str]
             The name of the pipeline step.
-        batch_size: Optional[int]
-            The number of elements to process at a time in a GPU worker.
-        batch_by: Optional[Union[str, Callable]]
+        batch_size: Optional[Union[int, str]]
+            The batch size. Can also be a batching expression like
+            "32 docs", "1024 words", "dataset", "fragment", etc.
+        batch_by: Optional[Union[str, BatchFn]]
             Function to compute the batches. If set, it should take an iterable of
-            documents and return an iterable of batches. Defaults to "docs". You can
-            also set it to "words" or "padded_words" to use predefined batching
-            functions.
+            documents and return an iterable of batches. You can also set it to
+            "docs", "words" or "padded_words" to use predefined batching functions.
+            Defaults to "docs".
 
         Returns
         -------
         Stream
         """
-        assert batch_by is None or batch_by in batchify_fns or callable(batch_by)
+        batch_size, batch_by = self.validate_batching(batch_size, batch_by)
         batch_fn = batchify_fns.get(batch_by, batch_by)
         infer_batch = batch_size is None and batch_by is None
         ops = list(self.ops)
@@ -573,20 +665,23 @@ class Stream(metaclass=MetaStream):
             ops.pop()
         else:
             ops.append(BatchifyOp(batch_size, batch_fn))
-        ops.append(GPUOp(prepare_batch, forward, postprocess))
+        pipe = QuickTorchPipe(prepare_batch, forward, postprocess)
+        ops.append(MapBatchesOp(pipe, {}, elementwise=True))
         ops.append(UnbatchifyOp())
-        return Stream(
+        stream = Stream(
             reader=self.reader,
             writer=self.writer,
             ops=ops,
             config=self.config,
         )
+        stream.validate_ops(ops=stream.ops, update=False)
+        return stream
 
     def map_pipeline(
         self,
         model: Pipeline,
         batch_size: Optional[int] = INFER,
-        batch_by: Optional[Union[str, Callable]] = INFER,
+        batch_by: BatchBy = INFER,
     ) -> "Stream":
         """
         Maps a pipeline to the documents.
@@ -595,13 +690,14 @@ class Stream(metaclass=MetaStream):
         ----------
         model: Pipeline
             The pipeline to map to the documents.
-        batch_size: Optional[int]
-            The number of elements to process at a time in a GPU worker.
-        batch_by: Optional[Union[str, Callable]]
+        batch_size: Optional[Union[int, str]]
+            The batch size. Can also be a batching expression like
+            "32 docs", "1024 words", "dataset", "fragment", etc.
+        batch_by: Optional[Union[str, BatchFn]]
             Function to compute the batches. If set, it should take an iterable of
-            documents and return an iterable of batches. Defaults to "docs". You can
-            also set it to "words" or "padded_words" to use predefined batching
-            functions.
+            documents and return an iterable of batches. You can also set it to
+            "docs", "words" or "padded_words" to use predefined batching functions.
+            Defaults to "docs".
 
         Returns
         -------
@@ -615,42 +711,109 @@ class Stream(metaclass=MetaStream):
             if (
                 (
                     isinstance(op, MapOp)
-                    and "tokenizer" in inspect.signature(op.pipe).parameters
+                    and "tokenizer" in signature(op.pipe).parameters
                     and "tokenizer" not in op.kwargs
                 )
                 or (
                     isinstance(op, MapBatchesOp)
                     and hasattr(op.pipe, "batch_process")
-                    and "tokenizer"
-                    in inspect.signature(op.pipe.batch_process).parameters
+                    and "tokenizer" in signature(op.pipe.batch_process).parameters
                     and "tokenizer" not in op.kwargs
                 )
                 or (
                     isinstance(op, MapBatchesOp)
                     and callable(op.pipe)
-                    and "tokenizer" in inspect.signature(op.pipe).parameters
+                    and "tokenizer" in signature(op.pipe).parameters
                     and "tokenizer" not in op.kwargs
                 )
             ):
                 op.kwargs["tokenizer"] = tokenizer
             new_ops.append(op)
         new_ops.append(MapOp(model._ensure_doc, {}))
-        new_ops.append(BatchifyOp(batch_size, batchify_fns.get(batch_by, batch_by)))
+        batch_size, batch_by = self.validate_batching(batch_size, batch_by)
+        batch_by = batchify_fns.get(batch_by, batch_by)
+        new_ops.append(BatchifyOp(batch_size, batch_by))
         for name, pipe in model.pipeline:
             if name not in model._disabled:
-                new_ops.append((MapBatchesOp(pipe, {})))
+                op = MapBatchesOp(
+                    pipe, {}, elementwise=not deep_isgeneratorfunction(pipe)
+                )
+                new_ops.append(op)
         new_ops.append(UnbatchifyOp())
         config = (
             {**self.config, "batch_size": model.batch_size}
             if self.batch_size is None
             else self.config
         )
-        return Stream(
+        stream = Stream(
             reader=self.reader,
             writer=self.writer,
             ops=new_ops,
             config=config,
         )
+        stream.validate_ops(ops=stream.ops, update=False)
+        return stream
+
+    def shuffle(
+        self,
+        batch_size: Optional[Union[str, int]] = None,
+        batch_by: Optional[str, BatchFn] = None,
+        seed: Optional[int] = None,
+        shuffle_reader: Optional[Union[bool, str]] = None,
+    ) -> "Stream":
+        """
+        Shuffles the stream.
+
+        Parameters
+        ----------
+        batch_size: Optional[Union[int, str]]
+            The batch size. Can also be a batching expression like
+            "32 docs", "1024 words", "dataset", "fragment", etc.
+        batch_by: Optional[Union[str, BatchFn]]
+            Function to compute the batches. If set, it should take an iterable of
+            documents and return an iterable of batches. You can also set it to
+            "docs", "words" or "padded_words" to use predefined batching functions.
+            Defaults to "docs".
+        seed: Optional[int]
+            The seed to use for shuffling.
+        shuffle_reader: Optional[bool]
+            Whether to shuffle the reader. Defaults to True if the reader is compatible
+            with the batch_by mode, False otherwise.
+
+        Returns
+        -------
+        Stream
+        """
+        batch_size, batch_by = self.validate_batching(batch_size, batch_by)
+        if batch_by is None and batch_size is None:
+            batch_by = "dataset"
+        if shuffle_reader is None or shuffle_reader is True:
+            shuffle_reader = (
+                batch_by
+                if batch_by in self.reader.emitted_sentinels and not self.reader.shuffle
+                else False
+            )
+        stream = self
+        if shuffle_reader:
+            if shuffle_reader not in self.reader.emitted_sentinels:
+                raise ValueError(f"Cannot shuffle by {shuffle_reader}")
+            stream = Stream(
+                reader=copy(stream.reader),
+                writer=stream.writer,
+                ops=stream.ops,
+                config=stream.config,
+            )
+            stream.reader.shuffle = shuffle_reader
+            stream.reader.rng = random.Random(seed)
+        if any(not op.elementwise for op in self.ops) or not shuffle_reader:
+            stream = stream.map_batches(
+                pipe=shuffle,
+                batch_size=batch_size,
+                batch_by=batch_by,
+                kwargs={"rng": random.Random(seed)},
+            )
+        stream.validate_ops(ops=stream.ops, update=False)
+        return stream
 
     def write(self, writer: BaseWriter, execute: bool = True) -> Any:
         if self.writer is not None:
@@ -768,21 +931,19 @@ class Stream(metaclass=MetaStream):
     def __getattr__(self, item):
         return getattr(Stream, item).__get__(self)
 
-    def _make_stages(
-        self,
-        split_torch_pipes: bool,
-    ) -> List[Stage]:
+    def _make_stages(self, split_torch_pipes: bool) -> List[Stage]:
         current_ops = []
         stages = []
         self_batch_fn = batchify_fns.get(self.batch_by, self.batch_by)
         self_batch_size = self.batch_size
         assert self_batch_size is not None
 
-        for op in self.ops:
-            op = copy(op)
+        ops = [copy(op) for op in self.ops]
+
+        for op in ops:
             if isinstance(op, BatchifyOp):
-                op.batch_fn = op.batch_fn or self_batch_fn
-                op.size = op.size or self_batch_size
+                op.batch_fn = self_batch_fn if op.batch_fn is INFER else op.batch_fn
+                op.size = self_batch_size if op.size is INFER else op.size
             if (
                 isinstance(op, MapBatchesOp)
                 and hasattr(op.pipe, "forward")
@@ -796,7 +957,47 @@ class Stream(metaclass=MetaStream):
         if len(current_ops) or len(stages) == 0:
             stages.append(Stage(current_ops, None))
 
+        self.validate_ops(ops=ops, update=True)
+
         return stages
+
+    def validate_ops(self, ops, update: bool = False):
+        # Check batchify requirements
+        expected_sentinels = set()
+        self_batch_fn = batchify_fns.get(self.batch_by, self.batch_by)
+        for op in reversed(ops):
+            if isinstance(op, BatchifyOp):
+                batch_fn = op.batch_fn or self_batch_fn
+                sentinel_mode = op.sentinel_mode or (
+                    "auto"
+                    if "sentinel_mode" in signature(batch_fn).parameters
+                    else None
+                )
+                if sentinel_mode == "auto":
+                    sentinel_mode = "split" if expected_sentinels else "drop"
+                if expected_sentinels and op.sentinel_mode == "drop":
+                    raise ValueError(
+                        f"Operation {op} drops the stream sentinel values "
+                        f"(markers for the end of a dataset or a dataset "
+                        f"fragment), but some downstream operation(s) require "
+                        f"the following sentinel values: {expected_sentinels}. "
+                        f"Ensure that you do not set `sentinel_mode='drop'` on "
+                        f"any upstream batching operation."
+                    )
+                expected_sentinels.update(op.expected_sentinels)
+                if update:
+                    op.sentinel_mode = sentinel_mode
+
+        if expected_sentinels and (self.backend == "spark" or not self.deterministic):
+            raise ValueError(
+                f"Some operations require sentinel values ({expected_sentinels}), "
+                f"but the Spark backend does not support sentinel values."
+            )
+        if not (expected_sentinels < self.reader.emitted_sentinels):
+            raise ValueError(
+                f"Some operations require sentinel values ({expected_sentinels}), "
+                f"but the reader does not emit these values."
+            )
 
     def __repr__(self):
         ops_str = ",\n".join(textwrap.indent(repr(op), "    ") for op in self.ops)

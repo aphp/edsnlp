@@ -10,11 +10,9 @@ from typing_extensions import Literal
 from edsnlp import registry
 from edsnlp.core.stream import Stream
 from edsnlp.data.base import BaseWriter, MemoryBasedReader
-from edsnlp.data.converters import (
-    get_dict2doc_converter,
-    get_doc2dict_converter,
-)
+from edsnlp.data.converters import get_dict2doc_converter, get_doc2dict_converter
 from edsnlp.utils.collections import flatten
+from edsnlp.utils.stream_sentinels import DatasetEndSentinel
 
 
 class PolarsReader(MemoryBasedReader):
@@ -29,6 +27,7 @@ class PolarsReader(MemoryBasedReader):
     ):
         super().__init__()
         self.shuffle = shuffle
+        self.emitted_sentinels = {"dataset"}
         self.rng = random.Random(seed)
         self.loop = loop
 
@@ -47,6 +46,7 @@ class PolarsReader(MemoryBasedReader):
                     shuffle=True,
                 )
             yield from data.iter_rows(named=True)
+            yield DatasetEndSentinel()
             if not self.loop:
                 break
 
@@ -177,8 +177,7 @@ def to_polars(
         them in the dataframe. These are documented on the
         [Converters](/data/converters) page.
     execute: bool
-        Whether to execute the writing operation immediately or to return a lazy
-        collection
+        Whether to execute the writing operation immediately or to return a stream
     kwargs:
         Additional keyword arguments to pass to the converter. These are documented on
         the [Converters](/data/converters) page.

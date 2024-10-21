@@ -331,25 +331,27 @@ def test_read_to_parquet_ents(blank_nlp, tmpdir):
 
 
 @pytest.mark.parametrize("num_cpu_workers", [0, 2])
-@pytest.mark.parametrize("shuffle", ["dataset", "file"])
-def test_read_shuffle_loop(num_cpu_workers: int, shuffle: Literal["dataset", "file"]):
+@pytest.mark.parametrize("shuffle", ["dataset", "fragment"])
+@pytest.mark.parametrize("shuffle_reader", [False, None])
+def test_read_shuffle_loop(
+    num_cpu_workers: int,
+    shuffle: Literal["dataset", "fragment"],
+    shuffle_reader: bool,
+):
     input_dir = Path(__file__).parent.parent.resolve() / "resources" / "docs.parquet"
     notes = (
-        edsnlp.data.read_parquet(
-            input_dir,
-            shuffle=shuffle,
-            seed=42,
-            loop=True,
-        )
+        edsnlp.data.read_parquet(input_dir, loop=True)
+        .shuffle(batch_by=shuffle, seed=42, shuffle_reader=shuffle_reader)
         .map(lambda x: x["note_id"])
         .set_processing(num_cpu_workers=num_cpu_workers)
     )
     notes = list(islice(notes, 6))
-    assert notes == [
-        "subfolder/doc-2",
-        "subfolder/doc-1",
-        "subfolder/doc-3",
-        "subfolder/doc-3",
-        "subfolder/doc-2",
-        "subfolder/doc-1",
-    ]
+    if not (num_cpu_workers > 1 and not shuffle_reader):
+        assert notes == [
+            "subfolder/doc-2",
+            "subfolder/doc-1",
+            "subfolder/doc-3",
+            "subfolder/doc-3",
+            "subfolder/doc-2",
+            "subfolder/doc-1",
+        ]

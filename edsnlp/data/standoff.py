@@ -4,16 +4,7 @@ import random
 import re
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import spacy.tokenizer
 from fsspec import filesystem as fsspec
@@ -29,9 +20,10 @@ from edsnlp.data.converters import (
     get_dict2doc_converter,
     get_doc2dict_converter,
 )
-from edsnlp.utils.collections import flatten
+from edsnlp.utils.collections import flatten, shuffle
 from edsnlp.utils.file_system import FileSystem, normalize_fs_path, walk_match
 from edsnlp.utils.span_getters import SpanSetterArg
+from edsnlp.utils.stream_sentinels import DatasetEndSentinel
 
 REGEX_ENTITY = re.compile(r"^(T\d+)\t(.*) (\d+ \d+(?:;\d+ \d+)*)\t(.*)$")
 REGEX_NOTE = re.compile(r"^(#\d+)\tAnnotatorNotes ([^\t]+)\t(.*)$")
@@ -298,6 +290,7 @@ class StandoffReader(FileBasedReader):
     ):
         super().__init__()
         self.shuffle = shuffle
+        self.emitted_sentinels = {"dataset"}
         self.rng = random.Random(seed)
         self.loop = loop
         self.fs, self.path = normalize_fs_path(filesystem, path)
@@ -324,15 +317,16 @@ class StandoffReader(FileBasedReader):
 
     def read_records(self) -> Iterable[Any]:
         while True:
-            files = list(self.files)
+            files = self.files
             if self.shuffle:
-                self.rng.shuffle(files)
+                files = shuffle(files, self.rng)
             for item in files:
                 txt_path, ann_paths = item
                 anns = parse_standoff_file(txt_path, ann_paths, fs=self.fs)
                 anns[FILENAME] = os.path.relpath(txt_path, self.path).rsplit(".", 1)[0]
                 anns["doc_id"] = anns[FILENAME]
                 yield anns
+            yield DatasetEndSentinel()
             if not self.loop:
                 break
 
@@ -586,8 +580,7 @@ def write_standoff(
         The filesystem to use to write the files. If None, the filesystem will be
         inferred from the path (e.g. `s3://` will use S3).
     execute: bool
-        Whether to execute the writing operation immediately or to return a lazy
-        collection
+        Whether to execute the writing operation immediately or to return a stream
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the documents to dictionary objects.
         Defaults to the "standoff" format converter.

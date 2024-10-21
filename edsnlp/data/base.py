@@ -1,3 +1,4 @@
+import random
 from typing import (
     Any,
     Callable,
@@ -5,12 +6,16 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Tuple,
     Union,
 )
 
-from edsnlp.core.stream import Stream
+from confit import validate_arguments
+from typing_extensions import Literal
 
+from ..core.stream import Stream
 from ..utils.collections import flatten
+from ..utils.stream_sentinels import DatasetEndSentinel
 from .converters import FILENAME, get_dict2doc_converter, get_doc2dict_converter
 
 
@@ -32,8 +37,11 @@ class BaseReader:
     worker processes.
     """
 
-    DATA_FIELDS = ()
+    DATA_FIELDS: Tuple[str] = ()
     read_in_worker: bool
+    emitted_sentinels: set
+    shuffle: Union[str, Literal[False]]
+    rng: random.Random
 
     def read_records(self) -> Iterable[Any]:
         raise NotImplementedError()
@@ -91,20 +99,42 @@ class BatchWriter(BaseWriter):
 class IterableReader(MemoryBasedReader):
     DATA_FIELDS = ("data",)
 
-    def __init__(self, data: Iterable, read_in_worker: bool = False):
+    def __init__(
+        self,
+        data: Iterable,
+        read_in_worker: bool = False,
+        shuffle: Literal["dataset", False] = False,
+        seed: Optional[int] = None,
+        loop: bool = False,
+    ):
+        super().__init__()
+        self.shuffle = shuffle
+        self.rng = random.Random(seed)
+        self.emitted_sentinels = {"dataset"}
+        self.loop = loop
         self.data = data
         self.read_in_worker = read_in_worker
 
-        super().__init__()
-
     def read_records(self) -> Iterable[Any]:
-        return self.data
+        while True:
+            data = self.data
+            if self.shuffle == "dataset":
+                data = list(data)
+                self.rng.shuffle(data)
+            yield from data
+            yield DatasetEndSentinel()
+            if not self.loop:
+                break
 
 
+@validate_arguments
 def from_iterable(
-    data: Iterable,
+    data: Any,
     converter: Union[str, Callable] = None,
     read_in_worker: bool = False,
+    shuffle: Literal["dataset", False] = False,
+    seed: Optional[int] = None,
+    loop: bool = False,
     **kwargs,
 ) -> Stream:
     """
@@ -150,13 +180,28 @@ def from_iterable(
     kwargs:
         Additional keyword arguments to pass to the converter. These are documented
         on the [Converters](/data/converters) page.
+    shuffle: Literal["dataset", False]
+        Whether to shuffle the data. If "dataset", the whole dataset will be shuffled
+        before starting iterating on it (at the start of every epoch if looping).
+    seed: Optional[int]
+        The seed to use for shuffling.
+    loop: bool
+        Whether to loop over the data indefinitely.
 
     Returns
     -------
     Stream
     """
     if not isinstance(data, Stream):
-        data = Stream(IterableReader(data, read_in_worker=read_in_worker))
+        data = Stream(
+            IterableReader(
+                data,
+                read_in_worker=read_in_worker,
+                shuffle=shuffle,
+                seed=seed,
+                loop=loop,
+            )
+        )
     if converter:
         converter, kwargs = get_dict2doc_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)

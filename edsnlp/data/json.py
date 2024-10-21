@@ -11,10 +11,7 @@ from typing_extensions import Literal
 
 from edsnlp import registry
 from edsnlp.core.stream import Stream
-from edsnlp.data.base import (
-    BaseWriter,
-    FileBasedReader,
-)
+from edsnlp.data.base import BaseWriter, FileBasedReader
 from edsnlp.data.converters import (
     FILENAME,
     get_dict2doc_converter,
@@ -22,6 +19,7 @@ from edsnlp.data.converters import (
 )
 from edsnlp.utils.collections import flatten, shuffle
 from edsnlp.utils.file_system import FileSystem, normalize_fs_path, walk_match
+from edsnlp.utils.stream_sentinels import DatasetEndSentinel
 
 
 class JsonReader(FileBasedReader):
@@ -33,7 +31,7 @@ class JsonReader(FileBasedReader):
         *,
         keep_ipynb_checkpoints: bool,
         filesystem: Optional[FileSystem] = None,
-        shuffle: Literal["dataset", "file", False] = False,
+        shuffle: Literal["dataset", False] = False,
         seed: Optional[int] = None,
         loop: bool = False,
         write_in_worker: Optional[bool] = None,
@@ -43,6 +41,7 @@ class JsonReader(FileBasedReader):
         self.shuffle = shuffle
         self.rng = random.Random(seed)
         self.write_in_worker = write_in_worker
+        self.emitted_sentinels = {"dataset"}
         self.loop = loop
         self.fs, self.path = normalize_fs_path(filesystem, path)
         self.files = sorted(
@@ -91,18 +90,11 @@ class JsonReader(FileBasedReader):
     def read_records(self) -> Iterable[Any]:
         while True:
             files = list(self.files)
-            if self.shuffle == "file":
-                yield from (
-                    line
-                    for file in shuffle(files, self.rng)
-                    for line in shuffle(self.read_file(file), self.rng)
-                )
-            else:
-                records = (line for file in files for line in self.read_file(file))
-                if self.shuffle == "dataset":
-                    yield from shuffle(list(records), self.rng)
-                else:
-                    yield from records
+            records = (line for file in files for line in self.read_file(file))
+            if self.shuffle == "dataset":
+                records = shuffle(list(records), self.rng)
+            yield from records
+            yield DatasetEndSentinel()
             if not self.loop:
                 break
 
@@ -223,7 +215,7 @@ def read_json(
     *,
     keep_ipynb_checkpoints: bool = False,
     filesystem: Optional[FileSystem] = None,
-    shuffle: Literal["dataset", "file", False] = False,
+    shuffle: Literal["dataset", False] = False,
     loop: bool = False,
     seed: int = 42,
     **kwargs,
@@ -265,11 +257,9 @@ def read_json(
     filesystem: Optional[FileSystem]
         The filesystem to use to write the files. If None, the filesystem will be
         inferred from the path (e.g. `s3://` will use S3).
-    shuffle: Literal["dataset", "file", False]
+    shuffle: Literal["dataset", False]
         Whether to shuffle the data. If "dataset", the whole dataset will be shuffled
-        before starting iterating on it (at the start of every epoch if looping). If
-        "file", shuffling will occur between and inside the parquet files, but not
-        across them.
+        before starting iterating on it (at the start of every epoch if looping).
     seed: Optional[int]
         The seed to use for shuffling.
     loop: bool
@@ -369,8 +359,7 @@ def write_json(
     overwrite: bool
         Whether to overwrite existing directories.
     execute: bool
-        Whether to execute the writing operation immediately or to return a lazy
-        collection
+        Whether to execute the writing operation immediately or to return a stream
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the documents to dictionary objects before writing
         them. These are documented on the [Converters](/data/converters) page.

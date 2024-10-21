@@ -115,3 +115,61 @@ def test_repr(frozen_ml_nlp, tmp_path):
         .write_json(tmp_path / "out_test.jsonl", lines=True, execute=False)
     )
     assert "Stream" in repr(stream)
+
+
+@pytest.mark.parametrize("shuffle_reader", [True, False])
+def test_shuffle_before_generator(shuffle_reader):
+    def gen_fn(x):
+        yield x
+        yield x
+
+    items = [1, 2, 3, 4, 5]
+    stream = edsnlp.data.from_iterable(items)
+    stream = stream.map(lambda x: x)
+    stream = stream.shuffle(seed=42, shuffle_reader=shuffle_reader)
+    stream = stream.map(gen_fn)
+    assert stream.reader.shuffle == ("dataset" if shuffle_reader else False)
+    assert len(stream.ops) == (2 if shuffle_reader else 5)
+    res = list(stream)
+    assert res == [4, 4, 2, 2, 3, 3, 5, 5, 1, 1]
+
+
+def test_shuffle_after_generator():
+    def gen_fn(x):
+        yield x
+        yield x
+
+    items = [1, 2, 3, 4, 5]
+    stream = edsnlp.data.from_iterable(items)
+    stream = stream.map(lambda x: x)
+    stream = stream.map(gen_fn)
+    stream = stream.shuffle(seed=43)
+    assert stream.reader.shuffle == "dataset"
+    assert len(stream.ops) == 5
+    res = list(stream)
+    assert res == [1, 2, 4, 3, 1, 3, 5, 5, 4, 2]
+
+
+def test_shuffle_frozen_ml_pipeline(run_in_test_dir, frozen_ml_nlp):
+    stream = edsnlp.data.read_parquet("../resources/docs.parquet")
+    stream = stream.map_pipeline(frozen_ml_nlp, batch_size=2)
+    assert len(stream.ops) == 6
+    stream = stream.shuffle(batch_by="fragment")
+    assert len(stream.ops) == 6
+    assert stream.reader.shuffle == "fragment"
+
+
+def test_unknown_shuffle():
+    items = [1, 2, 3, 4, 5]
+    stream = edsnlp.data.from_iterable(items)
+    stream = stream.map(lambda x: x)
+    with pytest.raises(ValueError):
+        stream.shuffle("unknown")
+
+
+def test_int_shuffle():
+    items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    stream = edsnlp.data.from_iterable(items)
+    stream = stream.map(lambda x: x)
+    stream = stream.shuffle("2 docs", seed=42)
+    assert list(stream) == [2, 1, 4, 3, 5, 6, 8, 7, 10, 9]

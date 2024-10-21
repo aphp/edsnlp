@@ -9,11 +9,9 @@ from typing_extensions import Literal
 from edsnlp import registry
 from edsnlp.core.stream import Stream
 from edsnlp.data.base import BaseWriter, MemoryBasedReader
-from edsnlp.data.converters import (
-    get_dict2doc_converter,
-    get_doc2dict_converter,
-)
-from edsnlp.utils.collections import dl_to_ld, flatten, ld_to_dl, shuffle
+from edsnlp.data.converters import get_dict2doc_converter, get_doc2dict_converter
+from edsnlp.utils.collections import dl_to_ld, flatten, ld_to_dl
+from edsnlp.utils.stream_sentinels import DatasetEndSentinel
 
 
 class PandasReader(MemoryBasedReader):
@@ -29,16 +27,18 @@ class PandasReader(MemoryBasedReader):
         super().__init__()
         self.shuffle = shuffle
         self.rng = random.Random(seed)
+        self.emitted_sentinels = {"dataset"}
         self.loop = loop
         self.data = data
         assert isinstance(data, pd.DataFrame)
 
     def read_records(self) -> Iterable[Any]:
         while True:
-            records = dl_to_ld(dict(self.data))
-            if self.shuffle:
-                records = shuffle(list(records), self.rng)
-            yield from records
+            data = self.data
+            if self.shuffle == "dataset":
+                data = data.sample(frac=1.0, random_state=self.rng.getrandbits(32))
+            yield from dl_to_ld(dict(data))
+            yield DatasetEndSentinel()
             if not self.loop:
                 break
 
@@ -166,8 +166,7 @@ def to_pandas(
     dtypes: Optional[dict]
         Dictionary of column names to dtypes. This is passed to `pd.DataFrame.astype`.
     execute: bool
-        Whether to execute the writing operation immediately or to return a lazy
-        collection
+        Whether to execute the writing operation immediately or to return a stream
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the documents to dictionary objects before storing
         them in the dataframe. These are documented on the

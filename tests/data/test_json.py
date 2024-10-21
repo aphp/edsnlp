@@ -264,8 +264,11 @@ def test_read_to_json(blank_nlp, tmpdir):
 
 
 @pytest.mark.parametrize("num_cpu_workers", [0, 2])
-@pytest.mark.parametrize("shuffle", ["dataset", "file"])
-def test_read_shuffle_loop(num_cpu_workers: int, shuffle: Literal["dataset", "file"]):
+@pytest.mark.parametrize("shuffle", ["dataset"])
+def test_read_shuffle_loop(
+    num_cpu_workers: int,
+    shuffle: Literal["dataset", "fragment"],
+):
     input_dir = Path(__file__).parent.parent.resolve() / "resources" / "docs.jsonl"
     notes = (
         edsnlp.data.read_json(

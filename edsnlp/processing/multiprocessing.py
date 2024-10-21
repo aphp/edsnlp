@@ -11,7 +11,7 @@ import sys
 import tempfile
 import threading
 import warnings
-from itertools import chain, cycle, islice
+from itertools import chain, cycle
 from multiprocessing.connection import wait
 from typing import (
     TYPE_CHECKING,
@@ -28,7 +28,7 @@ import dill
 from tqdm import tqdm
 from typing_extensions import TypedDict
 
-from edsnlp.core.stream import Stream
+from edsnlp.core.stream import Stream, StreamSentinel
 from edsnlp.data.base import BaseReader, BaseWriter, BatchWriter
 from edsnlp.utils.collections import (
     batch_compress_dict,
@@ -389,9 +389,14 @@ class CPUWorker:
             if reader.read_in_worker and stage_idx == 0:
 
                 def dequeue():
-                    items = iter(reader.read_records())
-                    items = islice(items, self.cpu_idx, None, num_cpu_workers)
-                    yield from items
+                    i = 0
+                    for item in iter(reader.read_records()):
+                        if isinstance(item, StreamSentinel):
+                            yield item
+                            continue
+                        if i % num_cpu_workers == self.cpu_idx:
+                            yield item
+                        i += 1
             else:
 
                 def dequeue():
@@ -447,6 +452,9 @@ class CPUWorker:
                 if stage.gpu_op is not None:
                     torch_pipe = stage.gpu_op
                     for docs in items:
+                        if isinstance(docs, StreamSentinel):
+                            active_batches[stage_idx].append([None, None, None, docs])
+                            continue
                         batch_id = hash(tuple(id(x) for x in docs))
                         torch_pipe.enable_cache(batch_id)
                         inputs = [torch_pipe.preprocess(x) for x in docs]
@@ -467,10 +475,16 @@ class CPUWorker:
                     if writer is not None:
                         items = (writer.handle_record(rec) for rec in items)
                     if getattr(writer, "batch_in_worker", None) is True:
-                        items = writer.batch_by(items, writer.batch_size)
+                        items = writer.batch_by(
+                            items,
+                            batch_size=writer.batch_size,
+                            sentinel_mode="drop",
+                        )
                         items = (writer.handle_batch(b) for b in items)
                     else:
-                        items = ((x, 1) for x in items)
+                        items = (
+                            (x, 1) for x in items if not isinstance(x, StreamSentinel)
+                        )
                     for out in items:
                         self.exchanger.put_results(out, self.cpu_idx)
 
@@ -835,14 +849,16 @@ def execute_multiprocessing_backend(
     mp = get_multiprocessing_context(has_torch_pipes, stream.process_start_method)
 
     # Queues definition
+    share_input_queue = not stream.deterministic
+    share_output_queue = not stream.deterministic
     exchanger = Exchanger(
         mp=mp,
         num_cpu_workers=num_cpu_workers,
         num_gpu_workers=num_gpu_workers,
         num_stages=len(stages),
         gpu_worker_devices=gpu_worker_devices,
-        share_input_queue=not stream.deterministic,
-        share_output_queue=not stream.deterministic,
+        share_input_queue=share_output_queue,
+        share_output_queue=share_output_queue,
     )
 
     stream_to_dump = stream.worker_copy()
@@ -942,8 +958,15 @@ def execute_multiprocessing_backend(
                         exchanger.stop_cpu_consumers(0)
                         break
                 try:
-                    # worker_idx doesn't matter if share_output_queue is True
-                    exchanger.send_input(item, worker_idx, timeout=1.0)
+                    if isinstance(item, StreamSentinel):
+                        # send sentinel to all workers
+                        for widx in range(1 if share_input_queue else num_cpu_workers):
+                            exchanger.send_input(item, widx, timeout=1.0)
+                        last_item_sent = True
+                        continue
+                    else:
+                        # worker_idx doesn't matter if share_input_queue is True
+                        exchanger.send_input(item, worker_idx, timeout=1.0)
                     worker_idx = (worker_idx + 1) % num_cpu_workers
                     last_item_sent = True
 
@@ -967,6 +990,9 @@ def execute_multiprocessing_backend(
                     if out is STOP:
                         active_workers[worker_idx] = False
                         continue
+                    if isinstance(out[0], StreamSentinel):
+                        if worker_idx > 0:
+                            continue
                     item, count = out
                     yield item
                     bar.update(count)

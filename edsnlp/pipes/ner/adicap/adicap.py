@@ -1,4 +1,5 @@
 """`eds.adicap` pipeline"""
+
 import re
 from typing import List, Optional, Union
 
@@ -97,7 +98,7 @@ Name=cgts_sem_adicap_fiche-detaillee.pdf).
     ent.label_
     # Out: adicap
 
-    ent._.adicap.dict()
+    ent._.adicap.model_dump()
     # Out: {'code': 'BHGS0040',
     # 'sampling_mode': 'BIOPSIE CHIRURGICALE',
     # 'technic': 'HISTOLOGIE ET CYTOLOGIE PAR INCLUSION',

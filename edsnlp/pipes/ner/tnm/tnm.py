@@ -1,4 +1,5 @@
 """`eds.tnm` pipeline."""
+
 from typing import Dict, List, Optional, Tuple, Union
 
 from pydantic import ValidationError
@@ -8,6 +9,7 @@ from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.pipes.base import BaseNERComponent, SpanSetterArg
 from edsnlp.utils.filter import filter_spans
+from edsnlp.utils.typing import cast
 
 from .model import TNM
 from .patterns import tnm_pattern
@@ -153,9 +155,9 @@ class TNMMatcher(BaseNERComponent):
 
         for span, groupdict in spans:
             try:
-                value = TNM.parse_obj(groupdict)
-            except ValidationError:
-                value = TNM.parse_obj({})
+                value = cast(TNM, groupdict)
+            except ValidationError:  # pragma: no cover
+                value = cast(TNM, {})
 
             span._.set(self.label, value)
             span.kb_id_ = value.norm()

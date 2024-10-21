@@ -1,6 +1,6 @@
-from pydantic import validate_arguments
+from confit import validate_arguments
 
-from edsnlp.pipelines.base import (
+from edsnlp.pipes.base import (
     SpanGetterArg,
     SpanSetterArg,
     validate_span_getter,

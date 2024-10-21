@@ -130,7 +130,7 @@ class SolidTumorMatcher(DisorderMatcher):
         for span in spans:
             span.label_ = "solid_tumor"
             span._.source = "tnm"
-            metastasis = span._.value.dict().get("metastasis", "0")
+            metastasis = span._.value.model_dump().get("metastasis", "0")
             if metastasis == "1":
                 span._.status = 2
             yield span

@@ -1,4 +1,5 @@
 import sys
+import warnings
 
 import pytest
 
@@ -34,7 +35,13 @@ def printer(code: str) -> None:
 def test_code_blocks(url):
     raw = url_to_code[url]
     try:
-        exec(raw, {"__MODULE__": "__main__"})
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            warnings.filterwarnings(module=".*endlines.*", action="ignore")
+            warnings.filterwarnings(
+                message="__package__ != __spec__.parent", action="ignore"
+            )
+            exec(raw, {"__MODULE__": "__main__"})
     except Exception:
         printer(raw)
         raise

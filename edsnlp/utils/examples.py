@@ -5,6 +5,16 @@ import regex
 from confit.utils.xjson import loads
 from pydantic import BaseModel, validator
 
+from edsnlp.utils.typing import cast
+
+try:
+    from pydantic import field_validator
+except ImportError:
+    from pydantic import validator
+
+    def field_validator(x):
+        return validator(x, allow_reuse=True)
+
 
 class Match(BaseModel):
     start_char: int
@@ -17,7 +27,7 @@ class Modifier(BaseModel):
     key: str
     value: Union[int, float, bool, str, Dict[str, Any]]
 
-    @validator("value", allow_reuse=True)
+    @field_validator("value")
     def optional_dict_parsing(cls, v):
         try:
             return loads(v)
@@ -121,7 +131,7 @@ def parse_example(example: str) -> Tuple[str, List[Entity]]:
             start_char=start_char,
             end_char=end_char,
             modifiers=[
-                Modifier.parse_obj(m.groupdict())
+                cast(Modifier, m.groupdict())
                 for m in single_modifiers_pattern.finditer(match.modifiers)
             ],
         )

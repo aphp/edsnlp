@@ -53,7 +53,6 @@ cons_town_doc = dict(
 @pytest.mark.parametrize("date_pipeline", [True, False])
 @pytest.mark.parametrize("example", [cons, cons_town, cons_town_doc])
 def test_cons_dates(date_pipeline, example, blank_nlp):
-
     blank_nlp.add_pipe(
         "eds.normalizer",
         config=dict(lowercase=True, accents=True, quotes=True, pollution=False),
@@ -73,4 +72,6 @@ def test_cons_dates(date_pipeline, example, blank_nlp):
     assert len(doc.spans["consultation_dates"]) == len(example["result"])
 
     for span, result in zip(doc.spans["consultation_dates"], example["result"]):
-        assert all([span._.consultation_date.dict()[k] == result[k] for k in result])
+        assert all(
+            [span._.consultation_date.model_dump()[k] == result[k] for k in result]
+        )

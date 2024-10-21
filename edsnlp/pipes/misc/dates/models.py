@@ -2,6 +2,7 @@ import datetime
 from enum import Enum
 from typing import Any, Dict, Optional, Union
 
+import pydantic
 from pandas._libs.tslibs.nattype import NaTType
 from pydantic import BaseModel, Field, root_validator, validator
 from pytz import timezone
@@ -65,6 +66,9 @@ class BaseDate(BaseModel):
     def duration(self):
         return self.to_duration()
 
+    if pydantic.VERSION < "2":
+        model_dump = BaseModel.dict
+
     def __str__(self):
         return self.norm()
 
@@ -121,7 +125,7 @@ class AbsoluteDate(BaseDate):
 
         if isinstance(tz, str):
             tz = timezone(tz)
-        d = self.dict(exclude_none=True)
+        d = self.model_dump(exclude_none=True)
         d.pop("mode", None)
         d.pop("bound", None)
 
@@ -251,7 +255,7 @@ class Relative(BaseDate):
         return d
 
     def to_duration(self, note_datetime=None, **kwargs) -> datetime.timedelta:
-        d = self.dict(exclude_none=True)
+        d = self.model_dump(exclude_none=True)
 
         direction = d.pop("direction", None)
         direction = -1 if direction == Direction.PAST else 1
@@ -286,7 +290,7 @@ class RelativeDate(Relative):
             note_datetime = self.doc._.note_datetime
 
         if note_datetime is not None and not isinstance(note_datetime, NaTType):
-            d = self.dict(exclude_none=True)
+            d = self.model_dump(exclude_none=True)
 
             direction = d.pop("direction", None)
             dir = -1 if direction == Direction.PAST else 1
@@ -310,7 +314,7 @@ class RelativeDate(Relative):
 
     def norm(self) -> str:
         if self.direction == Direction.CURRENT:
-            d = self.dict(exclude_none=True)
+            d = self.model_dump(exclude_none=True)
             d.pop("direction", None)
             d.pop("mode", None)
 
@@ -366,7 +370,7 @@ class Duration(Relative):
         return norm
 
     def to_duration(self, note_datetime=None, **kwargs) -> datetime.timedelta:
-        d = self.dict(exclude_none=True)
+        d = self.model_dump(exclude_none=True)
 
         d = {f"{k}s": v for k, v in d.items() if k not in ("mode", "bound")}
 

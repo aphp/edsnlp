@@ -98,7 +98,7 @@ class SentenceSegmenter(BaseComponent):
         nlp: PipelineProtocol,
         name: Optional[str] = "sentences",
         punct_chars: Optional[List[str]] = None,
-        use_endlines: bool = None,
+        use_endlines: Optional[bool] = None,
         ignore_excluded: bool = True,
         check_capitalized: bool = True,
         min_newline_count: int = 1,

@@ -463,6 +463,35 @@ class Pipeline:
             if name not in disable and hasattr(pipe, "forward"):
                 yield name, pipe
 
+    def connected_pipes_names(self) -> List[List[str]]:
+        """
+        Returns a list of lists of connected components in the pipeline,
+        i.e. components that share at least one parameter.
+
+        Returns
+        -------
+        List[List[str]]
+        """
+        pipe_to_params = {}
+        for name, pipe in self.torch_components():
+            pipe_to_params[name] = {id(p) for p in pipe.parameters()}
+        remaining_pipes = list(pipe_to_params)
+        results = []
+        while len(remaining_pipes):
+            current = [remaining_pipes.pop(0)]
+            i = 0
+            while i < len(current):
+                a = current[i]
+                i += 1
+                for j, b in enumerate(list(remaining_pipes)):
+                    if a is not b and pipe_to_params[a] & pipe_to_params[b]:
+                        current.append(b)
+                        remaining_pipes[j] = None
+                remaining_pipes = [p for p in remaining_pipes if p is not None]
+
+            results.append(current)
+        return results
+
     def post_init(self, data: Iterable[Doc], exclude: Optional[Set] = None):
         """
         Completes the initialization of the pipeline by calling the post_init
@@ -480,7 +509,11 @@ class Pipeline:
         """
         exclude = set() if exclude is None else set(exclude)
         for name, pipe in self._components:
-            if hasattr(pipe, "post_init"):
+            if (
+                hasattr(pipe, "post_init")
+                and name not in self.disabled
+                and name not in exclude
+            ):
                 pipe.post_init(data, exclude=exclude)
 
     @classmethod
@@ -525,7 +558,7 @@ class Pipeline:
 
         config = dict(Config(config).resolve(root=root_config, registry=registry))
         components = config.pop("components", {})
-        pipeline = config.pop("pipeline", ())
+        pipeline = config.pop("pipeline", list(components.keys()))
         tokenizer = config.pop("tokenizer", None)
         exclude = list(flatten([*config.pop("exclude", ()), exclude]))
         enable = list(flatten([*config.pop("enable", ()), enable]))
@@ -616,17 +649,23 @@ class Pipeline:
     @property
     def preprocess(self):
         compressor = batch_compress_dict()
+        disabled = list(self._disabled)
 
         @functools.wraps(self._preprocess)
         def preprocess(doc, supervision: bool = False, compress: bool = True):
-            prep = self._preprocess(doc, supervision)
+            prep = self._preprocess(doc, supervision, disabled)
             if compress:
                 prep = compressor(prep)
             return prep
 
         return preprocess
 
-    def _preprocess(self, doc: Doc, supervision: bool = False):
+    def _preprocess(
+        self,
+        doc: Doc,
+        supervision: bool = False,
+        disabled: Container[str] = (),
+    ):
         """
         Run the preprocessing methods of each component in the pipeline
         on a document and returns a dictionary containing the results, with the
@@ -646,7 +685,7 @@ class Pipeline:
         prep = {}
         with self.cache():
             for name, component in self.pipeline:
-                if name not in self._disabled:
+                if name not in disabled:
                     prep_comp = (
                         component.preprocess_supervised(doc)
                         if supervision and hasattr(component, "preprocess_supervised")
@@ -689,6 +728,7 @@ class Pipeline:
     def collate(
         self,
         batch: Union[Iterable[Dict[str, Any]], Dict[str, Any]],
+        device: Optional[Union[str, "torch.device"]] = None,
     ):
         """
         Collates a batch of preprocessed samples into a single (maybe nested)
@@ -698,6 +738,8 @@ class Pipeline:
         ----------
         batch: Union[Iterable[Dict[str, Any]], Dict[str, Any]]
             The batch of preprocessed samples
+        device: Optional[Union[str, "torch.device"]]
+            Should we move the tensors to a device, if so, which one?
 
         Returns
         -------
@@ -710,6 +752,8 @@ class Pipeline:
                 if name in batch:
                     component_inputs = batch[name]
                     batch[name] = component.collate(component_inputs)
+                    if device is not None:
+                        batch[name] = component.batch_to_device(batch[name], device)
         return batch
 
     def parameters(self):
@@ -1134,7 +1178,7 @@ def load(
     if isinstance(model, (str, Path)):
         path = Path(model)
         is_dir = path.is_dir()
-        is_config = path.is_file() and path.suffix == ".cfg"
+        is_config = path.is_file() and path.suffix in (".cfg", ".yml", ".yaml")
         try:
             module = importlib.import_module(model)
             is_package = True

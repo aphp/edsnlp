@@ -79,6 +79,7 @@ nav:
           - pipes/misc/sections.md
           - pipes/misc/reason.md
           - pipes/misc/tables.md
+          - pipes/misc/split.md
       - Named Entity Recognition:
           - Overview: pipes/ner/index.md
           - Scores:

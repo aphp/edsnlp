@@ -83,8 +83,6 @@ def test_disk_serialization(tmp_path, ml_nlp):
     # by default, vocab is excluded
     nlp.to_disk(tmp_path / "model", exclude=set())
 
-    print("tmp_path", tmp_path, list((tmp_path / "model/transformer").iterdir()))
-
     assert (tmp_path / "model" / "config.cfg").exists()
     assert (tmp_path / "model" / "ner" / "parameters.safetensors").exists()
     assert (tmp_path / "model" / "transformer" / "parameters.safetensors").exists()
@@ -148,7 +146,6 @@ ents = true
 def test_validate_config():
     @validate_arguments
     def function(model: Pipeline):
-        print(model.pipe_names)
         assert len(model.pipe_names) == 3
 
     function(Config.from_str(config_str).resolve(registry=registry)["nlp"])
@@ -216,7 +213,7 @@ def test_different_names():
 
 
 def test_load_config(run_in_test_dir):
-    nlp = edsnlp.load("training/qlf_config.cfg")
+    nlp = edsnlp.load("training/qlf_config.yml")
     assert nlp.pipe_names == [
         "normalizer",
         "sentencizer",

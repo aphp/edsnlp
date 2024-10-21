@@ -21,6 +21,7 @@ from edsnlp.utils.spark_dtypes import (
     spark_interpret_dicts_as_rows,
 )
 from edsnlp.utils.stream_sentinels import DatasetEndSentinel
+from edsnlp.utils.typing import AsList
 
 
 class SparkReader(MemoryBasedReader):
@@ -67,7 +68,7 @@ class SparkReader(MemoryBasedReader):
 @registry.readers.register("spark")
 def from_spark(
     data,
-    converter: Optional[Union[str, Callable]] = None,
+    converter: Optional[AsList[Union[str, Callable]]] = None,
     shuffle: Literal["dataset", False] = False,
     seed: Optional[int] = None,
     loop: bool = False,
@@ -111,8 +112,8 @@ def from_spark(
         The seed to use for shuffling.
     loop: bool
         Whether to loop over the data indefinitely.
-    converter: Optional[Union[str, Callable]]
-        Converter to use to convert the rows of the DataFrame to Doc objects.
+    converter: Optional[AsList[Union[str, Callable]]]
+        Converters to use to convert the rows of the DataFrame to Doc objects.
         These are documented on the [Converters](/data/converters) page.
     kwargs:
         Additional keyword arguments to pass to the converter. These are documented on
@@ -131,8 +132,9 @@ def from_spark(
         )
     )
     if converter:
-        converter, kwargs = get_dict2doc_converter(converter, kwargs)
-        data = data.map(converter, kwargs=kwargs)
+        for conv in converter:
+            conv, kwargs = get_dict2doc_converter(conv, kwargs)
+            data = data.map(conv, kwargs=kwargs)
     return data
 
 

@@ -199,6 +199,14 @@ where = ["."]
 "eds.sections"                    = "edsnlp.pipes.misc.sections.factory:create_component"
 "eds.tables"                      = "edsnlp.pipes.misc.tables.factory:create_component"
 
+# Data
+"eds.split"                       = "edsnlp.pipes.misc.split.split:Split"
+"eds.standoff_dict2doc"           = "edsnlp.data.converters:StandoffDict2DocConverter"
+"eds.standoff_doc2dict"           = "edsnlp.data.converters:StandoffDoc2DictConverter"
+"eds.omop_dict2doc"               = "edsnlp.data.converters:OmopDict2DocConverter"
+"eds.omop_doc2dict"               = "edsnlp.data.converters:OmopDoc2DictConverter"
+"eds.ents_doc2dict"               = "edsnlp.data.converters:EntsDoc2DictConverter"
+
 # Deprecated (links to the same factories as above)
 "SOFA"                   = "edsnlp.pipes.ner.scores.sofa.factory:create_component"
 "accents"                = "edsnlp.pipes.core.normalizer.accents.factory:create_component"

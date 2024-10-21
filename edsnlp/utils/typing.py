@@ -1,6 +1,12 @@
 from typing import TYPE_CHECKING, Any, Generic, List, TypeVar, Union
 
 import pydantic
+
+try:
+    from pydantic import RootModel
+except ImportError:
+    from pydantic import BaseModel as RootModel
+
 from confit.errors import patch_errors
 
 T = TypeVar("T")
@@ -22,9 +28,16 @@ class MetaAsList(type):
         if not isinstance(value, list):
             value = [value]
         try:
-            return pydantic.parse_obj_as(List[cls.item], value)
+
+            class Model(RootModel):
+                root: List[cls.item]
+
+                class Config:
+                    arbitrary_types_allowed = True
+
+            return Model(root=value).root
         except pydantic.ValidationError as e:
-            e = patch_errors(e, drop_names=("__root__",))
+            e = patch_errors(e, drop_names=("root",))
             e.model = cls
             raise e
 

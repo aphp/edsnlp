@@ -48,8 +48,14 @@ def without_filename(d):
 
 
 def validate_kwargs(func, kwargs):
-    spec = inspect.getfullargspec(func)
+    if (
+        hasattr(func, "__call__")
+        and not hasattr(func, "__defaults__")
+        and hasattr(func.__call__, "__self__")
+    ):
+        func = func.__call__
     has_self = restore = False
+    spec = inspect.getfullargspec(func)
     try:
         if hasattr(func, "__func__"):
             has_self = hasattr(func, "__self__")
@@ -73,7 +79,9 @@ def validate_kwargs(func, kwargs):
             func.__annotations__[spec.args[0]] = Optional[Any]
             func.__defaults__ = (None, *(spec.defaults or ())[-len(spec.args) + 1 :])
         vd = ValidatedFunction(func, {"arbitrary_types_allowed": True})
-        model = vd.init_model_instance(**kwargs)
+        model = vd.init_model_instance(
+            **{k: v for k, v in kwargs.items() if k in spec.args}
+        )
         d = {
             k: v
             for k, v in model._iter()

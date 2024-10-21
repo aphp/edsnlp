@@ -15,7 +15,7 @@
     </thead>
     <tbody>
       {% for parameter in section.value %}
-        {% if not config.only_parameters or parameter.name not in ("nlp", "name", "vocab", "scorer") %}
+        {% if not ((config.only_parameters or config.skip_parameters is defined) and parameter.name in (config.skip_parameters if config.skip_parameters is defined else ("nlp", "name", "vocab", "scorer"))) %}
         <tr>
           <td><code>{{ parameter.name }}</code></td>
           <td>
@@ -46,7 +46,7 @@
   <p>{{ section.title or "Parameters:" }}</p>
   <ul>
     {% for parameter in section.value %}
-      {% if not config.only_parameters or parameter.name not in ("nlp", "name", "vocab", "scorer") %}
+      {% if not ((config.only_parameters or config.skip_parameters is defined) and parameter.name in (config.skip_parameters if config.skip_parameters is defined else ("nlp", "name", "vocab", "scorer"))) %}
       <li class="field-body">
         <b>{{ parameter.name }}</b>
         {% if parameter.annotation %}
@@ -71,7 +71,7 @@
     </thead>
     <tbody>
       {% for parameter in section.value %}
-        {% if not config.only_parameters or parameter.name not in ("nlp", "name", "vocab", "scorer") %}
+        {% if not ((config.only_parameters or config.skip_parameters is defined) and parameter.name in (config.skip_parameters if config.skip_parameters is defined else ("nlp", "name", "vocab", "scorer"))) %}
         <tr>
           <td><code>{{ parameter.name }}</code></td>
           <td class="doc-param-details">

@@ -16,6 +16,7 @@ from typing_extensions import Literal
 from ..core.stream import Stream
 from ..utils.collections import flatten
 from ..utils.stream_sentinels import DatasetEndSentinel
+from ..utils.typing import AsList
 from .converters import FILENAME, get_dict2doc_converter, get_doc2dict_converter
 
 
@@ -130,7 +131,7 @@ class IterableReader(MemoryBasedReader):
 @validate_arguments
 def from_iterable(
     data: Any,
-    converter: Union[str, Callable] = None,
+    converter: Optional[AsList[Union[str, Callable]]] = None,
     read_in_worker: bool = False,
     shuffle: Literal["dataset", False] = False,
     seed: Optional[int] = None,
@@ -169,8 +170,8 @@ def from_iterable(
     ----------
     data: Iterable
         The data to read
-    converter: Optional[Union[str, Callable]]
-        Converter to use to convert the JSON rows of the data source to Doc objects
+    converter: Optional[AsList[Union[str, Callable]]]
+        Converters to use to convert the JSON rows of the data source to Doc objects
     read_in_worker: bool
         In multiprocessing mode, whether to read the data in the worker processes.
         If `True`, the data will be read in the worker processes, requires pickling the
@@ -203,8 +204,9 @@ def from_iterable(
             )
         )
     if converter:
-        converter, kwargs = get_dict2doc_converter(converter, kwargs)
-        data = data.map(converter, kwargs=kwargs)
+        for conv in converter:
+            conv, kwargs = get_dict2doc_converter(conv, kwargs)
+            data = data.map(conv, kwargs=kwargs)
     return data
 
 

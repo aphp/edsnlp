@@ -19,6 +19,7 @@ from typing import (
     Union,
 )
 
+import pydantic
 from confit.registry import ValidatedFunction
 from spacy.tokenizer import Tokenizer
 from spacy.tokens import Doc, Span
@@ -33,6 +34,7 @@ from edsnlp.utils.span_getters import (
     get_spans_with_group,
     set_spans,
 )
+from edsnlp.utils.typing import AsList, Validated
 
 FILENAME = "__FILENAME__"
 SPAN_BUILTIN_ATTRS = ("sent", "label_", "kb_id_", "text")
@@ -82,10 +84,11 @@ def validate_kwargs(func, kwargs):
         model = vd.init_model_instance(
             **{k: v for k, v in kwargs.items() if k in spec.args}
         )
+        fields = model.__fields__ if pydantic.__version__ < "2" else model.model_fields
         d = {
             k: v
-            for k, v in model._iter()
-            if (k in model.__fields__ or model.__fields__[k].default_factory)
+            for k, v in model.__dict__.items()
+            if (k in fields or fields[k].default_factory)
         }
         d.pop("v__duplicate_kwargs", None)  # see pydantic ValidatedFunction code
         d.pop(vd.v_args_name, None)
@@ -99,25 +102,7 @@ def validate_kwargs(func, kwargs):
             func.__defaults__ = old_defaults
 
 
-class SequenceStr:
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, value, config=None) -> Sequence[str]:
-        if isinstance(value, str):
-            return [value]
-        if isinstance(value, list):
-            return value
-        raise ValueError("Not a string or list of strings")
-
-
-if TYPE_CHECKING:
-    SequenceStr = Union[str, Sequence[str]]  # noqa: F811
-
-
-class AttributesMappingArg:
+class AttributesMappingArg(Validated):
     """
     A mapping from JSON attributes to Span extensions (can be a list too).
 
@@ -130,10 +115,6 @@ class AttributesMappingArg:
     - `span_attributes=["negation", "family"]` will map the `negation` and `family` JSON
       attributes to the `negation` and `family` extensions.
     """
-
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
 
     @classmethod
     def validate(cls, value, config=None) -> Dict[str, str]:
@@ -247,7 +228,7 @@ class StandoffDict2DocConverter:
         span_setter: SpanSetterArg = {"ents": True, "*": True},
         span_attributes: Optional[AttributesMappingArg] = None,
         keep_raw_attribute_values: bool = False,
-        bool_attributes: SequenceStr = [],
+        bool_attributes: AsList[str] = [],
         default_attributes: AttributesMappingArg = {},
         notes_as_span_attribute: Optional[str] = None,
         split_fragments: bool = True,
@@ -467,7 +448,7 @@ class OmopDict2DocConverter:
         doc_attributes: AttributesMappingArg = {"note_datetime": "note_datetime"},
         span_attributes: Optional[AttributesMappingArg] = None,
         default_attributes: AttributesMappingArg = {},
-        bool_attributes: SequenceStr = [],
+        bool_attributes: AsList[str] = [],
     ):
         self.tokenizer = tokenizer
         self.span_setter = span_setter

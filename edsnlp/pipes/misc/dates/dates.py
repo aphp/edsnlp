@@ -19,6 +19,7 @@ from edsnlp.pipes.base import (
     validate_span_getter,
 )
 from edsnlp.utils.filter import align_spans, filter_spans
+from edsnlp.utils.typing import cast
 
 from . import patterns
 from .models import AbsoluteDate, Bound, Duration, Mode, Period, RelativeDate
@@ -402,15 +403,15 @@ class DatesMatcher(BaseNERComponent):
                     date_cfg.update({key: value})
             date_cfg["doc"] = span.doc
             if span.label_ == "relative":
-                parsed = RelativeDate.parse_obj(date_cfg)
+                parsed = cast(RelativeDate, date_cfg)
                 span.label_ = self.date_label
                 span._.date = parsed
             elif span.label_ == "absolute":
-                parsed = AbsoluteDate.parse_obj(date_cfg)
+                parsed = cast(AbsoluteDate, date_cfg)
                 span.label_ = self.date_label
                 span._.date = parsed
             else:
-                parsed = Duration.parse_obj(date_cfg)
+                parsed = cast(Duration, date_cfg)
                 span.label_ = self.duration_label
                 span._.duration = parsed
 
@@ -470,12 +471,7 @@ class DatesMatcher(BaseNERComponent):
 
                 period._.set(
                     self.period_label,
-                    Period.parse_obj(
-                        {
-                            m1: d1,
-                            m2: d2,
-                        }
-                    ),
+                    cast(Period, {m1: d1, m2: d2}),
                 )
 
                 seen.add(d1)

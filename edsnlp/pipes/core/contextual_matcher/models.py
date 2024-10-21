@@ -3,9 +3,10 @@ from typing import List, Optional, Tuple, Union
 
 import pydantic
 import regex
-from pydantic import BaseModel, Extra, validator
+from pydantic import BaseModel, Extra
 
 from edsnlp.matchers.utils import ListOrStr
+from edsnlp.utils.typing import Validated, cast
 
 Flags = Union[re.RegexFlag, int]
 Window = Union[
@@ -13,6 +14,14 @@ Window = Union[
     List[int],
     int,
 ]
+
+try:
+    from pydantic import field_validator
+
+    def validator(x, allow_reuse=True, pre=False):
+        return field_validator(x, mode="before" if pre else "after")
+except ImportError:
+    from pydantic import validator
 
 
 def normalize_window(cls, v):
@@ -102,18 +111,19 @@ class SingleExcludeModel(BaseModel):
         return v
 
     _normalize_window = validator("window", allow_reuse=True)(normalize_window)
+    if pydantic.VERSION < "2":
+        model_dump = BaseModel.dict
 
 
-class ExcludeModel:
+class ExcludeModel(Validated):
     @classmethod
-    def item_to_list(cls, v, config):
+    def validate(cls, v, config=None):
         if not isinstance(v, list):
             v = [v]
-        return [pydantic.parse_obj_as(SingleExcludeModel, x) for x in v]
+        return [cast(SingleExcludeModel, x) for x in v]
 
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.item_to_list
+    if pydantic.VERSION < "2":
+        model_dump = BaseModel.dict
 
 
 class SingleAssignModel(BaseModel):
@@ -142,23 +152,25 @@ class SingleAssignModel(BaseModel):
         return pat
 
     _normalize_window = validator("window", allow_reuse=True)(normalize_window)
+    if pydantic.VERSION < "2":
+        model_dump = BaseModel.dict
 
 
-class AssignModel:
+class AssignModel(Validated):
     @classmethod
-    def item_to_list(cls, v, config):
+    def item_to_list(cls, v, config=None):
         if not isinstance(v, list):
             v = [v]
-        return [pydantic.parse_obj_as(SingleAssignModel, x) for x in v]
+        return [cast(SingleAssignModel, x) for x in v]
 
     @classmethod
-    def name_uniqueness(cls, v, config):
+    def name_uniqueness(cls, v, config=None):
         names = [item.name for item in v]
         assert len(names) == len(set(names)), "Each `name` field should be unique"
         return v
 
     @classmethod
-    def replace_uniqueness(cls, v, config):
+    def replace_uniqueness(cls, v, config=None):
         replace = [item for item in v if item.replace_entity]
         assert (
             len(replace) <= 1
@@ -171,6 +183,9 @@ class AssignModel:
         yield cls.name_uniqueness
         yield cls.replace_uniqueness
 
+    if pydantic.VERSION < "2":
+        model_dump = BaseModel.dict
+
 
 class SingleConfig(BaseModel, extra=Extra.forbid):
     source: str
@@ -180,17 +195,19 @@ class SingleConfig(BaseModel, extra=Extra.forbid):
     regex_flags: Union[re.RegexFlag, int] = None
     exclude: Optional[ExcludeModel] = []
     assign: Optional[AssignModel] = []
+    if pydantic.VERSION < "2":
+        model_dump = BaseModel.dict
 
 
-class FullConfig:
+class FullConfig(Validated):
     @classmethod
-    def pattern_to_list(cls, v, config):
+    def pattern_to_list(cls, v, config=None):
         if not isinstance(v, list):
             v = [v]
-        return [pydantic.parse_obj_as(SingleConfig, item) for item in v]
+        return [cast(SingleConfig, item) for item in v]
 
     @classmethod
-    def source_uniqueness(cls, v, config):
+    def source_uniqueness(cls, v, config=None):
         sources = [item.source for item in v]
         assert len(sources) == len(set(sources)), "Each `source` field should be unique"
         return v
@@ -199,3 +216,6 @@ class FullConfig:
     def __get_validators__(cls):
         yield cls.pattern_to_list
         yield cls.source_uniqueness
+
+    if pydantic.VERSION < "2":
+        model_dump = BaseModel.dict

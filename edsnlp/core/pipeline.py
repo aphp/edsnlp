@@ -52,7 +52,7 @@ from ..utils.collections import (
     batch_compress_dict,
     decompress_dict,
 )
-from ..utils.typing import AsList
+from ..utils.typing import AsList, Validated
 from .stream import Stream
 
 if TYPE_CHECKING:
@@ -87,7 +87,7 @@ Pipe = TypeVar("Pipe", bound=Callable[[Doc], Doc])
 
 
 @registry.pipelines.register("base")
-class Pipeline:
+class Pipeline(Validated):
     """
     New pipeline to use as a drop-in replacement for spaCy's pipeline.
     It uses PyTorch as the deep-learning backend and allows components to share
@@ -99,7 +99,7 @@ class Pipeline:
     def __init__(
         self,
         lang: str,
-        create_tokenizer: Callable[[Self], Optional[Tokenizer]] = None,
+        create_tokenizer: Optional[Callable[[Self], Tokenizer]] = None,
         vocab: Union[bool, Vocab] = True,
         batch_size: Optional[int] = 128,
         vocab_config: Type[BaseDefaults] = None,
@@ -115,7 +115,7 @@ class Pipeline:
         ----------
         lang: str
             Language code
-        create_tokenizer: Callable[[Self], Optional[Tokenizer]]
+        create_tokenizer: Optional[Callable[[Self], Tokenizer]]
             Function that creates a tokenizer for the pipeline
         vocab: Union[bool, Vocab]
             Whether to create a new vocab or use an existing one

@@ -27,7 +27,6 @@ def test_scores(blank_nlp):
         blank_nlp.add_pipe("eds.adicap")
 
         for example in examples:
-
             text, expected_entities = parse_example(example=example)
 
             doc = blank_nlp(text)
@@ -35,13 +34,13 @@ def test_scores(blank_nlp):
             for expected, ent in zip(expected_entities, doc.ents):
                 assert text[expected.start_char : expected.end_char] == ent.text
                 assert expected.modifiers[0].value == ent._.adicap.code
-                assert len(ent._.adicap.dict()) > 0
+                assert len(ent._.adicap.model_dump()) > 0
 
 
 def test_local_spelling(blank_nlp):
     blank_nlp.add_pipe("eds.adicap")
     txt = "Codification ADICAP : B.H.HP.A7A0 . Autre chose"
-    assert blank_nlp(txt).ents[0]._.adicap.dict() == {
+    assert blank_nlp(txt).ents[0]._.adicap.model_dump() == {
         "behaviour_type": "CANCER INVASIF",
         "code": "BHHPA7A0",
         "organ": "PROSTATE",

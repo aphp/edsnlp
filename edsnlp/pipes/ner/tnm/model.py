@@ -1,7 +1,15 @@
 from enum import Enum
 from typing import TYPE_CHECKING, Optional, Union
 
-from pydantic import BaseModel, validator
+import pydantic
+
+try:
+    from pydantic import field_validator
+
+    def validator(x, allow_reuse=True, pre=False):
+        return field_validator(x, mode="before" if pre else "after")
+except ImportError:
+    from pydantic import validator
 
 if TYPE_CHECKING:
     from pydantic.typing import (
@@ -70,7 +78,7 @@ class Metastasis(TnmEnum):
     ox = "ox"
 
 
-class TNM(BaseModel):
+class TNM(pydantic.BaseModel):
     prefix: Optional[Prefix] = None
     tumour: Optional[Tumour] = None
     tumour_specification: Optional[Specification] = None
@@ -163,16 +171,13 @@ class TNM(BaseModel):
             )
             exclude_unset = skip_defaults
 
-        d = dict(
-            self._iter(
-                to_dict=True,
-                by_alias=by_alias,
-                include=include,
-                exclude=exclude,
-                exclude_unset=exclude_unset,
-                exclude_defaults=exclude_defaults,
-                exclude_none=exclude_none,
-            )
+        d = self.model_dump(
+            by_alias=by_alias,
+            include=include,
+            exclude=exclude,
+            exclude_unset=exclude_unset,
+            exclude_defaults=exclude_defaults,
+            exclude_none=exclude_none,
         )
         set_keys = set(d.keys())
         for k in set_keys.intersection(

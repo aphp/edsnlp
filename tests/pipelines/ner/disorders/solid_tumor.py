@@ -10,6 +10,7 @@ results_solid_tumor = dict(
         "METASTASIS",
         "METASTASIS",
         "METASTASIS",
+        "METASTASIS",
     ],
     assign=None,
     texts=[
@@ -22,7 +23,8 @@ results_solid_tumor = dict(
         "Présence de nombreuses lésions secondaires",
         "Patient avec fracture abcddd secondaire. Cancer de",
         "Patient avec lesions non ciblées",
+        "TNM: pTx N1 M1",
     ],
 )
 
-solid_tumor_config = dict(use_patterns_metastasis_ct_scan=True)
+solid_tumor_config = dict(use_patterns_metastasis_ct_scan=True, use_tnm=True)

@@ -157,20 +157,18 @@ dependencies = [
 
     # pip install the whl file
     (tmp_path / "site-packages").mkdir(exist_ok=True)
-    print(
-        subprocess.check_output(
-            [
-                sys.executable,
-                "-m",
-                "pip",
-                "install",
-                "-vvv",
-                "--target",
-                str(tmp_path / "site-packages"),
-                str(tmp_path / "dist" / f"{module_name}-0.1.0-py3-none-any.whl"),
-            ],
-            stderr=subprocess.STDOUT,
-        )
+    subprocess.check_output(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "-vvv",
+            "--target",
+            str(tmp_path / "site-packages"),
+            str(tmp_path / "dist" / f"{module_name}-0.1.0-py3-none-any.whl"),
+        ],
+        stderr=subprocess.STDOUT,
     )
 
     site_packages = tmp_path / "site-packages"

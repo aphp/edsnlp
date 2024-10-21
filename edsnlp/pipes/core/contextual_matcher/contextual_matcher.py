@@ -5,7 +5,6 @@ from functools import lru_cache
 from operator import attrgetter
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import pydantic
 from confit import VisibleDeprecationWarning
 from loguru import logger
 from spacy.tokens import Doc, Span
@@ -16,6 +15,7 @@ from edsnlp.matchers.regex import RegexMatcher, create_span
 from edsnlp.matchers.utils import get_text
 from edsnlp.pipes.base import BaseNERComponent, SpanSetterArg
 from edsnlp.utils.collections import flatten_once
+from edsnlp.utils.typing import cast
 
 from . import models
 
@@ -108,7 +108,7 @@ class ContextualMatcher(BaseNERComponent):
         self.include_assigned = include_assigned
 
         # Configuration parsing
-        patterns = pydantic.parse_obj_as(models.FullConfig, patterns)
+        patterns = cast(models.FullConfig, patterns)
         self.patterns = {pattern.source: pattern for pattern in patterns}
 
         # Matchers for the anchors
@@ -159,7 +159,7 @@ class ContextualMatcher(BaseNERComponent):
         self.replace_key = {}
 
         for source, p in self.patterns.items():
-            p = p.dict()
+            p = p.model_dump()
 
             for exclude in p["exclude"]:
                 exclude_matcher = RegexMatcher(

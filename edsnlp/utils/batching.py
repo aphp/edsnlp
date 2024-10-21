@@ -17,11 +17,12 @@ from .stream_sentinels import (
     FragmentEndSentinel,
     StreamSentinel,
 )
+from .typing import Validated
 
 T = TypeVar("T")
 
 
-class BatchSizeArg:
+class BatchSizeArg(Validated):
     """
     Batch size argument validator / caster for confit/pydantic
 
@@ -58,11 +59,7 @@ class BatchSizeArg:
             return None, value
         if len(parts) == 2 and num is not None and parts[1].isidentifier():
             return num, parts[1]
-        raise Exception(f'Invalid batch size: {value}, must be <int> or "<int> <str>"')
-
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
+        raise ValueError(f'Invalid batch size: {value}, must be <int> or "<int> <str>"')
 
 
 if TYPE_CHECKING:

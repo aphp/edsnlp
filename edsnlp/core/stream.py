@@ -285,7 +285,7 @@ class Stream(metaclass=MetaStream):
         self.config = config
 
     @classmethod
-    def validate_batching(self, batch_size, batch_by):
+    def validate_batching(cls, batch_size, batch_by):
         if isinstance(batch_size, str):
             if batch_by is not None:
                 raise ValueError(

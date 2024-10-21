@@ -26,7 +26,7 @@ from loguru import logger
 from typing_extensions import Literal, TypedDict
 
 import edsnlp
-from edsnlp.utils.typing import AsList
+from edsnlp.utils.typing import AsList, Validated
 
 PoetryConstraint = TypedDict(
     "PoetryConstraint",
@@ -64,13 +64,9 @@ def snake_case(s):
     ).lower()
 
 
-class ModuleName(str):
+class ModuleName(str, Validated):
     def __new__(cls, *args, **kwargs):
         raise NotImplementedError("ModuleName is only meant for typing.")
-
-    @classmethod
-    def __get_validators__(self):
-        yield self.validate
 
     @classmethod
     def validate(cls, value, config=None):

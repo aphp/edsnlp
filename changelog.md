@@ -16,6 +16,8 @@
 
 ### Changed
 
+- `eds.span_context_getter`'s parameter `context_sents` is no longer optional and must be explicitly set to 0 to disable sentence context
+
 ### Fixed
 
 - Sentence detection now correctly match capitalized letters + apostrophe

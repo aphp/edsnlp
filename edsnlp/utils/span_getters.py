@@ -268,10 +268,8 @@ class make_span_context_getter:
 
     def __init__(
         self,
-        context_words: Union[NonNegativeInt, Tuple[NonNegativeInt, NonNegativeInt]] = 0,
-        context_sents: Optional[
-            Union[NonNegativeInt, Tuple[NonNegativeInt, NonNegativeInt]]
-        ] = 1,
+        context_words: Union[NonNegativeInt, Tuple[NonNegativeInt, NonNegativeInt]],
+        context_sents: Union[NonNegativeInt, Tuple[NonNegativeInt, NonNegativeInt]],
         span_getter: Optional[SpanGetterArg] = None,
     ):
         if isinstance(context_words, int):

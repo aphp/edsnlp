@@ -17,6 +17,8 @@
 
 ### Changed
 
+- `eds.span_context_getter`'s parameter `context_sents` is no longer optional and must be explicitly set to 0 to disable sentence context
+
 ### Fixed
 
 - Sort files before iterating over a standoff or json folder to ensure reproducibility

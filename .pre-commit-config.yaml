@@ -25,8 +25,11 @@ repos:
     rev: 'v0.6.4'
     hooks:
       - id: ruff
-        args: ['--config', 'pyproject.toml', '--fix']
+        args: ['--config', 'pyproject.toml', '--fix', '--show-fixes']
       - id: ruff-format
+        args: ['--config', 'pyproject.toml', '--diff']
+      - id: ruff-format
+        args: ['--config', 'pyproject.toml']
   - repo: https://github.com/asottile/blacken-docs
     rev: v1.10.0
     hooks:

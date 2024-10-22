@@ -279,7 +279,7 @@ try:
             if AlignDevicesHook is not None:
                 old = dill.Pickler.dispatch.get(AlignDevicesHook)
                 dill.Pickler.dispatch[AlignDevicesHook] = save_align_devices_hook
-            dill.settings["recurse"] = False
+            dill.settings["recurse"] = True
             dill.settings["byref"] = True
             return torch_save(*args, pickle_module=dill, **kwargs)
         finally:
@@ -490,11 +490,7 @@ class CPUWorker:
                     for out in items:
                         self.exchanger.put_results(out, self.cpu_idx)
 
-                # self.exchanger.notify_cpu(
-                #     "DONE",
-                #     self.cpu_idx,
-                #     stage_idx,
-                # )
+                self.exchanger.notify_cpu("DONE", self.cpu_idx, stage_idx)
                 self.exchanger.stop_consumers_from_cpu(self.cpu_idx, stage_idx)
             except BaseException as e:
                 import traceback
@@ -531,20 +527,13 @@ class CPUWorker:
                 alive_threads.add(stage_idx)
                 stage_threads.append(thread)
 
-            while alive_threads:
+            while True:
                 msg, stage_idx = self.exchanger.get_cpu_notification(self.cpu_idx)
                 if msg == "STOP":
                     return
                 if msg == "DONE":
                     alive_threads.remove(stage_idx)
                     continue
-
-            import edsnlp.core.torch_component
-
-            assert list(edsnlp.core.torch_component._caches) == []
-
-            for thread in stage_threads:
-                thread.join()
 
         except BaseException as e:  # pragma: no cover
             import traceback
@@ -578,7 +567,7 @@ class GPUWorker:
 
             try:
                 # Get items from the previous stage
-                while num_prod_alive > 0:
+                while num_prod_alive > 0 and not stop:
                     item = self.exchanger.get_gpu_task(self.gpu_idx, stage_idx)
                     if item is STOP:
                         num_prod_alive -= 1
@@ -602,7 +591,7 @@ class GPUWorker:
                     if stage_idx == len(stages) - 2:  # Last GPU stage
                         pipe.disable_cache(batch_id)
 
-                # self.exchanger.notify_gpu("DONE", self.gpu_idx, stage_idx)
+                self.exchanger.notify_gpu("DONE", self.gpu_idx, stage_idx)
                 self.exchanger.stop_cpu_consumers(stage_idx + 1)
             except BaseException as e:
                 import traceback
@@ -611,6 +600,8 @@ class GPUWorker:
                 # self.exchanger.notify_gpu("STOP", self.gpu_idx, None)
                 self.exchanger.notify_main(e)
 
+        stage_threads = []
+        stop = False
         try:
             stream: Stream = load(self.stream_path, map_location=self.device)
             stream.eval()
@@ -619,7 +610,6 @@ class GPUWorker:
             # Inform the main process that we are ready
             self.exchanger.notify_main("READY")
 
-            stage_threads = []
             alive_threads = set()
             for stage_idx in range(len(stages) - 1):
                 thread = threading.Thread(
@@ -632,24 +622,20 @@ class GPUWorker:
                 alive_threads.add(stage_idx)
                 stage_threads.append(thread)
 
-            while alive_threads:
+            while True:
                 msg, stage_idx = self.exchanger.get_gpu_notification(self.gpu_idx)
                 if msg == "STOP":
                     return
                 if msg == "DONE":
                     alive_threads.remove(stage_idx)
                     continue
-            import edsnlp.core.torch_component
-
-            assert list(edsnlp.core.torch_component._caches) == []
-            for thread in stage_threads:
-                thread.join()
 
         except BaseException as e:  # pragma: no cover
             import traceback
 
             print(f"Error in {self}:\n{traceback.format_exc()}", flush=True)
             self.exchanger.notify_main(e)
+            stop = True
 
     def __repr__(self):
         return f"<GPUWorker idx={self.gpu_idx}>"
@@ -749,10 +735,7 @@ class Exchanger:
                         queue.put_nowait(STOP)
                     except multiprocessing.queues.Full:  # pragma: no cover
                         pass
-        for queue in (
-            *self._cpu_notify_queues,
-            *self._gpu_notify_queues,
-        ):
+        for queue in (*self._cpu_notify_queues, *self._gpu_notify_queues):
             if not queue._closed:
                 queue.put_nowait(("STOP", None))
         for q in (
@@ -935,10 +918,11 @@ def execute_multiprocessing_backend(
         for worker in (*cpu_workers, *gpu_workers):
             if not worker._closed:
                 try:
-                    worker.join(10)
-                except multiprocessing.TimeoutError:  # pragma: no cover
-                    worker.kill()
-                    print("Killed worker", worker, flush=True)
+                    worker.join()
+                except BaseException:
+                    if worker.is_alive():
+                        worker.kill()
+                        print("Killed worker", worker, flush=True)
                 worker.close()
             assert worker._popen is None
         assert all(w._closed for w in (*cpu_workers, *gpu_workers))

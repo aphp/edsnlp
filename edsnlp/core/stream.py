@@ -534,7 +534,7 @@ class Stream(metaclass=MetaStream):
         pipe,
         name: Optional[str] = None,
         kwargs={},
-        batch_size: Optional[int] = None,
+        batch_size: Optional[Union[int, str]] = None,
         batch_by: BatchBy = None,
     ) -> "Stream":
         """
@@ -552,7 +552,7 @@ class Stream(metaclass=MetaStream):
         batch_size: Optional[Union[int, str]]
             The batch size. Can also be a batching expression like
             "32 docs", "1024 words", "dataset", "fragment", etc.
-        batch_by: Optional[Union[str, BatchFn]]
+        batch_by: BatchBy
             Function to compute the batches. If set, it should take an iterable of
             documents and return an iterable of batches. You can also set it to
             "docs", "words" or "padded_words" to use predefined batching functions.
@@ -583,7 +583,7 @@ class Stream(metaclass=MetaStream):
 
     def batchify(
         self,
-        batch_size: Optional[int] = None,
+        batch_size: Optional[Union[int, str]] = None,
         batch_by: BatchBy = None,
     ) -> "Stream":
         """
@@ -594,7 +594,7 @@ class Stream(metaclass=MetaStream):
         batch_size: Optional[Union[int, str]]
             The batch size. Can also be a batching expression like
             "32 docs", "1024 words", "dataset", "fragment", etc.
-        batch_by: Optional[Union[str, BatchFn]]
+        batch_by: BatchBy
             Function to compute the batches. If set, it should take an iterable of
             documents and return an iterable of batches. You can also set it to
             "docs", "words" or "padded_words" to use predefined batching functions.
@@ -623,7 +623,7 @@ class Stream(metaclass=MetaStream):
         forward: Callable[[Any], Any],
         postprocess: Optional[Callable[[List, Any], Any]] = None,
         name: Optional[str] = None,
-        batch_size: Optional[int] = None,
+        batch_size: Optional[Union[int, str]] = None,
         batch_by: BatchBy = None,
     ) -> "Stream":
         """
@@ -647,7 +647,7 @@ class Stream(metaclass=MetaStream):
         batch_size: Optional[Union[int, str]]
             The batch size. Can also be a batching expression like
             "32 docs", "1024 words", "dataset", "fragment", etc.
-        batch_by: Optional[Union[str, BatchFn]]
+        batch_by: BatchBy
             Function to compute the batches. If set, it should take an iterable of
             documents and return an iterable of batches. You can also set it to
             "docs", "words" or "padded_words" to use predefined batching functions.
@@ -693,7 +693,7 @@ class Stream(metaclass=MetaStream):
         batch_size: Optional[Union[int, str]]
             The batch size. Can also be a batching expression like
             "32 docs", "1024 words", "dataset", "fragment", etc.
-        batch_by: Optional[Union[str, BatchFn]]
+        batch_by: BatchBy
             Function to compute the batches. If set, it should take an iterable of
             documents and return an iterable of batches. You can also set it to
             "docs", "words" or "padded_words" to use predefined batching functions.
@@ -769,7 +769,7 @@ class Stream(metaclass=MetaStream):
         batch_size: Optional[Union[int, str]]
             The batch size. Can also be a batching expression like
             "32 docs", "1024 words", "dataset", "fragment", etc.
-        batch_by: Optional[Union[str, BatchFn]]
+        batch_by: BatchBy
             Function to compute the batches. If set, it should take an iterable of
             documents and return an iterable of batches. You can also set it to
             "docs", "words" or "padded_words" to use predefined batching functions.

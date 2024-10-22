@@ -2,12 +2,20 @@ import json
 import logging
 import os
 import time
-import typing
 import warnings
 from collections import defaultdict
 from itertools import chain
 from pathlib import Path
-from typing import Any, Callable, Collection, Dict, Iterable, Optional, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Collection,
+    Dict,
+    Iterable,
+    Optional,
+    Union,
+)
 
 import torch
 from accelerate import Accelerator
@@ -16,6 +24,7 @@ from confit.utils.random import set_seed
 from rich_logger import RichTablePrinter
 from torch.optim import Optimizer
 from tqdm import tqdm, trange
+from typing_extensions import Literal
 
 from edsnlp import Pipeline, registry
 from edsnlp.core.stream import Stream
@@ -155,8 +164,8 @@ class GenericScorer:
         return scores
 
 
-if typing.TYPE_CHECKING:
-    GenericScorer = typing.Union[GenericScorer, Dict]
+if TYPE_CHECKING:
+    GenericScorer = Union[GenericScorer, Dict]
 
 
 def default_optim(
@@ -264,7 +273,9 @@ class TrainingData:
         data.reader.loop = True
         if self.shuffle:
             data = data.shuffle(self.shuffle)
-        data = data.map(nlp.preprocess, kwargs=dict(supervision=True))
+
+        with nlp.select_pipes(enable=self.pipe_names):
+            data = data.map(nlp.preprocess, kwargs=dict(supervision=True))
         batcher = stat_batchify(self.batch_size[1] or "docs")
         data = data.batchify(batch_size=self.batch_size[0], batch_by=batcher)
         if self.accumulation_batch_size:
@@ -295,6 +306,7 @@ def train(
     scorer: GenericScorer = GenericScorer(),
     num_workers: int = 0,
     cpu: bool = False,
+    mixed_precision: Literal["no", "fp16", "bf16", "fp8"] = "no",
     output_dir: Union[Path, str] = Path("artifacts"),
     **kwargs,
 ):
@@ -423,7 +435,7 @@ def train(
 
             logging.debug("Finished building the optimizer")
 
-            accelerator = Accelerator(cpu=cpu)
+            accelerator = Accelerator(cpu=cpu, mixed_precision=mixed_precision)
             is_main_process = accelerator.is_main_process
             device = accelerator.device
             print("Device:", device)
@@ -436,7 +448,10 @@ def train(
             iterator = iter(
                 zip(
                     *(
-                        td(nlp, device).set_processing(num_cpu_workers=num_workers)
+                        td(nlp, device).set_processing(
+                            num_cpu_workers=num_workers,
+                            process_start_method="spawn",
+                        )
                         for td in train_data
                         if td.pipe_names is None or set(td.pipe_names) & set(pipe_names)
                     )
@@ -493,8 +508,6 @@ def train(
                         loss = torch.zeros((), device=accelerator.device)
                         with nlp.cache():
                             for name, pipe in zip(pipe_names, trained_pipes):
-                                if name not in batch:
-                                    continue
                                 res = dict(pipe(batch[name]))
                                 if "loss" in res:
                                     res["loss"] = res["loss"] * loss_scales.get(name, 1)

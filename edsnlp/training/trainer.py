@@ -16,6 +16,7 @@ from confit.utils.random import set_seed
 from rich_logger import RichTablePrinter
 from torch.optim import Optimizer
 from tqdm import tqdm, trange
+from typing_extensions import Literal
 
 from edsnlp import Pipeline, registry
 from edsnlp.core.stream import Stream
@@ -295,6 +296,7 @@ def train(
     scorer: GenericScorer = GenericScorer(),
     num_workers: int = 0,
     cpu: bool = False,
+    mixed_precision: Literal["no", "fp16", "bf16", "fp8"] = "no",
     output_dir: Union[Path, str] = Path("artifacts"),
     **kwargs,
 ):
@@ -423,7 +425,7 @@ def train(
 
             logging.debug("Finished building the optimizer")
 
-            accelerator = Accelerator(cpu=cpu)
+            accelerator = Accelerator(cpu=cpu, mixed_precision=mixed_precision)
             is_main_process = accelerator.is_main_process
             device = accelerator.device
             print("Device:", device)
@@ -436,7 +438,10 @@ def train(
             iterator = iter(
                 zip(
                     *(
-                        td(nlp, device).set_processing(num_cpu_workers=num_workers)
+                        td(nlp, device).set_processing(
+                            num_cpu_workers=num_workers,
+                            process_start_method="spawn",
+                        )
                         for td in train_data
                         if td.pipe_names is None or set(td.pipe_names) & set(pipe_names)
                     )

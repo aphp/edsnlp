@@ -274,14 +274,16 @@ try:
         # We need to replace the "execution_device" attribute of the AlignDevicesHook
         # using map_location when pickling the stream
         old = None
+        old_settings = dict(dill.settings)
         try:
             if AlignDevicesHook is not None:
                 old = dill.Pickler.dispatch.get(AlignDevicesHook)
                 dill.Pickler.dispatch[AlignDevicesHook] = save_align_devices_hook
-            dill.settings["recurse"] = True
+            dill.settings["recurse"] = False
+            dill.settings["byref"] = True
             return torch_save(*args, pickle_module=dill, **kwargs)
         finally:
-            dill.settings["recurse"] = False
+            dill.settings.update(old_settings)
             if AlignDevicesHook is not None:
                 del dill.Pickler.dispatch[AlignDevicesHook]
                 if old is not None:  # pragma: no cover

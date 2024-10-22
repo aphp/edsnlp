@@ -29,7 +29,7 @@ def test_flat_iterable(num_cpu_workers):
     assert sorted(res) == [1, 2, 2, 3, 3, 3, 4, 4, 4, 4]
 
 
-@pytest.mark.parametrize("num_gpu_workers", [0, 1])
+@pytest.mark.parametrize("num_gpu_workers", [0, 1, 2])
 def test_map_gpu(num_gpu_workers):
     import torch
 
@@ -39,9 +39,8 @@ def test_map_gpu(num_gpu_workers):
     def forward(batch):
         return {"outputs": batch["tensor"] * 2}
 
-    items = [1, 2, 3, 4, 5]
+    items = range(15)
     stream = edsnlp.data.from_iterable(items)
-    stream = stream.map(lambda x: x + 1)
     if num_gpu_workers == 0:
         # this is just to fuse tests, and test map_gpu
         # following a map_batches without specifying a batch size
@@ -56,7 +55,7 @@ def test_map_gpu(num_gpu_workers):
 
     res = ld_to_dl(stream)
     res = torch.cat(res["outputs"])
-    assert set(res.tolist()) == {4, 6, 8, 10, 12}
+    assert set(res.tolist()) == {i * 2 for i in range(15)}
 
 
 @pytest.mark.parametrize(
@@ -151,11 +150,11 @@ def test_shuffle_after_generator():
 
 
 def test_shuffle_frozen_ml_pipeline(run_in_test_dir, frozen_ml_nlp):
-    stream = edsnlp.data.read_parquet("../resources/docs.parquet")
+    stream = edsnlp.data.read_parquet("../resources/docs.parquet", converter="omop")
     stream = stream.map_pipeline(frozen_ml_nlp, batch_size=2)
-    assert len(stream.ops) == 6
+    assert len(stream.ops) == 7
     stream = stream.shuffle(batch_by="fragment")
-    assert len(stream.ops) == 6
+    assert len(stream.ops) == 7
     assert stream.reader.shuffle == "fragment"
 
 
@@ -173,3 +172,25 @@ def test_int_shuffle():
     stream = stream.map(lambda x: x)
     stream = stream.shuffle("2 docs", seed=42)
     assert list(stream) == [2, 1, 4, 3, 5, 6, 8, 7, 10, 9]
+
+
+def test_parallel_preprocess_stop(run_in_test_dir, frozen_ml_nlp):
+    nlp = frozen_ml_nlp
+    stream = edsnlp.data.read_parquet(
+        "../resources/docs.parquet",
+        "omop",
+        loop=True,
+    )
+    stream = stream.map(edsnlp.pipes.split(regex="\n+"))
+    stream = stream.map(nlp.preprocess, kwargs=dict(supervision=True))
+    stream = stream.batchify("128 words")
+    stream = stream.map(nlp.collate)
+    stream = stream.set_processing(num_cpu_workers=1, process_start_method="spawn")
+
+    it = iter(stream)
+    total = 0
+    for _ in zip(it, range(10)):
+        total += 1
+
+    assert total == 10
+    del it

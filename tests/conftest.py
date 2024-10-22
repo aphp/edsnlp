@@ -179,3 +179,39 @@ def df_notes_koalas(text):
 @fixture
 def run_in_test_dir(request, monkeypatch):
     monkeypatch.chdir(request.fspath.dirname)
+
+
+@pytest.fixture(autouse=True)
+def stop_spark():
+    yield
+    try:
+        from pyspark.sql import SparkSession
+    except ImportError:
+        return
+    try:
+        getActiveSession = SparkSession.getActiveSession
+    except AttributeError:
+
+        def getActiveSession():  # pragma: no cover
+            from pyspark import SparkContext
+
+            sc = SparkContext._active_spark_context
+            if sc is None:
+                return None
+            else:
+                assert sc._jvm is not None
+                if sc._jvm.SparkSession.getActiveSession().isDefined():
+                    SparkSession(sc, sc._jvm.SparkSession.getActiveSession().get())
+                    try:
+                        return SparkSession._activeSession
+                    except AttributeError:
+                        try:
+                            return SparkSession._instantiatedSession
+                        except AttributeError:
+                            return None
+                else:
+                    return None
+
+    session = getActiveSession()
+    if session is not None:
+        session.stop()

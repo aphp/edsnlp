@@ -10,31 +10,41 @@ from edsnlp import Pipeline
 EMPTY = object()
 
 
-def shift_spans(obj, start, end, new_doc):
-    if isinstance(obj, Span):
-        if obj.end > start and obj.start < end:
-            return Span(
-                new_doc,
-                max(0, obj.start - start),
-                min(obj.end - start, end - start),
-                obj.label,
+def make_shifter(start, end, new_doc):
+    cache = {}
+
+    def rec(obj):
+        if isinstance(obj, Span):
+            if obj in cache:
+                return cache[obj]
+            if obj.end > start and obj.start < end:
+                res = Span(
+                    new_doc,
+                    max(0, obj.start - start),
+                    min(obj.end - start, end - start),
+                    obj.label,
+                )
+            else:
+                res = EMPTY
+            cache[obj] = res
+        elif isinstance(obj, (list, tuple, set)):
+            res = type(obj)(
+                filter(
+                    lambda x: x is not EMPTY,
+                    (rec(span) for span in obj),
+                )
             )
-        return EMPTY
-    elif isinstance(obj, (list, tuple, set)):
-        return type(obj)(
-            filter(
-                lambda x: x is not EMPTY,
-                (shift_spans(span, start, end, new_doc) for span in obj),
-            )
-        )
-    elif isinstance(obj, dict):
-        res = {}
-        for k, v in obj.items():
-            new_v = shift_spans(v, start, end, new_doc)
-            if new_v is not EMPTY:
-                res[k] = new_v
+        elif isinstance(obj, dict):
+            res = {}
+            for k, v in obj.items():
+                new_v = rec(v)
+                if new_v is not EMPTY:
+                    res[k] = new_v
+        else:
+            res = obj
         return res
-    return obj
+
+    return rec
 
 
 def subset_doc(doc: Doc, start: int, end: int) -> Doc:
@@ -58,11 +68,15 @@ def subset_doc(doc: Doc, start: int, end: int) -> Doc:
     new_doc = doc[start:end].as_doc()
     new_doc.user_data.update(doc.user_data)
 
-    for key, val in new_doc.user_data.items():
-        new_doc.user_data[key] = shift_spans(val, start, end, new_doc)
+    shifter = make_shifter(start, end, new_doc)
+
+    print(new_doc.user_data)
+
+    for key, val in list(new_doc.user_data.items()):
+        new_doc.user_data[key] = shifter(val)
 
     for name, group in doc.spans.items():
-        new_doc.spans[name] = shift_spans(list(group), start, end, new_doc)
+        new_doc.spans[name] = shifter(list(group))
 
     return new_doc
 

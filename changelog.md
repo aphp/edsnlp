@@ -35,6 +35,11 @@
 - :boom: Breaking change: a `map` function returning a list or a generator won't be automatically flattened anymore. Use `flatten()` to flatten the output if needed. This shouldn't change the behavior for most users since most writers (to_pandas, to_polars, to_parquet, ...) still flatten the output
 - :boom: Breaking change: the `chunk_size` and `sort_chunks` are now deprecated : to sort data before applying a transformation, use `.map_batches(custom_sort_fn, batch_size=...)`
 
+### Training API changes
+
+- We now provide a training script `python -m edsnlp.train --config config.cfg` that should fit many use cases. Check out the docs !
+- In particular, we do not require pytorch's Dataloader for training and can rely solely on EDS-NLP stream/data API, which is better suited for large streamable datasets and dynamic preprocessing (ie different result each time we apply a noised preprocessing op on a sample).
+
 ## v0.13.1
 
 ### Added

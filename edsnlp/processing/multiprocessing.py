@@ -490,17 +490,17 @@ class CPUWorker:
                     for out in items:
                         self.exchanger.put_results(out, self.cpu_idx)
 
-                self.exchanger.notify_cpu(
-                    "DONE",
-                    self.cpu_idx,
-                    stage_idx,
-                )
+                # self.exchanger.notify_cpu(
+                #     "DONE",
+                #     self.cpu_idx,
+                #     stage_idx,
+                # )
                 self.exchanger.stop_consumers_from_cpu(self.cpu_idx, stage_idx)
             except BaseException as e:
                 import traceback
 
                 print(f"Error in {self}:\n{traceback.format_exc()}", flush=True)
-                self.exchanger.notify_cpu("STOP", self.cpu_idx, None)
+                # self.exchanger.notify_cpu("STOP", self.cpu_idx, None)
                 self.exchanger.notify_main(e)
 
         # Cannot pass torch tensor during init i think ? otherwise i get
@@ -602,13 +602,13 @@ class GPUWorker:
                     if stage_idx == len(stages) - 2:  # Last GPU stage
                         pipe.disable_cache(batch_id)
 
-                self.exchanger.notify_gpu("DONE", self.gpu_idx, stage_idx)
+                # self.exchanger.notify_gpu("DONE", self.gpu_idx, stage_idx)
                 self.exchanger.stop_cpu_consumers(stage_idx + 1)
             except BaseException as e:
                 import traceback
 
                 print(f"Error in {self}:\n{traceback.format_exc()}", flush=True)
-                self.exchanger.notify_gpu("STOP", self.gpu_idx, None)
+                # self.exchanger.notify_gpu("STOP", self.gpu_idx, None)
                 self.exchanger.notify_main(e)
 
         try:

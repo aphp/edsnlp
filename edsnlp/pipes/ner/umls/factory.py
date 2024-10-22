@@ -57,7 +57,7 @@ def create_component(
        within a few days.
     3. Set `UMLS_API_KEY` locally: `export UMLS_API_KEY=your_api_key`
 
-    ```python
+    ```{ .python .no-check }
     import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
@@ -85,8 +85,8 @@ def create_component(
     ```python
     import edsnlp, edsnlp.pipes as eds
 
-    # Enable the French and English languages, through the French MeSH and LOINC
-    pattern_config = dict(languages=["FRE", "ENG"], sources=["MSHFRE", "LNC"])
+    # Load the French MeSH
+    pattern_config = dict(languages=["FRE"], sources=["MSHFRE"])
 
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(eds.umls(pattern_config=pattern_config))
@@ -98,7 +98,7 @@ def create_component(
     Parameters
     ----------
     nlp : PipelineProtocol
-        spaCy `Language` object.
+        Pipeline object
     name : str
         The name of the pipe
     attr : Union[str, Dict[str, str]]

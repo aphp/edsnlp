@@ -41,6 +41,7 @@ dev = [
     "pre-commit>=2.21.0; python_version>='3.8'",
     "pytest>=7.1.0",
     "pytest-cov>=3.0.0",
+    "pytest-timeout",
 
     # Data libs
     "koalas>=1.8.1; python_version<'3.8'",
@@ -396,6 +397,8 @@ omit-covered-files = false
 # generate-badge = "."
 # badge-format = "svg"
 
+[tool.pytest.ini_options]
+timeout = 240
 
 [tool.coverage.report]
 precision = 2

@@ -2,12 +2,20 @@ import json
 import logging
 import os
 import time
-import typing
 import warnings
 from collections import defaultdict
 from itertools import chain
 from pathlib import Path
-from typing import Any, Callable, Collection, Dict, Iterable, Optional, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Collection,
+    Dict,
+    Iterable,
+    Optional,
+    Union,
+)
 
 import torch
 from accelerate import Accelerator
@@ -156,8 +164,8 @@ class GenericScorer:
         return scores
 
 
-if typing.TYPE_CHECKING:
-    GenericScorer = typing.Union[GenericScorer, Dict]
+if TYPE_CHECKING:
+    GenericScorer = Union[GenericScorer, Dict]
 
 
 def default_optim(
@@ -265,7 +273,9 @@ class TrainingData:
         data.reader.loop = True
         if self.shuffle:
             data = data.shuffle(self.shuffle)
-        data = data.map(nlp.preprocess, kwargs=dict(supervision=True))
+
+        with nlp.select_pipes(enable=self.pipe_names):
+            data = data.map(nlp.preprocess, kwargs=dict(supervision=True))
         batcher = stat_batchify(self.batch_size[1] or "docs")
         data = data.batchify(batch_size=self.batch_size[0], batch_by=batcher)
         if self.accumulation_batch_size:
@@ -498,8 +508,6 @@ def train(
                         loss = torch.zeros((), device=accelerator.device)
                         with nlp.cache():
                             for name, pipe in zip(pipe_names, trained_pipes):
-                                if name not in batch:
-                                    continue
                                 res = dict(pipe(batch[name]))
                                 if "loss" in res:
                                     res["loss"] = res["loss"] * loss_scales.get(name, 1)

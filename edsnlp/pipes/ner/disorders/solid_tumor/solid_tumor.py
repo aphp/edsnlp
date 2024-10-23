@@ -119,9 +119,9 @@ class SolidTumorMatcher(DisorderMatcher):
         self.use_tnm = use_tnm
 
         if use_tnm:
-            from edsnlp.pipes.ner.tnm import TNM
+            from edsnlp.pipes.ner.tnm.tnm import TNMMatcher
 
-            self.tnm = TNM(nlp, pattern=None, attr="TEXT")
+            self.tnm = TNMMatcher(nlp=nlp, attr="TEXT")
 
     def process_tnm(self, doc):
         spans = self.tnm.process(doc)

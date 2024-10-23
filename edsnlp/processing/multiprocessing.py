@@ -11,6 +11,8 @@ import sys
 import tempfile
 import threading
 import warnings
+import weakref
+from contextlib import nullcontext
 from itertools import chain, cycle
 from multiprocessing.connection import wait
 from typing import (
@@ -85,6 +87,7 @@ class ForkingPickler(dill.Pickler):
         # monkey-patched __new__ method, because [original cls] != [type of result]
         # (see https://docs.python.org/3/reference/datamodel.html#basic-customization)
         # so we force the call to __init__ here
+        kwargs = dict(recurse=True, byref=True, *kwargs)
         if not isinstance(result, cls):
             result.__init__(*args, **kwargs)
         return result
@@ -393,6 +396,8 @@ class CPUWorker:
                 def dequeue():
                     i = 0
                     for item in iter(reader.read_records()):
+                        if stop:
+                            return
                         if isinstance(item, StreamSentinel):
                             yield item
                             continue
@@ -404,7 +409,7 @@ class CPUWorker:
                 def dequeue():
                     num_prod_alive = self.exchanger.num_producers_for_cpu(stage_idx)
 
-                    while num_prod_alive > 0:
+                    while num_prod_alive > 0 and not stop:
                         item = self.exchanger.get_cpu(self.cpu_idx, stage_idx)
                         if item is STOP:
                             num_prod_alive -= 1
@@ -510,12 +515,10 @@ class CPUWorker:
             stream.eval()
             stages = stream._make_stages(len(self.exchanger.gpu_worker_devices) > 0)
             active_batches = [[] for _ in range(len(stages) - 1)]
-
-            # Inform the main process that we are ready
-            self.exchanger.notify_main("READY")
-
+            stop = False
             stage_threads = []
             alive_threads = set()
+
             for stage_idx in range(len(stages)):
                 thread = threading.Thread(
                     target=handle_stage,
@@ -527,9 +530,14 @@ class CPUWorker:
                 alive_threads.add(stage_idx)
                 stage_threads.append(thread)
 
+            # Inform the main process that we are ready
+            self.exchanger.notify_main("READY")
+
             while True:
                 msg, stage_idx = self.exchanger.get_cpu_notification(self.cpu_idx)
                 if msg == "STOP":
+                    stop = True
+                if msg == "KILL":
                     return
                 if msg == "DONE":
                     alive_threads.remove(stage_idx)
@@ -563,54 +571,63 @@ class GPUWorker:
     def run(self):
         def handle_stage(stage_idx):
             num_prod_alive = self.exchanger.num_producers_for_gpu(stage_idx)
-            cpu_idx = 0
 
-            try:
-                # Get items from the previous stage
-                while num_prod_alive > 0 and not stop:
-                    item = self.exchanger.get_gpu_task(self.gpu_idx, stage_idx)
-                    if item is STOP:
-                        num_prod_alive -= 1
-                        continue
+            autocast_device_type = (
+                self.device if isinstance(self.device, str) else self.device.type
+            ).split(":")[0]
+            autocast_dtype = stream.autocast if stream.autocast is not True else None
+            autocast_ctx = (
+                torch.autocast(
+                    device_type=autocast_device_type,
+                    dtype=autocast_dtype,
+                )
+                if stream.autocast
+                else nullcontext()
+            )
+            with torch.no_grad(), autocast_ctx, torch.inference_mode():
+                try:
+                    # Get items from the previous stage
+                    while num_prod_alive > 0 and not stop:
+                        item = self.exchanger.get_gpu_task(self.gpu_idx, stage_idx)
+                        if item is STOP:
+                            num_prod_alive -= 1
+                            continue
 
-                    cpu_idx, batch_id, batch = item
+                        cpu_idx, batch_id, batch = item
 
-                    pipe = stages[stage_idx].gpu_op
-                    pipe.enable_cache(batch_id)
-                    batch = pipe(batch)
-                    batch = {
-                        k: v.to("cpu") if hasattr(v, "to") else v
-                        for k, v in batch.items()
-                    }
-                    self.exchanger.send_to_cpu_worker(
-                        item=(batch_id, batch),
-                        idx=cpu_idx,
-                        stage_idx=stage_idx + 1,
-                    )
-                    del batch
-                    if stage_idx == len(stages) - 2:  # Last GPU stage
-                        pipe.disable_cache(batch_id)
+                        pipe = stages[stage_idx].gpu_op
+                        pipe.enable_cache(batch_id)
+                        batch = pipe(batch)
+                        batch = {
+                            k: v.to("cpu") if hasattr(v, "to") else v
+                            for k, v in batch.items()
+                        }
+                        self.exchanger.send_to_cpu_worker(
+                            item=(batch_id, batch),
+                            idx=cpu_idx,
+                            stage_idx=stage_idx + 1,
+                        )
+                        del batch
+                        if stage_idx == len(stages) - 2:  # Last GPU stage
+                            pipe.disable_cache(batch_id)
 
-                self.exchanger.notify_gpu("DONE", self.gpu_idx, stage_idx)
-                self.exchanger.stop_cpu_consumers(stage_idx + 1)
-            except BaseException as e:
-                import traceback
+                    self.exchanger.notify_gpu("DONE", self.gpu_idx, stage_idx)
+                    self.exchanger.stop_cpu_consumers(stage_idx + 1)
+                except BaseException as e:
+                    import traceback
 
-                print(f"Error in {self}:\n{traceback.format_exc()}", flush=True)
-                # self.exchanger.notify_gpu("STOP", self.gpu_idx, None)
-                self.exchanger.notify_main(e)
+                    print(f"Error in {self}:\n{traceback.format_exc()}", flush=True)
+                    # self.exchanger.notify_gpu("STOP", self.gpu_idx, None)
+                    self.exchanger.notify_main(e)
 
-        stage_threads = []
-        stop = False
         try:
             stream: Stream = load(self.stream_path, map_location=self.device)
             stream.eval()
             stages = stream._make_stages(len(self.exchanger.gpu_worker_devices) > 0)
-
-            # Inform the main process that we are ready
-            self.exchanger.notify_main("READY")
-
+            stop = False
+            stage_threads = []
             alive_threads = set()
+
             for stage_idx in range(len(stages) - 1):
                 thread = threading.Thread(
                     target=handle_stage,
@@ -622,9 +639,14 @@ class GPUWorker:
                 alive_threads.add(stage_idx)
                 stage_threads.append(thread)
 
+            # Inform the main process that we are ready
+            self.exchanger.notify_main("READY")
+
             while True:
                 msg, stage_idx = self.exchanger.get_gpu_notification(self.gpu_idx)
                 if msg == "STOP":
+                    stop = True
+                if msg == "KILL":
                     return
                 if msg == "DONE":
                     alive_threads.remove(stage_idx)
@@ -664,7 +686,7 @@ class Exchanger:
         )
         self._cpu_queues = [
             ([input_queue] if share_input_queue else [mp.Queue()])
-            + [mp.Queue(maxsize=2) for _ in range(num_stages - 1)]
+            + [mp.Queue() for _ in range(num_stages - 1)]
             for _ in range(num_cpu_workers)
         ]
         self._gpu_queues = [
@@ -723,6 +745,9 @@ class Exchanger:
         return self.num_cpu_workers
 
     def stop_everything(self):
+        for queue in (*self._cpu_notify_queues, *self._gpu_notify_queues):
+            if not queue._closed:
+                queue.put_nowait(("STOP", None))
         for queues in (*self._cpu_queues, *self._gpu_queues, self._output_queues):
             for queue in queues:
                 if not queue._closed:
@@ -737,7 +762,7 @@ class Exchanger:
                         pass
         for queue in (*self._cpu_notify_queues, *self._gpu_notify_queues):
             if not queue._closed:
-                queue.put_nowait(("STOP", None))
+                queue.put_nowait(("KILL", None))
         for q in (
             *self._output_queues,
             *chain.from_iterable(self._cpu_queues),
@@ -907,6 +932,8 @@ def execute_multiprocessing_backend(
 
     def stop():
         nonlocal keep_going
+        if not keep_going:
+            return
         keep_going = False
         revert_pickler()
         revert_environ()
@@ -1001,6 +1028,8 @@ def execute_multiprocessing_backend(
         items = writer.batch_by(items, writer.batch_size)
         # get the 1st element (2nd is the count)
         items = (writer.handle_batch(b)[0] for b in items)
+
+    weakref.finalize(items, stop)
 
     if writer is not None:
         items = writer.consolidate(items)

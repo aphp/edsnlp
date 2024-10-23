@@ -303,13 +303,14 @@ class PoetryPackager(Packager):
     ):
         try:
             version = version or pyproject["tool"]["poetry"]["version"]
-        except (KeyError, TypeError):
+        except (KeyError, TypeError):  # pragma: no cover
             version = "0.1.0"
         name = name or pyproject["tool"]["poetry"]["name"]
-        if pyproject is not None:
-            main_package = snake_case(pyproject["tool"]["poetry"]["name"].lower())
-        else:
-            main_package = None
+        main_package = (
+            snake_case(pyproject["tool"]["poetry"]["name"].lower())
+            if pyproject is not None
+            else None
+        )
         model_package = snake_case(name.lower())
 
         root_dir = root_dir.resolve()
@@ -509,8 +510,7 @@ class SetuptoolsPackager(Packager):
         except Exception:
             find = {}
         where = find.pop("where", ["."])
-        if not isinstance(where, list):
-            where = [where]
+        where = [where] if not isinstance(where, list) else where
         packages = {main_package, model_package}
         for w in where:
             # TODO Should we handle namespaces ?
@@ -609,7 +609,7 @@ def package(
             "poetry": PoetryPackager,
             "setuptools": SetuptoolsPackager,
         }[project_type]
-    except Exception:
+    except Exception:  # pragma: no cover
         raise ValueError(
             "Could not infer project type, only poetry and setuptools based projects "
             "are supported for now"

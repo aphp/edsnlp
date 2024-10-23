@@ -20,18 +20,18 @@ from spacy.tokens import Span
 
 from edsnlp.core.registries import registry
 from edsnlp.data.converters import AttributesMappingArg, get_current_tokenizer
-from edsnlp.optimization import LinearSchedule, ScheduledOptimizer
-from edsnlp.train import GenericScorer, Reader, train
+from edsnlp.training.optimization import LinearSchedule, ScheduledOptimizer
+from edsnlp.training.trainer import GenericScorer, train
 from edsnlp.utils.span_getters import SpanSetterArg, set_spans
 
 
 @registry.factory.register("myproject.custom_dict2doc", spacy_compatible=False)
-class PseudoDictReader:
+class CustomSampleGenerator:
     def __init__(
         self,
         *,
         tokenizer: Optional[spacy.tokenizer.Tokenizer] = None,
-        name: str = "eds_pseudo.read_dict",
+        name: str = "myproject.custom_dict2doc",
         span_setter: SpanSetterArg = {"ents": True, "*": True},
         bool_attributes: Union[str, Sequence[str]] = [],
         span_attributes: Optional[AttributesMappingArg] = None,
@@ -86,12 +86,13 @@ class PseudoDictReader:
 
 def test_ner_qualif_train(run_in_test_dir, tmp_path):
     set_seed(42)
-    config = Config.from_disk("ner_qlf_config.cfg")
+    config = Config.from_disk("ner_qlf_config.yml")
     shutil.rmtree(tmp_path, ignore_errors=True)
-    kwargs = config["train"].resolve(registry=registry, root=config)
-    nlp = train(**kwargs, output_path=tmp_path, cpu=True)
+    kwargs = Config.resolve(config["train"], registry=registry, root=config)
+    nlp = train(**kwargs, output_dir=tmp_path, cpu=True)
     scorer = GenericScorer(**kwargs["scorer"])
-    last_scores = scorer(nlp, Reader(**kwargs["val_data"])(nlp))
+    val_data = kwargs["val_data"]
+    last_scores = scorer(nlp, val_data)
 
     # Check empty doc
     nlp("")
@@ -102,12 +103,13 @@ def test_ner_qualif_train(run_in_test_dir, tmp_path):
 
 def test_qualif_train(run_in_test_dir, tmp_path):
     set_seed(42)
-    config = Config.from_disk("qlf_config.cfg")
+    config = Config.from_disk("qlf_config.yml")
     shutil.rmtree(tmp_path, ignore_errors=True)
-    kwargs = config["train"].resolve(registry=registry, root=config)
+    kwargs = Config.resolve(config["train"], registry=registry, root=config)
     nlp = train(**kwargs, output_path=tmp_path, cpu=True)
     scorer = GenericScorer(**kwargs["scorer"])
-    last_scores = scorer(nlp, Reader(**kwargs["val_data"])(nlp))
+    val_data = kwargs["val_data"]
+    last_scores = scorer(nlp, val_data)
 
     # Check empty doc
     nlp("")

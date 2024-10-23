@@ -9,6 +9,7 @@ from typing import (
 )
 
 from edsnlp.utils.span_getters import SeqStr, SpanFilter
+from edsnlp.utils.typing import Validated
 
 Binding = Tuple[str, Any]
 
@@ -147,7 +148,7 @@ def validate_attributes(value: Union[SeqStr, Dict[str, SpanFilter]]) -> Attribut
         )
 
 
-class AttributesArg:
+class AttributesArg(Validated):
     """
     Valid values for the `attributes` argument of a component can be :
 
@@ -164,10 +165,6 @@ class AttributesArg:
     - `attributes={"_.negated": True, "_.past": "DATE"}` will use the `negated`
        extension of any span, and the `past` extension of spans with the `DATE` label
     """
-
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
 
     @classmethod
     def validate(cls, value, config=None) -> Attributes:

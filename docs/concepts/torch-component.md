@@ -130,7 +130,6 @@ from tqdm import tqdm
 
 from edsnlp import Pipeline, registry
 from edsnlp.core.torch_component import TorchComponent
-from spacy.tokens import Doc
 
 
 @registry.factory.register("my-component")
@@ -144,7 +143,7 @@ class MyComponent(TorchComponent):
         super().__init__(nlp=nlp, name=name)
         self.embedding = embedding
 
-    def post_init(self, gold_data: Iterable[Doc], exclude: set):
+    def post_init(self, gold_data: Iterable["spacy.tokens.Doc"], exclude: set):
         super().post_init(gold_data, exclude)
 
         # Initialize the component with the gold documents
@@ -160,12 +159,12 @@ class MyComponent(TorchComponent):
         # Initialize any layer that might be missing from the module
         self.classifier = torch.nn.Linear(...)
 
-    def preprocess(self, doc: Doc) -> Dict[str, Any]:
+    def preprocess(self, doc: "spacy.tokens.Doc") -> Dict[str, Any]:
         # Preprocess the doc to extract features required to run the embedding
         # subcomponent, and this component
         return {
             "embedding": self.embedding.preprocess(doc),
-            "my-feature": ...(doc),
+            "my-feature": ...,
         }
 
     def collate(self, batch) -> Dict:
@@ -181,11 +180,13 @@ class MyComponent(TorchComponent):
         embeds = self.embedding(batch["embedding"])
 
         # Do something with the embedding tensors
-        output = ...(embeds)
+        output = ...
 
         return output
 
-    def postprocess(self, docs: Sequence[Doc], output: Dict) -> Sequence[Doc]:
+    def postprocess(
+        self, docs: Sequence["spacy.tokens.Doc"], output: Dict
+    ) -> Sequence["spacy.tokens.Doc"]:
         # Annotate the docs with the outputs of the forward method
         ...
         return docs

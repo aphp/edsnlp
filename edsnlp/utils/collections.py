@@ -1,5 +1,7 @@
 import copy
 import itertools
+import random
+import types
 from collections import defaultdict
 from typing import (
     Any,
@@ -13,6 +15,8 @@ from typing import (
     TypeVar,
     Union,
 )
+
+from .batching import batchify  # noqa: F401
 
 T = TypeVar("T")
 
@@ -154,32 +158,6 @@ def decompress_dict(seq: Union[Iterable[Dict[str, Any]], Dict[str, Any]]):
                 current = current.setdefault(part, {})
             current[parts[-1]] = value
     return res
-
-
-def batchify(
-    iterable: Iterable[T],
-    batch_size: int,
-    drop_last: bool = False,
-) -> Iterable[List[T]]:
-    """
-    Yields batch that contain at most `batch_size` elements.
-    If an item contains more than `batch_size` elements, it will be yielded as a single
-    batch.
-
-    Parameters
-    ----------
-    iterable
-    batch_size
-    drop_last
-    """
-    batch = []
-    for item in iterable:
-        if len(batch) >= batch_size:
-            yield batch
-            batch = []
-        batch.append(item)
-    if len(batch) > 0 and not drop_last:
-        yield batch
 
 
 def get_attr_item(base, attr):
@@ -353,9 +331,23 @@ def flatten_once(items):
             yield item
 
 
-def flatten(items):
-    for item in items:
-        if isinstance(item, list):
-            yield from flatten(item)
-        else:
-            yield item
+def flatten(item):
+    if not isinstance(item, (list, types.GeneratorType)):
+        yield item
+        return
+    for sub in item:
+        yield from flatten(sub)
+
+
+def shuffle(items=None, rng=random):
+    items = list(items)
+    rng.shuffle(items)
+    return items
+
+
+class chain_zip:
+    def __init__(self, iterables):
+        self.iterables = list(iterables)
+
+    def __iter__(self):
+        return itertools.chain.from_iterable(zip(*self.iterables))

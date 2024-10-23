@@ -16,6 +16,7 @@ def test_span_context_getter_symmetric(lang):
 
     span_getter = make_span_context_getter(
         context_words=2,
+        context_sents=1,
     )
     assert [span_getter(s).text for s in doc.ents] == [
         "This is a sentence. This",

@@ -48,6 +48,7 @@ class EndLinesMatcher(GenericMatcher):
     le medicament indiqué 3 fois par jour. Revoir médecin
     dans 1 mois.
     DIAGNOSTIC :
+    Il aime le fromage...
 
     Antecedents Familiaux:
     - 1. Père avec diabete

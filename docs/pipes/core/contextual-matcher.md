@@ -28,7 +28,7 @@ terms = [
 ]
 
 regex = [
-    "adeno(carcinom|[\s-]?k)",
+    r"adeno(carcinom|[\s-]?k)",
     "neoplas",
     "melanom",
 ]

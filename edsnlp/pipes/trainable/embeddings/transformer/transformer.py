@@ -242,6 +242,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
             "word_tokens": [],
             "word_lengths": [],
             "prompts": [],
+            "stats": {"tokens": 0, "words": 0, "contexts": 0},
         }
 
         # Tokenize prompts
@@ -281,6 +282,10 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
             res["word_tokens"].append(span_word_tokens)
             res["word_lengths"].append(span_word_lengths)
             res["prompts"].append(prompt)
+
+            res["stats"]["tokens"] += len(prep["input_ids"])
+            res["stats"]["words"] += len(span_word_lengths)
+            res["stats"]["contexts"] += 1
 
         return res
 
@@ -426,6 +431,11 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
             ),
             "word_indices": torch.as_tensor(word_indices, dtype=torch.long),
             "empty_word_indices": torch.as_tensor(empty_word_indices, dtype=torch.long),
+            "stats": {
+                "tokens": sum(batch["stats"]["tokens"]),
+                "words": sum(batch["stats"]["words"]),
+                "contexts": sum(batch["stats"]["contexts"]),
+            },
         }
 
     def forward(self, batch: TransformerBatchInput) -> TransformerBatchOutput:

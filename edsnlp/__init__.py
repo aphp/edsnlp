@@ -21,14 +21,27 @@ BASE_DIR = Path(__file__).parent
 
 
 # Everything below is to support deprecated use of edsnlp.pipelines
-# route imports of submodules of edsnlp.pipelines to their edsnlp.pipes counterparts
+# route imports of submodules of edsnlp.pipelines to their edsnlp.pipes counterparts.
+# The same is done for edsnlp.scorers -> edsnlp.metrics
 
 class AliasPathFinder(importlib.abc.MetaPathFinder):
-    def find_spec(self, fullname, path, target=None):
+    def find_spec(self, fullname, path, target=None):  # pragma: no cover
         if not fullname.startswith("edsnlp."):
             return None
         if fullname.startswith("edsnlp.pipelines"):
             new_name = "edsnlp.pipes" + fullname[16:]
+            spec = importlib.util.spec_from_loader(fullname, AliasLoader(new_name))
+            return spec
+        if fullname.startswith("edsnlp.core.lazy_collection"):
+            new_name = "edsnlp.core.stream" + fullname[27:]
+            spec = importlib.util.spec_from_loader(fullname, AliasLoader(new_name))
+            return spec
+        if fullname.startswith("edsnlp.optimization"):
+            new_name = "edsnlp.training.optimization" + fullname[19:]
+            spec = importlib.util.spec_from_loader(fullname, AliasLoader(new_name))
+            return spec
+        if fullname.startswith("edsnlp.scorers"):
+            new_name = "edsnlp.metrics" + fullname[14:]
             spec = importlib.util.spec_from_loader(fullname, AliasLoader(new_name))
             return spec
         if "span_qualifier" in fullname.split("."):

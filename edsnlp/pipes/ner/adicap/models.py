@@ -1,9 +1,9 @@
 from typing import Optional
 
-from pydantic import BaseModel
+import pydantic
 
 
-class AdicapCode(BaseModel):
+class AdicapCode(pydantic.BaseModel):
     code: str
     sampling_mode: Optional[str] = None
     technic: Optional[str] = None
@@ -17,3 +17,6 @@ class AdicapCode(BaseModel):
 
     def __str__(self):
         return self.norm()
+
+    if pydantic.VERSION < "2":
+        model_dump = pydantic.BaseModel.dict

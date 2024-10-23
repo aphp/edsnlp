@@ -1,28 +1,33 @@
+import random
 from typing import (
     Any,
     Callable,
     Dict,
     Iterable,
+    List,
     Optional,
-    Sequence,
     Tuple,
-    TypeVar,
     Union,
 )
 
-from edsnlp.core.lazy_collection import LazyCollection
+from confit import validate_arguments
+from typing_extensions import Literal
 
-from .converters import get_dict2doc_converter, get_doc2dict_converter
+from ..core.stream import Stream
+from ..utils.collections import flatten
+from ..utils.stream_sentinels import DatasetEndSentinel
+from ..utils.typing import AsList
+from .converters import FILENAME, get_dict2doc_converter, get_doc2dict_converter
 
 
 class BaseReader:
     """
     The BaseReader servers as a base class for all readers. It expects two methods:
 
-    - `read_main` method which is called in the main process and should return a
+    - `read_records` method which is called in the main process and should return a
         generator of fragments (like filenames) with their estimated size (number of
         documents)
-    - `read_worker` method which is called in the worker processes and receives
+    - `unpack_tasks` method which is called in the worker processes and receives
         batches of fragments and should return a list of dictionaries (one per
         document), ready to be converted to a Doc object by the converter.
 
@@ -33,15 +38,18 @@ class BaseReader:
     worker processes.
     """
 
-    DATA_FIELDS = ()
+    DATA_FIELDS: Tuple[str] = ()
+    read_in_worker: bool
+    emitted_sentinels: set
+    shuffle: Union[str, Literal[False]]
+    rng: random.Random
 
-    def read_main(self) -> Iterable[Tuple[Any, int]]:
-        raise NotImplementedError()
-
-    def read_worker(self, fragment: Iterable[Any]) -> Iterable[Dict]:
+    def read_records(self) -> Iterable[Any]:
         raise NotImplementedError()
 
     def worker_copy(self):
+        if self.read_in_worker:
+            return self
         # new reader without data, this will not call __init__ since we use __dict__
         # to set the data
         reader = self.__class__.__new__(self.__class__)
@@ -54,40 +62,82 @@ class BaseReader:
         return reader
 
 
-T = TypeVar("T")
+class FileBasedReader(BaseReader):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.read_in_worker = True
+
+
+class MemoryBasedReader(BaseReader):
+    def __init__(self, read_in_worker: bool = False, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.read_in_worker = False
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(data={object.__repr__(self.data)})"
 
 
 class BaseWriter:
-    def write_worker(self, records: Sequence[Any]) -> T:
+    def handle_record(self, record: Union[Dict, List[Dict]]):
+        for subitem in flatten(record):
+            if isinstance(subitem, dict):
+                subitem.pop(FILENAME, None)
+        return record
+
+    def consolidate(self, items: Iterable):
         raise NotImplementedError()
 
-    def write_main(self, fragments: Iterable[T]):
+
+class BatchWriter(BaseWriter):
+    batch_size: Optional[int] = None
+    batch_by: Callable
+    batch_in_worker: bool = False
+
+    def handle_batch(self, batch):
         raise NotImplementedError()
 
-    def finalize(self):
-        return None, 0
 
-
-class IterableReader(BaseReader):
+class IterableReader(MemoryBasedReader):
     DATA_FIELDS = ("data",)
 
-    def __init__(self, data: Iterable):
-        self.data = data
-
+    def __init__(
+        self,
+        data: Iterable,
+        read_in_worker: bool = False,
+        shuffle: Literal["dataset", False] = False,
+        seed: Optional[int] = None,
+        loop: bool = False,
+    ):
         super().__init__()
+        self.shuffle = shuffle
+        self.rng = random.Random(seed)
+        self.emitted_sentinels = {"dataset"}
+        self.loop = loop
+        self.data = data
+        self.read_in_worker = read_in_worker
 
-    def read_main(self) -> Iterable[Tuple[Any, int]]:
-        return ((item, 1) for item in self.data)
+    def read_records(self) -> Iterable[Any]:
+        while True:
+            data = self.data
+            if self.shuffle == "dataset":
+                data = list(data)
+                self.rng.shuffle(data)
+            yield from data
+            yield DatasetEndSentinel()
+            if not self.loop:
+                break
 
-    def read_worker(self, fragments):
-        return [task for task in fragments]
 
-
+@validate_arguments
 def from_iterable(
-    data: Iterable,
-    converter: Union[str, Callable] = None,
+    data: Any,
+    converter: Optional[AsList[Union[str, Callable]]] = None,
+    read_in_worker: bool = False,
+    shuffle: Literal["dataset", False] = False,
+    seed: Optional[int] = None,
+    loop: bool = False,
     **kwargs,
-) -> LazyCollection:
+) -> Stream:
     """
     The IterableReader (or `edsnlp.data.from_iterable`) reads a list of Python objects (
     texts, dictionaries, ...) and yields documents by passing them through the
@@ -108,7 +158,7 @@ def from_iterable(
     !!! note "Generator vs list"
 
         `edsnlp.data.from_iterable` returns a
-        [LazyCollection][edsnlp.core.lazy_collection.LazyCollection].
+        [Stream][edsnlp.core.stream.Stream].
         To iterate over the documents multiple times efficiently or to access them by
         index, you must convert it to a list
 
@@ -120,31 +170,54 @@ def from_iterable(
     ----------
     data: Iterable
         The data to read
-    converter: Optional[Union[str, Callable]]
-        Converter to use to convert the JSON rows of the data source to Doc objects
+    converter: Optional[AsList[Union[str, Callable]]]
+        Converters to use to convert the JSON rows of the data source to Doc objects
+    read_in_worker: bool
+        In multiprocessing mode, whether to read the data in the worker processes.
+        If `True`, the data will be read in the worker processes, requires pickling the
+        input iterable: this is mostly useful if the pickled iterable is smaller than
+        the data itself (eg, an infinite generator of synthetic data). If `False`, the
+        data will be read in the main process and distributed to the workers.
     kwargs:
         Additional keyword arguments to pass to the converter. These are documented
         on the [Converters](/data/converters) page.
+    shuffle: Literal["dataset", False]
+        Whether to shuffle the data. If "dataset", the whole dataset will be shuffled
+        before starting iterating on it (at the start of every epoch if looping).
+    seed: Optional[int]
+        The seed to use for shuffling.
+    loop: bool
+        Whether to loop over the data indefinitely.
 
     Returns
     -------
-    LazyCollection
+    Stream
     """
-    data = LazyCollection.ensure_lazy(data)
+    if not isinstance(data, Stream):
+        data = Stream(
+            IterableReader(
+                data,
+                read_in_worker=read_in_worker,
+                shuffle=shuffle,
+                seed=seed,
+                loop=loop,
+            )
+        )
     if converter:
-        converter, kwargs = get_dict2doc_converter(converter, kwargs)
-        data = data.map(converter, kwargs=kwargs)
+        for conv in converter:
+            conv, kwargs = get_dict2doc_converter(conv, kwargs)
+            data = data.map(conv, kwargs=kwargs)
     return data
 
 
 def to_iterable(
-    data: Union[Any, LazyCollection],
+    data: Union[Any, Stream],
     converter: Optional[Union[str, Callable]] = None,
     **kwargs,
 ):
     """
     `edsnlp.data.to_items` returns an iterator of documents, as converted by the
-    `converter`. In comparison to just iterating over a LazyCollection, this will
+    `converter`. In comparison to just iterating over a Stream, this will
     also apply the `converter` to the documents, which can lower the data transfer
     overhead when using multiprocessing.
 
@@ -164,15 +237,15 @@ def to_iterable(
 
     Parameters
     ----------
-    data: Union[Any, LazyCollection],
-        The data to write (either a list of documents or a LazyCollection).
+    data: Union[Any, Stream],
+        The data to write (either a list of documents or a Stream).
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the documents to dictionary objects.
     kwargs:
         Additional keyword arguments passed to the converter. These are documented
         on the [Converters](/data/converters) page.
     """
-    data = LazyCollection.ensure_lazy(data)
+    data = Stream.ensure_stream(data)
     if converter:
         converter, kwargs = get_doc2dict_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)

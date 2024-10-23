@@ -56,7 +56,6 @@ def test_tables(blank_nlp):
 
     span = doc.spans["tables"][1]
     df = span._.to_pd_table(header=True, index=True, as_spans=True)
-    print(df)
     assert df.columns.tolist() == [
         "Unité",
         "Valeur",

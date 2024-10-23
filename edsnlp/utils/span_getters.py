@@ -17,7 +17,7 @@ from spacy.tokens import Doc, Span
 
 from edsnlp import registry
 from edsnlp.utils.filter import filter_spans
-from edsnlp.utils.typing import AsList
+from edsnlp.utils.typing import AsList, Validated
 
 SeqStr = AsList[str]
 SpanFilter = Union[bool, SeqStr]
@@ -176,7 +176,7 @@ def validate_span_getter(
         )
 
 
-class SpanSetterArg:
+class SpanSetterArg(Validated):
     """
     Valid values for the `span_setter` argument of a component can be :
 
@@ -198,15 +198,11 @@ class SpanSetterArg:
     """
 
     @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
     def validate(cls, value, config=None) -> SpanSetter:
         return validate_span_setter(value)
 
 
-class SpanGetterArg:
+class SpanGetterArg(Validated):
     """
     Valid values for the `span_getter` argument of a component can be :
 
@@ -226,10 +222,6 @@ class SpanGetterArg:
     - `span_getter="ents"` will get all matches from `doc.ents`.
     - `span_getter="ckd"` will get all matches from `doc.spans["ckd"]`.
     """
-
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
 
     @classmethod
     def validate(cls, value, config=None) -> SpanSetter:
@@ -276,10 +268,8 @@ class make_span_context_getter:
 
     def __init__(
         self,
-        context_words: Union[NonNegativeInt, Tuple[NonNegativeInt, NonNegativeInt]] = 0,
-        context_sents: Optional[
-            Union[NonNegativeInt, Tuple[NonNegativeInt, NonNegativeInt]]
-        ] = 1,
+        context_words: Union[NonNegativeInt, Tuple[NonNegativeInt, NonNegativeInt]],
+        context_sents: Union[NonNegativeInt, Tuple[NonNegativeInt, NonNegativeInt]],
         span_getter: Optional[SpanGetterArg] = None,
     ):
         if isinstance(context_words, int):

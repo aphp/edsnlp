@@ -1,5 +1,38 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Support for setuptools based projects in `edsnlp.package` command
+- Pipelines can now be instantiated directly from a config file (instead of having to cast a dict containing their arguments) by putting the @pipelines = "base" or "load" field in the pipeline section)
+- Pipeline now has a basic repr showing is base langage (mostly useful to know its tokenizer) and its pipes
+- New `python -m edsnlp.evaluate` script to evaluate a model on a dataset
+- Sentence detection can now be configured to change the minimum number of newlines to consider a newline-triggered sentence, and disable capitalization checking.
+- New `eds.split` pipe to split a document into multiple documents based on a splitting pattern (useful for training)
+- Allow `converter` argument of `edsnlp.data.read/from_...` to be a list of converters instead of a single converter
+- New revamped and documented `edsnlp.train` script and API
+- Support YAML config files (supported only CFG/INI files before)
+
+### Changed
+
+- `eds.span_context_getter`'s parameter `context_sents` is no longer optional and must be explicitly set to 0 to disable sentence context
+
+### Fixed
+
+- Sentence detection now correctly match capitalized letters + apostrophe
+
+### Data API changes
+
+- `LazyCollection` objects are now called `Stream` objects
+- By default, `multiprocessing` backend now preserves the order of the input data
+- The `.map_batches`, `.map_pipeline` and `.map_gpu` methods now support a specific `batch_size` and batching function, instead of having a single batch size for all pipes
+- Readers now have a `loop` parameter to cycle over the data indefinitely (useful for training)
+- Readers now have a `shuffle` parameter to shuffle the data before iterating over it
+- In `multiprocessing` mode, file based readers now read the data in the workers (was an option before)
+- :boom: Breaking change: a `map` function returning a list or a generator won't be automatically flattened anymore. Use `flatten()` to flatten the output if needed. This shouldn't change the behavior for most users since most writers (to_pandas, to_polars, to_parquet, ...) still flatten the output
+- :boom: Breaking change: the `chunk_size` and `sort_chunks` are now deprecated : to sort data before applying a transformation, use `.map_batches(custom_sort_fn, batch_size=...)`
+
 ## v0.13.1
 
 ### Added
@@ -9,18 +42,22 @@
 - Added new patterns for metastasis detection. Developed on CT-Scan reports.
 - Added citation of articles
 
+### Changed
+
+- Renamed `edsnlp.scorers` to `edsnlp.metrics` and removed the `_scorer` suffix from their
+  registry name (e.g, `@scorers = ner_overlap_scorer` → `@metrics = ner_overlap`)
+- Rename `eds.measurements` to `eds.quantities`
+- scikit-learn (used in `eds.endlines`) is no longer installed by default when installing `edsnlp[ml]`
+
 ### Fixed
 
 - Disorder and Behavior pipes don't use a "PRESENT" or "ABSENT" `status` anymore. Instead, `status=None` by default,
   and `ent._.negation` is set to True instead of setting `status` to "ABSENT". To this end, the *tobacco* and *alcohol*
   now use the `NegationQualifier` internally.
 - Numbers are now only detected without trying to remove the pollution in between digits, ie `55 @ 77777` could be detected as a full number before, but not anymore.
-- Fix fsspec open file encoding to "utf-8".
-
-### Changed
-
-- Rename `eds.measurements` to `eds.quantities`
-- scikit-learn (used in `eds.endlines`) is no longer installed by default when installing `edsnlp[ml]`
+- Resolve encoding-related data reading issues by forcing utf-8
+- Sort files before iterating over a standoff or json folder to ensure reproducibility
+- edsnlp.load now correctly takes disable, enable and exclude parameters into account
 
 ## v0.13.0
 

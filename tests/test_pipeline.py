@@ -83,15 +83,13 @@ def test_disk_serialization(tmp_path, ml_nlp):
     # by default, vocab is excluded
     nlp.to_disk(tmp_path / "model", exclude=set())
 
-    print("tmp_path", tmp_path, list((tmp_path / "model/transformer").iterdir()))
-
     assert (tmp_path / "model" / "config.cfg").exists()
     assert (tmp_path / "model" / "ner" / "parameters.safetensors").exists()
     assert (tmp_path / "model" / "transformer" / "parameters.safetensors").exists()
     # fmt: off
     assert (
-          (tmp_path / "model" / "transformer" / "pytorch_model.bin").exists() or
-          (tmp_path / "model" / "transformer" / "model.safetensors").exists()
+            (tmp_path / "model" / "transformer" / "pytorch_model.bin").exists() or
+            (tmp_path / "model" / "transformer" / "model.safetensors").exists()
     )
     # fmt: on
 
@@ -148,7 +146,6 @@ ents = true
 def test_validate_config():
     @validate_arguments
     def function(model: Pipeline):
-        print(model.pipe_names)
         assert len(model.pipe_names) == 3
 
     function(Config.from_str(config_str).resolve(registry=registry)["nlp"])
@@ -216,7 +213,7 @@ def test_different_names():
 
 
 def test_load_config(run_in_test_dir):
-    nlp = edsnlp.load("training/qlf_config.cfg")
+    nlp = edsnlp.load("training/qlf_config.yml")
     assert nlp.pipe_names == [
         "normalizer",
         "sentencizer",
@@ -253,7 +250,7 @@ def test_config_validation_error():
     with pytest.raises(ConfitValidationError) as e:
         Pipeline.from_config(Config.from_str(fail_config))
 
-    assert "1 validation error for edsnlp.core.pipeline.Pipeline()" in str(e.value)
+    assert "1 validation error for" in str(e.value)
     assert "got 'error-mode'" in str(e.value)
 
 
@@ -338,13 +335,14 @@ def test_curried_nlp_pipe():
     nlp.add_pipe(eds.sections(), name="sections")
     pipe = CustomComponent()
 
+    assert isinstance(pipe, CurriedFactory)
     err = (
-        f"This component ({pipe}) has not been instantiated yet, likely because it was"
-        " missing an `nlp` pipeline argument. You should either:\n"
+        f"This component CurriedFactory({pipe.factory}) has not been instantiated "
+        f"yet, likely because it was missing an `nlp` pipeline argument. You should "
+        f"either:\n"
         "- add it to a pipeline: `pipe = nlp.add_pipe(pipe)`\n"
         "- or fill its `nlp` argument: `pipe = factory(nlp=nlp, ...)`"
     )
-    assert isinstance(pipe, CurriedFactory)
     with pytest.raises(TypeError) as exc_info:
         pipe("Demo texte")
     assert str(exc_info.value) == err
@@ -396,3 +394,16 @@ def test_missing_huggingface():
         )
 
     assert "The load function expects either :" in str(exc_info.value)
+
+
+def test_repr(frozen_ml_nlp):
+    with frozen_ml_nlp.select_pipes(disable=["sentences"]):
+        assert (
+            repr(frozen_ml_nlp)
+            == """\
+Pipeline(lang=eds, pipes={
+  "sentences": [disabled] eds.sentences,
+  "transformer": eds.transformer,
+  "ner": eds.ner_crf
+})"""
+        )

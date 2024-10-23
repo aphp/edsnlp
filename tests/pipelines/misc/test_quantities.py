@@ -209,8 +209,6 @@ def test_measure_repr(
         doc = blank_nlp(text)
         doc = matcher(doc)
 
-        print(doc.spans["quantities"])
-
         assert repr(doc.spans["quantities"][0]._.value) == res
 
 
@@ -228,7 +226,6 @@ def test_compare(
     m4 = "De 2 à 3 metres"
     m3 = matcher(blank_nlp(m3)).spans["quantities"][0]
     m4 = matcher(blank_nlp(m4)).spans["quantities"][0]
-    print(blank_nlp("Entre deux et trois metres"))
     assert str(m3._.value) == "2-3 m"
     assert str(m4._.value) == "2-3 m"
     assert m4._.value.cm == (200.0, 300.0)
@@ -267,7 +264,6 @@ def test_non_matches(
         "01.42.43.56.78 m",
     ]:
         doc = blank_nlp(text)
-        print(list(doc))
         doc = matcher(doc)
 
         assert len(doc.spans["quantities"]) == 0
@@ -302,7 +298,6 @@ def test_ranges(
         doc = matcher(doc)
 
         quantity = doc.spans["quantities"][0]
-        print(doc.spans["quantities"])
         assert str(quantity._.value) == res
         assert quantity.text == snippet
 

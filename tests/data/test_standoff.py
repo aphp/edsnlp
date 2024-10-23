@@ -1,5 +1,6 @@
 import filecmp
 import re
+from itertools import islice
 from os import listdir
 from os.path import join
 from pathlib import Path
@@ -261,3 +262,27 @@ def test_read_to_standoff(blank_nlp, tmpdir):
         exported_ann_text = f.read()
 
     assert_doc_write(exported_ann_text)
+
+
+@pytest.mark.parametrize("num_cpu_workers", [0, 2])
+def test_read_shuffle_loop(num_cpu_workers: int):
+    notes = (
+        edsnlp.data.read_standoff(
+            Path(__file__).parent.parent.resolve() / "resources" / "brat_data",
+            shuffle="dataset",
+            keep_txt_only_docs=True,
+            seed=42,
+            loop=True,
+        )
+        .map(lambda x: x._.note_id)
+        .set_processing(num_cpu_workers=num_cpu_workers)
+    )
+    notes = list(islice(notes, 6))
+    assert notes == [
+        "subfolder/doc-2",
+        "subfolder/doc-1",
+        "subfolder/doc-3",
+        "subfolder/doc-3",
+        "subfolder/doc-2",
+        "subfolder/doc-1",
+    ]

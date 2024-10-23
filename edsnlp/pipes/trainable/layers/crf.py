@@ -39,7 +39,8 @@ def index_dim(X, Y, dim):
     ), f"Index out of range: {dim} for tensor of {ndims} dimensions"
     index_dims = list(
         torch.meshgrid(
-            *(torch.arange(size) for i, size in enumerate(X.shape) if i != dim)
+            *(torch.arange(size) for i, size in enumerate(X.shape) if i != dim),
+            indexing="ij",
         )
     )
     return X[(*index_dims[:dim], Y, *index_dims[dim:])]

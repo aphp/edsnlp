@@ -1,8 +1,12 @@
 import math
+import warnings
 from enum import Enum
 from typing import TypeVar
 
 import torch
+
+# filter "is in beta" torch warnings
+warnings.filterwarnings("ignore", message=".*is in beta.*")
 
 Args = TypeVar("Args")
 

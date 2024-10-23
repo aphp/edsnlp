@@ -202,10 +202,14 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         self.embedding = embedding
         self.labels = labels
         self.labels_to_idx = {lab: i for i, lab in enumerate(labels)} if labels else {}
-        self.linear = torch.nn.Linear(
-            self.embedding.output_size,
-            0 if labels is None else (len(labels) * 5),
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", message="Initializing zero-element tensors is a no-op"
+            )
+            self.linear = torch.nn.Linear(
+                self.embedding.output_size,
+                0 if labels is None else (len(labels) * 5),
+            )
         self.crf = MultiLabelBIOULDecoder(
             1,
             with_start_end_transitions=window < 1,
@@ -321,6 +325,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         new_linear.weight.data[new_index] = self.linear.weight.data[old_index]
         new_linear.bias.data[new_index] = self.linear.bias.data[old_index]
         self.linear.weight = new_linear.weight
+        self.linear.out_features = new_linear.out_features
         self.linear.bias = new_linear.bias
 
         # Update initialization arguments
@@ -393,7 +398,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
 
         if discarded:
             warnings.warn(
-                f"Some spans in were discarded {doc._.note_id} ("
+                f"Some spans were discarded in {doc._.note_id} ("
                 f"{', '.join(repr(d.text) for d in discarded)}) because they "
                 f"were overlapping with other spans with the same label."
             )

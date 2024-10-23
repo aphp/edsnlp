@@ -3,6 +3,7 @@ Converters are used to convert documents between python dictionaries and Doc obj
 There are two types of converters: readers and writers. Readers convert dictionaries to
 Doc objects, and writers convert Doc objects to dictionaries.
 """
+
 import contextlib
 import inspect
 from copy import copy
@@ -18,13 +19,13 @@ from typing import (
     Union,
 )
 
+import pydantic
 from confit.registry import ValidatedFunction
 from spacy.tokenizer import Tokenizer
 from spacy.tokens import Doc, Span
 
 import edsnlp
 from edsnlp import registry
-from edsnlp.core import PipelineProtocol
 from edsnlp.utils.bindings import BINDING_GETTERS
 from edsnlp.utils.span_getters import (
     SpanGetterArg,
@@ -33,6 +34,7 @@ from edsnlp.utils.span_getters import (
     get_spans_with_group,
     set_spans,
 )
+from edsnlp.utils.typing import AsList, Validated
 
 FILENAME = "__FILENAME__"
 SPAN_BUILTIN_ATTRS = ("sent", "label_", "kb_id_", "text")
@@ -47,44 +49,60 @@ def without_filename(d):
     return d
 
 
-def validate_kwargs(converter, kwargs):
-    converter: FunctionType = copy(converter)
-    spec = inspect.getfullargspec(converter)
-    first = spec.args[0]
-    converter.__annotations__[first] = Optional[Any]
-    converter.__defaults__ = (None, *(spec.defaults or ())[-len(spec.args) + 1 :])
-    vd = ValidatedFunction(converter, {"arbitrary_types_allowed": True})
-    model = vd.init_model_instance(**kwargs)
-    d = {
-        k: v
-        for k, v in model._iter()
-        if (k in model.__fields__ or model.__fields__[k].default_factory)
-    }
-    d.pop("v__duplicate_kwargs", None)  # see pydantic ValidatedFunction code
-    d.pop(vd.v_args_name, None)
-    d.pop(first, None)
-    return {**(d.pop(vd.v_kwargs_name, None) or {}), **d}
+def validate_kwargs(func, kwargs):
+    if (
+        hasattr(func, "__call__")
+        and not hasattr(func, "__defaults__")
+        and hasattr(func.__call__, "__self__")
+    ):
+        func = func.__call__
+    has_self = restore = False
+    spec = inspect.getfullargspec(func)
+    try:
+        if hasattr(func, "__func__"):
+            has_self = hasattr(func, "__self__")
+            func = func.__func__.__get__(None, func.__func__.__class__)
+            old_annotations = func.__annotations__
+            old_defaults = func.__defaults__
+            restore = True
+            func.__annotations__ = copy(func.__annotations__)
+            func.__annotations__[spec.args[0]] = Optional[Any]
+            func.__annotations__[spec.args[1]] = Optional[Any]
+            func.__defaults__ = (
+                None,
+                None,
+                *(spec.defaults or ())[-len(spec.args) + 2 :],
+            )
+        else:
+            func: FunctionType = copy(func)
+            old_annotations = func.__annotations__
+            old_defaults = func.__defaults__
+            restore = True
+            func.__annotations__[spec.args[0]] = Optional[Any]
+            func.__defaults__ = (None, *(spec.defaults or ())[-len(spec.args) + 1 :])
+        vd = ValidatedFunction(func, {"arbitrary_types_allowed": True})
+        model = vd.init_model_instance(
+            **{k: v for k, v in kwargs.items() if k in spec.args}
+        )
+        fields = model.__fields__ if pydantic.__version__ < "2" else model.model_fields
+        d = {
+            k: v
+            for k, v in model.__dict__.items()
+            if (k in fields or fields[k].default_factory)
+        }
+        d.pop("v__duplicate_kwargs", None)  # see pydantic ValidatedFunction code
+        d.pop(vd.v_args_name, None)
+        d.pop(spec.args[0], None)
+        if has_self:
+            d.pop(spec.args[1], None)
+        return {**(d.pop(vd.v_kwargs_name, None) or {}), **d}
+    finally:
+        if restore:
+            func.__annotations__ = old_annotations
+            func.__defaults__ = old_defaults
 
 
-class SequenceStr:
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, value, config=None) -> Sequence[str]:
-        if isinstance(value, str):
-            return [value]
-        if isinstance(value, list):
-            return value
-        raise ValueError("Not a string or list of strings")
-
-
-if TYPE_CHECKING:
-    SequenceStr = Union[str, Sequence[str]]  # noqa: F811
-
-
-class AttributesMappingArg:
+class AttributesMappingArg(Validated):
     """
     A mapping from JSON attributes to Span extensions (can be a list too).
 
@@ -97,10 +115,6 @@ class AttributesMappingArg:
     - `span_attributes=["negation", "family"]` will map the `negation` and `family` JSON
       attributes to the `negation` and `family` extensions.
     """
-
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
 
     @classmethod
     def validate(cls, value, config=None) -> Dict[str, str]:
@@ -177,12 +191,12 @@ class StandoffDict2DocConverter:
     nlp: Optional[PipelineProtocol]
         The pipeline object (optional and likely not needed, prefer to use the
         `tokenizer` directly argument instead).
-    tokenizer: Optional[spacy.tokenizer.Tokenizer]
+    tokenizer: Optional[Tokenizer]
         The tokenizer instance used to tokenize the documents. Likely not needed since
         by default it uses the current context tokenizer :
 
         - the tokenizer of the next pipeline run by `.map_pipeline` in a
-          [LazyCollection][edsnlp.core.lazy_collection.LazyCollection].
+          [Stream][edsnlp.core.stream.Stream].
         - or the `eds` tokenizer by default.
     span_setter : SpanSetterArg
         The span setter to use when setting the spans in the documents. Defaults to
@@ -209,18 +223,17 @@ class StandoffDict2DocConverter:
 
     def __init__(
         self,
-        nlp: Optional[PipelineProtocol] = None,
         *,
         tokenizer: Optional[Tokenizer] = None,
         span_setter: SpanSetterArg = {"ents": True, "*": True},
         span_attributes: Optional[AttributesMappingArg] = None,
         keep_raw_attribute_values: bool = False,
-        bool_attributes: SequenceStr = [],
+        bool_attributes: AsList[str] = [],
         default_attributes: AttributesMappingArg = {},
         notes_as_span_attribute: Optional[str] = None,
         split_fragments: bool = True,
     ):
-        self.tokenizer = tokenizer or (nlp.tokenizer if nlp is not None else None)
+        self.tokenizer = tokenizer
         self.span_setter = span_setter
         self.span_attributes = span_attributes  # type: ignore
         self.keep_raw_attribute_values = keep_raw_attribute_values
@@ -230,8 +243,9 @@ class StandoffDict2DocConverter:
         for attr in bool_attributes:
             self.default_attributes[attr] = False
 
-    def __call__(self, obj):
-        tok = get_current_tokenizer() if self.tokenizer is None else self.tokenizer
+    def __call__(self, obj, tokenizer=None):
+        # tok = get_current_tokenizer() if self.tokenizer is None else self.tokenizer
+        tok = tokenizer or self.tokenizer or get_current_tokenizer()
         doc = tok(obj["text"] or "")
         doc._.note_id = obj.get("doc_id", obj.get(FILENAME))
 
@@ -322,7 +336,7 @@ class StandoffDoc2DictConverter:
         span_attributes={"negation": "negated"},
     )
     # or docs.to_standoff(...) if it's already a
-    # [LazyCollection][edsnlp.core.lazy_collection.LazyCollection]
+    # [Stream][edsnlp.core.stream.Stream]
     ```
 
     Parameters
@@ -402,12 +416,12 @@ class OmopDict2DocConverter:
     nlp: Optional[PipelineProtocol]
         The pipeline object (optional and likely not needed, prefer to use the
         `tokenizer` directly argument instead).
-    tokenizer: Optional[spacy.tokenizer.Tokenizer]
+    tokenizer: Optional[Tokenizer]
         The tokenizer instance used to tokenize the documents. Likely not needed since
         by default it uses the current context tokenizer :
 
         - the tokenizer of the next pipeline run by `.map_pipeline` in a
-          [LazyCollection][edsnlp.core.lazy_collection.LazyCollection].
+          [Stream][edsnlp.core.stream.Stream].
         - or the `eds` tokenizer by default.
     span_setter: SpanSetterArg
         The span setter to use when setting the spans in the documents. Defaults to
@@ -428,16 +442,15 @@ class OmopDict2DocConverter:
 
     def __init__(
         self,
-        nlp: Optional[PipelineProtocol] = None,
         *,
-        tokenizer: Optional[PipelineProtocol] = None,
+        tokenizer: Optional[Tokenizer] = None,
         span_setter: SpanSetterArg = {"ents": True, "*": True},
         doc_attributes: AttributesMappingArg = {"note_datetime": "note_datetime"},
         span_attributes: Optional[AttributesMappingArg] = None,
         default_attributes: AttributesMappingArg = {},
-        bool_attributes: SequenceStr = [],
+        bool_attributes: AsList[str] = [],
     ):
-        self.tokenizer = tokenizer or (nlp.tokenizer if nlp is not None else None)
+        self.tokenizer = tokenizer
         self.span_setter = span_setter
         self.doc_attributes = doc_attributes
         self.span_attributes = span_attributes
@@ -445,8 +458,9 @@ class OmopDict2DocConverter:
         for attr in bool_attributes:
             self.default_attributes[attr] = False
 
-    def __call__(self, obj):
-        tok = get_current_tokenizer() if self.tokenizer is None else self.tokenizer
+    def __call__(self, obj, tokenizer=None):
+        # tok = get_current_tokenizer() if self.tokenizer is None else self.tokenizer
+        tok = tokenizer or self.tokenizer or get_current_tokenizer()
         doc = tok(obj["note_text"] or "")
         doc._.note_id = obj.get("note_id", obj.get(FILENAME))
         for obj_name, ext_name in self.doc_attributes.items():
@@ -510,7 +524,7 @@ class OmopDoc2DictConverter:
         span_attributes=["negation", "family"],
     )
     # or docs.to_pandas(...) if it's already a
-    # [LazyCollection][edsnlp.core.lazy_collection.LazyCollection]
+    # [Stream][edsnlp.core.stream.Stream]
     ```
 
     Parameters
@@ -647,7 +661,10 @@ def get_dict2doc_converter(
                 if converter == name or (converter in name and "dict2doc" in name)
             ]
             converter = edsnlp.registry.factory.get(filtered[0])
-            converter = converter(**kwargs).instantiate(nlp=None)
+            nlp = kwargs.pop("nlp", None)
+            if nlp is not None and "tokenizer" not in kwargs:
+                kwargs["tokenizer"] = nlp.tokenizer
+            converter = converter(**kwargs)
             kwargs = {}
             return converter, kwargs
         except (KeyError, IndexError):
@@ -673,7 +690,7 @@ def get_doc2dict_converter(
                 if converter == name or (converter in name and "doc2dict" in name)
             ]
             converter = edsnlp.registry.factory.get(filtered[0])
-            converter = converter(**kwargs).instantiate(nlp=None)
+            converter = converter(**kwargs)
             kwargs = {}
             return converter, kwargs
         except (KeyError, IndexError):

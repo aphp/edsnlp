@@ -1,0 +1,102 @@
+# 🤖 PIPELINE DEFINITION
+nlp:
+  lang: eds
+
+  components:
+    normalizer:
+      '@factory': eds.normalizer
+
+    sentencizer:
+      '@factory': eds.sentences
+
+    covid:
+      '@factory': eds.covid
+
+    qualifier:
+      '@factory': eds.span_classifier
+      attributes: { "_.negation": [ "sosy" ] }
+      span_getter: ["ents", "gold_spans"]
+      context_getter: { '@misc': eds.span_context_getter, "context_words": 30, "context_sents": 1 }
+
+      embedding:
+        '@factory': eds.span_pooler
+
+        embedding:
+          '@factory': eds.text_cnn
+          kernel_sizes: [ 3 ]
+
+          embedding:
+            '@factory': eds.transformer
+            model: hf-internal-testing/tiny-bert
+            window: 128
+            stride: 96
+
+# 📈 SCORERS
+scorer:
+  speed: true
+  qual:
+    '@metrics': "eds.span_attributes"
+    span_getter: ${nlp.components.qualifier.span_getter}
+    qualifiers: ${nlp.components.qualifier.attributes}
+
+# 🎛️ OPTIMIZER
+# (disabled to test the default optimizer)
+# optim:
+#   "@optimizers": adam
+#   groups:
+#     "*.transformer.*":
+#       lr: 1e-3
+#       schedules:
+#         "@schedules": linear
+#         "warmup_rate": 0.1
+#         "start_value": 0
+#     "*":
+#       lr: 1e-3
+#       schedules:
+#         "@schedules": linear
+#         "warmup_rate": 0.1
+#         "start_value": 1e-3
+
+# 📚 DATA
+train_data:
+  data:
+    "@readers": json
+    path: ./dataset.jsonl
+    converter:
+      - '@factory': 'myproject.custom_dict2doc'
+        span_setter : 'gold_spans'
+        span_attributes : ['negation']
+        bool_attributes : ['negation']  # default json to doc converter
+      - '@factory': eds.sentences
+        nlp: ${nlp}
+      # - '@factory': eds.split
+      #   nlp: null
+      #   max_length: 10
+      #   randomize: 0.3
+      #   # sentence regex:
+      #   regex: '\\s*(?:\\n\\s*)+()[A-Z]|[.!?]\\s+()[A-Z]'
+        # regex: '\\n{2,}'
+  shuffle: dataset
+  batch_size: 4 docs
+  pipe_names: [ "qualifier" ]
+  accumulation_batch_size: 10 words
+
+val_data:
+  "@readers": json
+  path: ./dataset.jsonl
+  converter:
+    - '@factory': myproject.custom_dict2doc
+      span_setter : 'gold_spans'
+      span_attributes : ['negation']
+      bool_attributes : ['negation']  # default standoff to doc converter
+
+# 🚀 TRAIN SCRIPT OPTIONS
+train:
+  nlp: ${ nlp }
+  train_data: ${ train_data }
+  val_data: ${ val_data }
+  max_steps: 40
+  validation_interval: 10
+  max_grad_norm: 1.0
+  scorer: ${ scorer }
+  num_workers: 1

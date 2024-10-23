@@ -946,7 +946,7 @@ def execute_multiprocessing_backend(
             if not worker._closed:
                 try:
                     worker.join()
-                except BaseException:
+                except BaseException:  # pragma: no cover
                     if worker.is_alive():
                         worker.kill()
                         print("Killed worker", worker, flush=True)

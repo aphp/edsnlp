@@ -82,11 +82,11 @@ def create_component(
     You can easily change the default languages and sources with the `pattern_config`
     argument:
 
-    ```{ .python .no-check }
+    ```python
     import edsnlp, edsnlp.pipes as eds
 
-    # Enable the French and English languages, through the French MeSH and LOINC
-    pattern_config = dict(languages=["FRE", "ENG"], sources=["MSHFRE", "LNC"])
+    # Load the French MeSH
+    pattern_config = dict(languages=["FRE"], sources=["MSHFRE"])
 
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(eds.umls(pattern_config=pattern_config))

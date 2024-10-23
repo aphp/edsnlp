@@ -156,7 +156,7 @@ class TNMMatcher(BaseNERComponent):
         for span, groupdict in spans:
             try:
                 value = cast(TNM, groupdict)
-            except ValidationError:
+            except ValidationError:  # pragma: no cover
                 value = cast(TNM, {})
 
             span._.set(self.label, value)

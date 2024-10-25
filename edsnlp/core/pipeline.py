@@ -761,7 +761,13 @@ class Pipeline:
         if (
             os.path.exists(path)
             and os.listdir(path)
-            and not os.path.exists(path / "config.cfg")
+            and not (
+                os.path.exists(path / "config.cfg") or
+                (
+                    os.path.exists(path / "meta.json") and
+                    os.path.exists(path / "tokenizer")
+                )
+            )
         ):
             raise Exception(
                 "The directory already exists and doesn't appear to be a"

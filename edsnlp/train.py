@@ -588,6 +588,8 @@ def train(
     all_metrics = []
     nlp.train(True)
     set_seed(seed)
+    
+    n_seen_samples = 0
 
     with RichTablePrinter(LOGGER_FIELDS, auto_refresh=False) as logger:
         with tqdm(
@@ -618,9 +620,13 @@ def train(
                 mini_batches = next(iterator)
                 optimizer.zero_grad()
                 for mini_batch in mini_batches:
+                    seen = False
                     loss = torch.zeros((), device=accelerator.device)
                     with nlp.cache():
                         for name, pipe in zip(pipe_names, trained_pipes):
+                            if not seen:
+                                n_seen_samples += mini_batch["ecci_qualifier"]["targets"].shape[0]
+                            print(f"Step: {step} - Seen: {n_seen_samples} - Epoch: {1 + (n_seen_samples // 4464)}")
                             output = pipe(mini_batch[name])
                             if "loss" in output:
                                 loss += output["loss"]

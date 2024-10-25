@@ -42,11 +42,14 @@ def get_spans(doc, span_getter):
     if callable(span_getter):
         yield from span_getter(doc)
         return
+    seen = set()
     for key, span_filter in span_getter.items():
         if key == "*":
             candidates = (span for group in doc.spans.values() for span in group)
         else:
             candidates = doc.spans.get(key, ()) if key != "ents" else doc.ents
+        candidates = [candidate for candidate in candidates if hash(candidate) not in seen]
+        seen |= set(hash(candidate) for candidate in candidates)
         if span_filter is True:
             yield from candidates
         else:

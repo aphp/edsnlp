@@ -41,7 +41,7 @@ footer = rf"(?i)({page}.*\n?pat.*(ipp)?.*\n?(courrier valid.*)?)"
 footer += rf"|(.*{date}.*{ipp}.*)|(imprim.\sle\s{date}.*\d/\d.*\n?pat.*{date})"
 
 # Word split in the middle due to line break
-intraword_split = r"-\n"
+intraword_split = r"(?<![\W\d_])-\n"
 
 pollution = dict(
     information=information,

@@ -48,7 +48,7 @@ TOKENIZER_EXCEPTIONS = [
     r"Mme\.",
     r"Mlle\.",
     r"(?i:(?:ep\.))",
-    r"-\n",
+    r"(?<![\W\d_])-\n",
 ]
 
 

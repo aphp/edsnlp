@@ -153,6 +153,7 @@ class LengthSortedBatchSampler:
         noise=1,
         drop_last=True,
         buffer_size: Optional[int] = None,
+        repeat: Optional[int] = None,
     ):
         self.dataset = dataset
         self.batch_size = batch_size
@@ -160,6 +161,7 @@ class LengthSortedBatchSampler:
         self.noise = noise
         self.drop_last = drop_last
         self.buffer_size = buffer_size
+        self.repeat = repeat
 
     def __iter__(self):
         # Shuffle the dataset
@@ -193,6 +195,7 @@ class LengthSortedBatchSampler:
         def make_batches():
             total = 0
             batch = []
+            n_iter = 0
             for seq_size, idx in sorted_sequences:
                 if total and total + seq_size > self.batch_size:
                     yield batch
@@ -200,6 +203,8 @@ class LengthSortedBatchSampler:
                     batch = []
                 total += seq_size
                 batch.append(idx)
+            if not self.drop_last:
+                yield batch
 
         # Shuffle the batches in buffer that contain approximately
         # the full dataset to add more randomness
@@ -214,12 +219,12 @@ class LengthSortedBatchSampler:
         # Sort sequences by length +- some noise
         sorted_sequences = chain.from_iterable(
             sorted((sample_len(i), i) for i in range(len(self.dataset)))
-            for _ in repeat(None)
+            for _ in repeat(None, times=self.repeat)
         )
 
         # Batch sorted sequences
         batches = make_batches()
-        buffers = batchify(batches, buffer_size)
+        buffers = batchify(batches, buffer_size, drop_last=self.drop_last)
         for buffer in buffers:
             random.shuffle(buffer)
             yield from buffer
@@ -243,6 +248,7 @@ class SubBatchCollater:
         self.nlp = nlp
         self.embedding: Transformer = embedding
         self.grad_accumulation_max_tokens = grad_accumulation_max_tokens
+        self.i = 0
 
     def __call__(self, seq):
         total = 0
@@ -483,6 +489,7 @@ def train(
     seed: int = 42,
     data_seed: int = 42,
     max_steps: int = 1000,
+    max_epochs: int | None = None,
     batch_size: BatchSizeArg = 2000,
     transformer_lr: float = 5e-5,
     task_lr: float = 3e-4,
@@ -499,6 +506,10 @@ def train(
         for module_name, module in pipe.named_component_modules()
         if isinstance(module, Transformer)
     )
+    assert not (max_steps and max_epochs), "Use only steps or epochs"
+    if max_epochs:
+        max_steps = int(0.9*(4464 / batch_size[0]))
+        
 
     set_seed(seed)
     # Loading and adapting the training and validation data
@@ -531,7 +542,38 @@ def train(
             trf_pipe,
             grad_accumulation_max_tokens=grad_accumulation_max_tokens,
         ),
+        shuffle=False,
     )
+    
+    true_steps = 0
+    # for b in iter(dataloader):
+    #     true_steps += b[0]["ecci_qualifier"]["targets"].shape[0]
+    # print(f"True: {true_steps} / Config: 4464")
+    # return
+    
+    batch_sampler=LengthSortedBatchSampler(
+        preprocessed,
+        batch_size=batch_size[0],
+        batch_unit=batch_size[1],
+    ),
+    #print("sampler", type(batch_sampler), len(batch_sampler), batch_sampler[0])
+    for b in batch_sampler:
+        init_batches = sorted([len(data1["ecci_qualifier/targets"]) for data1 in b.dataset])
+    
+    dataloader = torch.utils.data.DataLoader(
+        preprocessed,
+        batch_sampler=LengthSortedBatchSampler(
+            preprocessed,
+            batch_size=batch_size[0],
+            batch_unit=batch_size[1],
+        ),
+        collate_fn=SubBatchCollater(
+            nlp,
+            trf_pipe,
+            grad_accumulation_max_tokens=grad_accumulation_max_tokens,
+        ),
+    )
+    
     pipe_names, trained_pipes = zip(*nlp.torch_components())
     print("Training", ", ".join(pipe_names))
 
@@ -584,10 +626,14 @@ def train(
 
     cumulated_data = defaultdict(lambda: 0.0, count=0)
 
-    iterator = itertools.chain.from_iterable(itertools.repeat(dataloader))
+    iterator = iter(dataloader) #itertools.chain.from_iterable(itertools.repeat(dataloader))
     all_metrics = []
     nlp.train(True)
     set_seed(seed)
+    
+    n_seen_samples = 0
+    epoch = 0
+    true_batches = []
 
     with RichTablePrinter(LOGGER_FIELDS, auto_refresh=False) as logger:
         with tqdm(
@@ -597,6 +643,10 @@ def train(
             mininterval=5.0,
         ) as bar:
             for step in bar:
+                #print("step ", step)
+                if epoch > max_epochs:
+                    print(f"Done, left steps: {max_steps - step}")
+                    # break
                 if (step % validation_interval) == 0:
                     scores = scorer(nlp, val_docs)
                     all_metrics.append(
@@ -614,13 +664,21 @@ def train(
                     )
                     logger.log_metrics(flatten_dict(all_metrics[-1]))
                 if step == max_steps:
+                    print(f"Done, epoch {epoch}")
                     break
                 mini_batches = next(iterator)
                 optimizer.zero_grad()
                 for mini_batch in mini_batches:
+                    # print("mini", mini_batch["ecci_qualifier"]["targets"].shape[0])
+                    true_batches.append(mini_batch["ecci_qualifier"]["targets"].shape[0])
+                    seen = False
                     loss = torch.zeros((), device=accelerator.device)
                     with nlp.cache():
                         for name, pipe in zip(pipe_names, trained_pipes):
+                            if not seen:
+                                n_seen_samples += mini_batch["ecci_qualifier"]["targets"].shape[0]
+                                epoch = 1 + (n_seen_samples / 4464)
+                            #print(f"Step: {step} - Seen: {n_seen_samples} - Epoch: {epoch}")
                             output = pipe(mini_batch[name])
                             if "loss" in output:
                                 loss += output["loss"]
@@ -634,6 +692,9 @@ def train(
 
                 torch.nn.utils.clip_grad_norm_(grad_params, max_grad_norm)
                 optimizer.step()
+    
+    print(init_batches)
+    print(sorted(true_batches))
 
     return nlp
 

@@ -474,11 +474,17 @@ class TrainableSpanClassifier(
         # - `negated=False` and `negated=True`
         for group_idx, bindings_indexer in enumerate(self.bindings_indexers):
             if "targets" in batch:
+                #print("BATCH")
+                # print(span_embeds.shape)
+                #print(batch.keys())
+                #print(batch["targets"][:,].shape)
+                #print(batch["targets"][:,].sum().item())
                 losses.append(
                     F.cross_entropy(
                         binding_scores[:, bindings_indexer],
                         batch["targets"][:, group_idx],
                         reduction="sum",
+                        weight=torch.tensor([1.9, 0.7]).to(binding_scores.device)
                     )
                 )
                 assert not torch.isnan(losses[-1]).any(), "NaN loss"

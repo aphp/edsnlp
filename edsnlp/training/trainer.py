@@ -73,12 +73,12 @@ def flatten_dict(d, path=""):
     }
 
 
-def get_flat_stats(x, path=(), result=None):
+def fill_flat_stats(x, result, path=()):
     if result is None:
         result = {}
     if isinstance(x, dict):
         for k, v in x.items():
-            get_flat_stats(v, (*path, k), result)
+            fill_flat_stats(v, result, (*path, k))
         return result
     if "stats" in path and "__batch_hash__" not in path[-1]:
         path = "/".join(path)
@@ -494,7 +494,7 @@ def train(
                     # Synchronize stats between sub-batches across workers
                     stats = {}
                     for b in batches:
-                        get_flat_stats(b, result=stats)
+                        fill_flat_stats(b, result=stats)
                     stats = list(flatten(accelerator.gather([stats])))
                     stats = {k: sum(v) for k, v in ld_to_dl(stats).items()}
                     for b in batches:

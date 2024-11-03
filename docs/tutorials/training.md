@@ -65,11 +65,13 @@ uv pip install -e ".[dev]" -p $(uv python find)
 
 ## Training the model
 
+EDS-NLP supports training models either [from the command line](#from-the-command-line) or [from a Python script or notebook](#from-a-script-or-a-notebook), and switching between the two is straightforward thanks to the use of [Confit](https://aphp.github.io/confit/).
+
 ??? note "A word about Confit"
 
     EDS-NLP makes heavy use of [Confit](https://aphp.github.io/confit/), a configuration library that allows you call functions from Python or the CLI, and validate and optionally cast their arguments.
 
-    The EDS-NLP function used in this script is the `train` function of the `edsnlp.train` module. When passing a dict to a type-hinted argument (either from a `config.yml` file, or by calling the function in Python), Confit will instantiate the correct class with the arguments provided in the dict. For instance, we pass a dict to the `val_data` parameter, which is actually type hinted as a `SampleGenerator`. Therefore, you can also instantiate a `SampleGenerator` object directly and pass it to the function.
+    The EDS-NLP function used in this script is the `train` function of the `edsnlp.train` module. When passing a dict to a type-hinted argument (either from a `config.yml` file, or by calling the function in Python), Confit will instantiate the correct class with the arguments provided in the dict. For instance, we pass a dict to the `val_data` parameter, which is actually type hinted as a `SampleGenerator`: this dict will actually be used as keyword arguments to instantiate this `SampleGenerator` object. You can also instantiate a `SampleGenerator` object directly and pass it to the function.
 
     You can also tell Confit specifically which class you want to instantiate by using the `@register_name = "name_of_the_registered_class"` key and value in a dict or config section. We make a heavy use of this mechanism to build pipeline architectures.
 

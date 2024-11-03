@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 
     from edsnlp import Pipeline
     from edsnlp.core.torch_component import TorchComponent
-    from edsnlp.data.base import BaseReader, BaseWriter
+    from edsnlp.data.base import BaseReader, BaseWriter, BatchWriter
 
 
 def deep_isgeneratorfunction(x):
@@ -234,6 +234,9 @@ class QuickTorchPipe:
         self.postprocess = postprocess
         self.elementwise = elementwise
 
+    def __call__(self, *args, **kwargs):
+        return self.forward(*args, **kwargs)
+
     def batch_process(self, batch):
         res = self.forward(self.prepare_batch(batch, None))
         return self.postprocess(batch, res) if self.postprocess is not None else res
@@ -275,7 +278,7 @@ class Stream(metaclass=MetaStream):
     def __init__(
         self,
         reader: Optional[BaseReader] = None,
-        writer: Optional[BaseWriter] = None,
+        writer: Optional[Union[BaseWriter, BatchWriter]] = None,
         ops: List[Any] = [],
         config: Dict = {},
     ):
@@ -446,10 +449,10 @@ class Stream(metaclass=MetaStream):
             List of GPU devices to use for the CPU workers. Used for debugging purposes.
         deterministic: bool
             Whether to try and preserve the order of the documents in "multiprocessing"
-            mode. If set to False, workers will process documents whenever they are
-            available in a dynamic fashion, which may result in out-of-order processing.
-            If set to true, tasks will be distributed in a static, round-robin fashion
-            to workers. Defaults to True.
+            mode. If set to `False`, workers will process documents whenever they are
+            available in a dynamic fashion, which may result in out-of-order but usually
+            faster processing. If set to true, tasks will be distributed in a
+            static, round-robin fashion to workers. Defaults to `True`.
 
         Returns
         -------
@@ -461,8 +464,8 @@ class Stream(metaclass=MetaStream):
             or kwargs.pop("sort_chunks", INFER) is not INFER
         ):
             warnings.warn(
-                """chunk_size and sort_chunks are deprecated, use \
-                map_batched(sort_fn, batch_size=chunk_size) instead.""",
+                "chunk_size and sort_chunks are deprecated, use "
+                "map_batched(sort_fn, batch_size=chunk_size) instead.",
                 VisibleDeprecationWarning,
             )
         if kwargs.pop("split_into_batches_after", INFER) is not INFER:

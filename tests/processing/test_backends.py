@@ -318,11 +318,8 @@ def test_generator(backend):
     assert set(items) == {"a", "d", "b", "e", "c", "f", "g", "h", "i", "j"}
 
 
-@pytest.mark.parametrize(
-    "deterministic",
-    [True, False],
-)
-def test_multiprocessing_deterministic(deterministic):
+@pytest.mark.parametrize("deterministic", [True, False])
+def test_multiprocessing_sleep(deterministic):
     def process(x):
         if x % 2 == 0:
             time.sleep(0.1)
@@ -341,6 +338,22 @@ def test_multiprocessing_deterministic(deterministic):
         assert items == list(range(100))
     else:
         assert items != list(range(100))
+
+
+@pytest.mark.parametrize("num_cpu_workers", [0, 1, 2])
+def test_deterministic_skip(num_cpu_workers):
+    def process_batch(x):
+        return [i for i in x if i < 10 or i % 2 == 0]
+
+    items = list(range(100))
+    items = edsnlp.data.from_iterable(items)
+    items = items.map_batches(process_batch)
+    items = items.set_processing(
+        deterministic=True,
+        num_cpu_workers=num_cpu_workers,
+    )
+    items = list(items)
+    assert items == [*range(0, 10), *range(10, 100, 2)]
 
 
 @validate_arguments

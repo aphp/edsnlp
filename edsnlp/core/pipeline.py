@@ -721,8 +721,6 @@ class Pipeline(Validated):
         """
         res = Stream.ensure_stream(docs)
         res = res.map(functools.partial(self.preprocess, supervision=supervision))
-        if compress:
-            res = res.map(batch_compress_dict())
         return res
 
     def collate(

@@ -23,11 +23,15 @@
 
 - Sort files before iterating over a standoff or json folder to ensure reproducibility
 - Sentence detection now correctly match capitalized letters + apostrophe
+- We now ensure that the workers pool is properly closed whatever happens (exception, garbage collection, data ending) in the `multiprocessing` backend. This prevents some executions from hanging indefinitely at the end of the processing.
 
 ### Data API changes
 
 - `LazyCollection` objects are now called `Stream` objects
-- By default, `multiprocessing` backend now preserves the order of the input data
+- By default, `multiprocessing` backend now preserves the order of the input data. To disable this and improve performance, use `deterministic=False` in the `set_processing` method
+- :rocket: Parallelized GPU inference throughput improvements !
+  - For simple {pre-process → model → post-process} pipelines, GPU inference can be up to 30% faster in non-deterministic mode (results can be out of order) and up to 20% faster in deterministic mode (results are in order)
+  - For multitask pipelines, GPU inference can be up to twice as fast (measured in a two-tasks BERT+NER+Qualif pipeline on T4 and A100 GPUs)
 - The `.map_batches`, `.map_pipeline` and `.map_gpu` methods now support a specific `batch_size` and batching function, instead of having a single batch size for all pipes
 - Readers now have a `loop` parameter to cycle over the data indefinitely (useful for training)
 - Readers now have a `shuffle` parameter to shuffle the data before iterating over it

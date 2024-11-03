@@ -269,8 +269,7 @@ class TrainingData:
         self.post_init = post_init
 
     def __call__(self, nlp, device):
-        data = self.data.copy(reader=True)
-        data.reader.loop = True
+        data = self.data.loop()
         if self.shuffle:
             data = data.shuffle(self.shuffle)
 
@@ -321,6 +320,15 @@ def train(
         The training data. Can be a single
         [TrainingData][edsnlp.training.trainer.TrainingData] object, a dict that
         will be cast or a list of these objects.
+
+        ??? note "`TrainingData` object/dictionary"
+            ::: edsnlp.training.trainer.TrainingData
+                options:
+                    heading_level: 1
+                    only_parameters: "no-header"
+                    skip_parameters: []
+                    show_source: false
+                    show_toc: false
     val_data: AsList[Stream]
         The validation data. Can be a single Stream object or a list of
         Stream.

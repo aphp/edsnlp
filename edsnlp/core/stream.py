@@ -40,7 +40,11 @@ if TYPE_CHECKING:
 def deep_isgeneratorfunction(x):
     if hasattr(x, "__call__"):
         return isgeneratorfunction(x) or isgeneratorfunction(x.__call__)
-    return isgeneratorfunction(x)
+    elif hasattr(x, "batch_process"):
+        return isgeneratorfunction(x.batch_process) or isgeneratorfunction(
+            x.batch_process.__call__
+        )
+    raise ValueError(f"{x} does not have a __call__ or batch_process method.")
 
 
 class _InferType:
@@ -906,19 +910,33 @@ class Stream(metaclass=MetaStream):
             config=self.config,
         )
 
-    def copy(
-        self,
-        reader: bool = False,
-        writer: bool = False,
-        ops: bool = False,
-        config: bool = False,
-    ):
-        return Stream(
-            reader=copy(self.reader) if reader else self.reader,
-            writer=copy(self.writer) if writer else self.writer,
-            ops=copy(self.ops) if ops else self.ops,
-            config=copy(self.config) if config else self.config,
+    def loop(self) -> "Stream":
+        """
+        Loops over the stream indefinitely.
+        Note that we cycle over items produced by the reader, not the items produced by
+        the stream operations. This means that the stream operations will be applied to
+        the same items multiple times, and may produce different results if they are
+        non-deterministic. This also mean that calling this function will have the same
+        effect regardless of the operations applied to the stream before calling it, ie:
+
+        ```
+        stream.loop().map(...)
+        # is equivalent to
+        stream.map(...).loop()
+        ```
+
+        Returns
+        -------
+        Stream
+        """
+        stream = Stream(
+            reader=copy(self.reader),
+            writer=self.writer,
+            ops=self.ops,
+            config=self.config,
         )
+        stream.reader.loop = True
+        return stream
 
     def __dir__(self):  # pragma: no cover
         return (*super().__dir__(), *edsnlp.data.__all__)

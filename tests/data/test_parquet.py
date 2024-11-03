@@ -1,4 +1,3 @@
-import os
 from itertools import islice
 from pathlib import Path
 
@@ -239,13 +238,12 @@ def test_read_write_in_worker(blank_nlp, tmpdir):
     # fmt: on
 
 
-def test_read_to_parquet(blank_nlp, tmpdir):
-    input_dir = Path(__file__).parent.parent.resolve() / "resources" / "docs.parquet"
+def test_read_to_parquet(blank_nlp, tmpdir, run_in_test_dir):
     output_dir = Path(tmpdir)
     fs = pyarrow.fs.LocalFileSystem()
     doc = list(
         edsnlp.data.read_parquet(
-            input_dir.relative_to(os.getcwd()),
+            "../resources/docs.parquet",
             converter="omop",
             span_attributes=["etat", "assertion"],
             doc_attributes=["context_var"],
@@ -354,4 +352,75 @@ def test_read_shuffle_loop(
             "subfolder/doc-3",
             "subfolder/doc-2",
             "subfolder/doc-1",
+        ]
+
+
+@pytest.mark.parametrize(
+    "num_cpu_workers,write_in_worker",
+    [
+        (0, False),
+        (2, True),
+        (2, False),
+    ],
+)
+def test_write_parquet_fragment(tmpdir, num_cpu_workers, write_in_worker):
+    input_dir = Path(__file__).parent.parent.resolve() / "resources" / "docs.parquet"
+    output_dir = Path(tmpdir)
+    notes = edsnlp.data.read_parquet(input_dir, converter="omop")
+    notes = notes.map_batches(
+        lambda b: [y for x in b for y in (x,) * (4 if "doc-2" in x._.note_id else 1)]
+    )
+    notes = notes.set_processing(
+        num_cpu_workers=num_cpu_workers,
+        deterministic=True,  # by default
+    )
+    notes.write_parquet(
+        output_dir,
+        batch_size="fragment",
+        converter=lambda x: {"note_id": x._.note_id},
+        write_in_worker=write_in_worker,
+    )
+    input_ds = pyarrow.dataset.dataset(input_dir)
+    inputs = [o["note_id"] for o in dl_to_ld(input_ds.to_table().to_pydict())]
+    assert len(list(input_ds.get_fragments())) == 1
+    assert inputs == ["subfolder/doc-1", "subfolder/doc-2", "subfolder/doc-3"]
+    out_ds = pyarrow.dataset.dataset(output_dir)
+    outs = [o["note_id"] for o in dl_to_ld(out_ds.to_table().to_pydict())]
+    if write_in_worker and num_cpu_workers == 2:
+        # Depending on the order in which the 2 workers produces the batches
+        assert len(list(out_ds.get_fragments())) == 2
+        assert outs == [
+            "subfolder/doc-1",
+            "subfolder/doc-3",
+            "subfolder/doc-2",
+            "subfolder/doc-2",
+            "subfolder/doc-2",
+            "subfolder/doc-2",
+        ] or outs == [
+            "subfolder/doc-2",
+            "subfolder/doc-2",
+            "subfolder/doc-2",
+            "subfolder/doc-2",
+            "subfolder/doc-1",
+            "subfolder/doc-3",
+        ]
+    elif not write_in_worker and num_cpu_workers == 2:
+        assert len(list(out_ds.get_fragments())) == 1
+        assert outs == [
+            "subfolder/doc-1",
+            "subfolder/doc-2",
+            "subfolder/doc-3",
+            "subfolder/doc-2",
+            "subfolder/doc-2",
+            "subfolder/doc-2",
+        ]
+    else:  # simple case
+        assert len(list(out_ds.get_fragments())) == 1
+        assert outs == [
+            "subfolder/doc-1",
+            "subfolder/doc-2",
+            "subfolder/doc-2",
+            "subfolder/doc-2",
+            "subfolder/doc-2",
+            "subfolder/doc-3",
         ]

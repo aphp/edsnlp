@@ -91,6 +91,14 @@ def test_batchify_by_length_sum_split():
     assert batches == [["aa", "bb"], sentinel, ["ccc", "dddd"], ["eeeee"]]
 
 
+# Tests for batchify_by_length_sum
+def test_batchify_by_length_sum_keep():
+    sentinel = MockStreamSentinel()
+    data = ["aa", "bb", sentinel, "ccc", "dddd", "eeeee"]
+    batches = list(batchify_by_length_sum(data, batch_size=7, sentinel_mode="keep"))
+    assert batches == [["aa", "bb", sentinel, "ccc"], ["dddd"], ["eeeee"]]
+
+
 # Tests for batchify_by_padded
 def test_batchify_by_padded_simple():
     data = ["a", "bb", "ccc", "dddd"]
@@ -141,20 +149,27 @@ def test_batchify_by_dataset_simple():
 
 def test_batchify_by_dataset_sentinel_split():
     sentinel = MockStreamSentinel()
-    data = ["item1", sentinel, "item2", DATASET_END_SENTINEL]
+    data = ["item1", sentinel, "item2", DATASET_END_SENTINEL, "item3"]
     batches = list(batchify_by_dataset(data, sentinel_mode="split"))
-    assert batches == [["item1"], sentinel, ["item2"], DATASET_END_SENTINEL]
+    assert batches == [["item1"], sentinel, ["item2"], DATASET_END_SENTINEL, ["item3"]]
 
 
 def test_batchify_by_dataset_sentinel_keep():
     sentinel = MockStreamSentinel()
-    data = ["item1", sentinel, "item2", DATASET_END_SENTINEL]
+    data = ["item1", sentinel, "item2", DATASET_END_SENTINEL, "item3"]
     batches = list(batchify_by_dataset(data, sentinel_mode="keep"))
-    assert batches == [["item1", sentinel, "item2"], DATASET_END_SENTINEL]
+    assert batches == [["item1", sentinel, "item2"], DATASET_END_SENTINEL, ["item3"]]
+
+
+def test_batchify_by_dataset_sentinel_drop():
+    sentinel = MockStreamSentinel()
+    data = ["item1", sentinel, "item2", DATASET_END_SENTINEL, "item3"]
+    batches = list(batchify_by_dataset(data, sentinel_mode="drop"))
+    assert batches == [["item1", "item2"], DATASET_END_SENTINEL, ["item3"]]
 
 
 def test_batchify_by_dataset_drop_last():
-    data = ["item1", "item2", DATASET_END_SENTINEL]
+    data = ["item1", "item2", DATASET_END_SENTINEL, "item3"]
     batches = list(batchify_by_dataset(data, drop_last=True))
     assert batches == [["item1", "item2"], DATASET_END_SENTINEL]
 
@@ -190,10 +205,18 @@ def test_batchify_by_fragment_sentinel_keep():
     assert batches == [["item1", sentinel, "item2"], fragment_end]
 
 
+def test_batchify_by_fragment_sentinel_drop():
+    sentinel = MockStreamSentinel()
+    fragment_end = FragmentEndSentinel("fragment")
+    data = ["item1", sentinel, "item2", fragment_end]
+    batches = list(batchify_by_fragment(data, sentinel_mode="drop"))
+    assert batches == [["item1", "item2"], fragment_end]
+
+
 def test_batchify_by_fragment_drop_last():
     fragment_end = FragmentEndSentinel("fragment")
     data = ["item1", "item2", fragment_end]
-    batches = list(batchify_by_fragment(data, drop_last=True))
+    batches = list(batchify_by_fragment(data, sentinel_mode="split", drop_last=True))
     assert batches == [["item1", "item2"], fragment_end]
 
 

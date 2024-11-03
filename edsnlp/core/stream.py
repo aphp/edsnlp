@@ -88,10 +88,6 @@ class Op(abc.ABC):
     def __call__(self, items):
         raise NotImplementedError()
 
-    @property
-    def expected_sentinels(self):
-        return set()
-
 
 class FlattenOp(Op):
     elementwise = False
@@ -149,10 +145,6 @@ class BatchifyOp(Op):
             f"fn={self.batch_fn}, "
             f"sentinel_mode={self.sentinel_mode})"
         )
-
-    @property
-    def expected_sentinels(self):
-        return getattr(self.batch_fn, "expected_sentinels", set())
 
 
 class MapOp(Op):
@@ -966,7 +958,13 @@ class Stream(metaclass=MetaStream):
 
     def validate_ops(self, ops, update: bool = False):
         # Check batchify requirements
-        expected_sentinels = set()
+        requires_sentinels = set()
+
+        if hasattr(self.writer, "batch_fn") and hasattr(
+            self.writer.batch_fn, "requires_sentinel"
+        ):
+            requires_sentinels.add(self.writer.batch_fn.requires_sentinel)
+
         self_batch_fn = batchify_fns.get(self.batch_by, self.batch_by)
         for op in reversed(ops):
             if isinstance(op, BatchifyOp):
@@ -977,29 +975,38 @@ class Stream(metaclass=MetaStream):
                     else None
                 )
                 if sentinel_mode == "auto":
-                    sentinel_mode = "split" if expected_sentinels else "drop"
-                if expected_sentinels and op.sentinel_mode == "drop":
+                    sentinel_mode = "split" if requires_sentinels else "drop"
+                if requires_sentinels and op.sentinel_mode == "drop":
                     raise ValueError(
                         f"Operation {op} drops the stream sentinel values "
                         f"(markers for the end of a dataset or a dataset "
                         f"fragment), but some downstream operation(s) require "
-                        f"the following sentinel values: {expected_sentinels}. "
+                        f"the following sentinel values: {requires_sentinels}. "
                         f"Ensure that you do not set `sentinel_mode='drop'` on "
                         f"any upstream batching operation."
                     )
-                expected_sentinels.update(op.expected_sentinels)
                 if update:
                     op.sentinel_mode = sentinel_mode
 
-        if expected_sentinels and (self.backend == "spark" or not self.deterministic):
+                if hasattr(batch_fn, "requires_sentinel"):
+                    requires_sentinels.add(batch_fn.requires_sentinel)
+
+        sentinel_str = ", ".join(requires_sentinels)
+        if requires_sentinels and self.backend == "spark":
             raise ValueError(
-                f"Some operations require sentinel values ({expected_sentinels}), "
+                f"Some operations require sentinel values ({sentinel_str}), "
                 f"but the Spark backend does not support sentinel values."
             )
-        if not (expected_sentinels < self.reader.emitted_sentinels):
+        if requires_sentinels and not self.deterministic:
             raise ValueError(
-                f"Some operations require sentinel values ({expected_sentinels}), "
-                f"but the reader does not emit these values."
+                f"Some operations require sentinel values ({sentinel_str}), "
+                f"but these are not supported in when `deterministic=False`."
+            )
+        if not (requires_sentinels <= self.reader.emitted_sentinels):
+            raise ValueError(
+                f"Some operations require sentinel values ({sentinel_str}), "
+                f"but the reader does not emit these values "
+                f"({', '.join(self.reader.emitted_sentinels)})."
             )
 
     def __repr__(self):

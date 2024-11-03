@@ -274,29 +274,26 @@ def batchify_by_dataset(
     num_items = 0
     for item in iterable:
         is_end_dataset = item is DATASET_END_SENTINEL
-        if isinstance(item, StreamSentinel) and not is_end_dataset:
-            if sentinel_mode == "split":
-                if num_items > 0:
+        if isinstance(item, StreamSentinel):
+            if sentinel_mode == "split" or is_end_dataset:
+                if num_items > 0 or is_end_dataset:
                     yield batch
                 yield item
                 batch = []
                 num_items = 0
+                continue
             elif sentinel_mode == "keep":
                 batch.append(item)
-            continue
-        if is_end_dataset and num_items > 0:
-            yield batch
-            batch = []
-            num_items = 0
-            yield item
-            continue
+                continue
+            else:  # drop
+                continue
         batch.append(item)
         num_items += 1
     if num_items > 0 and not drop_last:
         yield batch
 
 
-batchify_by_dataset.requires_sentinels = {"dataset"}
+batchify_by_dataset.requires_sentinel = "dataset"
 
 
 def batchify_by_fragment(
@@ -336,29 +333,26 @@ def batchify_by_fragment(
     num_items = 0
     for item in iterable:
         is_end_fragment = isinstance(item, (FragmentEndSentinel, DatasetEndSentinel))
-        if isinstance(item, StreamSentinel) and not is_end_fragment:
-            if sentinel_mode == "split":
-                if num_items > 0:
+        if isinstance(item, StreamSentinel):
+            if sentinel_mode == "split" or is_end_fragment:
+                if num_items > 0 or is_end_fragment:
                     yield batch
                 yield item
                 batch = []
                 num_items = 0
+                continue
             elif sentinel_mode == "keep":
                 batch.append(item)
-            continue
-        if is_end_fragment and num_items > 0:
-            yield batch
-            batch = []
-            num_items = 0
-            yield item
-            continue
+                continue
+            else:  # drop
+                continue
         batch.append(item)
         num_items += 1
     if num_items > 0 and not drop_last:
         yield batch
 
 
-batchify_by_fragment.requires_sentinels = {"fragment"}
+batchify_by_fragment.requires_sentinel = "fragment"
 
 BatchFn = Union[
     Callable[[Iterable, int, Literal["drop", "split"]], Iterable],

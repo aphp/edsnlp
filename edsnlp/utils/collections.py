@@ -339,7 +339,7 @@ def flatten(item):
         yield from flatten(sub)
 
 
-def shuffle(items=None, rng=random):
+def shuffle(items: Iterable[T] = None, rng=random) -> List[T]:
     items = list(items)
     rng.shuffle(items)
     return items

@@ -90,8 +90,8 @@ class BaseWriter:
 
 class BatchWriter(BaseWriter):
     batch_size: Optional[int] = None
-    batch_by: Callable
-    batch_in_worker: bool = False
+    batch_fn: Callable
+    write_in_worker: bool = False
 
     def handle_batch(self, batch):
         raise NotImplementedError()

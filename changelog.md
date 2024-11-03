@@ -36,6 +36,10 @@
 - Readers now have a `loop` parameter to cycle over the data indefinitely (useful for training)
 - Readers now have a `shuffle` parameter to shuffle the data before iterating over it
 - In `multiprocessing` mode, file based readers now read the data in the workers (was an option before)
+- We now support two new special batch sizes
+  - "fragment" in the case of parquet datasets: rows of a full parquet file fragment per batch
+  - "dataset" which is mostly useful during training, for instance to shuffle the dataset at each epoch.
+  These are also compatible in batched writer such as parquet, where each input fragment can be processed and mapped to a single matching output fragment.
 - :boom: Breaking change: a `map` function returning a list or a generator won't be automatically flattened anymore. Use `flatten()` to flatten the output if needed. This shouldn't change the behavior for most users since most writers (to_pandas, to_polars, to_parquet, ...) still flatten the output
 - :boom: Breaking change: the `chunk_size` and `sort_chunks` are now deprecated : to sort data before applying a transformation, use `.map_batches(custom_sort_fn, batch_size=...)`
 

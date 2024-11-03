@@ -705,16 +705,27 @@ class CPUWorker(Worker):
     def send_results(self, items):
         writer = self.stream.writer
         if writer is not None:
-            items = (writer.handle_record(rec) for rec in items)
-        if getattr(writer, "batch_in_worker", None) is True:
-            items = writer.batch_by(
+            items = (
+                writer.handle_record(rec)
+                if not isinstance(rec, StreamSentinel)
+                else rec
+                for rec in items
+            )
+        if getattr(writer, "write_in_worker", None) is True:
+            items = writer.batch_fn(
                 items,
                 batch_size=writer.batch_size,
                 sentinel_mode="drop",
             )
-            items = (writer.handle_batch(b) for b in items)
+            items = (
+                writer.handle_batch(b)
+                for b in items
+                if not isinstance(b, StreamSentinel)
+            )
         else:
-            items = ((x, 1) for x in items if not isinstance(x, StreamSentinel))
+            items = (
+                (x, 1) if not isinstance(x, StreamSentinel) else (x, 0) for x in items
+            )
 
         name = f"from-{self.uid}_to-main"
         queue = self.data_queues[name]
@@ -1024,11 +1035,15 @@ class MultiprocessingStreamExecutor:
         # Create the main iterator
         items = self.dequeue_outputs()
         writer = self.stream.writer
-        if getattr(writer, "batch_in_worker", None) is False:
+        if getattr(writer, "write_in_worker", None) is False:
             writer: BatchWriter
-            items = writer.batch_by(items, writer.batch_size)
+            items = writer.batch_fn(items, writer.batch_size, sentinel_mode="drop")
             # get the 1st element (2nd is the count)
-            items = (writer.handle_batch(b)[0] for b in items)
+            items = (
+                writer.handle_batch(b)[0]
+                for b in items
+                if not isinstance(b, StreamSentinel)
+            )
 
         # If we are garbage collected, stop the execution
         weakref.finalize(items, self.teardown, garbage_collected=True)
@@ -1060,6 +1075,13 @@ class MultiprocessingStreamExecutor:
 
     def iter_outputs(self, stop_mode=False):
         deterministic = self.stream.deterministic
+        requires_sentinel = (
+            hasattr(self.stream.writer, "batch_fn")
+            and getattr(self.stream.writer.batch_fn, "requires_sentinel", None)
+            and not self.stream.writer.write_in_worker
+        )
+        missing_sentinels = len(self.cpu_worker_names) if requires_sentinel else 0
+        buffer = []
         while self.num_alive_workers > 0:
             if self.stopped and not stop_mode:  # pragma: no cover
                 raise StopSignal()
@@ -1097,9 +1119,20 @@ class MultiprocessingStreamExecutor:
                 self.num_alive_workers -= 1
                 self.workers_status[worker_idx] = False
                 continue
-            if isinstance(out, StreamSentinel) and worker_idx > 0:
+            if isinstance(out[0], StreamSentinel):
+                if out[0].kind == requires_sentinel:
+                    missing_sentinels -= 1
+                    if missing_sentinels == 0:
+                        yield from buffer
+                        yield out
+                        buffer.clear()
+                        missing_sentinels = len(self.cpu_worker_names)
                 continue
-            yield out
+            if requires_sentinel:
+                buffer.append(out)
+            else:
+                yield out
+        yield from buffer
         if self.error:
             raise self.error
 

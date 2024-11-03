@@ -14,7 +14,7 @@ from edsnlp import registry
 from edsnlp.core.stream import Stream
 from edsnlp.data.base import BatchWriter, FileBasedReader
 from edsnlp.data.converters import get_dict2doc_converter, get_doc2dict_converter
-from edsnlp.utils.batching import batchify_fns
+from edsnlp.utils.batching import BatchBy, batchify_fns
 from edsnlp.utils.collections import batchify, dl_to_ld, flatten, ld_to_dl, shuffle
 from edsnlp.utils.file_system import FileSystem, normalize_fs_path
 from edsnlp.utils.stream_sentinels import DatasetEndSentinel, FragmentEndSentinel
@@ -61,12 +61,16 @@ class ParquetReader(FileBasedReader):
                 for file in shuffle(files, self.rng):
                     records = shuffle(self.read_fragment(file), self.rng)
                     yield from records
-                    yield FragmentEndSentinel(file)
-            else:
+                    yield FragmentEndSentinel(file.path)
+            elif self.shuffle == "dataset":
                 records = (line for file in files for line in self.read_fragment(file))
-                if self.shuffle == "dataset":
-                    records = shuffle(records, self.rng)
+                records = shuffle(records, self.rng)
                 yield from records
+            else:
+                for file in files:
+                    records = list(self.read_fragment(file))
+                    yield from records
+                    yield FragmentEndSentinel(file.path)
             yield DatasetEndSentinel()
             if not self.loop:
                 break
@@ -85,9 +89,9 @@ class ParquetWriter(BatchWriter):
         self,
         *,
         path: Union[str, Path],
-        batch_size: Optional[Union[int]] = None,
-        batch_by: Union[Callable, Literal["docs"]] = "docs",
-        batch_in_worker: bool = False,
+        batch_size: Optional[Union[int, str]] = None,
+        batch_by: BatchBy = None,
+        write_in_worker: bool = False,
         overwrite: bool,
         filesystem: Optional[FileSystem] = None,
     ):
@@ -113,21 +117,18 @@ class ParquetWriter(BatchWriter):
             for file in dataset.files:
                 self.fs.rm_file(file)
         self.fs = filesystem
-        assert batch_by is None or batch_by in batchify_fns or callable(batch_by)
-        self.batch_by = batchify_fns.get(batch_by, batch_by)
-        if (
-            batch_by in ("docs", "doc")
-            or self.batch_by is batchify
-            and batch_size is None
-        ):
+        batch_size, batch_by = Stream.validate_batching(batch_size, batch_by)
+        if batch_by in ("docs", "doc", None, batchify) and batch_size is None:
             warnings.warn(
                 "You should specify a batch size when using record-wise batch writing. "
                 "Setting batch size to 1024."
             )
             batch_size = 1024
+        batch_by = batch_by or "docs"
+        self.batch_fn = batchify_fns.get(batch_by, batch_by)
 
         self.batch_size = batch_size
-        self.batch_in_worker = batch_in_worker
+        self.write_in_worker = write_in_worker
         self.batch = []
         self.closed = False
 
@@ -250,9 +251,9 @@ def write_parquet(
     data: Union[Any, Stream],
     path: Union[str, Path],
     *,
-    batch_size: Optional[int] = None,
-    batch_by: Union[Callable, Literal["docs"]] = "docs",
-    batch_in_worker: bool = True,
+    batch_size: Optional[Union[int, str]] = None,
+    batch_by: BatchBy = None,
+    write_in_worker: bool = True,
     overwrite: bool = False,
     filesystem: Optional[FileSystem] = None,
     execute: bool = True,
@@ -295,15 +296,17 @@ def write_parquet(
         The method to batch the documents. If "docs", the batch size is the number of
         documents. If "fragment", each batch corresponds to a parquet file fragment from
         the input data.
-    batch_in_worker: bool
-        In multiprocessing or spark mode, whether to batch the documents in the workers
-        or in the main process.
+    write_in_worker: bool
+        In multiprocessing or spark mode, whether to batch and write the documents in
+        the workers or in the main process.
 
         For instance, a worker may read the 1st, 3rd, 5th, ... documents, while another
-        reads the 2nd, 4th, 6th, ... documents. If `batch_in_worker` is False and
-        `deterministic` is True (default), the original order of the documents will be
-        recovered in the main process, and batching there can produce fragments that
-        respect the original order.
+        reads the 2nd, 4th, 6th, ... documents.
+
+        If `write_in_worker` is False, `deterministic` is True (default) and no
+        operation adds or remove document from the stream (e.g., no `map_batches`), the
+        original order of the documents will be recovered in the main process, and
+        batching there can produce fragments that respect the original order.
     overwrite: bool
         Whether to overwrite existing directories.
     filesystem: Optional[AbstractFileSystem] = None,
@@ -326,14 +329,10 @@ def write_parquet(
             batch_size is None
         ), "Cannot specify both 'batch_size' and deprecated 'num_rows_per_file'."
         batch_size = kwargs.pop("num_rows_per_file")
-        assert batch_by == "docs", "Cannot use 'num_rows_per_file' with 'batch_by'."
-    if "write_in_worker" in kwargs:
-        warnings.warn(
-            "The 'write_in_worker' parameter is deprecated. To perform "
-            "batching in the worker processes, set 'batch_in_worker=True'.",
-            VisibleDeprecationWarning,
-        )
-        batch_in_worker = kwargs.pop("write_in_worker")
+        assert batch_by in (
+            None,
+            "docs",
+        ), "Cannot use 'num_rows_per_file' with 'batch_by'."
     if "accumulate" in kwargs:
         warnings.warn(
             "The 'accumulate' parameter is deprecated.", VisibleDeprecationWarning
@@ -347,7 +346,7 @@ def write_parquet(
             path=path,
             batch_size=batch_size,
             batch_by=batch_by,
-            batch_in_worker=batch_in_worker,
+            write_in_worker=write_in_worker,
             overwrite=overwrite,
             filesystem=filesystem,
         ),

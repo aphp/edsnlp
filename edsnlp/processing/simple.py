@@ -80,12 +80,13 @@ def execute_simple_backend(stream: Stream):
                     for item in items
                 )
 
-            if getattr(writer, "batch_by", None) is not None:
-                items = writer.batch_by(items, writer.batch_size, sentinel_mode="drop")
+            if getattr(writer, "batch_fn", None) is not None:
+                items = writer.batch_fn(items, writer.batch_size, sentinel_mode="drop")
                 # get the 1st element (2nd is the count)
                 for b in items:
-                    item, count = writer.handle_batch(b)
-                    bar.update(count)
+                    if not isinstance(b, StreamSentinel):
+                        item, count = writer.handle_batch(b)
+                        bar.update(count)
                     yield item
             else:
                 for item in items:

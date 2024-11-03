@@ -132,8 +132,8 @@ def execute_spark_backend(
             items = (writer.handle_record(item) for item in items)
 
         results = []
-        if getattr(writer, "batch_in_worker", None) is True:
-            items = writer.batch_by(items, writer.batch_size)
+        if getattr(writer, "write_in_worker", None) is True:
+            items = writer.batch_fn(items, writer.batch_size)
             # get the 1st element (2nd is the count)
             for item in items:
                 item, count = writer.handle_batch(item)
@@ -163,9 +163,9 @@ def execute_spark_backend(
             for item in df.rdd.mapPartitions(process_partition).toLocalIterator()
         )
 
-        if getattr(writer, "batch_in_worker", None) is False:
+        if getattr(writer, "write_in_worker", None) is False:
             writer: BatchWriter
-            items = writer.batch_by(items, writer.batch_size)
+            items = writer.batch_fn(items, writer.batch_size)
             # get the 1st element (2nd is the count)
             items = (writer.handle_batch(b)[0] for b in items)
         return items if writer is None else writer.consolidate(items)

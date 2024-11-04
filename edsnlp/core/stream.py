@@ -66,6 +66,7 @@ class _InferType:
 
 
 INFER = _InferType()
+CONTEXT = [{}]
 
 T = TypeVar("T")
 
@@ -152,18 +153,23 @@ class BatchifyOp(Op):
 
 
 class MapOp(Op):
-    def __init__(self, pipe, kwargs):
+    def __init__(self, pipe, kwargs, context=None):
         self.pipe = pipe
         self.kwargs = kwargs
         self.is_generator = deep_isgeneratorfunction(pipe)
         self.elementwise = not self.is_generator
+        self.context = context or {}
 
     def __call__(self, items):
         for item in items:
             if isinstance(item, StreamSentinel):
                 yield item
                 continue
+
+            CONTEXT[0], old = self.context, CONTEXT[0]
             res = self.pipe(item, **self.kwargs)
+            CONTEXT[0] = old
+
             if self.is_generator:
                 yield from res
             else:
@@ -178,13 +184,14 @@ class MapOp(Op):
 
 
 class MapBatchesOp(Op):
-    def __init__(self, pipe, kwargs, elementwise=False):
+    def __init__(self, pipe, kwargs, context=None, elementwise=False):
         self.pipe = pipe
         self.kwargs = kwargs
         self.is_generator = deep_isgeneratorfunction(pipe)
         if elementwise and self.is_generator:
             raise ValueError("Cannot use elementwise=True with a generator function")
         self.elementwise = elementwise
+        self.context = context or {}
 
     def __call__(self, batches):
         if hasattr(self.pipe, "batch_process"):
@@ -192,7 +199,9 @@ class MapBatchesOp(Op):
                 if isinstance(batch, StreamSentinel):
                     yield batch
                     continue
+                CONTEXT[0], old = self.context, CONTEXT[0]
                 res = self.pipe.batch_process(batch, **self.kwargs)
+                CONTEXT[0] = old
                 res = list(res) if self.is_generator else (res,)
                 yield from res
         else:
@@ -202,11 +211,13 @@ class MapBatchesOp(Op):
                     continue
                 results = []
                 for item in batch:
+                    CONTEXT[0], old = self.context, CONTEXT[0]
                     res = (
                         item
                         if isinstance(item, StreamSentinel)
                         else self.pipe(item, **self.kwargs)
                     )
+                    CONTEXT[0] = old
                     res = list(res) if self.is_generator else (res,)
                     results.extend(res)
                 yield results
@@ -727,6 +738,8 @@ class Stream(metaclass=MetaStream):
                 )
             ):
                 op.kwargs["tokenizer"] = tokenizer
+            if isinstance(op, (MapOp, MapBatchesOp)):
+                op.context["tokenizer"] = tokenizer
             new_ops.append(op)
         new_ops.append(MapOp(model._ensure_doc, {}))
         batch_size, batch_by = self.validate_batching(batch_size, batch_by)

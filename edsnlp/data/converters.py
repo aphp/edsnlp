@@ -4,7 +4,6 @@ There are two types of converters: readers and writers. Readers convert dictiona
 Doc objects, and writers convert Doc objects to dictionaries.
 """
 
-import contextlib
 import inspect
 from copy import copy
 from types import FunctionType
@@ -26,6 +25,7 @@ from spacy.tokens import Doc, Span
 
 import edsnlp
 from edsnlp import registry
+from edsnlp.core.stream import CONTEXT
 from edsnlp.utils.bindings import BINDING_GETTERS
 from edsnlp.utils.span_getters import (
     SpanGetterArg,
@@ -136,19 +136,11 @@ def validate_attributes_mapping(value: AttributesMappingArg) -> Dict[str, str]:
 
 def get_current_tokenizer():
     global _DEFAULT_TOKENIZER
+    if "tokenizer" in CONTEXT[0]:
+        return CONTEXT[0]["tokenizer"]
     if _DEFAULT_TOKENIZER is None:
         _DEFAULT_TOKENIZER = edsnlp.blank("eds").tokenizer
     return _DEFAULT_TOKENIZER
-
-
-@contextlib.contextmanager
-def set_current_tokenizer(tokenizer):
-    global _DEFAULT_TOKENIZER
-    old = _DEFAULT_TOKENIZER
-    if tokenizer:
-        _DEFAULT_TOKENIZER = tokenizer
-    yield
-    _DEFAULT_TOKENIZER = old
 
 
 @registry.factory.register("eds.standoff_dict2doc", spacy_compatible=False)

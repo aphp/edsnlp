@@ -20,19 +20,22 @@ def execute_simple_backend(stream: Stream):
     try:
         torch = sys.modules["torch"]
         no_grad_ctx = torch.no_grad()
-        autocast_device_type = next(
+        device = next(
             (p.device for pipe in stream.torch_components() for p in pipe.parameters()),
             torch.device("cpu"),
-        ).type.split(":")[0]
-        autocast_dtype = stream.autocast if stream.autocast is not True else None
-        autocast_ctx = (
-            torch.autocast(
-                device_type=autocast_device_type,
-                dtype=autocast_dtype,
-            )
-            if stream.autocast
-            else nullcontext()
         )
+        device_type = getattr(device, "type", device).split(":")[0]
+        autocast = stream.autocast
+        autocast_ctx = nullcontext()
+        try:
+            if autocast:
+                autocast_ctx = torch.autocast(
+                    device_type=device_type,
+                    dtype=autocast if autocast is not True else None,
+                )
+        except RuntimeError:  # pragma: no cover
+            pass
+
         inference_mode_ctx = (
             torch.inference_mode()
             if hasattr(torch, "inference_mode")

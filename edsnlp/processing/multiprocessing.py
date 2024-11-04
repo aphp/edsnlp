@@ -762,11 +762,15 @@ class GPUWorker(Worker):
         autocast = self.stream.autocast
         autocast_ctx = nullcontext()
         device = self.devices[self.uid]
-        if autocast:
-            autocast_ctx = torch.autocast(
-                device_type=getattr(device, "type", device).split(":")[0],
-                dtype=autocast if autocast is not True else None,
-            )
+        device_type = getattr(device, "type", device).split(":")[0]
+        try:
+            if autocast:
+                autocast_ctx = torch.autocast(
+                    device_type=device_type,
+                    dtype=autocast if autocast is not True else None,
+                )
+        except RuntimeError:  # pragma: no cover
+            pass
 
         with torch.no_grad(), autocast_ctx, torch.inference_mode():
             for item in self.iter_tasks(stage):
@@ -1249,7 +1253,12 @@ class MultiprocessingStreamExecutor:
             num_gpu_workers = 0
 
         max_cpu_workers = max(num_cpus - num_gpu_workers - 1, 0)
-        default_cpu_workers = max(min(max_cpu_workers, num_gpu_workers * 4), 1)
+        default_cpu_workers = max(
+            min(max_cpu_workers, num_gpu_workers * 4)
+            if num_gpu_workers > 0
+            else max_cpu_workers,
+            1,
+        )
         num_cpu_workers = (
             default_cpu_workers
             if stream.num_cpu_workers is None

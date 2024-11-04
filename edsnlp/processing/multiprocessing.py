@@ -1395,11 +1395,6 @@ def execute_multiprocessing_backend(stream: Stream):
     <div style="text-align:center">
         <img src="/assets/images/model-parallelism.png" />
     </div>
-
-    !!! warning "Caveat"
-
-        Since workers can produce their results in any order, the order of the results
-        may not be the same as the order of the input tasks.
     """
     executor = MultiprocessingStreamExecutor(stream)
     return executor.run()

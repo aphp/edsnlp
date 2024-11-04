@@ -1,4 +1,4 @@
-{% if config.only_parameters != "no-header" %}
+{% if config.only_parameters != "no-header" and config.header != false %}
 {{ "# Parameters\n"|convert_markdown(heading_level, html_id) }}
 {% endif %}
 {% if config.docstring_section_style == "table" %}

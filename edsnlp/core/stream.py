@@ -396,14 +396,15 @@ class Stream(metaclass=MetaStream):
         ----------
         batch_size: int
             Number of documents to process at a time in a GPU worker (or in the
-            main process if no workers are used).
-        batch_by: Literal["docs", "words", "padded_words"]
-            How to compute the batch size. Can be "docs" or "words" :
-
-            - "docs" (default) is the number of documents.
-            - "words" is the total number of words in the documents.
-            - "padded_words" is the total number of words in the documents, including
-               padding, assuming the documents are padded to the same length.
+            main process if no workers are used). This is the global batch size
+            that is used for batching methods that do not provide their own
+            batching arguments.
+        batch_by: BatchBy
+            Function to compute the batches. If set, it should take an iterable of
+            documents and return an iterable of batches. You can also set it to
+            "docs", "words" or "padded_words" to use predefined batching functions.
+            Defaults to "docs". Only used for operations that do not provide their
+            own batching arguments.
         num_cpu_workers: int
             Number of CPU workers. A CPU worker handles the non deep-learning components
             and the preprocessing, collating and postprocessing of deep-learning
@@ -502,14 +503,15 @@ class Stream(metaclass=MetaStream):
 
     def map(self, pipe, name: Optional[str] = None, kwargs={}) -> "Stream":
         """
-        Maps a callable to the documents.
+        Maps a callable to the documents. It takes a callable as input and an optional
+        dictionary of keyword arguments. The function will be applied to each element
+        of the collection. If the callable is a generator function, each element will
+        be yielded to the stream as is.
 
         Parameters
         ----------
         pipe: Any
             The callable to map to the documents.
-        name: Optional[str]
-            The name of the pipeline step.
         kwargs: Dict
             The keyword arguments to pass to the callable.
 
@@ -549,14 +551,14 @@ class Stream(metaclass=MetaStream):
     ) -> "Stream":
         """
         Maps a callable to a batch of documents. The callable should take a list of
-        inputs and return a **list** of outputs (not a single output).
+        inputs. The output of the callable will be flattened if it is a list or
+        a generator, or yielded to the stream as is if it is a single output (tuple
+        or any other type).
 
         Parameters
         ----------
         pipe: Any
             The callable to map to the documents.
-        name: Optional[str]
-            The name of the pipeline step.
         kwargs: Dict
             The keyword arguments to pass to the callable.
         batch_size: Optional[Union[int, str]]
@@ -597,7 +599,7 @@ class Stream(metaclass=MetaStream):
         batch_by: BatchBy = None,
     ) -> "Stream":
         """
-        Batches the documents.
+        Accumulates the documents into batches and yield each batch to the stream.
 
         Parameters
         ----------
@@ -652,8 +654,6 @@ class Stream(metaclass=MetaStream):
             An optional callable that takes the list of documents and the output of the
             deep learning operation, and returns the final output. This will be called
             on the same CPU-bound worker that called the `prepare_batch` function.
-        name: Optional[str]
-            The name of the pipeline step.
         batch_size: Optional[Union[int, str]]
             The batch size. Can also be a batching expression like
             "32 docs", "1024 words", "dataset", "fragment", etc.
@@ -694,7 +694,8 @@ class Stream(metaclass=MetaStream):
         batch_by: BatchBy = INFER,
     ) -> "Stream":
         """
-        Maps a pipeline to the documents.
+        Maps a pipeline to the documents, i.e. adds each component of the pipeline to
+        the stream operations. This function is called under the hood by `nlp.pipe()`
 
         Parameters
         ----------
@@ -774,7 +775,19 @@ class Stream(metaclass=MetaStream):
         shuffle_reader: Optional[Union[bool, str]] = None,
     ) -> "Stream":
         """
-        Shuffles the stream.
+        Shuffles the stream by accumulating the documents into batches and shuffling
+        the batches. We try to optimize and avoid the accumulation by shuffling items
+        directly in the reader, but if some upstream operations are not elementwise
+        or if the reader is not compatible with the batching mode, we have to accumulate
+        the documents into batches and shuffle the batches.
+
+        For instance, imagine a reading from list of 2 very large documents and applying
+        an operation to split the documents into sentences. Shuffling only in the
+        reader, then applying the split operation would not shuffle the sentences across
+        documents and may lead to a lack of randomness when training a model. Think of
+        this as having lumps after mixing your data. In our case, we detect that the
+        split op is not elementwise and trigger the accumulation of sentences into
+        batches after their generation before shuffling the batches.
 
         Parameters
         ----------
@@ -825,6 +838,35 @@ class Stream(metaclass=MetaStream):
                 kwargs={"rng": random.Random(seed)},
             )
         stream.validate_ops(ops=stream.ops, update=False)
+        return stream
+
+    def loop(self) -> "Stream":
+        """
+        Loops over the stream indefinitely.
+
+        Note that we cycle over items produced by the reader, not the items produced by
+        the stream operations. This means that the stream operations will be applied to
+        the same items multiple times, and may produce different results if they are
+        non-deterministic. This also mean that calling this function will have the same
+        effect regardless of the operations applied to the stream before calling it, ie:
+
+        ```
+        stream.loop().map(...)
+        # is equivalent to
+        stream.map(...).loop()
+        ```
+
+        Returns
+        -------
+        Stream
+        """
+        stream = Stream(
+            reader=copy(self.reader),
+            writer=self.writer,
+            ops=self.ops,
+            config=self.config,
+        )
+        stream.reader.loop = True
         return stream
 
     def write(self, writer: BaseWriter, execute: bool = True) -> Any:
@@ -922,34 +964,6 @@ class Stream(metaclass=MetaStream):
             ops=self.ops,
             config=self.config,
         )
-
-    def loop(self) -> "Stream":
-        """
-        Loops over the stream indefinitely.
-        Note that we cycle over items produced by the reader, not the items produced by
-        the stream operations. This means that the stream operations will be applied to
-        the same items multiple times, and may produce different results if they are
-        non-deterministic. This also mean that calling this function will have the same
-        effect regardless of the operations applied to the stream before calling it, ie:
-
-        ```
-        stream.loop().map(...)
-        # is equivalent to
-        stream.map(...).loop()
-        ```
-
-        Returns
-        -------
-        Stream
-        """
-        stream = Stream(
-            reader=copy(self.reader),
-            writer=self.writer,
-            ops=self.ops,
-            config=self.config,
-        )
-        stream.reader.loop = True
-        return stream
 
     def __dir__(self):  # pragma: no cover
         return (*super().__dir__(), *edsnlp.data.__all__)

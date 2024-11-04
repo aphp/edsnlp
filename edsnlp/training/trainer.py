@@ -350,8 +350,10 @@ def train(
     num_workers: int
         The number of workers to use for preprocessing the data in parallel.
         Setting it to 0 means no parallelization : data is processed on the
-        main thread which may cause the GPU to be underutilized. Because
-        of how EDS-NLP handles stream multiprocessing, changing this value
+        main thread which may induce latency slow down the training. To
+        avoid this, a good practice consist in doing the preprocessing either
+        before training or in parallel in a separate process. Because of how
+        EDS-NLP handles stream multiprocessing, changing this value
         will affect the order of the documents in the produces batches.
         A stream [1, 2, 3, 4, 5, 6] split in batches of size 3 will produce:
 

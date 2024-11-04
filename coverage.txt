@@ -1,26 +1,26 @@
 Name                                                                                    Stmts   Miss   Cover   Missing
 ----------------------------------------------------------------------------------------------------------------------
-edsnlp/__init__.py                                                                         36      0 100.00%
+edsnlp/__init__.py                                                                         25      0 100.00%
 edsnlp/conjugator.py                                                                       25      0 100.00%
 edsnlp/connectors/__init__.py                                                               2      0 100.00%
 edsnlp/connectors/brat.py                                                                  22      0 100.00%
 edsnlp/connectors/labeltool.py                                                             19      0 100.00%
 edsnlp/connectors/omop.py                                                                  84      4  95.24%   70, 88, 128, 172
 edsnlp/core/__init__.py                                                                     2      0 100.00%
-edsnlp/core/lazy_collection.py                                                            151      2  98.68%   52, 449
-edsnlp/core/pipeline.py                                                                   410      1  99.76%   553
-edsnlp/core/registries.py                                                                 164      1  99.39%   79
-edsnlp/core/torch_component.py                                                            179      2  98.88%   391, 437
+edsnlp/core/pipeline.py                                                                   443      6  98.65%   488-489, 611, 722-724
+edsnlp/core/registries.py                                                                 164      1  99.39%   96
+edsnlp/core/stream.py                                                                     354      2  99.44%   210-211
+edsnlp/core/torch_component.py                                                            179      3  98.32%   393, 439, 464
 edsnlp/data/__init__.py                                                                     3      0 100.00%
-edsnlp/data/base.py                                                                        39      5  87.18%   175-180
+edsnlp/data/base.py                                                                        78      0 100.00%
 edsnlp/data/brat.py                                                                         5      0 100.00%
-edsnlp/data/converters.py                                                                 192      1  99.48%   660
-edsnlp/data/json.py                                                                       107      2  98.13%   95, 97
-edsnlp/data/pandas.py                                                                      45      0 100.00%
-edsnlp/data/parquet.py                                                                     92      0 100.00%
-edsnlp/data/polars.py                                                                      44      1  97.73%   27
-edsnlp/data/spark.py                                                                       55      0 100.00%
-edsnlp/data/standoff.py                                                                   172      3  98.26%   44, 84, 198
+edsnlp/data/converters.py                                                                 204      2  99.02%   143, 672
+edsnlp/data/json.py                                                                       113      1  99.12%   88
+edsnlp/data/pandas.py                                                                      53      0 100.00%
+edsnlp/data/parquet.py                                                                    100      0 100.00%
+edsnlp/data/polars.py                                                                      54      1  98.15%   36
+edsnlp/data/spark.py                                                                       64      0 100.00%
+edsnlp/data/standoff.py                                                                   185      2  98.92%   39, 193
 edsnlp/extensions.py                                                                       26      0 100.00%
 edsnlp/language.py                                                                         51      1  98.04%   104
 edsnlp/matchers/__init__.py                                                                 0      0 100.00%
@@ -29,8 +29,10 @@ edsnlp/matchers/simstring.py                                                    
 edsnlp/matchers/utils/__init__.py                                                          13      0 100.00%
 edsnlp/matchers/utils/offset.py                                                             1      0 100.00%
 edsnlp/matchers/utils/text.py                                                               1      0 100.00%
-edsnlp/optimization.py                                                                     77      4  94.81%   33, 37, 41, 90
-edsnlp/package.py                                                                         158      0 100.00%
+edsnlp/metrics/__init__.py                                                                 30      0 100.00%
+edsnlp/metrics/ner.py                                                                     114      0 100.00%
+edsnlp/metrics/span_attributes.py                                                          71      2  97.18%   57-58
+edsnlp/package.py                                                                         207      3  98.55%   476-477, 482
 edsnlp/patch_spacy.py                                                                      31      2  93.55%   68-69
 edsnlp/pipes/__init__.py                                                                    3      0 100.00%
 edsnlp/pipes/base.py                                                                       75      0 100.00%
@@ -38,9 +40,9 @@ edsnlp/pipes/core/__init__.py                                                   
 edsnlp/pipes/core/contextual_matcher/__init__.py                                            1      0 100.00%
 edsnlp/pipes/core/contextual_matcher/contextual_matcher.py                                143      2  98.60%   95, 344
 edsnlp/pipes/core/contextual_matcher/factory.py                                             4      0 100.00%
-edsnlp/pipes/core/contextual_matcher/models.py                                            115      2  98.26%   20-23
+edsnlp/pipes/core/contextual_matcher/models.py                                            138      2  98.55%   29-32
 edsnlp/pipes/core/endlines/__init__.py                                                      0      0 100.00%
-edsnlp/pipes/core/endlines/endlines.py                                                     87      7  91.95%   156-159, 163-164, 196, 283
+edsnlp/pipes/core/endlines/endlines.py                                                     87      7  91.95%   157-160, 164-165, 197, 284
 edsnlp/pipes/core/endlines/factory.py                                                       4      0 100.00%
 edsnlp/pipes/core/endlines/functional.py                                                   13      0 100.00%
 edsnlp/pipes/core/endlines/model.py                                                       256      0 100.00%
@@ -68,8 +70,8 @@ edsnlp/pipes/core/normalizer/spaces/__init__.py                                 
 edsnlp/pipes/core/normalizer/spaces/factory.py                                              4      0 100.00%
 edsnlp/pipes/core/normalizer/spaces/spaces.py                                              14      0 100.00%
 edsnlp/pipes/core/sentences/__init__.py                                                     1      0 100.00%
-edsnlp/pipes/core/sentences/factory.py                                                      7      0 100.00%
-edsnlp/pipes/core/sentences/sentences.py                                                   14      0 100.00%
+edsnlp/pipes/core/sentences/factory.py                                                      3      0 100.00%
+edsnlp/pipes/core/sentences/sentences.py                                                   16      0 100.00%
 edsnlp/pipes/core/sentences/terms.py                                                        1      0 100.00%
 edsnlp/pipes/core/terminology/__init__.py                                                   0      0 100.00%
 edsnlp/pipes/core/terminology/factory.py                                                    4      0 100.00%
@@ -80,9 +82,9 @@ edsnlp/pipes/misc/consultation_dates/consultation_dates.py                      
 edsnlp/pipes/misc/consultation_dates/factory.py                                             4      0 100.00%
 edsnlp/pipes/misc/consultation_dates/patterns.py                                            3      0 100.00%
 edsnlp/pipes/misc/dates/__init__.py                                                         1      0 100.00%
-edsnlp/pipes/misc/dates/dates.py                                                          152     15  90.13%   249, 251, 253, 357-365, 451, 462-463
+edsnlp/pipes/misc/dates/dates.py                                                          153     15  90.20%   250, 252, 254, 358-366, 452, 463-464
 edsnlp/pipes/misc/dates/factory.py                                                          4      0 100.00%
-edsnlp/pipes/misc/dates/models.py                                                         196     11  94.39%   153, 157-162, 171-172, 189, 205
+edsnlp/pipes/misc/dates/models.py                                                         199     11  94.47%   157, 161-166, 175-176, 193, 209
 edsnlp/pipes/misc/dates/patterns/__init__.py                                                5      0 100.00%
 edsnlp/pipes/misc/dates/patterns/absolute.py                                               24      0 100.00%
 edsnlp/pipes/misc/dates/patterns/atomic/__init__.py                                         0      0 100.00%
@@ -111,6 +113,8 @@ edsnlp/pipes/misc/sections/__init__.py                                          
 edsnlp/pipes/misc/sections/factory.py                                                       5      0 100.00%
 edsnlp/pipes/misc/sections/patterns.py                                                     23      0 100.00%
 edsnlp/pipes/misc/sections/sections.py                                                     45      1  97.78%   127
+edsnlp/pipes/misc/split/__init__.py                                                         1      0 100.00%
+edsnlp/pipes/misc/split/split.py                                                           71      2  97.18%   178-179
 edsnlp/pipes/misc/tables/__init__.py                                                        1      0 100.00%
 edsnlp/pipes/misc/tables/factory.py                                                         4      0 100.00%
 edsnlp/pipes/misc/tables/patterns.py                                                        2      0 100.00%
@@ -119,7 +123,7 @@ edsnlp/pipes/ner/__init__.py                                                    
 edsnlp/pipes/ner/adicap/__init__.py                                                         0      0 100.00%
 edsnlp/pipes/ner/adicap/adicap.py                                                          36      0 100.00%
 edsnlp/pipes/ner/adicap/factory.py                                                          5      0 100.00%
-edsnlp/pipes/ner/adicap/models.py                                                          14      2  85.71%   16, 19
+edsnlp/pipes/ner/adicap/models.py                                                          16      2  87.50%   16, 19
 edsnlp/pipes/ner/adicap/patterns.py                                                         7      0 100.00%
 edsnlp/pipes/ner/behaviors/__init__.py                                                      0      0 100.00%
 edsnlp/pipes/ner/behaviors/alcohol/__init__.py                                              0      0 100.00%
@@ -201,7 +205,7 @@ edsnlp/pipes/ner/disorders/peripheral_vascular_disease/peripheral_vascular_disea
 edsnlp/pipes/ner/disorders/solid_tumor/__init__.py                                          0      0 100.00%
 edsnlp/pipes/ner/disorders/solid_tumor/factory.py                                           5      0 100.00%
 edsnlp/pipes/ner/disorders/solid_tumor/patterns.py                                          6      0 100.00%
-edsnlp/pipes/ner/disorders/solid_tumor/solid_tumor.py                                      37     12  67.57%   122-124, 127-136, 157
+edsnlp/pipes/ner/disorders/solid_tumor/solid_tumor.py                                      37      6  83.78%   131-136
 edsnlp/pipes/ner/disorders/terms.py                                                         4      0 100.00%
 edsnlp/pipes/ner/drugs/__init__.py                                                          0      0 100.00%
 edsnlp/pipes/ner/drugs/factory.py                                                          10      0 100.00%
@@ -235,9 +239,9 @@ edsnlp/pipes/ner/suicide_attempt/patterns.py                                    
 edsnlp/pipes/ner/suicide_attempt/suicide_attempt.py                                        28      0 100.00%
 edsnlp/pipes/ner/tnm/__init__.py                                                            0      0 100.00%
 edsnlp/pipes/ner/tnm/factory.py                                                             5      0 100.00%
-edsnlp/pipes/ner/tnm/model.py                                                             104      2  98.08%   140, 164
+edsnlp/pipes/ner/tnm/model.py                                                             110      2  98.18%   148, 172
 edsnlp/pipes/ner/tnm/patterns.py                                                           16      0 100.00%
-edsnlp/pipes/ner/tnm/tnm.py                                                                44      2  95.45%   157-158
+edsnlp/pipes/ner/tnm/tnm.py                                                                43      0 100.00%
 edsnlp/pipes/ner/umls/__init__.py                                                           0      0 100.00%
 edsnlp/pipes/ner/umls/factory.py                                                           10      0 100.00%
 edsnlp/pipes/ner/umls/patterns.py                                                          43      0 100.00%
@@ -268,45 +272,43 @@ edsnlp/pipes/trainable/__init__.py                                              
 edsnlp/pipes/trainable/embeddings/__init__.py                                               0      0 100.00%
 edsnlp/pipes/trainable/embeddings/span_pooler/__init__.py                                   0      0 100.00%
 edsnlp/pipes/trainable/embeddings/span_pooler/factory.py                                    3      0 100.00%
-edsnlp/pipes/trainable/embeddings/span_pooler/span_pooler.py                               67      0 100.00%
+edsnlp/pipes/trainable/embeddings/span_pooler/span_pooler.py                               68      0 100.00%
 edsnlp/pipes/trainable/embeddings/text_cnn/__init__.py                                      0      0 100.00%
 edsnlp/pipes/trainable/embeddings/text_cnn/factory.py                                       3      0 100.00%
 edsnlp/pipes/trainable/embeddings/text_cnn/text_cnn.py                                     22      0 100.00%
 edsnlp/pipes/trainable/embeddings/transformer/__init__.py                                   0      0 100.00%
 edsnlp/pipes/trainable/embeddings/transformer/factory.py                                    3      0 100.00%
-edsnlp/pipes/trainable/embeddings/transformer/transformer.py                              157      1  99.36%   166
+edsnlp/pipes/trainable/embeddings/transformer/transformer.py                              160      1  99.38%   166
 edsnlp/pipes/trainable/embeddings/typing.py                                                18      0 100.00%
 edsnlp/pipes/trainable/layers/__init__.py                                                   0      0 100.00%
-edsnlp/pipes/trainable/layers/crf.py                                                      137      5  96.35%   22, 30, 98, 108, 117
+edsnlp/pipes/trainable/layers/crf.py                                                      137      5  96.35%   22, 30, 99, 109, 118
 edsnlp/pipes/trainable/layers/metric.py                                                    42      0 100.00%
 edsnlp/pipes/trainable/layers/text_cnn.py                                                  56      0 100.00%
 edsnlp/pipes/trainable/ner_crf/__init__.py                                                  1      0 100.00%
 edsnlp/pipes/trainable/ner_crf/factory.py                                                   3      0 100.00%
-edsnlp/pipes/trainable/ner_crf/ner_crf.py                                                 157      3  98.09%   251, 259-260
+edsnlp/pipes/trainable/ner_crf/ner_crf.py                                                 160      3  98.12%   255, 263-264
 edsnlp/pipes/trainable/span_classifier/__init__.py                                          1      0 100.00%
 edsnlp/pipes/trainable/span_classifier/factory.py                                           3      0 100.00%
-edsnlp/pipes/trainable/span_classifier/span_classifier.py                                 158      0 100.00%
+edsnlp/pipes/trainable/span_classifier/span_classifier.py                                 159      1  99.37%   346
 edsnlp/pipes/trainable/span_linker/__init__.py                                              1      0 100.00%
 edsnlp/pipes/trainable/span_linker/factory.py                                               4      0 100.00%
-edsnlp/pipes/trainable/span_linker/span_linker.py                                         172      2  98.84%   402-403
+edsnlp/pipes/trainable/span_linker/span_linker.py                                         173      2  98.84%   403-404
 edsnlp/processing/__init__.py                                                               3      0 100.00%
 edsnlp/processing/deprecated_pipe.py                                                       57      2  96.49%   208-209
-edsnlp/processing/multiprocessing.py                                                      420     16  96.19%   228-231, 250, 253-259, 453, 571-572, 950, 1018
-edsnlp/processing/simple.py                                                                57      0 100.00%
-edsnlp/processing/spark.py                                                                 43      1  97.67%   52
-edsnlp/processing/utils.py                                                                 15      0 100.00%
+edsnlp/processing/multiprocessing.py                                                      635     25  96.06%   247, 250-256, 449-453, 457-459, 594, 658-659, 816, 1129-1135, 1155
+edsnlp/processing/simple.py                                                                60      0 100.00%
+edsnlp/processing/spark.py                                                                 47      1  97.87%   51
 edsnlp/reducers.py                                                                         51      0 100.00%
-edsnlp/scorers/__init__.py                                                                 31      0 100.00%
-edsnlp/scorers/ner.py                                                                     110      0 100.00%
-edsnlp/scorers/span_attributes.py                                                          65      0 100.00%
-edsnlp/train.py                                                                           257      8  96.89%   191, 258-263, 350, 352, 386-387
+edsnlp/training/__init__.py                                                                 2      0 100.00%
+edsnlp/training/optimization.py                                                           126      4  96.83%   38, 42, 46, 102
+edsnlp/training/trainer.py                                                                202      2  99.01%   78, 95
 edsnlp/utils/__init__.py                                                                    0      0 100.00%
-edsnlp/utils/batching.py                                                                   57      0 100.00%
-edsnlp/utils/bindings.py                                                                   66      1  98.48%   23
-edsnlp/utils/collections.py                                                               155      0 100.00%
+edsnlp/utils/batching.py                                                                  187      2  98.93%   289, 348
+edsnlp/utils/bindings.py                                                                   65      1  98.46%   24
+edsnlp/utils/collections.py                                                               159      0 100.00%
 edsnlp/utils/deprecation.py                                                                15      0 100.00%
 edsnlp/utils/doc_to_text.py                                                                62      0 100.00%
-edsnlp/utils/examples.py                                                                   54      0 100.00%
+edsnlp/utils/examples.py                                                                   61      0 100.00%
 edsnlp/utils/extensions.py                                                                  6      0 100.00%
 edsnlp/utils/file_system.py                                                                24      0 100.00%
 edsnlp/utils/filter.py                                                                     74      1  98.65%   207
@@ -315,9 +317,10 @@ edsnlp/utils/lazy_module.py                                                     
 edsnlp/utils/numbers.py                                                                    16      4  75.00%   35, 39-41
 edsnlp/utils/regex.py                                                                      17      0 100.00%
 edsnlp/utils/resources.py                                                                  24      1  95.83%   34
-edsnlp/utils/span_getters.py                                                              153     14  90.85%   53-55, 60-61, 63-64, 67, 76-78, 83, 125, 163
+edsnlp/utils/span_getters.py                                                              149     14  90.60%   53-55, 60-61, 63-64, 67, 76-78, 83, 125, 163
 edsnlp/utils/spark_dtypes.py                                                               92      0 100.00%
-edsnlp/utils/torch.py                                                                      31      0 100.00%
-edsnlp/utils/typing.py                                                                     27      0 100.00%
+edsnlp/utils/stream_sentinels.py                                                           14      0 100.00%
+edsnlp/utils/torch.py                                                                      33      0 100.00%
+edsnlp/utils/typing.py                                                                     55      0 100.00%
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                    9442    210  97.78%
+TOTAL                                                                                   10326    215  97.92%

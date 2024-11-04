@@ -166,3 +166,8 @@ body, input {
 .md-typeset code a:not(.md-annotation__index) {
     border-bottom: 1px dashed var(--md-typeset-a-color);
 }
+
+.md-typeset .compact-table.md-typeset__table th, .md-typeset .compact-table.md-typeset__table td {
+    min-width: initial !important;
+    padding: .5em 0.75em;
+}

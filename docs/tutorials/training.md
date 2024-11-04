@@ -1,7 +1,7 @@
 # Training a Named Entity Recognition model
 
 In this tutorial, we'll see how we can train a deep learning model with EDS-NLP.
-We also recommend looking at an existing project as a reference, such as [eds-pseudo](https://github.com/eds-pseudo) or [mlnorm](https://github.com/percevalw/mlnorm).
+We also recommend looking at an existing project as a reference, such as [eds-pseudo](https://github.com/aphp/eds-pseudo) or [mlg-norm](https://github.com/percevalw/mlg-norm).
 
 !!! warning "Hardware requirements"
 

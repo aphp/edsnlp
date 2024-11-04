@@ -120,10 +120,10 @@ During the training loop, when computing the loss for each component, the forwar
 
 ## Implementation example
 
-Here is an example of a trainable component:
+Here is a draft of a trainable component:
 
 ```python
-from typing import Any, Dict, Iterable, Sequence
+from typing import Any, Dict, Iterable, Sequence, List, Set
 
 import torch
 from tqdm import tqdm
@@ -138,12 +138,27 @@ class MyComponent(TorchComponent):
         self,  # A subcomponent
         nlp: Pipeline,
         name: str,
+        *,
         embedding: TorchComponent,
     ):
         super().__init__(nlp=nlp, name=name)
         self.embedding = embedding
 
     def post_init(self, gold_data: Iterable["spacy.tokens.Doc"], exclude: set):
+        """
+        This method completes the attributes of the component, by looking at some
+        documents. It is especially useful to build vocabularies or detect the labels
+        of a classification task.
+
+        Parameters
+        ----------
+        gold_data: Iterable[Doc]
+            The documents to use for initialization.
+        exclude: Set
+            The names of components to exclude from initialization.
+            This argument will be gradually updated  with the names of initialized
+            components
+        """
         super().post_init(gold_data, exclude)
 
         # Initialize the component with the gold documents
@@ -159,23 +174,61 @@ class MyComponent(TorchComponent):
         # Initialize any layer that might be missing from the module
         self.classifier = torch.nn.Linear(...)
 
-    def preprocess(self, doc: "spacy.tokens.Doc") -> Dict[str, Any]:
-        # Preprocess the doc to extract features required to run the embedding
-        # subcomponent, and this component
+    def preprocess(self, doc: "spacy.tokens.Doc", **kwargs) -> Dict[str, Any]:
+        """
+        Preprocess the document to extract features that will be used by the
+        neural network and its subcomponents on to perform its predictions.
+
+        Parameters
+        ----------
+        doc: Doc
+            Document to preprocess
+
+        Returns
+        -------
+        Dict[str, Any]
+            Dictionary (optionally nested) containing the features extracted from
+            the document.
+        """
         return {
             "embedding": self.embedding.preprocess(doc),
             "my-feature": ...,
         }
 
     def collate(self, batch) -> Dict:
-        # Collate the features of the "embedding" subcomponent
-        # and the features of this component as well
+        """
+        Collate the batch of features into a single batch of tensors that can be
+        used by the forward method of the component.
+
+        Parameters
+        ----------
+        batch: Dict[str, Any]
+            Batch of features
+
+        Returns
+        -------
+        BatchInput
+            Dictionary (optionally nested) containing the collated tensors
+        """
         return {
             "embedding": self.embedding.collate(batch["embedding"]),
             "my-feature": torch.as_tensor(batch["my-feature"]),
         }
 
     def forward(self, batch: Dict) -> Dict:
+        """
+        Perform the forward pass of the neural network.
+
+        Parameters
+        ----------
+        batch: BatchInput
+            Batch of tensors (nested dictionary) computed by the collate method
+
+        Returns
+        -------
+        BatchOutput
+            Dict of scores, losses, embeddings tensors, etc.
+        """
         # Call the embedding subcomponent
         embeds = self.embedding(batch["embedding"])
 
@@ -185,9 +238,28 @@ class MyComponent(TorchComponent):
         return output
 
     def postprocess(
-        self, docs: Sequence["spacy.tokens.Doc"], output: Dict
+        self,
+        docs: Sequence["spacy.tokens.Doc"],
+        results: Dict,
+        inputs: List[Dict[str, Any]],
     ) -> Sequence["spacy.tokens.Doc"]:
-        # Annotate the docs with the outputs of the forward method
+        """
+        Update the documents with the predictions of the neural network.
+        By default, this is a no-op.
+
+        Parameters
+        ----------
+        docs: Sequence[Doc]
+            List of documents to update
+        results: BatchOutput
+            Batch of predictions, as returned by the forward method
+        inputs: BatchInput
+            List of preprocessed features, as returned by the preprocess method
+
+        Returns
+        -------
+        Sequence[Doc]
+        """
         ...
         return docs
 ```

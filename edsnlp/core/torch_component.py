@@ -244,7 +244,7 @@ class TorchComponent(
     def preprocess(self, doc: Doc, **kwargs) -> Dict[str, Any]:
         """
         Preprocess the document to extract features that will be used by the
-        neural network to perform its predictions.
+        neural network and its subcomponents on to perform its predictions.
 
         Parameters
         ----------

@@ -141,7 +141,7 @@ class TrainableSpanClassifier(
     nlp.post_init(gold_data)
     ```
 
-    To train the model, refer to the [Training](/tutorials/training.md) tutorial.
+    To train the model, refer to the [Training](/tutorials/training) tutorial.
 
     You can inspect the bindings that will be used for training and prediction
     ```{ .python .no-check }

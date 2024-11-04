@@ -113,7 +113,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
     )
     ```
 
-    To train the model, refer to the [Training](/tutorials/make-a-training-script)
+    To train the model, refer to the [Training](/tutorials/training)
     tutorial.
 
     Parameters

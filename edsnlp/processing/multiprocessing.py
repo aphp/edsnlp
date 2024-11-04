@@ -226,11 +226,6 @@ if (
 ):
     replace_pickler()
 
-if os.environ.get("TORCH_SHARING_STRATEGY"):  # pragma: no cover
-    try:
-        torch.multiprocessing.set_sharing_strategy(os.environ["TORCH_SHARING_STRATEGY"])
-    except NameError:
-        pass
 
 try:
     import torch
@@ -311,6 +306,12 @@ except (ImportError, AttributeError):  # pragma: no cover
 
     dump = dill.dump
 
+
+if os.environ.get("TORCH_SHARING_STRATEGY"):  # pragma: no cover
+    try:
+        torch.multiprocessing.set_sharing_strategy(os.environ["TORCH_SHARING_STRATEGY"])
+    except NameError:
+        pass
 
 U = TypeVar("U")
 T = TypeVar("T")

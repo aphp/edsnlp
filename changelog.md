@@ -24,6 +24,7 @@
 - Sort files before iterating over a standoff or json folder to ensure reproducibility
 - Sentence detection now correctly match capitalized letters + apostrophe
 - We now ensure that the workers pool is properly closed whatever happens (exception, garbage collection, data ending) in the `multiprocessing` backend. This prevents some executions from hanging indefinitely at the end of the processing.
+- Propagate torch sharing strategy to other workers in the `multiprocessing` backend. This is useful when the system is running out of file descriptors and `ulimit -n` is not an option. Torch sharing strategy can also be set via an environment variable `TORCH_SHARING_STRATEGY` (default is `file_descriptor`, [consider using `file_system` if you encounter issues](https://pytorch.org/docs/stable/multiprocessing.html#file-system-file-system)).
 
 ### Data API changes
 

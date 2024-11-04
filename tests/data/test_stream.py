@@ -58,19 +58,22 @@ def test_map_gpu(num_gpu_workers):
     assert set(res.tolist()) == {i * 2 for i in range(15)}
 
 
+# fmt: off
 @pytest.mark.parametrize(
-    "sort,num_cpu_workers,batch_by,expected",
+    "sort,num_cpu_workers,batch_kwargs,expected",
     [
-        (False, 1, "words", [3, 1, 3, 1, 3, 1]),
-        (False, 1, "padded_words", [2, 1, 1, 2, 1, 1, 2, 1, 1]),
-        (False, 1, "docs", [10, 2]),
-        (False, 2, "words", [2, 1, 2, 1, 2, 1, 1, 1, 1]),
-        (False, 2, "padded_words", [2, 1, 2, 1, 2, 1, 1, 1, 1]),
-        (False, 2, "docs", [6, 6]),
-        (True, 2, "padded_words", [3, 3, 2, 1, 1, 1, 1]),
+        (False, 1, {"batch_size": 10, "batch_by": "words"}, [3, 1, 3, 1, 3, 1]),  # noqa: E501
+        (False, 1, {"batch_size": 10, "batch_by": "padded_words"}, [2, 1, 1, 2, 1, 1, 2, 1, 1]),  # noqa: E501
+        (False, 1, {"batch_size": 10, "batch_by": "docs"}, [10, 2]),  # noqa: E501
+        (False, 2, {"batch_size": 10, "batch_by": "words"}, [2, 1, 2, 1, 2, 1, 1, 1, 1]),  # noqa: E501
+        (False, 2, {"batch_size": 10, "batch_by": "padded_words"}, [2, 1, 2, 1, 2, 1, 1, 1, 1]),  # noqa: E501
+        (False, 2, {"batch_size": 10, "batch_by": "docs"}, [6, 6]),  # noqa: E501
+        (True, 2, {"batch_size": 10, "batch_by": "padded_words"}, [3, 3, 2, 1, 1, 1, 1]),  # noqa: E501
+        (False, 2, {"batch_size": "10 words"}, [2, 1, 2, 1, 2, 1, 1, 1, 1]),  # noqa: E501
     ],
 )
-def test_map_with_batching(sort, num_cpu_workers, batch_by, expected):
+# fmt: on
+def test_map_with_batching(sort, num_cpu_workers, batch_kwargs, expected):
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(
         "eds.matcher",
@@ -94,8 +97,7 @@ def test_map_with_batching(sort, num_cpu_workers, batch_by, expected):
     stream = stream.map_batches(len)
     stream = stream.set_processing(
         num_cpu_workers=num_cpu_workers,
-        batch_size=10,
-        batch_by=batch_by,
+        **batch_kwargs,
         chunk_size=1000,  # deprecated
         split_into_batches_after="matcher",
         show_progress=True,

@@ -129,7 +129,9 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
             "same."
         )
         aligned_contexts = (
-            [[c] for c in contexts] if pre_aligned else align_spans(contexts, spans)
+            [[c] for c in contexts]
+            if pre_aligned
+            else align_spans(contexts, spans, sort_by_overlap=True)
         )
         for i, (span, ctx) in enumerate(zip(spans, aligned_contexts)):
             if len(ctx) == 0 or ctx[0].start > span.start or ctx[0].end < span.end:
@@ -196,8 +198,9 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         """
         device = next(self.parameters()).device
         if len(batch["begins"]) == 0:
+            span_embeds = torch.empty(0, self.output_size, device=device)
             return {
-                "embeddings": torch.empty(0, self.output_size, device=device),
+                "embeddings": batch["begins"].with_data(span_embeds),
             }
 
         embeds = self.embedding(batch["embedding"])["embeddings"]

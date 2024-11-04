@@ -1,7 +1,7 @@
 from confit import Cli
 
-from edsnlp.core.registries import registry
-from edsnlp.training import train
+from edsnlp.training.trainer import *  # noqa: F403
+from edsnlp.training.trainer import registry, train
 
 app = Cli(pretty_exceptions_show_locals=False)
 train_command = app.command(name="train", registry=registry)(train)

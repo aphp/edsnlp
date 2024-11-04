@@ -398,7 +398,9 @@ omit-covered-files = false
 # badge-format = "svg"
 
 [tool.pytest.ini_options]
-timeout = 240
+# Some tests may download large objects such as the UMLS
+# This timeout is mostly here to kill the CI in the case of deadlocks or infinite loops
+timeout = 600
 
 [tool.coverage.report]
 precision = 2

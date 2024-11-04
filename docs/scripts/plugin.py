@@ -163,6 +163,13 @@ HTML_PIPE_REGEX = r"""(?x)
 """
 
 
+def get_ep_namespace(ep, namespace):
+    if hasattr(ep, "select"):
+        return ep.select(group=namespace)
+    else:  # dict
+        return ep.get(namespace, [])
+
+
 @mkdocs.plugins.event_priority(-1000)
 def on_post_page(
     output: str,
@@ -186,11 +193,12 @@ def on_post_page(
     """
 
     autorefs: AutorefsPlugin = config["plugins"]["autorefs"]
+    ep = entry_points()
     spacy_factories_entry_points = {
         ep.name: ep.value
         for ep in (
-            *entry_points()["spacy_factories"],
-            *entry_points()["edsnlp_factories"],
+            *get_ep_namespace(ep, "spacy_factories"),
+            *get_ep_namespace(ep, "edsnlp_factories"),
         )
     }
 

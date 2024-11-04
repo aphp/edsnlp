@@ -194,7 +194,7 @@ class TrainableSpanClassifier(
         embedding: SpanEmbeddingComponent,
         attributes: AttributesArg = None,
         qualifiers: AttributesArg = None,
-        span_getter: SpanGetterArg = {"ents": True},
+        span_getter: SpanGetterArg = None,
         context_getter: Optional[SpanGetterArg] = None,
         values: Optional[Dict[str, List[Any]]] = None,
         keep_none: bool = False,
@@ -217,6 +217,7 @@ class TrainableSpanClassifier(
             sub_span_getter is not None and span_getter is None
         ):  # pragma: no cover  # noqa: E501
             span_getter = sub_span_getter
+        span_getter = span_getter or {"ents": True}
         sub_context_getter = getattr(embedding, "context_getter", None)
         if (
             sub_context_getter is not None and context_getter is None

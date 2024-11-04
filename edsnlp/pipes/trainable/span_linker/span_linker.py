@@ -278,7 +278,7 @@ class TrainableSpanLinker(
         rescale: float = 20,
         threshold: float = 0.5,
         attribute: str = "cui",
-        span_getter: SpanGetterArg = {"ents": True},
+        span_getter: SpanGetterArg = None,
         context_getter: Optional[SpanGetterArg] = None,
         reference_mode: Literal["concept", "synonym"] = "concept",
         probability_mode: Literal["softmax", "sigmoid"] = "sigmoid",
@@ -289,6 +289,7 @@ class TrainableSpanLinker(
         sub_span_getter = getattr(embedding, "span_getter", None)
         if sub_span_getter is not None and span_getter is None:  # pragma: no cover
             span_getter = sub_span_getter
+        span_getter = span_getter or {"ents": True}
         sub_context_getter = getattr(embedding, "context_getter", None)
         if (
             sub_context_getter is not None and context_getter is None
@@ -309,7 +310,7 @@ class TrainableSpanLinker(
         self.reference_mode = reference_mode
         self.probability_mode = probability_mode
         self.init_weights = init_weights
-        self.context_getter: SpanGetter = context_getter or span_getter
+        self.context_getter: SpanGetter = context_getter or self.span_getter
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)
             self.classifier = Metric(

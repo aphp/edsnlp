@@ -11,11 +11,12 @@ from edsnlp.utils.span_getters import SpanGetterArg, get_spans
 def span_attribute_metric(
     examples: Examples,
     span_getter: SpanGetterArg,
-    attributes: Attributes,
+    attributes: Attributes = None,
     include_falsy: bool = False,
     default_values: Dict = {},
     micro_key: str = "micro",
     filter_expr: Optional[str] = None,
+    **kwargs: Any,
 ):
     """
     Scores the attributes predictions between a list of gold and predicted spans.
@@ -47,6 +48,23 @@ def span_attribute_metric(
     -------
     Dict[str, float]
     """
+    if "qualifiers" in kwargs:
+        warnings.warn(
+            "The `qualifiers` argument of span_attribute_metric() is "
+            "deprecated. Use `attributes` instead.",
+            DeprecationWarning,
+        )
+        assert attributes is None
+        attributes = kwargs.pop("qualifiers")
+    if attributes is None:
+        raise TypeError(
+            "span_attribute_metric() missing 1 required argument: 'attributes'"
+        )
+    if kwargs:
+        raise TypeError(
+            f"span_attribute_metric() got unexpected keyword arguments: "
+            f"{', '.join(kwargs.keys())}"
+        )
     examples = make_examples(examples)
     if filter_expr is not None:
         filter_fn = eval(f"lambda doc: {filter_expr}")

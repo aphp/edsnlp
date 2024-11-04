@@ -43,6 +43,9 @@ SCHEMA = {}
 
 _DEFAULT_TOKENIZER = None
 
+# For backward compatibility
+SequenceStr = AsList[str]
+
 
 def without_filename(d):
     d.pop(FILENAME, None)

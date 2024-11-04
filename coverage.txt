@@ -9,7 +9,7 @@ edsnlp/connectors/omop.py                                                       
 edsnlp/core/__init__.py                                                                     2      0 100.00%
 edsnlp/core/pipeline.py                                                                   443      6  98.65%   488-489, 611, 722-724
 edsnlp/core/registries.py                                                                 164      1  99.39%   96
-edsnlp/core/stream.py                                                                     354      2  99.44%   210-211
+edsnlp/core/stream.py                                                                     353      4  98.87%   191-192, 995-996
 edsnlp/core/torch_component.py                                                            179      3  98.32%   393, 439, 464
 edsnlp/data/__init__.py                                                                     3      0 100.00%
 edsnlp/data/base.py                                                                        78      0 100.00%
@@ -323,4 +323,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      33      0 100.00%
 edsnlp/utils/typing.py                                                                     55      0 100.00%
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   10326    215  97.92%
+TOTAL                                                                                   10325    217  97.90%

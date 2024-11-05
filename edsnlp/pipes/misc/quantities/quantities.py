@@ -449,7 +449,7 @@ class QuantitiesMatcher(BaseNERComponent):
     docs = docs.map_pipeline(nlp)
     docs.to_pandas(
         converter="ents",
-        span_attributes={"value.unit": "original_unit", "value.kg": "kg"},
+        span_attributes=["value.unit", "value.kg"],
     )
     #   note_id  start  end   label lexical_variant span_type original_unit    kg
     # 0    None     18   27  weight       40000,0 g      ents             g  40.0

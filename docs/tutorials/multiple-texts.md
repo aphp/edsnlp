@@ -102,16 +102,22 @@ There are a few issues with this approach:
 To efficiently perform the same operations on multiple documents at once, EDS-NLP uses [streams][edsnlp.core.stream.Stream], which record the operations to perform on the
 documents without actually executing them directly, similar to the way Spark does, or polars with its LazyFrame.
 
-This allows EDS-NLP to distribute these operations on multiple cores or machines when it is time to execute them. We can configure how the collection operations are run (how many jobs/workers, how
-many gpus, whether to use the spark engine) via the stream [`.set_processing(...)`][edsnlp.core.stream.Stream.set_processing] method.
+This allows EDS-NLP to distribute these operations on multiple cores or machines when it is time to execute them. We can configure how the collection operations are run (how many jobs/workers, how many gpus, whether to use the spark engine) via the stream [`set_processing()`][edsnlp.core.stream.Stream.set_processing] method.
 
 For instance,
 
 ```python
 docs = edsnlp.data.from_iterable(corpus)
-print(docs)
-# <edsnlp.core.stream.Stream object at 0x7f3e3c3e3d90>
+print(docs)  # (1)!
 ```
+
+1. Printed version of the stream:
+    ```
+    Stream(
+      reader=IterableReader(data=<list object at 0x1084532c0>),
+      ops=[],
+      writer=None)
+    ```
 
 as well as any `edsnlp.data.read_*` or `edsnlp.data.from_*` return a stream, that we can iterate over or complete with more operations. To apply the model on our collection of documents, we
 can simply do:
@@ -120,7 +126,27 @@ can simply do:
 docs = docs.map_pipeline(nlp)
 # or à la spaCy :
 # docs = nlp.pipe(docs)
+print(docs)  # (1)!
 ```
+
+1. Printed version of the stream:
+    ```
+    Stream(
+      reader=IterableReader(data=<list object at 0x1084532c0>),
+      ops=[
+        map(_ensure_doc[<edsnlp.core.pipeline.Pipeline object at 0x14f697f80>]),
+        batchify(size=None, fn=None, sentinel_mode=None),
+        map_batches_op(<edsnlp.pipes.core.sentences.sentences.SentenceSegmenter object at 0x14ac43ce0>),
+        map_batches_op(<edsnlp.pipes.core.normalizer.normalizer.Normalizer object at 0x14c5672c0>),
+        map_batches_op(<edsnlp.pipes.core.matcher.matcher.GenericMatcher object at 0x177013a40>),
+        map_batches_op(<edsnlp.pipes.qualifiers.negation.negation.NegationQualifier object at 0x16a1d1550>),
+        map_batches_op(<edsnlp.pipes.qualifiers.hypothesis.hypothesis.HypothesisQualifier object at 0x14ac433b0>),
+        map_batches_op(<edsnlp.pipes.qualifiers.family.family.FamilyContextQualifier object at 0x14f850da0>),
+        map_batches_op(<edsnlp.pipes.misc.dates.dates.DatesMatcher object at 0x1767638c0>),
+        unbatchify()
+      ],
+    writer=None)
+    ```
 
 ??? warning "SpaCy vs EDS-NLP"
 
@@ -174,13 +200,13 @@ df = docs.to_pandas(converter=convert_doc_to_rows)
 df = docs.to_pandas(
     converter="ents",
     span_getter=["ents", "dates"],
-    span_attributes={
+    span_attributes=[
         # span._.*** name: column name
-        "negation": "negation",
-        "hypothesis": "hypothesis",
-        "family": "family",
-        "date.datetime": "datetime",
-    },
+        "negation",
+        "hypothesis",
+        "family",
+        "date.datetime",
+    ],
 )
 ```
 
@@ -270,22 +296,22 @@ note_nlp = docs.to_pandas(
     converter="ents",
     # Below are the arguments to the converter
     span_getter=["ents", "dates"],
-    span_attributes={  # (1)
+    span_attributes=[  # (1)
         # span._.*** name: column name
-        "negation": "negation",
-        "hypothesis": "hypothesis",
-        "family": "family",
-        "date.datetime": "datetime",
+        "negation",
+        "hypothesis",
+        "family",
+        "date.datetime",
         # having individual columns for each date part
         # can be useful for incomplete dates (eg, "in May")
-        "date.day": "date_day",
-        "date.month": "date_month",
-        "date.year": "date_year",
-    },
+        "date.day",
+        "date.month",
+        "date.year",
+    ],
 )
 ```
 
-1. You can just pass a list if you don't want to rename the attributes.
+1. You can just pass a dict if you want to explicitely rename the attributes.
 
 The result on the first note:
 
@@ -296,10 +322,6 @@ The result on the first note:
 |       0 |    17 |  34 | 2021-09-25 | 25 septembre 2021 |      nan |        nan |    nan | dates |
 
 ### Locally, using multiple parallel workers
-
-!!! warning "Caveat"
-
-    Since workers can produce their results in any order, the order of the rows in the resulting DataFrame may not be the same as the order of the input data.
 
 ```{ .python hl_lines="8" }
 # Read from a dataframe & use the omop converter
@@ -316,50 +338,65 @@ docs = docs.set_processing(backend="multiprocessing")
 note_nlp = docs.to_pandas(
     converter="ents",
     span_getter=["ents", "dates"],
-    span_attributes={
-        "negation": "negation",
-        "hypothesis": "hypothesis",
-        "family": "family",
-        "date.datetime": "datetime",
+    span_attributes=[
+        "negation",
+        "hypothesis",
+        "family",
+        "date.datetime",
 
         # having individual columns for each date part
         # can be useful for incomplete dates (eg, "in May")
-        "date.day": "date_day",
-        "date.month": "date_month",
-        "date.year": "date_year",
-    },
+        "date.day",
+        "date.month",
+        "date.year",
+    ],
 )
 ```
+
+!!! note "Deterministic processing"
+
+    By default, from version 0.14.0, EDS-NLP dispatches tasks to workers in a round-robin fashion to ensure deterministic processing. This mechanism can be disabled to send documents to workers as soon as they are available, which may result in faster processing but out-of-order results.
+
+    To disable processing determinism, use `set_processing(deterministic=False)`. Note that this parameter is only used when using the `multiprocessing` backend.
 
 ### In a distributed fashion with spark
 
 To use the Spark engine to distribute the computation, we create our stream from the Spark dataframe directly and write the result to a new Spark dataframe. EDS-NLP will automatically
 distribute the operations on the cluster (setting `backend="spark"` behind the scenes), but you can change the backend (for instance to `multiprocessing` to run locally).
 
-```{ .python hl_lines="2 9" .no-check }
+!!! warning "Spark backend"
+
+    When processing from AND to a Spark DataFrame, the backend is automatically set to "spark".
+
+    We do NOT recommend using other backend when Spark dataframe are involved, as there may be a discrepancy between the time it takes to process the data locally and the timeout of the spark job.
+
+```{ .python hl_lines="2 12" .no-check }
 # Read from the pyspark dataframe & use the omop converter
 docs = edsnlp.data.from_spark(df, converter="omop")
 
 # Add the pipeline to operations that will be run
-docs = docs.map_pipeline(nlp
+docs = docs.map_pipeline(nlp)
+
+# Backend is set by default to "spark"
+# docs = docs.set_processing(backend="spark")
 
 # Convert each doc to a list of dicts (one by entity)
 # and store the result in a pyspark DataFrame
 note_nlp = docs.to_spark(
     converter="ents",
     span_getter=["ents", "dates"],
-    span_attributes={
-        "negation": "negation",
-        "hypothesis": "hypothesis",
-        "family": "family",
-        "date.datetime": "datetime",
+    span_attributes=[
+        "negation",
+        "hypothesis",
+        "family",
+        "date.datetime",
 
         # having individual columns for each date part
         # can be useful for incomplete dates (eg, "in May")
-        "date.day": "date_day",
-        "date.month": "date_month",
-        "date.year": "date_year",
-    },
+        "date.day",
+        "date.month",
+        "date.year",
+    ],
     dtypes=None,  # (1)
 )
 ```

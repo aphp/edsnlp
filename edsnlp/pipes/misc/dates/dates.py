@@ -104,7 +104,7 @@ class DatesMatcher(BaseNERComponent):
     docs = docs.map_pipeline(nlp)
     docs = docs.to_pandas(
         converter="ents",
-        span_attributes={"date.datetime": "datetime"},
+        span_attributes=["date.datetime"],
     )
     print(docs)
     # note_id  start  end label lexical_variant span_type datetime

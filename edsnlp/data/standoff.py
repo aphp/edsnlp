@@ -446,9 +446,8 @@ def read_standoff(
         ```{ .python .no-check }
         doc_iterator = edsnlp.data.read_standoff(
             "path/to/brat/directory",
-            # Mapping from 'BRAT attribute name' to 'Doc attribute name'
-            span_attributes={"Negation": "negated"},
-            bool_attributes=["negated"],  # Missing values will be set to False
+            span_attributes=["negation", "family"],
+            bool_attributes=["negation"],  # Missing values will be set to False
         )
         ```
 

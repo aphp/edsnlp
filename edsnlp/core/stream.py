@@ -1041,10 +1041,12 @@ class Stream(metaclass=MetaStream):
 
     def __repr__(self):
         ops_str = ",\n".join(textwrap.indent(repr(op), "    ") for op in self.ops)
+        if ops_str:
+            ops_str = "\n" + ops_str + "\n  "
         return (
             f"Stream(\n"
             f"  reader={self.reader},\n"
-            f"  ops=[\n{ops_str}\n  ],\n"
+            f"  ops=[{ops_str}],\n"
             f"  writer={self.writer})\n"
         )
 

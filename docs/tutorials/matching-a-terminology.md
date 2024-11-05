@@ -15,7 +15,7 @@ You should consider reading the [matcher's specific documentation](../pipes/core
 
     EDS-NLP's [`RegexMatcher`][edsnlp.matchers.regex.RegexMatcher] lets the user match entire expressions using regular expressions. To achieve this, the matcher has to get to the text representation, match on it, and get back to spaCy's abstraction.
 
-    The `EDSPhraseMatcher` lets EDS-NLP reuse spaCy's efficient algorithm, while adding the ability to skip pollution tokens (see the [normalisation documentation](../pipes/core/normalisation.md) for detail)
+    The `EDSPhraseMatcher` lets EDS-NLP reuse spaCy's efficient algorithm, while adding the ability to skip pollution tokens (see the [normalizer documentation](../pipes/core/normalizer.md) for detail)
 
 ## A simple use case : finding COVID19
 

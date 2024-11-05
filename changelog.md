@@ -31,16 +31,20 @@
 - `LazyCollection` objects are now called `Stream` objects
 - By default, `multiprocessing` backend now preserves the order of the input data. To disable this and improve performance, use `deterministic=False` in the `set_processing` method
 - :rocket: Parallelized GPU inference throughput improvements !
-  - For simple {pre-process → model → post-process} pipelines, GPU inference can be up to 30% faster in non-deterministic mode (results can be out of order) and up to 20% faster in deterministic mode (results are in order)
-  - For multitask pipelines, GPU inference can be up to twice as fast (measured in a two-tasks BERT+NER+Qualif pipeline on T4 and A100 GPUs)
+
+    - For simple {pre-process → model → post-process} pipelines, GPU inference can be up to 30% faster in non-deterministic mode (results can be out of order) and up to 20% faster in deterministic mode (results are in order)
+    - For multitask pipelines, GPU inference can be up to twice as fast (measured in a two-tasks BERT+NER+Qualif pipeline on T4 and A100 GPUs)
+
 - The `.map_batches`, `.map_pipeline` and `.map_gpu` methods now support a specific `batch_size` and batching function, instead of having a single batch size for all pipes
 - Readers now have a `loop` parameter to cycle over the data indefinitely (useful for training)
 - Readers now have a `shuffle` parameter to shuffle the data before iterating over it
 - In `multiprocessing` mode, file based readers now read the data in the workers (was an option before)
 - We now support two new special batch sizes
-  - "fragment" in the case of parquet datasets: rows of a full parquet file fragment per batch
-  - "dataset" which is mostly useful during training, for instance to shuffle the dataset at each epoch.
+
+    - "fragment" in the case of parquet datasets: rows of a full parquet file fragment per batch
+    - "dataset" which is mostly useful during training, for instance to shuffle the dataset at each epoch.
   These are also compatible in batched writer such as parquet, where each input fragment can be processed and mapped to a single matching output fragment.
+
 - :boom: Breaking change: a `map` function returning a list or a generator won't be automatically flattened anymore. Use `flatten()` to flatten the output if needed. This shouldn't change the behavior for most users since most writers (to_pandas, to_polars, to_parquet, ...) still flatten the output
 - :boom: Breaking change: the `chunk_size` and `sort_chunks` are now deprecated : to sort data before applying a transformation, use `.map_batches(custom_sort_fn, batch_size=...)`
 

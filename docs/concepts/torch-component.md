@@ -3,7 +3,7 @@
 Torch components allow for deep learning operations to be performed on the [Doc](https://spacy.io/api/doc) object and must be trained to be used. Such pipes can be used to train a model to detect named entities, predict the label of a document or an attribute of a text span, and so on.
 
 <figure style="text-align: center" markdown="1">
-![Sharing and nesting components](/assets/images/sharing-components.png){: style="height:230px" }
+![Sharing and nesting components](/assets/images/sharing-components.png){: style="max-height:230px" }
 <figcaption>Example of sharing and nesting components</figcaption>
 </figure>
 

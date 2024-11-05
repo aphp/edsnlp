@@ -45,15 +45,15 @@ nav:
       - tutorials/spacy101.md
       - tutorials/matching-a-terminology.md
       - tutorials/qualifying-entities.md
+      - tutorials/visualization.md
       - tutorials/detecting-dates.md
-      - tutorials/multiple-texts.md
       - tutorials/reason.md
       - tutorials/endlines.md
       - tutorials/aggregating-results.md
+      - tutorials/multiple-texts.md
       - advanced-tutorials/fastapi.md
-      - tutorials/training.md
       - tutorials/make-a-training-script.md
-      - tutorials/visualization.md
+      - tutorials/training.md
   - Pipes:
       - Overview: pipes/index.md
       - Core Pipelines:

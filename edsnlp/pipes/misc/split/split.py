@@ -70,8 +70,6 @@ def subset_doc(doc: Doc, start: int, end: int) -> Doc:
 
     shifter = make_shifter(start, end, new_doc)
 
-    print(new_doc.user_data)
-
     for key, val in list(new_doc.user_data.items()):
         new_doc.user_data[key] = shifter(val)
 

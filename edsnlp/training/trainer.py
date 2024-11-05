@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Collection,
     Dict,
     Iterable,
@@ -22,7 +21,6 @@ from accelerate import Accelerator
 from confit import validate_arguments
 from confit.utils.random import set_seed
 from rich_logger import RichTablePrinter
-from torch.optim import Optimizer
 from tqdm import tqdm, trange
 from typing_extensions import Literal
 
@@ -37,10 +35,9 @@ from edsnlp.utils.collections import chain_zip, flatten, ld_to_dl
 from edsnlp.utils.span_getters import get_spans
 from edsnlp.utils.typing import AsList
 
-from .optimization import (  # noqa: F401
+from .optimizer import (  # noqa: F401
     LinearSchedule,
     ScheduledOptimizer,
-    create_optimizer,
 )
 
 LOGGER_FIELDS = {
@@ -298,7 +295,7 @@ def train(
     val_data: AsList[Stream],
     seed: int = 42,
     max_steps: int = 1000,
-    optim: Union[Optimizer, Optional[Callable[[Any, int], Optimizer]]] = None,
+    optim: Union[ScheduledOptimizer, torch.optim.Optimizer] = None,
     validation_interval: int = 10,
     max_grad_norm: float = 5.0,
     loss_scales: Dict[str, float] = {},
@@ -336,8 +333,17 @@ def train(
         The random seed
     max_steps: int
         The maximum number of training steps
-    optim: Union[Optimizer, Optional[Callable[[Any, int], Optimizer]]]
+    optim: Union[ScheduledOptimizer, torch.optim.Optimizer]
         The optimizer. If None, a default optimizer will be used.
+
+        ??? note "`ScheduledOptimizer` object/dictionary"
+            ::: edsnlp.training.optimizer.ScheduledOptimizer
+                options:
+                    heading_level: 1
+                    only_parameters: "no-header"
+                    skip_parameters: []
+                    show_source: false
+                    show_toc: false
     validation_interval: int
         The number of steps between each evaluation
     max_grad_norm: float
@@ -418,14 +424,8 @@ def train(
                         if k in ("task_lr", "transformer_lr", "warmup_rate")
                     },
                 )
-            else:
-                optim = (
-                    optim_base
-                    if isinstance(optim_base, Optimizer)
-                    else optim_base(nlp, max_steps)
-                )
-            if hasattr(optim, "reset"):
-                optim.reset()
+            if hasattr(optim, "initialize"):
+                optim.initialize()
             grad_params = {p for group in optim.param_groups for p in group["params"]}
             print(
                 "Optimizing groups:"

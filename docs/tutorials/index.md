@@ -83,20 +83,21 @@ We provide step-by-step guides to get you started. We cover the following use-ca
     ---
     Quickly visualize the results of your pipeline as annotations or tables.
 
-=== card {: href=/tutorials/training }
-
-    :fontawesome-solid-brain:
-    **Training**
-
-    ---
-    Learn how to train a deep-learning model, focusing on named entity recognition.
-
 === card {: href=/tutorials/make-a-training-script }
 
     :fontawesome-solid-flask:
-    **Make a custom training script**
+    **Deep learning tutorial**
 
     ---
-    Learn how to write a custom deep-learning training script.
+    Learn how EDS-NLP handles training deep-neural networks.
+
+=== card {: href=/tutorials/training }
+
+    :fontawesome-solid-brain:
+    **Training API**
+
+    ---
+    Learn how to quicky train a deep-learning model with `edsnlp.train`.
+
 
 <!-- --8<-- [end:tutorials] -->

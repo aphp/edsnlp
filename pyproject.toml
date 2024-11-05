@@ -300,6 +300,7 @@ where = ["."]
 
 [project.entry-points."spacy_misc"]
 "eds.span_context_getter" = "edsnlp.utils.span_getters:make_span_context_getter"
+"eds.scheduled_optimizer" = "edsnlp.training.optimizer:ScheduledOptimizer"
 
 [project.entry-points."spacy_languages"]
 "eds" = "edsnlp.language:EDSLanguage"

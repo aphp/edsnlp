@@ -20,10 +20,7 @@ from spacy.tokens import Span
 
 from edsnlp.core.registries import registry
 from edsnlp.data.converters import AttributesMappingArg, get_current_tokenizer
-from edsnlp.training.optimization import (
-    LinearSchedule,
-    create_optimizer,
-)
+from edsnlp.training.optimizer import LinearSchedule, ScheduledOptimizer
 from edsnlp.training.trainer import GenericScorer, train
 from edsnlp.utils.span_getters import SpanSetterArg, set_spans
 
@@ -122,10 +119,12 @@ def test_qualif_train(run_in_test_dir, tmp_path):
 
 def test_optimizer():
     net = torch.nn.Linear(10, 10)
-    optim = create_optimizer(
+    optim = ScheduledOptimizer(
         torch.optim.AdamW,
+        module=net,
+        total_steps=10,
         groups={
-            "*": {
+            ".*": {
                 "lr": 9e-4,
                 "schedules": LinearSchedule(
                     warmup_rate=0.1,
@@ -133,7 +132,7 @@ def test_optimizer():
                 ),
             }
         },
-    )(net, total_steps=10)
+    )
     for param in net.parameters():
         assert "exp_avg" not in optim.optim.state[param]
     optim.initialize()

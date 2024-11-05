@@ -370,6 +370,46 @@ batchify_fns = {
 
 
 def stat_batchify(key):
+    """
+    Create a batching function that uses the value of a specific key in the items to
+    determine the batch size. This function is primarily meant to be used on the
+    flattened outputs of the `preprocess` method of a
+    [Pipeline][edsnlp.core.pipeline.Pipeline] object.
+
+    It expects the items to be a dictionary in which some keys contain the string
+    "/stats/" and the `key` pattern. For instance:
+
+    ```python
+    from edsnlp.utils.batching import stat_batchify
+
+    items = [
+        {"text": "first sample", "obj/stats/words": 2, "obj/stats/chars": 12},
+        {"text": "dos", "obj/stats/words": 1, "obj/stats/chars": 3},
+        {"text": "third one !", "obj/stats/words": 3, "obj/stats/chars": 11},
+    ]
+    batcher = stat_batchify("words")
+    assert list(batcher(items, 4)) == [
+        [
+            {"text": "first sample", "obj/stats/words": 2, "obj/stats/chars": 12},
+            {"text": "dos", "obj/stats/words": 1, "obj/stats/chars": 3},
+        ],
+        [
+            {"text": "third one !", "obj/stats/words": 3, "obj/stats/chars": 11},
+        ],
+    ]
+    ```
+
+
+    Parameters
+    ----------
+    key: str
+        The key pattern to use to determine the actual key to look up in the items.
+
+    Returns
+    -------
+    Callable[[Iterable, int, bool, Literal["drop", "split"]], Iterable
+    """
+
     def rec(
         iterable,
         batch_size,

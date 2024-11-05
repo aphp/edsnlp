@@ -1,13 +1,12 @@
-# Training a Named Entity Recognition model
+# Training API
 
-In this tutorial, we'll see how we can train a deep learning model with EDS-NLP.
-We also recommend looking at an existing project as a reference, such as [eds-pseudo](https://github.com/aphp/eds-pseudo) or [mlg-norm](https://github.com/percevalw/mlg-norm).
+In this tutorial, we'll see how we can quickly train a deep learning model with EDS-NLP using the `edsnlp.train` function.
 
 !!! warning "Hardware requirements"
 
     Training a modern deep learning model requires a lot of computational resources. We recommend using a machine with a GPU, ideally with at least 16GB of VRAM. If you don't have access to a GPU, you can use a cloud service like [Google Colab](https://colab.research.google.com/), [Kaggle](https://www.kaggle.com/), [Paperspace](https://www.paperspace.com/) or [Vast.ai](https://vast.ai/).
 
-If you need a high level of control over the training procedure, we suggest you read the next ["Custom training script"](../make-a-training-script) tutorial.
+If you need a high level of control over the training procedure, we suggest you read the previous ["Deep learning tutorial"](./make-a-training-script.md) to understand how to build a training loop from scratch with EDS-NLP.
 
 ## Creating a project
 
@@ -38,7 +37,7 @@ readme = "README.md"
 requires-python = ">3.7.1,<4.0"
 
 dependencies = [
-    "edsnlp[ml]>=0.13.0",
+    "edsnlp[ml]>=0.14.0",
     "sentencepiece>=0.1.96"
 ]
 
@@ -117,24 +116,29 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
     scorer:
       ner:
         '@metrics': eds.ner_exact
-        span_getter: ${nlp.components.ner.target_span_getter}
+        span_getter: ${ nlp.components.ner.target_span_getter }
 
     # 🎛️ OPTIMIZER
     optim:
-      '@optimizers': adam
+      cls: adamw
       groups:
-        "*.transformer.*":
+        # Assign parameters starting with transformer (ie the parameters of the transformer component)
+        # to a first group
+        "^transformer":
           lr: 5e-5
           schedules:
             '@schedules': linear
             "warmup_rate": 0.1
             "start_value": 0
-        "*":
+        # And every other parameters to the second group
+        "":
           lr: 3e-4
           schedules:
             '@schedules': linear
             "warmup_rate": 0.1
             "start_value": 3e-4
+      module: ${ nlp }
+      total_steps: ${ train.max_steps }
 
     # 📚 DATA
     train_data:
@@ -142,7 +146,7 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
           # In what kind of files (ie. their extensions) is our
           # training data stored
           '@readers': standoff
-          path: ${vars.train}
+          path: ${ vars.train }
           converter:
             # What schema is used in the data files
             - '@factory': eds.standoff_dict2doc
@@ -152,12 +156,13 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
               nlp: null
               max_length: 2000
               regex: '\n\n+'
-        batch_size: 2000 words
+        shuffle: dataset
+        batch_size: 4096 tokens  # 32 * 128 tokens
         pipe_names: [ "ner" ]
 
     val_data:
       '@readers': standoff
-      path: ${vars.dev}
+      path: ${ vars.dev }
       # What schema is used in the data files
       converter:
         - '@factory': eds.standoff_dict2doc
@@ -183,7 +188,7 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
     # 📦 PACKAGE SCRIPT OPTIONS
     # -> python -m edsnlp.package --config configs/config.yml
     package:
-      pipeline: ${train.output_dir}
+      pipeline: ${ train.output_dir }
       name: 'my_ner_model'
     ```
 
@@ -201,7 +206,7 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
 
     ```{ .python .no-check }
     import edsnlp
-    from edsnlp.training import train, create_optimizer, TrainingData
+    from edsnlp.training import train, ScheduledOptimizer, TrainingData
     from edsnlp.metrics.ner import NerExactMetric
     import edsnlp.pipes as eds
     import torch
@@ -244,30 +249,31 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
     )
 
     # 🎛️ OPTIMIZER
-    # partial optimizer creation, but we could pass nlp=... and total_steps=...
-    # to instantiate the optimizer directly
-    optim = create_optimizer(
+    max_steps = 2000
+    optim = ScheduledOptimizer(
         optim=torch.optim.Adam,
+        module=nlp,
+        total_steps=max_steps,
         groups={
-            "*.transformer.*": {
+            "^transformer": {
                 "lr": 5e-5,
                 "schedules": {"@schedules": "linear", "warmup_rate": 0.1, "start_value": 0},
             },
-            "*": {
+            "": {
                 "lr": 3e-4,
                 "schedules": {"@schedules": "linear", "warmup_rate": 0.1, "start_value": 3e-4},
             },
-        }
+        },
     )
 
     # 🚀 TRAIN
     train(
         nlp=nlp,
-        max_steps=2000,
-        validation_interval=200,
+        max_steps=max_steps,
+        validation_interval=max_steps // 10,
         train_data=TrainingData(
             data=train_data,
-            batch_size="2000 words",
+            batch_size="4096 tokens",  # 32 * 128 tokens
             pipe_names=["ner"],
             shuffle="dataset",
         ),

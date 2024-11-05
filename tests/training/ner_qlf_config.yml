@@ -59,10 +59,11 @@ scorer:
 
 # 🎛️ OPTIMIZER
 optim:
-  '@optimizers': adam
+  cls: AdamW
+  module: ${ nlp }
   groups:
-    "*.transformer.*": false
-    "*":
+    "^transformer": false
+    ".*":
       lr: 1e-3
 
 # 📚 DATA

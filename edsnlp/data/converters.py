@@ -107,12 +107,10 @@ def validate_kwargs(func, kwargs):
 
 class AttributesMappingArg(Validated):
     """
-    A mapping from JSON attributes to Span extensions (can be a list too).
+    A span attribute mapping (can be a list too to keep the same names).
 
     For instance:
 
-    - `doc_attributes={"datetime": "note_datetime"}` will map the `datetime` JSON
-      attribute to the `note_datetime` extension.
     - `doc_attributes="note_datetime"` will map the `note_datetime` JSON attribute to
       the `note_datetime` extension.
     - `span_attributes=["negation", "family"]` will map the `negation` and `family` JSON
@@ -328,7 +326,7 @@ class StandoffDoc2DictConverter:
 
         # Optional parameters
         span_getter={"ents": True},
-        span_attributes={"negation": "negated"},
+        span_attributes=["negation"],
     )
     # or docs.to_standoff(...) if it's already a
     # [Stream][edsnlp.core.stream.Stream]

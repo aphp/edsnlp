@@ -176,3 +176,16 @@ a.discrete-link {
     color: inherit !important;
     border-bottom: 1px dashed var(--md-default-fg-color--lighter) !important;
 }
+
+.sourced-heading {
+    display: flex;
+    flex-direction: row;
+}
+
+.sourced-heading-spacer {
+    flex: 1;
+}
+
+.sourced-heading > a {
+    font-size: 1rem;
+}

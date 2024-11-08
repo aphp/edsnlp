@@ -1,12 +1,14 @@
 import os
 from pathlib import Path
 
+import jedi
 import mkdocs.config
 import mkdocs.plugins
 import mkdocs.structure
 import mkdocs.structure.files
 import mkdocs.structure.nav
 import mkdocs.structure.pages
+from bs4 import BeautifulSoup
 
 
 def exclude_file(name):
@@ -121,3 +123,43 @@ def on_page_read_source(page, config):
     if page.file.src_path in VIRTUAL_FILES:
         return VIRTUAL_FILES[page.file.src_path]
     return None
+
+
+# Get current git commit
+GIT_COMMIT = os.popen("git rev-parse --short HEAD").read().strip()
+
+
+@mkdocs.plugins.event_priority(-2000)
+def on_post_page(
+    output: str,
+    page: mkdocs.structure.pages.Page,
+    config: mkdocs.config.Config,
+):
+    """
+    Add github links to the html output
+    """
+    # Find all the headings (h1, h2, ...) whose id starts with "edsnlp"
+    soup = BeautifulSoup(output, "html.parser")
+    for heading in soup.find_all(["h1", "h2", "h3", "h4", "h5", "h6"]):
+        ref = heading.get("id", "")
+        if ref.startswith("edsnlp.") and "--" not in ref:
+            code = "import edsnlp; " + ref
+            interpreter = jedi.Interpreter(code, namespaces=[{}])
+            goto = interpreter.goto(1, len(code), follow_imports=True)
+            if not goto:
+                print("Could not get source for", ref)
+                continue
+            file = goto[0].module_path.relative_to(Path.cwd())
+            line = goto[0].line
+            # Add a "[source]" span with a link to the source code in a new tab
+            url = f"https://github.com/aphp/edsnlp/blob/{GIT_COMMIT}/{file}#L{line}"
+            heading.append(
+                BeautifulSoup(
+                    f'<span class="sourced-heading-spacer"></span>'
+                    f'<a href="{url}" target="_blank">[source]</a>',
+                    features="html.parser",
+                )
+            )
+            # add "sourced-heading" to heading class
+            heading["class"] = heading.get("class", []) + ["sourced-heading"]
+    return str(soup)

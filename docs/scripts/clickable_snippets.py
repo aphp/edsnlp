@@ -127,7 +127,6 @@ class ClickableSnippetsPlugin(BasePlugin):
 
         output = regex.sub(PIPE_REGEX, replace_component, output)
         output = regex.sub(HTML_PIPE_REGEX, replace_component, output)
-        output = regex.sub(HREF_REGEX, replace_link, output)
 
         all_snippets = ""
         all_offsets = []
@@ -186,6 +185,8 @@ class ClickableSnippetsPlugin(BasePlugin):
         # Re-insert soups into the output
         for soup, start, end in reversed(soups):
             output = output[:start] + str(soup) + output[end:]
+
+        output = regex.sub(HREF_REGEX, replace_link, output)
 
         return output
 

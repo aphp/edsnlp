@@ -14,7 +14,7 @@ edsnlp/core/torch_component.py                                                  
 edsnlp/data/__init__.py                                                                     3      0 100.00%
 edsnlp/data/base.py                                                                        78      0 100.00%
 edsnlp/data/brat.py                                                                         5      0 100.00%
-edsnlp/data/converters.py                                                                 204      2  99.02%   143, 672
+edsnlp/data/converters.py                                                                 204      2  99.02%   141, 670
 edsnlp/data/json.py                                                                       113      1  99.12%   88
 edsnlp/data/pandas.py                                                                      53      0 100.00%
 edsnlp/data/parquet.py                                                                    100      0 100.00%
@@ -114,7 +114,7 @@ edsnlp/pipes/misc/sections/factory.py                                           
 edsnlp/pipes/misc/sections/patterns.py                                                     23      0 100.00%
 edsnlp/pipes/misc/sections/sections.py                                                     45      1  97.78%   127
 edsnlp/pipes/misc/split/__init__.py                                                         1      0 100.00%
-edsnlp/pipes/misc/split/split.py                                                           71      2  97.18%   178-179
+edsnlp/pipes/misc/split/split.py                                                           70      2  97.14%   176-177
 edsnlp/pipes/misc/tables/__init__.py                                                        1      0 100.00%
 edsnlp/pipes/misc/tables/factory.py                                                         4      0 100.00%
 edsnlp/pipes/misc/tables/patterns.py                                                        2      0 100.00%
@@ -300,8 +300,8 @@ edsnlp/processing/simple.py                                                     
 edsnlp/processing/spark.py                                                                 47      1  97.87%   51
 edsnlp/reducers.py                                                                         51      0 100.00%
 edsnlp/training/__init__.py                                                                 2      0 100.00%
-edsnlp/training/optimization.py                                                           126      4  96.83%   38, 42, 46, 102
-edsnlp/training/trainer.py                                                                202      2  99.01%   78, 95
+edsnlp/training/optimizer.py                                                              131      1  99.24%   257
+edsnlp/training/trainer.py                                                                200      2  99.00%   75, 92
 edsnlp/utils/__init__.py                                                                    0      0 100.00%
 edsnlp/utils/batching.py                                                                  187      2  98.93%   289, 348
 edsnlp/utils/bindings.py                                                                   65      1  98.46%   24
@@ -323,4 +323,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      33      0 100.00%
 edsnlp/utils/typing.py                                                                     55      0 100.00%
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   10325    217  97.90%
+TOTAL                                                                                   10327    214  97.93%

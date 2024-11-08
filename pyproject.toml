@@ -73,6 +73,8 @@ dev = [
     "pathspec>=0.11.1",  # required by vendored mkdocs-autorefs PR
     "astunparse",
     "griffe<0.39",
+    "jedi",
+    "html5lib",
 ]
 docs = [
     "mike~=1.1.2",
@@ -89,6 +91,8 @@ docs = [
     "pathspec>=0.11.1",  # required by vendored mkdocs-autorefs PR
     "astunparse",
     "griffe<0.39",
+    "jedi",
+    "html5lib",
 
     "torch>=1.13.0",
     "foldedtensor>=0.3.2",
@@ -311,6 +315,7 @@ where = ["."]
 [project.entry-points."mkdocs.plugins"]
 "bibtex" = "docs.scripts.bibtex:BibTexPlugin"
 "autorefs" = "docs.scripts.autorefs.plugin:AutorefsPlugin"
+"clickable_snippets" = "docs.scripts.clickable_snippets:ClickableSnippetsPlugin"
 
 [build-system]
 requires = [

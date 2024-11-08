@@ -216,6 +216,7 @@ plugins:
             merge_init_into_class: true
   - bibtex:
       bibtex_file: "docs/references.bib"
+  - clickable_snippets:
 # Just uncomment the following lines to enable i18n
 # and start creating .fr.md and .en.md files.
 #  - i18n:

@@ -135,7 +135,7 @@ It handles:
 
 You can activate it like any other component.
 
-```python hl_lines="4 10 17 23 24"
+```python hl_lines="4 10 17 22 23"
 import edsnlp, edsnlp.pipes as eds
 
 text = (
@@ -197,7 +197,7 @@ Of course, we _could_ write out every imaginable possibility, but this will quic
 
 ## Using regular expressions
 
-Let us redefine the pipeline once again, this time using regular expressions:
+Let us redefine the pipeline once again, this time using regular expressions. Using regular expressions can help define richer patterns using more compact queries.
 
 ```python
 import edsnlp, edsnlp.pipes as eds
@@ -233,48 +233,4 @@ doc.ents
 2. We can mix and match patterns! Here we keep looking for patients using spaCy's term matching.
 3. RegExp matching is not limited to the verbatim text! You can choose to use one of spaCy's native attribute, ignore excluded tokens, etc.
 
-This code is complete, and should run as is.
-
-Using regular expressions can help define richer patterns using more compact queries.
-
-## Visualising matched entities
-
-EDS-NLP is part of the spaCy ecosystem, which means we can benefit from spaCy helper functions.
-For instance, spaCy's visualiser displacy can let us visualise the matched entities:
-
-```python
-# ↑ Omitted code above ↑
-
-from spacy import displacy
-
-colors = {
-    "covid": "orange",
-    "respiratoire": "steelblue",
-}
-options = {
-    "colors": colors,
-}
-
-displacy.render(doc, style="ent", options=options)
-```
-
-If you run this within a notebook, you should get:
-
-<div style="padding: 10px 15px; border: solid 2px; border-radius: 10px; border-color: #afc6e0; font-size: 11pt;">
-    <div class="entities" style="line-height: 2.25; direction: ltr">Motif de prise en charge : probable pneumopathie a
-    <mark class="entity" style="background: orange; padding: 0.45em 0.6em; margin: 0 0.25em; line-height: 1; border-radius: 0.35em;">
-        COVID19
-        <span style="font-size: 0.8em; font-weight: bold; line-height: 1; border-radius: 0.35em; vertical-align: middle; margin-left: 0.5rem">covid</span>
-    </mark>
-    , sans difficultés
-    <mark class="entity" style="background: steelblue; padding: 0.45em 0.6em; margin: 0 0.25em; line-height: 1; border-radius: 0.35em;">
-        respiratoires
-        <span style="font-size: 0.8em; font-weight: bold; line-height: 1; border-radius: 0.35em; vertical-align: middle; margin-left: 0.5rem">respiratoire</span>
-    </mark>
-    </br>Le père du patient est
-    <mark class="entity" style="background: steelblue; padding: 0.45em 0.6em; margin: 0 0.25em; line-height: 1; border-radius: 0.35em;">
-        asthmatique
-        <span style="font-size: 0.8em; font-weight: bold; line-height: 1; border-radius: 0.35em; vertical-align: middle; margin-left: 0.5rem">respiratoire</span>
-    </mark>
-    .</div>
-</div>
+To visualize extracted entities, check out the [Visualization](/tutorials/visualization) tutorial.

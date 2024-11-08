@@ -7,15 +7,6 @@ import mkdocs.structure
 import mkdocs.structure.files
 import mkdocs.structure.nav
 import mkdocs.structure.pages
-import regex
-from mkdocs.config.defaults import MkDocsConfig
-
-from docs.scripts.autorefs.plugin import AutorefsPlugin
-
-try:
-    from importlib.metadata import entry_points
-except ImportError:
-    from importlib_metadata import entry_points
 
 
 def exclude_file(name):
@@ -31,21 +22,6 @@ REFERENCE_TEMPLATE = """
     options:
         show_source: false
 """
-
-
-@mkdocs.plugins.event_priority(1000)
-def on_config(config: MkDocsConfig):
-    for event_name, events in config.plugins.events.items():
-        for event in list(events):
-            if "autorefs" in str(event):
-                print("REMOVING EVENT", event_name, event)
-                events.remove(event)
-    old_plugin = config["plugins"]["autorefs"]
-    plugin_config = dict(old_plugin.config)
-    plugin = AutorefsPlugin()
-    config.plugins["autorefs"] = plugin
-    config["plugins"]["autorefs"] = plugin
-    plugin.load_config(plugin_config)
 
 
 def on_files(files: mkdocs.structure.files.Files, config: mkdocs.config.Config):
@@ -145,87 +121,3 @@ def on_page_read_source(page, config):
     if page.file.src_path in VIRTUAL_FILES:
         return VIRTUAL_FILES[page.file.src_path]
     return None
-
-
-HREF_REGEX = (
-    r"(?<=<\s*(?:a[^>]*href|img[^>]*src)=)"
-    r'(?:"([^"]*)"|\'([^\']*)|[ ]*([^ =>]*)(?![a-z]+=))'
-)
-# Maybe find something less specific ?
-PIPE_REGEX = r"(?<![a-zA-Z0-9._-])eds[.]([a-zA-Z0-9._-]*)(?![a-zA-Z0-9._-])"
-
-HTML_PIPE_REGEX = r"""(?x)
-(?<![a-zA-Z0-9._-])
-<span[^>]*>eds<\/span>
-<span[^>]*>[.]<\/span>
-<span[^>]*>([a-zA-Z0-9._-]*)<\/span>
-(?![a-zA-Z0-9._-])
-"""
-
-
-def get_ep_namespace(ep, namespace):
-    if hasattr(ep, "select"):
-        return ep.select(group=namespace)
-    else:  # dict
-        return ep.get(namespace, [])
-
-
-@mkdocs.plugins.event_priority(-1000)
-def on_post_page(
-    output: str,
-    page: mkdocs.structure.pages.Page,
-    config: mkdocs.config.Config,
-):
-    """
-    1. Replace absolute paths with path relative to the rendered page
-       This must be performed after all other plugins have run.
-    2. Replace component names with links to the component reference
-
-    Parameters
-    ----------
-    output
-    page
-    config
-
-    Returns
-    -------
-
-    """
-
-    autorefs: AutorefsPlugin = config["plugins"]["autorefs"]
-    ep = entry_points()
-    spacy_factories_entry_points = {
-        ep.name: ep.value
-        for ep in (
-            *get_ep_namespace(ep, "spacy_factories"),
-            *get_ep_namespace(ep, "edsnlp_factories"),
-        )
-    }
-
-    def replace_component(match):
-        full_group = match.group(0)
-        name = "eds." + match.group(1)
-        ep = spacy_factories_entry_points.get(name)
-        preceding = output[match.start(0) - 50 : match.start(0)]
-        if ep is not None and "DEFAULT:" not in preceding:
-            try:
-                url = autorefs.get_item_url(ep.replace(":", "."))
-            except KeyError:
-                pass
-            else:
-                return f"<a href={url}>{name}</a>"
-        return full_group
-
-    def replace_link(match):
-        relative_url = url = match.group(1) or match.group(2) or match.group(3)
-        page_url = os.path.join("/", page.file.url)
-        if url.startswith("/"):
-            relative_url = os.path.relpath(url, page_url)
-        return f'"{relative_url}"'
-
-    # Replace absolute paths with path relative to the rendered page
-    output = regex.sub(PIPE_REGEX, replace_component, output)
-    output = regex.sub(HTML_PIPE_REGEX, replace_component, output)
-    output = regex.sub(HREF_REGEX, replace_link, output)
-
-    return output

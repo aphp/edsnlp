@@ -171,3 +171,8 @@ body, input {
     min-width: initial !important;
     padding: .5em 0.75em;
 }
+
+a.discrete-link {
+    color: inherit !important;
+    border-bottom: 1px dashed var(--md-default-fg-color--lighter) !important;
+}

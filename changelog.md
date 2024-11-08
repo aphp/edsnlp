@@ -14,6 +14,7 @@
 - Allow `converter` argument of `edsnlp.data.read/from_...` to be a list of converters instead of a single converter
 - New revamped and documented `edsnlp.train` script and API
 - Support YAML config files (supported only CFG/INI files before)
+- Most of EDS-NLP functions are now clickable in the documentation
 
 ### Changed
 

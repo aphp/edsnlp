@@ -24,7 +24,15 @@ To print a text and highlight the entities in it, you can use `spacy.displacy`.
 from spacy import displacy
 
 doc = nlp(txt)
-displacy.render(doc, style="ent")
+options = {
+    # Optional colors
+
+    # "colors": {
+    #     "covid": "orange",
+    #     "respiratoire": "steelblue",
+    # },
+}
+displacy.render(doc, style="ent", options=options)
 ```
 
 will render like this:

@@ -30,7 +30,7 @@ nlp = edsnlp.blank("eds")
 nlp.add_pipe(
     eds.ner_crf(  # (1)!
         mode="joint",  # (2)!
-        target_span_getter="ml-ner",  # (3)!
+        target_span_getter="gold-ner",  # (3)!
         window=20,
         embedding=eds.text_cnn(  # (4)!
             kernel_sizes=[3],
@@ -47,7 +47,7 @@ nlp.add_pipe(
 
 1. We use the `eds.ner_crf` NER task module, which classifies word embeddings into NER labels (BIOUL scheme) using a CRF.
 2. Each component of the pipeline can be configured with a dictionary, using the parameter described in the component's page.
-3. The `target_span_getter` parameter defines the name of the span group used to train the NER model. We will need to make sure the entities from the training dataset are assigned to this span group (next section).
+3. The `target_span_getter` parameter defines the name of the span group used to train the NER model. In this case, the model will look for the entities to train on in `doc.spans["gold-ner"]`. This is important because we might store entities in other span groups with a different purpose (e.g. `doc.spans["sections"]` contain the sections Spans, but we don't want to train on these). We will need to make sure the entities from the training dataset are assigned to this span group (next section).
 4. The word embeddings used by the CRF are computed by a CNN, which builds on top of another embedding layer.
 5. The base embedding layer is a pretrained transformer, which computes contextualized word embeddings.
 6. We chose the `prajjwal1/bert-tiny` model in this tutorial for testing purposes, but we recommend using a larger model like `bert-base-cased` or `camembert-base` (French) for real-world applications.
@@ -72,7 +72,7 @@ training_data = (
     edsnlp.data.read_standoff(  # (1)!
         train_data_path,
         tokenizer=nlp.tokenizer,  # (2)!
-        span_setter=["ents", "ml-ner"],  # (3)!
+        span_setter=["ents", "gold-ner"],  # (3)!
     )
     .map(eds.split(regex="\n\n"))  # (4)!
     .map_batches(skip_empty_docs)  # (5)!
@@ -81,7 +81,7 @@ training_data = (
 
 1. Read the data from the brat directory and convert it into Docs.
 2. Tokenize the training docs with the same tokenizer as the trained model
-3. Store the annotated Brat entities as spans in `doc.ents`, and `doc.spans["ml-ner"]`
+3. Store the annotated Brat entities as spans in `doc.ents`, and `doc.spans["gold-ner"]`
 4. Split the documents on line jumps.
 5. Filter out empty documents.
 
@@ -91,7 +91,7 @@ As for the validation data, we will keep all the documents, even empty ones, to 
 val_data = edsnlp.data.read_standoff(
     val_data_path,
     tokenizer=nlp.tokenizer,
-    span_setter=["ents", "ml-ner"],
+    span_setter=["ents", "gold-ner"],
 )
 val_docs = list(val_data)  # (1)!
 ```
@@ -214,11 +214,11 @@ metric = NerExactMetric(span_getter=nlp.pipes.ner.target_span_getter)
         with nlp.select_pipes(enable=["ner"]):  # (1)!
             preds = deepcopy(val_docs)
             for doc in preds:
-                doc.ents = doc.spans["ml-ner"] = []  # (2)!
+                doc.ents = doc.spans["gold-ner"] = []  # (2)!
             preds = nlp.pipe(preds)  # (3)!
             print(metric(val_docs, preds))
 
-    nlp.to_disk("model")  # (4)!
+    nlp.to_disk("model")  #(4)!
 ```
 
 1. In the case we have multiple pipes in our model, we may want to selectively evaluate each pipe, thus we use the `select_pipes` method to disable every pipe except "ner".
@@ -232,7 +232,7 @@ metric = NerExactMetric(span_getter=nlp.pipes.ner.target_span_getter)
        .map_pipeline(nlp)
     )
     ```
-4We could also have saved the model with `torch.save(model, "model.pt")`, but `nlp.to_disk` avoids pickling and allows to inspect the model's files by saving them into a structured directory.
+4. We could also have saved the model with `torch.save(model, "model.pt")`, but `nlp.to_disk` avoids pickling and allows to inspect the model's files by saving them into a structured directory.
 
 ## Full example
 
@@ -279,7 +279,7 @@ Let's wrap the training code in a function, and make it callable from the comman
         training_data = (
             edsnlp.data.read_standoff(
                 train_data_path,
-                span_setter=["ents", "ml-ner"],
+                span_setter=["ents", "gold-ner"],
                 tokenizer=nlp.tokenizer,
             )
             .map(eds.split(regex="\n\n"))
@@ -289,7 +289,7 @@ Let's wrap the training code in a function, and make it callable from the comman
         # Load validation data
         val_data = edsnlp.data.read_standoff(
             val_data_path,
-            span_setter=["ents", "ml-ner"],
+            span_setter=["ents", "gold-ner"],
             tokenizer=nlp.tokenizer,
         )
         val_docs = list(val_data)
@@ -337,7 +337,7 @@ Let's wrap the training code in a function, and make it callable from the comman
                     # Clean the documents that our model will annotate
                     preds = deepcopy(val_docs)
                     for doc in preds:
-                        doc.ents = doc.spans["ml-ner"] = []
+                        doc.ents = doc.spans["gold-ner"] = []
                     preds = nlp.pipe(preds)
                     print(metric(val_docs, preds))
 
@@ -349,7 +349,7 @@ Let's wrap the training code in a function, and make it callable from the comman
         nlp.add_pipe(
             eds.ner_crf(
                 mode="joint",
-                target_span_getter="ml-ner",
+                target_span_getter="gold-ner",
                 window=20,
                 embedding=eds.text_cnn(
                     kernel_sizes=[3],
@@ -400,7 +400,7 @@ nlp:
     ner:
       "@factory": "eds.ner_crf"
       mode: "joint"
-      target_span_getter: "ml-ner"
+      target_span_getter: "gold-ner"
       window: 20
 
       embedding:
@@ -438,6 +438,8 @@ python train.py --config config.cfg --nlp.components.ner.embedding.embedding.tra
 ```
 
 ## Going further
+
+EDS-NLP also provides a generic training script that follows the same structure as the one we just wrote. You can learn more about in the [next Training API tutorial](/tutorials/training).
 
 This tutorial gave you a glimpse of the training API of EDS-NLP. To build a custom trainable component, you can refer to the [TorchComponent][edsnlp.core.torch_component.TorchComponent] class or look up the implementation of [some of the trainable components on GitHub](https://github.com/aphp/edsnlp/tree/master/edsnlp/pipes/trainable).
 

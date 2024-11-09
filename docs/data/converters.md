@@ -119,14 +119,14 @@ Therefore, a complete OMOP-style document would look like this:
 }
 ```
 
-### Converting OMOP data to Doc objects
+### Converting OMOP data to Doc objects {: #edsnlp.data.converters.OmopDict2DocConverter }
 
 ::: edsnlp.data.converters.OmopDict2DocConverter
     options:
         heading_level: 4
         show_source: false
 
-### Converting Doc objects to OMOP data
+### Converting Doc objects to OMOP data {: #edsnlp.data.converters.OmopDoc2DictConverter }
 
 ::: edsnlp.data.converters.OmopDoc2DictConverter
     options:
@@ -160,14 +160,14 @@ the annotations should be stored in a JSON-like schema. We use the following sch
 }
 ```
 
-### Converting Standoff data to Doc objects
+### Converting Standoff data to Doc objects {: #edsnlp.data.converters.StandoffDict2DocConverter }
 
 ::: edsnlp.data.converters.StandoffDict2DocConverter
     options:
         heading_level: 4
         show_source: false
 
-### Converting Doc objects to Standoff data
+### Converting Doc objects to Standoff data {: #edsnlp.data.converters.StandoffDoc2DictConverter }
 
 ::: edsnlp.data.converters.StandoffDoc2DictConverter
     options:
@@ -176,7 +176,7 @@ the annotations should be stored in a JSON-like schema. We use the following sch
 
 
 
-## Entities (`converter="ents"`) {: #ents }
+## Entities (`converter="ents"`) {: #edsnlp.data.converters.EntsDoc2DictConverter }
 
 We also provide a simple one-way (export) converter to convert Doc into a list of dictionaries,
 one per entity, that can be used to write to a dataframe. The schema of each produced row is the following:

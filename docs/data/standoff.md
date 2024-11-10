@@ -5,8 +5,11 @@
     ```{ .python .no-check }
     import edsnlp
 
-    doc_iterator = edsnlp.data.read_standoff(path)
-    res = edsnlp.data.write_standoff(docs, path)
+    stream = edsnlp.data.read_standoff(path)
+    stream = stream.map_pipeline(nlp)
+    res = stream.write_standoff(path)
+    # or equivalently
+    edsnlp.data.write_standoff(stream, path)
     ```
 
 You can easily integrate [BRAT](https://brat.nlplab.org/) into your project by using EDS-NLP's BRAT reader and writer.

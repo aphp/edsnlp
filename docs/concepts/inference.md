@@ -153,7 +153,7 @@ To apply an operation to a stream in batches, you can use the `map_batches()` me
 
 ### Configure the execution with `set_processing()` {: #edsnlp.core.stream.Stream.set_processing }
 
-You can configure how the operations performed in the stream is executed by calling its `set_processing(...)` method. The following options are available :
+You can configure how the operations performed in the stream are executed by calling its `set_processing(...)` method. The following options are available :
 
 ::: edsnlp.core.stream.Stream.set_processing
     options:

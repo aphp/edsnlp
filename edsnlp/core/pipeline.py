@@ -1034,6 +1034,9 @@ class Pipeline(Validated):
             readme_replacements=readme_replacements,
         )
 
+    if TYPE_CHECKING:
+        from edsnlp.package import package as package
+
     def __getstate__(self):
         state = self.__dict__.copy()
         state["_pipe_meta"] = [PIPE_META.get(pipe, {}) for _, pipe in self.pipeline]

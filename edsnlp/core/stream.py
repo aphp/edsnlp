@@ -1051,14 +1051,14 @@ class Stream(metaclass=MetaStream):
         )
 
     if TYPE_CHECKING:
-        to_spark = edsnlp.data.to_spark  # noqa: F811
-        to_pandas = edsnlp.data.to_pandas  # noqa: F811
-        to_polars = edsnlp.data.to_polars  # noqa: F811
-        to_iterable = edsnlp.data.to_iterable  # noqa: F811
-        write_parquet = edsnlp.data.write_parquet  # noqa: F811
-        write_standoff = edsnlp.data.write_standoff  # noqa: F811
-        write_brat = edsnlp.data.write_brat  # noqa: F811
-        write_json = edsnlp.data.write_json  # noqa: F811
+        from edsnlp.data import to_iterable as to_iterable  # noqa: F401
+        from edsnlp.data import to_pandas as to_pandas  # noqa: F401
+        from edsnlp.data import to_polars as to_polars  # noqa: F401
+        from edsnlp.data import to_spark as to_spark  # noqa: F401
+        from edsnlp.data import write_brat as write_brat  # noqa: F401
+        from edsnlp.data import write_json as write_json  # noqa: F401
+        from edsnlp.data import write_parquet as write_parquet  # noqa: F401
+        from edsnlp.data import write_standoff as write_standoff  # noqa: F401
 
 
 # For backwards compatibility

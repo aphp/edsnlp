@@ -216,7 +216,7 @@ def to_iterable(
     **kwargs,
 ):
     """
-    `edsnlp.data.to_items` returns an iterator of documents, as converted by the
+    `edsnlp.data.to_iterable` returns an iterator of documents, as converted by the
     `converter`. In comparison to just iterating over a Stream, this will
     also apply the `converter` to the documents, which can lower the data transfer
     overhead when using multiprocessing.
@@ -232,7 +232,7 @@ def to_iterable(
 
     doc = nlp("My document with entities")
 
-    edsnlp.data.to_items([doc], converter="omop")
+    edsnlp.data.to_iterable([doc], converter="omop")
     ```
 
     Parameters

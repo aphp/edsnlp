@@ -5,9 +5,11 @@
     ```{ .python .no-check }
     import edsnlp
 
-    docs = edsnlp.data.from_polars(df, converter="omop")
-    docs = docs.map_pipeline(nlp)
-    res = edsnlp.data.to_polars(docs, converter="omop")
+    stream = edsnlp.data.from_polars(df, converter="omop")
+    stream = stream.map_pipeline(nlp)
+    res = stream.to_polars(converter="omop")
+    # or equivalently
+    edsnlp.data.to_polars(stream, converter="omop")
     ```
 
 We provide methods to read and write documents (raw or annotated) from and to Polars DataFrames.

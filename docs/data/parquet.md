@@ -5,9 +5,11 @@
     ```{ .python .no-check }
     import edsnlp
 
-    docs = edsnlp.data.read_parquet(df, converter="omop")
-    docs = docs.map_pipeline(nlp)
-    res = edsnlp.data.to_parquet(docs, converter="omop")
+    stream = edsnlp.data.read_parquet(path, converter="omop")
+    stream = stream.map_pipeline(nlp)
+    res = stream.to_parquet(path, converter="omop")
+    # or equivalently
+    edsnlp.data.to_parquet(stream, path, converter="omop")
     ```
 
 We provide methods to read and write documents (raw or annotated) from and to parquet files.

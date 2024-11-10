@@ -15,6 +15,25 @@
 - New revamped and documented `edsnlp.train` script and API
 - Support YAML config files (supported only CFG/INI files before)
 - Most of EDS-NLP functions are now clickable in the documentation
+- ScheduledOptimizer now accepts schedules directly in place of parameters, and easy parameter selection:
+
+    ```
+    ScheduledOptimizer(
+        optim="adamw",
+        module=nlp,
+        total_steps=2000,
+        groups={
+            "^transformer": {
+                # lr will go from 0 to 5e-5 then to 0 for params matching "transformer"
+                "lr": {"@schedules": "linear", "warmup_rate": 0.1, "start_value": 0 "max_value": 5e-5,},
+            },
+            "": {
+                # lr will go from 3e-4 during 200 steps then to 0 for other params
+                "lr": {"@schedules": "linear", "warmup_rate": 0.1, "start_value": 3e-4 "max_value": 3e-4,},
+            },
+        },
+    )
+    ```
 
 ### Changed
 

@@ -125,18 +125,18 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
         # Assign parameters starting with transformer (ie the parameters of the transformer component)
         # to a first group
         "^transformer":
-          lr: 5e-5
-          schedules:
+          lr:
             '@schedules': linear
             "warmup_rate": 0.1
             "start_value": 0
+            "max_value": 5e-5
         # And every other parameters to the second group
         "":
-          lr: 3e-4
-          schedules:
+          lr:
             '@schedules': linear
             "warmup_rate": 0.1
             "start_value": 3e-4
+            "max_value": 3e-4
       module: ${ nlp }
       total_steps: ${ train.max_steps }
 
@@ -256,12 +256,10 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
         total_steps=max_steps,
         groups={
             "^transformer": {
-                "lr": 5e-5,
-                "schedules": {"@schedules": "linear", "warmup_rate": 0.1, "start_value": 0},
+                "lr": {"@schedules": "linear", "warmup_rate": 0.1, "start_value": 0 "max_value": 5e-5,},
             },
             "": {
-                "lr": 3e-4,
-                "schedules": {"@schedules": "linear", "warmup_rate": 0.1, "start_value": 3e-4},
+                "lr": {"@schedules": "linear", "warmup_rate": 0.1, "start_value": 3e-4 "max_value": 3e-4,},
             },
         },
     )

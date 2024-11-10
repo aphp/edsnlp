@@ -20,16 +20,20 @@ def net():
     return net
 
 
-def test_parameter_selection(net):
-    optim = ScheduledOptimizer(
-        cls="adamw",
-        module=net,
-        groups={
+@pytest.mark.parametrize(
+    "groups",
+    [
+        # Old schedule API
+        {
             "fc1[.].*": {
                 "lr": 0.1,
                 "weight_decay": 0.01,
                 "schedules": [
-                    {"@schedules": "linear", "start_value": 0.0, "warmup_rate": 0.2},
+                    {
+                        "@schedules": "linear",
+                        "start_value": 0.0,
+                        "warmup_rate": 0.2,
+                    },
                 ],
             },
             "fc2[.]bias": False,
@@ -38,11 +42,36 @@ def test_parameter_selection(net):
                 "weight_decay": 0.0,
             },
         },
+        # New schedule API
+        {
+            "fc1[.].*": {
+                "lr": {
+                    "@schedules": "linear",
+                    "start_value": 0.0,
+                    "max_value": 0.1,
+                    "warmup_rate": 0.2,
+                },
+                "weight_decay": 0.01,
+            },
+            "fc2[.]bias": False,
+            "": {
+                "lr": 0.0001,
+                "weight_decay": 0.0,
+            },
+        },
+    ],
+)
+def test_old_parameter_selection(net, groups):
+    optim = ScheduledOptimizer(
+        cls="adamw",
+        module=net,
+        groups=groups,
         total_steps=10,
     )
     assert len(optim.state) == 0
     optim.initialize()
     assert all([p in optim.state for p in net.fc1.parameters()])
+    optim.state = optim.state
 
     fc1_group = optim.param_groups[0]
     assert fc1_group["lr"] == pytest.approx(0.0)

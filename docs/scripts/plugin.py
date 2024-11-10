@@ -145,11 +145,13 @@ def on_post_page(
         if ref.startswith("edsnlp.") and "--" not in ref:
             code = "import edsnlp; " + ref
             interpreter = jedi.Interpreter(code, namespaces=[{}])
-            goto = interpreter.goto(1, len(code), follow_imports=True)
+            goto = interpreter.infer(1, len(code))
+            try:
+                file = goto[0].module_path.relative_to(Path.cwd())
+            except Exception:
+                goto = []
             if not goto:
-                print("Could not get source for", ref)
                 continue
-            file = goto[0].module_path.relative_to(Path.cwd())
             line = goto[0].line
             # Add a "[source]" span with a link to the source code in a new tab
             url = f"https://github.com/aphp/edsnlp/blob/{GIT_COMMIT}/{file}#L{line}"

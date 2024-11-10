@@ -5,10 +5,11 @@
     ```{ .python .no-check }
     import edsnlp
 
-
-    docs = edsnlp.data.from_spark(df, converter="omop")
-    docs = docs.map_pipeline(nlp)
-    res = edsnlp.data.to_spark(docs, converter="omop")
+    stream = edsnlp.data.from_spark(df, converter="omop")
+    stream = stream.map_pipeline(nlp)
+    res = stream.to_spark(converter="omop")
+    # or equivalently
+    edsnlp.data.to_spark(stream, converter="omop")
     ```
 
 We provide methods to read and write documents (raw or annotated) from and to Spark DataFrames.

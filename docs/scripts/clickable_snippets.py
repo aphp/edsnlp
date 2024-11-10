@@ -46,10 +46,7 @@ CITATION_RE = r"(\[@(?:[\w_:-]+)(?: *, *@(?:[\w_:-]+))*\])"
 
 
 class ClickableSnippetsPlugin(BasePlugin):
-    config_scheme: Tuple[Tuple[str, MkType]] = (
-        # ("bibtex_file", MkType(str)),  # type: ignore[assignment]
-        # ("order", MkType(str, default="unsorted")),  # type: ignore[assignment]
-    )
+    config_scheme: Tuple[Tuple[str, MkType]] = ()
 
     @mkdocs.plugins.event_priority(1000)
     def on_config(self, config: MkDocsConfig):
@@ -96,6 +93,7 @@ class ClickableSnippetsPlugin(BasePlugin):
 
         autorefs: AutorefsPlugin = config["plugins"]["autorefs"]
         ep = entry_points()
+        page_url = os.path.join("/", page.file.url)
         spacy_factories_entry_points = {
             ep.name: ep.value
             for ep in (
@@ -120,7 +118,6 @@ class ClickableSnippetsPlugin(BasePlugin):
 
         def replace_link(match):
             relative_url = url = match.group(1) or match.group(2) or match.group(3)
-            page_url = os.path.join("/", page.file.url)
             if url.startswith("/"):
                 relative_url = os.path.relpath(url, page_url)
             return f'"{relative_url}"'
@@ -153,8 +150,6 @@ class ClickableSnippetsPlugin(BasePlugin):
             line_lengths.append(len(line) + line_lengths[-1] + 1)
         line_lengths[-1] -= 1
 
-        # print(all_snippets)
-        # print("----")
         for name in self.iter_names(interpreter._module_node):
             try:
                 line, col = name.start_pos
@@ -162,13 +157,19 @@ class ClickableSnippetsPlugin(BasePlugin):
                 node_idx = bisect_right(all_offsets, offset) - 1
 
                 node = all_nodes[node_idx]
-                goto = (interpreter.goto(line, col, follow_imports=True) or [None])[0]
-                if (
+                gotos = interpreter.goto(line, col, follow_imports=True)
+                gotos = [
                     goto
-                    and goto.full_name
-                    and goto.full_name.startswith("edsnlp")
-                    and goto.type != "module"
-                ):
+                    for goto in gotos
+                    if (
+                        goto
+                        and goto.full_name
+                        and goto.full_name.startswith("edsnlp")
+                        and goto.type != "module"
+                    )
+                ]
+                goto = gotos[0] if gotos else None
+                if goto:
                     url = autorefs.get_item_url(goto.full_name)
                     # Check if node has no link in its upstream ancestors
                     if not node.find_parents("a"):
@@ -180,7 +181,6 @@ class ClickableSnippetsPlugin(BasePlugin):
                         )
             except Exception:
                 pass
-        # print("\n\n")
 
         # Re-insert soups into the output
         for soup, start, end in reversed(soups):
@@ -198,7 +198,9 @@ class ClickableSnippetsPlugin(BasePlugin):
             yield from cls.iter_names(child)
 
     @classmethod
-    def convert_html_to_code(cls, html_content: str) -> Tuple[str, list, list]:
+    def convert_html_to_code(
+        cls, html_content: str
+    ) -> Tuple[BeautifulSoup, str, list, list]:
         pre_html_content = "<pre>" + html_content + "</pre>"
         soup = BeautifulSoup(pre_html_content, "html5lib")
         code_element = soup.find("code")
@@ -210,13 +212,13 @@ class ClickableSnippetsPlugin(BasePlugin):
 
         python_code = ""
         code_offsets = []
-        # html_offsets = [0]  # <pre>
         html_nodes = []
         code_offset = 0
 
         def extract_text_with_offsets(el):
             nonlocal python_code, code_offset
             for content in el.contents:
+                # check not class md-annotation
                 # Recursively process child elements
                 if isinstance(content, str):
                     python_code += content
@@ -224,13 +226,9 @@ class ClickableSnippetsPlugin(BasePlugin):
                     code_offset += len(content)
                     html_nodes.append(content)
                     continue
-                extract_text_with_offsets(content)
+                if "md-annotation" not in content.get("class", ""):
+                    extract_text_with_offsets(content)
 
         extract_text_with_offsets(code_element)
-        # html_offsets = html_offsets[1:]
 
         return soup, python_code, code_offsets, html_nodes
-
-        # print("\nOffset Mapping (Python Index -> HTML Index):")
-        # for mapping in offset_mapping:
-        #     print(mapping)

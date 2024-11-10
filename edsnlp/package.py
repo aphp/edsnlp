@@ -559,8 +559,8 @@ class SetuptoolsPackager(Packager):
 
 @app.command(name="package")
 def package(
-    *,
     pipeline: Union[Path, "edsnlp.Pipeline"],
+    *,
     name: Optional[ModuleName] = None,
     root_dir: Path = Path("."),
     build_dir: Optional[Path] = None,

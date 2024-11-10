@@ -53,6 +53,12 @@
 
 - We now provide a training script `python -m edsnlp.train --config config.cfg` that should fit many use cases. Check out the docs !
 - In particular, we do not require pytorch's Dataloader for training and can rely solely on EDS-NLP stream/data API, which is better suited for large streamable datasets and dynamic preprocessing (ie different result each time we apply a noised preprocessing op on a sample).
+- Each trainable component can now provide a `stats` field in its `preprocess` output to log info about the sample (number of words, tokens, spans, ...):
+
+    - these stats are both used for batching (e.g., make batches of no more than "25000 tokens")
+    - for logging
+    - for computing correct loss means when accumulating gradients over multiple mini-mini-batches
+    - for computing correct loss means in multi-GPU setups, since these stats are synchronized and accumulated across GPUs
 
 ## v0.13.1
 

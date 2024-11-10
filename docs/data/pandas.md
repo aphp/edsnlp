@@ -5,9 +5,11 @@
     ```{ .python .no-check }
     import edsnlp
 
-    docs = edsnlp.data.from_pandas(df, converter="omop")
-    docs = docs.map_pipeline(nlp)
-    res = edsnlp.data.to_pandas(docs, converter="omop")
+    stream = edsnlp.data.from_pandas(df, converter="omop")
+    stream = stream.map_pipeline(nlp)
+    res = stream.to_pandas(converter="omop")
+    # or equivalently
+    edsnlp.data.to_pandas(stream, converter="omop")
     ```
 
 We provide methods to read and write documents (raw or annotated) from and to Pandas DataFrames.

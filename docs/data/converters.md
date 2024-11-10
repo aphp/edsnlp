@@ -8,6 +8,24 @@ Converters can be configured in the `from_*` (or `read_*` in the case of files) 
 - a function, in which case it will be interpreted as a custom converter
 - a string, in which case it will be interpreted as the name of a pre-defined converter
 
+## No converter (`converter=None`) {: #none }
+
+Except in `read_standoff` and `write_standoff`, the default converter is `None`. When `converter=None`, readers output the raw content of the input data (most often dictionaries) and writers expect dictionaries. This can actually be useful is you plan to use Streams without converting to Doc objects, for instance to parallelizing the execution of a function on raw Json, Parquet files or simple lists.
+
+```python
+import edsnlp.data
+
+
+def complex_func(n):
+    return n * n
+
+
+stream = edsnlp.data.from_iterable(range(20))
+stream = stream.map(complex_func)
+stream = stream.set_processing(num_cpu_workers=2)
+res = list(stream)
+```
+
 ## Custom converter {: #custom }
 
 You can always define your own converter functions to convert between your data and Doc objects.

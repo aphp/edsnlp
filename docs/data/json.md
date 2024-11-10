@@ -5,9 +5,11 @@
     ```{ .python .no-check }
     import edsnlp
 
-    docs = edsnlp.data.read_json(df, converter="omop")
-    docs = docs.map_pipeline(nlp)
-    res = edsnlp.data.to_json(docs, converter="omop")
+    stream = edsnlp.data.read_json(path, converter="omop")
+    stream = stream.map_pipeline(nlp)
+    res = stream.to_json(path, converter="omop")
+    # or equivalently
+    edsnlp.data.to_json(stream, path, converter="omop")
     ```
 
 We provide methods to read and write documents (raw or annotated) from and to json files.

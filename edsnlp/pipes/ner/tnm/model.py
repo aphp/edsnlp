@@ -197,3 +197,6 @@ class TNM(pydantic.BaseModel):
                 d[k] = v.value
 
         return d
+
+    if pydantic.VERSION < "2":
+        model_dump = pydantic.BaseModel.dict

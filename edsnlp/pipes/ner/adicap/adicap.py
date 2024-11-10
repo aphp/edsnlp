@@ -98,7 +98,7 @@ Name=cgts_sem_adicap_fiche-detaillee.pdf).
     ent.label_
     # Out: adicap
 
-    ent._.adicap.model_dump()
+    ent._.adicap.dict()
     # Out: {'code': 'BHGS0040',
     # 'sampling_mode': 'BIOPSIE CHIRURGICALE',
     # 'technic': 'HISTOLOGIE ET CYTOLOGIE PAR INCLUSION',

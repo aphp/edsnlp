@@ -1,17 +1,24 @@
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, Optional, Type, Union
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
-import pydantic
 import regex
 import torch
 import torch.optim
 from confit import Config, validate_arguments
+from confit.utils.collections import split_path
 from typing_extensions import Literal
 
 import edsnlp
 from edsnlp.core import PipelineProtocol
 from edsnlp.utils.collections import get_deep_attr, set_deep_attr
-from edsnlp.utils.typing import AsList
 
 optim_mapping = {
     "adam": torch.optim.Adam,
@@ -26,6 +33,17 @@ optim_mapping = {
 
 @validate_arguments
 class Schedule:
+    paths: List[Tuple[Union[str, int]]]
+    start_value: Any
+
+    def __init__(self, path, start_value: Any):
+        self.paths: Optional[List[Tuple[Union[str, int]]]] = (
+            None
+            if path is None
+            else [(path if isinstance(path, list) else split_path(path))]
+        )
+        self.start_value = start_value
+
     def step(self, group, closure=None):
         raise NotImplementedError
 
@@ -46,7 +64,7 @@ class LinearSchedule(Schedule):
         total_steps: Optional[int] = None,
         max_value: Optional[Any] = None,
         start_value: float = 0.0,
-        path: str = "lr",
+        path: Optional[Union[str, int, List[Union[str, int]]]] = None,
         warmup_rate: float = 0.0,
     ):
         """
@@ -67,8 +85,7 @@ class LinearSchedule(Schedule):
         warmup_rate: float
             The rate of the warmup.
         """
-        self.path = path
-        self.start_value = start_value
+        super().__init__(path, start_value)
         self.max_value = max_value
         self.warmup_rate = warmup_rate
         self.total_steps = total_steps
@@ -89,7 +106,7 @@ class LinearSchedule(Schedule):
     def step(self, group, closure=None):
         self.idx += 1
         if self.max_value is None:
-            self.max_value = get_deep_attr(group, self.path)
+            self.max_value = get_deep_attr(group, self.paths[0])
         warmup_steps = self.total_steps * self.warmup_rate
         if self.idx < warmup_steps:
             progress = self.idx / warmup_steps
@@ -97,39 +114,18 @@ class LinearSchedule(Schedule):
         else:
             progress = (self.idx - warmup_steps) / (self.total_steps - warmup_steps)
             value = self.max_value + (0 - self.max_value) * progress
-        set_deep_attr(group, self.path, value)
+        for path in self.paths:
+            set_deep_attr(group, path, value)
 
     def __repr__(self):
         format_string = type(self).__name__ + "(\n"
         format_string += f"    start_value: {self.start_value}\n"
         format_string += f"    max_value: {self.max_value}\n"
         format_string += f"    warmup_rate: {self.warmup_rate}\n"
-        format_string += f"    path: {self.path}\n"
+        format_string += f"    paths: {self.paths}\n"
         format_string += f"    total_steps: {self.total_steps}\n"
         format_string += ")"
         return format_string
-
-
-class Group(pydantic.BaseModel, extra=pydantic.Extra.allow):
-    """
-    Parameter group for the optimizer.
-
-    Parameters
-    ----------
-    schedules : AsList[Schedule]
-        The schedules to apply to the group.
-    lr : Optional[float] = None
-        The learning rate for the group.
-    **kwargs
-        Additional parameters to pass to the group.
-    """
-
-    schedules: Optional[AsList[Schedule]] = None
-    lr: Optional[float] = None
-
-
-if TYPE_CHECKING:
-    Group = Dict
 
 
 @edsnlp.registry.misc.register("eds.scheduled_optimizer")
@@ -139,7 +135,7 @@ class ScheduledOptimizer(torch.optim.Optimizer):
         cls: Union[torch.optim.Optimizer, Type[torch.optim.Optimizer], str],
         module: Optional[Union[PipelineProtocol, torch.nn.Module]] = None,
         total_steps: Optional[int] = None,
-        groups: Optional[Dict[str, Union[Group, Literal[False]]]] = None,
+        groups: Optional[Dict[str, Union[Dict, Literal[False]]]] = None,
         init_schedules: bool = True,
         **kwargs,
     ):
@@ -147,6 +143,48 @@ class ScheduledOptimizer(torch.optim.Optimizer):
         Wrapper optimizer that supports schedules for the parameters and easy parameter
         selection using the key of the `groups` dictionary as regex patterns to match
         the parameter names.
+
+        Schedules are defined directly in the groups, in place of the scheduled value.
+
+        Examples
+        --------
+        ```{ .python .no-check }
+        optim = ScheduledOptimizer(
+            cls="adamw",
+            module=model,
+            groups={
+                # Exclude all parameters matching 'bias' from optimization.
+                "bias": False,
+                # Parameters starting with 'transformer' receive this learning rate
+                # schedule. If a parameter matches both 'transformer' and 'ner',
+                # the 'transformer' settings take precedence due to the order.
+                "^transformer": {
+                    "lr": {
+                        "@schedules": "linear",
+                        "start_value": 0.0,
+                        "max_value": 5e-4,
+                        "warmup_rate": 0.2,
+                    },
+                },
+                # Parameters starting with 'ner' receive this learning rate schedule,
+                # unless a 'lr' value has already been set by an earlier selector.
+                "^ner": {
+                    "lr": {
+                        "@schedules": "linear",
+                        "start_value": 0.0,
+                        "max_value": 1e-4,
+                        "warmup_rate": 0.2,
+                    },
+                },
+                # Apply a weight_decay of 0.01 to all parameters not excluded.
+                # This setting doesn't conflict with others and applies to all.
+                "": {
+                    "weight_decay": 0.01,
+                },
+            },
+            total_steps=1000,
+        )
+        ```
 
         Parameters
         ----------
@@ -164,9 +202,12 @@ class ScheduledOptimizer(torch.optim.Optimizer):
 
             The matching is performed by running  `regex.search(selector, name)` so you
             do not have to match the full name. Note that the order of dict keys
-            matter. A parameter will be assigned to the first group that matches it, so
-            you can also exclude parameters by using a selector early in the groups and
-            putting `False` as the value.
+            matter. If a parameter name matches multiple selectors, the
+            configurations of these selectors are combined in reverse order (from the
+            last matched selector to the first), allowing later selectors to complete
+            options from earlier ones. If a selector maps to `False`, any parameters
+            matching it are excluded from optimization and not included in any parameter
+            group.
         """
         should_instantiate_optim = isinstance(cls, str) or isinstance(cls, type)
         if should_instantiate_optim and (groups is None or module is None):
@@ -188,24 +229,37 @@ class ScheduledOptimizer(torch.optim.Optimizer):
             groups = {
                 sel: dict(group) if group else False for sel, group in groups.items()
             }
-            all_matched_params = set()
-            for sel, group in groups.items():
-                params = []
-                for name, param in named_parameters:
-                    if param not in all_matched_params and regex.search(sel, name):
-                        params.append(param)
-                if group:
-                    tmp_group = dict(group)
-                    group.clear()
-                    group: Dict
-                    group["selector"] = sel
-                    group["params"] = params
-                    group.update(tmp_group)
-                all_matched_params |= set(params)
-            groups = [
-                {k: v for k, v in group.items() if v is not None}
-                for group in groups.values()
-                if group
+            param_to_groups = {}
+            for name, param in named_parameters:
+                param_to_groups[param] = tuple(
+                    dict.fromkeys(
+                        sel for sel, group in groups.items() if regex.search(sel, name)
+                    )
+                )
+            groups_to_params = defaultdict(lambda: [])
+            for params, group in param_to_groups.items():
+                groups_to_params[group].append(params)
+
+            cliques = []
+            for selectors, params in groups_to_params.items():
+                group = {}
+                group_sources = {}
+                for sel in reversed(selectors):
+                    if groups[sel] is False:
+                        break
+                    group.update(groups[sel])
+                    group_sources.update({k: sel for k in groups[sel]})
+                else:
+                    # if no group=False (break) was encountered
+                    if group and "lr" in group and params:
+                        sources = [
+                            sel for sel in selectors if sel in group_sources.values()
+                        ]
+                        group["selectors"] = sources
+                        group["params"] = params
+                        cliques.append(group)
+            cliques = [
+                {k: v for k, v in group.items() if v is not None} for group in cliques
             ]
 
             if isinstance(cls, str):
@@ -214,28 +268,63 @@ class ScheduledOptimizer(torch.optim.Optimizer):
                     if cls.lower() in optim_mapping
                     else getattr(torch.optim, cls)
                 )
-            cls = cls(groups, **kwargs)
+            cls = cls(cliques, **kwargs)
 
         self.optim = cls
-        schedule_to_groups = defaultdict(lambda: [])
-        for group in self.optim.param_groups:
+        self.schedules = self.extract_schedules(cls.param_groups)
+        for schedule in self.schedules:
+            if schedule.total_steps is None:
+                assert (
+                    total_steps is not None
+                ), "total_steps must be provided to the optimizer or the schedule"
+                schedule.total_steps = total_steps
+            if init_schedules:
+                schedule.step(cls.param_groups)
+
+    @classmethod
+    def extract_schedules(cls, param_groups):
+        schedules = defaultdict(set)
+
+        def rec(node, path):
+            if len(path) == 2 and path[1] in ("schedules", "params"):
+                return
+            if isinstance(node, dict):
+                items = node.items()
+            elif isinstance(node, (list, tuple)):
+                items = enumerate(node)
+            else:
+                if isinstance(node, Schedule):
+                    schedules[node].add(path)
+                return
+            for key, value in items:
+                rec(value, (*path, key))
+
+        # For backward compatibility when schedules were defined
+        # under the "schedules" key in groups.
+        for i, group in enumerate(param_groups):
             if "schedules" in group:
-                group["schedules"] = (
-                    group["schedules"]
-                    if isinstance(group["schedules"], list)
-                    else [group["schedules"]]
+                grp_schedules = group["schedules"]
+                grp_schedules = (
+                    grp_schedules
+                    if isinstance(grp_schedules, list)
+                    else [grp_schedules]
                 )
-                group["schedules"] = list(group["schedules"])
-                for schedule in group["schedules"]:
-                    schedule_to_groups[schedule].append(group)
-                    if schedule.total_steps is None:
-                        assert total_steps is not None, (
-                            "total_steps must be provided to the optimizer "
-                            "or the schedule"
-                        )
-                        schedule.total_steps = total_steps
-                    if init_schedules:
-                        schedule.step(group)
+                for schedule in grp_schedules:
+                    if schedule.paths is None:
+                        schedule.paths = [("lr",)]
+                    schedule.paths = [(i, *path) for path in schedule.paths]
+                    schedules[schedule].update(schedule.paths)
+
+        rec(param_groups, ())
+
+        for schedule, paths in schedules.items():
+            paths = sorted(paths)
+            if schedule.paths is None:
+                schedule.paths = paths
+            if schedule.paths != paths:
+                raise ValueError(f"Schedule path mismatch: {schedule.paths} != {paths}")
+
+        return list(schedules.keys())
 
     def zero_grad(self):
         return self.optim.zero_grad()
@@ -259,38 +348,19 @@ class ScheduledOptimizer(torch.optim.Optimizer):
     def state_dict(self):
         state = {
             "optim": self.optim.state_dict(),
-            "lr": [group.get("lr") for group in self.optim.param_groups],
-            "schedules": [
-                [schedule.state_dict() for schedule in group.get("schedules", ())]
-                for group in self.optim.param_groups
-            ],
+            "schedules": [schedule.state_dict() for schedule in self.schedules],
         }
-        for group in state["optim"]["param_groups"]:
-            if "schedules" in group:
-                del group["schedules"]
         return state
 
     def load_state_dict(self, state):
-        optim_schedules = [
-            group.get("schedules", ()) for group in self.optim.param_groups
-        ]
         self.optim.load_state_dict(state["optim"])
-        for group, group_schedule, group_schedules_state, lr in zip(
-            self.optim.param_groups, optim_schedules, state["schedules"], state["lr"]
-        ):
-            group["schedules"] = group_schedule
-            for schedule, schedule_state in zip(
-                group["schedules"], group_schedules_state
-            ):
-                schedule.load_state_dict(schedule_state)
-            group["lr"] = lr
+        for schedule_state, schedule in zip(state["schedules"], self.schedules):
+            schedule.load_state_dict(schedule_state)
 
     def step(self, closure=None):
         self.optim.step(closure=closure)
-        for group in self.optim.param_groups:
-            if "schedules" in group:
-                for schedule in group["schedules"]:
-                    schedule.step(group)
+        for schedule in self.schedules:
+            schedule.step(self.param_groups)
 
     def initialize(self):
         self.reset()
@@ -302,10 +372,8 @@ class ScheduledOptimizer(torch.optim.Optimizer):
             for param in group["params"]:
                 if param.requires_grad:
                     param.grad = torch.zeros_like(param)
-        for group in self.optim.param_groups:
-            if "schedules" in group:
-                for schedule in group["schedules"]:
-                    schedule.reset(group)
+        for schedule in self.schedules:
+            schedule.reset(self.param_groups)
 
     def __repr__(self):
         format_string = type(self).__name__ + f"[{type(self.optim).__qualname__}] ("
@@ -317,8 +385,7 @@ class ScheduledOptimizer(torch.optim.Optimizer):
                 "selector",
                 "params",
                 "lr",
-                *sorted(set(group.keys()) - {"selector", "params", "lr", "schedules"}),
-                "schedules",
+                *sorted(set(group.keys()) - {"selector", "params", "lr"}),
             ]
             for key in keys:
                 if key in group:

@@ -362,7 +362,6 @@ class Stream(metaclass=MetaStream):
         gpu_worker_devices: Optional[List[str]] = None,
         cpu_worker_devices: Optional[List[str]] = None,
         deterministic: bool = True,
-        work_unit: Literal["record", "fragment"] = "record",
         chunk_size: int = None,
         sort_chunks: bool = False,
         _non_default_args: Iterable[str] = (),

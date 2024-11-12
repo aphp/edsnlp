@@ -16,11 +16,13 @@ import warnings
 import weakref
 from collections import defaultdict
 from contextlib import nullcontext
+from itertools import tee
 from multiprocessing.connection import wait
 from typing import (
     TYPE_CHECKING,
     Any,
     Dict,
+    Iterable,
     List,
     Sequence,
     TypeVar,
@@ -849,6 +851,24 @@ class GPUWorker(Worker):
         return [(name, self.data_queues[name]) for name in names]
 
 
+class SafeNext:
+    def __init__(self, it, lock):
+        self.it = it
+        self.lock = lock
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        with self.lock:
+            return next(self.it)
+
+
+def thread_safe_tee(it: Iterable[T], n: int):
+    lock = threading.Lock()
+    return tuple(SafeNext(iter(sub_it), lock) for sub_it in tee(it, n))
+
+
 class MultiprocessingStreamExecutor:
     def __init__(self, stream):
         (
@@ -886,8 +906,9 @@ class MultiprocessingStreamExecutor:
             name: mp.Queue() for name in self.all_worker_names
         }
         self.final_barrier = mp.Barrier(num_cpu_workers + num_gpu_workers + 1)
-        self.data_queues = {}
+        self.data_queues: Dict[str, multiprocessing.Queue] = {}
         self.gpu_semaphores = {}
+        self.input_queue_names = []
 
         # Queues: for each N producers - 1 consumer situation, we don't create
         # one single shared queue but N bounded queues, one for each producer.
@@ -904,6 +925,7 @@ class MultiprocessingStreamExecutor:
                 if not share_queues:
                     queue = mp.Queue(2)
                 self.data_queues[name] = queue
+                self.input_queue_names.append(name)
 
         for cpu in set(self.cpu_worker_names):
             for gpu in set(self.cpu_to_gpu_schedules[cpu]):
@@ -921,7 +943,7 @@ class MultiprocessingStreamExecutor:
 
             # Final output queue for each CPU worker
             name = f"from-{cpu}_to-main"
-            self.data_queues[name] = mp.Queue()
+            self.data_queues[name] = mp.Queue(2)
 
         self.temp_file = tempfile.NamedTemporaryFile(delete=False)
 
@@ -984,7 +1006,7 @@ class MultiprocessingStreamExecutor:
         self.current_worker_idx = -1
         self.error = None
         self.dequeue_notifications_thread = None
-        self.enqueue_inputs_thread = None
+        self.queue_feeder_threads: List[threading.Thread] = []
         self.revert_environ = lambda: None
         self.revert_pickler = lambda: None
         self.tearing_down = False
@@ -1030,12 +1052,17 @@ class MultiprocessingStreamExecutor:
 
         # Start enqueuing inputs if needed
         if not self.stream.reader.read_in_worker:
-            self.enqueue_inputs_thread = threading.Thread(
-                target=self.enqueue_inputs,
-                name="Main-Enqueue-Inputs",
-                daemon=True,
-            )
-            self.enqueue_inputs_thread.start()
+            queues = {self.data_queues[name] for name in self.input_queue_names}
+            tee_items = thread_safe_tee(self.stream.reader.read_records(), len(queues))
+            for queue, items in zip(queues, tee_items):
+                thread = threading.Thread(
+                    target=self.feed_queue,
+                    name="Main-Enqueue-Inputs",
+                    daemon=True,
+                    args=(queue, items),
+                )
+                thread.start()
+                self.queue_feeder_threads.append(thread)
 
         # Create the main iterator
         items = self.dequeue_outputs()
@@ -1141,42 +1168,65 @@ class MultiprocessingStreamExecutor:
         if self.error:
             raise self.error
 
-    def enqueue_inputs(self):
-        input_queue_names = [
-            f"from-main_to-stage-0_of-{cpu}" for cpu in self.cpu_worker_names
+    def feed_queue(self, queue, items):
+        """
+        Enqueue items in a queue.
+        Note that a queue may be shared between multiple workers, so have to send
+        items destined multiple workers in the same queue. For that, we first
+        determine which worker should receive the item based on the item index
+        and some other env variables. Then we lookup the worker queue, and if it
+        matches the current queue, we send the item, even if all workers share the
+        same queue, in which case there is only on queue feeder thread that sends
+        all the items (non-deterministic mode).
+
+        Parameters
+        ----------
+        queue: multiprocessing.Queue
+            The queue to feed
+        items: Iterator
+            The items to send. Note that this iterator is a tee of the main
+            iterator, such that each worker can process items at its own pace.
+        """
+        queues = [
+            self.data_queues[f"from-main_to-stage-0_of-{cpu}"]
+            for cpu in self.cpu_worker_names
         ]
         try:
             local_rank = int(os.environ.get("LOCAL_RANK", 0))
             world_size = int(os.environ.get("WORLD_SIZE", 1))
-            items = iter(self.stream.reader.read_records())
-            queue_idx = 0
-            for idx, item in enumerate(items):
-                if idx % world_size != local_rank:
-                    continue
 
+            task_idx = 0
+            for item in items:
                 if self.stopped:
                     break
                 if isinstance(item, StreamSentinel):
-                    # Send sentinel to all workers
-                    for name in input_queue_names:
-                        self.data_queues[name].put(item)
-
-                    # Don't change queue since a sentinel is not a task
-                    continue
-                else:
-                    # Queue_idx doesn't matter if share_input_queue is True
-                    name = input_queue_names[queue_idx]
-                    queue = self.data_queues[name]
                     queue.put(item)
-                queue_idx = (queue_idx + 1) % len(self.cpu_worker_names)
+                    continue
+                # tasks:         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ...]
+                # world_size = 2
+                # local_rank = 1
+                # -> kept tasks: [   1,    3,    5,    7,    9, ...]
+                # worker_idx = 1
+                # num_cpu_workers = 3
+                # -> kept tasks: [         3,                9, ...]
+                if (
+                    # check that this task is for us
+                    (task_idx % world_size) == local_rank
+                    # check that this task is for the queue
+                    and queues[(task_idx // world_size) % len(queues)] is queue
+                ):
+                    queue.put(item)
+                task_idx += 1
         except BaseException as e:
+            print(f"Error in input enqueueing:\n{traceback.format_exc()}", flush=True)
             self.main_control_queue.put(e)
         finally:
             # Send the stop sentinel to all workers
-            if not self.stream.reader.read_in_worker:
-                for cpu in self.cpu_worker_names:
-                    name = f"from-main_to-stage-0_of-{cpu}"
-                    self.data_queues[name].put(STOP)
+            for q in queues:
+                if q is queue:
+                    queue.put(STOP)
+            queue.close()
+            queue.join_thread()
 
     def dequeue_notifications(self):
         while True:
@@ -1212,8 +1262,8 @@ class MultiprocessingStreamExecutor:
 
         if self.dequeue_notifications_thread is not None:
             self.dequeue_notifications_thread.join()
-        if self.enqueue_inputs_thread is not None:
-            self.enqueue_inputs_thread.join()
+        for thread in self.queue_feeder_threads:
+            thread.join()
         self.final_barrier.wait()
 
     def send_stop_signals(self):

@@ -104,7 +104,7 @@ class Pipeline(Validated):
         batch_size: Optional[int] = 128,
         vocab_config: Type[BaseDefaults] = None,
         meta: Dict[str, Any] = None,
-        pipeline: Sequence[str] = (),
+        pipeline: Optional[Sequence[str]] = None,
         components: Dict[str, CurriedFactory] = {},
         disable: AsList[str] = EMPTY_LIST,
         enable: AsList[str] = EMPTY_LIST,
@@ -155,6 +155,7 @@ class Pipeline(Validated):
         self.lang: str = lang
         self._cache: Optional[Dict] = None
 
+        pipeline = list(components) if pipeline is None else pipeline
         self._add_pipes(pipeline, components, exclude, enable, disable)
 
     @property

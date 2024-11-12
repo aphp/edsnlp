@@ -58,12 +58,6 @@ class JsonReader(FileBasedReader):
         self.shuffle = shuffle
         self.loop = loop
         self.rng = random.Random(seed)
-        if self.read_in_worker is not None:
-            warnings.warn(
-                "The `read_in_worker` parameter of EDS-NLP readers is "
-                "deprecated, please use `data.set_processing(work_unit='fragment').`",
-                FutureWarning,
-            )
         for file in self.files:
             if not self.fs.exists(file):
                 raise FileNotFoundError(f"File {file} does not exist")

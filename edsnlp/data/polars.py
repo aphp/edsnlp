@@ -37,7 +37,7 @@ class PolarsReader(MemoryBasedReader):
         assert isinstance(data, pl.DataFrame)
         self.data = data
 
-    def read_records(self, work_unit: str = "record") -> Iterable[Any]:
+    def read_records(self) -> Iterable[Any]:
         data: polars.DataFrame = self.data
         while True:
             if self.shuffle:

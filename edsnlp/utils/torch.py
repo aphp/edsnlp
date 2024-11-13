@@ -1,8 +1,10 @@
+import copyreg
 import math
 import warnings
 from enum import Enum
 from typing import TypeVar
 
+import dill
 import torch
 
 # filter "is in beta" torch warnings
@@ -91,3 +93,89 @@ def make_windows(lengths, size, stride):
     )
     indexer %= len(scores)
     return windows.masked_fill(~windows_mask, -1), indexer
+
+
+def reduce_empty(*args, **kwargs):
+    return type(None), ()
+
+
+def load_pruned_obj(obj, _):
+    return obj
+
+
+# Torch may still be imported as a namespace package, so we can access the
+# torch.save and torch.load functions
+
+MAP_LOCATION = None
+
+
+try:
+    from accelerate.hooks import AlignDevicesHook
+
+    # We need to replace the "execution_device" attribute of the AlignDevicesHook
+    # using map_location when unpickling the stream
+
+    def save_align_devices_hook(pickler, obj):
+        pickler.save_reduce(load_align_devices_hook, (obj.__dict__,), obj=obj)
+
+    def load_align_devices_hook(state):
+        state["execution_device"] = MAP_LOCATION
+        new_obj = AlignDevicesHook.__new__(AlignDevicesHook)
+        new_obj.__dict__.update(state)
+        return new_obj
+
+except ImportError:
+    AlignDevicesHook = None
+
+
+def dump(
+    *args,
+    skip_tensors: bool = False,
+    **kwargs,
+):
+    # We need to replace the "execution_device" attribute of the AlignDevicesHook
+    # using map_location when pickling the stream
+    old = None
+    old_settings = dict(dill.settings)
+    old_dispatch = {}
+    try:
+        if skip_tensors:
+            if torch.Tensor in copyreg.dispatch_table:
+                old_dispatch[torch.Tensor] = copyreg.dispatch_table[torch.Tensor]
+            copyreg.pickle(torch.Tensor, reduce_empty)
+        if AlignDevicesHook is not None:
+            old = dill.Pickler.dispatch.get(AlignDevicesHook)
+            dill.Pickler.dispatch[AlignDevicesHook] = save_align_devices_hook
+        dill.settings["recurse"] = True
+        dill.settings["byref"] = True
+        return torch.save(*args, pickle_module=dill, **kwargs)
+    finally:
+        dill.settings.update(old_settings)
+        if AlignDevicesHook is not None:
+            del dill.Pickler.dispatch[AlignDevicesHook]
+            if old is not None:  # pragma: no cover
+                dill.Pickler.dispatch[AlignDevicesHook] = old
+        copyreg.dispatch_table.pop(torch.Tensor, None)
+        copyreg.dispatch_table.update(old_dispatch)
+
+
+def load(*args, map_location=None, **kwargs):
+    global MAP_LOCATION
+    MAP_LOCATION = map_location
+    if torch.__version__ >= "2.1" and isinstance(args[0], str):
+        kwargs["mmap"] = True
+    try:
+        if torch.__version__ < "2.0.0":
+            torch.load.__globals__["pickle"] = dill
+        result = torch.load(
+            *args,
+            pickle_module=dill,
+            map_location=map_location,
+            **kwargs,
+        )
+    finally:
+        import pickle
+
+        torch.load.__globals__["pickle"] = pickle
+    MAP_LOCATION = None
+    return result

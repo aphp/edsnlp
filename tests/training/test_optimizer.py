@@ -63,7 +63,7 @@ def net():
 )
 def test_old_parameter_selection(net, groups):
     optim = ScheduledOptimizer(
-        cls="adamw",
+        optim="adamw",
         module=net,
         groups=groups,
         total_steps=10,
@@ -107,7 +107,7 @@ def test_old_parameter_selection(net, groups):
 
 def test_serialization(net):
     optim = ScheduledOptimizer(
-        cls="adamw",
+        optim="adamw",
         module=net,
         groups={
             "fc1[.].*": {
@@ -141,7 +141,7 @@ def test_serialization(net):
 
 def test_repr(net):
     optim = ScheduledOptimizer(
-        cls="adamw",
+        optim="adamw",
         module=net,
         groups={
             "fc1[.].*": {

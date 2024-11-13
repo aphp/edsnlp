@@ -41,7 +41,7 @@ scorer:
 
 # 🎛️ OPTIMIZER
 # (disabled to test the default optimizer)
-# optim:
+# optimizer:
 #   "@optimizers": adam
 #   groups:
 #     "*.transformer.*":

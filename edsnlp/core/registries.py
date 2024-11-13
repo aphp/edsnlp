@@ -421,7 +421,7 @@ class registry(RegistryCollection):
     adapters = Registry(("edsnlp", "adapters"), entry_points=True)
     readers = Registry(("edsnlp", "readers"), entry_points=True)
     writers = Registry(("edsnlp", "writers"), entry_points=True)
-    pipelines = Registry(("edsnlp", "pipelines"), entry_points=True)
+    core = Registry(("edsnlp", "core"), entry_points=True)
     optimizers = Registry(("edsnlp", "optimizers"), entry_points=True)
     schedules = Registry(("edsnlp", "schedules"), entry_points=True)
 

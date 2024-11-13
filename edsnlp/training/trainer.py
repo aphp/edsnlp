@@ -1,9 +1,9 @@
 import json
-import logging
 import os
 import time
 import warnings
 from collections import defaultdict
+from contextlib import nullcontext
 from itertools import chain
 from pathlib import Path
 from typing import (
@@ -295,8 +295,9 @@ def train(
     val_data: AsList[Stream],
     seed: int = 42,
     max_steps: int = 1000,
-    optim: Union[ScheduledOptimizer, torch.optim.Optimizer] = None,
-    validation_interval: int = 10,
+    optimizer: Union[ScheduledOptimizer, torch.optim.Optimizer] = None,
+    validation_interval: Optional[int] = None,
+    checkpoint_interval: Optional[int] = None,
     max_grad_norm: float = 5.0,
     loss_scales: Dict[str, float] = {},
     scorer: GenericScorer = GenericScorer(),
@@ -333,7 +334,7 @@ def train(
         The random seed
     max_steps: int
         The maximum number of training steps
-    optim: Union[ScheduledOptimizer, torch.optim.Optimizer]
+    optimizer: Union[ScheduledOptimizer, torch.optim.Optimizer]
         The optimizer. If None, a default optimizer will be used.
 
         ??? note "`ScheduledOptimizer` object/dictionary"
@@ -344,8 +345,10 @@ def train(
                     skip_parameters: []
                     show_source: false
                     show_toc: false
-    validation_interval: int
-        The number of steps between each evaluation
+    validation_interval: Optional[int]
+        The number of steps between each evaluation. Defaults to 1/10 of max_steps
+    checkpoint_interval: Optional[int]
+        The number of steps between each model save. Defaults to validation_interval
     max_grad_norm: float
         The maximum gradient norm
     loss_scales: Dict[str, float]
@@ -368,6 +371,8 @@ def train(
     cpu: bool
         Whether to use force training on CPU. On MacOS, this might be
         necessary to get around some `mps` backend issues.
+    mixed_precision: Literal["no", "fp16", "bf16", "fp8"]
+        The mixed precision mode. Can be "no", "fp16", "bf16" or "fp8".
     output_dir: Union[Path, str]
         The output directory, which will contain a `model-last` directory
         with the last model, and a `train_metrics.json` file with the
@@ -378,25 +383,52 @@ def train(
     Returns
     -------
     Pipeline
-        The pipeline
+        The trained pipeline
     """
     # Prepare paths
+    accelerator = Accelerator(cpu=cpu, mixed_precision=mixed_precision)
+    # accelerator.register_for_checkpointing(dataset)
+    is_main_process = accelerator.is_main_process
+    device = accelerator.device
+    print("Starting training on device:", device)
+
     output_dir = Path(output_dir or Path.cwd() / "artifacts")
     model_path = output_dir / "model-last"
     train_metrics_path = output_dir / "train_metrics.json"
-    os.makedirs(output_dir, exist_ok=True)
-    optim_base = optim
+    if is_main_process:
+        os.makedirs(output_dir, exist_ok=True)
 
-    # Prepare validation docs
-    val_docs = list(chain.from_iterable(val_data))
-
+    validation_interval = validation_interval or max_steps // 10
+    checkpoint_interval = checkpoint_interval or validation_interval
     trainable_pipe_names = {name for name, pipe in nlp.torch_components()}
-    print("Trainable components: " + ", ".join(trainable_pipe_names))
     phases = nlp.connected_pipes_names()
-    print(
+    accelerator.print("Trainable components: " + ", ".join(trainable_pipe_names))
+    accelerator.print(
         "Training phases:"
         + "".join(f"\n - {i + 1}: {', '.join(n)}" for i, n in enumerate(phases))
     )
+
+    optim_base = optimizer
+    all_params = set(nlp.parameters())
+    if optim_base is None:
+        warnings.warn(
+            "No optimizer provided, using default optimizer with default " "parameters"
+        )
+        optimizer = default_optim(
+            [nlp.get_pipe(name) for name in trainable_pipe_names],
+            max_steps=max_steps,
+            **{
+                k: kwargs.pop(k)
+                for k in ("task_lr", "transformer_lr", "warmup_rate")
+                if k in kwargs
+            },
+        )
+
+    if kwargs:
+        raise ValueError(f"Unknown arguments: {', '.join(kwargs)}")
+
+    # Prepare validation docs
+    val_docs = list(chain.from_iterable(val_data))
 
     # Initialize pipeline with training documents
     nlp.post_init(chain_zip([td.data for td in train_data if td.post_init]))
@@ -405,53 +437,27 @@ def train(
         trained_pipes = [nlp.get_pipe(name) for name in pipe_names]
 
         with nlp.select_pipes(disable=trainable_pipe_names - set(pipe_names)):
-            print(f"Phase {phase_i + 1}: training {', '.join(pipe_names)}")
+            accelerator.print(f"Phase {phase_i + 1}: training {', '.join(pipe_names)}")
             set_seed(seed)
 
-            logging.debug("Build the optimizer")
-            all_params = set(nlp.parameters())
-            if optim_base is None:
-                warnings.warn(
-                    "No optimizer provided, using default optimizer with default "
-                    "parameters"
-                )
-                optim = default_optim(
-                    trained_pipes,
-                    max_steps=max_steps,
-                    **{
-                        k: v
-                        for k, v in kwargs.items()
-                        if k in ("task_lr", "transformer_lr", "warmup_rate")
-                    },
-                )
-            if hasattr(optim, "initialize"):
-                optim.initialize()
-            grad_params = {p for group in optim.param_groups for p in group["params"]}
-            print(
+            grad_params = {p for g in optimizer.param_groups for p in g["params"]}
+            accelerator.print(
                 "Optimizing groups:"
                 + "".join(
                     f"\n - {g.get('selector', '*') + ':' if 'selector' in g else ''} "
                     f"{len(g['params'])} weight tensors "
                     f"({sum(p.numel() for p in g['params']):,} parameters)"
-                    for g in optim.param_groups
+                    for g in optimizer.param_groups
                 )
             )
-            print(
+            accelerator.print(
                 f"Keeping frozen {len(all_params - grad_params):} weight tensors "
                 f"({sum(p.numel() for p in all_params - grad_params):,} parameters)"
             )
             for param in all_params:
                 param.requires_grad_(param in grad_params)
 
-            logging.debug("Finished building the optimizer")
-
-            accelerator = Accelerator(cpu=cpu, mixed_precision=mixed_precision)
-            is_main_process = accelerator.is_main_process
-            device = accelerator.device
-            print("Device:", device)
             nlp.train(True)
-
-            (optim, *trained_pipes) = accelerator.prepare(optim, *trained_pipes)
 
             cumulated_data = defaultdict(lambda: 0.0, count=0)
 
@@ -467,10 +473,18 @@ def train(
                     )
                 )
             )
+            (optimizer, *trained_pipes) = accelerator.prepare(optimizer, *trained_pipes)
+            if hasattr(optimizer, "initialize"):
+                optimizer.initialize()
             all_metrics = []
             set_seed(seed)
 
-            with RichTablePrinter(LOGGER_FIELDS, auto_refresh=False) as logger:
+            logger = (
+                RichTablePrinter(LOGGER_FIELDS, auto_refresh=False)
+                if is_main_process
+                else nullcontext()
+            )
+            with logger:
                 # Training loop
                 for step in trange(
                     max_steps + 1,
@@ -478,42 +492,43 @@ def train(
                     leave=True,
                     mininterval=5.0,
                     total=max_steps,
+                    disable=not is_main_process,
+                    smoothing=0.3,
                 ):
                     if is_main_process and (step % validation_interval) == 0:
-                        scores = scorer(nlp, val_docs)
+                        scores = scorer(nlp, val_docs) if val_docs else {}
                         all_metrics.append(
                             {
                                 "step": step,
-                                "lr": optim.param_groups[0]["lr"],
+                                "lr": optimizer.param_groups[0]["lr"],
                                 **cumulated_data,
                                 **scores,
                             }
                         )
                         cumulated_data.clear()
-                        nlp.to_disk(model_path)
                         train_metrics_path.write_text(json.dumps(all_metrics, indent=2))
                         logger.log_metrics(flatten_dict(all_metrics[-1]))
+
+                    if is_main_process and (step % checkpoint_interval) == 0:
+                        nlp.to_disk(model_path)
 
                     if step == max_steps:
                         break
 
-                    optim.zero_grad()
+                    optimizer.zero_grad()
 
                     batches = list(flatten(list(next(iterator))))
 
                     # Synchronize stats between sub-batches across workers
-                    stats = {}
+                    input_stats = {}
                     for b in batches:
-                        fill_flat_stats(b, result=stats)
-                    stats = list(flatten(accelerator.gather([stats])))
-                    stats = {k: sum(v) for k, v in ld_to_dl(stats).items()}
+                        fill_flat_stats(b, result=input_stats)
+                    input_stats = list(flatten(accelerator.gather([input_stats])))
+                    input_stats = {k: sum(v) for k, v in ld_to_dl(input_stats).items()}
                     for b in batches:
-                        set_flat_stats(b, stats)
-                    if is_main_process:
-                        for k, v in stats.items():
-                            cumulated_data[k] += v
-                    del stats
+                        set_flat_stats(b, input_stats)
 
+                    output_stats = defaultdict(lambda: 0.0)
                     for batch in batches:
                         loss = torch.zeros((), device=accelerator.device)
                         with nlp.cache():
@@ -523,16 +538,33 @@ def train(
                                     res["loss"] = res["loss"] * loss_scales.get(name, 1)
                                     loss += res["loss"]
                                     res[f"{name}_loss"] = res["loss"]
-                                for key, value in res.items():
-                                    if key.endswith("loss"):
-                                        cumulated_data[key] += float(value)
+                                for k, v in res.items():
+                                    if (
+                                        isinstance(v, float)
+                                        or isinstance(v, torch.Tensor)
+                                        and v.ndim == 0
+                                    ):
+                                        output_stats[k] += float(v)
                                 if torch.isnan(loss):
                                     raise ValueError(f"NaN loss at component {name}")
+                                del k, v, res, pipe
                         accelerator.backward(loss)
-                        del loss, res, key, value, batch, name, pipe
+                        del loss
 
+                    # Sync output stats after forward such as losses, supports, etc.
+                    output_stats = list(flatten(accelerator.gather([output_stats])))
+                    output_stats = {
+                        k: sum(v) for k, v in ld_to_dl(output_stats).items()
+                    }
+                    if is_main_process:
+                        for k, v in input_stats.items():
+                            cumulated_data[k] += v
+                        for k, v in output_stats.items():
+                            cumulated_data[k] += v
+
+                    del input_stats, output_stats
                     accelerator.clip_grad_norm_(grad_params, max_grad_norm)
-                    optim.step()
+                    optimizer.step()
 
                 del iterator
 

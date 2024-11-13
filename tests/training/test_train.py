@@ -106,7 +106,7 @@ def test_qualif_train(run_in_test_dir, tmp_path):
     config = Config.from_disk("qlf_config.yml")
     shutil.rmtree(tmp_path, ignore_errors=True)
     kwargs = Config.resolve(config["train"], registry=registry, root=config)
-    nlp = train(**kwargs, output_path=tmp_path, cpu=True)
+    nlp = train(**kwargs, output_dir=tmp_path, cpu=True)
     scorer = GenericScorer(**kwargs["scorer"])
     val_data = kwargs["val_data"]
     last_scores = scorer(nlp, val_data)

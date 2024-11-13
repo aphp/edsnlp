@@ -1,5 +1,6 @@
 # 🤖 PIPELINE DEFINITION
 nlp:
+  "@core": pipeline
   lang: eds
 
   components:
@@ -58,8 +59,9 @@ scorer:
     span_getter: ${nlp.components.ner.target_span_getter}
 
 # 🎛️ OPTIMIZER
-optim:
-  cls: AdamW
+optimizer:
+  "@core": optimizer
+  optim: AdamW
   module: ${ nlp }
   groups:
     "^transformer": false
@@ -116,4 +118,4 @@ train:
   max_grad_norm: 1.0
   scorer: ${ scorer }
   num_workers: 0
-  optim: ${ optim }
+  optimizer: ${ optimizer }

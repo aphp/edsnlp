@@ -112,7 +112,9 @@ class LinearSchedule(Schedule):
             progress = self.idx / warmup_steps
             value = self.start_value + (self.max_value - self.start_value) * progress
         else:
-            progress = (self.idx - warmup_steps) / (self.total_steps - warmup_steps)
+            progress = min(
+                1.0, (self.idx - warmup_steps) / (self.total_steps - warmup_steps)
+            )
             value = self.max_value + (0 - self.max_value) * progress
         for path in self.paths:
             set_deep_attr(group, path, value)
@@ -128,11 +130,11 @@ class LinearSchedule(Schedule):
         return format_string
 
 
-@edsnlp.registry.misc.register("eds.scheduled_optimizer")
+@edsnlp.registry.core.register("optimizer")
 class ScheduledOptimizer(torch.optim.Optimizer):
     def __init__(
         self,
-        cls: Union[torch.optim.Optimizer, Type[torch.optim.Optimizer], str],
+        optim: Union[torch.optim.Optimizer, Type[torch.optim.Optimizer], str],
         module: Optional[Union[PipelineProtocol, torch.nn.Module]] = None,
         total_steps: Optional[int] = None,
         groups: Optional[Dict[str, Union[Dict, Literal[False]]]] = None,
@@ -188,7 +190,7 @@ class ScheduledOptimizer(torch.optim.Optimizer):
 
         Parameters
         ----------
-        cls : Union[str, Type[torch.optim.Optimizer], torch.optim.Optimizer]
+        optim : Union[str, Type[torch.optim.Optimizer], torch.optim.Optimizer]
             The optimizer to use. If a string (like "adamw") or a type to instantiate,
             the`module` and `groups` must be provided.
         module : Optional[Union[PipelineProtocol, torch.nn.Module]]
@@ -209,7 +211,7 @@ class ScheduledOptimizer(torch.optim.Optimizer):
             matching it are excluded from optimization and not included in any parameter
             group.
         """
-        should_instantiate_optim = isinstance(cls, str) or isinstance(cls, type)
+        should_instantiate_optim = isinstance(optim, str) or isinstance(optim, type)
         if should_instantiate_optim and (groups is None or module is None):
             raise ValueError(
                 "If the optimizer is a string or a type, the module and groups must "
@@ -262,16 +264,16 @@ class ScheduledOptimizer(torch.optim.Optimizer):
                 {k: v for k, v in group.items() if v is not None} for group in cliques
             ]
 
-            if isinstance(cls, str):
-                cls = (
-                    optim_mapping[cls.lower()]
-                    if cls.lower() in optim_mapping
-                    else getattr(torch.optim, cls)
+            if isinstance(optim, str):
+                optim = (
+                    optim_mapping[optim.lower()]
+                    if optim.lower() in optim_mapping
+                    else getattr(torch.optim, optim)
                 )
-            cls = cls(cliques, **kwargs)
+            optim = optim(cliques, **kwargs)
 
-        self.optim = cls
-        self.schedules = self.extract_schedules(cls.param_groups)
+        self.optim = optim
+        self.schedules = self.extract_schedules(optim.param_groups)
         for schedule in self.schedules:
             if schedule.total_steps is None:
                 assert (
@@ -279,7 +281,7 @@ class ScheduledOptimizer(torch.optim.Optimizer):
                 ), "total_steps must be provided to the optimizer or the schedule"
                 schedule.total_steps = total_steps
             if init_schedules:
-                schedule.step(cls.param_groups)
+                schedule.step(optim.param_groups)
 
     @classmethod
     def extract_schedules(cls, param_groups):

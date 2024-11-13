@@ -135,9 +135,10 @@ version = { attr = "edsnlp.__version__" }
 [tool.setuptools.packages.find]
 where = ["."]
 
-[project.entry-points."edsnlp_pipelines"]
-"base" = "edsnlp.core.pipeline:Pipeline"
-"load" = "edsnlp.core.pipeline:load"
+[project.entry-points."edsnlp_core"]
+"pipeline"  = "edsnlp.core.pipeline:Pipeline"
+"load"      = "edsnlp.core.pipeline:load"
+"optimizer" = "edsnlp.training.optimizer:ScheduledOptimizer"
 
 [project.entry-points."spacy_factories"]
 # Core
@@ -304,7 +305,6 @@ where = ["."]
 
 [project.entry-points."spacy_misc"]
 "eds.span_context_getter" = "edsnlp.utils.span_getters:make_span_context_getter"
-"eds.scheduled_optimizer" = "edsnlp.training.optimizer:ScheduledOptimizer"
 
 [project.entry-points."spacy_languages"]
 "eds" = "edsnlp.language:EDSLanguage"

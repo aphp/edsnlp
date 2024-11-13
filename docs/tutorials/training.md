@@ -87,6 +87,7 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
 
     # 🤖 PIPELINE DEFINITION
     nlp:
+      '@core': pipeline  #(1)!
       lang: eds  # Word-level tokenization: use the "eds" tokenizer
 
       # Our pipeline will contain a single NER pipe
@@ -119,8 +120,9 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
         span_getter: ${ nlp.components.ner.target_span_getter }
 
     # 🎛️ OPTIMIZER
-    optim:
-      cls: adamw
+    optimizer:
+      "@core": optimizer
+      optim: adamw
       groups:
         # Assign parameters starting with transformer (ie the parameters of the transformer component)
         # to a first group
@@ -179,7 +181,7 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
       validation_interval: ${ train.max_steps//10 }
       max_grad_norm: 1.0
       scorer: ${ scorer }
-      optim: ${ optim }
+      optimizer: ${ optimizer }
       # Do preprocessing in parallel on 1 worker
       num_workers: 1
       # Enable on Mac OS X or if you don't want to use available GPUs
@@ -191,6 +193,10 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
       pipeline: ${ train.output_dir }
       name: 'my_ner_model'
     ```
+
+    1. Why do we use `'@core': pipeline` here ? Because we need the reference used in `optimizer.module = ${ nlp }` to be the actual Pipeline and not its keyword arguments : when confit sees `'@core': pipeline`, it will instantiate the `Pipeline` class with the arguments provided in the dict.
+
+        In fact, you could also use `'@core': eds.pipeline` in every config when you define a pipeline, but sometimes it's more convenient to let Confit infer that the type of the nlp argument based on the function when it's type hinted. Not specifying `'@core': pipeline` is also more aligned with `spacy`'s pipeline config API. However, in general, explicit is better than implicit, so feel free to use explicitly write `'@core': eds.pipeline` when you define a pipeline.
 
     To train the model, you can use the following command:
 
@@ -250,7 +256,7 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
 
     # 🎛️ OPTIMIZER
     max_steps = 2000
-    optim = ScheduledOptimizer(
+    optimizer = ScheduledOptimizer(
         optim=torch.optim.Adam,
         module=nlp,
         total_steps=max_steps,
@@ -277,7 +283,7 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
         ),
         val_data=val_data,
         scorer={"ner": ner_metric},
-        optim=optim,
+        optimizer=optimizer,
         max_grad_norm=1.0,
         output_dir="artifacts",
         # Do preprocessing in parallel on 1 worker

@@ -86,7 +86,7 @@ class CacheEnum(str, Enum):
 Pipe = TypeVar("Pipe", bound=Callable[[Doc], Doc])
 
 
-@registry.pipelines.register("base")
+@registry.core.register("base")
 class Pipeline(Validated):
     """
     New pipeline to use as a drop-in replacement for spaCy's pipeline.
@@ -520,7 +520,7 @@ class Pipeline(Validated):
     @classmethod
     def from_config(
         cls,
-        config: Dict[str, Any] = {},
+        config: Union[Dict[str, Any], "Pipeline"] = {},
         *,
         vocab: Union[Vocab, bool] = True,
         disable: Union[str, Iterable[str]] = EMPTY_LIST,
@@ -550,14 +550,21 @@ class Pipeline(Validated):
         -------
         Pipeline
         """
+        if isinstance(config, Pipeline):  # pragma: no cover
+            return config
         root_config = config.copy()
 
         if "nlp" in config:
+            if isinstance(config["nlp"], Pipeline):  # pragma: no cover
+                return config["nlp"]
             if "components" in config and "components" not in config["nlp"]:
                 config["nlp"]["components"] = Reference("components")
             config = config["nlp"]
 
-        config = dict(Config(config).resolve(root=root_config, registry=registry))
+        config = Config(config).resolve(root=root_config, registry=registry)
+        if isinstance(config, Pipeline):  # pragma: no cover
+            return config
+        config = dict(config)
         components = config.pop("components", {})
         pipeline = config.pop("pipeline", list(components.keys()))
         tokenizer = config.pop("tokenizer", None)
@@ -1111,7 +1118,7 @@ def blank(
     return Pipeline.from_config({"lang": lang, **config})
 
 
-@registry.pipelines.register("load")
+@registry.core.register("load")
 def load(
     model: Union[str, Path, Config],
     overrides: Optional[Dict[str, Any]] = None,

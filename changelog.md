@@ -80,6 +80,8 @@
     - for computing correct loss means when accumulating gradients over multiple mini-mini-batches
     - for computing correct loss means in multi-GPU setups, since these stats are synchronized and accumulated across GPUs
 
+- Support multi GPU training via hugginface `accelerate` and EDS-NLP `Stream` API consideration of env['WOLRD_SIZE'] and env['LOCAL_RANK'] environment variables
+
 ## v0.13.1
 
 ### Added

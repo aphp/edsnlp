@@ -18,6 +18,7 @@ from typing import (
 
 import torch
 from accelerate import Accelerator
+from accelerate.utils import gather_object
 from confit import validate_arguments
 from confit.utils.random import set_seed
 from rich_logger import RichTablePrinter
@@ -35,10 +36,7 @@ from edsnlp.utils.collections import chain_zip, flatten, ld_to_dl
 from edsnlp.utils.span_getters import get_spans
 from edsnlp.utils.typing import AsList
 
-from .optimizer import (  # noqa: F401
-    LinearSchedule,
-    ScheduledOptimizer,
-)
+from .optimizer import LinearSchedule, ScheduledOptimizer
 
 LOGGER_FIELDS = {
     "step": {},
@@ -540,15 +538,17 @@ def train(
                     batches = list(flatten(batches))
 
                     # Synchronize stats between sub-batches across workers
-                    input_stats = {}
+                    batch_stats = {}
                     for b in batches:
-                        fill_flat_stats(b, result=input_stats)
-                    input_stats = list(flatten(accelerator.gather([input_stats])))
-                    input_stats = {k: sum(v) for k, v in ld_to_dl(input_stats).items()}
+                        fill_flat_stats(b, result=batch_stats)
+                    batch_stats = {
+                        k: sum(v)
+                        for k, v in ld_to_dl(gather_object([batch_stats])).items()
+                    }
                     for b in batches:
-                        set_flat_stats(b, input_stats)
+                        set_flat_stats(b, batch_stats)
 
-                    output_stats = defaultdict(lambda: 0.0)
+                    res_stats = defaultdict(lambda: 0.0)
                     for batch, batch_pipe_names in zip(batches, batches_pipe_names):
                         loss = torch.zeros((), device=accelerator.device)
                         with nlp.cache():
@@ -566,7 +566,7 @@ def train(
                                         or isinstance(v, torch.Tensor)
                                         and v.ndim == 0
                                     ):
-                                        output_stats[k] += float(v)
+                                        res_stats[k] += float(v)
                                 if torch.isnan(loss):
                                     raise ValueError(f"NaN loss at component {name}")
                                 del k, v, res, pipe
@@ -574,17 +574,17 @@ def train(
                         del loss
 
                     # Sync output stats after forward such as losses, supports, etc.
-                    output_stats = list(flatten(accelerator.gather([output_stats])))
-                    output_stats = {
-                        k: sum(v) for k, v in ld_to_dl(output_stats).items()
+                    res_stats = {
+                        k: sum(v)
+                        for k, v in ld_to_dl(gather_object([dict(res_stats)])).items()
                     }
                     if is_main_process:
-                        for k, v in input_stats.items():
+                        for k, v in batch_stats.items():
                             cumulated_data[k] += v
-                        for k, v in output_stats.items():
+                        for k, v in res_stats.items():
                             cumulated_data[k] += v
 
-                    del input_stats, output_stats
+                    del batch_stats, res_stats
                     accelerator.clip_grad_norm_(grad_params, max_grad_norm)
                     accel_optim.step()
 

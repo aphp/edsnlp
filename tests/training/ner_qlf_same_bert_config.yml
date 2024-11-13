@@ -41,11 +41,7 @@ nlp:
           '@factory': eds.text_cnn
           kernel_sizes: [ 3 ]
 
-          embedding:
-            '@factory': eds.transformer
-            model: hf-internal-testing/tiny-bert
-            window: 128
-            stride: 96
+          embedding: ${ nlp.components.ner.embedding.embedding }
 
 # 📈 SCORERS
 scorer:

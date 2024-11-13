@@ -79,7 +79,7 @@ def cached(key, store_key=False):
     def wrapper(fn):
         @wraps(fn)
         def wrapped(self: "TorchComponent", *args, **kwargs):
-            if self._current_cache_id is None:
+            if self._current_cache_id is None or len(args) == 0:
                 return fn(self, *args, **kwargs)
             cache_key = (
                 fn.__name__,
@@ -301,17 +301,17 @@ class TorchComponent(
         -------
         BatchInput
         """
-        return {
-            name: (
-                (value.to(device) if device is not None else value)
-                if hasattr(value, "to")
-                else getattr(self, name).batch_to_device(value, device=device)
-                if hasattr(self, name)
-                and hasattr(getattr(self, name), "batch_to_device")
-                else value
-            )
-            for name, value in batch.items()
-        }
+
+        def rec(x):
+            if hasattr(x, "to"):
+                return x.to(device)
+            if isinstance(x, dict):
+                return {name: rec(value) for name, value in x.items()}
+            if isinstance(x, (list, tuple, set)):
+                return type(x)(rec(value) for value in x)
+            return x
+
+        return rec(batch)
 
     def forward(self, batch: BatchInput) -> BatchOutput:
         """

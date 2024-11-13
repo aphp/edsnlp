@@ -1,0 +1,126 @@
+# 🤖 PIPELINE DEFINITION
+nlp:
+  "@core": pipeline
+  lang: eds
+
+  components:
+    normalizer:
+      '@factory': eds.normalizer
+
+    sentencizer:
+      '@factory': eds.sentences
+
+    ner:
+      '@factory': eds.ner_crf
+      mode: "joint"
+      target_span_getter: "gold_spans"
+      # Set spans as both to ents and in separate `ent.label` groups
+      span_setter: [ "ents", "*" ]
+      infer_span_setter: true
+
+      embedding:
+        '@factory': eds.text_cnn
+        kernel_sizes: [ 3 ]
+
+        embedding:
+          '@factory': eds.transformer
+          model: hf-internal-testing/tiny-bert
+          window: 128
+          stride: 96
+          new_tokens: [ [ "(?:\\n\\s*)*\\n", "⏎" ] ]
+
+    qualifier:
+      '@factory': eds.span_classifier
+      attributes: { "_.negation": [ "sosy" ], "_.unit": [ "measure" ] }
+      span_getter: ["ents", "gold_spans"]
+
+      embedding:
+        '@factory': eds.span_pooler
+
+        embedding: # ${ nlp.components.ner.embedding }
+          '@factory': eds.text_cnn
+          kernel_sizes: [ 3 ]
+
+          embedding:
+            '@factory': eds.transformer
+            model: hf-internal-testing/tiny-bert
+            window: 128
+            stride: 96
+
+# 📈 SCORERS
+scorer:
+  speed: true
+  qual:
+    '@metrics': eds.span_attributes
+    span_getter: ${nlp.components.qualifier.span_getter}
+    qualifiers: ${nlp.components.qualifier.attributes}
+  ner:
+    '@metrics': eds.ner_exact
+    span_getter: ${nlp.components.ner.target_span_getter}
+
+# 🎛️ OPTIMIZER
+optimizer:
+  "@core": optimizer
+  optim: AdamW
+  module: ${ nlp }
+  groups:
+    "^transformer": false
+    ".*":
+      lr:
+          "@schedules": linear
+          start_value: 1e-3
+          max_value: 2e-3
+          warmup_rate: 0.5
+  total_steps: ${ train.max_steps }
+
+# 📚 DATA
+train_data:
+  - data:
+      '@readers': standoff
+      path: ./dataset/
+      converter:
+        - '@factory': eds.standoff_dict2doc
+          span_setter : 'gold_spans'
+          span_attributes : ['sosy', 'unit', 'negation']
+          bool_attributes : ['negation']  # default standoff to doc converter
+        - '@factory': eds.sentences
+          nlp: ${nlp}
+        - '@factory': eds.split
+          nlp: null
+          max_length: 2000
+          regex: '\n\n+'
+    shuffle: dataset
+    batch_size: 8 docs
+    pipe_names: [ "ner" ]
+  - data:
+      '@readers': standoff
+      path: ./dataset/
+      converter:
+        - '@factory': eds.standoff_dict2doc
+          span_setter : 'gold_spans'
+          span_attributes : ['sosy', 'unit', 'negation']
+          bool_attributes : ['negation']  # default standoff to doc converter
+    shuffle: dataset
+    batch_size: 16 spans
+    pipe_names: [ "qualifier" ]
+
+val_data:
+  '@readers': standoff
+  path: ./dataset/
+  converter:
+    - '@factory': eds.standoff_dict2doc
+      span_setter : 'gold_spans'
+      span_attributes : ['sosy', 'unit', 'negation']
+      bool_attributes : ['negation']  # default standoff to doc converter
+
+# 🚀 TRAIN SCRIPT OPTIONS
+train:
+  nlp: ${ nlp }
+  train_data: ${ train_data }
+  val_data: ${ val_data }
+  max_steps: 40
+  validation_interval: 10
+  max_grad_norm: 1.0
+  scorer: ${ scorer }
+  num_workers: 0
+  optimizer: ${ optimizer }

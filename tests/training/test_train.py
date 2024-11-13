@@ -84,9 +84,26 @@ class CustomSampleGenerator:
         return doc
 
 
-def test_ner_qualif_train(run_in_test_dir, tmp_path):
+def test_ner_qualif_train_diff_bert(run_in_test_dir, tmp_path):
     set_seed(42)
-    config = Config.from_disk("ner_qlf_config.yml")
+    config = Config.from_disk("ner_qlf_diff_bert_config.yml")
+    shutil.rmtree(tmp_path, ignore_errors=True)
+    kwargs = Config.resolve(config["train"], registry=registry, root=config)
+    nlp = train(**kwargs, output_dir=tmp_path, cpu=True)
+    scorer = GenericScorer(**kwargs["scorer"])
+    val_data = kwargs["val_data"]
+    last_scores = scorer(nlp, val_data)
+
+    # Check empty doc
+    nlp("")
+
+    assert last_scores["ner"]["micro"]["f"] > 0.4
+    assert last_scores["qual"]["micro"]["f"] > 0.4
+
+
+def test_ner_qualif_train_same_bert(run_in_test_dir, tmp_path):
+    set_seed(42)
+    config = Config.from_disk("ner_qlf_same_bert_config.yml")
     shutil.rmtree(tmp_path, ignore_errors=True)
     kwargs = Config.resolve(config["train"], registry=registry, root=config)
     nlp = train(**kwargs, output_dir=tmp_path, cpu=True)

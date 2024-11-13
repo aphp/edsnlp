@@ -484,9 +484,9 @@ def train(
                     )
                 )
             )
-            if hasattr(optim, "initialize"):
-                optim.initialize()
             (accel_optim, *trained_pipes) = accelerator.prepare(optim, *trained_pipes)
+            if hasattr(accel_optim.optimizer, "initialize"):
+                accel_optim.optimizer.initialize()
 
             cumulated_data = defaultdict(lambda: 0.0, count=0)
             all_metrics = []

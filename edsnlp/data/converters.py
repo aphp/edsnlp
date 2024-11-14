@@ -644,7 +644,6 @@ class EntsDoc2DictConverter:
 def get_dict2doc_converter(
     converter: Union[str, Callable], kwargs
 ) -> Tuple[Callable, Dict]:
-    kwargs_to_init = False
     if not callable(converter):
         available = edsnlp.registry.factory.get_available()
         try:
@@ -666,7 +665,7 @@ def get_dict2doc_converter(
                 f"Cannot find converter for format {converter}. "
                 f"Available converters are {', '.join(available)}"
             )
-    if isinstance(converter, type) or kwargs_to_init:
+    if isinstance(converter, type):
         return converter(**kwargs), {}
     return converter, validate_kwargs(converter, kwargs)
 

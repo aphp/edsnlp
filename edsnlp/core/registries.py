@@ -75,11 +75,37 @@ class CurriedFactory:
         -------
         Union["CurriedFactory", Any]
         """
+        from edsnlp.core.pipeline import Pipeline, PipelineProtocol
+
         sig = inspect.signature(self.factory)
-        # and sig.parameters["nlp"].default is sig.empty
-        if "nlp" not in sig.parameters or "nlp" in self.kwargs:
+        if (
+            not (
+                "nlp" in sig.parameters
+                and (
+                    sig.parameters["nlp"].default is sig.empty
+                    or sig.parameters["nlp"].annotation in (Pipeline, PipelineProtocol)
+                )
+            )
+            or "nlp" in self.kwargs
+        ) and not self.search_curried_factory(self.kwargs):
             return self.factory(**self.kwargs)
         return self
+
+    @classmethod
+    def search_curried_factory(cls, obj):
+        if isinstance(obj, CurriedFactory):
+            return obj
+        elif isinstance(obj, dict):
+            for value in obj.values():
+                result = cls.search_curried_factory(value)
+                if result is not None:
+                    return result
+        elif isinstance(obj, (tuple, list, set)):
+            for value in obj:
+                result = cls.search_curried_factory(value)
+                if result is not None:
+                    return result
+        return None
 
     def instantiate(
         obj: Any,
@@ -176,6 +202,9 @@ class CurriedFactory:
         if name.startswith("__"):
             raise AttributeError(name)
         self._raise_curried_factory_error()
+
+    def __repr__(self):
+        return f"CurriedFactory({self.factory})"
 
 
 glob = []

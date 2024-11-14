@@ -184,7 +184,7 @@ class ClickableSnippetsPlugin(BasePlugin):
 
         # Re-insert soups into the output
         for soup, start, end in reversed(soups):
-            output = output[:start] + str(soup) + output[end:]
+            output = output[:start] + str(soup.find("code")) + output[end:]
 
         output = regex.sub(HREF_REGEX, replace_link, output)
 
@@ -202,7 +202,7 @@ class ClickableSnippetsPlugin(BasePlugin):
         cls, html_content: str
     ) -> Tuple[BeautifulSoup, str, list, list]:
         pre_html_content = "<pre>" + html_content + "</pre>"
-        soup = BeautifulSoup(pre_html_content, "html5lib")
+        soup = list(BeautifulSoup(pre_html_content, "html5lib").children)[0]
         code_element = soup.find("code")
 
         line_lengths = [0]

@@ -395,6 +395,7 @@ print(nlp.config.to_yaml_str())
 
 ```yaml title="config.yml"
 nlp:
+  "@core": "pipeline"
   lang: "eds"
   components:
     ner:

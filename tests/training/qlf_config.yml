@@ -1,5 +1,7 @@
 # 🤖 PIPELINE DEFINITION
 nlp:
+  "@core": pipeline
+
   lang: eds
 
   components:

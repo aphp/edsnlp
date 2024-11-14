@@ -39,6 +39,7 @@
 
 - `eds.span_context_getter`'s parameter `context_sents` is no longer optional and must be explicitly set to 0 to disable sentence context
 - In multi-GPU setups, streams that contain torch components are now stripped of their parameter tensors when sent to CPU Workers since these workers only perform preprocessing and postprocessing and should therefore not need the model parameters.
+- The `batch_size` argument of `Pipeline` is deprecated and is not used anymore. Use the `batch_size` argument of `stream.map_pipeline` instead.
 
 ### Fixed
 

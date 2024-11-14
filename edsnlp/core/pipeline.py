@@ -101,7 +101,7 @@ class Pipeline(Validated):
         lang: str,
         create_tokenizer: Optional[Callable[[Self], Tokenizer]] = None,
         vocab: Union[bool, Vocab] = True,
-        batch_size: Optional[int] = 128,
+        batch_size: Optional[int] = None,
         vocab_config: Type[BaseDefaults] = None,
         meta: Dict[str, Any] = None,
         pipeline: Optional[Sequence[str]] = None,
@@ -119,8 +119,6 @@ class Pipeline(Validated):
             Function that creates a tokenizer for the pipeline
         vocab: Union[bool, Vocab]
             Whether to create a new vocab or use an existing one
-        batch_size: Optional[int]
-            Batch size to use in the `.pipe()` method
         vocab_config: Type[BaseDefaults]
             Configuration for the vocab
         meta: Dict[str, Any]
@@ -129,6 +127,12 @@ class Pipeline(Validated):
         spacy_blank_cls = get_lang_class(lang)
 
         self.Defaults = spacy_blank_cls.Defaults
+        if batch_size is not None:
+            warnings.warn(
+                "The 'batch_size' argument is deprecated. Use the 'batch_size' "
+                "argument in `stream.map_pipeline` instead.",
+                DeprecationWarning,
+            )
         self.batch_size = batch_size
         if (vocab is not True) and (vocab_config is not None):
             raise ValueError(
@@ -397,7 +401,6 @@ class Pipeline(Validated):
     def pipe(
         self,
         inputs: Union[Iterable, Stream],
-        batch_size: Optional[int] = None,
         n_process: int = None,
         **kwargs,
     ) -> Stream:
@@ -409,9 +412,6 @@ class Pipeline(Validated):
         ----------
         inputs: Iterable[Union[str, Doc]]
             The inputs to create the Docs from, or Docs directly.
-        batch_size: Optional[int]
-            The batch size to use. If not provided, the batch size of the pipeline
-            object will be used.
         n_process: int
             Deprecated. Use the ".set(num_cpu_workers=n_process)" method on the returned
             data stream instead.
@@ -422,10 +422,6 @@ class Pipeline(Validated):
         -------
         Stream
         """
-
-        if batch_size is None:
-            batch_size = self.batch_size
-            kwargs = {"batch_size": batch_size, **kwargs}
 
         stream = edsnlp.data.from_iterable(inputs)
         stream = stream.map_pipeline(self, **kwargs)

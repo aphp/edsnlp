@@ -1,3 +1,4 @@
+import random
 import time
 from itertools import chain
 from pathlib import Path
@@ -165,6 +166,25 @@ def test_multiprocessing_gpu_stub_backend(frozen_ml_nlp, backend, deterministic)
         )
     elif backend == "spark":
         stream = stream.set_processing(backend="spark")
+    list(stream)
+
+
+def test_multiprocessing_gpu_stub_multi_cpu_deterministic_backend(frozen_ml_nlp):
+    text1 = "Exemple"
+    text2 = "Ceci est un autre exemple"
+    text3 = "Ceci est un très long exemple ! Regardez tous ces mots !"
+    texts = [text1, text2, text3] * 100
+    random.Random(42).shuffle(texts)
+    stream = frozen_ml_nlp.pipe(iter(texts))
+    stream = stream.set_processing(
+        batch_size="15 words",
+        num_gpu_workers=1,
+        num_cpu_workers=2,
+        deterministic=True,
+        # show_progress=True,
+        # just to test in gpu-less environments
+        gpu_worker_devices=["cpu"],
+    )
     list(stream)
 
 

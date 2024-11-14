@@ -14,7 +14,7 @@ dependencies = [
     "pysimstring>=1.2.1",
     "regex",
     "spacy>=3.2,<3.8",
-    "confit>=0.5.5",
+    "confit>=0.7.0",
     "tqdm",
     "umls-downloader>=0.1.1",
     "numpy>=1.15.0,<1.23.2; python_version<'3.8'",

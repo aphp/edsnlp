@@ -1,7 +1,6 @@
 import contextlib
 import functools
 import importlib
-import inspect
 import os
 import re
 import shutil
@@ -10,6 +9,7 @@ import sys
 import sysconfig
 import warnings
 from enum import Enum
+from inspect import Parameter, signature
 from pathlib import Path
 from types import FunctionType
 from typing import (
@@ -105,7 +105,7 @@ class Pipeline(Validated):
         vocab_config: Type[BaseDefaults] = None,
         meta: Dict[str, Any] = None,
         pipeline: Optional[Sequence[str]] = None,
-        components: Dict[str, CurriedFactory] = {},
+        components: Dict[str, Any] = {},
         disable: AsList[str] = EMPTY_LIST,
         enable: AsList[str] = EMPTY_LIST,
         exclude: AsList = EMPTY_LIST,
@@ -232,17 +232,18 @@ class Pipeline(Validated):
         Pipe
         """
         try:
-            curried: CurriedFactory = Config(
+            pipe = Config(
                 {
                     "@factory": factory,
                     **(config if config is not None else {}),
                 }
             ).resolve(registry=registry)
-            if name is None:
-                name = inspect.signature(curried.factory).parameters.get("name").default
-            if name is None or name == inspect.Parameter.empty:
-                name = factory
-            pipe = curried.instantiate(nlp=self, path=(name,))
+            if isinstance(pipe, CurriedFactory):
+                if name is None:
+                    name = signature(pipe.factory).parameters.get("name").default
+                if name is None or name == Parameter.empty:
+                    name = factory
+                pipe = pipe.instantiate(nlp=self, path=(name,))
         except ConfitValidationError as e:
             raise e.with_traceback(None)
         return pipe
@@ -413,8 +414,8 @@ class Pipeline(Validated):
         inputs: Iterable[Union[str, Doc]]
             The inputs to create the Docs from, or Docs directly.
         n_process: int
-            Deprecated. Use the ".set(num_cpu_workers=n_process)" method on the returned
-            data stream instead.
+            Deprecated. Use the ".set_processing(num_cpu_workers=n_process)" method
+            on the returned data stream instead.
             The number of parallel workers to use. If 0, the operations will be
             executed sequentially.
 
@@ -589,16 +590,6 @@ class Pipeline(Validated):
         enable: Container[str],
         disable: Container[str],
     ):
-        # Since components are actually resolved as curried factories,
-        # we need to instantiate them here
-        for name, component in components.items():
-            if not isinstance(component, CurriedFactory):
-                raise ValueError(
-                    f"Component {repr(name)} is not instantiable (got {component}). "
-                    f"Please make sure that you didn't forget to add a '@factory' "
-                    f"key to the component config."
-                )
-
         try:
             components = CurriedFactory.instantiate(components, nlp=self)
         except ConfitValidationError as e:
@@ -1215,7 +1206,7 @@ def load(
         elif is_package:
             # Load as package
             available_kwargs = {"overrides": overrides, **pipe_selection}
-            signature_kwargs = inspect.signature(module.load).parameters
+            signature_kwargs = signature(module.load).parameters
             kwargs = {
                 name: available_kwargs[name]
                 for name in signature_kwargs

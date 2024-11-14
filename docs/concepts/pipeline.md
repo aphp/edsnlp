@@ -60,12 +60,42 @@ To create your first EDS-NLP pipeline, run the following code. We provide severa
     nlp.add_pipe("eds.negation")
     ```
 
-=== "From a config file"
+=== "From a YAML config file"
+
+    You can also create a pipeline from a configuration file. This is useful when you plan on changing the pipeline configuration often.
+
+    ```{ .yaml title="config.yml" }
+    nlp:
+      "@core": pipeline
+      lang: eds
+      components:
+        sentences:
+          "@factory": eds.sentences
+
+        matcher:
+          "@factory": eds.matcher
+          regex:
+            smoker: ["fume", "clope"]
+
+        negation:
+          "@factory": eds.negation
+    ```
+
+    and then load the pipeline with:
+
+    ```{ .python .no-check }
+    import edsnlp
+
+    nlp = edsnlp.load("config.yml")
+    ```
+
+=== "From a INI config file"
 
     You can also create a pipeline from a configuration file. This is useful when you plan on changing the pipeline configuration often.
 
     ```{ .cfg title="config.cfg" }
     [nlp]
+    @core = "pipeline"
     lang = "eds"
     pipeline = ["sentences", "matcher", "negation"]
 
@@ -100,7 +130,7 @@ from pathlib import Path
 nlp("Le patient ne fume pas")
 
 # Processing multiple documents
-model.pipe([text1, text2])
+nlp.pipe([text1, text2])
 ```
 
 For more information on how to use the pipeline, refer to the [Inference](/inference) page.

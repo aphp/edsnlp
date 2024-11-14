@@ -130,8 +130,8 @@ stride = 96
 [components.ner]
 @factory = "eds.ner_crf"
 embedding = ${components.transformer}
-target_span_getter = ["ents", "ner-preds"]
 mode = "independent"
+target_span_getter = ["ents", "ner-preds"]
 labels = ["PERSON", "GIFT"]
 infer_span_setter = false
 window = 40
@@ -252,6 +252,41 @@ def test_config_validation_error():
 
     assert "1 validation error for" in str(e.value)
     assert "got 'error-mode'" in str(e.value)
+
+
+@edsnlp.registry.factory.register("test_wrapper", spacy_compatible=False)
+class WrapperComponent:
+    def __init__(self, *, copy_list, copy_dict, sub):
+        pass
+
+
+fail_config_sub = """
+nlp:
+    lang: "eds"
+    components:
+        wrapper:
+            "@factory": "test_wrapper"
+
+            copy_list:
+                - ${nlp.components.wrapper.sub}
+
+            copy_dict:
+                key: ${nlp.components.wrapper.sub}
+
+            sub:
+                "@factory": "eds.matcher"
+                terms: 100.0  # clearly wrong
+
+        matcher_copy: ${nlp.components.wrapper.sub}
+"""
+
+
+def test_config_sub_validation_error():
+    with pytest.raises(ConfitValidationError):
+        Pipeline.from_config(Config.from_yaml_str(fail_config_sub))
+
+    fix = {"nlp": {"components": {"wrapper": {"sub": {"terms": {"pattern": ["ok"]}}}}}}
+    Pipeline.from_config(Config.from_yaml_str(fail_config_sub).merge(fix))
 
 
 def test_add_pipe_validation_error():
@@ -407,3 +442,26 @@ Pipeline(lang=eds, pipes={
   "ner": eds.ner_crf
 })"""
         )
+
+
+@edsnlp.registry.factory.register("test_nlp_less", spacy_compatible=False)
+class NlpLessComponent:
+    def __init__(self, nlp=None, name: str = "nlp_less", *, value: int):
+        self.value = value
+        self.name = name
+
+    def __call__(self, doc):
+        return doc
+
+
+def test_nlp_less_component():
+    component = NlpLessComponent(value=42)
+    assert component.value == 42
+
+    config = """
+[component]
+@factory = "test_nlp_less"
+value = 42
+"""
+    component = Config.from_str(config).resolve(registry=registry)["component"]
+    assert component.value == 42

@@ -4,6 +4,7 @@
 
 name: Test Build
 
+
 on:
   workflow_dispatch:
   pull_request:
@@ -27,6 +28,8 @@ jobs:
         uses: pypa/cibuildwheel@v2.16.5
         env:
           CIBW_ARCHS_MACOS: "x86_64 arm64"
+          CIBW_ENVIRONMENT: PIP_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu
+
 
   build_sdist:
     name: Build source distribution

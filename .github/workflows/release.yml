@@ -33,7 +33,7 @@ jobs:
         uses: pypa/cibuildwheel@v2.21.3
         env:
           CIBW_ARCHS_MACOS: "x86_64 arm64"
-          PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
+          CIBW_ENVIRONMENT: PIP_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu
 
       - uses: actions/upload-artifact@v4
         with:

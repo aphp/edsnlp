@@ -851,8 +851,6 @@ class MultiprocessingStreamExecutor:
         # one single shared queue but N bounded queues, one for each producer.
         # This is to avoid the situation where a single producer occupies all
         # slots, leading to congestions affecting the whole workers pool.
-        # In practice, using a single shared queue, in particular for the
-        # worker -> main
 
         # Input queues for each CPU worker
         if not self.stream.reader.read_in_worker:
@@ -860,7 +858,7 @@ class MultiprocessingStreamExecutor:
             for cpu in self.cpu_worker_names:
                 name = f"from-main_to-stage-0_of-{cpu}"
                 if not share_queues:
-                    queue = mp.Queue(2)
+                    queue = mp.SimpleQueue()
                 self.data_queues[name] = queue
                 self.input_queue_names.append(name)
 
@@ -872,11 +870,11 @@ class MultiprocessingStreamExecutor:
                 for stage in range(0, len(self.stages) - 1):
                     # Queue to send data from CPU to GPU
                     name = f"from-{cpu}_to-stage-{stage}_of-{gpu}"
-                    self.data_queues[name] = mp.Queue(2)
+                    self.data_queues[name] = mp.Queue()
 
                     # Answer queue from GPU to CPU
                     name = f"from-{gpu}_to-stage-{stage + 1}_of-{cpu}"
-                    self.data_queues[name] = mp.Queue(2)
+                    self.data_queues[name] = mp.Queue()
 
             # Final output queue for each CPU worker
             name = f"from-{cpu}_to-main"

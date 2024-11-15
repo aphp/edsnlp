@@ -243,7 +243,7 @@ uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </s
     <span class="nb">print</span><span class="p">(</span><span class="n">ent</span><span class="p">,</span> <span class="n">ent</span><span class="o">.</span><span class="n">label_</span><span class="p">)</span>
 </code></pre></div> <h2 id="packaging-the-model">Packaging the model</h2> <p>To package the model and share it with friends or family (if the model does not contain sensitive data), you can use the following command:</p> <div class="highlight" data-md-color-scheme="slate"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>edsnlp.package<span class="w"> </span>--pipeline<span class="w"> </span>artifacts/model-last/<span class="w"> </span>--name<span class="w"> </span>my_ner_model<span class="w"> </span>--distributions<span class="w"> </span>sdist
 </code></pre></div> <p><em>Parametrize either via the CLI or in <code>config.yml</code> under <code>[package]</code>.</em></p> <p>Tthe model saved at the train script output path (<code>artifacts/model-last</code>) will be named <code>my_ner_model</code> and will be saved in the <code>dist</code> folder. You can upload it to a package registry or install it directly with</p> <div class="highlight" data-md-color-scheme="slate"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>dist/my_ner_model-0.1.0.tar.gz
-</code></pre></div> <div class="footnote"><hr/><ol></ol></div> <h2 id="__comments">Comments</h2> <script async="" crossorigin="anonymous" data-category="Announcements" data-category-id="DIC_kwDOG97JnM4CkS1h" data-emit-metadata="0" data-input-position="bottom" data-lang="en" data-mapping="title" data-reactions-enabled="1" data-repo="aphp/edsnlp" data-repo-id="R_kgDOG97JnA" data-strict="0" data-theme="https://aphp.github.io/edsnlp/master/assets/stylesheets/giscus.css" loading="lazy" src="https://giscus.app/client.js">
+</code></pre></div> <div class="footnote"><hr/><ol></ol></div> <h2 id="__comments">Comments</h2> <script async="" crossorigin="anonymous" data-category="Announcements" data-category-id="DIC_kwDOG97JnM4CkS1h" data-emit-metadata="0" data-input-position="bottom" data-lang="en" data-mapping="title" data-reactions-enabled="1" data-repo="aphp/edsnlp" data-repo-id="R_kgDOG97JnA" data-strict="0" data-theme="http://macbook-pro-5.sap.aphp.fr:8000/assets/stylesheets/giscus_light.css" loading="lazy" src="https://giscus.app/client.js">
 </script> <script>
     var giscus = document.querySelector("script[src*=giscus]")
 
@@ -251,8 +251,8 @@ uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </s
     var palette = __md_get("__palette")
     if (palette && typeof palette.color === "object") {
         var theme = palette.color.scheme === "slate"
-            ? "transparent_dark"
-            : "light"
+            ? "http://macbook-pro-5.sap.aphp.fr:8000/assets/stylesheets/giscus_dark.css"
+            : "http://macbook-pro-5.sap.aphp.fr:8000/assets/stylesheets/giscus_light.css"
 
         // Instruct Giscus to set theme
         giscus.setAttribute("data-theme", theme)

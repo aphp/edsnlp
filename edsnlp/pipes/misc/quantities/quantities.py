@@ -1309,3 +1309,15 @@ class QuantitiesMatcher(BaseNERComponent):
         self.set_spans(doc, quantities)
 
         return doc
+
+    # For backward compatibility
+    extract_measurements = extract_quantities
+    merge_adjacent_measurements = merge_adjacent_quantities
+    merge_measurements_in_ranges = merge_quantities_in_ranges
+
+
+# For backward compatibility
+Measurement = Quantity
+SimpleMeasurement = SimpleQuantity
+RangeMeasurement = RangeQuantity
+MeasurementsMatcher = QuantitiesMatcher

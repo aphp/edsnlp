@@ -52,6 +52,10 @@ class AliasPathFinder(importlib.abc.MetaPathFinder):
             new_name = fullname.replace("span_qualifier", "span_classifier")
             spec = importlib.util.spec_from_loader(fullname, AliasLoader(new_name))
             return spec
+        if "measurements" in fullname.split("."):
+            new_name = fullname.replace("measurements", "quantities")
+            spec = importlib.util.spec_from_loader(fullname, AliasLoader(new_name))
+            return spec
 
 
 class AliasLoader(importlib.abc.Loader):

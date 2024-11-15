@@ -55,13 +55,13 @@
 }
 
 .gsc-comment-box-textarea {
-    min-height: 28px;
+    min-height: 36px !important;
 }
 
 .gsc-box-preview {
-    min-height: 28px;
+    min-height: 36px !important;
     padding-bottom: 0.5rem;
-    }
+}
 
 .gsc-reply-box {
     padding-inline-end: 0.5rem;

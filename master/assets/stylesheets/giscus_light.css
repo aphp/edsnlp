@@ -129,6 +129,11 @@ main .gsc-loading-image {
     min-height: 28px;
 }
 
+.gsc-box-preview {
+    min-height: 28px;
+    padding-bottom: 0.5rem;
+    }
+
 .gsc-reply-box {
     padding-inline-end: 0.5rem;
     padding-bottom: 0.5rem;
@@ -142,6 +147,8 @@ main .gsc-loading-image {
 
 .gsc-comment-box, .gsc-reply-box {
     grid-area: reply;
+    border-bottom-left-radius: 0.3rem;
+    border-bottom-right-radius: 0.3rem;
 }
 
 .gsc-replies {
@@ -245,4 +252,42 @@ main .gsc-loading-image {
 .gsc-comment-box-textarea {
     border-bottom-left-radius: inherit;
     border-bottom-right-radius: inherit;
+}
+
+.gsc-comment-box {
+    display: grid;
+    grid-template:
+        "header buttons"
+        "content content";
+    grid-template-columns: auto minmax(0,max-content);
+}
+
+.gsc-comment-box-tabs {
+    grid-area: header;
+}
+
+.gsc-comment-box-main {
+    grid-area: content;
+}
+
+.gsc-comment-box-bottom {
+    grid-area: buttons;
+    background-color: var(--color-canvas-subtle, var(--color-bg-tertiary));
+    margin: 0px;
+    align-items: center;
+    border-bottom-width: 1px;
+    border-start-end-radius: .25rem;
+    border-start-start-radius: .25rem;
+    padding-right: 0.5rem;
+    justify-content: end;
+    gap: 0.5rem;
+}
+
+.gsc-comment-box-md-toolbar {
+    margin-top: 0px;
+}
+
+.gsc-comment-box-is-reply > .gsc-comment-box-bottom {
+    border-top-width: 1px;
+    border-top-right-radius: 0;
 }

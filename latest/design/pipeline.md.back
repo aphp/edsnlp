@@ -1,0 +1,89 @@
+# EDS-NLP's pipeline System
+
+<figure markdown style="text-align: center">
+  ![EDS-NLP's pipeline](pipeline.png){style="height: 100px"}
+</figure>
+
+EDS-NLP's pipeline system provides a flexible and extensible way to build and manage natural language processing pipelines using either rule-based components or trainable components with pytorch as the deep-learning backend.
+
+## Pipeline
+
+The `Pipeline` class takes inspiration from spaCy's pipeline and provides a very similar API. Under the hood, we use spaCy's data-structures to represent documents and annotations.
+It should be a drop-in replacement for spaCy's pipeline in most cases where training is not involved.
+
+### Creating a Pipeline
+
+To create a new pipeline, you can instantiate the `Pipeline` class with the desired language code and tokenizer (see spaCy's list of [languages](https://spacy.io/usage/models#languages) or our custom [`eds` language](../tokenizers.md) optimized for french clinical documents), and other configurations. You can build the pipeline using Python's API
+
+=== "API-based"
+
+    ```python
+    import edsnlp, edsnlp.pipes as eds
+
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(eds.covid())  # rule-based component
+    ```
+
+=== "Configuration-based"
+
+    ```cfg title="config.cfg"
+    [nlp]
+    lang = "eds"
+    pipeline = ["covid"]
+
+    [components.covid]
+    @factory = "eds.covid"
+    ```
+
+    And load it from Python:
+
+    ```{ .python .no-check }
+    from confit import Config
+    from edsnlp.core.pipeline import Pipeline
+
+    config = Config.from_disk("config.cfg")
+    nlp = Pipeline.from_config(config)
+    ```
+
+### Processing texts
+
+To process a single text or document, you can call the pipeline instance on a string or a `Doc` object, and it will return the annotated `Doc` document:
+
+```{ .python .no-check }
+doc: Doc = nlp("Some text")
+```
+
+To process a batch of texts or documents, you can use the `pipe` method:
+
+```{ .python .no-check }
+texts = ["...", "...", "..."]
+for doc in nlp.pipe(texts):
+    ...  # Do something with the annotated document
+```
+
+## Custom deep-learning components
+
+The `TorchComponent` class is an abstract base class for components to perform training and inference of neural-networks with PyTorch. It inherits from `torch.nn.Module` and implements additional methods for handling preprocessing, collating features, caching intermediate results, and more.
+
+To create a custom component, you can subclass `TorchComponent` and implement its abstract methods, such as `preprocess`, `collate`, `forward`, and `postprocess`.
+
+```{ .python .no-check }
+from edsnlp.core.torch_component import TorchComponent
+
+class CustomComponent(TorchComponent):
+    def preprocess(self, doc):
+        ... # Extract features from the document
+
+    def collate(self, batch):
+        ... # Collate the features into tensors
+
+    def forward(self, batch):
+        ... # Perform the deep-learning computations
+
+    def postprocess(self, docs, batch):
+        ... # Update the docs with the predictions
+```
+
+## Utility Functions
+
+EDS-NLP's pipeline system also provides

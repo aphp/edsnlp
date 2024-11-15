@@ -138,5 +138,5 @@ We get the following result:
 ## Conclusion
 
 The qualifier pipes limits the number of false positives by detecting linguistic modulations such as negations or speculations.
-Go to the [full documentation](/pipes/qualifiers/overview) for a complete presentation of the different pipes,
+Go to the [full documentation](/pipes/qualifiers) for a complete presentation of the different pipes,
 their configuration options and validation performance.

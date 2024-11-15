@@ -211,3 +211,8 @@
 .gsc-comment-box-preview {
     min-height: 36px !important;
 }
+
+/* Otherwise some popup overflow the iframe */
+.gsc-reactions {
+    margin-top: 0.95em;
+}

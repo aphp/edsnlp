@@ -193,7 +193,7 @@
     align-items: center;
     border-bottom-width: 1px;
     border-start-end-radius: .25rem;
-    border-start-start-radius: .25rem;
+    border-start-start-radius: 0rem;
     padding-right: 0.5rem;
     justify-content: end;
     gap: 0.5rem;
@@ -210,4 +210,9 @@
 
 .gsc-comment-box-preview {
     min-height: 36px !important;
+}
+
+/* Otherwise some popup overflow the iframe */
+.gsc-reactions {
+    margin-top: 0.95em;
 }

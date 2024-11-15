@@ -139,7 +139,7 @@ He complains about chronique pain that started three years ago.
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ent</span><span class="o">.</span><span class="n">text</span><span class="si">:</span><span class="s2">&lt;20</span><span class="si">}{</span><span class="n">date</span><span class="o">.</span><span class="n">text</span><span class="si">:</span><span class="s2">&lt;20</span><span class="si">}{</span><span class="n">date</span><span class="o">.</span><span class="n">_</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">now</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">'</span><span class="si">%d</span><span class="s1">/%m/%Y'</span><span class="p">)</span><span class="si">:</span><span class="s2">&lt;15</span><span class="si">}{</span><span class="n">date</span><span class="o">.</span><span class="n">_</span><span class="o">.</span><span class="n">date</span><span class="o">.</span><span class="n">to_duration</span><span class="p">(</span><span class="n">now</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="c1"># Out: admis               12 avril            12/04/2023     21 weeks 4 days 6 hours 3 minutes 26 seconds</span>
 <span class="c1"># Out: pris en charge      l'année dernière    10/09/2022     -1 year</span>
-</code></pre></div> <p>Which will output:</p> <table> <thead> <tr> <th><code>ent</code></th> <th><code>get_event_date(ent)</code></th> <th><code>get_event_date(ent)._.date.to_datetime()</code></th> </tr> </thead> <tbody> <tr> <td>admis</td> <td>12 avril</td> <td><code>2020-04-12T00:00:00+02:00</code></td> </tr> <tr> <td>pris en charge</td> <td>l'année dernière</td> <td><code>-1 year</code></td> </tr> </tbody> </table> <div class="footnote"><hr/><ol></ol></div> <script async="" crossorigin="anonymous" data-category="Announcements" data-category-id="DIC_kwDOG97JnM4CkS1h" data-emit-metadata="0" data-input-position="bottom" data-lang="en" data-mapping="title" data-reactions-enabled="1" data-repo="aphp/edsnlp" data-repo-id="R_kgDOG97JnA" data-strict="0" data-theme="https://aphp.github.io/edsnlp/master/assets/stylesheets/giscus_light_theme.css" loading="lazy" src="https://giscus.app/client.js">
+</code></pre></div> <p>Which will output:</p> <table> <thead> <tr> <th><code>ent</code></th> <th><code>get_event_date(ent)</code></th> <th><code>get_event_date(ent)._.date.to_datetime()</code></th> </tr> </thead> <tbody> <tr> <td>admis</td> <td>12 avril</td> <td><code>2020-04-12T00:00:00+02:00</code></td> </tr> <tr> <td>pris en charge</td> <td>l'année dernière</td> <td><code>-1 year</code></td> </tr> </tbody> </table> <div class="footnote"><hr/><ol></ol></div> <script async="" crossorigin="anonymous" data-category="Announcements" data-category-id="DIC_kwDOG97JnM4CkS1h" data-emit-metadata="0" data-input-position="bottom" data-lang="en" data-mapping="title" data-reactions-enabled="1" data-repo="aphp/edsnlp" data-repo-id="R_kgDOG97JnA" data-strict="0" data-theme="https://aphp.github.io/edsnlp/master/assets/stylesheets/giscus_light.css" loading="lazy" src="https://giscus.app/client.js">
 </script> <script>
     var giscus = document.querySelector("script[src*=giscus]")
 
@@ -147,8 +147,8 @@ He complains about chronique pain that started three years ago.
     var palette = __md_get("__palette")
     if (palette && typeof palette.color === "object") {
         var theme = palette.color.scheme === "slate"
-            ? "https://aphp.github.io/edsnlp/master/assets/stylesheets/giscus_dark_theme.css"
-            : "https://aphp.github.io/edsnlp/master/assets/stylesheets/giscus_light_theme.css"
+            ? "https://aphp.github.io/edsnlp/master/assets/stylesheets/giscus_dark.css"
+            : "https://aphp.github.io/edsnlp/master/assets/stylesheets/giscus_light.css"
 
         // Instruct Giscus to set theme
         giscus.setAttribute("data-theme", theme)
@@ -161,8 +161,8 @@ He complains about chronique pain that started three years ago.
             var palette = __md_get("__palette")
             if (palette && typeof palette.color === "object") {
                 var theme = palette.color.scheme === "slate"
-                    ? "https://aphp.github.io/edsnlp/master/assets/stylesheets/giscus_dark_theme.css"
-                    : "https://aphp.github.io/edsnlp/master/assets/stylesheets/giscus_light_theme.css"
+                    ? "https://aphp.github.io/edsnlp/master/assets/stylesheets/giscus_dark.css"
+                    : "https://aphp.github.io/edsnlp/master/assets/stylesheets/giscus_light.css"
 
                 // Instruct Giscus to change theme
                 var frame = document.querySelector(".giscus-frame")

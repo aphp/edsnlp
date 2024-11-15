@@ -11,7 +11,7 @@
         data-reactions-enabled="1"
         data-emit-metadata="0"
         data-input-position="bottom"
-        data-theme="http://macbook-pro-5.sap.aphp.fr:8000/assets/stylesheets/giscus_light.css"
+        data-theme="https://aphp.github.io/edsnlp/master/assets/stylesheets/giscus_light.css"
         data-lang="en"
         crossorigin="anonymous"
         async>
@@ -25,8 +25,8 @@
     var palette = __md_get("__palette")
     if (palette && typeof palette.color === "object") {
         var theme = palette.color.scheme === "slate"
-            ? "http://macbook-pro-5.sap.aphp.fr:8000/assets/stylesheets/giscus_dark.css"
-            : "http://macbook-pro-5.sap.aphp.fr:8000/assets/stylesheets/giscus_light.css"
+            ? "https://aphp.github.io/edsnlp/master/assets/stylesheets/giscus_dark.css"
+            : "https://aphp.github.io/edsnlp/master/assets/stylesheets/giscus_light.css"
 
         // Instruct Giscus to set theme
         giscus.setAttribute("data-theme", theme)

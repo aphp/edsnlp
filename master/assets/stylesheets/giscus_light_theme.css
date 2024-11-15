@@ -202,3 +202,7 @@
     border-top-width: 1px;
     border-top-right-radius: 0;
 }
+
+.gsc-comment-box-preview {
+    min-height: 36px !important;
+}

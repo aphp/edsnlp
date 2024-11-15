@@ -7,16 +7,47 @@
 
 /* Customization below */
 
+.gsc-timeline {
+    gap: 0.5rem;
+}
+
+.gsc-main {
+    gap: 0.5rem;
+}
+
+.gsc-comments {
+    gap: 0.8rem
+}
+
+.gsc-comment-header {
+    padding-inline-end:0.5rem;padding-inline-start:0.5rem;padding-top: .5rem
+}
+
+.gsc-comment-content {
+    padding: 0.75rem;
+}
+
+.gsc-comment-reactions {
+    margin-inline-start:0.5rem
+}
+
+.gsc-comment-box-textarea {
+    min-height: 56px;
+}
+
+.gsc-reply-box {
+    padding-inline-end: 0.5rem;
+    padding-bottom: .5rem;
+    padding-inline-start: 0.5rem;
+    padding-top: .5rem
+}
+
 .gsc-comment:has(.gsc-comment-content.minimized) .gsc-replies {
     display: none;
 }
 
 .gsc-comment:has(.gsc-comment-content.minimized) {
     display: none;
-}
-
-.gsc-comment-content.minimized > em:nth-child(1) {
-
 }
 
 .gsc-timeline:has(.gsc-comment-content.minimized):after {

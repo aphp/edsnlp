@@ -8,6 +8,41 @@
 
 /* Customization below */
 
+.gsc-timeline {
+    gap: 0.5rem;
+}
+
+.gsc-main {
+    gap: 0.5rem;
+}
+
+.gsc-comments {
+    gap: 0.8rem
+}
+
+.gsc-comment-header {
+    padding-inline-end:0.5rem;padding-inline-start:0.5rem;padding-top: .5rem
+}
+
+.gsc-comment-content {
+    padding: 0.75rem;
+}
+
+.gsc-comment-reactions {
+    margin-inline-start:0.5rem
+}
+
+.gsc-comment-box-textarea {
+    min-height: 56px;
+}
+
+.gsc-reply-box {
+    padding-inline-end: 0.5rem;
+    padding-bottom: .5rem;
+    padding-inline-start: 0.5rem;
+    padding-top: .5rem
+}
+
 .gsc-comment:has(.gsc-comment-content.minimized) .gsc-replies {
     display: none;
 }
@@ -20,5 +55,5 @@
     content: "Some dicussions were closed";
     font-size: 0.875rem;
     font-style: italic;
-    color: var(--color-fg-muted,var(--color-text-secondary));
+    color: var(--color-fg-muted, var(--color-text-secondary));
 }

@@ -155,6 +155,11 @@
     display: none;
 }
 
+.gsc-reactions-popover.top {
+    inset-inline-end: -.375rem;
+    inset-inline-start: unset;
+}
+
 .gsc-reactions-popover.open.left:after {
     inset-inline-end: 10px;
     inset-inline-start: unset;
@@ -188,7 +193,7 @@
     align-items: center;
     border-bottom-width: 1px;
     border-start-end-radius: .25rem;
-    border-start-start-radius: .25rem;
+    border-start-start-radius: 0;
     padding-right: 0.5rem;
     justify-content: end;
     gap: 0.5rem;

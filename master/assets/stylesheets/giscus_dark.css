@@ -6,14 +6,22 @@
 
   /*! Extensions from @primer/css/alerts/flash.scss */--color-social-reaction-bg-hover:var(--color-scale-gray-7);--color-social-reaction-bg-reacted-hover:var(--color-scale-blue-8)}main .pagination-loader-container{background-image:url(https://github.com/images/modules/pulls/progressive-disclosure-line-dark.svg)}.gsc-pagination-button{background-color:var(--color-btn-bg)}.gsc-homepage-bg{animation:gradient 21s ease infinite;background:linear-gradient(135deg,#05485c,#032e58,#2f0154);background-size:600% 600%}@keyframes gradient{0%{background-position:2% 0}50%{background-position:99% 100%}to{background-position:2% 0}}main .gsc-loading-image{background-image:url(https://github.githubassets.com/images/mona-loading-dark.gif)}
 
-/* Customization below */
 
+main .pagination-loader-container {
+    background-image: url(https://github.com/images/modules/pulls/progressive-disclosure-line.svg)
+}
+
+main .gsc-loading-image {
+    background-image: url(https://github.githubassets.com/images/mona-loading-default.gif)
+}
+
+/* Customization below */
 .gsc-timeline {
     gap: 0.5rem;
 }
 
 .gsc-main {
-    gap: 0.5rem;
+    gap: 0.25rem;
 }
 
 .gsc-comments {
@@ -21,27 +29,83 @@
 }
 
 .gsc-comment-header {
-    padding-inline-end:0.5rem;padding-inline-start:0.5rem;padding-top: .5rem
+    padding-inline-end:0.5rem;
+    padding-inline-start:0.5rem;
+    padding-top: .5rem;
+    grid-area: header;
 }
 
 .gsc-comment-content {
-    padding: 0.75rem;
+    padding: 0.5rem 0.75rem;
 }
 
 .gsc-comment-reactions {
+    align-items: center;
     margin-inline-start:0.5rem
 }
 
 .gsc-comment-box-textarea {
-    min-height: 56px;
+    min-height: 28px;
 }
 
 .gsc-reply-box {
     padding-inline-end: 0.5rem;
-    padding-bottom: .5rem;
+    padding-bottom: 0.5rem;
     padding-inline-start: 0.5rem;
-    padding-top: .5rem
+    padding-top: 0.5rem;
 }
+
+.gsc-reply {
+    padding: 0 0.5rem 0;
+}
+
+.gsc-comment-box, .gsc-reply-box {
+    grid-area: reply;
+}
+
+.gsc-replies {
+    grid-area: replies;
+}
+
+.gsc-reactions-count + div {}
+
+#__next .gsc-reactions-count + div {
+    margin-top: 0.25rem;
+}
+
+.gsc-comment-footer {
+    grid-area: reactions;
+    padding-inline-end: 0.5rem;
+    padding-top: .5rem;
+    margin-bottom: 0;
+    justify-content: end;
+    flex: 0;
+}
+
+.gsc-comment-content {
+    grid-area: content;
+}
+
+.gsc-comment > div {
+    display: grid;
+    grid-template-areas:
+        "header reactions"
+        "content content"
+        "replies replies"
+        "reply reply";
+    grid-template-rows: auto;
+}
+
+.gsc-comment-replies-count {
+    margin-inline-end: 0rem;
+}
+
+.gsc-tl-line {
+    inset-inline-start: 22px;
+}
+
+/* Hide closed discussions */
+
 
 .gsc-comment:has(.gsc-comment-content.minimized) .gsc-replies {
     display: none;
@@ -56,4 +120,48 @@
     font-size: 0.875rem;
     font-style: italic;
     color: var(--color-fg-muted, var(--color-text-secondary));
+}
+
+.gsc-reply > div.flex > div.w-full {
+    display: grid;
+    grid-template:
+        "header reactions"
+        "content content";
+}
+
+.gsc-reply-content {
+    grid-area: content;
+}
+
+.gsc-reply-footer {
+    grid-area: reactions;
+    justify-content: end;
+}
+
+.gsc-reply-header {
+    grid-area: header;
+}
+
+.gsc-reply-reactions {
+    gap: 0;
+    margin-inline-end: 0;
+}
+
+.gsc-reactions-popover.open.left:before {
+    inset-inline-end: 9px;
+    inset-inline-start: unset;
+}
+
+.gsc-comment-box-textarea-extras {
+    display: none;
+}
+
+.gsc-reactions-popover.open.left:after {
+    inset-inline-end: 10px;
+    inset-inline-start: unset;
+}
+
+.gsc-comment-box-textarea {
+    border-bottom-left-radius: inherit;
+    border-bottom-right-radius: inherit;
 }

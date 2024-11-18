@@ -484,7 +484,11 @@ class TrainableSpanClassifier(
                         binding_scores[:, bindings_indexer],
                         batch["targets"][:, group_idx],
                         reduction="sum",
+<<<<<<< HEAD
                         weight=torch.tensor([1.9, 0.7]).to(binding_scores.device)
+=======
+                        weight=torch.tensor([1.9, 0.7]).to(binding_scores.device),
+>>>>>>> cc94186fc (continue)
                     )
                 )
                 assert not torch.isnan(losses[-1]).any(), "NaN loss"

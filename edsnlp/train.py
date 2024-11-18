@@ -1,4 +1,3 @@
-import itertools
 import json
 import math
 import random
@@ -143,6 +142,9 @@ class LengthSortedBatchSampler:
     buffer_size: Optional[int]
         The size of the buffer to use to shuffle the batches. If None, the buffer
         will be approximately the size of the dataset.
+    repeat: Optional[int]
+        How many time will the sampler iterate over the dataset. If None,
+        iterates indefinitely.
     """
 
     def __init__(
@@ -151,7 +153,7 @@ class LengthSortedBatchSampler:
         batch_size: int,
         batch_unit: str,
         noise=1,
-        drop_last=True,
+        drop_last=False,
         buffer_size: Optional[int] = None,
         repeat: Optional[int] = None,
     ):
@@ -162,6 +164,12 @@ class LengthSortedBatchSampler:
         self.drop_last = drop_last
         self.buffer_size = buffer_size
         self.repeat = repeat
+<<<<<<< HEAD
+=======
+
+    def set_repeat(self, repeat):
+        self.repeat = repeat
+>>>>>>> cc94186fc (continue)
 
     def __iter__(self):
         # Shuffle the dataset
@@ -183,6 +191,7 @@ class LengthSortedBatchSampler:
         elif self.batch_unit == "spans":
 
             def sample_len(idx, noise=True):
+                # TODO: implement noise here ?
                 return len(
                     next(
                         v for k, v in self.dataset[idx].items() if k.endswith("begins")
@@ -251,6 +260,10 @@ class SubBatchCollater:
         self.i = 0
 
     def __call__(self, seq):
+        mini_batches = self.get_mini_batches(seq)
+        return [self.nlp.collate(b) for b in mini_batches]
+
+    def get_mini_batches(self, seq):
         total = 0
         mini_batches = [[]]
         for sample_features in seq:
@@ -269,7 +282,7 @@ class SubBatchCollater:
                 mini_batches.append([])
             total += num_tokens
             mini_batches[-1].append(sample_features)
-        return [self.nlp.collate(b) for b in mini_batches]
+        return mini_batches
 
 
 def subset_doc(doc: Doc, start: int, end: int) -> Doc:
@@ -508,8 +521,12 @@ def train(
     )
     assert not (max_steps and max_epochs), "Use only steps or epochs"
     if max_epochs:
+<<<<<<< HEAD
         max_steps = int(0.9*(4464 / batch_size[0]))
         
+=======
+        max_steps = int(0.9 * (4464 / batch_size[0]))
+>>>>>>> cc94186fc (continue)
 
     set_seed(seed)
     # Loading and adapting the training and validation data
@@ -530,8 +547,33 @@ def train(
             show_progress=True
         )
     )
+
+    batch_sampler = LengthSortedBatchSampler(
+        preprocessed,
+        batch_size=batch_size[0],
+        batch_unit=batch_size[1],
+        repeat=max_epochs,
+    )
+    collate_fn = SubBatchCollater(
+        nlp,
+        trf_pipe,
+        grad_accumulation_max_tokens=grad_accumulation_max_tokens,
+    )
+
+    if max_epochs is not None:
+        # we have to make a dry run
+        batch_sampler.set_repeat(repeat=1)  # single epoch
+        for batch in batch_sampler:
+            batch_collated = collate_fn.get_mini_batches(batch)
+            n_true_steps = len(batch_collated)
+            print(f"True number of steps: {n_true_steps}")
+            max_steps = max_epochs * n_true_steps
+            # TODO show mean batch size ?
+        batch_sampler.set_repeat(repeat=repeat)
+
     dataloader = torch.utils.data.DataLoader(
         preprocessed,
+<<<<<<< HEAD
         batch_sampler=LengthSortedBatchSampler(
             preprocessed,
             batch_size=batch_size[0],
@@ -574,6 +616,13 @@ def train(
         ),
     )
     
+=======
+        batch_sampler=batch_sampler,
+        collate_fn=collate_fn,
+        shuffle=False,
+    )
+
+>>>>>>> cc94186fc (continue)
     pipe_names, trained_pipes = zip(*nlp.torch_components())
     print("Training", ", ".join(pipe_names))
 
@@ -626,11 +675,16 @@ def train(
 
     cumulated_data = defaultdict(lambda: 0.0, count=0)
 
+<<<<<<< HEAD
     iterator = iter(dataloader) #itertools.chain.from_iterable(itertools.repeat(dataloader))
+=======
+    # TODO: maybe back to: itertools.chain.from_iterable(itertools.repeat(dataloader))
+    iterator = iter(dataloader)
+>>>>>>> cc94186fc (continue)
     all_metrics = []
     nlp.train(True)
     set_seed(seed)
-    
+
     n_seen_samples = 0
     epoch = 0
     true_batches = []
@@ -643,8 +697,13 @@ def train(
             mininterval=5.0,
         ) as bar:
             for step in bar:
+<<<<<<< HEAD
                 #print("step ", step)
                 if epoch > max_epochs:
+=======
+                # print("step ", step)
+                if max_epochs and (epoch > max_epochs):
+>>>>>>> cc94186fc (continue)
                     print(f"Done, left steps: {max_steps - step}")
                     # break
                 if (step % validation_interval) == 0:
@@ -670,15 +729,29 @@ def train(
                 optimizer.zero_grad()
                 for mini_batch in mini_batches:
                     # print("mini", mini_batch["ecci_qualifier"]["targets"].shape[0])
+<<<<<<< HEAD
                     true_batches.append(mini_batch["ecci_qualifier"]["targets"].shape[0])
+=======
+                    true_batches.append(
+                        mini_batch["ecci_qualifier"]["targets"].shape[0]
+                    )
+>>>>>>> cc94186fc (continue)
                     seen = False
                     loss = torch.zeros((), device=accelerator.device)
                     with nlp.cache():
                         for name, pipe in zip(pipe_names, trained_pipes):
                             if not seen:
+<<<<<<< HEAD
                                 n_seen_samples += mini_batch["ecci_qualifier"]["targets"].shape[0]
                                 epoch = 1 + (n_seen_samples / 4464)
                             #print(f"Step: {step} - Seen: {n_seen_samples} - Epoch: {epoch}")
+=======
+                                n_seen_samples += mini_batch["ecci_qualifier"][
+                                    "targets"
+                                ].shape[0]
+                                epoch = 1 + (n_seen_samples / 4464)
+                            # print(f"{step} - Seen:{n_seen_samples} - Epoch:{epoch}")
+>>>>>>> cc94186fc (continue)
                             output = pipe(mini_batch[name])
                             if "loss" in output:
                                 loss += output["loss"]
@@ -694,6 +767,8 @@ def train(
                 optimizer.step()
     
     print(init_batches)
+    print(sorted(true_batches))
+
     print(sorted(true_batches))
 
     return nlp

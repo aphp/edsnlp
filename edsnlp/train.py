@@ -164,12 +164,9 @@ class LengthSortedBatchSampler:
         self.drop_last = drop_last
         self.buffer_size = buffer_size
         self.repeat = repeat
-<<<<<<< HEAD
-=======
 
     def set_repeat(self, repeat):
         self.repeat = repeat
->>>>>>> cc94186fc (continue)
 
     def __iter__(self):
         # Shuffle the dataset
@@ -521,13 +518,7 @@ def train(
     )
     assert not (max_steps and max_epochs), "Use only steps or epochs"
     if max_epochs:
-<<<<<<< HEAD
-        max_steps = int(0.9*(4464 / batch_size[0]))
-        
-=======
         max_steps = int(0.9 * (4464 / batch_size[0]))
->>>>>>> cc94186fc (continue)
-
     set_seed(seed)
     # Loading and adapting the training and validation data
     with set_seed(data_seed):
@@ -570,10 +561,9 @@ def train(
             max_steps = max_epochs * n_true_steps
             # TODO show mean batch size ?
         batch_sampler.set_repeat(repeat=repeat)
-
+        
     dataloader = torch.utils.data.DataLoader(
         preprocessed,
-<<<<<<< HEAD
         batch_sampler=LengthSortedBatchSampler(
             preprocessed,
             batch_size=batch_size[0],
@@ -587,42 +577,6 @@ def train(
         shuffle=False,
     )
     
-    true_steps = 0
-    # for b in iter(dataloader):
-    #     true_steps += b[0]["ecci_qualifier"]["targets"].shape[0]
-    # print(f"True: {true_steps} / Config: 4464")
-    # return
-    
-    batch_sampler=LengthSortedBatchSampler(
-        preprocessed,
-        batch_size=batch_size[0],
-        batch_unit=batch_size[1],
-    ),
-    #print("sampler", type(batch_sampler), len(batch_sampler), batch_sampler[0])
-    for b in batch_sampler:
-        init_batches = sorted([len(data1["ecci_qualifier/targets"]) for data1 in b.dataset])
-    
-    dataloader = torch.utils.data.DataLoader(
-        preprocessed,
-        batch_sampler=LengthSortedBatchSampler(
-            preprocessed,
-            batch_size=batch_size[0],
-            batch_unit=batch_size[1],
-        ),
-        collate_fn=SubBatchCollater(
-            nlp,
-            trf_pipe,
-            grad_accumulation_max_tokens=grad_accumulation_max_tokens,
-        ),
-    )
-    
-=======
-        batch_sampler=batch_sampler,
-        collate_fn=collate_fn,
-        shuffle=False,
-    )
-
->>>>>>> cc94186fc (continue)
     pipe_names, trained_pipes = zip(*nlp.torch_components())
     print("Training", ", ".join(pipe_names))
 
@@ -675,12 +629,8 @@ def train(
 
     cumulated_data = defaultdict(lambda: 0.0, count=0)
 
-<<<<<<< HEAD
-    iterator = iter(dataloader) #itertools.chain.from_iterable(itertools.repeat(dataloader))
-=======
     # TODO: maybe back to: itertools.chain.from_iterable(itertools.repeat(dataloader))
     iterator = iter(dataloader)
->>>>>>> cc94186fc (continue)
     all_metrics = []
     nlp.train(True)
     set_seed(seed)
@@ -697,15 +647,9 @@ def train(
             mininterval=5.0,
         ) as bar:
             for step in bar:
-<<<<<<< HEAD
-                #print("step ", step)
-                if epoch > max_epochs:
-=======
-                # print("step ", step)
                 if max_epochs and (epoch > max_epochs):
->>>>>>> cc94186fc (continue)
                     print(f"Done, left steps: {max_steps - step}")
-                    # break
+                    break
                 if (step % validation_interval) == 0:
                     scores = scorer(nlp, val_docs)
                     all_metrics.append(
@@ -728,30 +672,19 @@ def train(
                 mini_batches = next(iterator)
                 optimizer.zero_grad()
                 for mini_batch in mini_batches:
-                    # print("mini", mini_batch["ecci_qualifier"]["targets"].shape[0])
-<<<<<<< HEAD
-                    true_batches.append(mini_batch["ecci_qualifier"]["targets"].shape[0])
-=======
                     true_batches.append(
                         mini_batch["ecci_qualifier"]["targets"].shape[0]
                     )
->>>>>>> cc94186fc (continue)
                     seen = False
                     loss = torch.zeros((), device=accelerator.device)
                     with nlp.cache():
                         for name, pipe in zip(pipe_names, trained_pipes):
                             if not seen:
-<<<<<<< HEAD
-                                n_seen_samples += mini_batch["ecci_qualifier"]["targets"].shape[0]
-                                epoch = 1 + (n_seen_samples / 4464)
-                            #print(f"Step: {step} - Seen: {n_seen_samples} - Epoch: {epoch}")
-=======
                                 n_seen_samples += mini_batch["ecci_qualifier"][
                                     "targets"
                                 ].shape[0]
                                 epoch = 1 + (n_seen_samples / 4464)
                             # print(f"{step} - Seen:{n_seen_samples} - Epoch:{epoch}")
->>>>>>> cc94186fc (continue)
                             output = pipe(mini_batch[name])
                             if "loss" in output:
                                 loss += output["loss"]
@@ -767,8 +700,6 @@ def train(
                 optimizer.step()
     
     print(init_batches)
-    print(sorted(true_batches))
-
     print(sorted(true_batches))
 
     return nlp

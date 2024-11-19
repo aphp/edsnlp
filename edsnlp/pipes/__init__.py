@@ -75,6 +75,7 @@ if TYPE_CHECKING:
     from .qualifiers.reported_speech.factory import create_component as reported_speech
     from .qualifiers.reported_speech.factory import create_component as rspeech
     from .trainable.ner_crf.factory import create_component as ner_crf
+    from .trainable.biaffine_dep_parser.factory import create_component as biaffine_dep_parser
     from .trainable.span_classifier.factory import create_component as span_classifier
     from .trainable.span_linker.factory import create_component as span_linker
     from .trainable.embeddings.span_pooler.factory import create_component as span_pooler

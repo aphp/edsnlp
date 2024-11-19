@@ -132,6 +132,7 @@ nav:
   - Data Connectors:
       - data/index.md
       - data/standoff.md
+      - data/conll.md
       - data/json.md
       - data/parquet.md
       - data/pandas.md

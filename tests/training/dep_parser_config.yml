@@ -1,0 +1,59 @@
+# 🤖 PIPELINE DEFINITION
+nlp:
+  "@core": pipeline
+
+  lang: fr
+
+  components:
+    parser:
+      '@factory': eds.biaffine_dep_parser
+      hidden_size: 64
+      decoding_mode: greedy
+      dropout_p: 0.
+      use_attrs: ['pos_']
+
+      embedding:
+        '@factory': eds.transformer
+        model: hf-internal-testing/tiny-bert
+        window: 512
+        stride: 256
+
+# 📈 SCORERS
+scorer:
+  speed: false
+  dep:
+    '@metrics': "eds.dep_parsing"
+
+# 🎛️ OPTIMIZER
+optimizer:
+  optim: adamw
+  module: ${ nlp }
+  total_steps: ${ train.max_steps }
+  groups:
+    ".*":
+      lr: 1e-3
+
+# 📚 DATA
+train_data:
+  data:
+    "@readers": conll
+    path: ./rhapsodie_sample.conllu
+  shuffle: dataset
+  batch_size: 1 docs
+  pipe_names: [ "parser" ]
+
+val_data:
+  "@readers": conll
+  path: ./rhapsodie_sample.conllu
+
+# 🚀 TRAIN SCRIPT OPTIONS
+train:
+  nlp: ${ nlp }
+  train_data: ${ train_data }
+  val_data: ${ val_data }
+  max_steps: 20
+  validation_interval: 10
+  max_grad_norm: 5.0
+  scorer: ${ scorer }
+  num_workers: 0
+  optimizer: ${ optimizer }

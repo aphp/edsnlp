@@ -128,6 +128,7 @@ nav:
           - 'NER': pipes/trainable/ner.md
           - 'Span Classifier': pipes/trainable/span-classifier.md
           - 'Span Linker': pipes/trainable/span-linker.md
+          - 'Biaffine Dependency Parser': pipes/trainable/biaffine-dependency-parser.md
   - tokenizers.md
   - Data Connectors:
       - data/index.md

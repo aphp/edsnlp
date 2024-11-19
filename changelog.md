@@ -10,6 +10,7 @@
 - Support a specific model output dir path for trainings (`output_model_dir`), and whether to save the model or not (`save_model`)
 - Specify whether to log the validation results or not (`logger=False`)
 - Added support for the CoNLL format with `edsnlp.data.read_conll` and with a specific `eds.conll_dict2doc` converter
+- Added a Trainable Biaffine Dependency Parser (`eds.biaffine_dep_parser`) component and metrics
 
 ### Fixed
 

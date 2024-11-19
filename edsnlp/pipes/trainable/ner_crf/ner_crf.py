@@ -298,15 +298,6 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
 
     def update_labels(self, labels: Sequence[str]):
         old_labels = self.labels if self.labels is not None else ()
-        n_old = len(old_labels)
-        dict(
-            reversed(
-                (
-                    *zip(old_labels, range(n_old)),
-                    *zip(labels, range(n_old, n_old + len(labels))),
-                )
-            )
-        )
         old_index = (
             torch.arange(len(old_labels) * 5)
             .view(-1, 5)[

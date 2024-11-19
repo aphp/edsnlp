@@ -209,6 +209,7 @@ where = ["."]
 "eds.split"                       = "edsnlp.pipes.misc.split.split:Split"
 "eds.standoff_dict2doc"           = "edsnlp.data.converters:StandoffDict2DocConverter"
 "eds.standoff_doc2dict"           = "edsnlp.data.converters:StandoffDoc2DictConverter"
+"eds.conll_dict2doc"              = "edsnlp.data.converters:ConllDict2DocConverter"
 "eds.omop_dict2doc"               = "edsnlp.data.converters:OmopDict2DocConverter"
 "eds.omop_doc2dict"               = "edsnlp.data.converters:OmopDoc2DictConverter"
 "eds.ents_doc2dict"               = "edsnlp.data.converters:EntsDoc2DictConverter"
@@ -295,6 +296,7 @@ where = ["."]
 "parquet" =  "edsnlp.data:read_parquet"
 "standoff" = "edsnlp.data:read_standoff"
 "brat"     = "edsnlp.data:read_brat"  # alias for standoff
+"conll"    = "edsnlp.data:read_conll"
 
 [project.entry-points."edsnlp_writers"]
 "spark" =    "edsnlp.data:to_spark"

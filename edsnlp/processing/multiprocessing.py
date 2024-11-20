@@ -452,7 +452,8 @@ class Worker:
             for stage in self.stages_to_run:
                 for name, queue in self.consumer_queues(stage):
                     queue.close()
-                    queue.join_thread()
+                    if hasattr(queue, "join_thread"):
+                        queue.join_thread()
 
             self.final_barrier.wait()
 
@@ -1182,7 +1183,8 @@ class MultiprocessingStreamExecutor:
                 if q is queue:
                     queue.put(STOP)
             queue.close()
-            queue.join_thread()
+            if hasattr(queue, "join_thread"):
+                queue.join_thread()
 
     def dequeue_notifications(self):
         while True:

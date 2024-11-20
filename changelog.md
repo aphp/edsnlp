@@ -1,5 +1,11 @@
 # Changelog
 
+# Unreleased
+
+### Fixed
+
+- Fix `join_thread` missing attribute in `SimpleQueue` when cleaning a multiprocessing executor
+
 ## v0.14.0 (2024-11-14)
 
 ### Added

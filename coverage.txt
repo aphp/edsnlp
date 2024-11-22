@@ -278,7 +278,7 @@ edsnlp/pipes/trainable/embeddings/text_cnn/factory.py                           
 edsnlp/pipes/trainable/embeddings/text_cnn/text_cnn.py                                     22      0 100.00%
 edsnlp/pipes/trainable/embeddings/transformer/__init__.py                                   0      0 100.00%
 edsnlp/pipes/trainable/embeddings/transformer/factory.py                                    3      0 100.00%
-edsnlp/pipes/trainable/embeddings/transformer/transformer.py                              160      1  99.38%   166
+edsnlp/pipes/trainable/embeddings/transformer/transformer.py                              166      3  98.19%   166, 186, 190
 edsnlp/pipes/trainable/embeddings/typing.py                                                18      0 100.00%
 edsnlp/pipes/trainable/layers/__init__.py                                                   0      0 100.00%
 edsnlp/pipes/trainable/layers/crf.py                                                      137      5  96.35%   22, 30, 99, 109, 118
@@ -323,4 +323,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      83      9  89.16%   103, 119, 122-128, 144
 edsnlp/utils/typing.py                                                                     55      0 100.00%
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   10441    209  98.00%
+TOTAL                                                                                   10447    211  97.98%

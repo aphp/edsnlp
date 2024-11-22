@@ -5,6 +5,7 @@
 ### Fixed
 
 - Fix `join_thread` missing attribute in `SimpleQueue` when cleaning a multiprocessing executor
+- Support huggingface transformers that do not set `cls_token_id` and `sep_token_id` (we now also look for these tokens in the `special_tokens_map` and `vocab` mappings)
 
 ## v0.14.0 (2024-11-14)
 

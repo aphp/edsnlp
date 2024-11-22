@@ -95,13 +95,15 @@ def set_flat_stats(x, stats):
 
 @validate_arguments
 class GenericScorer:
-    def __init__(self, speed=True, **scorers):
+    def __init__(self, speed=True, batch_size: Union[int, str] = 1, **scorers):
         self.scorers = scorers
         self.speed = speed
+        self.batch_size = batch_size
 
     def __call__(self, nlp: Pipeline, docs: Iterable[Any]):
         scores = {}
         docs = list(docs)
+        scorers = dict(self.scorers)
 
         # Speed
         if self.speed:
@@ -118,9 +120,9 @@ class GenericScorer:
             name for name, pipe in nlp.pipeline if isinstance(pipe, BaseNERComponent)
         ]
         ner_scorers = {
-            name: scorer
-            for name, scorer in self.scorers.items()
-            if isinstance(scorer, NerMetric)
+            name: scorers.pop(name)
+            for name in list(scorers)
+            if isinstance(scorers[name], NerMetric)
         }
         if ner_pipes and ner_scorers:
             clean_ner_docs = [d.copy() for d in tqdm(docs, desc="Copying docs")]
@@ -128,7 +130,11 @@ class GenericScorer:
                 d.ents = []
                 d.spans.clear()
             with nlp.select_pipes(enable=ner_pipes):
-                ner_preds = list(nlp.pipe(tqdm(clean_ner_docs, desc="Predicting")))
+                ner_preds = list(
+                    nlp.pipe(tqdm(clean_ner_docs, desc="Predicting")).set_processing(
+                        batch_size=self.batch_size
+                    )
+                )
             for name, scorer in ner_scorers.items():
                 scores[name] = scorer(docs, ner_preds)
 
@@ -139,9 +145,9 @@ class GenericScorer:
             if isinstance(pipe, BaseSpanAttributeClassifierComponent)
         ]
         span_attr_scorers = {
-            name: scorer
-            for name, scorer in self.scorers.items()
-            if isinstance(scorer, SpanAttributeMetric)
+            name: scorers.pop(name)
+            for name in list(scorers)
+            if isinstance(scorers[name], SpanAttributeMetric)
         }
         if qlf_pipes and span_attr_scorers:
             clean_qlf_docs = [d.copy() for d in tqdm(docs, desc="Copying docs")]
@@ -152,7 +158,11 @@ class GenericScorer:
                         for qlf in nlp.get_pipe(name).attributes:
                             BINDING_SETTERS[(qlf, None)](span)
             with nlp.select_pipes(disable=ner_pipes):
-                qlf_preds = list(nlp.pipe(tqdm(clean_qlf_docs, desc="Predicting")))
+                qlf_preds = list(
+                    nlp.pipe(tqdm(clean_qlf_docs, desc="Predicting")).set_processing(
+                        batch_size=self.batch_size
+                    )
+                )
             for name, scorer in span_attr_scorers.items():
                 scores[name] = scorer(docs, qlf_preds)
 

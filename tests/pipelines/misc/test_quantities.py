@@ -357,3 +357,20 @@ def test_error_management(blank_nlp, matcher: QuantitiesMatcher):
     doc = matcher(doc)
 
     assert len(doc.spans["quantities"]) == 0
+
+
+def test_conversions(blank_nlp, matcher: QuantitiesMatcher):
+    tests = [
+        ("20 dm3", "l", 20),
+        ("20 dm3", "m3", 0.02),
+        ("20 dm3", "cm3", 20000),
+        ("10 l", "cm3", 10000),
+        ("10 l", "cl", 1000),
+        ("25 kg/m2", "kg_per_cm2", 0.0025),
+    ]
+
+    for text, unit, expected in tests:
+        doc = blank_nlp(text)
+        doc = matcher(doc)
+        result = getattr(doc.spans["quantities"][0]._.value, unit)
+        assert abs(result - expected) < 1e-6

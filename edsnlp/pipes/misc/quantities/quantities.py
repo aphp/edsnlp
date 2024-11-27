@@ -64,13 +64,13 @@ class MsrConfig(TypedDict):
 
 class Quantity(abc.ABC):
     @abc.abstractmethod
-    def __len__(self) -> Iterable["SimpleQuantity"]:
+    def __len__(self) -> int:
         """
         Number of items in the measure (only one for SimpleQuantity)
 
         Returns
         -------
-        Iterable["SimpleQuantity"]
+        int
         """
 
     @abc.abstractmethod
@@ -116,7 +116,7 @@ class UnitRegistry:
         for part in regex.split("(?<!per)_", unit):
             unit_config = self.config[unicodedata.normalize("NFKC", part)]
             degrees[unit_config["dim"]].append(unit_config["degree"])
-            scale *= unit_config["scale"]
+            scale *= unit_config["scale"] ** abs(unit_config["degree"])
         degrees = {
             k: sum(v) if len(set(v)) > 1 else v[0]
             for k, v in degrees.items()
@@ -126,7 +126,7 @@ class UnitRegistry:
 
 
 class SimpleQuantity(Quantity):
-    def __init__(self, value, unit, registry):
+    def __init__(self, value: float, unit: str, registry):
         """
         The SimpleQuantity class contains the value and unit
         for a single non-composite measure
@@ -164,8 +164,8 @@ class SimpleQuantity(Quantity):
 
     def __add__(self, other: "SimpleQuantity"):
         if other.unit == self.unit:
-            return self.__class__(self.value + other.value, self.unit, self.registry)
-        return self.__class__(
+            return SimpleQuantity(self.value + other.value, self.unit, self.registry)
+        return SimpleQuantity(
             self.value + other.convert_to(self.unit), self.unit, self.registry
         )
 
@@ -175,7 +175,7 @@ class SimpleQuantity(Quantity):
     def __le__(self, other: Union["SimpleQuantity", "RangeQuantity"]):
         return self.convert_to(other.unit) <= min((part.value for part in other))
 
-    def convert_to(self, other_unit):
+    def convert_to(self, other_unit: str):
         self_degrees, self_scale = self.registry.parse_unit(self.unit)
         other_degrees, other_scale = self.registry.parse_unit(other_unit)
 
@@ -188,7 +188,7 @@ class SimpleQuantity(Quantity):
             return self.value * ratio
         return self.value
 
-    def __getattr__(self, other_unit):
+    def __getattr__(self, other_unit: str):
         try:
             return self.convert_to(other_unit)
         except KeyError:
@@ -200,19 +200,46 @@ class SimpleQuantity(Quantity):
 
 
 class RangeQuantity(Quantity):
-    def __init__(self, from_value, to_value, unit, registry):
+    """
+    A class emulating a range of a unit from one value to another.
+    """
+
+    def __init__(self, from_value: float, to_value: float, unit: str, registry):
+        """
+        Initialize the class with two values, a unit and a registry.
+        Parameters
+        ----------
+        from_value : float
+        to_value : float
+        unit : str
+
+        Returns
+        -------
+        RangeQuantity
+        """
         super().__init__()
         self.value = (from_value, to_value)
         self.unit = unit
         self.registry = registry
 
     @classmethod
-    def from_quantities(cls, a, b):
+    def from_quantities(cls, a: "SimpleQuantity", b: "SimpleQuantity"):
+        """
+        Build the RangeQuantity object from two SimpleQuantity instances.
+        Parameters
+        ----------
+        a : SimpleQuantity
+        b : SimpleQuantity
+
+        Returns
+        -------
+        RangeQuantity
+        """
         a_value = a.value
         b_value = b.convert_to(a.unit)
         return RangeQuantity(a_value, b_value, a.unit, a.registry)
 
-    def convert_to(self, other_unit):
+    def convert_to(self, other_unit: str):
         self_degrees, self_scale = self.registry.parse_unit(self.unit)
         other_degrees, other_scale = self.registry.parse_unit(other_unit)
 

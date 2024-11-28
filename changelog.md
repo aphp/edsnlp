@@ -5,6 +5,7 @@
 ### Added
 
 - `edsnlp.data.read_parquet` now accept a `work_unit="fragment"` option to split tasks between workers by parquet fragment instead of row. When this is enabled, workers do not read every fragment while skipping 1 in n rows, but read all rows of 1/n fragments, which should be faster.
+- New `eds.extractive_qa` component to perform extractive question answering using questions as prompts to tag entities instead of a list of predefined labels as in `eds.ner_crf`.
 
 ### Fixed
 

@@ -27,6 +27,7 @@ class PandasReader(MemoryBasedReader):
     ):
         super().__init__()
         self.shuffle = shuffle
+        seed = seed if seed is not None else random.getrandbits(32)
         self.rng = random.Random(seed)
         self.emitted_sentinels = {"dataset"}
         self.loop = loop

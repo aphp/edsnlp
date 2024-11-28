@@ -39,6 +39,7 @@ class SparkReader(MemoryBasedReader):
         self.data = data
         self.shuffle = shuffle
         self.emitted_sentinels = {"dataset"}
+        seed = seed if seed is not None else random.getrandbits(32)
         self.rng = random.Random(seed)
         self.loop = loop
         assert isinstance(

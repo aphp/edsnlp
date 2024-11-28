@@ -38,6 +38,7 @@ class ParquetReader(FileBasedReader):
         self.emitted_sentinels = {"dataset"} | (
             set() if shuffle == "dataset" else {"fragment"}
         )
+        seed = seed if seed is not None else random.getrandbits(32)
         self.rng = random.Random(seed)
         self.loop = loop
         # Either the filesystem has not been passed
@@ -64,8 +65,7 @@ class ParquetReader(FileBasedReader):
                     yield FragmentEndSentinel(file.path)
             elif self.shuffle == "dataset":
                 records = (line for file in files for line in self.read_fragment(file))
-                records = shuffle(records, self.rng)
-                yield from records
+                yield from shuffle(records, self.rng)
             else:
                 for file in files:
                     records = list(self.read_fragment(file))

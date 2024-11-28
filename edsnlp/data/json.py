@@ -40,7 +40,6 @@ class JsonReader(FileBasedReader):
     ):
         super().__init__()
         self.shuffle = shuffle
-        self.rng = random.Random(seed)
         self.write_in_worker = write_in_worker
         self.emitted_sentinels = {"dataset"}
         self.loop = loop
@@ -57,6 +56,7 @@ class JsonReader(FileBasedReader):
         self.keep_ipynb_checkpoints = keep_ipynb_checkpoints
         self.shuffle = shuffle
         self.loop = loop
+        seed = seed if seed is not None else random.getrandbits(32)
         self.rng = random.Random(seed)
         for file in self.files:
             if not self.fs.exists(file):

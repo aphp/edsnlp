@@ -21,23 +21,6 @@ from .converters import FILENAME, get_dict2doc_converter, get_doc2dict_converter
 
 
 class BaseReader:
-    """
-    The BaseReader servers as a base class for all readers. It expects two methods:
-
-    - `read_records` method which is called in the main process and should return a
-        generator of fragments (like filenames) with their estimated size (number of
-        documents)
-    - `unpack_tasks` method which is called in the worker processes and receives
-        batches of fragments and should return a list of dictionaries (one per
-        document), ready to be converted to a Doc object by the converter.
-
-    Additionally, the subclass should define a `DATA_FIELDS` class attribute which
-    contains the names of all attributes that should not be copied when the reader is
-    copied to the worker processes. This is useful for example when the reader holds a
-    reference to a large object like a DataFrame that should not be copied to the
-    worker processes.
-    """
-
     DATA_FIELDS: Tuple[str] = ()
     read_in_worker: bool
     emitted_sentinels: set
@@ -46,6 +29,9 @@ class BaseReader:
 
     def read_records(self) -> Iterable[Any]:
         raise NotImplementedError()
+
+    def extract_task(self, item):
+        return [item]
 
     def worker_copy(self):
         if self.read_in_worker:
@@ -110,6 +96,7 @@ class IterableReader(MemoryBasedReader):
     ):
         super().__init__()
         self.shuffle = shuffle
+        seed = seed if seed is not None else random.getrandbits(32)
         self.rng = random.Random(seed)
         self.emitted_sentinels = {"dataset"}
         self.loop = loop

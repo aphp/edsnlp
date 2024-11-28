@@ -292,6 +292,7 @@ class StandoffReader(FileBasedReader):
         super().__init__()
         self.shuffle = shuffle
         self.emitted_sentinels = {"dataset"}
+        seed = seed if seed is not None else random.getrandbits(32)
         self.rng = random.Random(seed)
         self.loop = loop
         self.fs, self.path = normalize_fs_path(filesystem, path)

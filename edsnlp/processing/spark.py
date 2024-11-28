@@ -80,7 +80,7 @@ def execute_spark_backend(
         df = reader.data
         assert not reader.loop, "Looping is not supported with Spark backend."
         df = (
-            df.sample(fraction=1.0, seed=reader.rng.randbytes(32))
+            df.sample(fraction=1.0, seed=reader.rng.getrandbits(32))
             if reader.shuffle
             else df
         )

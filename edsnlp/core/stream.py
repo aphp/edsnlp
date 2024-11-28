@@ -791,6 +791,12 @@ class Stream(metaclass=MetaStream):
                 else False
             )
         stream = self
+        # Ensure that we have a "deterministic" random seed, meaning
+        # if the user sets a global seed before in the program and execute the
+        # same program twice, the shuffling should be the same in both cases.
+        # This is not garanteed by just creating random.Random() which does not
+        # account
+        seed = seed if seed is not None else random.getrandbits(32)
         if shuffle_reader:
             if shuffle_reader not in self.reader.emitted_sentinels:
                 raise ValueError(f"Cannot shuffle by {shuffle_reader}")

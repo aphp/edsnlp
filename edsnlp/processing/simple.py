@@ -66,6 +66,15 @@ def execute_simple_backend(stream: Stream):
 
         with bar, stream.eval():
             items = reader.read_records()
+            items = (
+                task
+                for item in items
+                for task in (
+                    (item,)
+                    if isinstance(item, StreamSentinel)
+                    else reader.extract_task(item)
+                )
+            )
 
             for stage_idx, stage in enumerate(stages):
                 for op in stage.cpu_ops:

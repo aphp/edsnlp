@@ -4,6 +4,7 @@ from pathlib import Path
 import pyarrow.dataset
 import pyarrow.fs
 import pytest
+from confit.utils.random import set_seed
 from typing_extensions import Literal
 
 import edsnlp
@@ -353,6 +354,32 @@ def test_read_shuffle_loop(
             "subfolder/doc-2",
             "subfolder/doc-1",
         ]
+
+
+@pytest.mark.parametrize("num_cpu_workers", [0, 2])
+@pytest.mark.parametrize("work_unit", ["record", "fragment"])
+@pytest.mark.parametrize("shuffle", [False, "dataset", "fragment"])
+def test_read_work_unit(
+    num_cpu_workers,
+    work_unit: Literal["record", "fragment"],
+    shuffle: Literal[False, "dataset", "fragment"],
+):
+    if shuffle == "dataset" and work_unit == "fragment":
+        pytest.skip("Dataset-level shuffle is not supported with fragment work unit")
+    input_dir = Path(__file__).parent.parent.resolve() / "resources" / "docs.parquet"
+    set_seed(42)
+    stream = edsnlp.data.read_parquet(
+        input_dir, work_unit=work_unit, shuffle=shuffle
+    ).set_processing(
+        num_cpu_workers=num_cpu_workers,
+    )
+    stream = stream.map_batches(
+        lambda b: "|".join(sorted([x["note_id"] for x in b])), batch_size=1000
+    )
+    if work_unit == "fragment" and num_cpu_workers == 2 or num_cpu_workers == 0:
+        assert list(stream) == ["subfolder/doc-1|subfolder/doc-2|subfolder/doc-3"]
+    else:
+        assert list(stream) == ["subfolder/doc-1|subfolder/doc-3", "subfolder/doc-2"]
 
 
 @pytest.mark.parametrize(

@@ -32,6 +32,7 @@ class ParquetReader(FileBasedReader):
         shuffle: Literal["dataset", "fragment", False] = False,
         seed: Optional[int] = None,
         loop: bool = False,
+        work_unit: Literal["record", "fragment"] = "record",
     ):
         super().__init__()
         self.shuffle = shuffle
@@ -41,6 +42,11 @@ class ParquetReader(FileBasedReader):
         seed = seed if seed is not None else random.getrandbits(32)
         self.rng = random.Random(seed)
         self.loop = loop
+        self.work_unit = work_unit
+        assert not (work_unit == "fragment" and shuffle == "dataset"), (
+            "Cannot shuffle at the dataset level and dispatch tasks at the "
+            "fragment level. Set shuffle='fragment' or work_unit='record'."
+        )
         # Either the filesystem has not been passed
         # or the path is a URL (e.g. s3://) => we need to infer the filesystem
         self.fs, self.path = normalize_fs_path(filesystem, path)
@@ -53,23 +59,41 @@ class ParquetReader(FileBasedReader):
         )
 
     def read_fragment(self, fragment: ParquetFileFragment) -> Iterable[Dict]:
-        return dl_to_ld(fragment.to_table().to_pydict())
+        return (
+            doc
+            for batch in fragment.scanner().to_reader()
+            for doc in dl_to_ld(batch.to_pydict())
+        )
+
+    def extract_task(self, item):
+        if self.work_unit == "fragment":
+            records = self.read_fragment(item)
+            if self.shuffle == "fragment":
+                records = shuffle(records, self.rng)
+            yield from records
+        else:
+            yield item
 
     def read_records(self) -> Iterable[Any]:
         while True:
             files = self.fragments
             if self.shuffle == "fragment":
                 for file in shuffle(files, self.rng):
-                    records = shuffle(self.read_fragment(file), self.rng)
-                    yield from records
+                    if self.work_unit == "fragment":
+                        yield file
+                    else:
+                        yield from shuffle(self.read_fragment(file), self.rng)
                     yield FragmentEndSentinel(file.path)
             elif self.shuffle == "dataset":
+                assert self.work_unit == "record"
                 records = (line for file in files for line in self.read_fragment(file))
                 yield from shuffle(records, self.rng)
             else:
                 for file in files:
-                    records = list(self.read_fragment(file))
-                    yield from records
+                    if self.work_unit == "fragment":
+                        yield file
+                    else:
+                        yield from self.read_fragment(file)
                     yield FragmentEndSentinel(file.path)
             yield DatasetEndSentinel()
             if not self.loop:
@@ -158,6 +182,7 @@ def read_parquet(
     shuffle: Literal["dataset", "fragment", False] = False,
     seed: Optional[int] = None,
     loop: bool = False,
+    work_unit: Literal["record", "fragment"] = "record",
     **kwargs,
 ) -> Stream:
     """
@@ -211,6 +236,18 @@ def read_parquet(
         The seed to use for shuffling.
     loop: bool
         Whether to loop over the data indefinitely.
+    work_unit: Literal["record", "fragment"]
+        Only affects the multiprocessing mode. If "record", every worker will start to
+        read the same parquet file and yield each every num_workers-th record, starting
+        at an offset each. For instance, if num_workers=2, the first worker will read
+        the 1st, 3rd, 5th, ... records, while the second worker will read the 2nd, 4th,
+        6th, ... records of the first parquet file.
+
+        If "fragment", each worker will read a different parquet file. For instance, the
+        first worker will every record of the 1st parquet file, the second worker will
+        read every record of the 2nd parquet file, and so on. This way, no record is
+        "wasted" and every record loaded in memory is yielded.
+
     converter: Optional[AsList[Union[str, Callable]]]
         Converters to use to convert the parquet rows of the data source to Doc objects
         These are documented on the [Converters](/data/converters) page.
@@ -237,6 +274,7 @@ def read_parquet(
             shuffle=shuffle,
             seed=seed,
             loop=loop,
+            work_unit=work_unit,
         )
     )
     if converter:

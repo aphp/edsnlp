@@ -2,6 +2,10 @@
 
 # Unreleased
 
+### Added
+
+- `edsnlp.data.read_parquet` now accept a `work_unit="fragment"` option to split tasks between workers by parquet fragment instead of row. When this is enabled, workers do not read every fragment while skipping 1 in n rows, but read all rows of 1/n fragments, which should be faster.
+
 ### Fixed
 
 - Fix `join_thread` missing attribute in `SimpleQueue` when cleaning a multiprocessing executor

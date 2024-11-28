@@ -120,6 +120,8 @@ def execute_spark_backend(
         else:
             items = (item.asDict(recursive=True) for item in items)
 
+        items = (task for item in items for task in stream.reader.extract_task(item))
+
         for stage_idx, stage in enumerate(stages):
             for op in stage.cpu_ops:
                 items = op(items)

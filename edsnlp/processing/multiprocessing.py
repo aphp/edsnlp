@@ -509,13 +509,16 @@ class CPUWorker(Worker):
                 return
             task_idx = 0
             for item in iter(self.stream.reader.read_records()):
-                if self.stop:
+                if self.stop:  # pragma: no cover
                     raise StopSignal()
                 if isinstance(item, StreamSentinel):
                     yield item
                     continue
                 if task_idx % pool_size == worker_idx:
-                    yield item
+                    for item in self.stream.reader.extract_task(item):
+                        if self.stop:  # pragma: no cover
+                            raise StopSignal()
+                        yield item
 
                 task_idx += 1
         else:
@@ -751,7 +754,7 @@ class GPUWorker(Worker):
         ]
         # Get items from the previous stage
         while self.num_producers_alive[stage] > 0:
-            if self.stop and not stop_mode:
+            if self.stop and not stop_mode:  # pragma: no cover
                 raise StopSignal()
 
             offset = (offset + 1) % len(queues)

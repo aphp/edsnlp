@@ -81,7 +81,7 @@ train_data:
   shuffle: dataset
   batch_size: 4 docs
   pipe_names: [ "qualifier" ]
-  accumulation_batch_size: 10 words
+  sub_batch_size: 10 words
 
 val_data:
   "@readers": json

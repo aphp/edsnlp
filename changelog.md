@@ -5,6 +5,10 @@
 ### Added
 
 - `edsnlp.data.read_parquet` now accept a `work_unit="fragment"` option to split tasks between workers by parquet fragment instead of row. When this is enabled, workers do not read every fragment while skipping 1 in n rows, but read all rows of 1/n fragments, which should be faster.
+- Accept no validation data in `edsnlp.train` script
+- Log the training config at the beginning of the trainings
+- Support a specific model output dir path for trainings (`output_model_dir`), and whether to save the model or not (`save_model`)
+- Specify whether to log the validation results or not (`logger=False`)
 
 ### Fixed
 

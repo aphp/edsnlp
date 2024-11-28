@@ -10,6 +10,7 @@
 - Seed random states (instead of using `random.RandomState()`) when shuffling in data readers : this is important for
   1. reproducibility
   2. in multiprocessing mode, ensure that the same data is shuffled in the same way in all workers
+- Bubble BaseComponent instantiation errors correctly
 
 ## v0.14.0 (2024-11-14)
 

@@ -44,16 +44,22 @@ class BaseComponentMeta(abc.ABCMeta):
         # If this component is missing the nlp argument, we curry it with the
         # provided arguments and return a CurriedFactory object.
         sig = inspect.signature(cls.__init__)
-        bound = sig.bind_partial(None, nlp, *args, **kwargs)
-        bound.arguments.pop("self", None)
-        if (
-            "nlp" in sig.parameters
-            and sig.parameters["nlp"].default is sig.empty
-            and bound.arguments.get("nlp", sig.empty) is sig.empty
-        ):
-            return CurriedFactory(cls, bound.arguments)
-        if nlp is inspect.Signature.empty:
-            bound.arguments.pop("nlp", None)
+        try:
+            bound = sig.bind_partial(None, nlp, *args, **kwargs)
+            bound.arguments.pop("self", None)
+            if (
+                "nlp" in sig.parameters
+                and sig.parameters["nlp"].default is sig.empty
+                and bound.arguments.get("nlp", sig.empty) is sig.empty
+            ):
+                return CurriedFactory(cls, bound.arguments)
+            if nlp is inspect.Signature.empty:
+                bound.arguments.pop("nlp", None)
+        except TypeError:  # pragma: no cover
+            if nlp is inspect.Signature.empty:
+                super().__call__(*args, **kwargs)
+            else:
+                super().__call__(nlp, *args, **kwargs)
         return super().__call__(**bound.arguments)
 
 

@@ -116,7 +116,9 @@ class UnitRegistry:
         for part in regex.split("(?<!per)_", unit):
             unit_config = self.config[unicodedata.normalize("NFKC", part)]
             degrees[unit_config["dim"]].append(unit_config["degree"])
-            scale *= unit_config["scale"] ** abs(unit_config["degree"])
+
+            # degree minimal 1 -> accompts for unitless patterns such as x10*9
+            scale *= unit_config["scale"] ** max(1, abs(unit_config["degree"]))
         degrees = {
             k: sum(v) if len(set(v)) > 1 else v[0]
             for k, v in degrees.items()

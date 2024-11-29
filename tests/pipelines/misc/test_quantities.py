@@ -367,6 +367,7 @@ def test_conversions(blank_nlp, matcher: QuantitiesMatcher):
         ("10 l", "cm3", 10000),
         ("10 l", "cl", 1000),
         ("25 kg/m2", "kg_per_cm2", 0.0025),
+        ("2.4 x10*9µl", "l", 2400),
     ]
 
     for text, unit, expected in tests:

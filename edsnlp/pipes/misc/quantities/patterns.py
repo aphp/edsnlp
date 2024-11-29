@@ -1841,6 +1841,20 @@ units_config = {
         "terms": ["gt", "goutte", "gouttes"],
         "followed_by": None,
     },
+    "µl": {
+        "dim": "length",
+        "degree": 3,
+        "scale": 0.001,
+        "terms": [
+            "micro litre",
+            "micro-litre",
+            "microlitre",
+            "microlitres",
+            "microlitres",
+            "µl",
+        ],
+        "followed_by": None,
+    },
     "ml": {
         "dim": "length",
         "degree": 3,

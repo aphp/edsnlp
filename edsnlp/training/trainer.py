@@ -55,6 +55,12 @@ LOGGER_FIELDS = {
         "goal_wait": 1,
         "name": r"\1_\2",
     },
+    "(.*?)/(uas|las)": {
+        "goal": "higher_is_better",
+        "format": "{:.2%}",
+        "goal_wait": 1,
+        "name": r"\1_\2",
+    },
 }
 
 
@@ -166,6 +172,12 @@ class GenericScorer:
                 )
             for name, scorer in span_attr_scorers.items():
                 scores[name] = scorer(docs, qlf_preds)
+
+        # Custom scorers
+        for name, scorer in scorers.items():
+            pred_docs = [d.copy() for d in tqdm(docs, desc="Copying docs")]
+            preds = list(nlp.pipe(tqdm(pred_docs, desc="Predicting")))
+            scores[name] = scorer(docs, preds)
 
         return scores
 

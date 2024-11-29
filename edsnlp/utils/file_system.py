@@ -24,6 +24,8 @@ def walk_match(
     root: str,
     file_pattern: str,
 ) -> list:
+    if fs.isfile(root):
+        return [root]
     return [
         os.path.join(dirpath, f)
         for dirpath, dirnames, files in fs.walk(root)

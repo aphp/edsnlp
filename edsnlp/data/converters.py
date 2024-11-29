@@ -5,6 +5,7 @@ Doc objects, and writers convert Doc objects to dictionaries.
 """
 
 import inspect
+import warnings
 from copy import copy
 from types import FunctionType
 from typing import (
@@ -19,6 +20,7 @@ from typing import (
 )
 
 import pydantic
+import spacy
 from confit.registry import ValidatedFunction
 from spacy.tokenizer import Tokenizer
 from spacy.tokens import Doc, Span
@@ -377,6 +379,54 @@ class StandoffDoc2DictConverter:
             ],
         }
         return obj
+
+
+@registry.factory.register("eds.conll_dict2doc", spacy_compatible=False)
+class ConllDict2DocConverter:
+    """
+    TODO
+    """
+
+    def __init__(
+        self,
+        *,
+        tokenizer: Optional[Tokenizer] = None,
+    ):
+        self.tokenizer = tokenizer
+
+    def __call__(self, obj, tokenizer=None):
+        tok = get_current_tokenizer() if self.tokenizer is None else self.tokenizer
+        vocab = tok.vocab
+        words_data = [word for word in obj["words"] if "-" not in word["ID"]]
+        words = [word["FORM"] for word in words_data]
+        spaces = ["SpaceAfter=No" not in w.get("MISC", "") for w in words_data]
+        doc = Doc(vocab, words=words, spaces=spaces)
+
+        id_to_word = {word["ID"]: i for i, word in enumerate(words_data)}
+        for word_data, word in zip(words_data, doc):
+            for key, value in word_data.items():
+                if key in ("ID", "FORM", "MISC"):
+                    pass
+                elif key == "LEMMA":
+                    word.lemma_ = value
+                elif key == "UPOS":
+                    word.pos_ = value
+                elif key == "XPOS":
+                    word.tag_ = value
+                elif key == "FEATS":
+                    word.morph = spacy.tokens.morphanalysis.MorphAnalysis(
+                        tok.vocab,
+                        dict(feat.split("=") for feat in value.split("|")),
+                    )
+                elif key == "HEAD":
+                    if value != "0":
+                        word.head = doc[id_to_word[value]]
+                elif key == "DEPREL":
+                    word.dep_ = value
+                else:
+                    warnings.warn(f"Unused key {key} in CoNLL dict, ignoring it.")
+
+        return doc
 
 
 @registry.factory.register("eds.omop_dict2doc", spacy_compatible=False)

@@ -2,6 +2,8 @@
 
 import pytest
 
+from edsnlp.metrics.dep_parsing import DependencyParsingMetric
+
 pytest.importorskip("rich")
 
 import shutil
@@ -16,7 +18,7 @@ import spacy.tokenizer
 import torch.nn
 from confit import Config
 from confit.utils.random import set_seed
-from spacy.tokens import Span
+from spacy.tokens import Doc, Span
 
 from edsnlp.core.registries import registry
 from edsnlp.data.converters import AttributesMappingArg, get_current_tokenizer
@@ -132,6 +134,29 @@ def test_qualif_train(run_in_test_dir, tmp_path):
     nlp("")
 
     assert last_scores["qual"]["micro"]["f"] >= 0.4
+
+
+def test_dep_parser_train(run_in_test_dir, tmp_path):
+    set_seed(42)
+    config = Config.from_disk("dep_parser_config.yml")
+    shutil.rmtree(tmp_path, ignore_errors=True)
+    kwargs = Config.resolve(config["train"], registry=registry, root=config)
+    nlp = train(**kwargs, output_dir=tmp_path, cpu=True)
+    scorer = GenericScorer(**kwargs["scorer"])
+    val_data = list(kwargs["val_data"])
+    last_scores = scorer(nlp, val_data)
+
+    scorer_bis = GenericScorer(parser=DependencyParsingMetric(filter_expr="False"))
+    # Just to test what happens if the scores indicate 2 roots
+    val_data_bis = [Doc.from_docs([val_data[0], val_data[0]])]
+    nlp.pipes.parser.decoding_mode = "mst"
+    last_scores_bis = scorer_bis(nlp, val_data_bis)
+    assert last_scores_bis["parser"]["uas"] == 0.0
+
+    # Check empty doc
+    nlp("")
+
+    assert last_scores["dep"]["las"] >= 0.4
 
 
 def test_optimizer():

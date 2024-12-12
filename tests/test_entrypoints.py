@@ -1,9 +1,18 @@
 import catalogue
+import pytest
 
 try:
     from importlib.metadata import entry_points
 except ImportError:
     from importlib_metadata import entry_points
+
+try:
+    import torch.nn
+except ImportError:
+    torch = None
+
+if torch is None:
+    pytest.skip("torch not installed", allow_module_level=True)
 
 
 def test_entrypoints():

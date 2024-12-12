@@ -15,6 +15,11 @@ from edsnlp import Pipeline, registry
 from edsnlp.core.registries import CurriedFactory
 from edsnlp.pipes.base import BaseComponent
 
+try:
+    import torch.nn
+except ImportError:
+    torch = None
+
 
 class CustomClass:
     pass
@@ -143,6 +148,7 @@ ents = true
 """
 
 
+@pytest.mark.skipif(torch is None, reason="torch not installed")
 def test_validate_config():
     @validate_arguments
     def function(model: Pipeline):
@@ -212,6 +218,7 @@ def test_different_names():
     ) in str(exc_info.value)
 
 
+@pytest.mark.skipif(torch is None, reason="torch not installed")
 def test_load_config(run_in_test_dir):
     nlp = edsnlp.load("training/qlf_config.yml")
     assert nlp.pipe_names == [
@@ -246,6 +253,7 @@ span_setter = "ents"
 """
 
 
+@pytest.mark.skipif(torch is None, reason="torch not installed")
 def test_config_validation_error():
     with pytest.raises(ConfitValidationError) as e:
         Pipeline.from_config(Config.from_str(fail_config))
@@ -397,6 +405,7 @@ def test_curried_nlp_pipe():
     sys.version_info < (3, 8),
     reason="Can't run on GH CI with Python 3.7",
 )
+@pytest.mark.skipif(torch is None, reason="torch not installed")
 def test_huggingface():
     nlp = edsnlp.load(
         "AP-HP/dummy-ner",

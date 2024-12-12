@@ -23,6 +23,7 @@
 - Bubble BaseComponent instantiation errors correctly
 - Improved support for multi-gpu gradient accumulation (only sync the gradients at the end of the accumulation), now controled by the optiona `sub_batch_size` argument of `TrainingData`.
 - Support again edsnlp without pytorch installed
+- We now test that edsnlp works without pytorch installed
 
 ## v0.14.0 (2024-11-14)
 

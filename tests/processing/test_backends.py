@@ -14,6 +14,12 @@ import edsnlp.processing
 from edsnlp.data.converters import get_current_tokenizer
 from edsnlp.processing.multiprocessing import get_dispatch_schedule
 
+try:
+    import torch.nn
+except ImportError:
+    torch = None
+
+
 docs = [
     {
         "note_id": 1234,
@@ -259,10 +265,8 @@ def test_multiprocessing_rb_error(ml_nlp):
         list(docs)
 
 
-try:
-    import torch
-
-    from edsnlp.core.torch_component import BatchInput, BatchOutput, TorchComponent
+if torch is not None:
+    from edsnlp.core.torch_component import TorchComponent
 
     class DeepLearningError(TorchComponent):
         def __init__(self, *args, **kwargs):
@@ -282,10 +286,8 @@ try:
                 raise RuntimeError("Deep learning error")
             return {}
 
-except (ImportError, AttributeError):
-    pass
 
-
+@pytest.mark.skipif(torch is None, reason="torch not installed")
 def test_multiprocessing_ml_error(ml_nlp):
     text1 = "Ceci est un exemple"
     text2 = "Ceci est un autre exemple"
@@ -376,54 +378,60 @@ def test_deterministic_skip(num_cpu_workers):
     assert items == [*range(0, 10), *range(10, 100, 2)]
 
 
-@validate_arguments
-class InnerComponent(TorchComponent):
-    def __init__(self, nlp=None, *args, **kwargs):
-        super().__init__()
-        self.called_forward = False
-
-    def preprocess(self, doc):
-        return {"text": doc.text}
-
-    def collate(self, batch: Dict[str, Any]) -> BatchInput:
-        return {"sizes": torch.as_tensor([len(x) for x in batch["text"]])}
-
-    def forward(self, batch):
-        assert not self.called_forward
-        self.called_forward = True
-        return {"sizes": batch["sizes"] * 2}
-
-
-@validate_arguments
-class OuterComponent(TorchComponent):
-    def __init__(self, inner):
-        super().__init__()
-        self.inner = inner
-
-    def preprocess(self, doc):
-        return {"inner": self.inner.preprocess(doc)}
-
-    def collate(self, batch: Dict[str, Any]) -> BatchInput:
-        return {"inner": self.inner.collate(batch["inner"])}
-
-    def forward(self, batch: BatchInput) -> BatchOutput:
-        return {"inner": self.inner(batch["inner"])["sizes"].clone()}
-
-    def postprocess(
-        self,
-        docs: Sequence[Doc],
-        results: BatchOutput,
-        inputs: List[Dict[str, Any]],
-    ) -> Sequence[Doc]:
-        return docs
-
-
 @pytest.mark.parametrize(
     "backend",
     ["simple", "multiprocesing"],
 )
+@pytest.mark.skipif(torch is None, reason="torch not installed")
 def test_backend_cache(backend):
-    from edsnlp.core.torch_component import _caches
+    import torch
+
+    from edsnlp.core.torch_component import (
+        BatchInput,
+        BatchOutput,
+        TorchComponent,
+        _caches,
+    )
+
+    @validate_arguments
+    class InnerComponent(TorchComponent):
+        def __init__(self, nlp=None, *args, **kwargs):
+            super().__init__()
+            self.called_forward = False
+
+        def preprocess(self, doc):
+            return {"text": doc.text}
+
+        def collate(self, batch: Dict[str, Any]) -> BatchInput:
+            return {"sizes": torch.as_tensor([len(x) for x in batch["text"]])}
+
+        def forward(self, batch):
+            assert not self.called_forward
+            self.called_forward = True
+            return {"sizes": batch["sizes"] * 2}
+
+    @validate_arguments
+    class OuterComponent(TorchComponent):
+        def __init__(self, inner):
+            super().__init__()
+            self.inner = inner
+
+        def preprocess(self, doc):
+            return {"inner": self.inner.preprocess(doc)}
+
+        def collate(self, batch: Dict[str, Any]) -> BatchInput:
+            return {"inner": self.inner.collate(batch["inner"])}
+
+        def forward(self, batch: BatchInput) -> BatchOutput:
+            return {"inner": self.inner(batch["inner"])["sizes"].clone()}
+
+        def postprocess(
+            self,
+            docs: Sequence[Doc],
+            results: BatchOutput,
+            inputs: List[Dict[str, Any]],
+        ) -> Sequence[Doc]:
+            return docs
 
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(InnerComponent(), name="inner")

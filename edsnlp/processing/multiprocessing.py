@@ -1183,7 +1183,8 @@ class MultiprocessingStreamExecutor:
             for q in queues:
                 if q is queue:
                     queue.put(STOP)
-            queue.close()
+            if hasattr(queue, "close"):
+                queue.close()
             if hasattr(queue, "join_thread"):
                 queue.join_thread()
 

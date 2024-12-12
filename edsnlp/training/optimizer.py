@@ -260,9 +260,9 @@ class ScheduledOptimizer(torch.optim.Optimizer):
                         group["selectors"] = sources
                         group["params"] = params
                         cliques.append(group)
-            cliques = [
-                {k: v for k, v in group.items() if v is not None} for group in cliques
-            ]
+            cliques = reversed(
+                [{k: v for k, v in group.items() if v is not None} for group in cliques]
+            )
 
             if isinstance(optim, str):
                 optim = (

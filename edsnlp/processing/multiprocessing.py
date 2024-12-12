@@ -32,7 +32,6 @@ import dill
 from tqdm import tqdm
 
 from edsnlp.core.stream import Stage, Stream, StreamSentinel
-from edsnlp.core.torch_component import _caches
 from edsnlp.data.base import BatchWriter
 from edsnlp.utils.collections import (
     batch_compress_dict,
@@ -229,7 +228,7 @@ if (
 
 
 try:
-    import torch
+    import torch.multiprocessing
 
     from edsnlp.utils.torch import dump, load
 
@@ -242,7 +241,8 @@ except (ImportError, AttributeError):  # pragma: no cover
                 return dill.load(f, *args, **kwargs)
         return dill.load(file, *args, **kwargs)
 
-    dump = dill.dump
+    def dump(obj, file, skip_tensors=False, *args, **kwargs):
+        return dill.dump(obj, file, *args, **kwargs)
 
 
 if os.environ.get("TORCH_SHARING_STRATEGY"):  # pragma: no cover
@@ -698,7 +698,6 @@ class GPUWorker(Worker):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.lock = threading.Lock()
-        self.max_cache = 0
 
     def process_items(self, stage):
         autocast = self.stream.autocast
@@ -727,7 +726,6 @@ class GPUWorker(Worker):
                     name = f"from-{self.uid}_to-stage-{stage + 1}_of-{cpu_id}"
                     queue = self.data_queues[name]
                     item = (batch_id, batch)
-                    self.max_cache = max(self.max_cache, len(_caches))
 
                 # Do NOT put during lock, otherwise this may lead to a deadlock
                 # in multi-stage (n + 1 where n > 1) scenarios where stage 1

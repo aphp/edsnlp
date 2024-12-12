@@ -102,10 +102,17 @@ def set_flat_stats(x, stats):
 
 @validate_arguments
 class GenericScorer:
-    def __init__(self, speed=True, batch_size: Union[int, str] = 1, **scorers):
+    def __init__(
+        self,
+        speed: bool = True,
+        batch_size: Union[int, str] = 1,
+        autocast: Union[bool, Any] = None,
+        **scorers,
+    ):
         self.scorers = scorers
         self.speed = speed
         self.batch_size = batch_size
+        self.autocast = autocast
 
     def __call__(self, nlp: Pipeline, docs: Iterable[Any]):
         scores = {}
@@ -115,7 +122,14 @@ class GenericScorer:
         # Speed
         if self.speed:
             t0 = time.time()
-            list(nlp.pipe(d.copy() for d in tqdm(docs, desc="Computing model speed")))
+            list(
+                nlp.pipe(
+                    d.copy() for d in tqdm(docs, desc="Computing model speed")
+                ).set_processing(
+                    batch_size=self.batch_size,
+                    autocast=self.autocast,
+                )
+            )
             duration = time.time() - t0
             scores["speed"] = dict(
                 wps=sum(len(d) for d in docs) / duration,
@@ -139,7 +153,8 @@ class GenericScorer:
             with nlp.select_pipes(enable=ner_pipes):
                 ner_preds = list(
                     nlp.pipe(tqdm(clean_ner_docs, desc="Predicting")).set_processing(
-                        batch_size=self.batch_size
+                        batch_size=self.batch_size,
+                        autocast=self.autocast,
                     )
                 )
             for name, scorer in ner_scorers.items():
@@ -167,7 +182,8 @@ class GenericScorer:
             with nlp.select_pipes(disable=ner_pipes):
                 qlf_preds = list(
                     nlp.pipe(tqdm(clean_qlf_docs, desc="Predicting")).set_processing(
-                        batch_size=self.batch_size
+                        batch_size=self.batch_size,
+                        autocast=self.autocast,
                     )
                 )
             for name, scorer in span_attr_scorers.items():
@@ -176,7 +192,12 @@ class GenericScorer:
         # Custom scorers
         for name, scorer in scorers.items():
             pred_docs = [d.copy() for d in tqdm(docs, desc="Copying docs")]
-            preds = list(nlp.pipe(tqdm(pred_docs, desc="Predicting")))
+            preds = list(
+                nlp.pipe(tqdm(pred_docs, desc="Predicting")).set_processing(
+                    batch_size=self.batch_size,
+                    autocast=self.autocast,
+                )
+            )
             scores[name] = scorer(docs, preds)
 
         return scores
@@ -242,7 +263,7 @@ class TrainingData:
         self,
         data: Stream,
         batch_size: BatchSizeArg,
-        shuffle: str,
+        shuffle: Union[str, Literal[False]],
         sub_batch_size: Optional[BatchSizeArg] = None,
         pipe_names: Optional[Collection[str]] = None,
         post_init: bool = True,
@@ -453,7 +474,7 @@ def train(
         os.makedirs(output_dir, exist_ok=True)
         if config_meta is not None:  # pragma: no cover
             print(config_meta["unresolved_config"].to_yaml_str())
-            config_meta["unresolved_config"].to_disk(output_dir / "training_config.yml")
+            config_meta["unresolved_config"].to_disk(output_dir / "train_config.yml")
 
     validation_interval = validation_interval or max_steps // 10
     checkpoint_interval = checkpoint_interval or validation_interval
@@ -515,10 +536,12 @@ def train(
             accelerator.print(
                 "Optimizing groups:"
                 + "".join(
-                    "\n - {} {} weight tensors ({:,} parameters)".format(
-                        g.get("selector", "*") + ":" if "selector" in g else "",
+                    "\n - {} weight tensors ({:,} parameters){}".format(
                         len([p for p in g["params"] if p in grad_params]),
                         sum([p.numel() for p in g["params"] if p in grad_params]),
+                        ": " + " & ".join(g.get("selectors", "*"))
+                        if "selectors" in g
+                        else "",
                     )
                     for g in optim.param_groups
                 )
@@ -563,7 +586,11 @@ def train(
                     disable=not is_main_process,
                     smoothing=0.3,
                 ):
-                    if is_main_process and (step % validation_interval) == 0:
+                    if (
+                        is_main_process
+                        and step > 0
+                        and (step % validation_interval) == 0
+                    ):
                         scores = scorer(nlp, val_docs) if val_docs else {}
                         all_metrics.append(
                             {

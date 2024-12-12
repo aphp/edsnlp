@@ -3,6 +3,11 @@ import pytest
 import edsnlp
 from edsnlp.utils.collections import ld_to_dl
 
+try:
+    import torch.nn
+except ImportError:
+    torch = None
+
 
 def test_map_batches():
     items = [1, 2, 3, 4, 5]
@@ -30,6 +35,7 @@ def test_flat_iterable(num_cpu_workers):
 
 
 @pytest.mark.parametrize("num_gpu_workers", [0, 1, 2])
+@pytest.mark.skipif(torch is None, reason="torch not installed")
 def test_map_gpu(num_gpu_workers):
     import torch
 

@@ -1,9 +1,14 @@
-# ruff: noqa: E402
+# ruff:noqa:E402
 
 import pytest
 
-from edsnlp.metrics.dep_parsing import DependencyParsingMetric
+try:
+    import torch.nn
+except ImportError:
+    torch = None
 
+if torch is None:
+    pytest.skip("torch not installed", allow_module_level=True)
 pytest.importorskip("rich")
 
 import shutil
@@ -22,6 +27,7 @@ from spacy.tokens import Doc, Span
 
 from edsnlp.core.registries import registry
 from edsnlp.data.converters import AttributesMappingArg, get_current_tokenizer
+from edsnlp.metrics.dep_parsing import DependencyParsingMetric
 from edsnlp.training.optimizer import LinearSchedule, ScheduledOptimizer
 from edsnlp.training.trainer import GenericScorer, train
 from edsnlp.utils.span_getters import SpanSetterArg, set_spans

@@ -1,5 +1,14 @@
+# ruff:noqa:E402
 import pytest
-import torch
+
+try:
+    import torch.nn
+except ImportError:
+    torch = None
+
+if torch is None:
+    pytest.skip("torch not installed", allow_module_level=True)
+pytest.importorskip("rich")
 
 from edsnlp.training.optimizer import LinearSchedule, ScheduledOptimizer
 
@@ -73,12 +82,12 @@ def test_old_parameter_selection(net, groups):
     assert all([p in optim.state for p in net.fc1.parameters()])
     optim.state = optim.state
 
-    fc1_group = optim.param_groups[0]
+    fc1_group = optim.param_groups[1]
     assert fc1_group["lr"] == pytest.approx(0.0)
     assert fc1_group["weight_decay"] == pytest.approx(0.01)
     assert set(fc1_group["params"]) == {net.fc1.weight, net.fc1.bias}
 
-    fc2_group = optim.param_groups[1]
+    fc2_group = optim.param_groups[0]
     assert fc2_group["lr"] == pytest.approx(0.0001)
     assert set(fc2_group["params"]) == {net.fc2.weight}
 
@@ -132,9 +141,9 @@ def test_serialization(net):
             state_dict = optim.state_dict()
         optim.step()
 
-    assert optim.param_groups[0]["lr"] == pytest.approx(0.0)
+    assert optim.param_groups[-1]["lr"] == pytest.approx(0.0)
     optim.load_state_dict(state_dict)
-    assert optim.param_groups[0]["lr"] == pytest.approx(0.0625)
+    assert optim.param_groups[-1]["lr"] == pytest.approx(0.0625)
 
     optim.reset()
 

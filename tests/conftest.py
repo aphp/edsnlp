@@ -19,6 +19,12 @@ try:
 except AttributeError:
     pass
 logging.basicConfig(level=logging.INFO)
+try:
+    import torch.nn
+except ImportError:
+    torch = None
+
+pytest.importorskip("rich")
 
 
 @fixture(scope="session", params=["eds", "fr"])
@@ -75,11 +81,15 @@ def make_ml_pipeline():
 
 @fixture()
 def ml_nlp():
+    if torch is None:
+        pytest.skip("torch not installed", allow_module_level=False)
     return make_ml_pipeline()
 
 
 @fixture(scope="session")
 def frozen_ml_nlp():
+    if torch is None:
+        pytest.skip("torch not installed", allow_module_level=False)
     return make_ml_pipeline()
 
 

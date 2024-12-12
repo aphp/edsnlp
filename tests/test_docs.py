@@ -4,6 +4,14 @@ import warnings
 import pytest
 
 pytest.importorskip("mkdocs")
+try:
+    import torch.nn
+except ImportError:
+    torch = None
+
+if torch is None:
+    pytest.skip("torch not installed", allow_module_level=True)
+pytest.importorskip("rich")
 
 from extract_docs_code import extract_docs_code  # noqa: E402
 

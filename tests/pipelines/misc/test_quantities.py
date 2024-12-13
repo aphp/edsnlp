@@ -1,5 +1,6 @@
 from itertools import chain
 
+import pytest
 import spacy
 from pytest import fixture, raises
 from spacy.tokens.span import Span
@@ -374,4 +375,6 @@ def test_conversions(blank_nlp, matcher: QuantitiesMatcher):
         doc = blank_nlp(text)
         doc = matcher(doc)
         result = getattr(doc.spans["quantities"][0]._.value, unit)
-        assert abs(result - expected) < 1e-6
+        assert result == pytest.approx(
+            expected, 1e-6
+        ), f"{result} != {expected} for {text} in {unit}"

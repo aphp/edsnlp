@@ -14,6 +14,7 @@ dependencies = [
     "pysimstring>=1.2.1",
     "regex",
     "spacy>=3.2,<3.8",
+    "thinc<8.2.5",  # we don't need thinc but spacy depdends on it 8.2.5 cause binary issues
     "confit>=0.7.3",
     "tqdm",
     "umls-downloader>=0.1.1",

@@ -796,7 +796,6 @@ class Stream(metaclass=MetaStream):
         # same program twice, the shuffling should be the same in both cases.
         # This is not garanteed by just creating random.Random() which does not
         # account
-        seed = seed if seed is not None else random.getrandbits(32)
         if shuffle_reader:
             if shuffle_reader not in self.reader.emitted_sentinels:
                 raise ValueError(f"Cannot shuffle by {shuffle_reader}")
@@ -807,13 +806,14 @@ class Stream(metaclass=MetaStream):
                 config=stream.config,
             )
             stream.reader.shuffle = shuffle_reader
-            stream.reader.rng = random.Random(seed)
+            if seed is not None:
+                stream.reader.rng = random.Random(seed)
         if any(not op.elementwise for op in self.ops) or not shuffle_reader:
             stream = stream.map_batches(
                 pipe=shuffle,
                 batch_size=batch_size,
                 batch_by=batch_by,
-                kwargs={"rng": random.Random(seed)},
+                kwargs={"rng": random.Random(seed)} if seed is not None else {},
             )
         stream.validate_ops(ops=stream.ops, update=False)
         return stream

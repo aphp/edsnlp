@@ -14,6 +14,7 @@ from spacy.tokens import Doc, Span
 from edsnlp.core import PipelineProtocol
 from edsnlp.core.registries import CurriedFactory
 from edsnlp.utils.span_getters import (
+    RelationCandidateGetter,
     SpanGetter,  # noqa: F401
     SpanGetterArg,  # noqa: F401
     SpanSetter,
@@ -23,6 +24,7 @@ from edsnlp.utils.span_getters import (
     validate_span_getter,  # noqa: F401
     validate_span_setter,
 )
+from edsnlp.utils.typing import AsList
 
 
 def value_getter(span: Span):
@@ -215,12 +217,22 @@ class BaseRelationDetectorComponent(BaseComponent, abc.ABC):
         nlp: PipelineProtocol = None,
         name: str = None,
         *args,
-        head_getter: SpanGetterArg,
-        tail_getter: SpanGetterArg,
-        labels: List[str],
+        candidate_getter: AsList[RelationCandidateGetter],
         **kwargs,
     ):
         super().__init__(nlp, name, *args, **kwargs)
-        self.head_getter: SpanGetter = validate_span_getter(head_getter)  # type: ignore
-        self.tail_getter: SpanGetter = validate_span_getter(tail_getter)  # type: ignore
-        self.labels = labels
+        self.candidate_getter = [
+            {
+                "head": validate_span_getter(candidate["head"]),
+                "tail": validate_span_getter(candidate["tail"]),
+                "labels": candidate["labels"],
+            }
+            for candidate in candidate_getter
+        ]
+        self.labels = sorted(
+            {
+                label
+                for candidate in self.candidate_getter
+                for label in candidate["labels"]
+            }
+        )

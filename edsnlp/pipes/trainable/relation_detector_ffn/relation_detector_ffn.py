@@ -25,7 +25,7 @@ from edsnlp.pipes.trainable.embeddings.typing import (
     SpanEmbeddingComponent,
     WordEmbeddingComponent,
 )
-from edsnlp.utils.span_getters import SpanGetterArg, get_spans
+from edsnlp.utils.span_getters import RelationCandidateGetter, get_spans
 from edsnlp.utils.typing import AsList
 
 
@@ -57,13 +57,17 @@ def make_ranges(starts, ends):
     if 0 in ends.shape:
         return ends
     sizes = ends - starts
+    mask = sizes > 0
     offsets = sizes.cumsum(0)
     offsets = offsets.roll(1)
     res = torch.ones(offsets[0], dtype=torch.long)
     offsets[0] = 0
-    res[offsets] = starts
-    res[offsets[1:]] -= ends[:-1] - 1
-    return res.cumsum(0)
+    masked_offsets = offsets[mask]
+    starts = starts[mask]
+    ends = ends[mask]
+    res[masked_offsets] = starts
+    res[masked_offsets[1:]] -= ends[:-1] - 1
+    return res.cumsum(0), offsets
 
 
 logger = logging.getLogger(__name__)
@@ -85,6 +89,23 @@ span_embedding: torch.FloatTensor
 """
 
 
+class MLP(torch.nn.Module):
+    def __init__(
+        self, input_dim: int, hidden_dim: int, output_dim: int, dropout_p: float = 0.0
+    ):
+        super().__init__()
+        self.hidden = torch.nn.Linear(input_dim, hidden_dim)
+        self.output = torch.nn.Linear(hidden_dim, output_dim)
+        self.dropout = torch.nn.Dropout(dropout_p)
+
+    def forward(self, x):
+        x = self.hidden(x)
+        x = F.relu(x)
+        x = self.dropout(x)
+        x = self.output(x)
+        return x
+
+
 class RelationDetectorFFN(
     TorchComponent[BatchOutput, FrameBatchInput],
     BaseRelationDetectorComponent,
@@ -92,34 +113,32 @@ class RelationDetectorFFN(
     def __init__(
         self,
         nlp: Optional[PipelineProtocol] = None,
-        name: str = "rel_scope",
+        name: str = "relation_detector_ffn",
         *,
         span_embedding: SpanEmbeddingComponent,
         word_embedding: WordEmbeddingComponent,
-        head_getter: SpanGetterArg,
-        tail_getter: SpanGetterArg,
-        labels: AsList[str],
-        symmetric: bool = True,
+        candidate_getter: AsList[RelationCandidateGetter],
+        symmetric: bool = False,
+        hidden_size: int = 128,
+        dropout_p: float = 0.0,
     ):
         super().__init__(
             nlp=nlp,
             name=name,
-            head_getter=head_getter,
-            tail_getter=tail_getter,
-            labels=labels,
+            candidate_getter=candidate_getter,
         )
         self.span_embedding = span_embedding
         self.word_embedding = word_embedding
         self.symmetric = symmetric
-        # self.merge_mode = merge_mode
 
-        hidden_size = (
+        embed_size = (
             self.span_embedding.output_size * 2 + self.word_embedding.output_size
         )
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)
             # self.head_projection = torch.nn.Linear(hidden_size, hidden_size)
             # self.tail_projection = torch.nn.Linear(hidden_size, hidden_size)
+            self.mlp = MLP(embed_size, hidden_size, hidden_size, dropout_p)
             self.classifier = torch.nn.Linear(hidden_size, len(self.labels))
 
     @property
@@ -155,22 +174,23 @@ class RelationDetectorFFN(
         rel_labels = []
 
         all_spans = defaultdict(lambda: len(all_spans))
-        head_spans = list(get_spans(doc, self.head_getter))
-        tail_spans = list(get_spans(doc, self.tail_getter))
 
-        for head, tail in product(head_spans, tail_spans):
-            rel_head_idx.append(all_spans[head])
-            rel_tail_idx.append(all_spans[tail])
-            if supervised:
-                rel_labels.append(
-                    [
-                        (
-                            tail in head._.rel.get(lab, ())
-                            or (self.symmetric and head in tail._.rel.get(lab, ()))
-                        )
-                        for lab in self.labels
-                    ]
-                )
+        for candidate in self.candidate_getter:
+            head_spans = list(get_spans(doc, candidate["head"]))
+            tail_spans = list(get_spans(doc, candidate["tail"]))
+            for head, tail in product(head_spans, tail_spans):
+                rel_head_idx.append(all_spans[head])
+                rel_tail_idx.append(all_spans[tail])
+                if supervised:
+                    rel_labels.append(
+                        [
+                            (
+                                tail in head._.rel.get(lab, ())
+                                or (self.symmetric and head in tail._.rel.get(lab, ()))
+                            )
+                            for lab in self.labels
+                        ]
+                    )
 
         result = {
             "num_spans": len(all_spans),
@@ -231,17 +251,14 @@ class RelationDetectorFFN(
                 0, dim, dtype=word_embeds.dtype, device=word_embeds.device
             )
 
-        flat_begins = torch.minimum(
-            ends[head_idx],
-            ends[tail_idx],
-        )
-        flat_ends = torch.maximum(
-            begins[head_idx],
-            begins[tail_idx],
+        flat_begins = torch.minimum(ends[head_idx], ends[tail_idx])
+        flat_ends = torch.maximum(begins[head_idx], begins[tail_idx])
+        flat_begins, flat_ends = (
+            torch.minimum(flat_begins, flat_ends),
+            torch.maximum(flat_begins, flat_ends),
         )
         flat_embeds = word_embeds.view(-1, dim)
-        flat_indices = make_ranges(flat_begins, flat_ends)
-        flat_offsets = (flat_ends - flat_begins).cumsum(0).roll(1)
+        flat_indices, flat_offsets = make_ranges(flat_begins, flat_ends)
         flat_offsets[0] = 0
         inter_span_embeds = torch.nn.functional.embedding_bag(  # type: ignore
             input=flat_indices,
@@ -285,6 +302,7 @@ class RelationDetectorFFN(
             ],
             dim=-1,
         )
+        rel_embeds = self.mlp(rel_embeds)
         logits = self.classifier(rel_embeds)
 
         losses = pred = None
@@ -321,12 +339,8 @@ class RelationDetectorFFN(
         Returns
         -------
         """
-        all_heads = [
-            prep["$spans"][idx] for prep in inputs for idx in prep["rel_heads"]
-        ]
-        all_tails = [
-            prep["$spans"][idx] for prep in inputs for idx in prep["rel_tails"]
-        ]
+        all_heads = [p["$spans"][idx] for p in inputs for idx in p["rel_heads"]]
+        all_tails = [p["$spans"][idx] for p in inputs for idx in p["rel_tails"]]
         for pair_idx, label_idx in results["pred"].nonzero(as_tuple=False).tolist():
             head = all_heads[pair_idx]
             tail = all_tails[pair_idx]

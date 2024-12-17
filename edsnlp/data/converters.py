@@ -321,7 +321,6 @@ class StandoffDict2DocConverter:
             for head in entities[from_entity_id]:
                 for tail in entities[to_entity_id]:
                     head._.rel.setdefault(relation_label, set()).add(tail)
-                    print("NEW REL FROM", head, "TO", tail, "WITH", relation_label)
 
         return doc
 

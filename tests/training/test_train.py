@@ -167,10 +167,10 @@ def test_dep_parser_train(run_in_test_dir, tmp_path):
 
 def test_rel_train(run_in_test_dir, tmp_path):
     set_seed(42)
-    config = Config.from_disk("rel_config.cfg")
+    config = Config.from_disk("rel_config.yml")
     shutil.rmtree(tmp_path, ignore_errors=True)
-    kwargs = config["train"].resolve(registry=registry, root=config)
-    nlp = train(**kwargs, output_path=tmp_path, cpu=True)
+    kwargs = Config.resolve(config["train"], registry=registry, root=config)
+    nlp = train(**kwargs, output_dir=tmp_path, cpu=True)
     scorer = GenericScorer(**kwargs["scorer"])
     val_data = kwargs["val_data"]
     last_scores = scorer(nlp, val_data)

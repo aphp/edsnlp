@@ -4,15 +4,13 @@ from typing import Any, Optional
 
 from edsnlp import registry
 from edsnlp.metrics import Examples, make_examples, prf
-from edsnlp.utils.span_getters import SpanGetterArg, get_spans
+from edsnlp.utils.span_getters import RelationCandidateGetter, get_spans
 from edsnlp.utils.typing import AsList
 
 
 def relations_scorer(
     examples: Examples,
-    head_getter: SpanGetterArg,
-    tail_getter: SpanGetterArg,
-    labels: AsList[str],
+    candidate_getter: AsList[RelationCandidateGetter],
     micro_key: str = "micro",
     filter_expr: Optional[str] = None,
 ):
@@ -24,12 +22,12 @@ def relations_scorer(
     examples : Examples
         The examples to score, either a tuple of (golds, preds) or a list of
         spacy.training.Example objects
-    head_getter : SpanGetterArg
-        The span getter to use to extract the relation heads from the document
-    tail_getter : SpanGetterArg
-        The span getter to use to extract the relation tails from the document
-    labels : Sequence[str]
-        The labels of the relations to evaluate
+    candidate_getter : AsList[RelationCandidateGetter]
+        The candidate getters to use to extract the possible relations from the
+        documents. Each candidate getter should be a dictionary with the keys
+        "head", "tail", and "labels". The "head" and "tail" keys should be
+        SpanGetterArg objects, and the "labels" key should be a list of strings
+        for these head-tail pairs.
     micro_key : str
         The key to use to store the micro-averaged results for spans of all types
     filter_expr : Optional[str]
@@ -49,36 +47,40 @@ def relations_scorer(
     total_pred_count = 0
     total_gold_count = 0
 
-    for eg_idx, eg in enumerate(examples):
-        pred_heads = [
-            ((h.start, h.end, h.label_), h)
-            for h in get_spans(eg.predicted, head_getter)
-        ]
-        pred_tails = [
-            ((t.start, t.end, t.label_), t)
-            for t in get_spans(eg.predicted, tail_getter)
-        ]
-        for (h_key, head), (t_key, tail) in product(pred_heads, pred_tails):
-            total_pred_count += 1
-            for label in labels:
-                if tail in head._.rel.get(label, ()):
-                    annotations[label][0].add((eg_idx, h_key, t_key, label))
-                    annotations[micro_key][0].add((eg_idx, h_key, t_key, label))
+    for candidate in candidate_getter:
+        head_getter = candidate["head"]
+        tail_getter = candidate["tail"]
+        labels = candidate["labels"]
+        for eg_idx, eg in enumerate(examples):
+            pred_heads = [
+                ((h.start, h.end, h.label_), h)
+                for h in get_spans(eg.predicted, head_getter)
+            ]
+            pred_tails = [
+                ((t.start, t.end, t.label_), t)
+                for t in get_spans(eg.predicted, tail_getter)
+            ]
+            for (h_key, head), (t_key, tail) in product(pred_heads, pred_tails):
+                total_pred_count += 1
+                for label in labels:
+                    if tail in head._.rel.get(label, ()):
+                        annotations[label][0].add((eg_idx, h_key, t_key, label))
+                        annotations[micro_key][0].add((eg_idx, h_key, t_key, label))
 
-        gold_heads = [
-            ((h.start, h.end, h.label_), h)
-            for h in get_spans(eg.reference, head_getter)
-        ]
-        gold_tails = [
-            ((t.start, t.end, t.label_), t)
-            for t in get_spans(eg.reference, tail_getter)
-        ]
-        for (h_key, head), (t_key, tail) in product(gold_heads, gold_tails):
-            total_gold_count += 1
-            for label in labels:
-                if tail in head._.rel.get(label, ()):
-                    annotations[label][1].add((eg_idx, h_key, t_key, label))
-                    annotations[micro_key][1].add((eg_idx, h_key, t_key, label))
+            gold_heads = [
+                ((h.start, h.end, h.label_), h)
+                for h in get_spans(eg.reference, head_getter)
+            ]
+            gold_tails = [
+                ((t.start, t.end, t.label_), t)
+                for t in get_spans(eg.reference, tail_getter)
+            ]
+            for (h_key, head), (t_key, tail) in product(gold_heads, gold_tails):
+                total_gold_count += 1
+                for label in labels:
+                    if tail in head._.rel.get(label, ()):
+                        annotations[label][1].add((eg_idx, h_key, t_key, label))
+                        annotations[micro_key][1].add((eg_idx, h_key, t_key, label))
 
     if total_pred_count != total_gold_count:
         raise ValueError(
@@ -101,15 +103,11 @@ def relations_scorer(
 class RelationsMetric:
     def __init__(
         self,
-        head_getter: SpanGetterArg,
-        tail_getter: SpanGetterArg,
-        labels: AsList[str],
+        candidate_getter: AsList[RelationCandidateGetter],
         micro_key: str = "micro",
         filter_expr: Optional[str] = None,
     ):
-        self.head_getter = head_getter
-        self.tail_getter = tail_getter
-        self.labels = labels
+        self.candidate_getter = candidate_getter
         self.micro_key = micro_key
         self.filter_expr = filter_expr
 
@@ -118,9 +116,7 @@ class RelationsMetric:
     def __call__(self, *examples: Any):
         return relations_scorer(
             examples,
-            head_getter=self.head_getter,
-            tail_getter=self.tail_getter,
-            labels=self.labels,
+            candidate_getter=self.candidate_getter,
             micro_key=self.micro_key,
             filter_expr=self.filter_expr,
         )

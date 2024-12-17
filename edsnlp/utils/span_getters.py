@@ -14,6 +14,7 @@ from typing import (
 
 from pydantic import NonNegativeInt
 from spacy.tokens import Doc, Span
+from typing_extensions import TypedDict
 
 from edsnlp import registry
 from edsnlp.utils.filter import filter_spans
@@ -321,3 +322,13 @@ class make_span_context_getter:
             end = max(end, max_end_sent)
 
         return span.doc[start:end]
+
+
+RelationCandidateGetter = TypedDict(
+    "CandidateGetter",
+    {
+        "head": SpanGetterArg,
+        "tail": SpanGetterArg,
+        "labels": AsList[str],
+    },
+)

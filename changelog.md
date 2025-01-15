@@ -20,6 +20,7 @@
 ### Fixed
 - Correct the contributing documentation. Delete `$ pre-commit run --all-files`recommendation.
 - Fix the the `Obj Class` in the doc template `class.html`.
+- Fix the `get_pipe_meta` function.
 
 ## v0.15.0 (2024-12-13)
 

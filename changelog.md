@@ -65,7 +65,8 @@
 - `eds.split` now keeps doc and span attributes in the sub-documents.
 
 ### Fixed
-- Contributing documentation. Delete `$ pre-commit run --all-files`recommendation.
+- Correct the contributing documentation. Delete `$ pre-commit run --all-files`recommendation.
+- Fix the the `Obj Class` in the doc template `class.html`.
 
 ## v0.15.0 (2024-12-13)
 

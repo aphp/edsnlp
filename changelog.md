@@ -4,6 +4,7 @@
 
 ### Added
 - New `edsnlp.external_information_qualifier` qualifies spans in a document based on external information and a defined distance to these contextual/external elements as in Distant Supervision.
+- New `eds.contextual_qualifier` pipeline component to qualify spans based on contextual information.
 - `edsnlp/tune.py`: New hyperparameters tuning script.
 - Hyperparameter Tuning for EDS-NLP: Introduced a new script `edsnlp.tune` for hyperparameter tuning using Optuna. This feature allows users to efficiently optimize model parameters with options for single-phase or two-phase tuning strategies. Includes support for parameter importance analysis, visualization, pruning, and automatic handling of GPU time budgets.
 - `tests/tuning/test_tuning.py`: Unit tests for the tuning script.

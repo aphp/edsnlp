@@ -52,6 +52,16 @@ def blank_nlp(lang):
     return model
 
 
+@fixture
+def edsnlp_blank_nlp(lang):
+    if lang == "eds":
+        model = edsnlp.blank("eds")
+    else:
+        model = edsnlp.blank("fr")
+    model.add_pipe("eds.sentences")
+    return model
+
+
 def make_ml_pipeline():
     nlp = edsnlp.blank("eds")
     nlp.add_pipe("eds.sentences", name="sentences")

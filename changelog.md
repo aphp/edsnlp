@@ -17,6 +17,9 @@
 - Support packaging with poetry 2.0
 - Solve pickling issues with multiprocessing when pytorch is installed
 
+### Fixed
+- Contributing documentation. Delete `$ pre-commit run --all-files`recommendation.
+
 ## v0.15.0 (2024-12-13)
 
 ### Added

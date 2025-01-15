@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- New `edsnlp.external_information_qualifier` qualifies spans in a document based on external information and a defined distance to these contextual/external elements as in Distant Supervision.
 
 ### Added
 

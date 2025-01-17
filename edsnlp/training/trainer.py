@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Collection,
     Dict,
     Iterable,
@@ -372,6 +373,7 @@ def train(
     save_model: bool = True,
     logger: bool = True,
     config_meta: Optional[Dict] = None,
+    on_validation_callback: Optional[Callable[[Dict], None]] = None,
     **kwargs,
 ):
     """
@@ -453,6 +455,8 @@ def train(
         spending time dumping the model weights to the disk.
     logger: bool
         Whether to log the validation metrics in a rich table.
+    on_validation_callback: Optional[Callable[[Dict], None]]
+        A callback function invoked during validation steps to handle custom logic.
     kwargs: Dict
         Additional keyword arguments.
 
@@ -604,6 +608,9 @@ def train(
                         train_metrics_path.write_text(json.dumps(all_metrics, indent=2))
                         if logger:
                             logger.log_metrics(flatten_dict(all_metrics[-1]))
+
+                        if on_validation_callback:
+                            on_validation_callback(all_metrics[-1])
 
                     if (
                         save_model

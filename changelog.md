@@ -1,5 +1,18 @@
 # Changelog
 
+# Unreleased
+
+### Added
+- `edsnlp/tune.py`: New hyperparameters tuning script.
+- Hyperparameter Tuning for EDS-NLP: Introduced a new script `edsnlp.tune` for hyperparameter tuning using Optuna. This feature allows users to efficiently optimize model parameters with options for single-phase or two-phase tuning strategies. Includes support for parameter importance analysis, visualization, pruning, and automatic handling of GPU time budgets.
+- `tests/tuning/test_tuning.py`: Unit tests for the tuning script.
+- Added a new unit test suite to validate the tuning script.
+- `docs/tutorials/tuning.md`: New tutorial for hyperparameter tuning.
+- Provided a [detailed tutorial](./docs/tutorials/tuning.md) on hyperparameter tuning, covering usage scenarios and configuration options.
+
+### Fixed
+- Support packaging with poetry 2.0
+
 # v0.15.0 (2024-12-13)
 
 ### Added

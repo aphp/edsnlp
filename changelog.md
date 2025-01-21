@@ -20,6 +20,7 @@
   - Ensure the Parquet reader shuffles the data when `shuffle=True`
   - Ensure we don't overwrite the RNG of the data reader when calling `stream.shuffle()` with no seed
   - Raise an error if the batch size in `stream.shuffle(batch_size=...)` is not compatible with the stream
+- `eds.split` now keeps doc and span attributes in the sub-documents.
 
 # v0.15.0 (2024-12-13)
 

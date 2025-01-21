@@ -64,14 +64,23 @@ def subset_doc(doc: Doc, start: int, end: int) -> Doc:
     -------
     Doc
     """
-    # TODO: review user_data copy strategy
     new_doc = doc[start:end].as_doc()
-    new_doc.user_data.update(doc.user_data)
 
     shifter = make_shifter(start, end, new_doc)
 
-    for key, val in list(new_doc.user_data.items()):
-        new_doc.user_data[key] = shifter(val)
+    char_beg = doc[start].idx if start < len(doc) else 0
+    char_end = doc[end - 1].idx + len(doc[end - 1].text)
+    for k, val in list(doc.user_data.items()):
+        new_value = shifter(val)
+        if k[0] == "._." and new_value is not EMPTY:
+            new_doc.user_data[
+                (
+                    k[0],
+                    k[1],
+                    None if k[2] is None else max(0, k[2] - char_beg),
+                    None if k[3] is None else min(k[3] - char_beg, char_end - char_beg),
+                )
+            ] = new_value
 
     for name, group in doc.spans.items():
         new_doc.spans[name] = shifter(list(group))

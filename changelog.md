@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Support packaging with poetry 2.0
+
 # v0.15.0 (2024-12-13)
 
 ### Added

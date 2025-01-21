@@ -86,14 +86,17 @@ if TYPE_CHECKING:
 POETRY_SNIPPET = """\
 from poetry.core.masonry.builders.sdist import SdistBuilder
 from poetry.factory import Factory
-from poetry.core.masonry.utils.module import ModuleOrPackageNotFound
+try:
+    from poetry.core.masonry.utils.module import ModuleOrPackageNotFound
+except ImportError:
+    from poetry.core.masonry.utils.module import ModuleOrPackageNotFoundError as ModuleOrPackageNotFound
 import sys
 # Initialize the Poetry object for the current project
 poetry = Factory().create_poetry("__root_dir__")
 
 # Initialize the builder
 try:
-    builder = SdistBuilder(poetry, None, None)
+    builder = SdistBuilder(poetry)
     # Get the list of files to include
     files = builder.find_files_to_add()
 except ModuleOrPackageNotFound:
@@ -114,7 +117,7 @@ print([
 # Print the list of files
 for file in files:
     print(file.path)
-"""
+"""  # noqa E501
 
 INIT_PY = """
 # -----------------------------------------

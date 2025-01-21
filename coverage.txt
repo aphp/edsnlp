@@ -34,7 +34,7 @@ edsnlp/metrics/__init__.py                                                      
 edsnlp/metrics/dep_parsing.py                                                              23      0 100.00%
 edsnlp/metrics/ner.py                                                                     114      0 100.00%
 edsnlp/metrics/span_attributes.py                                                          71      2  97.18%   57-58
-edsnlp/package.py                                                                         207      3  98.55%   476-477, 482
+edsnlp/package.py                                                                         207      3  98.55%   479-480, 485
 edsnlp/patch_spacy.py                                                                      31      2  93.55%   68-69
 edsnlp/pipes/__init__.py                                                                    3      0 100.00%
 edsnlp/pipes/base.py                                                                       76      0 100.00%

@@ -1,5 +1,7 @@
 prefix_pattern = r"(?P<tumour_prefix>[cpPyraum]p?)"
-tumour_pattern = r"T\s?(?P<tumour>([0-4o]|is))?(?P<tumour_specification>[abcdx]|mi)?"
+tumour_pattern = (
+    r"T\s?(?P<tumour>([0-4o]|is|[Xx]))?(?P<tumour_specification>[abcdx]|mi)?"
+)
 tumour_pattern += r"(?:\((?P<tumour_suffix>[^()]{1,10})\))?"
 node_pattern = r"(\s{,2}\/?\s{,2}([cpPyraum]p?)?\s{,2}N\s?(?P<node>[0-3o]|x)"
 node_pattern += (
@@ -7,7 +9,7 @@ node_pattern += (
 )
 
 metastasis_pattern = (
-    r"(\s{,2}\/?\s{,2}([cpPyraum]p?)?\s{,2}M\s?(?P<metastasis>([01o]|x))x?)"  # noqa: E501
+    r"(\s{,2}\/?\s{,2}([cpPyraum]p?)?\s{,2}M\s?(?P<metastasis>([01o]|x))x?)"
 )
 resection_pattern = r"(\s{,2}\/?\s{,2}R\s?(?P<resection>[012]))"
 

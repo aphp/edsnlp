@@ -79,15 +79,21 @@ class Metastasis(TnmEnum):
 
 
 class TNM(pydantic.BaseModel):
-    prefix: Optional[Prefix] = None
-    tumour: Optional[Tumour] = None
-    tumour_specification: Optional[Specification] = None
+    tumour_prefix: Optional[str] = None
+    tumour: Optional[str] = None
+    tumour_specification: Optional[str] = None
     tumour_suffix: Optional[str] = None
-    node: Optional[Node] = None
-    node_specification: Optional[Specification] = None
+    node_prefix: Optional[str] = None
+    node: Optional[str] = None
+    node_specification: Optional[str] = None
     node_suffix: Optional[str] = None
-    metastasis: Optional[Metastasis] = None
-    resection_completeness: Optional[int] = None
+    metastasis_prefix: Optional[str] = None
+    metastasis: Optional[str] = None
+    metastasis_specification: Optional[str] = None
+    pleura: Optional[str] = None
+    resection: Optional[str] = None
+    resection_specification: Optional[str] = None
+    resection_loc: Optional[str] = None
     version: Optional[str] = None
     version_year: Optional[int] = None
 
@@ -112,32 +118,43 @@ class TNM(pydantic.BaseModel):
     def norm(self) -> str:
         norm = []
 
-        if self.prefix is not None:
-            norm.append(str(self.prefix))
+        if self.tumour_prefix:
+            norm.append(f"{self.tumour_prefix or ''}")
 
-        if (
-            (self.tumour is not None)
-            | (self.tumour_specification is not None)
-            | (self.tumour_suffix is not None)
-        ):
-            norm.append(f"T{str(self.tumour or '')}")
-            norm.append(f"{str(self.tumour_specification or '')}")
-            norm.append(f"{str(self.tumour_suffix or '')}")
+        if self.tumour:
+            norm.append(f"T{self.tumour}")
+            if self.tumour_specification:
+                norm.append(f"{self.tumour_specification or ''}")
+            if self.tumour_suffix:
+                norm.append(f"{self.tumour_suffix or ''}")
 
-        if (
-            (self.node is not None)
-            | (self.node_specification is not None)
-            | (self.node_suffix is not None)
-        ):
-            norm.append(f"N{str(self.node or '')}")
-            norm.append(f"{str(self.node_specification or '')}")
-            norm.append(f"{str(self.node_suffix or '')}")
+        if self.node_prefix:
+            norm.append(f"{self.node_prefix or ''}")
 
-        if self.metastasis is not None:
+        if self.node:
+            norm.append(f"N{self.node}")
+            if self.node_specification:
+                norm.append(f"{self.node_specification or ''}")
+            if self.node_suffix:
+                norm.append(f"{self.node_suffix or ''}")
+
+        if self.metastasis_prefix:
+            norm.append(f"{self.metastasis_prefix or ''}")
+
+        if self.metastasis:
             norm.append(f"M{self.metastasis}")
+            if self.metastasis_specification:
+                norm.append(f"{self.metastasis_specification or ''}")
 
-        if self.resection_completeness is not None:
-            norm.append(f"R{self.resection_completeness}")
+        if self.pleura:
+            norm.append(f"PL{self.pleura}")
+
+        if self.resection:
+            norm.append(f"R{self.resection}")
+            if self.resection_specification:
+                norm.append(f"{self.resection_specification or ''}")
+            if self.resection_loc:
+                norm.append(f"{self.resection_loc or ''}")
 
         if self.version is not None and self.version_year is not None:
             norm.append(f" ({self.version.upper()} {self.version_year})")
@@ -182,14 +199,21 @@ class TNM(pydantic.BaseModel):
         set_keys = set(d.keys())
         for k in set_keys.intersection(
             {
-                "prefix",
+                "tumour_prefix",
                 "tumour",
-                "node",
-                "metastasis",
                 "tumour_specification",
-                "node_specification",
                 "tumour_suffix",
+                "node_prefix",
+                "node",
+                "node_specification",
                 "node_suffix",
+                "metastasis_prefix",
+                "metastasis",
+                "metastasis_specification",
+                "pleura",
+                "resection",
+                "resection_specification",
+                "resection_loc",
             }
         ):
             v = d[k]

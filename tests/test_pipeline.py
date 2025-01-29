@@ -346,7 +346,7 @@ def test_torch_save(ml_nlp):
     buffer = BytesIO()
     torch.save(ml_nlp, buffer)
     buffer.seek(0)
-    nlp = torch.load(buffer)
+    nlp = torch.load(buffer, weights_only=False)
     assert nlp.get_pipe("ner").labels == ["LOC", "PER"]
     assert len(list(nlp("Une phrase. Deux phrases.").sents)) == 2
 

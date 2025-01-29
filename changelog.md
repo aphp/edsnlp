@@ -5,6 +5,7 @@
 ### Fixed
 
 - Support packaging with poetry 2.0
+- Solve pickling issues with multiprocessing when pytorch is installed
 
 # v0.15.0 (2024-12-13)
 

@@ -33,6 +33,7 @@ from tqdm import tqdm
 
 from edsnlp.core.stream import Stage, Stream, StreamSentinel
 from edsnlp.data.base import BatchWriter
+from edsnlp.reducers import pickler_dont_save_module_dict
 from edsnlp.utils.collections import (
     batch_compress_dict,
     decompress_dict,
@@ -966,23 +967,24 @@ class MultiprocessingStreamExecutor:
         )
 
         stream_to_dump = self.stream.worker_copy()
-        if self.cpu_temp_file:
-            # If we have GPU workers, these will be responsible for the forward pass
-            # and CPU workers will only perform preprocessing and postprocessing
-            # so they don't need deep learning parameters
-            # TODO: should we make this a stream set_processing option ?
-            keep_tensors = self.has_torch_pipes and len(self.gpu_worker_names) == 0
-            with self.cpu_temp_file as fp:
-                dump(
-                    (stream_to_dump, self.stages),
-                    fp,
-                    skip_tensors=not keep_tensors,
-                )
-                fp.close()
-        if self.gpu_temp_file:
-            with self.gpu_temp_file as fp:
-                dump((stream_to_dump, self.stages), fp)
-                fp.close()
+        with pickler_dont_save_module_dict():
+            if self.cpu_temp_file:
+                # If we have GPU workers, these will be responsible for the forward pass
+                # and CPU workers will only perform preprocessing and postprocessing
+                # so they don't need deep learning parameters
+                # TODO: should we make this a stream set_processing option ?
+                keep_tensors = self.has_torch_pipes and len(self.gpu_worker_names) == 0
+                with self.cpu_temp_file as fp:
+                    dump(
+                        (stream_to_dump, self.stages),
+                        fp,
+                        skip_tensors=not keep_tensors,
+                    )
+                    fp.close()
+            if self.gpu_temp_file:
+                with self.gpu_temp_file as fp:
+                    dump((stream_to_dump, self.stages), fp)
+                    fp.close()
 
         del stream_to_dump
         for worker in (*self.cpu_workers, *self.gpu_workers):

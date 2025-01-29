@@ -146,7 +146,7 @@ def dump(
         if AlignDevicesHook is not None:
             old = dill.Pickler.dispatch.get(AlignDevicesHook)
             dill.Pickler.dispatch[AlignDevicesHook] = save_align_devices_hook
-        dill.settings["recurse"] = True
+        dill.settings["recurse"] = False
         dill.settings["byref"] = True
         return torch.save(*args, pickle_module=dill, **kwargs)
     finally:

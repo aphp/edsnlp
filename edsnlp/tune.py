@@ -1,0 +1,548 @@
+import collections
+import importlib.util
+import logging
+import math
+import os
+import random
+import sys
+from typing import Dict, List, Optional, Tuple, Union
+
+import optuna
+import optuna.visualization as vis
+from confit import Cli, Config
+from confit.utils.collections import split_path
+from confit.utils.random import set_seed
+from optuna.importance import FanovaImportanceEvaluator, get_param_importances
+from optuna.pruners import MedianPruner
+from pydantic import BaseModel, confloat, conint
+
+from edsnlp.training.trainer import GenericScorer, registry, train
+
+app = Cli(pretty_exceptions_show_locals=False)
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_GPU_HOUR = 1.0
+
+
+class HyperparameterConfig(BaseModel):
+    """
+    A configuration model for hyperparameters used in optimization or tuning processes.
+    """
+
+    type: str
+    alias: Optional[str] = None
+    low: Optional[Union[float, int]] = None
+    high: Optional[Union[float, int]] = None
+    step: Optional[Union[float, int]] = None
+    log: Optional[bool] = None
+    choices: Optional[List[Union[str, float, int, bool]]] = None
+
+    class Config:
+        extra = "forbid"
+
+    def to_dict(self) -> dict:
+        """
+        Convert the hyperparameter configuration to a dictionary.
+        Excludes unset and default values to provide a minimal representation.
+
+        Returns:
+            dict: A dictionary representation of the hyperparameter configuration.
+        """
+        return self.dict(exclude_unset=True, exclude_defaults=True)
+
+
+def setup_logging():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler(sys.stdout)],
+    )
+
+
+def is_plotly_install() -> bool:
+    """
+    Check if Plotly is installed. If not warn the user.
+    Plotly is needed by optuna.visualization to produce tuning visual results.
+
+    Returns:
+        bool: True if Plotly is installed, False otherwise.
+    """
+    if importlib.util.find_spec("plotly") is None:
+        logger.warning(
+            "Warning, Plotly is not installed."
+            "Please install it if you want tuning visual features."
+        )
+        return False
+    return True
+
+
+def load_config(config_path):
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(f"Config file not found at {config_path}.")
+    return Config.from_disk(config_path)
+
+
+def compute_time_per_trial(
+    study: optuna.study.Study, ema: bool = False, alpha: float = 0.1
+) -> float:
+    """
+    Compute the time for the first trial or the EMA (Exponential Moving Average)
+    across all trials in the study.
+
+    Parameters:
+    -----------
+    study : optuna.study.Study
+        An Optuna study object containing past trials.
+
+    ema : bool
+        If True, computes the EMA of trial times; otherwise, computes the
+        time of the first trial.
+
+    alpha : float, optional
+        Smoothing factor for EMA. Only used if ema is True.
+
+    Returns:
+    --------
+        float: Time for the first trial or the EMA across all trials, in seconds.
+    """
+    if ema:
+        for i, trial in enumerate(study.trials):
+            time_delta = (
+                trial.datetime_complete - trial.datetime_start
+            ).total_seconds()
+            if i == 0:
+                ema_time = time_delta
+            else:
+                ema_time = alpha * time_delta + (1 - alpha) * ema_time
+        return ema_time
+    else:
+        trial = study.trials[0]
+        time_delta = trial.datetime_complete - trial.datetime_start
+        return time_delta.total_seconds()
+
+
+def compute_n_trials(gpu_hours: float, time_per_trial: float) -> int:
+    """
+    Estimate the maximum number of trials that can be executed within a given
+    GPU time budget.
+
+    Parameters:
+    -----------
+    gpu_hours : float
+        The total amount of GPU time available for tuning, in hours.
+
+    time_per_trial : float
+        Time per trial, in seconds.
+
+    Returns:
+    --------
+        int: The number of trials that can be run within the given GPU time budget.
+    """
+    total_time_available = gpu_hours * 3600
+    n_trials = int(total_time_available / time_per_trial)
+    if n_trials <= 0:
+        raise ValueError(
+            "Not enough GPU time to tune hyperparameters."
+            "Either raise your GPU time or specify more trials."
+        )
+    return n_trials
+
+
+def compute_importances(study, n=10):
+    cumulative_importances = collections.defaultdict(float)
+
+    for i in range(n):
+        importance_scores = get_param_importances(
+            study,
+            evaluator=FanovaImportanceEvaluator(seed=i),
+            target=lambda t: t.value,
+        )
+        for feature, importance in importance_scores.items():
+            cumulative_importances[feature] += importance
+
+    averaged_importances = {
+        feature: total_importance / n
+        for feature, total_importance in cumulative_importances.items()
+    }
+
+    sorted_importances = dict(
+        sorted(averaged_importances.items(), key=lambda item: item[1], reverse=True)
+    )
+    return sorted_importances
+
+
+def update_config(
+    config: Dict,
+    tuned_parameters: Dict[str, Dict],
+    values: Optional[Dict[str, any]] = None,
+    trial: Optional[optuna.trial.Trial] = None,
+) -> Tuple[Dict, Dict]:
+    """
+    Update a configuration dictionary with tuned hyperparameter values.
+
+    This function modifies a given configuration dictionary by updating the specified
+    hyperparameters with values from either a dictionary or an Optuna trial object.
+    The updated configuration and training keyword arguments are returned.
+
+    Parameters:
+    -----------
+    config : dict
+        The configuration dictionary to be updated.
+
+    tuned_parameters : dict
+        A dictionary specifying the hyperparameters to tune.
+
+    values : dict, optional
+        A dictionary of parameter names and their corresponding values to update
+        the configuration. Used when `trial` is not provided.
+
+    trial : optuna.trial.Trial, optional
+        An Optuna trial object to sample parameter values.
+        Used when `values` is not provided.
+
+    Returns:
+    --------
+    tuple
+        - kwargs : dict
+          The resolved training keyword arguments from the updated configuration.
+        - updated_config : dict
+          The modified configuration dictionary.
+    """
+    if not values and not trial:
+        raise ValueError("Either 'values' or 'trial' parameters are expected.")
+
+    for param, param_info in tuned_parameters.items():
+        p_path = split_path(param)
+        p_alias = param_info.get("alias", None)
+        if p_alias:
+            p_name = p_alias
+        else:
+            p_name = param
+
+        if trial:
+            p_type = param_info["type"]
+            if p_type in ["float", "int"]:
+                p_low = param_info["low"]
+                p_high = param_info["high"]
+                p_step = param_info.get("step", None)
+                p_log = param_info.get("log", False)
+                if p_type == "float":
+                    value = trial.suggest_float(
+                        name=p_name, low=p_low, high=p_high, step=p_step, log=p_log
+                    )
+                else:
+                    value = trial.suggest_int(
+                        name=p_name, low=p_low, high=p_high, step=p_step, log=p_log
+                    )
+            elif p_type == "categorical":
+                p_choices = param_info["choices"]
+                value = trial.suggest_categorical(name=p_name, choices=p_choices)
+            else:
+                raise ValueError(
+                    f"Unknown parameter type '{p_type}' for hyperparameter '{p_name}'."
+                )
+        else:
+            value = values[p_name]
+
+        current_config = config
+        for key in p_path[:-1]:
+            if key not in current_config:
+                raise KeyError(f"Path '{key}' not found in config.")
+            current_config = current_config[key]
+        current_config[p_path[-1]] = value
+
+    kwargs = Config.resolve(config["train"], registry=registry, root=config)
+    return kwargs, config
+
+
+def objective_with_param(config, tuned_parameters, trial):
+    kwargs, _ = update_config(config, tuned_parameters, trial=trial)
+    seed = random.randint(0, 2**32 - 1)
+    set_seed(seed)
+
+    def on_validation_callback(all_metrics):
+        f1 = all_metrics["ner"]["micro"]["f"]
+        step = all_metrics["step"]
+        trial.report(f1, step)
+        if trial.should_prune():
+            raise optuna.TrialPruned()
+
+    try:
+        nlp = train(**kwargs, on_validation_callback=on_validation_callback)
+    except optuna.TrialPruned:
+        logger.info("Trial pruned")
+        raise
+    scorer = GenericScorer(**kwargs["scorer"])
+    val_data = kwargs["val_data"]
+    return scorer(nlp, val_data)["ner"]["micro"]["f"]
+
+
+def optimize(config_path, tuned_parameters, n_trials, study=None):
+    def objective(trial):
+        return objective_with_param(config_path, tuned_parameters, trial)
+
+    if not study:
+        study = optuna.create_study(
+            direction="maximize",
+            pruner=MedianPruner(n_startup_trials=5, n_warmup_steps=2),
+        )
+    study.optimize(objective, n_trials=n_trials)
+    return study
+
+
+def process_results(study, output_dir, viz):
+    importances = compute_importances(study)
+    best_params = study.best_trial.params
+
+    logger.info(f"Best trial: {study.best_trial.number}")
+    logger.info(f"Value: {study.best_trial.value}")
+    logger.info(f"Params: {best_params}")
+    logger.info(f"Importances: {importances}")
+
+    os.makedirs(output_dir, exist_ok=True)
+    results_file = os.path.join(output_dir, "results_summary.txt")
+    with open(results_file, "w") as f:
+        f.write("Study Summary\n")
+        f.write("==================\n")
+        f.write(f"Best trial: {study.best_trial.number}\n")
+        f.write(f"\nValue: {study.best_trial.value}\n")
+        f.write("\nParams:\n")
+        for key, value in best_params.items():
+            f.write(f"  {key}: {value}\n")
+        f.write("\nImportances:\n")
+        for key, value in importances.items():
+            f.write(f"  {key}: {value}\n")
+
+    if viz:
+        vis.plot_optimization_history(study).write_html(
+            os.path.join(output_dir, "optimization_history.html")
+        )
+        vis.plot_parallel_coordinate(study).write_html(
+            os.path.join(output_dir, "parallel_coordinate.html")
+        )
+        vis.plot_contour(study).write_html(os.path.join(output_dir, "contour.html"))
+        vis.plot_edf(study).write_html(os.path.join(output_dir, "edf.html"))
+        vis.plot_timeline(study).write_html(os.path.join(output_dir, "timeline.html"))
+
+    return best_params, importances
+
+
+def tune_two_phase(
+    config: Dict,
+    hyperparameters: Dict[str, Dict],
+    output_dir: str,
+    n_trials: int,
+    viz: bool,
+    study: Optional[optuna.study.Study] = None,
+    is_fixed_n_trials: bool = False,
+    gpu_hours: float = 1.0,
+) -> None:
+    """
+    Perform two-phase hyperparameter tuning using Optuna.
+
+    This method executes a two-phase tuning strategy. In the first phase, all specified
+    hyperparameters are tuned. Based on their computed importance, only the most
+    important hyperparameters (top 50% by importance) are selected for fine-tuning
+    in the second phase, while the less important hyperparameters are frozen to their
+    best values from phase one.
+
+    Parameters:
+    -----------
+    config : dict
+        The configuration dictionary for the model and training process.
+
+    hyperparameters : dict
+        A dictionary specifying the hyperparameters to tune.
+
+    output_dir : str
+        Directory where tuning results, visualizations, and best parameters will
+        be saved.
+
+    n_trials : int
+        The total number of trials to execute across both tuning phases.
+        This number will be split between the two phases, with approximately half
+        of the trials assigned to each phase.
+
+    viz : bool
+        Whether or not to include visual features (False if Plotly is unavailable).
+
+    study : optuna.study.Study, optional
+        Optuna study containing the first trial that was used to compute `n_trials`
+        in case the user specifies a GPU hour budget.
+
+    is_fixed_trial : bool, optional
+        Whether or not the user specified fixed `n_trials` in config.
+        If not, recompute n_trials between the two phases. In case there was multiples
+        trials pruned in phase 1, we raise n_trials to compensate. Default is False.
+
+    gpu_hours : float, optional
+        Total GPU time available for tuning, in hours. Default is 1 hour.
+    """
+    n_trials_2 = n_trials // 2
+    n_trials_1 = n_trials - n_trials_2
+
+    logger.info(f"Phase 1: Tuning all hyperparameters ({n_trials_1} trials).")
+    study = optimize(config, hyperparameters, n_trials_1, study=study)
+    best_params, importances = process_results(study, f"{output_dir}/phase_1", viz)
+
+    hyperparameters_to_keep = list(importances.keys())[
+        : math.ceil(len(importances) / 2)
+    ]
+
+    hyperparameters_phase_2 = {
+        key: value
+        for key, value in hyperparameters.items()
+        if any(param in key for param in hyperparameters_to_keep)
+    }
+    hyperparameters_frozen = {
+        key: value
+        for key, value in hyperparameters.items()
+        if not any(param in key for param in hyperparameters_to_keep)
+    }
+
+    _, updated_config = update_config(
+        config, hyperparameters_frozen, values=best_params
+    )
+
+    if not is_fixed_n_trials:
+        n_trials_2 = compute_remaining_n_trials_possible(study, gpu_hours)
+
+    logger.info(
+        f"Phase 2: Tuning {hyperparameters_to_keep} hyperparameters "
+        f"({n_trials_2} trials). Other hyperparameters frozen to best values."
+    )
+    study = optimize(updated_config, hyperparameters_phase_2, n_trials_2, study=study)
+    process_results(study, f"{output_dir}/phase_2", viz)
+
+
+def compute_remaining_n_trials_possible(
+    study: optuna.study.Study,
+    gpu_hours: float,
+) -> int:
+    """
+    Compute the remaining number of trials possible within the GPU time budget
+    that was not used by the study (in cases where multiple trials were pruned).
+
+    Parameters:
+    -----------
+    study : optuna.study.Study
+        An Optuna study object containing past trials.
+
+    gpu_hours : float
+        The total amount of GPU time available for tuning, in hours.
+
+    Returns:
+    --------
+    int: The remaining number of trials possible.
+    """
+    first_trial = study.trials[0]
+    last_trial = study.trials[-1]
+    elapsed_gpu_time = (
+        last_trial.datetime_complete - first_trial.datetime_start
+    ).total_seconds()
+    remaining_gpu_time = (gpu_hours * 3600 - elapsed_gpu_time) / 3600
+    try:
+        n_trials = compute_n_trials(
+            remaining_gpu_time, compute_time_per_trial(study, ema=True)
+        )
+        return n_trials
+    except ValueError:
+        return 0
+
+
+@app.command(name="tuning", registry=registry)
+def tune(
+    *,
+    config_meta: Dict,
+    hyperparameters: Dict[str, HyperparameterConfig],
+    output_dir: str,
+    gpu_hours: confloat(gt=0) = DEFAULT_GPU_HOUR,
+    n_trials: conint(gt=0) = None,
+    two_phase_tuning: bool = False,
+    seed: int = 42,
+):
+    """
+    Perform hyperparameter tuning for a model using Optuna.
+
+    Parameters:
+    -----------
+    config_meta : dict
+        Metadata for the configuration file, containing at least the key "config_path"
+        which specifies the path to the configuration file.
+
+    hyperparameters : dict
+        A dictionary specifying the hyperparameters to tune. The keys are the parameter
+        names, and the values are dictionaries containing the following fields:
+        - "path": List[str] representing the path to the parameter in `config`.
+        - "type": The type of parameter ("float", "int", "categorical").
+        - "low": (optional) Lower bound for numerical parameters.
+        - "high": (optional) Upper bound for numerical parameters.
+        - "step": (optional) Step size for numerical parameters.
+        - "log": (optional) Whether to sample numerical parameters on a log scale.
+        - "choices": (optional) List of values for categorical parameters.
+
+    output_dir : str
+        Directory where tuning results, visualizations, and best parameters will
+        be saved.
+
+    gpu_hours : float, optional
+        Total GPU time available for tuning, in hours. Default is 1 hour.
+
+    n_trials : int, optional
+        Number of trials for tuning. If not provided, it will be computed based on the
+        `gpu_hours` and the estimated time per trial.
+
+    two_phase_tuning : bool, optional
+        If True, performs two-phase tuning. In the first phase, all hyperparameters
+        are tuned, and in the second phase, the top half (based on importance) are
+        fine-tuned while freezing others.
+        Default is False.
+
+    seed : int, optional
+        Random seed for reproducibility. Default is 42.
+    """
+    setup_logging()
+    viz = is_plotly_install()
+    config = load_config(config_meta["config_path"][0])
+    hyperparameters = {key: value.to_dict() for key, value in hyperparameters.items()}
+    set_seed(seed)
+
+    study = None
+    is_fixed_n_trials = n_trials is not None
+
+    if not is_fixed_n_trials:
+        logger.info(f"Computing number of trials for {gpu_hours} hours of GPU.")
+        study = optimize(config, hyperparameters, n_trials=1)
+        n_trials = compute_n_trials(gpu_hours, compute_time_per_trial(study)) - 1
+
+    logger.info(f"Number of trials: {n_trials}")
+
+    if two_phase_tuning:
+        logger.info("Starting two-phase tuning.")
+        tune_two_phase(
+            config,
+            hyperparameters,
+            output_dir,
+            n_trials,
+            viz,
+            study=study,
+            is_fixed_n_trials=is_fixed_n_trials,
+            gpu_hours=gpu_hours,
+        )
+    else:
+        logger.info("Starting single-phase tuning.")
+        study = optimize(config, hyperparameters, n_trials, study=study)
+        if not is_fixed_n_trials:
+            n_trials = compute_remaining_n_trials_possible(study, gpu_hours)
+            if n_trials > 0:
+                logger.info(
+                    f"As some trials were pruned, perform tuning for {n_trials} "
+                    "more trials to fully use GPU time budget."
+                )
+                study = optimize(config, hyperparameters, n_trials, study=study)
+        process_results(study, output_dir, viz)
+
+
+if __name__ == "__main__":
+    app()

@@ -99,5 +99,13 @@ We provide step-by-step guides to get you started. We cover the following use-ca
     ---
     Learn how to quicky train a deep-learning model with `edsnlp.train`.
 
+=== card {: href=/tutorials/tuning }
+
+    :fontawesome-solid-gears:
+    **Hyperparameter Tuning**
+
+    ---
+    Learn how to tune hyperparameters of a model with `edsnlp.tune`.
+
 
 <!-- --8<-- [end:tutorials] -->

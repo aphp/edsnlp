@@ -87,6 +87,8 @@ docs = [
 dev = [
     "edsnlp[dev-no-ml]",
     "edsnlp[ml]",
+    "optuna>=4.0.0",
+    "plotly>=5.18.0", # required by optuna viz
 ]
 setup = [
     "typer"

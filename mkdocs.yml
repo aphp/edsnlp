@@ -54,6 +54,7 @@ nav:
       - advanced-tutorials/fastapi.md
       - tutorials/make-a-training-script.md
       - tutorials/training.md
+      - tutorials/tuning.md
   - Pipes:
       - Overview: pipes/index.md
       - Core Pipelines:

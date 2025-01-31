@@ -13,7 +13,10 @@ from edsnlp.pipes.qualifiers.contextual.contextual import (
     ClassPatternsContext,
     ContextualQualifier,
 )
-from edsnlp.pipes.qualifiers.external_information import ExternalInformationQualifier
+from edsnlp.pipes.qualifiers.external_information.external_information import (
+    ExternalInformation,
+    ExternalInformationQualifier,
+)
 from edsnlp.utils.collections import get_deep_attr
 ```
 
@@ -118,7 +121,7 @@ nlp.add_pipe(
         nlp=nlp,
         span_getter="dates",
         external_information={
-            "lf4": ExternalInformationQualifier(
+            "lf4": ExternalInformation(
                 doc_attr="_.context_dates",
                 span_attribute="_.date.to_datetime()",
                 threshold=datetime.timedelta(days=0),

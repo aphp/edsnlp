@@ -1,6 +1,6 @@
 # Changelog
 
-# Unreleased
+## Unreleased
 
 ### Added
 - `edsnlp/tune.py`: New hyperparameters tuning script.
@@ -11,7 +11,9 @@
 - Provided a [detailed tutorial](./docs/tutorials/tuning.md) on hyperparameter tuning, covering usage scenarios and configuration options.
 
 ### Fixed
+
 - Support packaging with poetry 2.0
+- Solve pickling issues with multiprocessing when pytorch is installed
 
 # v0.15.0 (2024-12-13)
 

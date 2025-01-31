@@ -492,3 +492,86 @@ def test_task_dispatch_schedule():
     assert fn(13, range(16), range(10)) == [3, 3, 3, 3, 3, 3, 9, 9, 9, 9]
     assert fn(14, range(16), range(10)) == [4, 4, 4, 4, 4, 4, 6, 7, 6, 7]
     assert fn(15, range(16), range(10)) == [5, 5, 5, 5, 5, 5, 8, 9, 8, 9]
+
+
+def test_multiprocessing_on_simple_iterable_in_main():
+    exec(
+        """
+import edsnlp.data
+
+counter = 0
+
+def complex_func(n):
+    global counter
+    counter += 1
+    return n * n
+
+stream = edsnlp.data.from_iterable(range(20))
+stream = stream.map(complex_func)
+stream = stream.set_processing(num_cpu_workers=2)
+res = list(stream)
+""",
+        {"__MODULE__": "__main__"},
+    )
+
+
+def test_multiprocessing_on_full_example_in_main():
+    exec(
+        """
+from spacy.tokens import Doc
+
+import edsnlp
+import edsnlp.pipes as eds
+from edsnlp.data.converters import get_current_tokenizer
+
+if not Doc.has_extension("note_text"):
+    Doc.set_extension("note_text", default=None)
+if not Doc.has_extension("date"):
+    Doc.set_extension("date", default=None)
+if not Doc.has_extension("person_id"):
+    Doc.set_extension("person_id", default=None)
+
+
+def convert_row_to_doc(row):
+    if row["note_text"] is None:
+        row["note_text"] = ""
+    text = row["note_text"]
+    doc = get_current_tokenizer()(text)
+    doc._.note_id = row["note_id"]
+    return doc
+
+
+def convert_doc_to_row(doc_):
+    note_id = doc_._.note_id
+    person_id = doc_._.person_id
+    note_text = doc_.text
+    result = []
+    for date in doc_.spans["dates"]:
+        result.append(
+            {
+                "note_id": note_id,
+                "person_id": person_id,
+                # "note_text" : note_text,
+                # "note_doc" : doc_,
+                "date": date._.date.datetime,
+            }
+        )
+    return result
+
+
+nlp = edsnlp.blank("eds")
+# nlp = eds_biomedic_aphp.load()
+# nlp.add_pipe(eds.sections())
+nlp.add_pipe(eds.dates())
+nlp.add_pipe(eds.sentences())
+data = edsnlp.data.from_iterable(
+    [{"note_text": "Test", "note_id": "test"}],
+    converter=convert_row_to_doc,
+)
+data = data.map_pipeline(nlp)
+data_pd = data.set_processing(show_progress=True, num_cpu_workers=5).to_pandas(
+    converter=convert_doc_to_row
+)
+""",
+        {"__MODULE__": "__main__"},
+    )

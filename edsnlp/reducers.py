@@ -1,6 +1,8 @@
+import contextlib
 import copyreg
 from weakref import WeakSet
 
+from dill._dill import _is_builtin_module
 from spacy.tokens import Doc, Span, Token
 from spacy.vocab import Vocab
 
@@ -107,6 +109,29 @@ def _rebuild_token(doc, i):
     RETURNS (Token): The deserialized `Token`.
     """
     return doc[i]
+
+
+def custom_is_builtin_module(module):
+    if not hasattr(module, "__file__"):
+        return True
+    if module.__file__ is None:
+        return False
+    # Hack to avoid copying the full module dict
+    return True
+
+
+@contextlib.contextmanager
+def pickler_dont_save_module_dict():
+    old_is_builtin_module_code = _is_builtin_module.__code__
+    old_is_builtin_module_defaults = _is_builtin_module.__defaults__
+
+    _is_builtin_module.__code__ = custom_is_builtin_module.__code__
+    _is_builtin_module.__defaults__ = custom_is_builtin_module.__defaults__
+
+    yield
+
+    _is_builtin_module.__code__ = old_is_builtin_module_code
+    _is_builtin_module.__defaults__ = old_is_builtin_module_defaults
 
 
 copyreg.pickle(Doc, _reduce_doc)

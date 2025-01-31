@@ -1,5 +1,6 @@
+import functools
 from functools import lru_cache
-from typing import TYPE_CHECKING, Generic, List, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Generic, List, TypeVar, Union
 
 import pydantic
 from confit.errors import patch_errors
@@ -28,11 +29,12 @@ class Validated:
 class MetaAsList(type):
     def __init__(cls, name, bases, dct):
         super().__init__(name, bases, dct)
-        cls.type_ = List
+        cls.type_ = Any
 
+    @functools.lru_cache(maxsize=None)
     def __getitem__(self, item):
         new_type = MetaAsList(self.__name__, (self,), {})
-        new_type.type_ = List[item]
+        new_type.type_ = item
         return new_type
 
     def validate(cls, value, config=None):
@@ -41,7 +43,7 @@ class MetaAsList(type):
         if not isinstance(value, list):
             value = [value]
         try:
-            return cast(cls.type_, value)
+            return cast(List[cls.type_], value)
         except pydantic.ValidationError as e:
             e = patch_errors(e, drop_names=("__root__",))
             e.model = cls

@@ -26,6 +26,8 @@ except ImportError:
 
 pytest.importorskip("rich")
 
+EDS_SENTENCES_PIPE = "eds.sentences"
+
 
 @fixture(scope="session", params=["eds", "fr"])
 def lang(request):
@@ -48,7 +50,7 @@ def blank_nlp(lang):
         model = spacy.blank("eds")
     else:
         model = edsnlp.blank("fr")
-    model.add_pipe("eds.sentences")
+    model.add_pipe(EDS_SENTENCES_PIPE)
     return model
 
 
@@ -58,13 +60,13 @@ def edsnlp_blank_nlp(lang):
         model = edsnlp.blank("eds")
     else:
         model = edsnlp.blank("fr")
-    model.add_pipe("eds.sentences")
+    model.add_pipe(EDS_SENTENCES_PIPE)
     return model
 
 
 def make_ml_pipeline():
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe("eds.sentences", name="sentences")
+    nlp.add_pipe(EDS_SENTENCES_PIPE, name="sentences")
     nlp.add_pipe(
         "eds.transformer",
         name="transformer",

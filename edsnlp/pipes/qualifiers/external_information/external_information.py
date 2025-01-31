@@ -225,7 +225,7 @@ class ExternalInformationQualifier(BaseSpanAttributeClassifierComponent):
             A dictionary mapping span indices to context value indices.
         """
         if reduce_mode == "all":
-            idx_x, idx_y = np.where(mask)
+            idx_x, idx_y = np.nonzero(mask)
 
             result = self.mask_to_dict(idx_x, idx_y)
             return result

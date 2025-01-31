@@ -134,12 +134,12 @@ class ContextualQualifier(BaseSpanAttributeClassifierComponent):
         self.span_getter = span_getter
         self.named_matchers = list()  # Will contain all the named matchers
 
-        for name, named_dict in patterns.items():
+        for pattern_name, named_dict in patterns.items():
             for value, class_patterns in named_dict.items():
                 if isinstance(class_patterns, dict):
                     class_patterns = ClassPatternsContext(**class_patterns)
 
-                name_value_str = str(name) + "_" + str(value)
+                name_value_str = str(pattern_name) + "_" + str(value)
                 name_value_matcher = GenericMatcher(
                     nlp=nlp,
                     terms=class_patterns.terms,
@@ -152,7 +152,7 @@ class ContextualQualifier(BaseSpanAttributeClassifierComponent):
 
                 self.named_matchers.append(
                     ClassMatcherContext(
-                        name=name,
+                        name=pattern_name,
                         value=value,
                         matcher=name_value_matcher,
                         context_words=class_patterns.context_words,

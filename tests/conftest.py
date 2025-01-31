@@ -41,6 +41,9 @@ def pytest_collection_modifyitems(items):
     items[:] = first_tests + last_tests
 
 
+EDS_SENTENCES_PIPE = "eds.sentences"
+
+
 @fixture(scope="session", params=["eds", "fr"])
 def lang(request):
     return request.param
@@ -82,7 +85,7 @@ def edsnlp_blank_nlp(lang):
         model = edsnlp.blank("eds")
     else:
         model = edsnlp.blank("fr")
-    model.add_pipe("eds.sentences")
+    model.add_pipe(EDS_SENTENCES_PIPE)
     return model
 
 

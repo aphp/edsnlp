@@ -262,7 +262,6 @@ def objective_with_param(config, tuned_parameters, trial, metric):
     set_seed(seed)
 
     def on_validation_callback(all_metrics):
-        print(metric)
         step = all_metrics["step"]
         score = all_metrics
         for key in metric:
@@ -407,8 +406,6 @@ def tune_two_phase(
         study, f"{output_dir}/phase_1", viz, config, hyperparameters
     )
 
-    print("Importance", importances.keys())
-    print("Hyperparameters", hyperparameters.items())
     hyperparameters_to_keep = list(importances.keys())[
         : math.ceil(len(importances) / 2)
     ]
@@ -437,8 +434,6 @@ def tune_two_phase(
         f"Phase 2: Tuning {hyperparameters_to_keep} hyperparameters "
         f"({n_trials_2} trials). Other hyperparameters frozen to best values."
     )
-    print(hyperparameters_phase_2)
-    print(hyperparameters_frozen)
     study = optimize(
         updated_config, hyperparameters_phase_2, n_trials_2, metric, study=study
     )

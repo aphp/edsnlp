@@ -297,7 +297,7 @@ def optimize(config_path, tuned_parameters, n_trials, metric, study=None):
     return study
 
 
-def process_results(study, output_dir, viz):
+def process_results(study, output_dir, viz, config, tuned_parameters):
     importances = compute_importances(study)
     best_params = study.best_trial.params
 
@@ -319,6 +319,15 @@ def process_results(study, output_dir, viz):
         f.write("\nImportances:\n")
         for key, value in importances.items():
             f.write(f"  {key}: {value}\n")
+
+    config_path = os.path.join(output_dir, "config.yml")
+    _, updated_config = update_config(
+        config.copy(),
+        tuned_parameters,
+        values=best_params,
+    )
+    updated_config.pop("tuning", None)
+    Config(updated_config).to_disk(config_path)
 
     if viz:
         vis.plot_optimization_history(study).write_html(
@@ -394,8 +403,12 @@ def tune_two_phase(
 
     logger.info(f"Phase 1: Tuning all hyperparameters ({n_trials_1} trials).")
     study = optimize(config, hyperparameters, n_trials_1, metric, study=study)
-    best_params, importances = process_results(study, f"{output_dir}/phase_1", viz)
+    best_params, importances = process_results(
+        study, f"{output_dir}/phase_1", viz, config, hyperparameters
+    )
 
+    print("Importance", importances.keys())
+    print("Hyperparameters", hyperparameters.items())
     hyperparameters_to_keep = list(importances.keys())[
         : math.ceil(len(importances) / 2)
     ]
@@ -403,12 +416,14 @@ def tune_two_phase(
     hyperparameters_phase_2 = {
         key: value
         for key, value in hyperparameters.items()
-        if any(param in key for param in hyperparameters_to_keep)
+        if key in hyperparameters_to_keep
+        or (value.get("alias") and value["alias"] in hyperparameters_to_keep)
     }
     hyperparameters_frozen = {
         key: value
         for key, value in hyperparameters.items()
-        if not any(param in key for param in hyperparameters_to_keep)
+        if key not in hyperparameters_to_keep
+        and (not value.get("alias") or value["alias"] not in hyperparameters_to_keep)
     }
 
     _, updated_config = update_config(
@@ -422,10 +437,12 @@ def tune_two_phase(
         f"Phase 2: Tuning {hyperparameters_to_keep} hyperparameters "
         f"({n_trials_2} trials). Other hyperparameters frozen to best values."
     )
+    print(hyperparameters_phase_2)
+    print(hyperparameters_frozen)
     study = optimize(
         updated_config, hyperparameters_phase_2, n_trials_2, metric, study=study
     )
-    process_results(study, f"{output_dir}/phase_2", viz)
+    process_results(study, f"{output_dir}/phase_2", viz, config, hyperparameters)
 
 
 def compute_remaining_n_trials_possible(
@@ -555,7 +572,7 @@ def tune(
                     "more trials to fully use GPU time budget."
                 )
                 study = optimize(config, hyperparameters, n_trials, metric, study=study)
-        process_results(study, output_dir, viz)
+        process_results(study, output_dir, viz, config, hyperparameters)
 
 
 if __name__ == "__main__":

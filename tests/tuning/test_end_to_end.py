@@ -29,6 +29,9 @@ def assert_results(output_dir):
         assert "Params" in content
         assert "Importances" in content
 
+    config_file = os.path.join(output_dir, "config.yml")
+    assert os.path.exists(config_file), f"Expected file {config_file} not found"
+
     optimization_history_file = os.path.join(output_dir, "optimization_history.html")
     assert os.path.exists(
         optimization_history_file

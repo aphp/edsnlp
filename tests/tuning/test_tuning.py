@@ -127,8 +127,27 @@ def test_compute_importances(study):
 @pytest.mark.parametrize("viz", [True, False])
 def test_process_results(study, tmpdir, viz):
     output_dir = tmpdir.mkdir("output")
+    config = {
+        "train": {
+            "param1": None,
+        },
+        ".lr": {
+            "param2": 0.01,
+        },
+    }
+    hyperparameters = {
+        "train.param1": {
+            "type": "int",
+            "alias": "param1",
+            "low": 2,
+            "high": 8,
+            "step": 2,
+        },
+    }
 
-    best_params, importances = process_results(study, output_dir, viz)
+    best_params, importances = process_results(
+        study, output_dir, viz, config, hyperparameters
+    )
 
     assert isinstance(best_params, dict)
     assert isinstance(importances, dict)
@@ -143,6 +162,9 @@ def test_process_results(study, tmpdir, viz):
         assert "Value" in content
         assert "Params" in content
         assert "Importances" in content
+
+    config_file = os.path.join(output_dir, "config.yml")
+    assert os.path.exists(config_file), f"Expected file {config_file} not found"
 
     if viz:
         optimization_history_file = os.path.join(

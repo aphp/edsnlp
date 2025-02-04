@@ -178,6 +178,7 @@ def test_compute_remaining_n_trials_possible(study):
 @pytest.mark.parametrize("has_study", [True, False])
 def test_optimize(mock_objective_with_param, mock_optimize_study, has_study, study):
     mock_objective_with_param.return_value = 0.9
+    metric = ("ner", "micro", "f")
 
     if has_study:
 
@@ -185,12 +186,16 @@ def test_optimize(mock_objective_with_param, mock_optimize_study, has_study, stu
             pass
 
         study.optimize = pass_fn
-        study = optimize("config_path", tuned_parameters={}, n_trials=1, study=study)
+        study = optimize(
+            "config_path", tuned_parameters={}, n_trials=1, metric=metric, study=study
+        )
         assert isinstance(study, Mock)
         assert len(study.trials) == 3
 
     else:
-        study = optimize("config_path", tuned_parameters={}, n_trials=1, study=None)
+        study = optimize(
+            "config_path", tuned_parameters={}, n_trials=1, metric=metric, study=None
+        )
         assert isinstance(study, optuna.study.Study)
         assert len(study.trials) == 0
 

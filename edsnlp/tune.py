@@ -473,7 +473,7 @@ def tune(
     n_trials: conint(gt=0) = None,
     two_phase_tuning: bool = False,
     seed: int = 42,
-    metric="ner.micro.f1",
+    metric="ner.micro.f",
 ):
     """
     Perform hyperparameter tuning for a model using Optuna.
@@ -526,7 +526,7 @@ def tune(
 
     if not is_fixed_n_trials:
         logger.info(f"Computing number of trials for {gpu_hours} hours of GPU.")
-        study = optimize(config, hyperparameters, n_trials=1)
+        study = optimize(config, hyperparameters, n_trials=1, metric=metric)
         n_trials = compute_n_trials(gpu_hours, compute_time_per_trial(study)) - 1
 
     logger.info(f"Number of trials: {n_trials}")

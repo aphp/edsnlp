@@ -331,6 +331,7 @@ python -m edsnlp.tune --config configs/config.yml --seed 42
 At the end of the tuning process, `edsnlp.tune` generates various results and saves them in the `output_dir` specified in the `config.yml` file:
 
 - **Tuning Summary**: `result_summary.txt`, a summary file containing details about the best training trial, the best overall metric, the optimal hyperparameter values, and the average importance of each hyperparameter across all trials.
+- **Optimal Configuration**: `config.yml`, containing the best hyperparameter values. ⚠ Warning: Since the Confit library does not preserve style and comments, these will be lost in the resulting configuration file. If you need to retain them, manually update your original `config.yml` using the information from `result_summary.txt`.
 - **Graphs and Visualizations**: Various graphics illustrating the tuning process, such as:
   - **Optimization History plot**: A line graph showing the performance of each trial over time, illustrating the optimization process and how the model's performance improves with each iteration.
   - **Empirical Distribution Function (EDF) plot**: A graph showing the cumulative distribution of the results, helping you understand the distribution of performance scores and providing insights into the variability and robustness of the tuning process.

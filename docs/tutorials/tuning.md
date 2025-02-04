@@ -74,11 +74,13 @@ tuning:
   output_dir: 'results'
   # Number of gpu hours allowed for tuning.
   gpu_hours: 1.0
-  # Number of fixed trial to tune hyperparameters (override gpu_hours).
+  # Number of fixed trials to tune hyperparameters (override gpu_hours).
   n_trials: 4
   # Enable two-phase tuning. In the first phase, the script will tune all hyperparameters.
   # In the second phase, it will focus only on the top 50% most important hyperparameters.
   two_phase_tuning: True
+  # Metric used to evaluatate trials.
+  metric: "ner.micro.f"
   # Hyperparameters to tune.
   hyperparameters:
 ```
@@ -89,6 +91,7 @@ Let's detail the new parameters:
 - `gpu_hours`: Estimated total GPU time available for tuning, in hours. Given this time, the script will automatically compute for how many training trials we can tune hyperparameters. By default, `gpu_hours` is set to 1.
 - `n_trials`: Number of training trials for tuning. If provided, it will override `gpu_hours` and tune the model for exactly `n_trial` trials.
 - `two_phase_tuning`: If True, performs a two-phase tuning. In the first phase, all hyperparameters are tuned, and in the second phase, the top half (based on importance) are fine-tuned while freezing others. By default, `two_phase_tuning` is False.
+- `metric`: Metric used to evaluate trials. It corresponds to a path in the scorer results (depending on the scorer used in the config). By default `metric` is set to "ner.micro.f".
 - `hyperparameters`: The list of hyperparameters to tune and details about their tunings. We will discuss how it work in the following section.
 
 ### 2.2. Add hyperparameters to tune
@@ -247,6 +250,7 @@ tuning:
   output_dir: 'results'
   gpu_hours: 40.0
   two_phase_tuning: True
+  metric: "ner.micro.f"
   hyperparameters:
     "nlp.components.ner.embedding.embedding.hidden_dropout_prob":
       alias: "hidden_dropout"

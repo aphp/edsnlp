@@ -79,7 +79,7 @@ tuning:
   # Enable two-phase tuning. In the first phase, the script will tune all hyperparameters.
   # In the second phase, it will focus only on the top 50% most important hyperparameters.
   two_phase_tuning: True
-  # Metric used to evaluatate trials.
+  # Metric used to evaluate trials.
   metric: "ner.micro.f"
   # Hyperparameters to tune.
   hyperparameters:
@@ -333,11 +333,11 @@ At the end of the tuning process, `edsnlp.tune` generates various results and sa
 - **Tuning Summary**: `result_summary.txt`, a summary file containing details about the best training trial, the best overall metric, the optimal hyperparameter values, and the average importance of each hyperparameter across all trials.
 - **Optimal Configuration**: `config.yml`, containing the best hyperparameter values. Warning: Since the Confit library does not preserve style and comments, these will be lost in the resulting configuration file. If you need to retain them, manually update your original `config.yml` using the information from `result_summary.txt`.
 - **Graphs and Visualizations**: Various graphics illustrating the tuning process, such as:
-  - **Optimization History plot**: A line graph showing the performance of each trial over time, illustrating the optimization process and how the model's performance improves with each iteration.
-  - **Empirical Distribution Function (EDF) plot**: A graph showing the cumulative distribution of the results, helping you understand the distribution of performance scores and providing insights into the variability and robustness of the tuning process.
-  - **Contour plo**t: A 2D plot that shows the relationship between two hyperparameters and their combined effect on the objective metric, providing a clear view of the optimal parameter regions.
-  - **Parallel Coordinate plot**: A multi-dimensional plot where each hyperparameter is represented as a vertical axis, and each trial is displayed as a line connecting the hyperparameter values, helping you analyze correlations and patterns across hyperparameters and their impact on performance.
-  - **Timeline plot**: A 2D plot that displays all trials and their statuses ("completed," "pruned," or "failed") over time, providing a clear overview of the progress and outcomes of the tuning process.
+  - [**Optimization History plot**](https://optuna.readthedocs.io/en/stable/reference/visualization/generated/optuna.visualization.plot_optimization_history.html#sphx-glr-reference-visualization-generated-optuna-visualization-plot-optimization-history-py): A line graph showing the performance of each trial over time, illustrating the optimization process and how the model's performance improves with each iteration.
+  - [**Empirical Distribution Function (EDF) plot**](https://optuna.readthedocs.io/en/stable/reference/visualization/generated/optuna.visualization.plot_edf.html#sphx-glr-reference-visualization-generated-optuna-visualization-plot-edf-py): A graph showing the cumulative distribution of the results, helping you understand the distribution of performance scores and providing insights into the variability and robustness of the tuning process.
+  - [**Contour plot**](https://optuna.readthedocs.io/en/stable/reference/visualization/generated/optuna.visualization.plot_contour.html#sphx-glr-reference-visualization-generated-optuna-visualization-plot-contour-py): A 2D plot that shows the relationship between two hyperparameters and their combined effect on the objective metric, providing a clear view of the optimal parameter regions.
+  - [**Parallel Coordinate plot**](https://optuna.readthedocs.io/en/stable/reference/visualization/generated/optuna.visualization.plot_parallel_coordinate.html#sphx-glr-reference-visualization-generated-optuna-visualization-plot-parallel-coordinate-py): A multi-dimensional plot where each hyperparameter is represented as a vertical axis, and each trial is displayed as a line connecting the hyperparameter values, helping you analyze correlations and patterns across hyperparameters and their impact on performance.
+  - [**Timeline plot**](https://optuna.readthedocs.io/en/stable/reference/visualization/generated/optuna.visualization.plot_timeline.html#sphx-glr-reference-visualization-generated-optuna-visualization-plot-timeline-py): A 2D plot that displays all trials and their statuses ("completed," "pruned," or "failed") over time, providing a clear overview of the progress and outcomes of the tuning process.
 
 These outputs offer a comprehensive view of the tuning results, enabling you to better understand the optimization process and easily deploy the best configuration.
 

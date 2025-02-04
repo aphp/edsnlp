@@ -94,11 +94,9 @@ def compute_time_per_trial(
     -----------
     study : optuna.study.Study
         An Optuna study object containing past trials.
-
     ema : bool
         If True, computes the EMA of trial times; otherwise, computes the
         time of the first trial.
-
     alpha : float, optional
         Smoothing factor for EMA. Only used if ema is True.
 
@@ -131,7 +129,6 @@ def compute_n_trials(gpu_hours: float, time_per_trial: float) -> int:
     -----------
     gpu_hours : float
         The total amount of GPU time available for tuning, in hours.
-
     time_per_trial : float
         Time per trial, in seconds.
 
@@ -189,14 +186,11 @@ def update_config(
     -----------
     config : dict
         The configuration dictionary to be updated.
-
     tuned_parameters : dict
         A dictionary specifying the hyperparameters to tune.
-
     values : dict, optional
         A dictionary of parameter names and their corresponding values to update
         the configuration. Used when `trial` is not provided.
-
     trial : optuna.trial.Trial, optional
         An Optuna trial object to sample parameter values.
         Used when `values` is not provided.
@@ -366,34 +360,26 @@ def tune_two_phase(
     -----------
     config : dict
         The configuration dictionary for the model and training process.
-
     hyperparameters : dict
         A dictionary specifying the hyperparameters to tune.
-
     output_dir : str
         Directory where tuning results, visualizations, and best parameters will
         be saved.
-
     n_trials : int
         The total number of trials to execute across both tuning phases.
         This number will be split between the two phases, with approximately half
         of the trials assigned to each phase.
-
     viz : bool
         Whether or not to include visual features (False if Plotly is unavailable).
-
     metric : Tuple[str]
         Metric used to evaluate trials.
-
     study : optuna.study.Study, optional
         Optuna study containing the first trial that was used to compute `n_trials`
         in case the user specifies a GPU hour budget.
-
     is_fixed_trial : bool, optional
         Whether or not the user specified fixed `n_trials` in config.
         If not, recompute n_trials between the two phases. In case there was multiples
         trials pruned in phase 1, we raise n_trials to compensate. Default is False.
-
     gpu_hours : float, optional
         Total GPU time available for tuning, in hours. Default is 1 hour.
     """
@@ -452,7 +438,6 @@ def compute_remaining_n_trials_possible(
     -----------
     study : optuna.study.Study
         An Optuna study object containing past trials.
-
     gpu_hours : float
         The total amount of GPU time available for tuning, in hours.
 
@@ -495,7 +480,6 @@ def tune(
     config_meta : dict
         Metadata for the configuration file, containing at least the key "config_path"
         which specifies the path to the configuration file.
-
     hyperparameters : dict
         A dictionary specifying the hyperparameters to tune. The keys are the parameter
         names, and the values are dictionaries containing the following fields:
@@ -506,24 +490,19 @@ def tune(
         - "step": (optional) Step size for numerical parameters.
         - "log": (optional) Whether to sample numerical parameters on a log scale.
         - "choices": (optional) List of values for categorical parameters.
-
     output_dir : str
         Directory where tuning results, visualizations, and best parameters will
         be saved.
-
     gpu_hours : float, optional
         Total GPU time available for tuning, in hours. Default is 1 hour.
-
     n_trials : int, optional
         Number of trials for tuning. If not provided, it will be computed based on the
         `gpu_hours` and the estimated time per trial.
-
     two_phase_tuning : bool, optional
         If True, performs two-phase tuning. In the first phase, all hyperparameters
         are tuned, and in the second phase, the top half (based on importance) are
         fine-tuned while freezing others.
         Default is False.
-
     seed : int, optional
         Random seed for reproducibility. Default is 42.
     """

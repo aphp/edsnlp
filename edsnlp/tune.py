@@ -422,7 +422,9 @@ def tune_two_phase(
         f"Phase 2: Tuning {hyperparameters_to_keep} hyperparameters "
         f"({n_trials_2} trials). Other hyperparameters frozen to best values."
     )
-    study = optimize(updated_config, hyperparameters_phase_2, n_trials_2, metric, study=study)
+    study = optimize(
+        updated_config, hyperparameters_phase_2, n_trials_2, metric, study=study
+    )
     process_results(study, f"{output_dir}/phase_2", viz)
 
 
@@ -471,7 +473,7 @@ def tune(
     n_trials: conint(gt=0) = None,
     two_phase_tuning: bool = False,
     seed: int = 42,
-    metric = "ner.micro.f1",
+    metric="ner.micro.f1",
 ):
     """
     Perform hyperparameter tuning for a model using Optuna.

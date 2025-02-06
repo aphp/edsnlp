@@ -127,8 +127,27 @@ def test_compute_importances(study):
 @pytest.mark.parametrize("viz", [True, False])
 def test_process_results(study, tmpdir, viz):
     output_dir = tmpdir.mkdir("output")
+    config = {
+        "train": {
+            "param1": None,
+        },
+        ".lr": {
+            "param2": 0.01,
+        },
+    }
+    hyperparameters = {
+        "train.param1": {
+            "type": "int",
+            "alias": "param1",
+            "low": 2,
+            "high": 8,
+            "step": 2,
+        },
+    }
 
-    best_params, importances = process_results(study, output_dir, viz)
+    best_params, importances = process_results(
+        study, output_dir, viz, config, hyperparameters
+    )
 
     assert isinstance(best_params, dict)
     assert isinstance(importances, dict)
@@ -143,6 +162,9 @@ def test_process_results(study, tmpdir, viz):
         assert "Value" in content
         assert "Params" in content
         assert "Importances" in content
+
+    config_file = os.path.join(output_dir, "config.yml")
+    assert os.path.exists(config_file), f"Expected file {config_file} not found"
 
     if viz:
         optimization_history_file = os.path.join(
@@ -178,6 +200,7 @@ def test_compute_remaining_n_trials_possible(study):
 @pytest.mark.parametrize("has_study", [True, False])
 def test_optimize(mock_objective_with_param, mock_optimize_study, has_study, study):
     mock_objective_with_param.return_value = 0.9
+    metric = ("ner", "micro", "f")
 
     if has_study:
 
@@ -185,12 +208,16 @@ def test_optimize(mock_objective_with_param, mock_optimize_study, has_study, stu
             pass
 
         study.optimize = pass_fn
-        study = optimize("config_path", tuned_parameters={}, n_trials=1, study=study)
+        study = optimize(
+            "config_path", tuned_parameters={}, n_trials=1, metric=metric, study=study
+        )
         assert isinstance(study, Mock)
         assert len(study.trials) == 3
 
     else:
-        study = optimize("config_path", tuned_parameters={}, n_trials=1, study=None)
+        study = optimize(
+            "config_path", tuned_parameters={}, n_trials=1, metric=metric, study=None
+        )
         assert isinstance(study, optuna.study.Study)
         assert len(study.trials) == 0
 

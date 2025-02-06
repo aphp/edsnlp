@@ -94,11 +94,9 @@ def compute_time_per_trial(
     -----------
     study : optuna.study.Study
         An Optuna study object containing past trials.
-
     ema : bool
         If True, computes the EMA of trial times; otherwise, computes the
         time of the first trial.
-
     alpha : float, optional
         Smoothing factor for EMA. Only used if ema is True.
 
@@ -131,7 +129,6 @@ def compute_n_trials(gpu_hours: float, time_per_trial: float) -> int:
     -----------
     gpu_hours : float
         The total amount of GPU time available for tuning, in hours.
-
     time_per_trial : float
         Time per trial, in seconds.
 
@@ -189,14 +186,11 @@ def update_config(
     -----------
     config : dict
         The configuration dictionary to be updated.
-
     tuned_parameters : dict
         A dictionary specifying the hyperparameters to tune.
-
     values : dict, optional
         A dictionary of parameter names and their corresponding values to update
         the configuration. Used when `trial` is not provided.
-
     trial : optuna.trial.Trial, optional
         An Optuna trial object to sample parameter values.
         Used when `values` is not provided.
@@ -256,15 +250,17 @@ def update_config(
     return kwargs, config
 
 
-def objective_with_param(config, tuned_parameters, trial):
+def objective_with_param(config, tuned_parameters, trial, metric):
     kwargs, _ = update_config(config, tuned_parameters, trial=trial)
     seed = random.randint(0, 2**32 - 1)
     set_seed(seed)
 
     def on_validation_callback(all_metrics):
-        f1 = all_metrics["ner"]["micro"]["f"]
         step = all_metrics["step"]
-        trial.report(f1, step)
+        score = all_metrics
+        for key in metric:
+            score = score[key]
+        trial.report(score, step)
         if trial.should_prune():
             raise optuna.TrialPruned()
 
@@ -275,12 +271,15 @@ def objective_with_param(config, tuned_parameters, trial):
         raise
     scorer = GenericScorer(**kwargs["scorer"])
     val_data = kwargs["val_data"]
-    return scorer(nlp, val_data)["ner"]["micro"]["f"]
+    score = scorer(nlp, val_data)
+    for key in metric:
+        score = score[key]
+    return score
 
 
-def optimize(config_path, tuned_parameters, n_trials, study=None):
+def optimize(config_path, tuned_parameters, n_trials, metric, study=None):
     def objective(trial):
-        return objective_with_param(config_path, tuned_parameters, trial)
+        return objective_with_param(config_path, tuned_parameters, trial, metric)
 
     if not study:
         study = optuna.create_study(
@@ -291,7 +290,7 @@ def optimize(config_path, tuned_parameters, n_trials, study=None):
     return study
 
 
-def process_results(study, output_dir, viz):
+def process_results(study, output_dir, viz, config, tuned_parameters):
     importances = compute_importances(study)
     best_params = study.best_trial.params
 
@@ -314,6 +313,15 @@ def process_results(study, output_dir, viz):
         for key, value in importances.items():
             f.write(f"  {key}: {value}\n")
 
+    config_path = os.path.join(output_dir, "config.yml")
+    _, updated_config = update_config(
+        config.copy(),
+        tuned_parameters,
+        values=best_params,
+    )
+    updated_config.pop("tuning", None)
+    Config(updated_config).to_disk(config_path)
+
     if viz:
         vis.plot_optimization_history(study).write_html(
             os.path.join(output_dir, "optimization_history.html")
@@ -334,6 +342,7 @@ def tune_two_phase(
     output_dir: str,
     n_trials: int,
     viz: bool,
+    metric: Tuple[str],
     study: Optional[optuna.study.Study] = None,
     is_fixed_n_trials: bool = False,
     gpu_hours: float = 1.0,
@@ -351,31 +360,26 @@ def tune_two_phase(
     -----------
     config : dict
         The configuration dictionary for the model and training process.
-
     hyperparameters : dict
         A dictionary specifying the hyperparameters to tune.
-
     output_dir : str
         Directory where tuning results, visualizations, and best parameters will
         be saved.
-
     n_trials : int
         The total number of trials to execute across both tuning phases.
         This number will be split between the two phases, with approximately half
         of the trials assigned to each phase.
-
     viz : bool
         Whether or not to include visual features (False if Plotly is unavailable).
-
+    metric : Tuple[str]
+        Metric used to evaluate trials.
     study : optuna.study.Study, optional
         Optuna study containing the first trial that was used to compute `n_trials`
         in case the user specifies a GPU hour budget.
-
     is_fixed_trial : bool, optional
         Whether or not the user specified fixed `n_trials` in config.
         If not, recompute n_trials between the two phases. In case there was multiples
         trials pruned in phase 1, we raise n_trials to compensate. Default is False.
-
     gpu_hours : float, optional
         Total GPU time available for tuning, in hours. Default is 1 hour.
     """
@@ -383,8 +387,10 @@ def tune_two_phase(
     n_trials_1 = n_trials - n_trials_2
 
     logger.info(f"Phase 1: Tuning all hyperparameters ({n_trials_1} trials).")
-    study = optimize(config, hyperparameters, n_trials_1, study=study)
-    best_params, importances = process_results(study, f"{output_dir}/phase_1", viz)
+    study = optimize(config, hyperparameters, n_trials_1, metric, study=study)
+    best_params, importances = process_results(
+        study, f"{output_dir}/phase_1", viz, config, hyperparameters
+    )
 
     hyperparameters_to_keep = list(importances.keys())[
         : math.ceil(len(importances) / 2)
@@ -393,12 +399,14 @@ def tune_two_phase(
     hyperparameters_phase_2 = {
         key: value
         for key, value in hyperparameters.items()
-        if any(param in key for param in hyperparameters_to_keep)
+        if key in hyperparameters_to_keep
+        or (value.get("alias") and value["alias"] in hyperparameters_to_keep)
     }
     hyperparameters_frozen = {
         key: value
         for key, value in hyperparameters.items()
-        if not any(param in key for param in hyperparameters_to_keep)
+        if key not in hyperparameters_to_keep
+        and (not value.get("alias") or value["alias"] not in hyperparameters_to_keep)
     }
 
     _, updated_config = update_config(
@@ -412,8 +420,10 @@ def tune_two_phase(
         f"Phase 2: Tuning {hyperparameters_to_keep} hyperparameters "
         f"({n_trials_2} trials). Other hyperparameters frozen to best values."
     )
-    study = optimize(updated_config, hyperparameters_phase_2, n_trials_2, study=study)
-    process_results(study, f"{output_dir}/phase_2", viz)
+    study = optimize(
+        updated_config, hyperparameters_phase_2, n_trials_2, metric, study=study
+    )
+    process_results(study, f"{output_dir}/phase_2", viz, config, hyperparameters)
 
 
 def compute_remaining_n_trials_possible(
@@ -428,7 +438,6 @@ def compute_remaining_n_trials_possible(
     -----------
     study : optuna.study.Study
         An Optuna study object containing past trials.
-
     gpu_hours : float
         The total amount of GPU time available for tuning, in hours.
 
@@ -461,6 +470,7 @@ def tune(
     n_trials: conint(gt=0) = None,
     two_phase_tuning: bool = False,
     seed: int = 42,
+    metric="ner.micro.f",
 ):
     """
     Perform hyperparameter tuning for a model using Optuna.
@@ -470,7 +480,6 @@ def tune(
     config_meta : dict
         Metadata for the configuration file, containing at least the key "config_path"
         which specifies the path to the configuration file.
-
     hyperparameters : dict
         A dictionary specifying the hyperparameters to tune. The keys are the parameter
         names, and the values are dictionaries containing the following fields:
@@ -481,24 +490,19 @@ def tune(
         - "step": (optional) Step size for numerical parameters.
         - "log": (optional) Whether to sample numerical parameters on a log scale.
         - "choices": (optional) List of values for categorical parameters.
-
     output_dir : str
         Directory where tuning results, visualizations, and best parameters will
         be saved.
-
     gpu_hours : float, optional
         Total GPU time available for tuning, in hours. Default is 1 hour.
-
     n_trials : int, optional
         Number of trials for tuning. If not provided, it will be computed based on the
         `gpu_hours` and the estimated time per trial.
-
     two_phase_tuning : bool, optional
         If True, performs two-phase tuning. In the first phase, all hyperparameters
         are tuned, and in the second phase, the top half (based on importance) are
         fine-tuned while freezing others.
         Default is False.
-
     seed : int, optional
         Random seed for reproducibility. Default is 42.
     """
@@ -507,13 +511,13 @@ def tune(
     config = load_config(config_meta["config_path"][0])
     hyperparameters = {key: value.to_dict() for key, value in hyperparameters.items()}
     set_seed(seed)
-
+    metric = split_path(metric)
     study = None
     is_fixed_n_trials = n_trials is not None
 
     if not is_fixed_n_trials:
         logger.info(f"Computing number of trials for {gpu_hours} hours of GPU.")
-        study = optimize(config, hyperparameters, n_trials=1)
+        study = optimize(config, hyperparameters, n_trials=1, metric=metric)
         n_trials = compute_n_trials(gpu_hours, compute_time_per_trial(study)) - 1
 
     logger.info(f"Number of trials: {n_trials}")
@@ -526,13 +530,14 @@ def tune(
             output_dir,
             n_trials,
             viz,
+            metric=metric,
             study=study,
             is_fixed_n_trials=is_fixed_n_trials,
             gpu_hours=gpu_hours,
         )
     else:
         logger.info("Starting single-phase tuning.")
-        study = optimize(config, hyperparameters, n_trials, study=study)
+        study = optimize(config, hyperparameters, n_trials, metric, study=study)
         if not is_fixed_n_trials:
             n_trials = compute_remaining_n_trials_possible(study, gpu_hours)
             if n_trials > 0:
@@ -540,8 +545,8 @@ def tune(
                     f"As some trials were pruned, perform tuning for {n_trials} "
                     "more trials to fully use GPU time budget."
                 )
-                study = optimize(config, hyperparameters, n_trials, study=study)
-        process_results(study, output_dir, viz)
+                study = optimize(config, hyperparameters, n_trials, metric, study=study)
+        process_results(study, output_dir, viz, config, hyperparameters)
 
 
 if __name__ == "__main__":

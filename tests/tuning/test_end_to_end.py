@@ -29,6 +29,9 @@ def assert_results(output_dir):
         assert "Params" in content
         assert "Importances" in content
 
+    config_file = os.path.join(output_dir, "config.yml")
+    assert os.path.exists(config_file), f"Expected file {config_file} not found"
+
     optimization_history_file = os.path.join(output_dir, "optimization_history.html")
     assert os.path.exists(
         optimization_history_file
@@ -52,13 +55,11 @@ def assert_results(output_dir):
 @pytest.mark.parametrize("n_trials", [7, None])
 @pytest.mark.parametrize("two_phase_tuning", [True, False])
 def test_tune(tmpdir, n_trials, two_phase_tuning):
-    print("Current Working Directory:", os.getcwd())
     config_meta = {"config_path": ["tests/tuning/config.yml"]}
     hyperparameters = {
         "optimizer.groups.'.*'.lr.start_value": {
             "alias": "start_value",
             "type": "float",
-            # "path": ["optimizer", "groups", ".*", "lr", "start_value"],
             "low": 1e-4,
             "high": 1e-3,
             "log": True,
@@ -66,7 +67,6 @@ def test_tune(tmpdir, n_trials, two_phase_tuning):
         "optimizer.groups.'.*'.lr.warmup_rate": {
             "alias": "warmup_rate",
             "type": "float",
-            # "path": ["optimizer", "groups", ".*", "lr", "warmup_rate"],
             "low": 0.0,
             "high": 0.3,
             "step": 0.05,
@@ -75,6 +75,7 @@ def test_tune(tmpdir, n_trials, two_phase_tuning):
     output_dir = "./results"
     gpu_hours = 0.015
     seed = 42
+    metric = "ner.micro.f"
     tune(
         config_meta=config_meta,
         hyperparameters=hyperparameters,
@@ -83,6 +84,7 @@ def test_tune(tmpdir, n_trials, two_phase_tuning):
         n_trials=n_trials,
         two_phase_tuning=two_phase_tuning,
         seed=seed,
+        metric=metric,
     )
     if two_phase_tuning:
         phase_1_dir = os.path.join(output_dir, "phase_1")

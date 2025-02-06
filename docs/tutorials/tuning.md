@@ -74,11 +74,13 @@ tuning:
   output_dir: 'results'
   # Number of gpu hours allowed for tuning.
   gpu_hours: 1.0
-  # Number of fixed trial to tune hyperparameters (override gpu_hours).
+  # Number of fixed trials to tune hyperparameters (override gpu_hours).
   n_trials: 4
   # Enable two-phase tuning. In the first phase, the script will tune all hyperparameters.
   # In the second phase, it will focus only on the top 50% most important hyperparameters.
   two_phase_tuning: True
+  # Metric used to evaluate trials.
+  metric: "ner.micro.f"
   # Hyperparameters to tune.
   hyperparameters:
 ```
@@ -89,6 +91,7 @@ Let's detail the new parameters:
 - `gpu_hours`: Estimated total GPU time available for tuning, in hours. Given this time, the script will automatically compute for how many training trials we can tune hyperparameters. By default, `gpu_hours` is set to 1.
 - `n_trials`: Number of training trials for tuning. If provided, it will override `gpu_hours` and tune the model for exactly `n_trial` trials.
 - `two_phase_tuning`: If True, performs a two-phase tuning. In the first phase, all hyperparameters are tuned, and in the second phase, the top half (based on importance) are fine-tuned while freezing others. By default, `two_phase_tuning` is False.
+- `metric`: Metric used to evaluate trials. It corresponds to a path in the scorer results (depending on the scorer used in the config). By default `metric` is set to "ner.micro.f".
 - `hyperparameters`: The list of hyperparameters to tune and details about their tunings. We will discuss how it work in the following section.
 
 ### 2.2. Add hyperparameters to tune
@@ -247,6 +250,7 @@ tuning:
   output_dir: 'results'
   gpu_hours: 40.0
   two_phase_tuning: True
+  metric: "ner.micro.f"
   hyperparameters:
     "nlp.components.ner.embedding.embedding.hidden_dropout_prob":
       alias: "hidden_dropout"
@@ -327,12 +331,13 @@ python -m edsnlp.tune --config configs/config.yml --seed 42
 At the end of the tuning process, `edsnlp.tune` generates various results and saves them in the `output_dir` specified in the `config.yml` file:
 
 - **Tuning Summary**: `result_summary.txt`, a summary file containing details about the best training trial, the best overall metric, the optimal hyperparameter values, and the average importance of each hyperparameter across all trials.
+- **Optimal Configuration**: `config.yml`, containing the best hyperparameter values. Warning: Since the Confit library does not preserve style and comments, these will be lost in the resulting configuration file. If you need to retain them, manually update your original `config.yml` using the information from `result_summary.txt`.
 - **Graphs and Visualizations**: Various graphics illustrating the tuning process, such as:
-  - **Optimization History plot**: A line graph showing the performance of each trial over time, illustrating the optimization process and how the model's performance improves with each iteration.
-  - **Empirical Distribution Function (EDF) plot**: A graph showing the cumulative distribution of the results, helping you understand the distribution of performance scores and providing insights into the variability and robustness of the tuning process.
-  - **Contour plo**t: A 2D plot that shows the relationship between two hyperparameters and their combined effect on the objective metric, providing a clear view of the optimal parameter regions.
-  - **Parallel Coordinate plot**: A multi-dimensional plot where each hyperparameter is represented as a vertical axis, and each trial is displayed as a line connecting the hyperparameter values, helping you analyze correlations and patterns across hyperparameters and their impact on performance.
-  - **Timeline plot**: A 2D plot that displays all trials and their statuses ("completed," "pruned," or "failed") over time, providing a clear overview of the progress and outcomes of the tuning process.
+  - [**Optimization History plot**](https://optuna.readthedocs.io/en/stable/reference/visualization/generated/optuna.visualization.plot_optimization_history.html#sphx-glr-reference-visualization-generated-optuna-visualization-plot-optimization-history-py): A line graph showing the performance of each trial over time, illustrating the optimization process and how the model's performance improves with each iteration.
+  - [**Empirical Distribution Function (EDF) plot**](https://optuna.readthedocs.io/en/stable/reference/visualization/generated/optuna.visualization.plot_edf.html#sphx-glr-reference-visualization-generated-optuna-visualization-plot-edf-py): A graph showing the cumulative distribution of the results, helping you understand the distribution of performance scores and providing insights into the variability and robustness of the tuning process.
+  - [**Contour plot**](https://optuna.readthedocs.io/en/stable/reference/visualization/generated/optuna.visualization.plot_contour.html#sphx-glr-reference-visualization-generated-optuna-visualization-plot-contour-py): A 2D plot that shows the relationship between two hyperparameters and their combined effect on the objective metric, providing a clear view of the optimal parameter regions.
+  - [**Parallel Coordinate plot**](https://optuna.readthedocs.io/en/stable/reference/visualization/generated/optuna.visualization.plot_parallel_coordinate.html#sphx-glr-reference-visualization-generated-optuna-visualization-plot-parallel-coordinate-py): A multi-dimensional plot where each hyperparameter is represented as a vertical axis, and each trial is displayed as a line connecting the hyperparameter values, helping you analyze correlations and patterns across hyperparameters and their impact on performance.
+  - [**Timeline plot**](https://optuna.readthedocs.io/en/stable/reference/visualization/generated/optuna.visualization.plot_timeline.html#sphx-glr-reference-visualization-generated-optuna-visualization-plot-timeline-py): A 2D plot that displays all trials and their statuses ("completed," "pruned," or "failed") over time, providing a clear overview of the progress and outcomes of the tuning process.
 
 These outputs offer a comprehensive view of the tuning results, enabling you to better understand the optimization process and easily deploy the best configuration.
 

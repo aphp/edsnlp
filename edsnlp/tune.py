@@ -237,7 +237,9 @@ def update_config(
                     f"Unknown parameter type '{p_type}' for hyperparameter '{p_name}'."
                 )
         else:
-            value = values[p_name]
+            value = values.get(p_name, None)
+            if value is None:
+                continue
 
         current_config = config
         for key in p_path[:-1]:
@@ -290,7 +292,14 @@ def optimize(config_path, tuned_parameters, n_trials, metric, study=None):
     return study
 
 
-def process_results(study, output_dir, viz, config, tuned_parameters):
+def process_results(
+    study,
+    output_dir,
+    viz,
+    config,
+    tuned_parameters,
+    best_params_phase_1=None,
+):
     importances = compute_importances(study)
     best_params = study.best_trial.params
 
@@ -309,6 +318,10 @@ def process_results(study, output_dir, viz, config, tuned_parameters):
         f.write("\nParams:\n")
         for key, value in best_params.items():
             f.write(f"  {key}: {value}\n")
+        if best_params_phase_1 is not None:
+            for key_phase_1, value_phase_1 in best_params_phase_1.items():
+                if key_phase_1 not in best_params.keys():
+                    f.write(f"  {key_phase_1}: {value_phase_1}\n")
         f.write("\nImportances:\n")
         for key, value in importances.items():
             f.write(f"  {key}: {value}\n")
@@ -388,7 +401,7 @@ def tune_two_phase(
 
     logger.info(f"Phase 1: Tuning all hyperparameters ({n_trials_1} trials).")
     study = optimize(config, hyperparameters, n_trials_1, metric, study=study)
-    best_params, importances = process_results(
+    best_params_phase_1, importances = process_results(
         study, f"{output_dir}/phase_1", viz, config, hyperparameters
     )
 
@@ -410,7 +423,7 @@ def tune_two_phase(
     }
 
     _, updated_config = update_config(
-        config, hyperparameters_frozen, values=best_params
+        config, hyperparameters_frozen, values=best_params_phase_1
     )
 
     if not is_fixed_n_trials:
@@ -423,7 +436,14 @@ def tune_two_phase(
     study = optimize(
         updated_config, hyperparameters_phase_2, n_trials_2, metric, study=study
     )
-    process_results(study, f"{output_dir}/phase_2", viz, config, hyperparameters)
+    process_results(
+        study,
+        f"{output_dir}/phase_2",
+        viz,
+        config,
+        hyperparameters,
+        best_params_phase_1,
+    )
 
 
 def compute_remaining_n_trials_possible(

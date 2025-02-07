@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+- New `edsnlp.external_information_qualifier` qualifies spans in a document based on external information and a defined distance to these contextual/external elements as in Distant Supervision.
+- New `eds.contextual_qualifier` pipeline component to qualify spans based on contextual information.
+- Add the fixture `edsnlp_blank_nlp` for the test.
 - `edsnlp/tune.py`: New hyperparameters tuning script.
 - Hyperparameter Tuning for EDS-NLP: Introduced a new script `edsnlp.tune` for hyperparameter tuning using Optuna. This feature allows users to efficiently optimize model parameters with options for single-phase or two-phase tuning strategies. Includes support for parameter importance analysis, visualization, pruning, and automatic handling of GPU time budgets.
 - `tests/tuning/*.py`: Unit tests for the tuning script.
@@ -15,7 +18,12 @@
 - Support packaging with poetry 2.0
 - Solve pickling issues with multiprocessing when pytorch is installed
 
-# v0.15.0 (2024-12-13)
+### Fixed
+- Correct the contributing documentation. Delete `$ pre-commit run --all-files`recommendation.
+- Fix the the `Obj Class` in the doc template `class.html`.
+- Fix the `get_pipe_meta` function.
+
+## v0.15.0 (2024-12-13)
 
 ### Added
 

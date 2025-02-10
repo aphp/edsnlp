@@ -15,6 +15,7 @@ from confit.utils.random import set_seed
 from optuna.importance import FanovaImportanceEvaluator, get_param_importances
 from optuna.pruners import MedianPruner
 from pydantic import BaseModel, confloat, conint
+from ruamel.yaml import YAML
 
 from edsnlp.training.trainer import GenericScorer, registry, train
 
@@ -174,6 +175,7 @@ def update_config(
     tuned_parameters: Dict[str, Dict],
     values: Optional[Dict[str, any]] = None,
     trial: Optional[optuna.trial.Trial] = None,
+    resolve: bool = True,
 ) -> Tuple[Dict, Dict]:
     """
     Update a configuration dictionary with tuned hyperparameter values.
@@ -248,8 +250,10 @@ def update_config(
             current_config = current_config[key]
         current_config[p_path[-1]] = value
 
-    kwargs = Config.resolve(config["train"], registry=registry, root=config)
-    return kwargs, config
+    if resolve:
+        kwargs = Config.resolve(config["train"], registry=registry, root=config)
+        return kwargs, config
+    return config
 
 
 def objective_with_param(config, tuned_parameters, trial, metric):
@@ -297,6 +301,7 @@ def process_results(
     output_dir,
     viz,
     config,
+    config_path,
     tuned_parameters,
     best_params_phase_1=None,
 ):
@@ -326,14 +331,7 @@ def process_results(
         for key, value in importances.items():
             f.write(f"  {key}: {value}\n")
 
-    config_path = os.path.join(output_dir, "config.yml")
-    _, updated_config = update_config(
-        config.copy(),
-        tuned_parameters,
-        values=best_params,
-    )
-    updated_config.pop("tuning", None)
-    Config(updated_config).to_disk(config_path)
+    write_final_config(output_dir, config_path, tuned_parameters, best_params)
 
     if viz:
         vis.plot_optimization_history(study).write_html(
@@ -349,8 +347,25 @@ def process_results(
     return best_params, importances
 
 
+def write_final_config(output_dir, config_path, tuned_parameters, best_params):
+    yaml = YAML()
+    yaml.preserve_quotes = True
+    yaml.representer.add_representer(
+        type(None),
+        lambda self, _: self.represent_scalar("tag:yaml.org,2002:null", "null"),
+    )
+    with open(config_path, "r", encoding="utf-8") as file:
+        original_config = yaml.load(file)
+    updated_config = update_config(
+        original_config, tuned_parameters, values=best_params, resolve=False
+    )
+    with open(os.path.join(output_dir, "config.yml"), "w", encoding="utf-8") as file:
+        yaml.dump(updated_config, file)
+
+
 def tune_two_phase(
     config: Dict,
+    config_path: str,
     hyperparameters: Dict[str, Dict],
     output_dir: str,
     n_trials: int,
@@ -402,7 +417,7 @@ def tune_two_phase(
     logger.info(f"Phase 1: Tuning all hyperparameters ({n_trials_1} trials).")
     study = optimize(config, hyperparameters, n_trials_1, metric, study=study)
     best_params_phase_1, importances = process_results(
-        study, f"{output_dir}/phase_1", viz, config, hyperparameters
+        study, f"{output_dir}/phase_1", viz, config, config_path, hyperparameters
     )
 
     hyperparameters_to_keep = list(importances.keys())[
@@ -441,8 +456,9 @@ def tune_two_phase(
         f"{output_dir}/phase_2",
         viz,
         config,
-        hyperparameters,
-        best_params_phase_1,
+        config_path=f"{output_dir}/phase_1/config.yml",
+        tuned_parameters=hyperparameters,
+        best_params_phase_1=best_params_phase_1,
     )
 
 
@@ -528,7 +544,8 @@ def tune(
     """
     setup_logging()
     viz = is_plotly_install()
-    config = load_config(config_meta["config_path"][0])
+    config_path = config_meta["config_path"][0]
+    config = load_config(config_path)
     hyperparameters = {key: value.to_dict() for key, value in hyperparameters.items()}
     set_seed(seed)
     metric = split_path(metric)
@@ -546,6 +563,7 @@ def tune(
         logger.info("Starting two-phase tuning.")
         tune_two_phase(
             config,
+            config_path,
             hyperparameters,
             output_dir,
             n_trials,
@@ -566,7 +584,7 @@ def tune(
                     "more trials to fully use GPU time budget."
                 )
                 study = optimize(config, hyperparameters, n_trials, metric, study=study)
-        process_results(study, output_dir, viz, config, hyperparameters)
+        process_results(study, output_dir, viz, config, config_path, hyperparameters)
 
 
 if __name__ == "__main__":

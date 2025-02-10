@@ -144,9 +144,9 @@ def test_process_results(study, tmpdir, viz):
             "step": 2,
         },
     }
-
+    config_path = "tests/tuning/config.yml"
     best_params, importances = process_results(
-        study, output_dir, viz, config, hyperparameters
+        study, output_dir, viz, config, config_path, hyperparameters
     )
 
     assert isinstance(best_params, dict)

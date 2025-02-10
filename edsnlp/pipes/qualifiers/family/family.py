@@ -10,7 +10,7 @@ from edsnlp.pipes.qualifiers.base import (
     BaseEntQualifierResults,
     BaseQualifierResults,
     BaseTokenQualifierResults,
-    RuleBasedQualifier,
+    ConTextBaseQualifier,
 )
 from edsnlp.pipes.terminations import termination as default_termination
 from edsnlp.utils.filter import consume_spans, filter_spans
@@ -48,7 +48,7 @@ class FamilyResults(BaseQualifierResults):
     ents: List[EntFamilyResults]
 
 
-class FamilyContextQualifier(RuleBasedQualifier):
+class FamilyContextQualifier(ConTextBaseQualifier):
     """
     The `eds.family` component uses a simple rule-based algorithm to detect spans that
     describe a family member (or family history) of the patient rather than the

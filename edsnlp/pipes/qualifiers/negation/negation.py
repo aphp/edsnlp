@@ -8,7 +8,7 @@ from edsnlp.pipes.qualifiers.base import (
     BaseEntQualifierResults,
     BaseQualifierResults,
     BaseTokenQualifierResults,
-    RuleBasedQualifier,
+    ConTextBaseQualifier,
 )
 from edsnlp.pipes.terminations import termination as default_termination
 from edsnlp.utils.deprecation import deprecated_getter_factory
@@ -49,7 +49,7 @@ class NegationResults(BaseQualifierResults):
     ents: List[EntNegationResults]
 
 
-class NegationQualifier(RuleBasedQualifier):
+class NegationQualifier(ConTextBaseQualifier):
     """
     The `eds.negation` component uses a simple rule-based algorithm to detect negated
     spans. It was designed at AP-HP's EDS, following the insights of the NegEx algorithm

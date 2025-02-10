@@ -9,7 +9,7 @@ from edsnlp.pipes.qualifiers.base import (
     BaseEntQualifierResults,
     BaseQualifierResults,
     BaseTokenQualifierResults,
-    RuleBasedQualifier,
+    ConTextBaseQualifier,
 )
 from edsnlp.pipes.terminations import termination as default_termination
 from edsnlp.utils.filter import consume_spans, filter_spans
@@ -48,7 +48,7 @@ class HypothesisResults(BaseQualifierResults):
     ents: List[EntHypothesisResults]
 
 
-class HypothesisQualifier(RuleBasedQualifier):
+class HypothesisQualifier(ConTextBaseQualifier):
     """
     The `eds.hypothesis` pipeline uses a simple rule-based algorithm to detect spans
     that are speculations rather than certain statements.

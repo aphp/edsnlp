@@ -12,7 +12,7 @@ from edsnlp.pipes.qualifiers.base import (
     BaseEntQualifierResults,
     BaseQualifierResults,
     BaseTokenQualifierResults,
-    RuleBasedQualifier,
+    ConTextBaseQualifier,
 )
 from edsnlp.pipes.terminations import termination as default_termination
 from edsnlp.utils.deprecation import deprecated_getter_factory
@@ -53,7 +53,7 @@ class HistoryResults(BaseQualifierResults):
     ents: List[EntHistoryResults]
 
 
-class HistoryQualifier(RuleBasedQualifier):
+class HistoryQualifier(ConTextBaseQualifier):
     """
     The `eds.history` pipeline uses a simple rule-based algorithm to detect spans that
     describe medical history rather than the diagnostic of a given visit.

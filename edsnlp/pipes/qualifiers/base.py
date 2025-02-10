@@ -60,7 +60,7 @@ class BaseQualifierResults:
     ents: List[BaseEntQualifierResults]
 
 
-class RuleBasedQualifier(BaseSpanAttributeClassifierComponent):
+class ConTextBaseQualifier(BaseSpanAttributeClassifierComponent):
     """
     Implements the ConText algorithm (eq. NegEx for negations) for detecting contextual
     attributes text.

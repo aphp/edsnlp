@@ -9,7 +9,7 @@ from edsnlp.pipes.qualifiers.base import (
     BaseEntQualifierResults,
     BaseQualifierResults,
     BaseTokenQualifierResults,
-    RuleBasedQualifier,
+    ConTextBaseQualifier,
 )
 from edsnlp.utils.filter import consume_spans, filter_spans
 from edsnlp.utils.inclusion import check_inclusion
@@ -48,7 +48,7 @@ class ReportedSpeechResults(BaseQualifierResults):
     ents: List[EntReportedSpeechResults]
 
 
-class ReportedSpeechQualifier(RuleBasedQualifier):
+class ReportedSpeechQualifier(ConTextBaseQualifier):
     """
     The `eds.reported_speech` component uses a simple rule-based algorithm to detect
     spans that relate to reported speech (eg when the doctor quotes the patient).

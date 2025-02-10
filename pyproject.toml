@@ -178,6 +178,7 @@ where = ["."]
 "eds.hypothesis"                  = "edsnlp.pipes.qualifiers.hypothesis.factory:create_component"
 "eds.negation"                    = "edsnlp.pipes.qualifiers.negation.factory:create_component"
 "eds.reported_speech"             = "edsnlp.pipes.qualifiers.reported_speech.factory:create_component"
+"eds.dates_qualifier"             = "edsnlp.pipes.qualifiers.dates_qualifier.factory:create_component"
 
 # Misc
 "eds.consultation_dates"          = "edsnlp.pipes.misc.consultation_dates.factory:create_component"
@@ -263,6 +264,7 @@ where = ["."]
 "eds.ner_overlap"                = "edsnlp.metrics.ner:NerOverlapMetric"
 "eds.span_attributes"            = "edsnlp.metrics.span_attributes:SpanAttributeMetric"
 "eds.dep_parsing"                = "edsnlp.metrics.dep_parsing:DependencyParsingMetric"
+"eds.relations"                  = "edsnlp.metrics.relations:RelationsMetric"
 
 # Deprecated
 "eds.ner_exact_metric"           = "edsnlp.metrics.ner:NerExactMetric"

@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Added grad spike detection to the `edsnlp.train` script, and per weight layer gradient logging.
+
+### Fixed
+
+- Fixed mini-batch accumulation for multi-task training
+
 ## v0.17.0 (2025-04-15)
 
 ### Added

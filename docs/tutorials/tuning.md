@@ -240,7 +240,7 @@ train:
   val_data: ${ val_data }
   max_steps: 400
   validation_interval: ${ train.max_steps//2 }
-  max_grad_norm: 1.0
+  grad_max_norm: 1.0
   scorer: ${ scorer }
   optimizer: ${ optimizer }
   num_workers: 2

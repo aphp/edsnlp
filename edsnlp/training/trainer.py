@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import time
 import warnings
@@ -31,10 +32,13 @@ from edsnlp import Pipeline, registry
 from edsnlp.core.stream import Stream
 from edsnlp.metrics.ner import NerMetric
 from edsnlp.metrics.span_attributes import SpanAttributeMetric
-from edsnlp.pipes.base import BaseNERComponent, BaseSpanAttributeClassifierComponent
+from edsnlp.pipes.base import (
+    BaseNERComponent,
+    BaseSpanAttributeClassifierComponent,
+)
 from edsnlp.utils.batching import BatchSizeArg, stat_batchify
 from edsnlp.utils.bindings import BINDING_SETTERS
-from edsnlp.utils.collections import chain_zip, flatten, ld_to_dl
+from edsnlp.utils.collections import chain_zip, flatten, flatten_once, ld_to_dl
 from edsnlp.utils.span_getters import get_spans
 from edsnlp.utils.typing import AsList
 
@@ -61,6 +65,10 @@ LOGGER_FIELDS = {
         "format": "{:.2%}",
         "goal_wait": 1,
         "name": r"\1_\2",
+    },
+    "grad_norm/__all__": {
+        "format": "{:.2e}",
+        "name": "grad_norm",
     },
 }
 
@@ -206,6 +214,47 @@ class GenericScorer:
 
 if TYPE_CHECKING:
     GenericScorer = Union[GenericScorer, Dict]
+
+
+def ewm_moments(x, window, adjust=True, bias=False, state=None):
+    if state is None:
+        alpha = 2.0 / (window + 1)
+        decay = 1 - alpha
+        fresh_weight = 1 if adjust else alpha
+        mean_val = x
+        var_val = 0.0
+        sum_w = 1.0
+        sum_w2 = 1.0
+        old_w = 1.0
+        return (
+            mean_val,
+            float("nan"),
+            [decay, fresh_weight, mean_val, var_val, sum_w, sum_w2, old_w],
+        )
+    else:
+        decay, fresh_weight, mean_val, var_val, sum_w, sum_w2, old_w = state
+
+    sum_w *= decay
+    sum_w2 *= decay * decay
+    old_w *= decay
+    old_m = mean_val
+    denom = old_w + fresh_weight
+    mean_val = (old_w * old_m + fresh_weight * x) / denom
+    d1 = old_m - mean_val
+    d2 = x - mean_val
+    var_val = (old_w * (var_val + d1 * d1) + fresh_weight * d2 * d2) / denom
+    sum_w += fresh_weight
+    sum_w2 += fresh_weight * fresh_weight
+    old_w += fresh_weight
+
+    state = [decay, fresh_weight, mean_val, var_val, sum_w, sum_w2, old_w]
+
+    if not bias:
+        num = sum_w * sum_w
+        den = num - sum_w2
+        var_val = var_val * (num / den) if den > 0 else float("nan")
+
+    return mean_val, var_val, state
 
 
 def default_optim(
@@ -362,7 +411,10 @@ def train(
     optimizer: Union[ScheduledOptimizer, torch.optim.Optimizer] = None,
     validation_interval: Optional[int] = None,
     checkpoint_interval: Optional[int] = None,
-    max_grad_norm: float = 5.0,
+    grad_max_norm: float = 5.0,
+    grad_ewm_window: int = 100,
+    grad_dev_policy: Optional[Literal["clip_mean", "clip_threshold", "skip"]] = None,
+    grad_max_dev: float = 7.0,
     loss_scales: Dict[str, float] = {},
     scorer: GenericScorer = GenericScorer(),
     num_workers: int = 0,
@@ -372,8 +424,9 @@ def train(
     output_model_dir: Optional[Union[Path, str]] = None,
     save_model: bool = True,
     logger: bool = True,
-    config_meta: Optional[Dict] = None,
+    log_weight_grads: bool = False,
     on_validation_callback: Optional[Callable[[Dict], None]] = None,
+    config_meta: Optional[Dict] = None,
     **kwargs,
 ):
     """
@@ -418,8 +471,26 @@ def train(
         The number of steps between each evaluation. Defaults to 1/10 of max_steps
     checkpoint_interval: Optional[int]
         The number of steps between each model save. Defaults to validation_interval
-    max_grad_norm: float
+    grad_max_norm: float
         The maximum gradient norm
+    grad_dev_policy: Optional[Literal["clip_mean", "clip_threshold"]]
+        The policy to apply when a gradient spike is detected, ie. when the
+        gradient norm is higher than the mean + std * grad_max_dev. Can be:
+
+        - "clip_mean": clip the gradients to the mean gradient norm
+        - "clip_threshold": clip the gradients to the mean + std * grad_max_dev
+        - "skip": skip the step
+
+        These do not apply to `grad_max_norm` that is always enforced when it is not
+        None, since `grad_max_norm` is not adaptive and would most likely prohibit
+        the model from learning during the early stages of training when gradients are
+        expected to be high.
+    grad_ewm_window: int
+        Approximately how many steps should we look back to compute the average
+        gradient norm and variance to detect gradient deviation spikes.
+    grad_max_dev: float
+        The threshold to apply to detect gradient spikes. A spike is detected
+        when the value is higher than the mean + variance * threshold.
     loss_scales: Dict[str, float]
         The loss scales for each component (useful for multi-task learning)
     scorer: GenericScorer
@@ -455,6 +526,8 @@ def train(
         spending time dumping the model weights to the disk.
     logger: bool
         Whether to log the validation metrics in a rich table.
+    log_weight_grads: bool
+        Whether to log the weight gradients during training.
     on_validation_callback: Optional[Callable[[Dict], None]]
         A callback function invoked during validation steps to handle custom logic.
     kwargs: Dict
@@ -471,11 +544,18 @@ def train(
     is_main_process = accelerator.is_main_process
     device = accelerator.device
 
+    if "max_grad_norm" in kwargs:
+        warnings.warn(
+            "The 'max_grad_norm' argument is deprecated. Use 'grad_max_norm' instead."
+        )
+        grad_max_norm = kwargs.pop("max_grad_norm")
+
     output_dir = Path(output_dir or Path.cwd() / "artifacts")
-    output_model_dir = output_model_dir or output_dir / "model-last"
+    output_model_dir = Path(output_model_dir or output_dir / "model-last")
     train_metrics_path = output_dir / "train_metrics.json"
     if is_main_process:
         os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(output_model_dir, exist_ok=True)
         if config_meta is not None:  # pragma: no cover
             print(config_meta["unresolved_config"].to_yaml_str())
             config_meta["unresolved_config"].to_disk(output_dir / "train_config.yml")
@@ -495,7 +575,7 @@ def train(
     del optimizer
     if optim is None:
         warnings.warn(
-            "No optimizer provided, using default optimizer with default " "parameters"
+            "No optimizer provided, using default optimizer with default parameters"
         )
         optim = default_optim(
             [nlp.get_pipe(name) for name in trainable_pipe_names],
@@ -517,7 +597,8 @@ def train(
     nlp.post_init(chain_zip([td.data for td in train_data if td.post_init]))
 
     for phase_i, pipe_names in enumerate(phases):
-        trained_pipes = PipeDict({n: nlp.get_pipe(n) for n in pipe_names}, loss_scales)
+        trained_pipes_local = {n: nlp.get_pipe(n) for n in pipe_names}
+        trained_pipes = PipeDict(trained_pipes_local, loss_scales)
         trained_pipes_params = set(trained_pipes.parameters())
         phase_training_data = [
             td
@@ -572,7 +653,9 @@ def train(
             if hasattr(accel_optim.optimizer, "initialize"):
                 accel_optim.optimizer.initialize()
 
-            cumulated_data = defaultdict(lambda: 0.0, count=0)
+            ewm_state = grad_mean = grad_var = None
+            default_metrics = dict(count=0, spikes=0)
+            cumulated_data = defaultdict(lambda: 0, **default_metrics)
             all_metrics = []
             set_seed(seed)
             with (
@@ -591,33 +674,32 @@ def train(
                     smoothing=0.3,
                 ):
                     if (
+                        save_model
+                        and is_main_process
+                        and (step % checkpoint_interval) == 0
+                    ):
+                        # torch.save(nlp, output_model_dir / "model.pt")
+                        nlp.to_disk(output_model_dir)
+                    if (
                         is_main_process
                         and step > 0
                         and (step % validation_interval) == 0
                     ):
                         scores = scorer(nlp, val_docs) if val_docs else {}
-                        all_metrics.append(
-                            {
-                                "step": step,
-                                "lr": accel_optim.param_groups[0]["lr"],
-                                **cumulated_data,
-                                **scores,
-                            }
-                        )
-                        cumulated_data.clear()
+                        metrics = {
+                            "step": step,
+                            "lr": accel_optim.param_groups[0]["lr"],
+                            **cumulated_data,
+                            **scores,
+                        }
+                        all_metrics.append(metrics)
+                        cumulated_data = defaultdict(lambda: 0, **default_metrics)
                         train_metrics_path.write_text(json.dumps(all_metrics, indent=2))
                         if logger:
-                            logger.log_metrics(flatten_dict(all_metrics[-1]))
+                            logger.log_metrics(flatten_dict(metrics))
 
                         if on_validation_callback:
-                            on_validation_callback(all_metrics[-1])
-
-                    if (
-                        save_model
-                        and is_main_process
-                        and (step % checkpoint_interval) == 0
-                    ):
-                        nlp.to_disk(output_model_dir)
+                            on_validation_callback(metrics)
 
                     if step == max_steps:
                         break
@@ -626,7 +708,7 @@ def train(
 
                     batches = list(next(iterator))
                     batches_pipe_names = list(
-                        flatten(
+                        flatten_once(
                             [
                                 [td.pipe_names or pipe_names] * len(b)
                                 for td, b in zip(phase_training_data, batches)
@@ -636,17 +718,15 @@ def train(
                     batches = list(flatten(batches))
 
                     # Synchronize stats between sub-batches across workers
-                    batch_stats = {}
+                    local_batch_stats = {}
                     for b in batches:
-                        fill_flat_stats(b, result=batch_stats)
-                    batch_stats = {
-                        k: sum(v)
-                        for k, v in ld_to_dl(gather_object([batch_stats])).items()
-                    }
+                        fill_flat_stats(b, result=local_batch_stats)
+                    batch_stats = gather_object([local_batch_stats])
+                    batch_stats = {k: sum(v) for k, v in ld_to_dl(batch_stats).items()}
                     for b in batches:
                         set_flat_stats(b, batch_stats)
 
-                    res_stats = defaultdict(lambda: 0.0)
+                    local_res_stats = defaultdict(lambda: 0.0)
                     for idx, (batch, batch_pipe_names) in enumerate(
                         zip(batches, batches_pipe_names)
                     ):
@@ -658,29 +738,43 @@ def train(
                             if idx < len(batches) - 1
                             else nullcontext()
                         )
-                        with cache_ctx, no_sync_ctx:
-                            all_res, loss = trained_pipes(
-                                batch,
-                                enable=batch_pipe_names,
+                        try:
+                            with cache_ctx, no_sync_ctx:
+                                all_res, loss = trained_pipes(
+                                    batch,
+                                    enable=batch_pipe_names,
+                                )
+                                for name, res in all_res.items():
+                                    for k, v in res.items():
+                                        if (
+                                            isinstance(v, (float, int))
+                                            or isinstance(v, torch.Tensor)
+                                            and v.ndim == 0
+                                        ):
+                                            local_res_stats[k] += float(v)
+                                        del k, v
+                                    del res
+                                del all_res
+                                if (
+                                    isinstance(loss, torch.Tensor)
+                                    and loss.requires_grad
+                                ):
+                                    accelerator.backward(loss)
+                        except torch.cuda.OutOfMemoryError:
+                            print(
+                                "Out of memory error encountered when processing a "
+                                "batch with the following statistics:"
                             )
-                            for name, res in all_res.items():
-                                for k, v in res.items():
-                                    if (
-                                        isinstance(v, (float, int))
-                                        or isinstance(v, torch.Tensor)
-                                        and v.ndim == 0
-                                    ):
-                                        res_stats[k] += float(v)
-                                    del k, v
-                                del res
-                            del all_res
-                            accelerator.backward(loss)
+                            print(local_batch_stats)
+                            raise
                         del loss
 
                     # Sync output stats after forward such as losses, supports, etc.
                     res_stats = {
                         k: sum(v)
-                        for k, v in ld_to_dl(gather_object([dict(res_stats)])).items()
+                        for k, v in ld_to_dl(
+                            gather_object([dict(local_res_stats)])
+                        ).items()
                     }
                     if is_main_process:
                         for k, v in batch_stats.items():
@@ -689,8 +783,53 @@ def train(
                             cumulated_data[k] += v
 
                     del batch_stats, res_stats
-                    accelerator.clip_grad_norm_(grad_params, max_grad_norm)
-                    accel_optim.step()
+                    accelerator.unscale_gradients()
+
+                    # Log gradients
+                    if log_weight_grads:
+                        for pipe_name, pipe in trained_pipes_local.items():
+                            for param_name, param in pipe.named_parameters():
+                                if param.grad is not None:
+                                    cumulated_data[
+                                        f"grad_norm/{pipe_name}/{param_name}"
+                                    ] += param.grad.norm().item()
+                                    cumulated_data[
+                                        f"param_norm/{pipe_name}/{param_name}"
+                                    ] += param.norm().item()
+
+                    grad_norm = torch.nn.utils.clip_grad_norm_(
+                        grad_params, grad_max_norm, norm_type=2
+                    ).item()
+
+                    # Detect grad spikes and skip the step if necessary
+                    if grad_dev_policy is not None:
+                        if step > grad_ewm_window and (
+                            grad_norm - grad_mean
+                        ) > grad_max_dev * math.sqrt(grad_var):
+                            spike = True
+                            cumulated_data["spikes"] += 1
+                        else:
+                            grad_mean, grad_var, ewm_state = ewm_moments(
+                                grad_norm, grad_ewm_window, state=ewm_state
+                            )
+                            spike = False
+
+                        if spike and grad_dev_policy == "clip_mean":
+                            torch.nn.utils.clip_grad_norm_(
+                                grad_params, grad_mean, norm_type=2
+                            )
+                        elif spike and grad_dev_policy == "clip_threshold":
+                            torch.nn.utils.clip_grad_norm_(
+                                grad_params,
+                                grad_mean + math.sqrt(grad_var) * grad_max_dev,
+                                norm_type=2,
+                            )
+
+                    if grad_dev_policy != "skip" or not spike:
+                        accel_optim.step()
+
+                    cumulated_data["count"] += 1
+                    cumulated_data["grad_norm/__all__"] += grad_norm
 
                 del iterator
 

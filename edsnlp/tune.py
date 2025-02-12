@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import optuna
 import optuna.visualization as vis
+from configobj import ConfigObj
 from confit import Cli, Config
 from confit.utils.collections import split_path
 from confit.utils.random import set_seed
@@ -348,19 +349,31 @@ def process_results(
 
 
 def write_final_config(output_dir, config_path, tuned_parameters, best_params):
-    yaml = YAML()
-    yaml.preserve_quotes = True
-    yaml.representer.add_representer(
-        type(None),
-        lambda self, _: self.represent_scalar("tag:yaml.org,2002:null", "null"),
-    )
-    with open(config_path, "r", encoding="utf-8") as file:
-        original_config = yaml.load(file)
-    updated_config = update_config(
-        original_config, tuned_parameters, values=best_params, resolve=False
-    )
-    with open(os.path.join(output_dir, "config.yml"), "w", encoding="utf-8") as file:
-        yaml.dump(updated_config, file)
+    path_str = str(config_path)
+    if path_str.endswith(".yaml") or path_str.endswith(".yml"):
+        yaml = YAML()
+        yaml.preserve_quotes = True
+        yaml.representer.add_representer(
+            type(None),
+            lambda self, _: self.represent_scalar("tag:yaml.org,2002:null", "null"),
+        )
+        with open(config_path, "r", encoding="utf-8") as file:
+            original_config = yaml.load(file)
+        updated_config = update_config(
+            original_config, tuned_parameters, values=best_params, resolve=False
+        )
+        with open(
+            os.path.join(output_dir, "config.yml"), "w", encoding="utf-8"
+        ) as file:
+            yaml.dump(updated_config, file)
+    else:
+        config = ConfigObj(config_path, encoding="utf-8")
+        updated_config = update_config(
+            dict(config), tuned_parameters, values=best_params, resolve=False
+        )
+        config.update(updated_config)
+        config.filename = os.path.join(output_dir, "config.cfg")
+        config.write()
 
 
 def tune_two_phase(
@@ -413,11 +426,13 @@ def tune_two_phase(
     """
     n_trials_2 = n_trials // 2
     n_trials_1 = n_trials - n_trials_2
+    output_dir_phase_1 = os.path.join(output_dir, "phase_1")
+    output_dir_phase_2 = os.path.join(output_dir, "phase_2")
 
     logger.info(f"Phase 1: Tuning all hyperparameters ({n_trials_1} trials).")
     study = optimize(config, hyperparameters, n_trials_1, metric, study=study)
     best_params_phase_1, importances = process_results(
-        study, f"{output_dir}/phase_1", viz, config, config_path, hyperparameters
+        study, output_dir_phase_1, viz, config, config_path, hyperparameters
     )
 
     hyperparameters_to_keep = list(importances.keys())[
@@ -451,12 +466,16 @@ def tune_two_phase(
     study = optimize(
         updated_config, hyperparameters_phase_2, n_trials_2, metric, study=study
     )
+    if str(config_path).endswith("yaml") or str(config_path).endswith("yml"):
+        config_path_phase_2 = os.path.join(output_dir_phase_1, "config.yml")
+    else:
+        config_path_phase_2 = os.path.join(output_dir_phase_1, "config.cfg")
     process_results(
         study,
-        f"{output_dir}/phase_2",
+        output_dir_phase_2,
         viz,
         config,
-        config_path=f"{output_dir}/phase_1/config.yml",
+        config_path=config_path_phase_2,
         tuned_parameters=hyperparameters,
         best_params_phase_1=best_params_phase_1,
     )

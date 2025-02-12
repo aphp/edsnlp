@@ -179,7 +179,7 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
       val_data: ${ val_data }
       max_steps: 2000
       validation_interval: ${ train.max_steps//10 }
-      max_grad_norm: 1.0
+      grad_max_norm: 1.0
       scorer: ${ scorer }
       optimizer: ${ optimizer }
       # Do preprocessing in parallel on 1 worker
@@ -284,7 +284,7 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
         val_data=val_data,
         scorer={"ner": ner_metric},
         optimizer=optimizer,
-        max_grad_norm=1.0,
+        grad_max_norm=1.0,
         output_dir="artifacts",
         # Do preprocessing in parallel on 1 worker
         num_workers=1,

@@ -12,7 +12,7 @@ from spacy.tokens import Doc
 import edsnlp
 import edsnlp.pipes as eds
 from edsnlp import Pipeline, registry
-from edsnlp.core.registries import CurriedFactory
+from edsnlp.core.registries import PartialPipeFactory
 from edsnlp.pipes.base import BaseComponent
 
 try:
@@ -378,9 +378,9 @@ def test_curried_nlp_pipe():
     nlp.add_pipe(eds.sections(), name="sections")
     pipe = CustomComponent()
 
-    assert isinstance(pipe, CurriedFactory)
+    assert isinstance(pipe, PartialPipeFactory)
     err = (
-        f"This component CurriedFactory({pipe.factory}) has not been instantiated "
+        f"This component PartialFactory({pipe.func}) has not been instantiated "
         f"yet, likely because it was missing an `nlp` pipeline argument. You should "
         f"either:\n"
         "- add it to a pipeline: `pipe = nlp.add_pipe(pipe)`\n"

@@ -87,6 +87,7 @@ docs = [
 dev = [
     "edsnlp[dev-no-ml]",
     "edsnlp[ml]",
+    "tensorboard",
     "optuna>=4.0.0",
     "plotly>=5.18.0", # required by optuna viz
 ]
@@ -289,6 +290,18 @@ where = ["."]
 "json" =     "edsnlp.data:write_json"
 "standoff" = "edsnlp.data:write_standoff"
 "brat"     = "edsnlp.data:write_brat"  # alias for standoff
+
+[project.entry-points."edsnlp_loggers"]
+"csv"         = "edsnlp.training.loggers:CSVLogger"
+"json"        = "edsnlp.training.loggers:JSONLogger"
+"rich"        = "edsnlp.training.loggers:RichLogger"
+"tensorboard" = "edsnlp.training.loggers:TensorboardLogger"
+"aim"         = "edsnlp.training.loggers:AimLogger"
+"wandb"       = "edsnlp.training.loggers:WandBLogger"
+"clearml"     = "edsnlp.training.loggers:ClearMLLogger"
+"mlflow"      = "edsnlp.training.loggers:MLflowLogger"
+"cometml"     = "edsnlp.training.loggers:CometMLLogger"
+"dvclive"     = "edsnlp.training.loggers:DvcLiveLogger"
 
 [project.entry-points."spacy_misc"]
 "eds.span_context_getter" = "edsnlp.utils.span_getters:make_span_context_getter"

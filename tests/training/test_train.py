@@ -1,4 +1,5 @@
 # ruff:noqa:E402
+import os.path
 
 import pytest
 
@@ -107,6 +108,10 @@ def test_ner_qualif_train_diff_bert(run_in_test_dir, tmp_path):
 
     assert last_scores["ner"]["micro"]["f"] > 0.4
     assert last_scores["qual"]["micro"]["f"] > 0.4
+
+    # Ensure we saved the metrics
+    assert os.path.exists(tmp_path / "metrics.json")
+    assert os.path.exists(tmp_path / "metrics.csv")
 
 
 def test_ner_qualif_train_same_bert(run_in_test_dir, tmp_path):

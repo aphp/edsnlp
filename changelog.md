@@ -9,6 +9,7 @@
 ## Fixed
 
 - `use_section` in `eds.history` should now correctly handle cases when there are other sections following history sections.
+- Added clickable snippets in the documentation for more registered functions
 
 ## Changed
 

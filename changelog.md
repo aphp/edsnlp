@@ -11,6 +11,7 @@
 - Provided a [detailed tutorial](./docs/tutorials/tuning.md) on hyperparameter tuning, covering usage scenarios and configuration options.
 - `ScheduledOptimizer` (e.g., `@core: "optimizer"`) now supports importing optimizers using their qualified name (e.g., `optim: "torch.optim.Adam"`).
 - Added grad spike detection to the `edsnlp.train` script, and per weight layer gradient logging.
+- Added support for multiple loggers (`tensorboard`, `wandb`, `comet_ml`, `aim`, `mlflow`, `clearml`, `dvclive`, `csv`, `json`, `rich`) in `edsnlp.train` via the `logger` parameter. Default is [`json` and `rich`] for backward compatibility.
 
 ### Changed
 

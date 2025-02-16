@@ -15,7 +15,8 @@ dependencies = [
     "regex",
     "spacy>=3.2,<3.8",
     "thinc<8.2.5",  # we don't need thinc but spacy depdends on it 8.2.5 cause binary issues
-    "confit>=0.7.3",
+    #"confit>=0.7.3",
+    "confit @ git+https://github.com/aphp/confit@allow-partial",
     "tqdm",
     "umls-downloader>=0.1.1",
     "numpy>=1.15.0,<1.23.2; python_version<'3.8'",
@@ -87,6 +88,7 @@ docs = [
 dev = [
     "edsnlp[dev-no-ml]",
     "edsnlp[ml]",
+    "tensorboard",
     "optuna>=4.0.0",
     "plotly>=5.18.0", # required by optuna viz
 ]
@@ -289,6 +291,18 @@ where = ["."]
 "json" =     "edsnlp.data:write_json"
 "standoff" = "edsnlp.data:write_standoff"
 "brat"     = "edsnlp.data:write_brat"  # alias for standoff
+
+[project.entry-points."edsnlp_loggers"]
+"csv"         = "edsnlp.training.loggers:CSVLogger"
+"json"        = "edsnlp.training.loggers:JSONLogger"
+"rich"        = "edsnlp.training.loggers:RichLogger"
+"tensorboard" = "edsnlp.training.loggers:TensorBoardLogger"
+"aim"         = "edsnlp.training.loggers:AimLogger"
+"wandb"       = "edsnlp.training.loggers:WandBLogger"
+"clearml"     = "edsnlp.training.loggers:ClearMLLogger"
+"mlflow"      = "edsnlp.training.loggers:MLflowLogger"
+"cometml"     = "edsnlp.training.loggers:CometMLLogger"
+"dvclive"     = "edsnlp.training.loggers:DVCLiveLogger"
 
 [project.entry-points."spacy_misc"]
 "eds.span_context_getter" = "edsnlp.utils.span_getters:make_span_context_getter"

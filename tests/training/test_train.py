@@ -1,4 +1,5 @@
 # ruff:noqa:E402
+import os.path
 
 import pytest
 
@@ -28,6 +29,7 @@ from spacy.tokens import Doc, Span
 from edsnlp.core.registries import registry
 from edsnlp.data.converters import AttributesMappingArg, get_current_tokenizer
 from edsnlp.metrics.dep_parsing import DependencyParsingMetric
+from edsnlp.training.loggers import CSVLogger
 from edsnlp.training.optimizer import LinearSchedule, ScheduledOptimizer
 from edsnlp.training.trainer import GenericScorer, train
 from edsnlp.utils.span_getters import SpanSetterArg, set_spans
@@ -97,7 +99,16 @@ def test_ner_qualif_train_diff_bert(run_in_test_dir, tmp_path):
     config = Config.from_disk("ner_qlf_diff_bert_config.yml")
     shutil.rmtree(tmp_path, ignore_errors=True)
     kwargs = Config.resolve(config["train"], registry=registry, root=config)
-    nlp = train(**kwargs, output_dir=tmp_path, cpu=True)
+    nlp = train(
+        **kwargs,
+        output_dir=tmp_path,
+        cpu=True,
+        config_meta={
+            "config_path": "dep_parser_config.yml",
+            "resolved_config": kwargs,
+            "unresolved_config": config,
+        },
+    )
     scorer = GenericScorer(**kwargs["scorer"])
     val_data = kwargs["val_data"]
     last_scores = scorer(nlp, val_data)
@@ -108,13 +119,26 @@ def test_ner_qualif_train_diff_bert(run_in_test_dir, tmp_path):
     assert last_scores["ner"]["micro"]["f"] > 0.4
     assert last_scores["qual"]["micro"]["f"] > 0.4
 
+    # Ensure we saved the metrics
+    assert os.path.exists(tmp_path / "metrics.json")
+    assert os.path.exists(tmp_path / "metrics.csv")
+
 
 def test_ner_qualif_train_same_bert(run_in_test_dir, tmp_path):
     set_seed(42)
     config = Config.from_disk("ner_qlf_same_bert_config.yml")
     shutil.rmtree(tmp_path, ignore_errors=True)
     kwargs = Config.resolve(config["train"], registry=registry, root=config)
-    nlp = train(**kwargs, output_dir=tmp_path, cpu=True)
+    nlp = train(
+        **kwargs,
+        output_dir=tmp_path,
+        cpu=True,
+        config_meta={
+            "config_path": "dep_parser_config.yml",
+            "resolved_config": kwargs,
+            "unresolved_config": config,
+        },
+    )
     scorer = GenericScorer(**kwargs["scorer"])
     val_data = kwargs["val_data"]
     last_scores = scorer(nlp, val_data)
@@ -131,7 +155,16 @@ def test_qualif_train(run_in_test_dir, tmp_path):
     config = Config.from_disk("qlf_config.yml")
     shutil.rmtree(tmp_path, ignore_errors=True)
     kwargs = Config.resolve(config["train"], registry=registry, root=config)
-    nlp = train(**kwargs, output_dir=tmp_path, cpu=True)
+    nlp = train(
+        **kwargs,
+        output_dir=tmp_path,
+        cpu=True,
+        config_meta={
+            "config_path": "dep_parser_config.yml",
+            "resolved_config": kwargs,
+            "unresolved_config": config,
+        },
+    )
     scorer = GenericScorer(**kwargs["scorer"])
     val_data = kwargs["val_data"]
     last_scores = scorer(nlp, val_data)
@@ -147,7 +180,17 @@ def test_dep_parser_train(run_in_test_dir, tmp_path):
     config = Config.from_disk("dep_parser_config.yml")
     shutil.rmtree(tmp_path, ignore_errors=True)
     kwargs = Config.resolve(config["train"], registry=registry, root=config)
-    nlp = train(**kwargs, output_dir=tmp_path, cpu=True)
+    nlp = train(
+        **kwargs,
+        logger=CSVLogger.draft(),
+        output_dir=tmp_path,
+        cpu=True,
+        config_meta={
+            "config_path": "dep_parser_config.yml",
+            "resolved_config": kwargs,
+            "unresolved_config": config,
+        },
+    )
     scorer = GenericScorer(**kwargs["scorer"])
     val_data = list(kwargs["val_data"])
     last_scores = scorer(nlp, val_data)

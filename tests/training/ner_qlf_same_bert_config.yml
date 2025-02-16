@@ -116,3 +116,4 @@ train:
   num_workers: 0
   optimizer: ${ optimizer }
   grad_dev_policy: "clip_threshold"
+  logger: ["tensorboard", "rich"]

@@ -44,7 +44,7 @@ from spacy.util import get_lang_class
 from spacy.vocab import Vocab, create_vocab
 from typing_extensions import Literal, Self
 
-from ..core.registries import PIPE_META, CurriedFactory, FactoryMeta, registry
+from ..core.registries import PIPE_META, DraftPipe, FactoryMeta, registry
 from ..utils.collections import (
     FrozenDict,
     FrozenList,
@@ -238,9 +238,9 @@ class Pipeline(Validated):
                     **(config if config is not None else {}),
                 }
             ).resolve(registry=registry)
-            if isinstance(pipe, CurriedFactory):
+            if isinstance(pipe, DraftPipe):
                 if name is None:
-                    name = signature(pipe.factory).parameters.get("name").default
+                    name = signature(pipe._func).parameters.get("name").default
                 if name is None or name == Parameter.empty:
                     name = factory
                 pipe = pipe.instantiate(nlp=self, path=(name,))
@@ -297,8 +297,8 @@ class Pipeline(Validated):
                 raise ValueError(
                     "Can't pass config or name with an instantiated component",
                 )
-            if isinstance(factory, CurriedFactory):
-                name = name or factory.kwargs.get("name")
+            if isinstance(factory, DraftPipe):
+                name = name or factory._kwargs.get("name")
                 factory = factory.instantiate(nlp=self, path=(name,))
 
             pipe = factory
@@ -585,13 +585,13 @@ class Pipeline(Validated):
     def _add_pipes(
         self,
         pipeline: Sequence[str],
-        components: Dict[str, CurriedFactory],
+        components: Dict[str, DraftPipe],
         exclude: Container[str],
         enable: Container[str],
         disable: Container[str],
     ):
         try:
-            components = CurriedFactory.instantiate(components, nlp=self)
+            components = DraftPipe.instantiate(components, nlp=self)
         except ConfitValidationError as e:
             e = ConfitValidationError(
                 e.raw_errors,
@@ -1277,9 +1277,9 @@ def load_from_huggingface(
     owner, model_name = repo_id.split("/")
     module_name = model_name.replace("-", "_")
 
-    assert (
-        len(repo_id.split("/")) == 2
-    ), "Invalid repo_id format (expected 'owner/repo_name' format)"
+    assert len(repo_id.split("/")) == 2, (
+        "Invalid repo_id format (expected 'owner/repo_name' format)"
+    )
     path = None
     mtime = None
     try:

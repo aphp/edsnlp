@@ -3,6 +3,7 @@ from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Generic, List, TypeVar, Union
 
 import pydantic
+from confit import Validatable
 from confit.errors import patch_errors
 
 T = TypeVar("T")
@@ -11,19 +12,7 @@ if pydantic.VERSION >= "2":
     from pydantic_core import core_schema
 
 
-class Validated:
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def __get_pydantic_core_schema__(cls, source, handler):
-        return core_schema.chain_schema(
-            [
-                core_schema.no_info_plain_validator_function(v)
-                for v in cls.__get_validators__()
-            ]
-        )
+Validated = Validatable
 
 
 class MetaAsList(type):

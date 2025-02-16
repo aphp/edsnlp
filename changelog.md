@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## Added
+
+- Added support for multiple loggers (`tensorboard`, `wandb`, `comet_ml`, `aim`, `mlflow`, `clearml`, `dvclive`, `csv`, `json`, `rich`) in `edsnlp.train` via the `logger` parameter. Default is [`json` and `rich`] for backward compatibility.
+
 ## Fixed
 
 - `use_section` in `eds.history` should now correctly handle cases when there are other sections following history sections.
@@ -9,6 +13,7 @@
 ## Changed
 
 - Sections cues in `eds.history` are now section titles, and not the full section.
+- Validation metrics are now found under the root field `validation` in the training logs (e.g. `metrics['validation']['ner']['micro']['f']`)
 
 ## v0.17.2 (2025-06-25)
 

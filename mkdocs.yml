@@ -142,6 +142,8 @@ nav:
       - data/polars.md
       - data/spark.md
       - data/converters.md
+  - Training:
+      - training/loggers.md
   - Concepts:
       - concepts/pipeline.md
       - concepts/torch-component.md

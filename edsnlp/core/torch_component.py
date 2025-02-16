@@ -328,6 +328,19 @@ class TorchComponent(
         """
         raise NotImplementedError()
 
+    def compute_training_metrics(
+        self,
+        batch_output: BatchOutput,
+        batch_stats: Dict[str, Any],
+        count: int,
+    ) -> Dict[str, Any]:
+        """
+        Compute post-gather metrics on the batch output. This is a no-op by default.
+        This is useful to compute averages when doing multi-gpu training or mini-batch
+        accumulation since full denominators are not known during the forward pass.
+        """
+        return batch_output
+
     def module_forward(self, *args, **kwargs):  # pragma: no cover
         """
         This is a wrapper around `torch.nn.Module.__call__` to avoid conflict

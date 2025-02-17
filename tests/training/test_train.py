@@ -99,7 +99,16 @@ def test_ner_qualif_train_diff_bert(run_in_test_dir, tmp_path):
     config = Config.from_disk("ner_qlf_diff_bert_config.yml")
     shutil.rmtree(tmp_path, ignore_errors=True)
     kwargs = Config.resolve(config["train"], registry=registry, root=config)
-    nlp = train(**kwargs, output_dir=tmp_path, cpu=True)
+    nlp = train(
+        **kwargs,
+        output_dir=tmp_path,
+        cpu=True,
+        config_meta={
+            "config_path": "dep_parser_config.yml",
+            "resolved_config": kwargs,
+            "unresolved_config": config,
+        },
+    )
     scorer = GenericScorer(**kwargs["scorer"])
     val_data = kwargs["val_data"]
     last_scores = scorer(nlp, val_data)
@@ -120,7 +129,16 @@ def test_ner_qualif_train_same_bert(run_in_test_dir, tmp_path):
     config = Config.from_disk("ner_qlf_same_bert_config.yml")
     shutil.rmtree(tmp_path, ignore_errors=True)
     kwargs = Config.resolve(config["train"], registry=registry, root=config)
-    nlp = train(**kwargs, output_dir=tmp_path, cpu=True)
+    nlp = train(
+        **kwargs,
+        output_dir=tmp_path,
+        cpu=True,
+        config_meta={
+            "config_path": "dep_parser_config.yml",
+            "resolved_config": kwargs,
+            "unresolved_config": config,
+        },
+    )
     scorer = GenericScorer(**kwargs["scorer"])
     val_data = kwargs["val_data"]
     last_scores = scorer(nlp, val_data)
@@ -137,7 +155,16 @@ def test_qualif_train(run_in_test_dir, tmp_path):
     config = Config.from_disk("qlf_config.yml")
     shutil.rmtree(tmp_path, ignore_errors=True)
     kwargs = Config.resolve(config["train"], registry=registry, root=config)
-    nlp = train(**kwargs, output_dir=tmp_path, cpu=True)
+    nlp = train(
+        **kwargs,
+        output_dir=tmp_path,
+        cpu=True,
+        config_meta={
+            "config_path": "dep_parser_config.yml",
+            "resolved_config": kwargs,
+            "unresolved_config": config,
+        },
+    )
     scorer = GenericScorer(**kwargs["scorer"])
     val_data = kwargs["val_data"]
     last_scores = scorer(nlp, val_data)
@@ -158,6 +185,11 @@ def test_dep_parser_train(run_in_test_dir, tmp_path):
         logger=CSVLogger.draft(),
         output_dir=tmp_path,
         cpu=True,
+        config_meta={
+            "config_path": "dep_parser_config.yml",
+            "resolved_config": kwargs,
+            "unresolved_config": config,
+        },
     )
     scorer = GenericScorer(**kwargs["scorer"])
     val_data = list(kwargs["val_data"])

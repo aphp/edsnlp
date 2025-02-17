@@ -75,17 +75,6 @@ LOGGER_FIELDS = {
 }
 
 
-def flatten_dict(d, path=""):
-    if not isinstance(d, dict):
-        return {path: d}
-
-    return {
-        k: v
-        for key, val in d.items()
-        for k, v in flatten_dict(val, f"{path}/{key}" if path else key).items()
-    }
-
-
 def fill_flat_stats(x, result, path=()):
     if result is None:
         result = {}
@@ -580,7 +569,6 @@ def train(
             logging_dir=output_dir,
         ),
     )
-    accelerator.init_trackers(project_name)  # in theory project name shouldn't be used
     # accelerator.register_for_checkpointing(dataset)
     is_main_process = accelerator.is_main_process
     device = accelerator.device
@@ -593,15 +581,18 @@ def train(
 
     output_dir = Path(output_dir or Path.cwd() / "artifacts")
     output_model_dir = Path(output_model_dir or output_dir / "model-last")
+    unresolved_config = None
     if is_main_process:
         os.makedirs(output_dir, exist_ok=True)
         os.makedirs(output_model_dir, exist_ok=True)
-        unresolved_config = {}
         if config_meta is not None:  # pragma: no cover
             unresolved_config = config_meta["unresolved_config"]
             print(unresolved_config.to_yaml_str())
             unresolved_config.to_disk(output_dir / "train_config.yml")
         # TODO: handle config_meta is None
+    accelerator.init_trackers(
+        project_name, config=unresolved_config
+    )  # in theory project name shouldn't be used
 
     validation_interval = validation_interval or max_steps // 10
     checkpoint_interval = checkpoint_interval or validation_interval
@@ -726,7 +717,7 @@ def train(
                         **scores,
                     }
                     cumulated_data = defaultdict(lambda: 0, **default_metrics)
-                    accelerator.log(flatten_dict(metrics), step=step)
+                    accelerator.log(metrics, step=step)
 
                     if on_validation_callback:
                         on_validation_callback(metrics)
@@ -787,7 +778,7 @@ def train(
                             del all_res
                             if isinstance(loss, torch.Tensor) and loss.requires_grad:
                                 accelerator.backward(loss)
-                    except torch.cuda.OutOfMemoryError:
+                    except torch.cuda.OutOfMemoryError:  # pragma: no cover
                         print(
                             "Out of memory error encountered when processing a "
                             "batch with the following statistics:"
@@ -857,5 +848,8 @@ def train(
                 cumulated_data["grad_norm/__all__"] += grad_norm
 
             del iterator
+
+    # Should we put this in a finally block?
+    accelerator.end_training()
 
     return nlp

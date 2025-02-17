@@ -10,6 +10,22 @@ from rich_logger import RichTablePrinter
 import edsnlp
 
 
+def flatten_dict(d, path=""):
+    if not isinstance(d, (list, dict)):
+        return {path: d}
+
+    if isinstance(d, list):
+        items = enumerate(d)
+    else:
+        items = d.items()
+
+    return {
+        k: v
+        for key, val in items
+        for k, v in flatten_dict(val, f"{path}/{key}" if path else key).items()
+    }
+
+
 @edsnlp.registry.loggers.register("csv", auto_draft_in_config=True)
 class CSVLogger(accelerate.tracking.GeneralTracker):
     name = "csv"
@@ -53,7 +69,7 @@ class CSVLogger(accelerate.tracking.GeneralTracker):
         self._has_header = False
 
     @property
-    def tracker(self):
+    def tracker(self):  # pragma: no cover
         return None
 
     @accelerate.tracking.on_main_process
@@ -70,11 +86,9 @@ class CSVLogger(accelerate.tracking.GeneralTracker):
         - All subsequent calls must use the same columns. Any missing columns get
           written as empty, any new columns generate a warning.
         """
-        # Ensure we have columns set
-        print("LOGGING TO CSV", self.file_path)
+        values = flatten_dict(values)
+
         if self._columns is None:
-            # Create the list of columns. We'll always reserve "step" as first if step
-            # is provided.
             self._columns = list({**{"step": None}, **values}.keys())
             self._writer.writerow(self._columns)
             self._has_header = True
@@ -142,7 +156,7 @@ class JSONLogger(accelerate.tracking.GeneralTracker):
         self._logs = []
 
     @property
-    def tracker(self):
+    def tracker(self):  # pragma: no cover
         return None
 
     @accelerate.tracking.on_main_process
@@ -267,8 +281,7 @@ class RichLogger(accelerate.tracking.GeneralTracker):
         Logs values in the Rich table. If `step` is provided, we include it in the
         logged data.
         """
-        print("LOGGING WITH RICH")
-        combined = {"step": step, **values}
+        combined = {"step": step, **flatten_dict(values)}
         self.printer.log_metrics(combined)
 
     @accelerate.tracking.on_main_process
@@ -280,36 +293,40 @@ class RichLogger(accelerate.tracking.GeneralTracker):
 
 
 @edsnlp.registry.loggers.register("tensorboard", auto_draft_in_config=True)
-def TensorBoardLogger(
-    project_name: str,
-    logging_dir: Optional[Union[str, os.PathLike]] = None,
-    **kwargs,
-) -> "accelerate.tracking.TensorBoardTracker":  # pragma: no cover
-    """
-    Logger for [TensorBoard](https://github.com/tensorflow/tensorboard).
-    This logger is also available via the loggers registry as `tensorboard`.
+class TensorBoardLogger(accelerate.tracking.TensorBoardTracker):
+    def __init__(
+        self,
+        project_name: str,
+        logging_dir: Optional[Union[str, os.PathLike]] = None,
+    ):
+        """
+        Logger for [TensorBoard](https://github.com/tensorflow/tensorboard).
+        This logger is also available via the loggers registry as `tensorboard`.
 
-    Parameters
-    ----------
-    project_name: str
-        Name of the project.
-    logging_dir: Union[str, os.PathLike]
-        Directory in which to store the TensorBoard logs. Logs of different runs
-        will be stored in `logging_dir/project_name`. If not provided, the
-        environment variable `TENSORBOARD_LOGGING_DIR` will be used.
-    kwargs: Dict
-        Additional keyword arguments to pass to `tensorboard.SummaryWriter`.
+        Parameters
+        ----------
+        project_name: str
+            Name of the project.
+        logging_dir: Union[str, os.PathLike]
+            Directory in which to store the TensorBoard logs. Logs of different runs
+            will be stored in `logging_dir/project_name`. If not provided, the
+            environment variable `TENSORBOARD_LOGGING_DIR` will be used.
+        kwargs: Dict
+            Additional keyword arguments to pass to `tensorboard.SummaryWriter`.
+        """
+        logging_dir = logging_dir or os.environ.get("TENSORBOARD_LOGGING_DIR", None)
+        assert logging_dir is not None, (
+            "Please provide a logging directory or set TENSORBOARD_LOGGING_DIR"
+        )
+        super().__init__(project_name, logging_dir)
 
-    Returns
-    -------
-    accelerate.tracking.TensorBoardTracker
-    """
-    logging_dir = logging_dir or os.environ.get("TENSORBOARD_LOGGING_DIR", None)
-    assert logging_dir is not None, (
-        "Please provide a logging directory or set TENSORBOARD_LOGGING_DIR"
-    )
+    def store_init_configuration(self, values: Dict[str, Any]):
+        values = json.loads(json.dumps(flatten_dict(values), default=str))
+        return super().store_init_configuration(values)
 
-    return accelerate.tracking.TensorBoardTracker(project_name, logging_dir, **kwargs)
+    def log(self, values: dict, step: Optional[int] = None, **kwargs):
+        values = flatten_dict(values)
+        return super().log(values, step, **kwargs)
 
 
 @edsnlp.registry.loggers.register("aim", auto_draft_in_config=True)
@@ -363,31 +380,6 @@ def WandBLogger(
     accelerate.tracking.WandBTracker
     """
     return accelerate.tracking.WandBTracker(project_name, **kwargs)
-
-
-@edsnlp.registry.loggers.register("clearml", auto_draft_in_config=True)
-def ClearMLLogger(
-    project_name: str,
-    **kwargs,
-) -> "accelerate.tracking.ClearMLTracker":  # pragma: no cover
-    """
-    Logger for
-    [ClearML](https://clear.ml/docs/latest/docs/getting_started/ds/ds_first_steps/).
-    This logger is also available via the loggers registry as `clearml`.
-
-    Parameters
-    ----------
-    project_name: str
-        Name of the experiment. Environment variables `CLEARML_PROJECT` and
-        `CLEARML_TASK` have priority over this argument.
-    kwargs: Dict
-        Additional keyword arguments to pass to the ClearML Task object.
-
-    Returns
-    -------
-    accelerate.tracking.ClearMLTracker
-    """
-    return accelerate.tracking.ClearMLTracker(project_name, **kwargs)
 
 
 @edsnlp.registry.loggers.register("mlflow", auto_draft_in_config=True)
@@ -471,24 +463,63 @@ def CometMLLogger(
     return accelerate.tracking.CometMLTracker(project_name, **kwargs)
 
 
-@edsnlp.registry.loggers.register("dvclive", auto_draft_in_config=True)
-def DVCLiveLogger(
-    live: Any = None,
-    **kwargs,
-) -> "accelerate.tracking.DVCLiveTracker":
-    """
-    Logger for [DVC Live](https://dvc.org/doc/dvclive).
-    This logger is also available via the loggers registry as `dvclive`.
+try:
+    from accelerate.tracking import ClearMLTracker as _ClearMLTracker
 
-    Parameters
-    ----------
-    live: dvclive.Live
-        An instance of `dvclive.Live` to use for logging.
-    kwargs: Dict
-        Additional keyword arguments to pass to the `dvclive.Live` constructor.
+    @edsnlp.registry.loggers.register("clearml", auto_draft_in_config=True)
+    def ClearMLLogger(
+        project_name: str,
+        **kwargs,
+    ) -> "accelerate.tracking.ClearMLTracker":  # pragma: no cover
+        """
+        Logger for
+        [ClearML](https://clear.ml/docs/latest/docs/getting_started/ds/ds_first_steps/).
+        This logger is also available via the loggers registry as `clearml`.
 
-    Returns
-    -------
-    accelerate.tracking.DVCLiveTracker
-    """
-    return accelerate.tracking.DVCLiveTracker(None, live=live, **kwargs)
+        Parameters
+        ----------
+        project_name: str
+            Name of the experiment. Environment variables `CLEARML_PROJECT` and
+            `CLEARML_TASK` have priority over this argument.
+        kwargs: Dict
+            Additional keyword arguments to pass to the ClearML Task object.
+
+        Returns
+        -------
+        accelerate.tracking.ClearMLTracker
+        """
+        return _ClearMLTracker(project_name, **kwargs)
+except ImportError:  # pragma: no cover
+
+    def ClearMLLogger(*args, **kwargs):
+        raise ImportError("ClearMLLogger is not available.")
+
+
+try:
+    from accelerate.tracking import DVCLiveTracker as _DVCLiveTracker
+
+    @edsnlp.registry.loggers.register("dvclive", auto_draft_in_config=True)
+    def DVCLiveLogger(
+        live: Any = None,
+        **kwargs,
+    ) -> "accelerate.tracking.DVCLiveTracker":  # pragma: no cover
+        """
+        Logger for [DVC Live](https://dvc.org/doc/dvclive).
+        This logger is also available via the loggers registry as `dvclive`.
+
+        Parameters
+        ----------
+        live: dvclive.Live
+            An instance of `dvclive.Live` to use for logging.
+        kwargs: Dict
+            Additional keyword arguments to pass to the `dvclive.Live` constructor.
+
+        Returns
+        -------
+        accelerate.tracking.DVCLiveTracker
+        """
+        return _DVCLiveTracker(None, live=live, **kwargs)
+except ImportError:  # pragma: no cover
+
+    def DVCLiveLogger(*args, **kwargs):
+        raise ImportError("DVCLiveLogger is not available.")

@@ -71,7 +71,11 @@ class ClickableSnippetsPlugin(BasePlugin):
         if hasattr(ep, "select"):
             return ep.select(group=namespace) if namespace else list(ep._all)
         else:  # dict
-            return ep.get(namespace, []) if namespace else ep.values()
+            return (
+                ep.get(namespace, [])
+                if namespace
+                else (x for g in ep.values() for x in g)
+            )
 
     @mkdocs.plugins.event_priority(-1000)
     def on_post_page(

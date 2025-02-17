@@ -29,6 +29,7 @@ from spacy.tokens import Doc, Span
 from edsnlp.core.registries import registry
 from edsnlp.data.converters import AttributesMappingArg, get_current_tokenizer
 from edsnlp.metrics.dep_parsing import DependencyParsingMetric
+from edsnlp.training.loggers import CSVLogger
 from edsnlp.training.optimizer import LinearSchedule, ScheduledOptimizer
 from edsnlp.training.trainer import GenericScorer, train
 from edsnlp.utils.span_getters import SpanSetterArg, set_spans
@@ -152,7 +153,12 @@ def test_dep_parser_train(run_in_test_dir, tmp_path):
     config = Config.from_disk("dep_parser_config.yml")
     shutil.rmtree(tmp_path, ignore_errors=True)
     kwargs = Config.resolve(config["train"], registry=registry, root=config)
-    nlp = train(**kwargs, output_dir=tmp_path, cpu=True)
+    nlp = train(
+        **kwargs,
+        logger=CSVLogger.draft(),
+        output_dir=tmp_path,
+        cpu=True,
+    )
     scorer = GenericScorer(**kwargs["scorer"])
     val_data = list(kwargs["val_data"])
     last_scores = scorer(nlp, val_data)

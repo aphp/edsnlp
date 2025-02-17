@@ -5,13 +5,12 @@ import warnings
 from typing import Any, Dict, Optional, Union
 
 import accelerate.tracking
-from accelerate.state import logger
 from rich_logger import RichTablePrinter
 
 import edsnlp
 
 
-@edsnlp.registry.loggers.register("csv", allow_partial=True)
+@edsnlp.registry.loggers.register("csv", auto_draft_in_config=True)
 class CSVLogger(accelerate.tracking.GeneralTracker):
     name = "csv"
     requires_logging_directory = True
@@ -53,8 +52,6 @@ class CSVLogger(accelerate.tracking.GeneralTracker):
         self._columns = None
         self._has_header = False
 
-        logger.debug(f"Initialized CSVTracker. Logging to: {self.file_path}")
-
     @property
     def tracker(self):
         return None
@@ -74,6 +71,7 @@ class CSVLogger(accelerate.tracking.GeneralTracker):
           written as empty, any new columns generate a warning.
         """
         # Ensure we have columns set
+        print("LOGGING TO CSV", self.file_path)
         if self._columns is None:
             # Create the list of columns. We'll always reserve "step" as first if step
             # is provided.
@@ -105,10 +103,9 @@ class CSVLogger(accelerate.tracking.GeneralTracker):
     @accelerate.tracking.on_main_process
     def finish(self):
         self._file.close()
-        logger.debug("CSVTracker finished writing and closed the file.")
 
 
-@edsnlp.registry.loggers.register("json", allow_partial=True)
+@edsnlp.registry.loggers.register("json", auto_draft_in_config=True)
 class JSONLogger(accelerate.tracking.GeneralTracker):
     name = "json"
     requires_logging_directory = True
@@ -143,8 +140,6 @@ class JSONLogger(accelerate.tracking.GeneralTracker):
 
         self._file_path = os.path.join(self.logging_dir, file_name)
         self._logs = []
-
-        logger.debug(f"Initialized JSONTracker. Logging to: {self._file_path}")
 
     @property
     def tracker(self):
@@ -258,8 +253,6 @@ class RichLogger(accelerate.tracking.GeneralTracker):
         if hijack_tqdm:
             self.printer.hijack_tqdm()
 
-        logger.debug(f"Initialized RichTableTracker with run name '{self.run_name}'.")
-
     @property
     def tracker(self):
         return self.printer
@@ -274,6 +267,7 @@ class RichLogger(accelerate.tracking.GeneralTracker):
         Logs values in the Rich table. If `step` is provided, we include it in the
         logged data.
         """
+        print("LOGGING WITH RICH")
         combined = {"step": step, **values}
         self.printer.log_metrics(combined)
 
@@ -285,7 +279,7 @@ class RichLogger(accelerate.tracking.GeneralTracker):
         self.printer.finalize()
 
 
-@edsnlp.registry.loggers.register("tensorboard", allow_partial=True)
+@edsnlp.registry.loggers.register("tensorboard", auto_draft_in_config=True)
 def TensorBoardLogger(
     project_name: str,
     logging_dir: Optional[Union[str, os.PathLike]] = None,
@@ -311,14 +305,14 @@ def TensorBoardLogger(
     accelerate.tracking.TensorBoardTracker
     """
     logging_dir = logging_dir or os.environ.get("TENSORBOARD_LOGGING_DIR", None)
-    assert (
-        logging_dir is not None
-    ), "Please provide a logging directory or set TENSORBOARD_LOGGING_DIR"
+    assert logging_dir is not None, (
+        "Please provide a logging directory or set TENSORBOARD_LOGGING_DIR"
+    )
 
     return accelerate.tracking.TensorBoardTracker(project_name, logging_dir, **kwargs)
 
 
-@edsnlp.registry.loggers.register("aim", allow_partial=True)
+@edsnlp.registry.loggers.register("aim", auto_draft_in_config=True)
 def AimLogger(
     project_name: str,
     logging_dir: Optional[Union[str, os.PathLike]] = None,
@@ -340,14 +334,14 @@ def AimLogger(
     accelerate.tracking.AimTracker
     """
     logging_dir = logging_dir or os.environ.get("AIM_LOGGING_DIR", None)
-    assert (
-        logging_dir is not None
-    ), "Please provide a logging directory or set AIM_LOGGING_DIR"
+    assert logging_dir is not None, (
+        "Please provide a logging directory or set AIM_LOGGING_DIR"
+    )
 
     return accelerate.tracking.AimTracker(project_name, logging_dir, **kwargs)
 
 
-@edsnlp.registry.loggers.register("wandb", allow_partial=True)
+@edsnlp.registry.loggers.register("wandb", auto_draft_in_config=True)
 def WandBLogger(
     project_name: str,
     **kwargs,
@@ -371,7 +365,7 @@ def WandBLogger(
     return accelerate.tracking.WandBTracker(project_name, **kwargs)
 
 
-@edsnlp.registry.loggers.register("clearml", allow_partial=True)
+@edsnlp.registry.loggers.register("clearml", auto_draft_in_config=True)
 def ClearMLLogger(
     project_name: str,
     **kwargs,
@@ -396,7 +390,7 @@ def ClearMLLogger(
     return accelerate.tracking.ClearMLTracker(project_name, **kwargs)
 
 
-@edsnlp.registry.loggers.register("mlflow", allow_partial=True)
+@edsnlp.registry.loggers.register("mlflow", auto_draft_in_config=True)
 def MLflowLogger(
     project_name: str,
     logging_dir: Optional[Union[str, os.PathLike]] = None,
@@ -453,7 +447,7 @@ def MLflowLogger(
     )
 
 
-@edsnlp.registry.loggers.register("cometml", allow_partial=True)
+@edsnlp.registry.loggers.register("cometml", auto_draft_in_config=True)
 def CometMLLogger(
     project_name: str,
     **kwargs,
@@ -477,9 +471,8 @@ def CometMLLogger(
     return accelerate.tracking.CometMLTracker(project_name, **kwargs)
 
 
-@edsnlp.registry.loggers.register("dvclive", allow_partial=True)
+@edsnlp.registry.loggers.register("dvclive", auto_draft_in_config=True)
 def DVCLiveLogger(
-    project_name: Optional[str] = None,
     live: Any = None,
     **kwargs,
 ) -> "accelerate.tracking.DVCLiveTracker":
@@ -489,8 +482,6 @@ def DVCLiveLogger(
 
     Parameters
     ----------
-    project_name: str
-        Unused project name.
     live: dvclive.Live
         An instance of `dvclive.Live` to use for logging.
     kwargs: Dict
@@ -500,4 +491,4 @@ def DVCLiveLogger(
     -------
     accelerate.tracking.DVCLiveTracker
     """
-    return accelerate.tracking.DVCLiveTracker(project_name, live=live, **kwargs)
+    return accelerate.tracking.DVCLiveTracker(None, live=live, **kwargs)

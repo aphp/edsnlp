@@ -12,7 +12,7 @@ You can configure loggers in `edsnlp.train` via the `logger` parameter of the `t
         from edsnlp.training.loggers import CSVLogger
         from edsnlp.training import train
 
-        logger = CSVLogger()
+        logger = CSVLogger.draft()
         train(..., logger=logger)
         # or train(..., logger="csv")
         ```
@@ -34,7 +34,7 @@ You can configure loggers in `edsnlp.train` via the `logger` parameter of the `t
         from edsnlp.training.loggers import CSVLogger
         from edsnlp.training import train
 
-        loggers = ["tensorboard", CSVLogger(...)]
+        loggers = ["tensorboard", CSVLogger.draft(...)]
         train(..., logger=loggers)
         ```
 
@@ -48,8 +48,18 @@ You can configure loggers in `edsnlp.train` via the `logger` parameter of the `t
                 ...
         ```
 
-`edsnlp.train` will provide a default project name and logging dir for loggers that require these parameters, but it is
-recommended to set the project name explicitly in the logger configuration.
+!!! note "Draft objects"
+
+    `edsnlp.train` will provide a default project name and logging dir for loggers that require these parameters, but it is
+recommended to set the project name explicitly in the logger configuration. For these loggers, if you don't want to set
+the project name yourself, you can either:
+
+    - call `CSVLogger.draft(...)` without the normal init parameters minus the `project_name` or `logging_dir` parameters,
+      which will cause a `Draft[CSVLogger]` object to be returned if some required parameters are missing
+    - or use `"@loggers": csv` in the config file, which will also cause a `Draft[CSVLogger]` object to be returned if some required
+      parameters are missing
+
+    If you do not want a `Draft` object to be returned, call `CSVLogger` directly.
 
 The supported loggers are listed below.
 

@@ -13,6 +13,7 @@ from typing import (
     Collection,
     Dict,
     Iterable,
+    List,
     Optional,
     Sequence,
     Union,
@@ -23,7 +24,7 @@ from accelerate import Accelerator, PartialState
 from accelerate.tracking import GeneralTracker
 from accelerate.utils import gather_object
 from confit import validate_arguments
-from confit.registry import Partial
+from confit.registry import Draft
 from confit.utils.random import set_seed
 from tqdm import tqdm, trange
 from typing_extensions import Literal
@@ -402,17 +403,17 @@ class PipeDict(torch.nn.ModuleDict):
 
 
 def get_logger(
-    logger: Union[bool, AsList[Union[str, Partial[GeneralTracker], GeneralTracker]]],
+    logger: Union[bool, AsList[Union[str, Draft[GeneralTracker], GeneralTracker]]],
     project_name,
     logging_dir,
     **kwargs,
-):
+) -> List[GeneralTracker]:
     logger = ["rich", "json"] if logger is True else [] if not logger else logger
     logger = [
         edsnlp.registry.loggers.get(n)() if isinstance(n, str) else n for n in logger
     ]
     logger = [
-        Partial.instantiate(obj, project_name=project_name, logging_dir=logging_dir)
+        Draft.instantiate(obj, project_name=project_name, logging_dir=logging_dir)
         for obj in logger
     ]
     return logger
@@ -426,11 +427,7 @@ def train(
     val_data: AsList[Stream] = [],
     seed: int = 42,
     max_steps: int = 1000,
-    optimizer: Union[
-        ScheduledOptimizer,
-        Partial[ScheduledOptimizer],
-        torch.optim.Optimizer,
-    ] = None,
+    optimizer: Union[ScheduledOptimizer, Draft[ScheduledOptimizer], torch.optim.Optimizer] = None,  # noqa: E501
     validation_interval: Optional[int] = None,
     checkpoint_interval: Optional[int] = None,
     grad_max_norm: float = 5.0,
@@ -445,21 +442,12 @@ def train(
     output_dir: Union[Path, str] = Path("artifacts"),
     output_model_dir: Optional[Union[Path, str]] = None,
     save_model: bool = True,
-    logger: Union[
-        bool,
-        AsList[
-            Union[
-                str,
-                Partial[GeneralTracker],
-                GeneralTracker,
-            ]
-        ],
-    ] = True,
+    logger: Union[bool, AsList[Union[str, GeneralTracker, Draft[GeneralTracker]]]] = True,  # noqa: E501
     log_weight_grads: bool = False,
     on_validation_callback: Optional[Callable[[Dict], None]] = None,
     config_meta: Optional[Dict] = None,
     **kwargs,
-):
+):  # fmt: skip
     """
     Train a pipeline.
 
@@ -487,7 +475,7 @@ def train(
         The random seed
     max_steps: int
         The maximum number of training steps
-    optimizer: Union[ScheduledOptimizer, Partial[ScheduledOptimizer], torch.optim.Optimizer]
+    optimizer: Union[ScheduledOptimizer, Draft[ScheduledOptimizer], torch.optim.Optimizer]
         The optimizer. If None, a default optimizer will be used.
 
         ??? note "`ScheduledOptimizer` object/dictionary"
@@ -559,7 +547,7 @@ def train(
         The logger to use. Can be a boolean to use the default loggers (rich
         and json), a list of logger names, or a list of logger objects.
 
-        You can use huggingface's accelerate integrated loggers (`tensorboard`,
+        You can use huggingface accelerate integrated loggers (`tensorboard`,
         `wandb`, `comet_ml`, `aim`, `mlflow`, `clearml`, `dvclive`), or
         EDS-NLP simple loggers, or a combination of both:
 
@@ -581,18 +569,18 @@ def train(
     # hack to ensure cpu is set before the accelerator is indirectly initialized
     # when creating the trackers
     PartialState(cpu=cpu)
+    project_name = str(Path.cwd() if config_meta is None else config_meta["config_path"][0])  # fmt: skip # noqa: E501
     accelerator = Accelerator(
         cpu=cpu,
         mixed_precision=mixed_precision,
         log_with=get_logger(
             logger,
             # default project name, the user can override this when creating the logger
-            project_name=str(
-                config_meta["config_path"][0] if config_meta is not None else Path.cwd()
-            ),
+            project_name=project_name,
             logging_dir=output_dir,
         ),
     )
+    accelerator.init_trackers(project_name)  # in theory project name shouldn't be used
     # accelerator.register_for_checkpointing(dataset)
     is_main_process = accelerator.is_main_process
     device = accelerator.device
@@ -628,7 +616,6 @@ def train(
     all_params = set(nlp.parameters())
     optim = optimizer
     del optimizer
-    optim = Partial.instantiate(optim, module=nlp, total_steps=max_steps)
     if optim is None:
         warnings.warn(
             "No optimizer provided, using default optimizer with default parameters"
@@ -642,6 +629,11 @@ def train(
                 if k in kwargs
             },
         )
+    optim: torch.nn.Optimizer = Draft.instantiate(
+        optim,
+        module=nlp,
+        total_steps=max_steps,
+    )
 
     if kwargs:
         raise ValueError(f"Unknown arguments: {', '.join(kwargs)}")

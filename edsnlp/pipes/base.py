@@ -12,7 +12,7 @@ from typing import (
 from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
-from edsnlp.core.registries import PartialPipeFactory
+from edsnlp.core.registries import DraftPipe
 from edsnlp.utils.span_getters import (
     SpanGetter,  # noqa: F401
     SpanGetterArg,  # noqa: F401
@@ -52,7 +52,7 @@ class BaseComponentMeta(abc.ABCMeta):
                 and sig.parameters["nlp"].default is sig.empty
                 and bound.arguments.get("nlp", sig.empty) is sig.empty
             ):
-                return PartialPipeFactory(cls, bound.arguments)
+                return DraftPipe(cls, bound.arguments)
             if nlp is inspect.Signature.empty:
                 bound.arguments.pop("nlp", None)
         except TypeError:  # pragma: no cover

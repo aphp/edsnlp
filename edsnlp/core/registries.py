@@ -19,7 +19,7 @@ import catalogue
 import spacy
 from confit import Config, Registry, RegistryCollection, set_default_registry
 from confit.errors import ConfitValidationError, patch_errors
-from confit.registry import Partial
+from confit.registry import Draft
 from spacy.pipe_analysis import validate_attrs
 
 import edsnlp
@@ -71,14 +71,13 @@ class FactoryMeta:
 T = TypeVar("T")
 
 
-class PartialPipeFactory(Partial[T]):
+class DraftPipe(Draft[T]):
     def __init__(self, func, kwargs):
         super().__init__(func, kwargs)
-        self.func = func
         self.instantiated = None
         self.error = None
 
-    def maybe_nlp(self) -> Union["PartialPipeFactory", Any]:
+    def maybe_nlp(self) -> Union["DraftPipe", Any]:
         """
         If the factory requires an nlp argument and the user has explicitly
         provided it (this is unusual, we usually expect the factory to be
@@ -91,7 +90,7 @@ class PartialPipeFactory(Partial[T]):
         """
         from edsnlp.core.pipeline import Pipeline, PipelineProtocol
 
-        sig = inspect.signature(self.func)
+        sig = inspect.signature(self._func)
         if (
             not (
                 "nlp" in sig.parameters
@@ -100,23 +99,23 @@ class PartialPipeFactory(Partial[T]):
                     or sig.parameters["nlp"].annotation in (Pipeline, PipelineProtocol)
                 )
             )
-            or "nlp" in self.kwargs
-        ) and not self.search_curried_factory(self.kwargs):
-            return self.func(**self.kwargs)
+            or "nlp" in self._kwargs
+        ) and not self.search_nested_drafts(self._kwargs):
+            return self._func(**self._kwargs)
         return self
 
     @classmethod
-    def search_curried_factory(cls, obj):
-        if isinstance(obj, PartialPipeFactory):
+    def search_nested_drafts(cls, obj):
+        if isinstance(obj, DraftPipe):
             return obj
         elif isinstance(obj, dict):
             for value in obj.values():
-                result = cls.search_curried_factory(value)
+                result = cls.search_nested_drafts(value)
                 if result is not None:
                     return result
         elif isinstance(obj, (tuple, list, set)):
             for value in obj:
-                result = cls.search_curried_factory(value)
+                result = cls.search_nested_drafts(value)
                 if result is not None:
                     return result
         return None
@@ -131,7 +130,7 @@ class PartialPipeFactory(Partial[T]):
         passing in the nlp object and name to factories. Since they can be
         nested, we need to add them to every factory in the config.
         """
-        if isinstance(self, PartialPipeFactory):
+        if isinstance(self, DraftPipe):
             if self.error is not None:
                 raise self.error
 
@@ -140,30 +139,30 @@ class PartialPipeFactory(Partial[T]):
 
             name = path[0] if len(path) == 1 else None
             parameters = (
-                inspect.signature(self.func.__init__).parameters
-                if isinstance(self.func, type)
-                else inspect.signature(self.func).parameters
+                inspect.signature(self._func.__init__).parameters
+                if isinstance(self._func, type)
+                else inspect.signature(self._func).parameters
             )
             kwargs = {
-                key: PartialPipeFactory.instantiate(
+                key: DraftPipe.instantiate(
                     self=value,
                     nlp=nlp,
                     path=(*path, key),
                 )
-                for key, value in self.kwargs.items()
+                for key, value in self._kwargs.items()
             }
             try:
                 if nlp and "nlp" in parameters:
                     kwargs["nlp"] = nlp
                 if name and "name" in parameters:
                     kwargs["name"] = name
-                self.instantiated = self.func(**kwargs)
+                self.instantiated = self._func(**kwargs)
             except ConfitValidationError as e:
                 self.error = e
                 raise ConfitValidationError(
                     patch_errors(e.raw_errors, path, model=e.model),
                     model=e.model,
-                    name=self.func.__module__ + "." + self.func.__qualname__,
+                    name=self._func.__module__ + "." + self._func.__qualname__,
                 )  # .with_traceback(None)
             # except Exception as e:
             #     obj.error = e
@@ -174,7 +173,7 @@ class PartialPipeFactory(Partial[T]):
             errors = []
             for key, value in self.items():
                 try:
-                    instantiated[key] = PartialPipeFactory.instantiate(
+                    instantiated[key] = DraftPipe.instantiate(
                         self=value,
                         nlp=nlp,
                         path=(*path, key),
@@ -190,7 +189,7 @@ class PartialPipeFactory(Partial[T]):
             for i, value in enumerate(self):
                 try:
                     instantiated.append(
-                        PartialPipeFactory.instantiate(value, nlp, (*path, str(i)))
+                        DraftPipe.instantiate(value, nlp, (*path, str(i)))
                     )
                 except ConfitValidationError as e:  # pragma: no cover
                     errors.append(e.raw_errors)
@@ -200,9 +199,9 @@ class PartialPipeFactory(Partial[T]):
         else:
             return self
 
-    def _raise_partial_error(self):
+    def _raise_draft_error(self):
         raise TypeError(
-            f"This component PartialFactory({self.func}) has not been instantiated "
+            f"This {self} component has not been instantiated "
             f"yet, likely because it was missing an `nlp` pipeline argument. You "
             f"should either:\n"
             f"- add it to a pipeline: `pipe = nlp.add_pipe(pipe)`\n"
@@ -277,9 +276,7 @@ class FactoryRegistry(Registry):
 
             if catalogue.check_exists(*registry_path):
                 func = catalogue._get(registry_path)
-                return lambda **kwargs: PartialPipeFactory(
-                    func, kwargs=kwargs
-                ).maybe_nlp()
+                return lambda **kwargs: DraftPipe(func, kwargs=kwargs).maybe_nlp()
 
         # Steps 1 & 2
         func = check_and_return()
@@ -432,7 +429,7 @@ class FactoryRegistry(Registry):
 
             @wraps(fn)
             def curried_registered_fn(**kwargs):
-                return PartialPipeFactory(registered_fn, kwargs).maybe_nlp()
+                return DraftPipe(registered_fn, kwargs).maybe_nlp()
 
             return (
                 curried_registered_fn

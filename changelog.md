@@ -9,11 +9,15 @@
 - Added a new unit test suite to validate the tuning script.
 - `docs/tutorials/tuning.md`: New tutorial for hyperparameter tuning.
 - Provided a [detailed tutorial](./docs/tutorials/tuning.md) on hyperparameter tuning, covering usage scenarios and configuration options.
+- Added grad spike detection to the `edsnlp.train` script, and per weight layer gradient logging.
+- Added support for multiple loggers (`tensorboard`, `wandb`, `comet_ml`, `aim`, `mlflow`, `clearml`, `dvclive`, `csv`, `json`, `rich`) in `edsnlp.train` via the `logger` parameter. Default is [`json` and `rich`] for backward compatibility.
+- Added clickable snippets in the documentation for more registered functions
 
 ### Fixed
 
 - Support packaging with poetry 2.0
 - Solve pickling issues with multiprocessing when pytorch is installed
+- Fixed mini-batch accumulation for multi-task training
 
 # v0.15.0 (2024-12-13)
 

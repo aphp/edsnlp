@@ -61,7 +61,7 @@ scorer:
 # 🎛️ OPTIMIZER
 optimizer:
   "@core": optimizer
-  optim: AdamW
+  optim: torch.optim.AdamW
   module: ${ nlp }
   groups:
     "^transformer": false

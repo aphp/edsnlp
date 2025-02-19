@@ -23,6 +23,7 @@ scorer:
   speed: false
   dep:
     '@metrics': "eds.dep_parsing"
+    filter_expr: "doc.text != ''"
 
 # 🎛️ OPTIMIZER
 optimizer:

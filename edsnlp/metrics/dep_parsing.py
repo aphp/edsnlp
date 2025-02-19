@@ -17,7 +17,9 @@ def dependency_parsing_metric(
         The examples to score, either a tuple of (golds, preds) or a list of
         spacy.training.Example objects
     filter_expr : Optional[str]
-        The filter expression to use to filter the documents
+        The filter expression to use to filter the documents. The expression
+        should be a valid Python test and uses the variable `doc` to refer to
+        the reference (gold) document.
 
     Returns
     -------

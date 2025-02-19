@@ -35,6 +35,7 @@ NERBatchInput = TypedDict(
         "targets": NotRequired[torch.Tensor],
         "window_indices": NotRequired[torch.Tensor],
         "window_indexer": NotRequired[torch.Tensor],
+        "stats": Dict[str, int],
     },
 )
 NERBatchOutput = TypedDict(
@@ -344,10 +345,12 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
             )
 
         ctxs = get_spans(doc, self.context_getter) if self.context_getter else [doc[:]]
+        lengths = [len(ctx) for ctx in ctxs]
         return {
             "embedding": self.embedding.preprocess(doc, contexts=ctxs, **kwargs),
-            "lengths": [len(ctx) for ctx in ctxs],
+            "lengths": lengths,
             "$contexts": ctxs,
+            "stats": {"ner_words": sum(lengths)},
         }
 
     def preprocess_supervised(self, doc, **kwargs):
@@ -389,9 +392,8 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
 
         if discarded:
             warnings.warn(
-                f"Some spans were discarded in {doc._.note_id} ("
-                f"{', '.join(repr(d.text) for d in discarded)}) because they "
-                f"were overlapping with other spans with the same label."
+                "Some spans were discarded in the training data because they "
+                "were overlapping with other spans with the same label."
             )
 
         return {
@@ -402,6 +404,9 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
     def collate(self, preps) -> NERBatchInput:
         collated: NERBatchInput = {
             "embedding": self.embedding.collate(preps["embedding"]),
+            "stats": {
+                k: sum(v) for k, v in preps["stats"].items() if not k.startswith("__")
+            },
         }
         lengths = [length for sample in preps["lengths"] for length in sample]
         max_len = max(lengths)
@@ -437,27 +442,37 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         loss = tags = None
         if "targets" in batch:
             if self.mode == "independent":
-                loss = torch.nn.functional.cross_entropy(
-                    scores.view(-1, 5),
-                    batch["targets"].view(-1),
-                    ignore_index=-1,
-                    reduction="sum",
+                loss = (
+                    torch.nn.functional.cross_entropy(
+                        scores.view(-1, 5),
+                        batch["targets"].view(-1),
+                        ignore_index=-1,
+                        reduction="sum",
+                    )
+                    / batch["stats"]["ner_words"]
                 )
             elif self.mode == "joint":
-                loss = self.crf(
-                    scores,
-                    mask,
-                    batch["targets"].unsqueeze(-1) == torch.arange(5).to(scores.device),
-                ).sum()
-            elif self.mode == "marginal":
-                loss = torch.nn.functional.cross_entropy(
-                    self.crf.marginal(
+                loss = (
+                    self.crf(
                         scores,
                         mask,
-                    ).view(-1, 5),
-                    batch["targets"].view(-1),
-                    ignore_index=-1,
-                    reduction="sum",
+                        batch["targets"].unsqueeze(-1)
+                        == torch.arange(5).to(scores.device),
+                    ).sum()
+                    / batch["stats"]["ner_words"]
+                )
+            elif self.mode == "marginal":
+                loss = (
+                    torch.nn.functional.cross_entropy(
+                        self.crf.marginal(
+                            scores,
+                            mask,
+                        ).view(-1, 5),
+                        batch["targets"].view(-1),
+                        ignore_index=-1,
+                        reduction="sum",
+                    )
+                    / batch["stats"]["ner_words"]
                 )
         else:
             if self.window == 1:

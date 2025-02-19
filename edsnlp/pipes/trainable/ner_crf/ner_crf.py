@@ -454,6 +454,9 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
                 k: sum(v) for k, v in preps["stats"].items() if not k.startswith("__")
             },
         }
+        collated["stats"] = {
+            k: sum(v) for k, v in preps["stats"].items() if not k.startswith("__")
+        }
         lengths = [length for sample in preps["lengths"] for length in sample]
         max_len = max(lengths)
         if "targets" in preps:

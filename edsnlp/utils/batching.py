@@ -1,3 +1,4 @@
+import warnings
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -435,9 +436,15 @@ def stat_batchify(key):
             if exact_key is None:
                 candidates = [k for k in item if "/stats/" in k and key in k]
                 if len(candidates) != 1:
-                    raise ValueError(
-                        f"Batching key {key!r} should match exactly one "
+                    warnings.warn(
+                        f"Batching key {key!r} should match one "
                         f"candidate in {[k for k in item if '/stats/' in k]}"
+                    )
+                if len(candidates) == 0:
+                    stat_keys = [k for k in item if "/stats/"]
+                    raise ValueError(
+                        f"Pattern {key!r} doesn't match any key in {stat_keys} "
+                        " to determine the batch size."
                     )
                 exact_key = candidates[0]
             value = item[exact_key]

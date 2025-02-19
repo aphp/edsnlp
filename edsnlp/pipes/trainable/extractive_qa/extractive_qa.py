@@ -217,8 +217,9 @@ class TrainableExtractiveQA(TrainableNerCrf):
         questions = [x[0] for x in prompt_contexts_and_labels]
         labels = [x[1] for x in prompt_contexts_and_labels]
         ctxs = [x[2] for x in prompt_contexts_and_labels]
+        lengths = [len(ctx) for ctx in ctxs]
         return {
-            "lengths": [len(ctx) for ctx in ctxs],
+            "lengths": lengths,
             "$labels": labels,
             "$contexts": ctxs,
             "embedding": self.embedding.preprocess(
@@ -227,6 +228,7 @@ class TrainableExtractiveQA(TrainableNerCrf):
                 prompts=questions,
                 **kwargs,
             ),
+            "stats": {"ner_words": sum(lengths)},
         }
 
     def preprocess_supervised(self, doc, **kwargs):

@@ -17,6 +17,7 @@
 
 - Support packaging with poetry 2.0
 - Solve pickling issues with multiprocessing when pytorch is installed
+- Allow deep attributes like `a.b.c` for `span_attributes` in Standoff and OMOP doc2dict converters
 
 ### Fixed
 - Correct the contributing documentation. Delete `$ pre-commit run --all-files`recommendation.

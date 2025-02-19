@@ -33,6 +33,9 @@ def dependency_parsing_metric(
         examples = [eg for eg in examples if filter_fn(eg.reference)]
 
     for eg_idx, eg in enumerate(examples):
+        if filter_expr and not eval(filter_expr, {}, eg):
+            continue
+
         for token in eg.reference:
             items["uas"][0].add((eg_idx, token.i, token.head.i))
             items["las"][0].add((eg_idx, token.i, token.head.i, token.dep_))

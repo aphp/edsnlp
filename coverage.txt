@@ -116,7 +116,7 @@ edsnlp/pipes/misc/sections/factory.py                                           
 edsnlp/pipes/misc/sections/patterns.py                                                     23      0 100.00%
 edsnlp/pipes/misc/sections/sections.py                                                     45      1  97.78%   127
 edsnlp/pipes/misc/split/__init__.py                                                         1      0 100.00%
-edsnlp/pipes/misc/split/split.py                                                           70      2  97.14%   176-177
+edsnlp/pipes/misc/split/split.py                                                           73      2  97.26%   185-186
 edsnlp/pipes/misc/tables/__init__.py                                                        1      0 100.00%
 edsnlp/pipes/misc/tables/factory.py                                                         4      0 100.00%
 edsnlp/pipes/misc/tables/patterns.py                                                        2      0 100.00%
@@ -332,4 +332,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      83      9  89.16%   103, 119, 122-128, 144
 edsnlp/utils/typing.py                                                                     56      0 100.00%
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   11188    216  98.07%
+TOTAL                                                                                   11191    216  98.07%

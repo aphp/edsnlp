@@ -1,3 +1,4 @@
+import importlib
 from collections import defaultdict
 from typing import (
     Any,
@@ -29,6 +30,23 @@ optim_mapping = {
     "adamax": torch.optim.Adamax,
     "rmsprop": torch.optim.RMSprop,
 }
+
+
+def get_optimizer(optim):
+    if isinstance(optim, str):
+        optim_lower = optim.lower()
+        if optim_lower in optim_mapping:
+            return optim_mapping[optim_lower]
+        else:
+            try:
+                # Attempt to get the optimizer from torch.optim
+                return getattr(torch.optim, optim)
+            except AttributeError:
+                # If not found in torch.optim, try to import it dynamically
+                module_name, class_name = optim.rsplit(".", 1)
+                module = importlib.import_module(module_name)
+                return getattr(module, class_name)
+    return optim
 
 
 @validate_arguments
@@ -264,12 +282,7 @@ class ScheduledOptimizer(torch.optim.Optimizer):
                 [{k: v for k, v in group.items() if v is not None} for group in cliques]
             )
 
-            if isinstance(optim, str):
-                optim = (
-                    optim_mapping[optim.lower()]
-                    if optim.lower() in optim_mapping
-                    else getattr(torch.optim, optim)
-                )
+            optim = get_optimizer(optim)
             optim = optim(cliques, **kwargs)
 
         self.optim = optim
@@ -361,6 +374,9 @@ class ScheduledOptimizer(torch.optim.Optimizer):
 
     def step(self, closure=None):
         self.optim.step(closure=closure)
+        self.step_schedules()
+
+    def step_schedules(self):
         for schedule in self.schedules:
             schedule.step(self.param_groups)
 

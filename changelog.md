@@ -15,6 +15,11 @@
 - Support packaging with poetry 2.0
 - Solve pickling issues with multiprocessing when pytorch is installed
 - Allow deep attributes like `a.b.c` for `span_attributes` in Standoff and OMOP doc2dict converters
+- Fixed various aspects of stream shuffling:
+
+  - Ensure the Parquet reader shuffles the data when `shuffle=True`
+  - Ensure we don't overwrite the RNG of the data reader when calling `stream.shuffle()` with no seed
+  - Raise an error if the batch size in `stream.shuffle(batch_size=...)` is not compatible with the stream
 
 # v0.15.0 (2024-12-13)
 

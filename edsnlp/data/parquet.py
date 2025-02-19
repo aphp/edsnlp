@@ -77,8 +77,10 @@ class ParquetReader(FileBasedReader):
     def read_records(self) -> Iterable[Any]:
         while True:
             files = self.fragments
+            if self.shuffle:
+                files = shuffle(files, self.rng)
             if self.shuffle == "fragment":
-                for file in shuffle(files, self.rng):
+                for file in files:
                     if self.work_unit == "fragment":
                         yield file
                     else:

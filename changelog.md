@@ -98,6 +98,11 @@
 - The loss of `eds.ner_crf` is now computed as the mean over the words instead of the sum. This change is compatible with multi-gpu training.
 - Having multiple stats keys matching a batching pattern now warns instead of raising an error.
 
+### Changed
+
+- The loss of `eds.ner_crf` is now computed as the mean over the words instead of the sum. This change is compatible with multi-gpu training.
+- Having multiple stats keys matching a batching pattern now warns instead of raising an error.
+
 ### Fixed
 
 - Support packaging with poetry 2.0

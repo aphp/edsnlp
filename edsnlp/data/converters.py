@@ -355,6 +355,14 @@ class StandoffDoc2DictConverter:
 
     def __call__(self, doc):
         spans = get_spans(doc, self.span_getter)
+        span_binding_getters = {
+            obj_name: BINDING_GETTERS[
+                ("_." + ext_name)
+                if ext_name.split(".")[0] not in SPAN_BUILTIN_ATTRS
+                else ext_name
+            ]
+            for ext_name, obj_name in self.span_attributes.items()
+        }
         obj = {
             FILENAME: doc._.note_id,
             "doc_id": doc._.note_id,
@@ -369,9 +377,12 @@ class StandoffDoc2DictConverter:
                         }
                     ],
                     "attributes": {
-                        obj_name: getattr(ent._, ext_name)
-                        for ext_name, obj_name in self.span_attributes.items()
-                        if ent._.has(ext_name)
+                        obj_name: value
+                        for obj_name, value in (
+                            (k, getter(ent))
+                            for k, getter in span_binding_getters.items()
+                        )
+                        if value is not None
                     },
                     "label": ent.label_,
                 }
@@ -621,8 +632,11 @@ class OmopDoc2DictConverter:
                     "lexical_variant": ent.text,
                     "note_nlp_source_value": ent.label_,
                     **{
-                        obj_name: getter(ent)
-                        for obj_name, getter in span_binding_getters.items()
+                        obj_name: value
+                        for obj_name, value in (
+                            (k, getter(ent))
+                            for k, getter in span_binding_getters.items()
+                        )
                     },
                 }
                 for i, ent in enumerate(sorted(dict.fromkeys(spans)))

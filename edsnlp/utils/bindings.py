@@ -19,9 +19,14 @@ def _check_path(path: str):
         "The label must be a path of valid python identifier to be used as a getter"
         "in the following template: span.[YOUR_LABEL], such as `label_` or `_.negated"
     )
-    if path[0].isalpha() or path[0] == "_":
-        return "." + path
-    return path
+    parts = path.split(".")
+    new_path = "span"
+    for part in parts:
+        if " " in part:
+            new_path = "getattr(" + new_path + f", {part!r})"
+        elif len(part) > 0:
+            new_path += "." + part
+    return new_path
 
 
 def make_binding_getter(attribute: Union[str, Binding]):
@@ -47,7 +52,7 @@ def make_binding_getter(attribute: Union[str, Binding]):
         exec(
             f"def getter(span):\n"
             f"    try:\n"
-            f"        return span{path} == value\n"
+            f"        return {path} == value\n"
             f"    except AttributeError:\n"
             f"        return False\n",
             ctx,
@@ -60,7 +65,7 @@ def make_binding_getter(attribute: Union[str, Binding]):
         exec(
             f"def getter(span):\n"
             f"    try:\n"
-            f"        return span{path}\n"
+            f"        return {path}\n"
             f"    except AttributeError:\n"
             f"        return None\n",
             ctx,
@@ -88,12 +93,12 @@ def make_binding_setter(binding: Binding):
     if isinstance(binding, tuple):
         path, value = binding
         path = _check_path(path)
-        fn_string = f"""def setter(span): span{path} = value"""
+        fn_string = f"""def setter(span): {path} = value"""
         ctx = {"value": value}
         exec(fn_string, ctx, ctx)
     else:
         path = _check_path(binding)
-        fn_string = f"""def setter(span, value): span{path} = value"""
+        fn_string = f"""def setter(span, value): {path} = value"""
         ctx = {}
         exec(fn_string, ctx, ctx)
     return ctx["setter"]

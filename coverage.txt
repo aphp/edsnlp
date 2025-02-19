@@ -286,7 +286,7 @@ edsnlp/pipes/trainable/embeddings/transformer/factory.py                        
 edsnlp/pipes/trainable/embeddings/transformer/transformer.py                              166      3  98.19%   166, 186, 190
 edsnlp/pipes/trainable/embeddings/typing.py                                                18      0 100.00%
 edsnlp/pipes/trainable/extractive_qa/__init__.py                                            0      0 100.00%
-edsnlp/pipes/trainable/extractive_qa/extractive_qa.py                                      68      0 100.00%
+edsnlp/pipes/trainable/extractive_qa/extractive_qa.py                                      69      0 100.00%
 edsnlp/pipes/trainable/extractive_qa/factory.py                                             4      0 100.00%
 edsnlp/pipes/trainable/layers/__init__.py                                                   0      0 100.00%
 edsnlp/pipes/trainable/layers/crf.py                                                      137      5  96.35%   22, 30, 99, 109, 118
@@ -294,7 +294,7 @@ edsnlp/pipes/trainable/layers/metric.py                                         
 edsnlp/pipes/trainable/layers/text_cnn.py                                                  56      0 100.00%
 edsnlp/pipes/trainable/ner_crf/__init__.py                                                  1      0 100.00%
 edsnlp/pipes/trainable/ner_crf/factory.py                                                   3      0 100.00%
-edsnlp/pipes/trainable/ner_crf/ner_crf.py                                                 158      3  98.10%   255, 263-264
+edsnlp/pipes/trainable/ner_crf/ner_crf.py                                                 159      3  98.11%   256, 264-265
 edsnlp/pipes/trainable/span_classifier/__init__.py                                          1      0 100.00%
 edsnlp/pipes/trainable/span_classifier/factory.py                                           3      0 100.00%
 edsnlp/pipes/trainable/span_classifier/span_classifier.py                                 159      1  99.37%   346
@@ -308,11 +308,11 @@ edsnlp/processing/simple.py                                                     
 edsnlp/processing/spark.py                                                                 47      1  97.87%   51
 edsnlp/reducers.py                                                                         67      2  97.01%   116, 118
 edsnlp/training/__init__.py                                                                 2      0 100.00%
-edsnlp/training/optimizer.py                                                              153      0 100.00%
+edsnlp/training/optimizer.py                                                              167      0 100.00%
 edsnlp/training/trainer.py                                                                241      1  99.59%   81
-edsnlp/tune.py                                                                            214      4  98.13%   242, 324, 479-480
+edsnlp/tune.py                                                                            214      2  99.07%   479-480
 edsnlp/utils/__init__.py                                                                    0      0 100.00%
-edsnlp/utils/batching.py                                                                  187      0 100.00%
+edsnlp/utils/batching.py                                                                  190      0 100.00%
 edsnlp/utils/bindings.py                                                                   70      0 100.00%
 edsnlp/utils/collections.py                                                               159      0 100.00%
 edsnlp/utils/deprecation.py                                                                15      0 100.00%
@@ -332,4 +332,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      83      9  89.16%   103, 119, 122-128, 144
 edsnlp/utils/typing.py                                                                     56      0 100.00%
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   11191    216  98.07%
+TOTAL                                                                                   11210    214  98.09%

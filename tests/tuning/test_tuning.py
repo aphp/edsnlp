@@ -171,6 +171,12 @@ def test_process_results(study, tmpdir, viz, config_path):
         config_file = os.path.join(output_dir, "config.cfg")
     assert os.path.exists(config_file), f"Expected file {config_file} not found"
 
+    with open(config_file, "r", encoding="utf-8") as f:
+        content = f.read()
+    assert (
+        "# My usefull comment" in content
+    ), f"Expected comment not found in {config_file}"
+
     if viz:
         optimization_history_file = os.path.join(
             output_dir, "optimization_history.html"

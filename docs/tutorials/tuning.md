@@ -39,8 +39,8 @@ dependencies = [
     "sentencepiece>=0.1.96",
     "optuna>=4.0.0",
     "plotly>=5.18.0",
-    "ruamel.yaml<0.18.0",
-    "configobj",
+    "ruamel.yaml>=0.18.0",
+    "configobj>=5.0.9",
 ]
 
 [project.optional-dependencies]

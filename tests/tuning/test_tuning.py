@@ -125,7 +125,10 @@ def test_compute_importances(study):
 
 
 @pytest.mark.parametrize("viz", [True, False])
-def test_process_results(study, tmpdir, viz):
+@pytest.mark.parametrize(
+    "config_path", ["tests/tuning/config.yml", "tests/tuning/config.cfg"]
+)
+def test_process_results(study, tmpdir, viz, config_path):
     output_dir = tmpdir.mkdir("output")
     config = {
         "train": {
@@ -144,9 +147,8 @@ def test_process_results(study, tmpdir, viz):
             "step": 2,
         },
     }
-
     best_params, importances = process_results(
-        study, output_dir, viz, config, hyperparameters
+        study, output_dir, viz, config, config_path, hyperparameters
     )
 
     assert isinstance(best_params, dict)
@@ -163,8 +165,17 @@ def test_process_results(study, tmpdir, viz):
         assert "Params" in content
         assert "Importances" in content
 
-    config_file = os.path.join(output_dir, "config.yml")
+    if config_path.endswith("yml") or config_path.endswith("yaml"):
+        config_file = os.path.join(output_dir, "config.yml")
+    else:
+        config_file = os.path.join(output_dir, "config.cfg")
     assert os.path.exists(config_file), f"Expected file {config_file} not found"
+
+    with open(config_file, "r", encoding="utf-8") as f:
+        content = f.read()
+    assert (
+        "# My usefull comment" in content
+    ), f"Expected comment not found in {config_file}"
 
     if viz:
         optimization_history_file = os.path.join(

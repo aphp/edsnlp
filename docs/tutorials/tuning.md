@@ -36,7 +36,11 @@ requires-python = ">3.7.1,<4.0"
 
 dependencies = [
     "edsnlp[ml]>=0.15.0",
-    "sentencepiece>=0.1.96"
+    "sentencepiece>=0.1.96",
+    "optuna>=4.0.0",
+    "plotly>=5.18.0",
+    "ruamel.yaml>=0.18.0",
+    "configobj>=5.0.9",
 ]
 
 [project.optional-dependencies]

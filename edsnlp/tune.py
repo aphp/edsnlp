@@ -18,8 +18,7 @@ from optuna.importance import FanovaImportanceEvaluator, get_param_importances
 from optuna.pruners import MedianPruner
 from pydantic import BaseModel, confloat, conint
 from ruamel.yaml import YAML
-from transformers.utils.logging import ERROR
-from transformers.utils.logging import set_verbosity 
+from transformers.utils.logging import ERROR, set_verbosity
 
 from edsnlp.training.trainer import GenericScorer, registry, train
 
@@ -290,7 +289,9 @@ def objective_with_param(config, tuned_parameters, trial, metric):
     return score
 
 
-def optimize(config_path, tuned_parameters, n_trials, metric, checkpoint_dir, study=None):
+def optimize(
+    config_path, tuned_parameters, n_trials, metric, checkpoint_dir, study=None
+):
     def objective(trial):
         return objective_with_param(config_path, tuned_parameters, trial, metric)
 
@@ -299,7 +300,9 @@ def optimize(config_path, tuned_parameters, n_trials, metric, checkpoint_dir, st
             direction="maximize",
             pruner=MedianPruner(n_startup_trials=5, n_warmup_steps=2),
         )
-    study.optimize(objective, n_trials=n_trials, callbacks=[save_checkpoint(checkpoint_dir)])
+    study.optimize(
+        objective, n_trials=n_trials, callbacks=[save_checkpoint(checkpoint_dir)]
+    )
     return study
 
 
@@ -308,6 +311,7 @@ def save_checkpoint(checkpoint_dir):
         checkpoint_file = os.path.join(checkpoint_dir, "study.pkl")
         logger.info(f"Saving checkpoint to {checkpoint_file}")
         joblib.dump(study, checkpoint_file)
+
     return callback
 
 
@@ -483,7 +487,7 @@ def tune_two_phase(
     if not skip_phase_1:
         n_trials_2 = n_trials // 2
         n_trials_1 = n_trials - n_trials_2
-         
+
         logger.info(f"Phase 1: Tuning all hyperparameters ({n_trials_1} trials).")
         study = optimize(
             config,
@@ -498,40 +502,40 @@ def tune_two_phase(
         )
         if not is_fixed_n_trials:
             n_trials_2 = compute_remaining_n_trials_possible(study, gpu_hours)
-        
+
     else:
         n_trials_2 = n_trials
-        logger.info(f"Skipping already tuned phase 1")
+        logger.info("Skipping already tuned phase 1")
         hyperparameters_to_keep = list(study.trials[-1].params.keys())
         best_params_phase_1, importances = parse_study_summary(output_dir_phase_1)
 
     hyperparameters_to_keep = list(importances.keys())[
         : math.ceil(len(importances) / 2)
     ]
-     
+
     hyperparameters_phase_2 = {
         key: value
         for key, value in hyperparameters.items()
         if key in hyperparameters_to_keep
         or (value.get("alias") and value["alias"] in hyperparameters_to_keep)
     }
-     
+
     hyperparameters_frozen = {
         key: value
         for key, value in hyperparameters.items()
         if key not in hyperparameters_to_keep
         and (not value.get("alias") or value["alias"] not in hyperparameters_to_keep)
     }
-     
+
     _, updated_config = update_config(
         config, hyperparameters_frozen, values=best_params_phase_1
     )
-    
+
     logger.info(
         f"Phase 2: Tuning {hyperparameters_to_keep} hyperparameters "
         f"({n_trials_2} trials). Other hyperparameters frozen to best values."
     )
-    
+
     study = optimize(
         updated_config,
         hyperparameters_phase_2,
@@ -540,7 +544,7 @@ def tune_two_phase(
         checkpoint_dir,
         study,
     )
-    
+
     process_results(
         study,
         output_dir_phase_2,
@@ -646,7 +650,7 @@ def tune(
     elapsed_trials = 0
     skip_phase_1 = False
     is_fixed_n_trials = n_trials is not None
-    
+
     if study:
         elapsed_trials = len(study.trials)
         logger.info(f"Elapsed trials: {elapsed_trials}")
@@ -664,13 +668,12 @@ def tune(
             n_trials = compute_n_trials(gpu_hours, compute_time_per_trial(study)) - 1
         else:
             n_trials = compute_n_trials(
-                gpu_hours,
-                compute_time_per_trial(study, ema=True)
+                gpu_hours, compute_time_per_trial(study, ema=True)
             )
-            
+
     if elapsed_trials >= (n_trials / 2):
         skip_phase_1 = True
-    
+
     n_trials = max(0, n_trials - elapsed_trials)
 
     logger.info(f"Number of trials: {n_trials}")
@@ -718,7 +721,9 @@ def tune(
                 )
         process_results(study, output_dir, viz, config, config_path, hyperparameters)
 
-    logger.info(f"Tuning completed. Results available in {output_dir}. Deleting checkpoint.")
+    logger.info(
+        f"Tuning completed. Results available in {output_dir}. Deleting checkpoint."
+    )
     os.remove(os.path.join(checkpoint_dir, "study.pkl"))
 
 

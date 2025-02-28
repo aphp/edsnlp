@@ -10,6 +10,7 @@
 - `docs/tutorials/tuning.md`: New tutorial for hyperparameter tuning.
 - Provided a [detailed tutorial](./docs/tutorials/tuning.md) on hyperparameter tuning, covering usage scenarios and configuration options.
 - `ScheduledOptimizer` (e.g., `@core: "optimizer"`) now supports importing optimizers using their qualified name (e.g., `optim: "torch.optim.Adam"`).
+- Added wrong version warning in documentation
 
 ### Changed
 

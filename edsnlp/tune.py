@@ -15,6 +15,7 @@ from confit.utils.collections import split_path
 from confit.utils.random import set_seed
 from optuna.importance import FanovaImportanceEvaluator, get_param_importances
 from optuna.pruners import MedianPruner
+from optuna.samplers import TPESampler
 from pydantic import BaseModel, confloat, conint
 from ruamel.yaml import YAML
 
@@ -292,6 +293,7 @@ def optimize(config_path, tuned_parameters, n_trials, metric, study=None):
         study = optuna.create_study(
             direction="maximize",
             pruner=MedianPruner(n_startup_trials=5, n_warmup_steps=2),
+            sampler=TPESampler(seed=random.randint(0, 2**32 - 1)),
         )
     study.optimize(objective, n_trials=n_trials)
     return study

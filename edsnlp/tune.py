@@ -24,12 +24,13 @@ from edsnlp.training.trainer import GenericScorer, registry, train
 
 app = Cli(pretty_exceptions_show_locals=False)
 
-# disable transformers warn logs
+# disable transformers lib warn logs
 set_verbosity(ERROR)
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_GPU_HOUR = 1.0
+CHECKPOINT = "study.pkl"
 
 
 class HyperparameterConfig(BaseModel):
@@ -308,7 +309,7 @@ def optimize(
 
 def save_checkpoint(checkpoint_dir):
     def callback(study: optuna.study.Study, trial: optuna.trial.FrozenTrial):
-        checkpoint_file = os.path.join(checkpoint_dir, "study.pkl")
+        checkpoint_file = os.path.join(checkpoint_dir, CHECKPOINT)
         logger.info(f"Saving checkpoint to {checkpoint_file}")
         joblib.dump(study, checkpoint_file)
 
@@ -316,7 +317,7 @@ def save_checkpoint(checkpoint_dir):
 
 
 def load_checkpoint(checkpoint_dir) -> Optional[optuna.study.Study]:
-    checkpoint_file = os.path.join(checkpoint_dir, "study.pkl")
+    checkpoint_file = os.path.join(checkpoint_dir, CHECKPOINT)
     if os.path.exists(checkpoint_file):
         logger.info(f"Loading study checkpoint from {checkpoint_file}")
         return joblib.load(checkpoint_file)
@@ -506,7 +507,6 @@ def tune_two_phase(
     else:
         n_trials_2 = n_trials
         logger.info("Skipping already tuned phase 1")
-        hyperparameters_to_keep = list(study.trials[-1].params.keys())
         best_params_phase_1, importances = parse_study_summary(output_dir_phase_1)
 
     hyperparameters_to_keep = list(importances.keys())[
@@ -724,7 +724,7 @@ def tune(
     logger.info(
         f"Tuning completed. Results available in {output_dir}. Deleting checkpoint."
     )
-    checkpoint_file = os.path.join(checkpoint_dir, "study.pkl")
+    checkpoint_file = os.path.join(checkpoint_dir, CHECKPOINT)
     if os.path.exists(checkpoint_file):
         os.remove(checkpoint_file)
 

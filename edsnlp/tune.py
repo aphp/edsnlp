@@ -724,7 +724,9 @@ def tune(
     logger.info(
         f"Tuning completed. Results available in {output_dir}. Deleting checkpoint."
     )
-    os.remove(os.path.join(checkpoint_dir, "study.pkl"))
+    checkpoint_file = os.path.join(checkpoint_dir, "study.pkl")
+    if os.path.exists(checkpoint_file):
+        os.remove(checkpoint_file)
 
 
 if __name__ == "__main__":

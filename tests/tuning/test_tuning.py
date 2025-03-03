@@ -212,22 +212,33 @@ def test_compute_remaining_n_trials_possible(study):
 def test_optimize(mock_objective_with_param, mock_optimize_study, has_study, study):
     mock_objective_with_param.return_value = 0.9
     metric = ("ner", "micro", "f")
+    checkpoint_dir = "./checkpoint"
 
     if has_study:
 
-        def pass_fn(obj, n_trials):
+        def pass_fn(obj, n_trials, callbacks):
             pass
 
         study.optimize = pass_fn
         study = optimize(
-            "config_path", tuned_parameters={}, n_trials=1, metric=metric, study=study
+            "config_path",
+            tuned_parameters={},
+            n_trials=1,
+            metric=metric,
+            checkpoint_dir=checkpoint_dir,
+            study=study,
         )
         assert isinstance(study, Mock)
         assert len(study.trials) == 3
 
     else:
         study = optimize(
-            "config_path", tuned_parameters={}, n_trials=1, metric=metric, study=None
+            "config_path",
+            tuned_parameters={},
+            n_trials=1,
+            metric=metric,
+            checkpoint_dir=checkpoint_dir,
+            study=None,
         )
         assert isinstance(study, optuna.study.Study)
         assert len(study.trials) == 0
@@ -260,7 +271,8 @@ def test_tune(
         "param1": {"type": "float", "low": 0.0, "high": 1.0},
         "param2": {"type": "float", "low": 0.0, "high": 1.0},
     }
-    output_dir = "fake_output_dir"
+    output_dir = "output_dir"
+    checkpoint_dir = "checkpoint_dir"
     gpu_hours = 0.25
     seed = 42
 
@@ -268,6 +280,7 @@ def test_tune(
         config_meta=config_meta,
         hyperparameters=hyperparameters,
         output_dir=output_dir,
+        checkpoint_dir=checkpoint_dir,
         gpu_hours=gpu_hours,
         n_trials=n_trials,
         two_phase_tuning=two_phase_tuning,

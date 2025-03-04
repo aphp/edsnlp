@@ -54,7 +54,8 @@ def assert_results(output_dir):
 
 @pytest.mark.parametrize("n_trials", [7, None])
 @pytest.mark.parametrize("two_phase_tuning", [True, False])
-def test_tune(tmpdir, n_trials, two_phase_tuning):
+@pytest.mark.parametrize("start_from_checkpoint", [True, False])
+def test_tune(tmpdir, n_trials, two_phase_tuning, start_from_checkpoint):
     config_meta = {"config_path": ["tests/tuning/config.yml"]}
     hyperparameters = {
         "optimizer.groups.'.*'.lr.start_value": {
@@ -73,26 +74,62 @@ def test_tune(tmpdir, n_trials, two_phase_tuning):
         },
     }
     output_dir = "./results"
-    gpu_hours = 0.015
-    seed = 42
-    metric = "ner.micro.f"
-    tune(
-        config_meta=config_meta,
-        hyperparameters=hyperparameters,
-        output_dir=output_dir,
-        gpu_hours=gpu_hours,
-        n_trials=n_trials,
-        two_phase_tuning=two_phase_tuning,
-        seed=seed,
-        metric=metric,
-    )
-    if two_phase_tuning:
-        phase_1_dir = os.path.join(output_dir, "phase_1")
-        phase_2_dir = os.path.join(output_dir, "phase_2")
-        assert_results(phase_1_dir)
-        assert_results(phase_2_dir)
-    else:
-        assert_results(output_dir)
+    try:
+        if start_from_checkpoint:
+            if two_phase_tuning:
+                if n_trials is None:
+                    checkpoint_dir = (
+                        "./tests/tuning/test_checkpoints/two_phase_gpu_hour"
+                    )
+                else:
+                    checkpoint_dir = (
+                        "./tests/tuning/test_checkpoints/two_phase_n_trials"
+                    )
+                summary_src = os.path.join(checkpoint_dir, "results_summary.txt")
+                summary_dst = os.path.join(output_dir, "phase_1/results_summary.txt")
+                config_src = os.path.join(checkpoint_dir, "config.yml")
+                config_dst = os.path.join(output_dir, "phase_1/config.yml")
+                os.makedirs(os.path.join(output_dir, "phase_1"))
+                shutil.copy(summary_src, summary_dst)
+                shutil.copy(config_src, config_dst)
+            else:
+                if n_trials is None:
+                    checkpoint_dir = (
+                        "./tests/tuning/test_checkpoints/single_phase_gpu_hour"
+                    )
+                else:
+                    checkpoint_dir = (
+                        "./tests/tuning/test_checkpoints/single_phase_n_trials"
+                    )
+            study_src = os.path.join(checkpoint_dir, "study_.pkl")
+            study_dst = os.path.join(checkpoint_dir, "study.pkl")
+            shutil.copy(study_src, study_dst)
 
-    shutil.rmtree(output_dir)
-    shutil.rmtree("./artifacts")
+        else:
+            checkpoint_dir = "./tests/tuning/test_checkpoints"
+
+        gpu_hours = 0.015
+        seed = 42
+        metric = "ner.micro.f"
+        tune(
+            config_meta=config_meta,
+            hyperparameters=hyperparameters,
+            output_dir=output_dir,
+            checkpoint_dir=checkpoint_dir,
+            gpu_hours=gpu_hours,
+            n_trials=n_trials,
+            two_phase_tuning=two_phase_tuning,
+            seed=seed,
+            metric=metric,
+        )
+        if two_phase_tuning:
+            phase_1_dir = os.path.join(output_dir, "phase_1")
+            phase_2_dir = os.path.join(output_dir, "phase_2")
+            if not start_from_checkpoint:
+                assert_results(phase_1_dir)
+            assert_results(phase_2_dir)
+        else:
+            assert_results(output_dir)
+    finally:
+        shutil.rmtree(output_dir)
+        shutil.rmtree("./artifacts")

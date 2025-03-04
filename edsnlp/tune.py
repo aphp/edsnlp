@@ -7,6 +7,7 @@ import random
 import sys
 from typing import Dict, List, Optional, Tuple, Union
 
+import joblib
 import optuna
 import optuna.visualization as vis
 from configobj import ConfigObj
@@ -17,14 +18,19 @@ from optuna.importance import FanovaImportanceEvaluator, get_param_importances
 from optuna.pruners import MedianPruner
 from pydantic import BaseModel, confloat, conint
 from ruamel.yaml import YAML
+from transformers.utils.logging import ERROR, set_verbosity
 
 from edsnlp.training.trainer import GenericScorer, registry, train
 
 app = Cli(pretty_exceptions_show_locals=False)
 
+# disable transformers lib warn logs
+set_verbosity(ERROR)
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_GPU_HOUR = 1.0
+CHECKPOINT = "study.pkl"
 
 
 class HyperparameterConfig(BaseModel):
@@ -284,7 +290,9 @@ def objective_with_param(config, tuned_parameters, trial, metric):
     return score
 
 
-def optimize(config_path, tuned_parameters, n_trials, metric, study=None):
+def optimize(
+    config_path, tuned_parameters, n_trials, metric, checkpoint_dir, study=None
+):
     def objective(trial):
         return objective_with_param(config_path, tuned_parameters, trial, metric)
 
@@ -293,8 +301,27 @@ def optimize(config_path, tuned_parameters, n_trials, metric, study=None):
             direction="maximize",
             pruner=MedianPruner(n_startup_trials=5, n_warmup_steps=2),
         )
-    study.optimize(objective, n_trials=n_trials)
+    study.optimize(
+        objective, n_trials=n_trials, callbacks=[save_checkpoint(checkpoint_dir)]
+    )
     return study
+
+
+def save_checkpoint(checkpoint_dir):
+    def callback(study: optuna.study.Study, trial: optuna.trial.FrozenTrial):
+        checkpoint_file = os.path.join(checkpoint_dir, CHECKPOINT)
+        logger.info(f"Saving checkpoint to {checkpoint_file}")
+        joblib.dump(study, checkpoint_file)
+
+    return callback
+
+
+def load_checkpoint(checkpoint_dir) -> Optional[optuna.study.Study]:
+    checkpoint_file = os.path.join(checkpoint_dir, CHECKPOINT)
+    if os.path.exists(checkpoint_file):
+        logger.info(f"Loading study checkpoint from {checkpoint_file}")
+        return joblib.load(checkpoint_file)
+    return None
 
 
 def process_results(
@@ -376,17 +403,38 @@ def write_final_config(output_dir, config_path, tuned_parameters, best_params):
         config.write()
 
 
+def parse_study_summary(output_dir):
+    file_path = os.path.join(output_dir, "results_summary.txt")
+    with open(file_path, "r") as f:
+        lines = f.readlines()
+
+    sections = {"Params:": {}, "Importances:": {}}
+    current = None
+
+    for line in lines:
+        line = line.strip()
+        if line in sections:
+            current = sections[line]
+        elif current is not None and line:
+            key, value = map(str.strip, line.split(":"))
+            current[key] = float(value)
+
+    return sections["Params:"], sections["Importances:"]
+
+
 def tune_two_phase(
     config: Dict,
     config_path: str,
     hyperparameters: Dict[str, Dict],
     output_dir: str,
+    checkpoint_dir: str,
     n_trials: int,
     viz: bool,
     metric: Tuple[str],
     study: Optional[optuna.study.Study] = None,
     is_fixed_n_trials: bool = False,
     gpu_hours: float = 1.0,
+    skip_phase_1: bool = False,
 ) -> None:
     """
     Perform two-phase hyperparameter tuning using Optuna.
@@ -406,6 +454,8 @@ def tune_two_phase(
     output_dir : str
         Directory where tuning results, visualizations, and best parameters will
         be saved.
+    checkpoint_dir : str,
+        Path to save the checkpoint file.
     n_trials : int
         The total number of trials to execute across both tuning phases.
         This number will be split between the two phases, with approximately half
@@ -423,17 +473,41 @@ def tune_two_phase(
         trials pruned in phase 1, we raise n_trials to compensate. Default is False.
     gpu_hours : float, optional
         Total GPU time available for tuning, in hours. Default is 1 hour.
+    skip_phase_1 : bool, optional
+        Whether or not to skip phase 1 (in case of resuming from checkpoint).
+        Default is False.
     """
-    n_trials_2 = n_trials // 2
-    n_trials_1 = n_trials - n_trials_2
     output_dir_phase_1 = os.path.join(output_dir, "phase_1")
     output_dir_phase_2 = os.path.join(output_dir, "phase_2")
 
-    logger.info(f"Phase 1: Tuning all hyperparameters ({n_trials_1} trials).")
-    study = optimize(config, hyperparameters, n_trials_1, metric, study=study)
-    best_params_phase_1, importances = process_results(
-        study, output_dir_phase_1, viz, config, config_path, hyperparameters
-    )
+    if str(config_path).endswith("yaml") or str(config_path).endswith("yml"):
+        config_path_phase_2 = os.path.join(output_dir_phase_1, "config.yml")
+    else:
+        config_path_phase_2 = os.path.join(output_dir_phase_1, "config.cfg")
+
+    if not skip_phase_1:
+        n_trials_2 = n_trials // 2
+        n_trials_1 = n_trials - n_trials_2
+
+        logger.info(f"Phase 1: Tuning all hyperparameters ({n_trials_1} trials).")
+        study = optimize(
+            config,
+            hyperparameters,
+            n_trials_1,
+            metric,
+            checkpoint_dir,
+            study,
+        )
+        best_params_phase_1, importances = process_results(
+            study, output_dir_phase_1, viz, config, config_path, hyperparameters
+        )
+        if not is_fixed_n_trials:
+            n_trials_2 = compute_remaining_n_trials_possible(study, gpu_hours)
+
+    else:
+        n_trials_2 = n_trials
+        logger.info("Skipping already tuned phase 1")
+        best_params_phase_1, importances = parse_study_summary(output_dir_phase_1)
 
     hyperparameters_to_keep = list(importances.keys())[
         : math.ceil(len(importances) / 2)
@@ -445,6 +519,7 @@ def tune_two_phase(
         if key in hyperparameters_to_keep
         or (value.get("alias") and value["alias"] in hyperparameters_to_keep)
     }
+
     hyperparameters_frozen = {
         key: value
         for key, value in hyperparameters.items()
@@ -456,20 +531,20 @@ def tune_two_phase(
         config, hyperparameters_frozen, values=best_params_phase_1
     )
 
-    if not is_fixed_n_trials:
-        n_trials_2 = compute_remaining_n_trials_possible(study, gpu_hours)
-
     logger.info(
         f"Phase 2: Tuning {hyperparameters_to_keep} hyperparameters "
         f"({n_trials_2} trials). Other hyperparameters frozen to best values."
     )
+
     study = optimize(
-        updated_config, hyperparameters_phase_2, n_trials_2, metric, study=study
+        updated_config,
+        hyperparameters_phase_2,
+        n_trials_2,
+        metric,
+        checkpoint_dir,
+        study,
     )
-    if str(config_path).endswith("yaml") or str(config_path).endswith("yml"):
-        config_path_phase_2 = os.path.join(output_dir_phase_1, "config.yml")
-    else:
-        config_path_phase_2 = os.path.join(output_dir_phase_1, "config.cfg")
+
     process_results(
         study,
         output_dir_phase_2,
@@ -521,6 +596,7 @@ def tune(
     config_meta: Dict,
     hyperparameters: Dict[str, HyperparameterConfig],
     output_dir: str,
+    checkpoint_dir: str,
     gpu_hours: confloat(gt=0) = DEFAULT_GPU_HOUR,
     n_trials: conint(gt=0) = None,
     two_phase_tuning: bool = False,
@@ -548,6 +624,8 @@ def tune(
     output_dir : str
         Directory where tuning results, visualizations, and best parameters will
         be saved.
+    checkpoint_dir : str,
+        Path to save the checkpoint file.
     gpu_hours : float, optional
         Total GPU time available for tuning, in hours. Default is 1 hour.
     n_trials : int, optional
@@ -568,13 +646,35 @@ def tune(
     hyperparameters = {key: value.to_dict() for key, value in hyperparameters.items()}
     set_seed(seed)
     metric = split_path(metric)
-    study = None
+    study = load_checkpoint(checkpoint_dir)
+    elapsed_trials = 0
+    skip_phase_1 = False
     is_fixed_n_trials = n_trials is not None
 
+    if study:
+        elapsed_trials = len(study.trials)
+        logger.info(f"Elapsed trials: {elapsed_trials}")
+
     if not is_fixed_n_trials:
-        logger.info(f"Computing number of trials for {gpu_hours} hours of GPU.")
-        study = optimize(config, hyperparameters, n_trials=1, metric=metric)
-        n_trials = compute_n_trials(gpu_hours, compute_time_per_trial(study)) - 1
+        if not study:
+            logger.info(f"Computing number of trials for {gpu_hours} hours of GPU.")
+            study = optimize(
+                config,
+                hyperparameters,
+                n_trials=1,
+                metric=metric,
+                checkpoint_dir=checkpoint_dir,
+            )
+            n_trials = compute_n_trials(gpu_hours, compute_time_per_trial(study)) - 1
+        else:
+            n_trials = compute_n_trials(
+                gpu_hours, compute_time_per_trial(study, ema=True)
+            )
+
+    if elapsed_trials >= (n_trials / 2):
+        skip_phase_1 = True
+
+    n_trials = max(0, n_trials - elapsed_trials)
 
     logger.info(f"Number of trials: {n_trials}")
 
@@ -585,16 +685,25 @@ def tune(
             config_path,
             hyperparameters,
             output_dir,
+            checkpoint_dir,
             n_trials,
             viz,
             metric=metric,
             study=study,
             is_fixed_n_trials=is_fixed_n_trials,
             gpu_hours=gpu_hours,
+            skip_phase_1=skip_phase_1,
         )
     else:
         logger.info("Starting single-phase tuning.")
-        study = optimize(config, hyperparameters, n_trials, metric, study=study)
+        study = optimize(
+            config,
+            hyperparameters,
+            n_trials,
+            metric,
+            checkpoint_dir,
+            study,
+        )
         if not is_fixed_n_trials:
             n_trials = compute_remaining_n_trials_possible(study, gpu_hours)
             if n_trials > 0:
@@ -602,8 +711,22 @@ def tune(
                     f"As some trials were pruned, perform tuning for {n_trials} "
                     "more trials to fully use GPU time budget."
                 )
-                study = optimize(config, hyperparameters, n_trials, metric, study=study)
+                study = optimize(
+                    config,
+                    hyperparameters,
+                    n_trials,
+                    metric,
+                    checkpoint_dir,
+                    study,
+                )
         process_results(study, output_dir, viz, config, config_path, hyperparameters)
+
+    logger.info(
+        f"Tuning completed. Results available in {output_dir}. Deleting checkpoint."
+    )
+    checkpoint_file = os.path.join(checkpoint_dir, CHECKPOINT)
+    if os.path.exists(checkpoint_file):
+        os.remove(checkpoint_file)
 
 
 if __name__ == "__main__":

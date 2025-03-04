@@ -76,6 +76,8 @@ To enable hyperparameter tuning, add the following `tuning` section to your `con
 tuning:
   # Output directory for tuning results.
   output_dir: 'results'
+  # Checkpoint directory
+  checkpoint_dir: 'checkpoint'
   # Number of gpu hours allowed for tuning.
   gpu_hours: 1.0
   # Number of fixed trials to tune hyperparameters (override gpu_hours).
@@ -92,6 +94,7 @@ tuning:
 Let's detail the new parameters:
 
 - `output_dir`: Directory where tuning results, visualizations, and best parameters will be saved.
+- `checkpoint_dir`: Directory where the tuning checkpoint will be saved each trial. Allows resuming previous tuning in case of a crash.
 - `gpu_hours`: Estimated total GPU time available for tuning, in hours. Given this time, the script will automatically compute for how many training trials we can tune hyperparameters. By default, `gpu_hours` is set to 1.
 - `n_trials`: Number of training trials for tuning. If provided, it will override `gpu_hours` and tune the model for exactly `n_trial` trials.
 - `two_phase_tuning`: If True, performs a two-phase tuning. In the first phase, all hyperparameters are tuned, and in the second phase, the top half (based on importance) are fine-tuned while freezing others. By default, `two_phase_tuning` is False.
@@ -252,6 +255,7 @@ package:
 # -> python -m edsnlp.tune --config configs/config.yml
 tuning:
   output_dir: 'results'
+  checkpoint_dir: 'checkpoint'
   gpu_hours: 40.0
   two_phase_tuning: True
   metric: "ner.micro.f"

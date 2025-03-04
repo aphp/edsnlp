@@ -25,8 +25,8 @@ nlp:
         embedding:
           '@factory': eds.transformer
           model: hf-internal-testing/tiny-bert
-          window: 128
-          stride: 96
+          window: 256
+          stride: 128
           new_tokens: [ [ "(?:\\n\\s*)*\\n", "⏎" ] ]
 
     qualifier:
@@ -37,15 +37,15 @@ nlp:
       embedding:
         '@factory': eds.span_pooler
 
-        embedding: # ${ nlp.components.ner.embedding }
-          '@factory': eds.text_cnn
-          kernel_sizes: [ 3 ]
-
-          embedding:
-            '@factory': eds.transformer
-            model: hf-internal-testing/tiny-bert
-            window: 128
-            stride: 96
+        embedding: ${ nlp.components.ner.embedding }
+#          '@factory': eds.text_cnn
+#          kernel_sizes: [ 3 ]
+#
+#          embedding:
+#            '@factory': eds.transformer
+#            model: hf-internal-testing/tiny-bert
+#            window: 128
+#            stride: 96
 
 # 📈 SCORERS
 scorer:
@@ -124,3 +124,5 @@ train:
   scorer: ${ scorer }
   num_workers: 0
   optimizer: ${ optimizer }
+  grad_dev_policy: "skip"
+  logger: ["csv", "json", "rich"]

@@ -57,3 +57,5 @@ train:
   scorer: ${ scorer }
   num_workers: 0
   optimizer: ${ optimizer }
+  grad_dev_policy: "clip_mean"
+  log_weight_grads: true

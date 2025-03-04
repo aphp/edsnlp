@@ -1,4 +1,4 @@
-# Training API
+# Training API {: #edsnlp.training.trainer.train }
 
 In this tutorial, we'll see how we can quickly train a deep learning model with EDS-NLP using the `edsnlp.train` function.
 
@@ -170,6 +170,30 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
         - '@factory': eds.standoff_dict2doc
           span_setter: 'gold_spans'
 
+    logger:
+        - '@loggers': csv
+        - '@loggers': rich
+          fields:
+              step: {}
+              (.*)loss:
+                  goal: lower_is_better
+                  format: "{:.2e}"
+                  goal_wait: 2
+              lr:
+                  format: "{:.2e}"
+              speed/(.*):
+                  format: "{:.2f}"
+                  name: \1
+              "(.*?)/micro/(f|r|p)$":
+                  goal: higher_is_better
+                  format: "{:.2%}"
+                  goal_wait: 1
+                  name: \1_\2
+              grad_norm/__all__:
+                  format: "{:.2e}"
+                  name: grad_norm
+        # - wandb  # enable if you can and want to track with wandb
+
     # 🚀 TRAIN SCRIPT OPTIONS
     # -> python -m edsnlp.train --config configs/config.yml
     train:
@@ -179,9 +203,10 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
       val_data: ${ val_data }
       max_steps: 2000
       validation_interval: ${ train.max_steps//10 }
-      max_grad_norm: 1.0
+      grad_max_norm: 1.0
       scorer: ${ scorer }
       optimizer: ${ optimizer }
+      logger: ${ logger }
       # Do preprocessing in parallel on 1 worker
       num_workers: 1
       # Enable on Mac OS X or if you don't want to use available GPUs
@@ -214,6 +239,7 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
     import edsnlp
     from edsnlp.training import train, ScheduledOptimizer, TrainingData
     from edsnlp.metrics.ner import NerExactMetric
+    from edsnlp.training.loggers import CSVLogger, RichLogger, WandbLogger
     import edsnlp.pipes as eds
     import torch
 
@@ -270,6 +296,22 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
         },
     )
 
+    #
+    logger = [
+        CSVLogger(),
+        RichLogger(
+            fields={
+                "step": {},
+                "(.*)loss": {"goal": "lower_is_better", "format": "{:.2e}", "goal_wait": 2},
+                "lr": {"format": "{:.2e}"},
+                "speed/(.*)": {"format": "{:.2f}", "name": "\\1"},
+                "(.*?)/micro/(f|r|p)$": {"goal": "higher_is_better", "format": "{:.2%}", "goal_wait": 1, "name": "\\1_\\2"},
+                "grad_norm/__all__": {"format": "{:.2e}", "name": "grad_norm"},
+            }
+        ),
+        # WandBLogger(),  #  if you can and want to track with Weights & Biases
+    ]
+
     # 🚀 TRAIN
     train(
         nlp=nlp,
@@ -284,8 +326,9 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
         val_data=val_data,
         scorer={"ner": ner_metric},
         optimizer=optimizer,
-        max_grad_norm=1.0,
+        grad_max_norm=1.0,
         output_dir="artifacts",
+        loggers
         # Do preprocessing in parallel on 1 worker
         num_workers=1,
         # Enable on Mac OS X or if you don't want to use available GPUs

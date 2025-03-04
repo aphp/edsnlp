@@ -15,7 +15,8 @@ dependencies = [
     "regex",
     "spacy>=3.2,<3.8",
     "thinc<8.2.5",  # we don't need thinc but spacy depdends on it 8.2.5 cause binary issues
-    "confit>=0.7.3",
+    #"confit>=0.7.3",
+    "confit @ git+https://github.com/aphp/confit@allow-partial",
     "tqdm",
     "umls-downloader>=0.1.1",
     "numpy>=1.15.0,<1.23.2; python_version<'3.8'",
@@ -87,6 +88,7 @@ docs = [
 dev = [
     "edsnlp[dev-no-ml]",
     "edsnlp[ml]",
+    "tensorboard",
     "optuna>=4.0.0",
     "plotly>=5.18.0", # required by optuna viz
     "ruamel.yaml>=0.18.0",
@@ -249,16 +251,17 @@ where = ["."]
 # edsnlp will look both in the above dict and in the one below.
 [project.entry-points."edsnlp_factories"]
 # Trainable
-"eds.transformer"         = "edsnlp.pipes.trainable.embeddings.transformer.factory:create_component"
-"eds.text_cnn"            = "edsnlp.pipes.trainable.embeddings.text_cnn.factory:create_component"
-"eds.span_pooler"         = "edsnlp.pipes.trainable.embeddings.span_pooler.factory:create_component"
-"eds.ner_crf"             = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
-"eds.extractive_qa"      = "edsnlp.pipes.trainable.extractive_qa.factory:create_component"
-"eds.nested_ner"          = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
-"eds.span_qualifier"     = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
-"eds.span_classifier"     = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
-"eds.span_linker"         = "edsnlp.pipes.trainable.span_linker.factory:create_component"
-"eds.biaffine_dep_parser" = "edsnlp.pipes.trainable.biaffine_dep_parser.factory:create_component"
+"eds.transformer"           = "edsnlp.pipes.trainable.embeddings.transformer.factory:create_component"
+"eds.text_cnn"              = "edsnlp.pipes.trainable.embeddings.text_cnn.factory:create_component"
+"eds.span_pooler"           = "edsnlp.pipes.trainable.embeddings.span_pooler.factory:create_component"
+"eds.ner_crf"               = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
+"eds.extractive_qa"         = "edsnlp.pipes.trainable.extractive_qa.factory:create_component"
+"eds.nested_ner"            = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
+"eds.span_qualifier"        = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
+"eds.span_classifier"       = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
+"eds.span_linker"           = "edsnlp.pipes.trainable.span_linker.factory:create_component"
+"eds.biaffine_dep_parser"   = "edsnlp.pipes.trainable.biaffine_dep_parser.factory:create_component"
+"eds.relation_detector_ffn" = "edsnlp.pipes.trainable.relation_detector_ffn.factory:create_component"
 
 [project.entry-points."spacy_scorers"]
 "eds.ner_exact"                  = "edsnlp.metrics.ner:NerExactMetric"
@@ -266,6 +269,7 @@ where = ["."]
 "eds.ner_overlap"                = "edsnlp.metrics.ner:NerOverlapMetric"
 "eds.span_attributes"            = "edsnlp.metrics.span_attributes:SpanAttributeMetric"
 "eds.dep_parsing"                = "edsnlp.metrics.dep_parsing:DependencyParsingMetric"
+"eds.relations"                  = "edsnlp.metrics.relations:RelationsMetric"
 
 # Deprecated
 "eds.ner_exact_metric"           = "edsnlp.metrics.ner:NerExactMetric"
@@ -292,6 +296,18 @@ where = ["."]
 "json" =     "edsnlp.data:write_json"
 "standoff" = "edsnlp.data:write_standoff"
 "brat"     = "edsnlp.data:write_brat"  # alias for standoff
+
+[project.entry-points."edsnlp_loggers"]
+"csv"         = "edsnlp.training.loggers:CSVLogger"
+"json"        = "edsnlp.training.loggers:JSONLogger"
+"rich"        = "edsnlp.training.loggers:RichLogger"
+"tensorboard" = "edsnlp.training.loggers:TensorBoardLogger"
+"aim"         = "edsnlp.training.loggers:AimLogger"
+"wandb"       = "edsnlp.training.loggers:WandBLogger"
+"clearml"     = "edsnlp.training.loggers:ClearMLLogger"
+"mlflow"      = "edsnlp.training.loggers:MLflowLogger"
+"cometml"     = "edsnlp.training.loggers:CometMLLogger"
+"dvclive"     = "edsnlp.training.loggers:DVCLiveLogger"
 
 [project.entry-points."spacy_misc"]
 "eds.span_context_getter" = "edsnlp.utils.span_getters:make_span_context_getter"

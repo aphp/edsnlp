@@ -123,15 +123,18 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         begins = []
         ends = []
 
-        contexts_to_idx = {span: i for i, span in enumerate(contexts)}
+        contexts_to_idx = {}
+        for ctx in contexts:
+            contexts_to_idx[ctx] = len(contexts_to_idx)
+        dedup_contexts = sorted(contexts_to_idx, key=contexts_to_idx.get)
         assert not pre_aligned or len(spans) == len(contexts), (
             "When `pre_aligned` is True, the number of spans and contexts must be the "
             "same."
         )
         aligned_contexts = (
-            [[c] for c in contexts]
+            [[c] for c in dedup_contexts]
             if pre_aligned
-            else align_spans(contexts, spans, sort_by_overlap=True)
+            else align_spans(dedup_contexts, spans, sort_by_overlap=True)
         )
         for i, (span, ctx) in enumerate(zip(spans, aligned_contexts)):
             if len(ctx) == 0 or ctx[0].start > span.start or ctx[0].end < span.end:
@@ -143,12 +146,16 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
             sequence_idx.append(contexts_to_idx[ctx[0]])
             begins.append(span.start - start)
             ends.append(span.end - start)
+            assert begins[-1] >= 0, f"Begin offset is negative: {span.text}"
+            assert ends[-1] <= len(ctx[0]), f"End offset is out of bounds: {span.text}"
         return {
             "begins": begins,
             "ends": ends,
             "sequence_idx": sequence_idx,
-            "num_sequences": len(contexts),
-            "embedding": self.embedding.preprocess(doc, contexts=contexts, **kwargs),
+            "num_sequences": len(dedup_contexts),
+            "embedding": self.embedding.preprocess(
+                doc, contexts=dedup_contexts, **kwargs
+            ),
             "stats": {"spans": len(begins)},
         }
 
@@ -203,7 +210,9 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
                 "embeddings": batch["begins"].with_data(span_embeds),
             }
 
-        embeds = self.embedding(batch["embedding"])["embeddings"]
+        embeds = self.embedding(batch["embedding"])["embeddings"].refold(
+            ["context", "word"]
+        )
         _, n_words, dim = embeds.shape
         device = embeds.device
 

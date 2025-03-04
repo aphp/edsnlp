@@ -240,76 +240,101 @@ class StandoffDict2DocConverter:
 
     def __call__(self, obj, tokenizer=None):
         # tok = get_current_tokenizer() if self.tokenizer is None else self.tokenizer
-        tok = tokenizer or self.tokenizer or get_current_tokenizer()
-        doc = tok(obj["text"] or "")
-        doc._.note_id = obj.get("doc_id", obj.get(FILENAME))
+        note_id = obj.get("doc_id", obj.get(FILENAME))
+        try:
+            tok = tokenizer or self.tokenizer or get_current_tokenizer()
+            doc = tok(obj["text"] or "")
+            doc._.note_id = note_id
 
-        spans = []
+            entities = {}
+            spans = []
 
-        for dst in (
-            *(() if self.span_attributes is None else self.span_attributes.values()),
-            *self.default_attributes,
-        ):
-            if not Span.has_extension(dst):
-                Span.set_extension(dst, default=None)
+            for dst in (
+                *(
+                    ()
+                    if self.span_attributes is None
+                    else self.span_attributes.values()
+                ),
+                *self.default_attributes,
+            ):
+                if not Span.has_extension(dst):
+                    Span.set_extension(dst, default=None)
 
-        for ent in obj.get("entities") or ():
-            fragments = (
-                [
-                    {
-                        "begin": min(f["begin"] for f in ent["fragments"]),
-                        "end": max(f["end"] for f in ent["fragments"]),
-                    }
-                ]
-                if not self.split_fragments
-                else ent["fragments"]
-            )
-            for fragment in fragments:
-                span = doc.char_span(
-                    fragment["begin"],
-                    fragment["end"],
-                    label=ent["label"],
-                    alignment_mode="expand",
+            for ent in obj.get("entities") or ():
+                fragments = (
+                    [
+                        {
+                            "begin": min(f["begin"] for f in ent["fragments"]),
+                            "end": max(f["end"] for f in ent["fragments"]),
+                        }
+                    ]
+                    if not self.split_fragments
+                    else ent["fragments"]
                 )
-                attributes = (
-                    {a["label"]: a["value"] for a in ent["attributes"]}
-                    if isinstance(ent["attributes"], list)
-                    else ent["attributes"]
+                for fragment in fragments:
+                    span = doc.char_span(
+                        fragment["begin"],
+                        fragment["end"],
+                        label=ent["label"],
+                        alignment_mode="expand",
+                    )
+                    attributes = (
+                        {}
+                        if "attributes" not in ent
+                        else {a["label"]: a["value"] for a in ent["attributes"]}
+                        if isinstance(ent["attributes"], list)
+                        else ent["attributes"]
+                    )
+                    if self.notes_as_span_attribute and ent["notes"]:
+                        ent["attributes"][self.notes_as_span_attribute] = "|".join(
+                            note["value"] for note in ent["notes"]
+                        )
+                    for label, value in attributes.items():
+                        new_name = (
+                            self.span_attributes.get(label, None)
+                            if self.span_attributes is not None
+                            else label
+                        )
+                        if self.span_attributes is None and not Span.has_extension(
+                            new_name
+                        ):
+                            Span.set_extension(new_name, default=None)
+
+                        if new_name:
+                            value = True if value is None else value
+                            if not self.keep_raw_attribute_values:
+                                value = (
+                                    True
+                                    if value in ("True", "true")
+                                    else False
+                                    if value in ("False", "false")
+                                    else value
+                                )
+                            span._.set(new_name, value)
+
+                    entities.setdefault(ent["entity_id"], []).append(span)
+                    spans.append(span)
+
+            set_spans(doc, spans, span_setter=self.span_setter)
+            for attr, value in self.default_attributes.items():
+                for span in spans:
+                    if span._.get(attr) is None:
+                        span._.set(attr, value)
+
+            for relation in obj.get("relations", []):
+                relation_label = (
+                    relation["relation_label"]
+                    if "relation_label" in relation
+                    else relation["label"]
                 )
-                if self.notes_as_span_attribute and ent["notes"]:
-                    ent["attributes"][self.notes_as_span_attribute] = "|".join(
-                        note["value"] for note in ent["notes"]
-                    )
-                for label, value in attributes.items():
-                    new_name = (
-                        self.span_attributes.get(label, None)
-                        if self.span_attributes is not None
-                        else label
-                    )
-                    if self.span_attributes is None and not Span.has_extension(
-                        new_name
-                    ):
-                        Span.set_extension(new_name, default=None)
+                from_entity_id = relation["from_entity_id"]
+                to_entity_id = relation["to_entity_id"]
 
-                    if new_name:
-                        value = True if value is None else value
-                        if not self.keep_raw_attribute_values:
-                            value = (
-                                True
-                                if value in ("True", "true")
-                                else False
-                                if value in ("False", "false")
-                                else value
-                            )
-                        span._.set(new_name, value)
-
-                spans.append(span)
-
-        set_spans(doc, spans, span_setter=self.span_setter)
-        for attr, value in self.default_attributes.items():
-            for span in spans:
-                if span._.get(attr) is None:
-                    span._.set(attr, value)
+                for head in entities.get(from_entity_id, ()):
+                    for tail in entities.get(to_entity_id, ()):
+                        head._.rel.setdefault(relation_label, set()).add(tail)
+        except Exception:
+            raise ValueError(f"Error when processing {note_id}")
 
         return doc
 

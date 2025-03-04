@@ -1,4 +1,4 @@
-import json
+import math
 import os
 import time
 import warnings
@@ -13,31 +13,39 @@ from typing import (
     Collection,
     Dict,
     Iterable,
+    List,
     Optional,
     Sequence,
     Union,
 )
 
 import torch
-from accelerate import Accelerator
+from accelerate import Accelerator, PartialState
+from accelerate.tracking import GeneralTracker
 from accelerate.utils import gather_object
 from confit import validate_arguments
+from confit.registry import Draft
 from confit.utils.random import set_seed
-from rich_logger import RichTablePrinter
 from tqdm import tqdm, trange
 from typing_extensions import Literal
 
+import edsnlp
 from edsnlp import Pipeline, registry
 from edsnlp.core.stream import Stream
 from edsnlp.metrics.ner import NerMetric
 from edsnlp.metrics.span_attributes import SpanAttributeMetric
-from edsnlp.pipes.base import BaseNERComponent, BaseSpanAttributeClassifierComponent
+from edsnlp.pipes.base import (
+    BaseNERComponent,
+    BaseRelationDetectorComponent,
+    BaseSpanAttributeClassifierComponent,
+)
 from edsnlp.utils.batching import BatchSizeArg, stat_batchify
 from edsnlp.utils.bindings import BINDING_SETTERS
-from edsnlp.utils.collections import chain_zip, flatten, ld_to_dl
+from edsnlp.utils.collections import chain_zip, flatten, flatten_once, ld_to_dl
 from edsnlp.utils.span_getters import get_spans
 from edsnlp.utils.typing import AsList
 
+from ..metrics.relations import RelationsMetric
 from .optimizer import LinearSchedule, ScheduledOptimizer
 
 LOGGER_FIELDS = {
@@ -62,18 +70,11 @@ LOGGER_FIELDS = {
         "goal_wait": 1,
         "name": r"\1_\2",
     },
+    "grad_norm/__all__": {
+        "format": "{:.2e}",
+        "name": "grad_norm",
+    },
 }
-
-
-def flatten_dict(d, path=""):
-    if not isinstance(d, dict):
-        return {path: d}
-
-    return {
-        k: v
-        for key, val in d.items()
-        for k, v in flatten_dict(val, f"{path}/{key}" if path else key).items()
-    }
 
 
 def fill_flat_stats(x, result, path=()):
@@ -190,6 +191,35 @@ class GenericScorer:
             for name, scorer in span_attr_scorers.items():
                 scores[name] = scorer(docs, qlf_preds)
 
+        # Relations
+        rel_pipes = [
+            name
+            for name, pipe in nlp.pipeline
+            if isinstance(pipe, BaseRelationDetectorComponent)
+        ]
+        rel_scorers = {
+            name: scorers.pop(name)
+            for name in list(scorers)
+            if isinstance(scorers[name], RelationsMetric)
+        }
+        if rel_pipes and rel_scorers:
+            clean_rel_docs = [d.copy() for d in tqdm(docs, desc="Copying docs")]
+            for doc in clean_rel_docs:
+                for name in rel_pipes:
+                    pipe = nlp.get_pipe(name)
+                    for candidate_getter in pipe.candidate_getter:
+                        for span in (
+                            *get_spans(doc, candidate_getter["head"]),
+                            *get_spans(doc, candidate_getter["tail"]),
+                        ):
+                            for label in nlp.get_pipe(name).labels:
+                                if label in span._.rel:
+                                    span._.rel[label].clear()
+            with nlp.select_pipes(disable=ner_pipes):
+                rel_preds = list(nlp.pipe(tqdm(clean_rel_docs, desc="Predicting")))
+            for name, scorer in rel_scorers.items():
+                scores[name] = scorer(docs, rel_preds)
+
         # Custom scorers
         for name, scorer in scorers.items():
             pred_docs = [d.copy() for d in tqdm(docs, desc="Copying docs")]
@@ -206,6 +236,47 @@ class GenericScorer:
 
 if TYPE_CHECKING:
     GenericScorer = Union[GenericScorer, Dict]
+
+
+def ewm_moments(x, window, adjust=True, bias=False, state=None):
+    if state is None:
+        alpha = 2.0 / (window + 1)
+        decay = 1 - alpha
+        fresh_weight = 1 if adjust else alpha
+        mean_val = x
+        var_val = 0.0
+        sum_w = 1.0
+        sum_w2 = 1.0
+        old_w = 1.0
+        return (
+            mean_val,
+            float("nan"),
+            [decay, fresh_weight, mean_val, var_val, sum_w, sum_w2, old_w],
+        )
+    else:
+        decay, fresh_weight, mean_val, var_val, sum_w, sum_w2, old_w = state
+
+    sum_w *= decay
+    sum_w2 *= decay * decay
+    old_w *= decay
+    old_m = mean_val
+    denom = old_w + fresh_weight
+    mean_val = (old_w * old_m + fresh_weight * x) / denom
+    d1 = old_m - mean_val
+    d2 = x - mean_val
+    var_val = (old_w * (var_val + d1 * d1) + fresh_weight * d2 * d2) / denom
+    sum_w += fresh_weight
+    sum_w2 += fresh_weight * fresh_weight
+    old_w += fresh_weight
+
+    state = [decay, fresh_weight, mean_val, var_val, sum_w, sum_w2, old_w]
+
+    if not bias:
+        num = sum_w * sum_w
+        den = num - sum_w2
+        var_val = var_val * (num / den) if den > 0 else float("nan")
+
+    return mean_val, var_val, state
 
 
 def default_optim(
@@ -351,6 +422,23 @@ class PipeDict(torch.nn.ModuleDict):
         return all_results, loss
 
 
+def get_logger(
+    logger: Union[bool, AsList[Union[str, Draft[GeneralTracker], GeneralTracker]]],
+    project_name,
+    logging_dir,
+    **kwargs,
+) -> List[GeneralTracker]:
+    logger = ["rich", "json"] if logger is True else [] if not logger else logger
+    logger = [
+        edsnlp.registry.loggers.get(n)() if isinstance(n, str) else n for n in logger
+    ]
+    logger = [
+        Draft.instantiate(obj, project_name=project_name, logging_dir=logging_dir)
+        for obj in logger
+    ]
+    return logger
+
+
 @validate_arguments(registry=registry)
 def train(
     *,
@@ -359,10 +447,13 @@ def train(
     val_data: AsList[Stream] = [],
     seed: int = 42,
     max_steps: int = 1000,
-    optimizer: Union[ScheduledOptimizer, torch.optim.Optimizer] = None,
+    optimizer: Union[ScheduledOptimizer, Draft[ScheduledOptimizer], torch.optim.Optimizer] = None,  # noqa: E501
     validation_interval: Optional[int] = None,
     checkpoint_interval: Optional[int] = None,
-    max_grad_norm: float = 5.0,
+    grad_max_norm: float = 5.0,
+    grad_ewm_window: int = 100,
+    grad_dev_policy: Optional[Literal["clip_mean", "clip_threshold", "skip"]] = None,
+    grad_max_dev: float = 7.0,
     loss_scales: Dict[str, float] = {},
     scorer: GenericScorer = GenericScorer(),
     num_workers: int = 0,
@@ -371,11 +462,12 @@ def train(
     output_dir: Union[Path, str] = Path("artifacts"),
     output_model_dir: Optional[Union[Path, str]] = None,
     save_model: bool = True,
-    logger: bool = True,
-    config_meta: Optional[Dict] = None,
+    logger: Union[bool, AsList[Union[str, GeneralTracker, Draft[GeneralTracker]]]] = True,  # noqa: E501
+    log_weight_grads: bool = False,
     on_validation_callback: Optional[Callable[[Dict], None]] = None,
+    config_meta: Optional[Dict] = None,
     **kwargs,
-):
+):  # fmt: skip
     """
     Train a pipeline.
 
@@ -403,7 +495,7 @@ def train(
         The random seed
     max_steps: int
         The maximum number of training steps
-    optimizer: Union[ScheduledOptimizer, torch.optim.Optimizer]
+    optimizer: Union[ScheduledOptimizer, Draft[ScheduledOptimizer], torch.optim.Optimizer]
         The optimizer. If None, a default optimizer will be used.
 
         ??? note "`ScheduledOptimizer` object/dictionary"
@@ -418,8 +510,26 @@ def train(
         The number of steps between each evaluation. Defaults to 1/10 of max_steps
     checkpoint_interval: Optional[int]
         The number of steps between each model save. Defaults to validation_interval
-    max_grad_norm: float
+    grad_max_norm: float
         The maximum gradient norm
+    grad_dev_policy: Optional[Literal["clip_mean", "clip_threshold"]]
+        The policy to apply when a gradient spike is detected, ie. when the
+        gradient norm is higher than the mean + std * grad_max_dev. Can be:
+
+        - "clip_mean": clip the gradients to the mean gradient norm
+        - "clip_threshold": clip the gradients to the mean + std * grad_max_dev
+        - "skip": skip the step
+
+        These do not apply to `grad_max_norm` that is always enforced when it is not
+        None, since `grad_max_norm` is not adaptive and would most likely prohibit
+        the model from learning during the early stages of training when gradients are
+        expected to be high.
+    grad_ewm_window: int
+        Approximately how many steps should we look back to compute the average
+        gradient norm and variance to detect gradient deviation spikes.
+    grad_max_dev: float
+        The threshold to apply to detect gradient spikes. A spike is detected
+        when the value is higher than the mean + variance * threshold.
     loss_scales: Dict[str, float]
         The loss scales for each component (useful for multi-task learning)
     scorer: GenericScorer
@@ -453,8 +563,19 @@ def train(
         Whether to save the model or not. This can be useful if you are only
         interested in the metrics, but no the model, and want to avoid
         spending time dumping the model weights to the disk.
-    logger: bool
-        Whether to log the validation metrics in a rich table.
+    logger: Union[bool, AsList[Union[str, Partial[GeneralTracker], GeneralTracker]]]
+        The logger to use. Can be a boolean to use the default loggers (rich
+        and json), a list of logger names, or a list of logger objects.
+
+        You can use huggingface accelerate integrated loggers (`tensorboard`,
+        `wandb`, `comet_ml`, `aim`, `mlflow`, `clearml`, `dvclive`), or
+        EDS-NLP simple loggers, or a combination of both:
+
+        - `csv`: logs to a CSV file in `output_dir` (`artifacts/metrics.csv`)
+        - `json`: logs to a JSON file in `output_dir` (`artifacts/metrics.json`)
+        - `rich`: logs to a rich table in the terminal
+    log_weight_grads: bool
+        Whether to log the weight gradients during training.
     on_validation_callback: Optional[Callable[[Dict], None]]
         A callback function invoked during validation steps to handle custom logic.
     kwargs: Dict
@@ -464,21 +585,45 @@ def train(
     -------
     Pipeline
         The trained pipeline
-    """
-    # Prepare paths
-    accelerator = Accelerator(cpu=cpu, mixed_precision=mixed_precision)
+    """  # noqa: E501
+    # hack to ensure cpu is set before the accelerator is indirectly initialized
+    # when creating the trackers
+    PartialState(cpu=cpu)
+    project_name = str(Path.cwd() if config_meta is None else config_meta["config_path"][0])  # fmt: skip # noqa: E501
+    accelerator = Accelerator(
+        cpu=cpu,
+        mixed_precision=mixed_precision,
+        log_with=get_logger(
+            logger,
+            # default project name, the user can override this when creating the logger
+            project_name=project_name,
+            logging_dir=output_dir,
+        ),
+    )
     # accelerator.register_for_checkpointing(dataset)
     is_main_process = accelerator.is_main_process
     device = accelerator.device
 
+    if "max_grad_norm" in kwargs:
+        warnings.warn(
+            "The 'max_grad_norm' argument is deprecated. Use 'grad_max_norm' instead."
+        )
+        grad_max_norm = kwargs.pop("max_grad_norm")
+
     output_dir = Path(output_dir or Path.cwd() / "artifacts")
-    output_model_dir = output_model_dir or output_dir / "model-last"
-    train_metrics_path = output_dir / "train_metrics.json"
+    output_model_dir = Path(output_model_dir or output_dir / "model-last")
+    unresolved_config = None
     if is_main_process:
         os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(output_model_dir, exist_ok=True)
         if config_meta is not None:  # pragma: no cover
-            print(config_meta["unresolved_config"].to_yaml_str())
-            config_meta["unresolved_config"].to_disk(output_dir / "train_config.yml")
+            unresolved_config = config_meta["unresolved_config"]
+            print(unresolved_config.to_yaml_str())
+            unresolved_config.to_disk(output_dir / "train_config.yml")
+        # TODO: handle config_meta is None
+    accelerator.init_trackers(
+        project_name, config=unresolved_config
+    )  # in theory project name shouldn't be used
 
     validation_interval = validation_interval or max_steps // 10
     checkpoint_interval = checkpoint_interval or validation_interval
@@ -495,7 +640,7 @@ def train(
     del optimizer
     if optim is None:
         warnings.warn(
-            "No optimizer provided, using default optimizer with default " "parameters"
+            "No optimizer provided, using default optimizer with default parameters"
         )
         optim = default_optim(
             [nlp.get_pipe(name) for name in trainable_pipe_names],
@@ -506,6 +651,11 @@ def train(
                 if k in kwargs
             },
         )
+    optim: torch.nn.Optimizer = Draft.instantiate(
+        optim,
+        module=nlp,
+        total_steps=max_steps,
+    )
 
     if kwargs:
         raise ValueError(f"Unknown arguments: {', '.join(kwargs)}")
@@ -517,7 +667,8 @@ def train(
     nlp.post_init(chain_zip([td.data for td in train_data if td.post_init]))
 
     for phase_i, pipe_names in enumerate(phases):
-        trained_pipes = PipeDict({n: nlp.get_pipe(n) for n in pipe_names}, loss_scales)
+        trained_pipes_local = {n: nlp.get_pipe(n) for n in pipe_names}
+        trained_pipes = PipeDict(trained_pipes_local, loss_scales)
         trained_pipes_params = set(trained_pipes.parameters())
         phase_training_data = [
             td
@@ -572,92 +723,74 @@ def train(
             if hasattr(accel_optim.optimizer, "initialize"):
                 accel_optim.optimizer.initialize()
 
-            cumulated_data = defaultdict(lambda: 0.0, count=0)
-            all_metrics = []
+            ewm_state = grad_mean = grad_var = None
+            default_metrics = dict(count=0, spikes=0)
+            cumulated_data = defaultdict(lambda: 0, **default_metrics)
             set_seed(seed)
-            with (
-                RichTablePrinter(LOGGER_FIELDS, auto_refresh=False)
-                if is_main_process and logger
-                else nullcontext()
-            ) as logger:
-                # Training loop
-                for step in trange(
-                    max_steps + 1,
-                    desc="Training model",
-                    leave=True,
-                    mininterval=5.0,
-                    total=max_steps,
-                    disable=not is_main_process,
-                    smoothing=0.3,
-                ):
-                    if (
-                        is_main_process
-                        and step > 0
-                        and (step % validation_interval) == 0
-                    ):
-                        scores = scorer(nlp, val_docs) if val_docs else {}
-                        all_metrics.append(
-                            {
-                                "step": step,
-                                "lr": accel_optim.param_groups[0]["lr"],
-                                **cumulated_data,
-                                **scores,
-                            }
-                        )
-                        cumulated_data.clear()
-                        train_metrics_path.write_text(json.dumps(all_metrics, indent=2))
-                        if logger:
-                            logger.log_metrics(flatten_dict(all_metrics[-1]))
-
-                        if on_validation_callback:
-                            on_validation_callback(all_metrics[-1])
-
-                    if (
-                        save_model
-                        and is_main_process
-                        and (step % checkpoint_interval) == 0
-                    ):
-                        nlp.to_disk(output_model_dir)
-
-                    if step == max_steps:
-                        break
-
-                    accel_optim.zero_grad()
-
-                    batches = list(next(iterator))
-                    batches_pipe_names = list(
-                        flatten(
-                            [
-                                [td.pipe_names or pipe_names] * len(b)
-                                for td, b in zip(phase_training_data, batches)
-                            ]
-                        )
-                    )
-                    batches = list(flatten(batches))
-
-                    # Synchronize stats between sub-batches across workers
-                    batch_stats = {}
-                    for b in batches:
-                        fill_flat_stats(b, result=batch_stats)
-                    batch_stats = {
-                        k: sum(v)
-                        for k, v in ld_to_dl(gather_object([batch_stats])).items()
+            # Training loop
+            for step in trange(
+                max_steps + 1,
+                desc="Training model",
+                leave=True,
+                mininterval=5.0,
+                total=max_steps,
+                disable=not is_main_process,
+                smoothing=0.3,
+            ):
+                if save_model and is_main_process and (step % checkpoint_interval) == 0:
+                    nlp.to_disk(output_model_dir)
+                if is_main_process and step > 0 and (step % validation_interval) == 0:
+                    scores = scorer(nlp, val_docs) if val_docs else {}
+                    metrics = {
+                        "step": step,
+                        "lr": accel_optim.param_groups[0]["lr"],
+                        **cumulated_data,
+                        **scores,
                     }
-                    for b in batches:
-                        set_flat_stats(b, batch_stats)
+                    cumulated_data = defaultdict(lambda: 0, **default_metrics)
+                    accelerator.log(metrics, step=step)
 
-                    res_stats = defaultdict(lambda: 0.0)
-                    for idx, (batch, batch_pipe_names) in enumerate(
-                        zip(batches, batches_pipe_names)
-                    ):
-                        cache_ctx = (
-                            nlp.cache() if len(batch_pipe_names) > 1 else nullcontext()
-                        )
-                        no_sync_ctx = (
-                            accelerator.no_sync(trained_pipes)
-                            if idx < len(batches) - 1
-                            else nullcontext()
-                        )
+                    if on_validation_callback:
+                        on_validation_callback(metrics)
+
+                if step == max_steps:
+                    break
+
+                accel_optim.zero_grad()
+
+                batches = list(next(iterator))
+                batches_pipe_names = list(
+                    flatten_once(
+                        [
+                            [td.pipe_names or pipe_names] * len(b)
+                            for td, b in zip(phase_training_data, batches)
+                        ]
+                    )
+                )
+                batches = list(flatten(batches))
+
+                # Synchronize stats between sub-batches across workers
+                local_batch_stats = {}
+                for b in batches:
+                    fill_flat_stats(b, result=local_batch_stats)
+                batch_stats = gather_object([local_batch_stats])
+                batch_stats = {k: sum(v) for k, v in ld_to_dl(batch_stats).items()}
+                for b in batches:
+                    set_flat_stats(b, batch_stats)
+
+                local_res_stats = defaultdict(lambda: 0.0)
+                for idx, (batch, batch_pipe_names) in enumerate(
+                    zip(batches, batches_pipe_names)
+                ):
+                    cache_ctx = (
+                        nlp.cache() if len(batch_pipe_names) > 1 else nullcontext()
+                    )
+                    no_sync_ctx = (
+                        accelerator.no_sync(trained_pipes)
+                        if idx < len(batches) - 1
+                        else nullcontext()
+                    )
+                    try:
                         with cache_ctx, no_sync_ctx:
                             all_res, loss = trained_pipes(
                                 batch,
@@ -670,28 +803,84 @@ def train(
                                         or isinstance(v, torch.Tensor)
                                         and v.ndim == 0
                                     ):
-                                        res_stats[k] += float(v)
+                                        local_res_stats[k] += float(v)
                                     del k, v
                                 del res
                             del all_res
-                            accelerator.backward(loss)
-                        del loss
+                            if isinstance(loss, torch.Tensor) and loss.requires_grad:
+                                accelerator.backward(loss)
+                    except torch.cuda.OutOfMemoryError:  # pragma: no cover
+                        print(
+                            "Out of memory error encountered when processing a "
+                            "batch with the following statistics:"
+                        )
+                        print(local_batch_stats)
+                        raise
+                    del loss
 
-                    # Sync output stats after forward such as losses, supports, etc.
-                    res_stats = {
-                        k: sum(v)
-                        for k, v in ld_to_dl(gather_object([dict(res_stats)])).items()
-                    }
-                    if is_main_process:
-                        for k, v in batch_stats.items():
-                            cumulated_data[k] += v
-                        for k, v in res_stats.items():
-                            cumulated_data[k] += v
+                # Sync output stats after forward such as losses, supports, etc.
+                res_stats = {
+                    k: sum(v)
+                    for k, v in ld_to_dl(gather_object([dict(local_res_stats)])).items()
+                }
+                if is_main_process:
+                    for k, v in batch_stats.items():
+                        cumulated_data[k] += v
+                    for k, v in res_stats.items():
+                        cumulated_data[k] += v
 
-                    del batch_stats, res_stats
-                    accelerator.clip_grad_norm_(grad_params, max_grad_norm)
+                del batch_stats, res_stats
+                accelerator.unscale_gradients()
+
+                # Log gradients
+                if log_weight_grads:
+                    for pipe_name, pipe in trained_pipes_local.items():
+                        for param_name, param in pipe.named_parameters():
+                            if param.grad is not None:
+                                cumulated_data[
+                                    f"grad_norm/{pipe_name}/{param_name}"
+                                ] += param.grad.norm().item()
+                                cumulated_data[
+                                    f"param_norm/{pipe_name}/{param_name}"
+                                ] += param.norm().item()
+
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                    grad_params, grad_max_norm, norm_type=2
+                ).item()
+
+                # Detect grad spikes and skip the step if necessary
+                if grad_dev_policy is not None:
+                    if step > grad_ewm_window and (
+                        grad_norm - grad_mean
+                    ) > grad_max_dev * math.sqrt(grad_var):
+                        spike = True
+                        cumulated_data["spikes"] += 1
+                    else:
+                        grad_mean, grad_var, ewm_state = ewm_moments(
+                            grad_norm, grad_ewm_window, state=ewm_state
+                        )
+                        spike = False
+
+                    if spike and grad_dev_policy == "clip_mean":
+                        torch.nn.utils.clip_grad_norm_(
+                            grad_params, grad_mean, norm_type=2
+                        )
+                    elif spike and grad_dev_policy == "clip_threshold":
+                        torch.nn.utils.clip_grad_norm_(
+                            grad_params,
+                            grad_mean + math.sqrt(grad_var) * grad_max_dev,
+                            norm_type=2,
+                        )
+
+                if grad_dev_policy != "skip" or not spike:
                     accel_optim.step()
 
-                del iterator
+                cumulated_data["count"] += 1
+                cumulated_data["grad_norm/__all__"] += grad_norm
+
+            del iterator
+
+    # Should we put this in a finally block?
+    accelerator.end_training()
 
     return nlp

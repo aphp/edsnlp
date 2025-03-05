@@ -178,8 +178,6 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         window: int = 40,
         stride: Optional[int] = None,
     ):
-        if not Span.has_extension("prob"):
-            Span.set_extension("prob", default={})
         if (
             isinstance(target_span_getter, dict) and "labels" in target_span_getter
         ) and labels is not None:
@@ -240,6 +238,14 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
             SpanGetterMapping,
             Callable[[Doc], Iterable[Span]],
         ] = target_span_getter
+
+    def set_extensions(self) -> None:
+        """
+        Set spaCy extensions
+        """
+        super().set_extensions()
+        if not Span.has_extension("prob"):
+            Span.set_extension("prob", default={})
 
     def post_init(self, docs: Iterable[Doc], exclude: Set[str]):
         """

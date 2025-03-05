@@ -43,6 +43,7 @@ NERBatchOutput = TypedDict(
     {
         "loss": Optional[torch.Tensor],
         "tags": Optional[torch.Tensor],
+        "probs": Optional[torch.Tensor],
     },
 )
 
@@ -116,6 +117,35 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
 
     To train the model, refer to the [Training](/tutorials/training)
     tutorial.
+
+    Extensions
+    ----------
+    WARNING: THIS SECTION IS EXERIMENTAL AND MAY CHANGE!
+    The `eds.ner_crf` pipeline declares one extension on the `Span` object:
+
+    - the `span._.ner_score`: The confidence score of the Named Entity Recognition
+    (NER) model for the given span.
+
+    The `ner_score` is computed based on the Average Token Confidence Score using
+    the following formula:
+
+    $$ \text{Average Token Confidence Score} = \frac{1}{n}
+    \\sum_{i \\in \text{tokens}} \\max_{c \\in \text{BIOUL}} p(c)_i
+    $$
+    Where:
+    - $n$ is the number of tokens.
+    - $\text{tokens}$ refers to the tokens within the span.
+    - $p(c)_i$ represents the probability of token $i$ belonging to class
+    $c \\in \\{\text{B, I, O, U, L}\\}$.
+    - $\\max_{c \\in \text{BIOUL}} p(c)_i$ is the maximum probability over all classes
+    for token $i$.
+
+    By default, the confidence score is computed. However, if you don't need it, you
+    can disable its computation with:
+    ```{ .python }
+    nlp.pipes.ner.compute_score = False
+    ```
+
 
     Parameters
     ----------
@@ -237,6 +267,16 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
             SpanGetterMapping,
             Callable[[Doc], Iterable[Span]],
         ] = target_span_getter
+
+        self.compute_score: bool = True
+
+    def set_extensions(self) -> None:
+        """
+        Set spaCy extensions
+        """
+        super().set_extensions()
+        if not Span.has_extension("ner_score"):
+            Span.set_extension("ner_score", default={})
 
     def post_init(self, docs: Iterable[Doc], exclude: Set[str]):
         """
@@ -439,6 +479,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         num_contexts, num_words = embeddings.shape[:-1]
         num_labels = len(self.labels)
         scores = self.linear(embeddings).view((num_contexts, num_words, num_labels, 5))
+        probs = torch.nn.functional.softmax(scores, dim=-1)
         loss = tags = None
         if "targets" in batch:
             if self.mode == "independent":
@@ -496,6 +537,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         return {
             "loss": loss,
             "tags": tags,
+            "probs": probs,
         }
 
     def postprocess(
@@ -506,10 +548,21 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
     ):
         spans: Dict[Doc, list[Span]] = defaultdict(list)
         contexts = [ctx for sample in inputs for ctx in sample["$contexts"]]
-        tags = results["tags"].cpu()
+        tags = results["tags"]
+        if self.compute_score:
+            probs = results["probs"]
+
         for ctx, label, start, end in self.crf.tags_to_spans(tags).tolist():
             span = contexts[ctx][start:end]
             span.label_ = self.labels[label]
+            if self.compute_score:
+                span_probs = probs[ctx, start:end, label, :]
+                max_token_probs = span_probs.max(dim=-1).values
+                average_token_confidence_score = torch.mean(max_token_probs).item()
+                span._.ner_score["average_token_confidence_score"] = (
+                    average_token_confidence_score
+                )
+
             spans[span.doc].append(span)
         for doc in docs:
             self.set_spans(doc, spans.get(doc, []))

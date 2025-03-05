@@ -43,6 +43,7 @@ NERBatchOutput = TypedDict(
     {
         "loss": Optional[torch.Tensor],
         "tags": Optional[torch.Tensor],
+        "probs": Optional[torch.Tensor],
     },
 )
 
@@ -177,6 +178,8 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         window: int = 40,
         stride: Optional[int] = None,
     ):
+        if not Span.has_extension("prob"):
+            Span.set_extension("prob", default={})
         if (
             isinstance(target_span_getter, dict) and "labels" in target_span_getter
         ) and labels is not None:
@@ -439,6 +442,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         num_contexts, num_words = embeddings.shape[:-1]
         num_labels = len(self.labels)
         scores = self.linear(embeddings).view((num_contexts, num_words, num_labels, 5))
+        probs = torch.nn.functional.softmax(scores, dim=-1)
         loss = tags = None
         if "targets" in batch:
             if self.mode == "independent":
@@ -496,6 +500,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         return {
             "loss": loss,
             "tags": tags,
+            "probs": probs,
         }
 
     def postprocess(
@@ -507,9 +512,17 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         spans: Dict[Doc, list[Span]] = defaultdict(list)
         contexts = [ctx for sample in inputs for ctx in sample["$contexts"]]
         tags = results["tags"].cpu()
+        probs = results["probs"].cpu()
         for ctx, label, start, end in self.crf.tags_to_spans(tags).tolist():
             span = contexts[ctx][start:end]
             span.label_ = self.labels[label]
+
+            span_probs = probs[ctx, start:end, label, :]
+            log_probs = torch.log(1 - span_probs[:, 0])
+            log_confidence_score = torch.sum(log_probs)
+            confidence_score = torch.exp(log_confidence_score).item()
+            span._.prob["ner"] = confidence_score
+
             spans[span.doc].append(span)
         for doc in docs:
             self.set_spans(doc, spans.get(doc, []))

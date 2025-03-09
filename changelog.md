@@ -10,6 +10,7 @@
 - `docs/tutorials/tuning.md`: New tutorial for hyperparameter tuning.
 - Provided a [detailed tutorial](./docs/tutorials/tuning.md) on hyperparameter tuning, covering usage scenarios and configuration options.
 - `ScheduledOptimizer` (e.g., `@core: "optimizer"`) now supports importing optimizers using their qualified name (e.g., `optim: "torch.optim.Adam"`).
+- Added grad spike detection to the `edsnlp.train` script, and per weight layer gradient logging.
 
 ### Changed
 
@@ -27,6 +28,7 @@
   - Ensure we don't overwrite the RNG of the data reader when calling `stream.shuffle()` with no seed
   - Raise an error if the batch size in `stream.shuffle(batch_size=...)` is not compatible with the stream
 - `eds.split` now keeps doc and span attributes in the sub-documents.
+- Fixed mini-batch accumulation for multi-task training
 
 # v0.15.0 (2024-12-13)
 

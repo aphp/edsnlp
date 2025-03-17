@@ -123,10 +123,10 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
     WARNING: THIS SECTION IS EXERIMENTAL AND MAY CHANGE!
     The `eds.ner_crf` pipeline declares one extension on the `Span` object:
 
-    - the `span._.ner_score`: The confidence score of the Named Entity Recognition
+    - the `span._.ner_prob`: The confidence score of the Named Entity Recognition
     (NER) model for the given span.
 
-    The `ner_score` is computed based on the Average Token Confidence Score using
+    The `ner_prob` is computed based on the Average Token Confidence Score using
     the following formula:
 
     $$ \text{Average Token Confidence Score} = \frac{1}{n}
@@ -143,7 +143,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
     By default, the confidence score is computed. However, if you don't need it, you
     can disable its computation with:
     ```{ .python }
-    nlp.pipes.ner.compute_score = False
+    nlp.pipes.ner.compute_prob = False
     ```
 
 
@@ -268,15 +268,15 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
             Callable[[Doc], Iterable[Span]],
         ] = target_span_getter
 
-        self.compute_score: bool = True
+        self.compute_prob: bool = True
 
     def set_extensions(self) -> None:
         """
         Set spaCy extensions
         """
         super().set_extensions()
-        if not Span.has_extension("ner_score"):
-            Span.set_extension("ner_score", default={})
+        if not Span.has_extension("ner_prob"):
+            Span.set_extension("ner_prob", default={})
 
     def post_init(self, docs: Iterable[Doc], exclude: Set[str]):
         """
@@ -549,20 +549,20 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         spans: Dict[Doc, list[Span]] = defaultdict(list)
         contexts = [ctx for sample in inputs for ctx in sample["$contexts"]]
         tags = results["tags"]
-        if self.compute_score:
+        if self.compute_prob:
             probs = results["probs"]
 
         for ctx, label, start, end in self.crf.tags_to_spans(tags).tolist():
             span = contexts[ctx][start:end]
             span.label_ = self.labels[label]
-            if self.compute_score:
+            if self.compute_prob:
                 span_probs = probs[ctx, start:end, label, :]
-                max_token_probs = span_probs.max(dim=-1).values
-                average_token_confidence_score = torch.mean(max_token_probs).item()
-                span._.ner_score["average_token_confidence_score"] = (
-                    average_token_confidence_score
+                average_entity_confidence_score = torch.mean(
+                    1 - span_probs[:, 0]
+                ).item()
+                span._.ner_prob["average_entity_confidence_score"] = (
+                    average_entity_confidence_score
                 )
-
             spans[span.doc].append(span)
         for doc in docs:
             self.set_spans(doc, spans.get(doc, []))

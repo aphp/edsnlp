@@ -126,19 +126,17 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
     - the `span._.ner_prob`: The confidence score of the Named Entity Recognition
     (NER) model for the given span.
 
-    The `ner_prob` is computed based on the Average Token Confidence Score using
+    The `ner_prob` is computed based on the Average Entity Confidence Score using
     the following formula:
 
-    $$ \text{Average Token Confidence Score} = \frac{1}{n}
-    \\sum_{i \\in \text{tokens}} \\max_{c \\in \text{BIOUL}} p(c)_i
+    $$ \text{Average Entity Confidence Score} = \frac{1}{n}
+    \\sum_{i \\in \text{tokens}}1-p(O)_i
     $$
     Where:
     - $n$ is the number of tokens.
     - $\text{tokens}$ refers to the tokens within the span.
-    - $p(c)_i$ represents the probability of token $i$ belonging to class
-    $c \\in \\{\text{B, I, O, U, L}\\}$.
-    - $\\max_{c \\in \text{BIOUL}} p(c)_i$ is the maximum probability over all classes
-    for token $i$.
+    - $p(O)_i$ represents the probability of token $i$ belonging to class 'O'
+    (Outside entity).
 
     By default, the confidence score is computed. However, if you don't need it, you
     can disable its computation with:

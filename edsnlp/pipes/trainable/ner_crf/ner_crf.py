@@ -120,31 +120,34 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
 
     Extensions
     ----------
+
     !!! warning "Experimental"
         This feature is experimental and the API and underlying algorithm may change.
 
     The `eds.ner_crf` pipeline declares one extension on the `Span` object:
 
-    - the `span._.ner_confidence_score`: The confidence score of the Named Entity
+    - `span._.ner_confidence_score`: The confidence score of the Named Entity
     Recognition (NER) model for the given span.
 
     The `ner_confidence_score` is computed based on the Average Entity Confidence
     Score using the following formula:
 
-    $$ \text{Average Entity Confidence Score} = \frac{1}{n}
-    \\sum_{i \\in \text{tokens}}1-p(O)_i
+    $$
+    \\text{Average Entity Confidence Score} =
+    \\frac{1}{n} \\sum_{i \\in \\text{tokens}} (1 - p(O)_i)
     $$
 
     Where:
+
     - $n$ is the number of tokens.
-    - $\text{tokens}$ refers to the tokens within the span.
+    - $\\text{tokens}$ refers to the tokens within the span.
     - $p(O)_i$ represents the probability of token $i$ belonging to class 'O'
     (Outside entity).
 
     !!! warning "Confidence score is not computed by default"
         By default, the confidence score is not computed, as it adds around 5% to
         inference time. You can enable its computation with:
-        ```{ .python }
+        ```python
         nlp.pipes.ner.compute_confidence_score = True
         ```
 

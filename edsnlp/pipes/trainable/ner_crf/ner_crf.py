@@ -120,30 +120,33 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
 
     Extensions
     ----------
-    WARNING: THIS SECTION IS EXERIMENTAL AND MAY CHANGE!
+    !!! warning "Experimental"
+        This feature is experimental and the API and underlying algorithm may change.
+
     The `eds.ner_crf` pipeline declares one extension on the `Span` object:
 
-    - the `span._.ner_prob`: The confidence score of the Named Entity Recognition
-    (NER) model for the given span.
+    - the `span._.ner_confidence_score`: The confidence score of the Named Entity
+    Recognition (NER) model for the given span.
 
-    The `ner_prob` is computed based on the Average Entity Confidence Score using
-    the following formula:
+    The `ner_confidence_score` is computed based on the Average Entity Confidence
+    Score using the following formula:
 
     $$ \text{Average Entity Confidence Score} = \frac{1}{n}
     \\sum_{i \\in \text{tokens}}1-p(O)_i
     $$
+
     Where:
     - $n$ is the number of tokens.
     - $\text{tokens}$ refers to the tokens within the span.
     - $p(O)_i$ represents the probability of token $i$ belonging to class 'O'
     (Outside entity).
 
-    By default, the confidence score is computed. However, if you don't need it, you
-    can disable its computation with:
-    ```{ .python }
-    nlp.pipes.ner.compute_prob = False
-    ```
-
+    !!! warning "Confidence score is not computed by default"
+        By default, the confidence score is not computed, as it adds around 5% to
+        inference time. You can enable its computation with:
+        ```{ .python }
+        nlp.pipes.ner.compute_confidence_score = True
+        ```
 
     Parameters
     ----------
@@ -266,15 +269,15 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
             Callable[[Doc], Iterable[Span]],
         ] = target_span_getter
 
-        self.compute_prob: bool = True
+        self.compute_confidence_score: bool = False
 
     def set_extensions(self) -> None:
         """
         Set spaCy extensions
         """
         super().set_extensions()
-        if not Span.has_extension("ner_prob"):
-            Span.set_extension("ner_prob", default={})
+        if not Span.has_extension("ner_confidence_score"):
+            Span.set_extension("ner_confidence_score", default={})
 
     def post_init(self, docs: Iterable[Doc], exclude: Set[str]):
         """
@@ -477,7 +480,9 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         num_contexts, num_words = embeddings.shape[:-1]
         num_labels = len(self.labels)
         scores = self.linear(embeddings).view((num_contexts, num_words, num_labels, 5))
-        probs = torch.nn.functional.softmax(scores, dim=-1)
+        probs = None
+        if self.compute_confidence_score:
+            probs = torch.nn.functional.softmax(scores, dim=-1)
         loss = tags = None
         if "targets" in batch:
             if self.mode == "independent":
@@ -547,20 +552,19 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         spans: Dict[Doc, list[Span]] = defaultdict(list)
         contexts = [ctx for sample in inputs for ctx in sample["$contexts"]]
         tags = results["tags"]
-        if self.compute_prob:
+        if self.compute_confidence_score:
             probs = results["probs"]
 
         for ctx, label, start, end in self.crf.tags_to_spans(tags).tolist():
             span = contexts[ctx][start:end]
             span.label_ = self.labels[label]
-            if self.compute_prob:
+            if self.compute_confidence_score:
                 span_probs = probs[ctx, start:end, label, :]
                 average_entity_confidence_score = torch.mean(
                     1 - span_probs[:, 0]
                 ).item()
-                span._.ner_prob["average_entity_confidence_score"] = (
-                    average_entity_confidence_score
-                )
+                span._.ner_confidence_score = average_entity_confidence_score
+
             spans[span.doc].append(span)
         for doc in docs:
             self.set_spans(doc, spans.get(doc, []))

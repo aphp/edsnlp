@@ -35,7 +35,7 @@ def test_ner(ner_mode, window):
             window=window,
         ),
     )
-
+    nlp.pipes.ner.compute_confidence_score = True
     ner = nlp.get_pipe("ner")
     ner.update_labels([])
     doc = nlp(

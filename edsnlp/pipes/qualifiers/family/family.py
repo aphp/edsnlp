@@ -187,7 +187,8 @@ class FamilyContextQualifier(RuleBasedQualifier):
         if not Doc.has_extension("family"):
             Doc.set_extension("family", default=[])
 
-    def process(self, doc: Doc) -> FamilyResults:
+    def process(self, doc_like: Union[Doc, Span]) -> FamilyResults:
+        doc = self.ensure_doc(doc_like)
         matches = self.get_matches(doc)
 
         terminations = [m for m in matches if m.label_ == "termination"]

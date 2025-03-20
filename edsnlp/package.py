@@ -396,43 +396,49 @@ class PoetryPackager(Packager):
             # Dependencies
             deps = []
             poetry_deps = poetry["dependencies"]
-            for dep_name, constraint in poetry_deps.items():
-                dep = dep_name
-                constraint: PoetryConstraint = (
-                    dict(constraint)
-                    if isinstance(constraint, dict)
-                    else {"version": constraint}
+            for dep_name, constraints in poetry_deps.items():
+                constraints = (
+                    constraints if isinstance(constraints, list) else [constraints]
                 )
-                try:
-                    dep += f"[{','.join(constraint.pop('extras'))}]"
-                except KeyError:
-                    pass
-                if "version" in constraint:
-                    dep_version = constraint.pop("version")
-                    assert not dep_version.startswith(
-                        "^"
-                    ), "Packaging models with ^ dependencies is not supported"
-                    dep += (
-                        ""
-                        if dep_version == "*"
-                        else dep_version
-                        if not dep_version[0].isdigit()
-                        else f"=={dep_version}"
+                for constraint in constraints:
+                    dep = dep_name
+                    constraint: PoetryConstraint = (
+                        dict(constraint)
+                        if isinstance(constraint, dict)
+                        else {"version": constraint}
                     )
-                try:
-                    dep += f"; {constraint.pop('markers')}"
-                except KeyError:
-                    pass
-                assert (
-                    not constraint
-                ), f"Unsupported constraints for dependency {dep_name}: {constraint}"
-                if dep_name == "python":
-                    new_pyproject["project"]["requires-python"] = dep.replace(
-                        "python", ""
+                    try:
+                        dep += f"[{','.join(constraint.pop('extras'))}]"
+                    except KeyError:
+                        pass
+                    if "version" in constraint:
+                        dep_version = constraint.pop("version")
+                        assert not dep_version.startswith(
+                            "^"
+                        ), "Packaging models with ^ dependencies is not supported"
+                        dep += (
+                            ""
+                            if dep_version == "*"
+                            else dep_version
+                            if not dep_version[0].isdigit()
+                            else f"=={dep_version}"
+                        )
+                    try:
+                        dep += f"; {constraint.pop('markers')}"
+                    except KeyError:
+                        pass
+                    assert not constraint, (
+                        "Unsupported constraints for dependency "
+                        f"{dep_name}: {constraint}"
                     )
+                    if dep_name == "python":
+                        new_pyproject["project"]["requires-python"] = dep.replace(
+                            "python", ""
+                        )
+                        continue
+                    deps.append(dep)
+                if not deps:
                     continue
-                deps.append(dep)
-
             new_pyproject["project"]["dependencies"] = deps
 
         if "authors" in metadata:

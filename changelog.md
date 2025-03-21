@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- Handling intra-word linebreak as pollution : Adds a pollution pattern that detects intra-word linebreak, which can then be removed in the `get_text` method
+- Qualifiers can process `Span` or `Doc` : This feature especially makes it easier to use such pipes in other pipes directly
+- Various disorders/behaviors patches
+- Add label_weights : Allows the user to mention label weights during span classification training
+- Deduplicate spans between doc.ents and doc.spans during train : Previously, if the `span_getter` asks to get both `ents` and `spans`, entities would have been seen twice
 - `edsnlp/tune.py`: New hyperparameters tuning script.
 - Hyperparameter Tuning for EDS-NLP: Introduced a new script `edsnlp.tune` for hyperparameter tuning using Optuna. This feature allows users to efficiently optimize model parameters with options for single-phase or two-phase tuning strategies. Includes support for parameter importance analysis, visualization, pruning, and automatic handling of GPU time budgets.
 - `tests/tuning/*.py`: Unit tests for the tuning script.

@@ -1,12 +1,12 @@
 # Changelog
 
-## Unreleased
+## v0.16.0 (2025-0.3-26)
 
 ### Added
-- Hyperparameter Tuning for EDS-NLP: Introduced a new script `edsnlp.tune` for hyperparameter tuning using Optuna. This feature allows users to efficiently optimize model parameters with options for single-phase or two-phase tuning strategies. Includes support for parameter importance analysis, visualization, pruning, and automatic handling of GPU time budgets.
-- Provided a [detailed tutorial](./docs/tutorials/tuning.md) on hyperparameter tuning, covering usage scenarios and configuration options.
+- Hyperparameter Tuning for EDS-NLP: introduced a new script `edsnlp.tune` for hyperparameter tuning using Optuna. This feature allows users to efficiently optimize model parameters with options for single-phase or two-phase tuning strategies. Includes support for parameter importance analysis, visualization, pruning, and automatic handling of GPU time budgets.
+- Provided a [detailed tutorial](https://aphp.github.io/edsnlp/v0.16.0/tutorials/tuning/) on hyperparameter tuning, covering usage scenarios and configuration options.
 - `ScheduledOptimizer` (e.g., `@core: "optimizer"`) now supports importing optimizers using their qualified name (e.g., `optim: "torch.optim.Adam"`).
-- `edsnlp/ner_crf.` now compute confidence score on spans.
+- `eds.ner_crf` now computes confidence score on spans.
 
 ### Changed
 
@@ -25,7 +25,7 @@
   - Raise an error if the batch size in `stream.shuffle(batch_size=...)` is not compatible with the stream
 - `eds.split` now keeps doc and span attributes in the sub-documents.
 
-# v0.15.0 (2024-12-13)
+## v0.15.0 (2024-12-13)
 
 ### Added
 

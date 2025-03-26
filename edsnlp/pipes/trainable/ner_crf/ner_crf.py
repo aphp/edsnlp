@@ -121,7 +121,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
     Extensions
     ----------
 
-!!! warning "Experimental Confidence Score"
+    !!! warning "Experimental Confidence Score"
 
         The NER confidence score feature is experimental and the API and underlying
         algorithm may change.

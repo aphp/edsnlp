@@ -121,8 +121,9 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
     Extensions
     ----------
 
-    !!! warning "Experimental"
-        This feature is experimental and the API and underlying algorithm may change.
+!!! warning "Experimental Confidence Score"
+
+        The NER confidence score feature is experimental and the API and underlying algorithm may change.
 
     The `eds.ner_crf` pipeline declares one extension on the `Span` object:
 

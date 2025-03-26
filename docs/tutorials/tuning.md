@@ -35,7 +35,7 @@ readme = "README.md"
 requires-python = ">3.7.1,<4.0"
 
 dependencies = [
-    "edsnlp[ml]>=0.15.0",
+    "edsnlp[ml]>=0.16.0",
     "sentencepiece>=0.1.96",
     "optuna>=4.0.0",
     "plotly>=5.18.0",

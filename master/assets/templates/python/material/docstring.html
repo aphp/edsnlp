@@ -1,0 +1,34 @@
+{% if docstring_sections %}
+  {{ log.debug("Rendering docstring") }}
+  {% for section in docstring_sections %}
+    {% if not config.only_parameters %}
+      {% if section.kind.value == "text" and (not config.sections or "text" in config.sections) %}
+        {{ section.value|convert_markdown(heading_level - 1, html_id) }}
+      {% elif section.kind.value == "attributes" and (not config.sections or "attributes" in config.sections) %}
+        {% include "docstring/attributes.html" with context %}
+      {% elif section.kind.value == "parameters" and (not config.sections or "parameters" in config.sections) %}
+        {% include "docstring/parameters.html" with context %}
+      {% elif section.kind.value == "other parameters" and (not config.sections or "parameters" in config.sections) %}
+        {% include "docstring/other_parameters.html" with context %}
+      {% elif section.kind.value == "raises" and (not config.sections or "raises" in config.sections) %}
+        {% include "docstring/raises.html" with context %}
+        {% elif section.kind.value == "warns" and (not config.sections or "warns" in config.sections) %}
+          {% include "docstring/warns.html" with context %}
+      {% elif section.kind.value == "yields" and (not config.sections or "yields" in config.sections) %}
+        {% include "docstring/yields.html" with context %}
+        {% elif section.kind.value == "receives" and (not config.sections or "receives" in config.sections) %}
+          {% include "docstring/receives.html" with context %}
+      {% elif section.kind.value == "returns" and (not config.sections or "returns" in config.sections) %}
+        {% include "docstring/returns.html" with context %}
+      {% elif section.kind.value == "examples" and (not config.sections or "examples" in config.sections) %}
+        {% include "docstring/examples.html" with context %}
+      {% elif section.kind.value == "admonition" and (not config.sections or "admonition" in config.sections) %}
+        {% include "docstring/admonition.html" with context %}
+      {% endif %}
+    {% elif section.kind.value == "parameters" %}
+      {% include "docstring/parameters.html" with context %}
+    {% elif section.kind.value == "attributes" %}
+      {% include "docstring/attributes.html" with context %}
+    {% endif %}
+  {% endfor %}
+{% endif %}

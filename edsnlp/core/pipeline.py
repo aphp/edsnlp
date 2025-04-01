@@ -102,7 +102,7 @@ class Pipeline(Validated):
         create_tokenizer: Optional[Callable[[Self], Tokenizer]] = None,
         vocab: Union[bool, Vocab] = True,
         batch_size: Optional[int] = None,
-        vocab_config: Type[BaseDefaults] = None,
+        vocab_config: Optional[Type[BaseDefaults]] = None,
         meta: Dict[str, Any] = None,
         pipeline: Optional[Sequence[str]] = None,
         components: Dict[str, Any] = {},

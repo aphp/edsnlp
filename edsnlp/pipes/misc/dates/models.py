@@ -4,11 +4,23 @@ from typing import Any, Dict, Optional, Union
 
 import pydantic
 from pandas._libs.tslibs.nattype import NaTType
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, Field
 from pytz import timezone
 from spacy.tokens import Span
 
 from edsnlp.pipes.misc.dates.patterns.relative import specific_dict
+
+try:
+    from pydantic import field_validator, model_validator
+
+    def validator(x, allow_reuse=True, pre=False):
+        return field_validator(x, mode="before" if pre else "after")
+
+    def root_validator(allow_reuse=True, pre=False):
+        return model_validator(mode="before" if pre else "after")
+
+except ImportError:
+    from pydantic import root_validator, validator
 
 
 class Direction(str, Enum):

@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import joblib
 import optuna
 import optuna.visualization as vis
+import pydantic
 from configobj import ConfigObj
 from confit import Cli, Config
 from confit.utils.collections import split_path
@@ -49,6 +50,9 @@ class HyperparameterConfig(BaseModel):
     class Config:
         extra = "forbid"
 
+    if pydantic.VERSION < "2":
+        model_dump = BaseModel.dict
+
     def to_dict(self) -> dict:
         """
         Convert the hyperparameter configuration to a dictionary.
@@ -57,7 +61,7 @@ class HyperparameterConfig(BaseModel):
         Returns:
             dict: A dictionary representation of the hyperparameter configuration.
         """
-        return self.dict(exclude_unset=True, exclude_defaults=True)
+        return self.model_dump(exclude_unset=True, exclude_defaults=True)
 
 
 def setup_logging():
@@ -598,7 +602,7 @@ def tune(
     output_dir: str,
     checkpoint_dir: str,
     gpu_hours: confloat(gt=0) = DEFAULT_GPU_HOUR,
-    n_trials: conint(gt=0) = None,
+    n_trials: Optional[conint(gt=0)] = None,
     two_phase_tuning: bool = False,
     seed: int = 42,
     metric="ner.micro.f",

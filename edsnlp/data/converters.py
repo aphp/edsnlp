@@ -89,7 +89,9 @@ def validate_kwargs(func, kwargs):
         model = vd.init_model_instance(
             **{k: v for k, v in kwargs.items() if k in spec.args}
         )
-        fields = model.__fields__ if pydantic.__version__ < "2" else model.model_fields
+        fields = (
+            model.__fields__ if pydantic.__version__ < "2" else vd.model.model_fields
+        )
         d = {
             k: v
             for k, v in model.__dict__.items()

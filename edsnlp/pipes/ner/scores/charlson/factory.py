@@ -24,7 +24,6 @@ DEFAULT_CONFIG = dict(
     "eds.charlson",
     assigns=["doc.ents", "doc.spans"],
     deprecated=[
-        "eds.charlson",
         "charlson",
     ],
 )

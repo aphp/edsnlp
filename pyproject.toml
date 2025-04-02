@@ -49,7 +49,7 @@ dev-no-ml = [
     "pyspark",
     "polars",
 
-    "mlconjug3<3.9.0",
+    "mlconjug3<3.9.0; python_version<'3.12'",
     "scikit-learn>=1.0.0",
 
     "edsnlp[docs-no-ml]",

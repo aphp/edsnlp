@@ -6,15 +6,7 @@ import sys
 import tempfile
 import warnings
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Mapping,
-    Optional,
-    Sequence,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Sequence, Union
 
 import build
 import confit
@@ -288,7 +280,7 @@ class Packager:
                     logger.info(f"SKIP {rel}")
 
 
-class PoetryPackager(Packager):
+class OldStylePoetryPackager(Packager):
     def __init__(
         self,
         *,
@@ -458,7 +450,7 @@ class PoetryPackager(Packager):
         )
 
 
-class SetuptoolsPackager(Packager):
+class StandardPackager(Packager):
     def __init__(
         self,
         *,
@@ -523,7 +515,10 @@ class SetuptoolsPackager(Packager):
         packages = sorted([p for p in packages if p])
         file_paths = []
         for package in packages:
-            file_paths.extend((root_dir / package).rglob("*"))
+            for path in (root_dir / package).rglob("*"):
+                if "__pycache__" in path.parts or path.is_dir():
+                    continue
+                file_paths.append(path)
 
         new_pyproject["tool"]["hatch"]["build"] = {
             "packages": [*packages, artifacts_name],
@@ -570,7 +565,7 @@ def package(
     dist_dir: Path = Path("dist"),
     artifacts_name: ModuleName = "artifacts",
     check_dependencies: bool = False,
-    project_type: Optional[Literal["poetry", "setuptools"]] = None,
+    project_type: Optional[str] = None,
     version: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = {},
     distributions: Optional[AsList[Literal["wheel", "sdist"]]] = ["wheel"],
@@ -601,21 +596,28 @@ def package(
     if pyproject_path.exists():
         pyproject = toml.loads((root_dir / "pyproject.toml").read_text())
 
-    package_managers = {"setuptools", "poetry", "hatch", "pdm"} & set(
-        (pyproject or {}).get("tool", {})
-    )
-    package_managers = package_managers or {"setuptools"}  # default
+    try:
+        _ = pyproject["tool"]["poetry"]["name"]
+        inferred_project_type = "old-style-poetry"
+    except (KeyError, TypeError):
+        inferred_project_type = "standard"
+    except Exception:
+        inferred_project_type = "unknown"
+
     try:
         if project_type is None:
-            [project_type] = package_managers
+            project_type = inferred_project_type
         packager_cls = {
-            "poetry": PoetryPackager,
-            "setuptools": SetuptoolsPackager,
+            "old-style-poetry": OldStylePoetryPackager,
+            "standard": StandardPackager,
+            # for backward compatibility
+            "poetry": OldStylePoetryPackager,
+            "setuptools": StandardPackager,
         }[project_type]
     except Exception:  # pragma: no cover
         raise ValueError(
-            "Could not infer project type, only poetry and setuptools based projects "
-            "are supported for now"
+            f"Could not process project type {project_type!r} only old-style poetry "
+            f"and PEP 621 pyproject.toml formats are supported for now."
         )
     packager = packager_cls(
         pyproject=pyproject,

@@ -3,7 +3,6 @@ from typing import Any, Dict, Iterable
 
 import numpy as np
 import pandas as pd
-from numpy.lib.function_base import iterable
 from pandas.api.types import CategoricalDtype
 from pandas.core.groupby import DataFrameGroupBy
 from spacy.strings import StringStore
@@ -239,9 +238,9 @@ class EndLinesModel:
         df[new_col] = df[col].astype(cat_type_A)
         df[new_col] = df[new_col].cat.codes
         # Ensure that not known values are coded as OTHER
-        df.loc[
-            ~df[col].isin(self.vocabulary["A3A4"].keys()), new_col
-        ] = self.vocabulary["A3A4"]["OTHER"]
+        df.loc[~df[col].isin(self.vocabulary["A3A4"].keys()), new_col] = (
+            self.vocabulary["A3A4"]["OTHER"]
+        )
         return df
 
     def _convert_B(self, df: pd.DataFrame, col: str) -> pd.DataFrame:
@@ -594,7 +593,7 @@ class EndLinesModel:
         return dfg
 
     @classmethod
-    def _create_vocabulary(cls, x: iterable) -> dict:
+    def _create_vocabulary(cls, x: Iterable) -> dict:
         """Function to create a vocabulary for attributes in the training set.
 
         Parameters

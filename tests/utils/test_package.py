@@ -48,6 +48,7 @@ def test_package_with_files(nlp, tmp_path, package_name, manager):
 
     ((tmp_path / "test_model").mkdir(parents=True))
     (tmp_path / "test_model" / "__init__.py").write_text('print("Hello World!")\n')
+    (tmp_path / "test_model" / "empty_folder").mkdir()
     (tmp_path / "README.md").write_text(
         """\
 <!-- INSERT -->

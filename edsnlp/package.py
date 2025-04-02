@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import warnings
@@ -14,10 +15,26 @@ import toml
 from build.__main__ import build_package, build_package_via_sdist
 from confit import Cli
 from loguru import logger
-from typing_extensions import Literal
+from typing_extensions import Literal, TypedDict
 
 import edsnlp
 from edsnlp.utils.typing import AsList, Validated
+
+PoetryConstraint = TypedDict(
+    "PoetryConstraint",
+    {
+        "version": str,
+        "extras": Optional[Sequence[str]],
+        "markers": Optional[str],
+        "url": Optional[str],
+        "path": Optional[str],
+        "git": Optional[str],
+        "ref": Optional[str],
+        "branch": Optional[str],
+        "tag": Optional[str],
+    },
+    total=False,
+)
 
 logger.remove()
 logger.add(
@@ -58,6 +75,41 @@ class ModuleName(str, Validated):
 if TYPE_CHECKING:
     ModuleName = str  # noqa F811
 
+POETRY_SNIPPET = """\
+from poetry.core.masonry.builders.sdist import SdistBuilder
+from poetry.factory import Factory
+try:
+    from poetry.core.masonry.utils.module import ModuleOrPackageNotFound
+except ImportError:
+    from poetry.core.masonry.utils.module import ModuleOrPackageNotFoundError as ModuleOrPackageNotFound
+import sys
+# Initialize the Poetry object for the current project
+poetry = Factory().create_poetry("__root_dir__")
+
+# Initialize the builder
+try:
+    builder = SdistBuilder(poetry)
+    # Get the list of files to include
+    files = builder.find_files_to_add()
+except ModuleOrPackageNotFound:
+    if not poetry.package.packages:
+        print([])
+        sys.exit(0)
+
+print([
+    {k: v for k, v in {
+    "include": getattr(include, '_include'),
+    "from": getattr(include, 'source', None),
+    "formats": getattr(include, 'formats', None),
+    }.items() if v}
+    for include in builder._module.includes
+])
+
+
+# Print the list of files
+for file in files:
+    print(file.path)
+"""  # noqa E501
 
 INIT_PY = """
 # -----------------------------------------
@@ -113,87 +165,13 @@ class Packager:
         build_dir: Optional[Path] = None,
         dist_dir: Path,
         artifacts_name: ModuleName,
-        metadata: Optional[Dict[str, Any]] = {},
         exclude: AsList[str],
         readme_replacements: Dict[str, str] = {},
+        file_paths: Sequence[Path],
     ):
-        try:
-            version = version or pyproject["project"]["version"]
-        except (KeyError, TypeError):
-            version = "0.1.0"
-        name = name or pyproject["project"]["name"]
-        if pyproject is not None:
-            main_package = snake_case(pyproject["project"]["name"].lower())
-        else:
-            main_package = None
-        model_package = snake_case(name.lower())
-
-        root_dir = root_dir.resolve()
-        dist_dir = dist_dir if Path(dist_dir).is_absolute() else root_dir / dist_dir
-
-        build_dir = Path(tempfile.mkdtemp()) if build_dir is None else build_dir
-
-        new_pyproject: confit.Config = confit.Config()
-        if pyproject is not None:
-            new_pyproject["project"] = pyproject["project"]
-        new_pyproject = new_pyproject.merge(
-            {
-                "build-system": {
-                    "requires": ["hatchling"],
-                    "build-backend": "hatchling.build",
-                },
-                "tool": {"hatch": {"build": {}}},
-                "project": {
-                    "name": model_package,
-                    "version": version,
-                    "requires-python": ">=3.7",
-                },
-            }
-        )
-
-        try:
-            find = dict(pyproject["tool"].pop("setuptools", {})["packages"]["find"])
-        except Exception:
-            find = {}
-        where = find.pop("where", ["."])
-        where = [where] if not isinstance(where, list) else where
-        packages = {main_package, model_package}
-        for w in where:
-            # TODO Should we handle namespaces ?
-            # if find.pop("namespace", None) is not None:
-            #     packages.extend(setuptools.find_namespace_packages(**find))
-            packages.update(setuptools.find_packages(w, **find))
-        packages = sorted([p for p in packages if p])
-        file_paths = []
-        for package in packages:
-            for path in (root_dir / package).rglob("*"):
-                if "__pycache__" in path.parts or path.is_dir():
-                    continue
-                file_paths.append(path)
-
-        new_pyproject["tool"]["hatch"]["build"] = {
-            "packages": [*packages, artifacts_name],
-            "exclude": ["__pycache__/", "*.pyc", "*.pyo", ".ipynb_checkpoints"],
-            "artifacts": [artifacts_name],
-            "targets": {
-                "wheel": {
-                    "sources": {
-                        f"{artifacts_name}": f"{model_package}/{artifacts_name}"
-                    },
-                },
-            },
-        }
-
-        if "authors" in metadata:
-            metadata["authors"] = parse_authors(metadata["authors"])
-        metadata["name"] = model_package
-        metadata["version"] = version
-
-        pyproject = new_pyproject.merge({"project": metadata})
-
-        self.name = model_package
+        self.name = name
         self.version = version
-        assert model_package == pyproject["project"]["name"]
+        assert name == pyproject["project"]["name"]
         assert version == pyproject["project"]["version"]
         self.root_dir = root_dir.resolve()
         self.pipeline = pipeline
@@ -209,7 +187,7 @@ class Packager:
 
         logger.info(f"root_dir: {root_dir}")
         logger.info(f"artifacts_name: {artifacts_name}")
-        logger.info(f"name: {model_package}")
+        logger.info(f"name: {name}")
 
     def build(
         self,
@@ -233,6 +211,15 @@ class Packager:
             isolation=isolation,
             skip_dependency_check=skip_dependency_check,
         )
+
+    # def update_pyproject(self):
+    #     # Adding artifacts to include in pyproject.toml
+    #     snake_name = snake_case(self.name.lower())
+    #     included = self.pyproject["tool"]["poetry"].setdefault("include", [])
+    #     included.append(f"{snake_name}/{self.artifacts_name}/**")
+    #     packages = list(self.packages)
+    #     packages.append({"include": snake_name})
+    #     self.pyproject["tool"]["poetry"]["packages"] = packages
 
     def make_src_dir(self):
         snake_name = snake_case(self.name.lower())
@@ -293,6 +280,293 @@ class Packager:
                     logger.info(f"SKIP {rel}")
 
 
+class OldStylePoetryPackager(Packager):
+    def __init__(
+        self,
+        *,
+        name: ModuleName,
+        pyproject: Optional[Dict[str, Any]],
+        pipeline: Union[Path, "edsnlp.Pipeline"],
+        version: Optional[str],
+        root_dir: Path = ".",
+        build_dir: Optional[Path] = None,
+        dist_dir: Path,
+        artifacts_name: ModuleName,
+        metadata: Optional[Dict[str, Any]] = {},
+        exclude: AsList[str],
+        readme_replacements: Dict[str, str] = {},
+    ):
+        try:
+            version = version or pyproject["tool"]["poetry"]["version"]
+        except (KeyError, TypeError):  # pragma: no cover
+            version = "0.1.0"
+        name = name or pyproject["tool"]["poetry"]["name"]
+        main_package = (
+            snake_case(pyproject["tool"]["poetry"]["name"].lower())
+            if pyproject is not None
+            else None
+        )
+        model_package = snake_case(name.lower())
+
+        root_dir = root_dir.resolve()
+        dist_dir = dist_dir if Path(dist_dir).is_absolute() else root_dir / dist_dir
+
+        build_dir = Path(tempfile.mkdtemp()) if build_dir is None else build_dir
+
+        new_pyproject: Dict[str, Any] = {
+            "build-system": {
+                "requires": ["hatchling"],
+                "build-backend": "hatchling.build",
+            },
+            "tool": {
+                "hatch": {
+                    "build": {},
+                    # in case the user provides a git dependency for example
+                    "metadata": {"allow-direct-references": True},
+                }
+            },
+            "project": {
+                "name": model_package,
+                "version": version,
+                "requires-python": ">=3.7",
+            },
+        }
+        file_paths = []
+
+        if pyproject is not None:
+            poetry = pyproject["tool"]["poetry"]
+
+            # Extract packages
+            poetry_bin_path = (
+                subprocess.run(["which", "poetry"], stdout=subprocess.PIPE)
+                .stdout.decode()
+                .strip()
+            )
+            python_executable = Path(poetry_bin_path).read_text().split("\n")[0][2:]
+            result = subprocess.run(
+                [
+                    *python_executable.split(),
+                    "-c",
+                    POETRY_SNIPPET.replace("__root_dir__", str(root_dir)),
+                ],
+                stdout=subprocess.PIPE,
+                cwd=root_dir,
+            )
+            if result.returncode != 0:
+                raise Exception()
+            out = result.stdout.decode().strip().split("\n")
+            file_paths = [root_dir / file_path for file_path in out[1:]]
+            packages = {
+                main_package,
+                model_package,
+                *(package["include"] for package in eval(out[0])),
+            }
+            packages = sorted([p for p in packages if p])
+            new_pyproject["tool"]["hatch"]["build"] = {
+                "packages": [*packages, artifacts_name],
+                "exclude": ["__pycache__/", "*.pyc", "*.pyo", ".ipynb_checkpoints"],
+                "artifacts": [artifacts_name],
+                "targets": {
+                    "wheel": {
+                        "sources": {
+                            f"{artifacts_name}": f"{model_package}/{artifacts_name}"
+                        },
+                    },
+                },
+            }
+            if "description" in poetry:  # pragma: no cover
+                new_pyproject["project"]["description"] = poetry["description"]
+            if "classifiers" in poetry:  # pragma: no cover
+                new_pyproject["project"]["classifiers"] = poetry["classifiers"]
+            if "keywords" in poetry:  # pragma: no cover
+                new_pyproject["project"]["keywords"] = poetry["keywords"]
+            if "license" in poetry:  # pragma: no cover
+                new_pyproject["project"]["license"] = {"text": poetry["license"]}
+            if "readme" in poetry:  # pragma: no cover
+                new_pyproject["project"]["readme"] = poetry["readme"]
+            if "authors" in poetry:  # pragma: no cover
+                new_pyproject["project"]["authors"] = parse_authors(poetry["authors"])
+            if "plugins" in poetry:  # pragma: no cover
+                new_pyproject["project"]["entry-points"] = poetry["plugins"]
+            if "scripts" in poetry:  # pragma: no cover
+                new_pyproject["project"]["scripts"] = poetry["scripts"]
+
+            # Dependencies
+            deps = []
+            poetry_deps = poetry["dependencies"]
+            for dep_name, constraint in poetry_deps.items():
+                dep = dep_name
+                constraint: PoetryConstraint = (
+                    dict(constraint)
+                    if isinstance(constraint, dict)
+                    else {"version": constraint}
+                )
+                try:
+                    dep += f"[{','.join(constraint.pop('extras'))}]"
+                except KeyError:
+                    pass
+                if "version" in constraint:
+                    dep_version = constraint.pop("version")
+                    assert not dep_version.startswith(
+                        "^"
+                    ), "Packaging models with ^ dependencies is not supported"
+                    dep += (
+                        ""
+                        if dep_version == "*"
+                        else dep_version
+                        if not dep_version[0].isdigit()
+                        else f"=={dep_version}"
+                    )
+                try:
+                    dep += f"; {constraint.pop('markers')}"
+                except KeyError:
+                    pass
+                assert (
+                    not constraint
+                ), f"Unsupported constraints for dependency {dep_name}: {constraint}"
+                if dep_name == "python":
+                    new_pyproject["project"]["requires-python"] = dep.replace(
+                        "python", ""
+                    )
+                    continue
+                deps.append(dep)
+
+            new_pyproject["project"]["dependencies"] = deps
+
+        if "authors" in metadata:
+            metadata["authors"] = parse_authors(metadata["authors"])
+        metadata["name"] = model_package
+        metadata["version"] = version
+
+        new_pyproject = confit.Config(new_pyproject).merge({"project": metadata})
+
+        # Use hatch
+        super().__init__(
+            name=model_package,
+            pyproject=new_pyproject,
+            pipeline=pipeline,
+            version=version,
+            root_dir=root_dir,
+            build_dir=build_dir,
+            dist_dir=dist_dir,
+            artifacts_name=artifacts_name,
+            exclude=exclude,
+            readme_replacements=readme_replacements,
+            file_paths=file_paths,
+        )
+
+
+class StandardPackager(Packager):
+    def __init__(
+        self,
+        *,
+        name: ModuleName,
+        pyproject: Optional[Dict[str, Any]],
+        pipeline: Union[Path, "edsnlp.Pipeline"],
+        version: Optional[str],
+        root_dir: Path = ".",
+        build_dir: Optional[Path] = None,
+        dist_dir: Path,
+        artifacts_name: ModuleName,
+        metadata: Optional[Dict[str, Any]] = {},
+        exclude: AsList[str],
+        readme_replacements: Dict[str, str] = {},
+    ):
+        try:
+            version = version or pyproject["project"]["version"]
+        except (KeyError, TypeError):
+            version = "0.1.0"
+        name = name or pyproject["project"]["name"]
+        if pyproject is not None:
+            main_package = snake_case(pyproject["project"]["name"].lower())
+        else:
+            main_package = None
+        model_package = snake_case(name.lower())
+
+        root_dir = root_dir.resolve()
+        dist_dir = dist_dir if Path(dist_dir).is_absolute() else root_dir / dist_dir
+
+        build_dir = Path(tempfile.mkdtemp()) if build_dir is None else build_dir
+
+        new_pyproject: confit.Config = confit.Config()
+        if pyproject is not None:
+            new_pyproject["project"] = pyproject["project"]
+        new_pyproject = new_pyproject.merge(
+            {
+                "build-system": {
+                    "requires": ["hatchling"],
+                    "build-backend": "hatchling.build",
+                },
+                "tool": {
+                    "hatch": {
+                        "build": {},
+                        # in case the user provides a git dependency for example
+                        "metadata": {"allow-direct-references": True},
+                    },
+                },
+                "project": {
+                    "name": model_package,
+                    "version": version,
+                    "requires-python": ">=3.7",
+                },
+            }
+        )
+
+        try:
+            find = dict(pyproject["tool"].pop("setuptools", {})["packages"]["find"])
+        except Exception:
+            find = {}
+        where = find.pop("where", ["."])
+        where = [where] if not isinstance(where, list) else where
+        packages = {main_package, model_package}
+        for w in where:
+            # TODO Should we handle namespaces ?
+            # if find.pop("namespace", None) is not None:
+            #     packages.extend(setuptools.find_namespace_packages(**find))
+            packages.update(setuptools.find_packages(w, **find))
+        packages = sorted([p for p in packages if p])
+        file_paths = []
+        for package in packages:
+            for path in (root_dir / package).rglob("*"):
+                if "__pycache__" in path.parts or path.is_dir():
+                    continue
+                file_paths.append(path)
+
+        new_pyproject["tool"]["hatch"]["build"] = {
+            "packages": [*packages, artifacts_name],
+            "exclude": ["__pycache__/", "*.pyc", "*.pyo", ".ipynb_checkpoints"],
+            "artifacts": [artifacts_name],
+            "targets": {
+                "wheel": {
+                    "sources": {
+                        f"{artifacts_name}": f"{model_package}/{artifacts_name}"
+                    },
+                },
+            },
+        }
+
+        if "authors" in metadata:
+            metadata["authors"] = parse_authors(metadata["authors"])
+        metadata["name"] = model_package
+        metadata["version"] = version
+
+        new_pyproject = new_pyproject.merge({"project": metadata})
+
+        super().__init__(
+            name=model_package,
+            pyproject=new_pyproject,
+            pipeline=pipeline,
+            version=version,
+            root_dir=root_dir,
+            build_dir=build_dir,
+            dist_dir=dist_dir,
+            artifacts_name=artifacts_name,
+            exclude=exclude,
+            readme_replacements=readme_replacements,
+            file_paths=file_paths,
+        )
+
+
 @app.command(name="package")
 def package(
     pipeline: Union[Path, "edsnlp.Pipeline"],
@@ -303,7 +577,7 @@ def package(
     dist_dir: Path = Path("dist"),
     artifacts_name: ModuleName = "artifacts",
     check_dependencies: bool = False,
-    project_type: Optional[Literal["poetry", "setuptools"]] = None,
+    project_type: Optional[str] = None,
     version: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = {},
     distributions: Optional[AsList[Literal["wheel", "sdist"]]] = ["wheel"],
@@ -313,20 +587,7 @@ def package(
     exclude: Optional[AsList[str]] = None,
     readme_replacements: Dict[str, str] = {},
 ):
-    """
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-
-    """
-    if project_type is not None:
-        warnings.warn(
-            "Project_type is deprecated, only PEP621 pyproject.toml is supported",
-            DeprecationWarning,
-        )
+    # root_dir = Path(".").resolve()
     exclude = exclude or ["artifacts/vocab/*"]
     pyproject_path = root_dir / "pyproject.toml"
 
@@ -347,7 +608,28 @@ def package(
     if pyproject_path.exists():
         pyproject = toml.loads((root_dir / "pyproject.toml").read_text())
 
-    packager = Packager(
+    try:
+        _ = pyproject["tool"]["poetry"]["name"]
+        inferred_project_type = "old-style-poetry"
+    except (KeyError, TypeError):
+        inferred_project_type = "standard"
+
+    try:
+        if project_type is None:
+            project_type = inferred_project_type
+        packager_cls = {
+            "old-style-poetry": OldStylePoetryPackager,
+            "standard": StandardPackager,
+            # for backward compatibility
+            "poetry": OldStylePoetryPackager,
+            "setuptools": StandardPackager,
+        }[project_type]
+    except Exception:  # pragma: no cover
+        raise ValueError(
+            f"Could not process project type {project_type!r} only old-style poetry "
+            f"and PEP 621 pyproject.toml formats are supported for now."
+        )
+    packager = packager_cls(
         pyproject=pyproject,
         pipeline=pipeline,
         name=name,

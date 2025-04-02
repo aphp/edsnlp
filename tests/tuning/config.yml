@@ -125,3 +125,4 @@ train:
   scorer: ${ scorer }
   num_workers: 0
   optimizer: ${ optimizer }
+  cpu: true

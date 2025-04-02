@@ -36,7 +36,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v2
 
@@ -74,17 +74,27 @@ jobs:
       - name: Install dependencies
         run: |
           pip install poetry
-          pip install -e '.[dev,setup]' pytest-xdist pip
-        if: matrix.python-version != '3.10'
+          pip install -e '.[dev]' pytest-xdist pip
+        if: matrix.python-version != '3.9' && matrix.python-version != '3.10' && matrix.python-version != '3.11' && matrix.python-version != '3.12'
 #          uv venv
 #          source .venv/bin/activate
-#          uv pip install -e '.[dev,setup]' pytest-xdist pip
+#          uv pip install -e '.[dev]' pytest-xdist pip
 
       - name: Install dependencies
         run: |
           pip install poetry
-          pip install -e '.[dev-no-ml,setup]' pytest-xdist pip
-        if: matrix.python-version == '3.10'
+          pip install -e '.[dev,setup]' pytest-xdist pip
+        if: matrix.python-version == '3.9'
+#          uv venv
+#          source .venv/bin/activate
+#          uv pip install -e '.[dev]' pytest-xdist pip
+
+      - name: Install dependencies
+        run: |
+          pip install poetry
+          pip install -e '.[dev-no-ml]' pytest-xdist pip
+        # skip ML tests for 3.10 and 3.11
+        if: matrix.python-version == '3.10' || matrix.python-version == '3.11' || matrix.python-version == '3.12'
 
       - name: Test with Pytest on Python ${{ matrix.python-version }}
         env:

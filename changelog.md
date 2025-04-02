@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- Support for numpy>2.0, and formal support for Python 3.11 and Python 3.12
+
 ### Fixed
 
 - `edsnlp.package` now correctly detect if a project uses an old-style poetry pyproject or a PEP621 pyproject.toml.

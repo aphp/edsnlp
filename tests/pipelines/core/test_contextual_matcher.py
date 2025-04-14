@@ -276,3 +276,28 @@ Tumeur mammaire benigne.
     ent = doc.ents[0]
     assert ent.label_ == "tumor_size"
     assert ent._.assigned["size"]._.value.cm == 3
+
+
+# Checks https://github.com/aphp/edsnlp/issues/394
+def test_contextual_matcher_exclude_outside():
+    import edsnlp
+    import edsnlp.pipes as eds
+
+    asa_pattern = r"\basa\b ?:? ?([1-5]|[A-Z]{1,3})"
+    exclude_asa_ttt = r"5"
+    asa = dict(
+        source="asa",
+        regex=asa_pattern,
+        regex_attr="NORM",
+        exclude=dict(regex=exclude_asa_ttt, window=-5),
+    )
+
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(eds.sentences())
+    nlp.add_pipe(eds.contextual_matcher(patterns=[asa], label="asa"))
+
+    doc = nlp("ASA 5")
+    assert str(doc.ents) == "(ASA 5,)"
+
+    doc = nlp("5 ASA 5")
+    assert str(doc.ents) == "()"

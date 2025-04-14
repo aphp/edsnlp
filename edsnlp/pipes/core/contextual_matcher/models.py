@@ -50,7 +50,8 @@ class SingleExcludeModel(BaseModel):
     """
     A dictionary to define exclusion rules. Exclusion rules are given as Regexes, and
     if a match is found in the surrounding context of an extraction, the extraction is
-    removed. Each dictionary should have the following keys:
+    removed. Note that only take a match into account if it is not inside the anchor
+    span.
 
     Parameters
     ----------
@@ -83,7 +84,8 @@ class SingleIncludeModel(BaseModel):
     """
     A dictionary to define inclusion rules. Inclusion rules are given as Regexes, and
     if a match isn't found in the surrounding context of an extraction, the extraction
-    is removed. Each dictionary should have the following keys:
+    is removed. Note that only take a match into account if it is not inside the anchor
+    span.
 
     Parameters
     ----------

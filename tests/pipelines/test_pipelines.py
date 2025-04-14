@@ -1,3 +1,8 @@
+import pytest
+
+import edsnlp
+
+
 def test_pipelines(doc):
     assert len(doc.ents) == 3
     patient, _, anomalie = doc.ents
@@ -18,3 +23,10 @@ def test_import_all():
             except (ImportError, AttributeError) as e:
                 if "torch" in str(e):
                     pass
+
+
+def test_non_existing_pipe():
+    with pytest.raises(AttributeError) as e:
+        getattr(edsnlp.pipes, "non_existing_pipe")
+
+    assert str(e.value) == "module edsnlp.pipes has no attribute non_existing_pipe"

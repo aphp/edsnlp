@@ -67,6 +67,7 @@ def lazify():
         -------
 
         """
+        imported_module_name = module_globals["__name__"]
         if name in module_paths:
             module_path, module_name = module_paths[name]
             result = getattr(
@@ -80,7 +81,7 @@ def lazify():
             )
             module_globals[name] = result
             return result
-        raise AttributeError(f"module {__name__} has no attribute {name}")
+        raise AttributeError(f"module {imported_module_name} has no attribute {name}")
 
     def __dir__():
         """

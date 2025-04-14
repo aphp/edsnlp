@@ -53,7 +53,7 @@ def make_binding_getter(attribute: Union[str, Binding]):
             f"def getter(span):\n"
             f"    try:\n"
             f"        return {path} == value\n"
-            f"    except AttributeError:\n"
+            f"    except (AttributeError, KeyError):\n"
             f"        return False\n",
             ctx,
             ctx,
@@ -66,7 +66,7 @@ def make_binding_getter(attribute: Union[str, Binding]):
             f"def getter(span):\n"
             f"    try:\n"
             f"        return {path}\n"
-            f"    except AttributeError:\n"
+            f"    except (AttributeError, KeyError):\n"
             f"        return None\n",
             ctx,
             ctx,

@@ -15,6 +15,6 @@ DEFAULT_CONFIG = dict(
 )
 
 create_component = registry.factory.register(
-    "eds.contextual-matcher",
-    deprecated=["contextual-matcher"],
+    "eds.contextual_matcher",
+    deprecated=["eds.contextual-matcher", "contextual-matcher"],
 )(ContextualMatcher)

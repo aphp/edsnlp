@@ -207,9 +207,17 @@ class ContextualMatcher(BaseNERComponent):
 
             if (
                 exclude.regex_matcher is not None
-                and next(exclude.regex_matcher(snippet), None) is not None
+                and any(
+                    # check that it isn't inside in the anchor span
+                    not (s.start >= span.start and s.end <= span.end)
+                    for s in exclude.regex_matcher(snippet, as_spans=True)
+                )
                 or exclude.span_getter is not None
-                and next(get_spans(snippet, exclude.regex_matcher), None) is not None
+                and any(
+                    # check that it isn't inside in the anchor span
+                    not (s.start >= span.start and s.end <= span.end)
+                    for s in get_spans(snippet, exclude.span_getter)
+                )
             ):
                 to_keep = False
                 break
@@ -219,9 +227,17 @@ class ContextualMatcher(BaseNERComponent):
 
             if (
                 include.regex_matcher is not None
-                and next(include.regex_matcher(snippet), None) is None
+                and not any(
+                    # check that it isn't inside in the anchor span
+                    not (s.start >= span.start and s.end <= span.end)
+                    for s in include.regex_matcher(snippet, as_spans=True)
+                )
                 or include.span_getter is not None
-                and next(get_spans(snippet, include.regex_matcher), None) is None
+                and not any(
+                    # check that it isn't inside in the anchor span
+                    not (s.start >= span.start and s.end <= span.end)
+                    for s in get_spans(snippet, include.span_getter)
+                )
             ):
                 to_keep = False
                 break

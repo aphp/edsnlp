@@ -1,11 +1,12 @@
 import re
-from typing import Any, Dict, List, Union
+from typing import Dict, Union
 
 from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
 from edsnlp.pipes.base import SpanSetterArg
 from edsnlp.pipes.core.contextual_matcher import ContextualMatcher
+from edsnlp.pipes.core.contextual_matcher.models import FullConfig
 from edsnlp.utils.deprecation import deprecated_getter_factory
 from edsnlp.utils.filter import filter_spans
 
@@ -20,7 +21,7 @@ class DisorderMatcher(ContextualMatcher):
         spaCy `Language` object.
     name : str
         The name of the pipe
-    patterns: Union[Dict[str, Any], List[Dict[str, Any]]]
+    patterns: FullConfig
         The configuration dictionary
     include_assigned : bool
         Whether to include (eventual) assign matches to the final entity
@@ -44,7 +45,7 @@ class DisorderMatcher(ContextualMatcher):
         name: str,
         *,
         label: str,
-        patterns: Union[Dict[str, Any], List[Dict[str, Any]]],
+        patterns: FullConfig,
         include_assigned: bool = True,
         ignore_excluded: bool = True,
         ignore_space_tokens: bool = True,

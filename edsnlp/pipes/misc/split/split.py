@@ -128,8 +128,7 @@ class Split:
         stream = stream.map(eds.split(max_length=5, regex="\\n{2,}"))
 
         print(" | ".join(doc.text.strip() for doc in stream))
-        # Out:
-        # Sentence 1 | This is another longer sentence | more than 5 words
+        # Out: Sentence 1 | This is another longer sentence | more than 5 words
         ```
 
         Parameters

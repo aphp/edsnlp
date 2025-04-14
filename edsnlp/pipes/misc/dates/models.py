@@ -40,13 +40,10 @@ class Mode(str, Enum):
     DURATION = "duration"
 
 
-class Period(BaseModel):
+class Period(BaseModel, arbitrary_types_allowed=True):
     FROM: Optional[Span] = None
     UNTIL: Optional[Span] = None
     DURATION: Optional[Span] = None
-
-    class Config:
-        arbitrary_types_allowed = True
 
 
 class BaseDate(BaseModel):

@@ -1,4 +1,4 @@
-default_patterns = dict(
+default_pattern = dict(
     source="alcohol",
     regex=[
         r"\balco[ol]",
@@ -40,3 +40,4 @@ default_patterns = dict(
         ),
     ],
 )
+default_patterns = [default_pattern]

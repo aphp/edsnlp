@@ -52,7 +52,7 @@ class ConsultationDatesMatcher(GenericMatcher):
     # Out: [Consultation du 03/10/2018]
 
     doc.spans["consultation_dates"][0]._.consultation_date.to_datetime()
-    # Out: DateTime(2018, 10, 3, 0, 0, 0)
+    # Out: 2018-10-03 00:00:00
     ```
 
     Extensions

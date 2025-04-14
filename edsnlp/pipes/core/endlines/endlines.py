@@ -143,6 +143,10 @@ class EndLinesMatcher(GenericMatcher):
 
         self._read_model(model_path)
 
+    def set_extensions(self):
+        if not Token.has_extension("excluded"):
+            Token.set_extension("excluded", default=False)
+
     def _read_model(self, end_lines_model: Optional[Union[str, EndLinesModel]]):
         """
         Parameters

@@ -83,9 +83,19 @@ class HistoryQualifier(RuleBasedQualifier):
 
     !!! info "Dates"
 
-        To take the most of the `eds.dates` component, you may add the ``note_datetime``
-        context (cf. [Adding context][using-eds-nlps-helper-functions]). It allows the
-        component to compute the duration of absolute dates
+        To take the most of the `eds.dates` component, you may set a value for
+        `doc._.note_datetime`, either directly:
+
+        ```python { .no-check }
+        doc = nlp.make_doc(text)
+        doc._.note_datetime = datetime.datetime(2022, 8, 28)
+        nlp(doc)
+        ```
+
+        or using a converter such as the
+        [`omop` converter][edsnlp.data.converters.OmopDict2DocConverter]
+
+        It allows the component to compute the duration of absolute dates
         (e.g., le 28 août 2022/August 28, 2022). The ``birth_datetime`` context allows
         the component to exclude the birthdate from the extracted dates.
 

@@ -73,12 +73,12 @@
     spans = doc.spans["alcohol"]
 
     spans
-    # Out: [Alcoolism non sevré]
+    # Out: [Alcoolisme non sevré]
 
     span = spans[0]
 
-    span._.detailed_status
-    # Out: None # "sevré" is negated, so no "ABTINENCE" status
+    span._.detailed_status  # "sevré" is negated, so no "ABTINENCE" status
+    # Out: None
     ```
 
 
@@ -90,7 +90,7 @@
     spans = doc.spans["alcohol"]
 
     spans
-    # Out: [Alcool: 0]
+    # Out: [Alcool]
 
     span = spans[0]
 

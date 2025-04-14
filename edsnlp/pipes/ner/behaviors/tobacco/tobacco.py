@@ -1,18 +1,20 @@
 """`eds.tobacco` pipeline"""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Iterable, Optional
 
 from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
 from edsnlp.pipes.base import SpanSetterArg
+from edsnlp.pipes.core.contextual_matcher.models import FullConfig
+from edsnlp.pipes.qualifiers.negation import NegationQualifier
 from edsnlp.utils.numbers import parse_digit
 
-from ..alcohol.alcohol import AlcoholMatcher
+from ...disorders.base import DisorderMatcher
 from .patterns import default_patterns
 
 
-class TobaccoMatcher(AlcoholMatcher):
+class TobaccoMatcher(DisorderMatcher):
     """
     The `eds.tobacco` pipeline component extracts mentions of tobacco consumption.
 
@@ -80,7 +82,7 @@ class TobaccoMatcher(AlcoholMatcher):
         The pipeline object
     name : Optional[str]
         The name of the component
-    patterns: Union[Dict[str, Any], List[Dict[str, Any]]]
+    patterns: FullConfig
         The patterns to use for matching
     label : str
         The label to use for the `Span` object and the extension
@@ -99,7 +101,7 @@ class TobaccoMatcher(AlcoholMatcher):
         nlp: Optional[PipelineProtocol],
         name: str = "tobacco",
         *,
-        patterns: Union[Dict[str, Any], List[Dict[str, Any]]] = default_patterns,
+        patterns: FullConfig = default_patterns,
         label: str = "tobacco",
         span_setter: SpanSetterArg = {"ents": True, "tobacco": True},
     ):
@@ -108,21 +110,34 @@ class TobaccoMatcher(AlcoholMatcher):
             name=name,
             patterns=patterns,
             label=label,
+            detailed_status_mapping={
+                1: None,
+                2: "ABSTINENCE",
+            },
             span_setter=span_setter,
+            include_assigned=True,
         )
+        self.negation = NegationQualifier(nlp)
 
-    def process(self, doc: Doc) -> List[Span]:
+    def process(self, doc: Doc) -> Iterable[Span]:
         for span in super().process(doc):
-            if "secondhand" in span._.assigned.keys():
+            if "stopped" in span._.assigned:
+                # using nlp(text) so that we don't assign negation flags on
+                # the original document
+                stopped = self.negation.process(span)
+                if not any(stopped_token.negation for stopped_token in stopped.tokens):
+                    span._.status = 2
+            if "zero_after" in span._.assigned:
                 span._.negation = True
-
-            elif "PA" in span._.assigned.keys():
+            if "secondhand" in span._.assigned:
+                span._.negation = True
+            if "PA" in span._.assigned and ("stopped" not in span._.assigned):
                 pa = parse_digit(
                     span._.assigned["PA"],
                     atttr="NORM",
                     ignore_excluded=True,
                 )
-                if (pa == 0) and ("stopped" not in span._.assigned.keys()):
+                if pa == 0:
                     span._.negation = True
 
             yield span

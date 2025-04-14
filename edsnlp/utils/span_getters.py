@@ -346,7 +346,7 @@ class ContextWindowMeta(abc.ABCMeta):
     pass
 
 
-class ContextWindow(abc.ABC, metaclass=ContextWindowMeta):
+class ContextWindow(Validated, abc.ABC, metaclass=ContextWindowMeta):
     """
     A ContextWindow specifies how much additional context (such as sentences or words)
     should be included relative to an anchor span. For example, one might define a
@@ -361,10 +361,13 @@ class ContextWindow(abc.ABC, metaclass=ContextWindowMeta):
 
     Examples
     --------
+
     ```python
     from confit import validate_arguments
-    from edsnlp.utils.span_getters import ContextWindow
     from spacy.tokens import Span
+
+    import edsnlp
+    from edsnlp.utils.span_getters import ContextWindow
 
 
     @validate_arguments
@@ -373,13 +376,21 @@ class ContextWindow(abc.ABC, metaclass=ContextWindowMeta):
         return ctx(span)
 
 
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe("eds.sentences")
+
+    doc = nlp("A first sentence. A second sentence, longer this time. A third.")
+    span = doc[5:6]  # "second"
+
     # Will return a span with the 10 words before and after the span
     # and words of the current sentence and the next sentence.
-    apply_context(span, "words[-10:10] | sents[0:1]")
+    apply_context(span, "words[-3:3] | sents[0:1]").text
+    # Out: "sentence. A second sentence, longer this time. A third."
 
     # Will return the span covering at most the -5 and +5 words
     # around the span and the current sentence of the span.
-    apply_context(span, "words[-5:5] & sent")
+    apply_context(span, "words[-4:4] & sent").text
+    # Out: "A second sentence, longer this"
     ```
 
     !!! warning "Indexing"
@@ -441,10 +452,6 @@ class ContextWindow(abc.ABC, metaclass=ContextWindowMeta):
             assert obj != 0, "The provided `window` should not be 0"
             return WordContextWindow(obj, 0) if obj < 0 else WordContextWindow(0, obj)
         raise ValueError(f"Invalid context: {obj}")
-
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
 
 
 class LeafContextWindowMeta(ContextWindowMeta):

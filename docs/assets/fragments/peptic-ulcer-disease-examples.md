@@ -41,7 +41,7 @@
     spans = doc.spans["peptic_ulcer_disease"]
 
     spans
-    # Out: [ulcères]
+    # Out: [gastrique: blabla blabla blabla blabla blabla quelques ulcères]
 
     span = spans[0]
 

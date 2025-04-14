@@ -353,7 +353,9 @@ extend-exclude = [
     "edsnlp/pipes/factories.py",
 ]
 line-length = 88
-lint.select = [
+
+[tool.ruff.lint]
+select = [
     "E",
     "F",
     "W",

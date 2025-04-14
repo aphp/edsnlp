@@ -10,6 +10,9 @@
 - Added a `filter_expr` parameter to scorers to filter the documents to score
 - Added a new `required` field to `eds.contextual_matcher` assign patterns to only match if the required field has been found, and an `include` parameter (similar to `exclude`) to search for required patterns without assigning them to the entity
 - Added context strings (e.g., "words[0:5] | sent[0:1]") to the `eds.contextual_matcher` component to allow for more complex patterns in the selection of the window around the trigger spans.
+- Include and exclude patterns in the contextual matcher now dismiss matches that occur inside the anchor pattern (e.g. "anti" exclude pattern for anchor pattern "antibiotics" will not match the "anti" part of "antibiotics")
+
+### Changed
 - Improve the contextual matcher documentation.
 
 ### Fixed

@@ -2,7 +2,7 @@ import re
 import warnings
 from typing import Generator, Iterable, Optional, Union
 
-from confit import VisibleDeprecationWarning
+from confit import VisibleDeprecationWarning, validate_arguments
 from loguru import logger
 from spacy.tokens import Doc, Span
 
@@ -16,6 +16,7 @@ from edsnlp.utils.span_getters import get_spans
 from .models import FullConfig, SingleAssignModel, SingleConfig
 
 
+@validate_arguments()
 class ContextualMatcher(BaseNERComponent):
     """
     Allows additional matching in the surrounding context of the main match group,
@@ -27,7 +28,7 @@ class ContextualMatcher(BaseNERComponent):
         spaCy `Language` object.
     name : Optional[str]
         The name of the pipe
-    patterns : AsList[SingleConfig]
+    patterns : FullConfig
         ??? subdoc "The patterns to match"
 
             ::: edsnlp.pipes.core.contextual_matcher.models.SingleConfig

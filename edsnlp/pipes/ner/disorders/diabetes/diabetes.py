@@ -1,6 +1,6 @@
 """`eds.diabetes` pipeline"""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import List, Optional
 
 from spacy.tokens import Doc, Span
 
@@ -8,6 +8,7 @@ from edsnlp.core import PipelineProtocol
 from edsnlp.matchers.regex import RegexMatcher
 from edsnlp.matchers.utils import get_text
 from edsnlp.pipes.base import SpanSetterArg
+from edsnlp.pipes.core.contextual_matcher.models import FullConfig
 
 from ..base import DisorderMatcher
 from .patterns import COMPLICATIONS, default_patterns
@@ -74,7 +75,7 @@ class DiabetesMatcher(DisorderMatcher):
         The pipeline
     name : Optional[str]
         The name of the component
-    patterns: Union[Dict[str, Any], List[Dict[str, Any]]]
+    patterns: FullConfig
         The patterns to use for matching
     label : str
         The label to use for the `Span` object and the extension
@@ -93,7 +94,7 @@ class DiabetesMatcher(DisorderMatcher):
         nlp: Optional[PipelineProtocol],
         name: str = "diabetes",
         *,
-        patterns: Union[Dict[str, Any], List[Dict[str, Any]]] = default_patterns,
+        patterns: FullConfig = default_patterns,
         label: str = "diabetes",
         span_setter: SpanSetterArg = {"ents": True, "diabetes": True},
     ):

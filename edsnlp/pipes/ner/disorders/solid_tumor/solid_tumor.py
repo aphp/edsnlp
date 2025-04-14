@@ -1,11 +1,12 @@
 """`eds.solid_tumor` pipeline"""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import List, Optional
 
 from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
 from edsnlp.pipes.base import SpanSetterArg
+from edsnlp.pipes.core.contextual_matcher.models import FullConfig
 from edsnlp.utils.numbers import parse_digit
 
 from ..base import DisorderMatcher
@@ -71,7 +72,7 @@ class SolidTumorMatcher(DisorderMatcher):
         The pipeline
     name : Optional[str]
         The name of the component
-    patterns: Union[Dict[str, Any], List[Dict[str, Any]]]
+    patterns: FullConfig
         The patterns to use for matching
     label : str
         The label to use for the `Span` object and the extension
@@ -95,7 +96,7 @@ class SolidTumorMatcher(DisorderMatcher):
         nlp: Optional[PipelineProtocol],
         name: str = "solid_tumor",
         *,
-        patterns: Union[Dict[str, Any], List[Dict[str, Any]]] = default_patterns,
+        patterns: FullConfig = default_patterns,
         use_tnm: bool = False,
         use_patterns_metastasis_ct_scan: bool = False,
         label: str = "solid_tumor",

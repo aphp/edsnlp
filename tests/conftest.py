@@ -29,6 +29,18 @@ pytest.importorskip("rich")
 EDS_SENTENCES_PIPE = "eds.sentences"
 
 
+def pytest_collection_modifyitems(items):
+    """Run test_docs* at the end"""
+    first_tests = []
+    last_tests = []
+    for item in items:
+        if item.name.startswith("test_code_blocks"):
+            last_tests.append(item)
+        else:
+            first_tests.append(item)
+    items[:] = first_tests + last_tests
+
+
 @fixture(scope="session", params=["eds", "fr"])
 def lang(request):
     return request.param

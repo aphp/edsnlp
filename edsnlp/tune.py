@@ -34,7 +34,7 @@ DEFAULT_GPU_HOUR = 1.0
 CHECKPOINT = "study.pkl"
 
 
-class HyperparameterConfig(BaseModel):
+class HyperparameterConfig(BaseModel, extra="forbid"):
     """
     A configuration model for hyperparameters used in optimization or tuning processes.
     """
@@ -46,9 +46,6 @@ class HyperparameterConfig(BaseModel):
     step: Optional[Union[float, int]] = None
     log: Optional[bool] = None
     choices: Optional[List[Union[str, float, int, bool]]] = None
-
-    class Config:
-        extra = "forbid"
 
     if pydantic.VERSION < "2":
         model_dump = BaseModel.dict

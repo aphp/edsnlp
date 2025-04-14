@@ -64,11 +64,8 @@ class AsList(Generic[T], metaclass=MetaAsList):
 if pydantic.VERSION < "2":
 
     def cast(type_, obj):
-        class Model(pydantic.BaseModel):
+        class Model(pydantic.BaseModel, arbitrary_types_allowed=True):
             __root__: type_
-
-            class Config:
-                arbitrary_types_allowed = True
 
         return Model(__root__=obj).__root__
 else:

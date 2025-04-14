@@ -2,7 +2,7 @@ import re
 from typing import TYPE_CHECKING, Any, List, Optional, Union
 
 import regex
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel
 
 from edsnlp.matchers.utils import ListOrStr
 from edsnlp.utils.span_getters import (
@@ -149,10 +149,10 @@ class SingleAssignModel(BaseModel):
     replace_entity : Optional[bool]
         If set to `True`, the match from the corresponding assign key will be used as
         entity, instead of the main match.
-        See [this paragraph][the-replace_entity-parameter]
+        See [this paragraph][replace_entity]
     reduce_mode : Optional[Flags]
         Set how multiple assign matches are handled. See the documentation of the
-        [`reduce_mode` parameter][the-reduce_mode-parameter]
+        [`reduce_mode` parameter][reduce_mode]
     required : Optional[str]
         If set to `True`, the assign key must match for the extraction to be kept. If
         it does not match, the extraction is discarded.
@@ -226,7 +226,7 @@ if TYPE_CHECKING:
     AssignModel = List[SingleAssignModel]  # noqa: F811
 
 
-class SingleConfig(BaseModel, extra=Extra.forbid):
+class SingleConfig(BaseModel, extra="forbid"):
     """
     A single configuration for the contextual matcher.
 

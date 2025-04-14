@@ -66,7 +66,7 @@
     spans = doc.spans["tobacco"]
 
     spans
-    # Out: [Tabac: 0]
+    # Out: [Tabac]
 
     span = spans[0]
 
@@ -77,7 +77,7 @@
     # Out: True
 
     span._.assigned
-    # Out: {'zero_after': [0]}
+    # Out: {'zero_after': 0}
     ```
 
 

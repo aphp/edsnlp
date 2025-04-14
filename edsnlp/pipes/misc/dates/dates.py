@@ -41,7 +41,7 @@ class DatesMatcher(BaseNERComponent):
     | `relative` | `hier`, `la semaine dernière` |
     | `duration` | `pendant quatre jours`        |
 
-    See the [tutorial](../../tutorials/detecting-dates.md) for a presentation of a
+    See the [tutorial](/tutorials/detecting-dates.md) for a presentation of a
     full pipeline featuring the `eds.dates` component.
 
     ## Usage
@@ -67,7 +67,7 @@ class DatesMatcher(BaseNERComponent):
     # Out: [23 août 2021, il y a un an, mai 1995]
 
     dates[0]._.date.to_datetime()
-    # Out: 2021-08-23T00:00:00+02:00
+    # Out: 2021-08-23 00:00:00
 
     dates[1]._.date.to_datetime()
     # Out: None
@@ -76,7 +76,7 @@ class DatesMatcher(BaseNERComponent):
     doc._.note_datetime = note_datetime
 
     dates[1]._.date.to_datetime()
-    # Out: 2020-08-27T00:00:00+02:00
+    # Out: 2020-08-27 00:00:00+00:09
 
     date_2_output = dates[2]._.date.to_datetime(
         note_datetime=note_datetime,
@@ -85,7 +85,7 @@ class DatesMatcher(BaseNERComponent):
         default_day=15,
     )
     date_2_output
-    # Out: 1995-05-15T00:00:00+02:00
+    # Out: 1995-05-15 00:00:00+02:00
 
     doc.spans["durations"]
     # Out: [pendant une semaine]
@@ -260,7 +260,7 @@ class DatesMatcher(BaseNERComponent):
 
         if on_ents_only:
             assert span_getter is None, (
-                "Cannot use both `on_ents_only` and " "`span_getter`"
+                "Cannot use both `on_ents_only` and `span_getter`"
             )
 
             def span_getter(doc):

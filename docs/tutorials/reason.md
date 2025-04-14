@@ -63,8 +63,7 @@ reason._.is_reason
 ```python
 # ↑ Omitted code above ↑
 
-entities = reason._.ents_reason  # (1)
-for e in entities:
+for e in reason._.ents_reason:  # (1)
     print(
         "Entity:",
         e.text,

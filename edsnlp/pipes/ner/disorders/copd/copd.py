@@ -1,11 +1,12 @@
 """`eds.copd` pipeline"""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Optional
 
 from spacy.tokens import Doc
 
 from edsnlp.core import PipelineProtocol
 from edsnlp.pipes.base import SpanSetterArg
+from edsnlp.pipes.core.contextual_matcher.models import FullConfig
 
 from ..base import DisorderMatcher
 from .patterns import default_patterns
@@ -69,7 +70,7 @@ class COPDMatcher(DisorderMatcher):
         The pipeline
     name : Optional[str]
         The name of the component
-    patterns: Union[Dict[str, Any], List[Dict[str, Any]]]
+    patterns: FullConfig
         The patterns to use for matching
     label : str
         The label to use for the `Span` object and the extension
@@ -88,7 +89,7 @@ class COPDMatcher(DisorderMatcher):
         nlp: Optional[PipelineProtocol],
         name: str = "copd",
         *,
-        patterns: Union[Dict[str, Any], List[Dict[str, Any]]] = default_patterns,
+        patterns: FullConfig = default_patterns,
         label: str = "copd",
         span_setter: SpanSetterArg = {"ents": True, "copd": True},
     ):

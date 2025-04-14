@@ -160,10 +160,10 @@ for i, date in enumerate(doc.spans["dates"]):
             note_datetime=note_datetime, infer_from_context=False, tz=None
         ),
     )
-    # Out: 0  -  12 avril  -  None
-    # Out: 1  -  il y a trois jours  -  1999-08-24 00:00:00
-    # Out: 2  -  l'année dernière  -  1998-08-27 00:00:00
-    # Out: 3  -  mai 1995  -  None
+# Out: 0  -  12 avril  -  None
+# Out: 1  -  il y a trois jours  -  1999-08-24 00:00:00
+# Out: 2  -  l'année dernière  -  1998-08-27 00:00:00
+# Out: 3  -  mai 1995  -  None
 
 
 for i, date in enumerate(doc.spans["dates"]):
@@ -179,17 +179,17 @@ for i, date in enumerate(doc.spans["dates"]):
             default_day=15,
         ),
     )
-    # Out: 0  -  12 avril  -  1999-04-12T00:00:00
-    # Out: 1  -  il y a trois jours  -  1999-08-24 00:00:00
-    # Out: 2  -  l'année dernière  -  1998-08-27 00:00:00
-    # Out: 3  -  mai 1995  -  1995-05-15T00:00:00
+# Out: 0  -  12 avril  -  1999-04-12 00:00:00
+# Out: 1  -  il y a trois jours  -  1999-08-24 00:00:00
+# Out: 2  -  l'année dernière  -  1998-08-27 00:00:00
+# Out: 3  -  mai 1995  -  1995-05-15 00:00:00
 ```
 
 As a first heuristic, let's consider that an entity can be linked to a date if the two are in the same
 sentence. In the case where multiple dates are present, we'll select the closest one.
 
 ```python title="utils.py"
-from edsnlp.tokens import Span
+from spacy.tokens import Span
 from typing import List, Optional
 
 
@@ -219,9 +219,8 @@ def get_event_date(ent: Span) -> Optional[Span]:
 
 We can apply this simple function:
 
-```{ .python .no-check }
+```python
 import edsnlp, edsnlp.pipes as eds
-from utils import get_event_date
 from datetime import datetime
 
 nlp = edsnlp.blank("eds")
@@ -247,7 +246,9 @@ for ent in doc.ents:
     if ent.label_ != "admission":
         continue
     date = get_event_date(ent)
-    print(f"{ent.text:<20}{date.text:<20}{date._.date.to_datetime(now).strftime('%d/%m/%Y'):<15}{date._.date.to_duration(now)}")
+    print(
+        f"{ent.text:<20}{date.text:<20}{date._.date.to_datetime(now).strftime('%d/%m/%Y'):<15}{date._.date.to_duration(now)}"
+    )
 # Out: admis               12 avril            12/04/2023     21 weeks 4 days 6 hours 3 minutes 26 seconds
 # Out: pris en charge      l'année dernière    10/09/2022     -1 year
 ```

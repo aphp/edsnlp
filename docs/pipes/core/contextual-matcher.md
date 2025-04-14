@@ -4,6 +4,10 @@ EDS-NLP provides simple pattern matchers like `eds.matcher` to extract regular e
 
 ## Example
 
+The following example demonstrates how to configure and use `eds.contextual_matcher` to extract mentions of solid cancers and lymphomas, while filtering out irrelevant mentions (e.g., benign tumors) and enriching entities with contextual information such as stage or metastasis status.
+
+Let's dive in with the full code example:
+
 ```python
 import edsnlp, edsnlp.pipes as eds
 
@@ -38,15 +42,16 @@ nlp.add_pipe(
                         reduce_mode="keep_last",  # (15)!
                     ),
                 ],
+                source="Cancer solide",  # (16)!
             ),
             dict(
-                source="Lymphome",  # (16)!
                 regex=["lymphom", "lymphangio"],  # (17)!
                 regex_attr="NORM",  # (18)!
                 exclude=dict(
                     regex=["hodgkin"],  # (19)!
                     window=3,  # (20)!
                 ),
+                source="Lymphome",  # (21)!
             ),
         ],
         label="cancer",
@@ -69,11 +74,12 @@ nlp.add_pipe(
 13. Window size for detection
 14. Keep main entity
 15. Keep furthest extraction
-16. Source label for lymphoma
+16. Optional source label for solid tumor. This can be useful to know which pattern matched the entity.
 17. Regex patterns for lymphoma
 18. Apply regex on normalized text
 19. Exclude Hodgkin lymphoma
 20. Window size for exclusion
+21. Optional source label for lymphoma. This can be useful to know which pattern matched the entity.
 
 Let's explore some examples using this pipeline:
 
@@ -114,9 +120,11 @@ Let's explore some examples using this pipeline:
     txt = "Le patient a eu un cancer de stade 3."
     doc = nlp(txt)
 
-    doc.ents[0]._.assigned
-    # Out: {'stage': '3'}
+    doc.ents[0]._.assigned  # (1)!
+    # Out: {'stage': ['3']}
     ```
+
+    1. We get a list for 'stage' because `reduce_mode` is set to `None` (default). If you want to keep only the first or last match, set `reduce_mode="keep_first"` or `reduce_mode="keep_last"`.
 
 ## Better control over the final extracted entities
 

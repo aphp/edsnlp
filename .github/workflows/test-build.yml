@@ -27,7 +27,7 @@ jobs:
         # 2.4 is too low (can't build for macos, 2.16 is too high (OpenSSL issues)
         uses: pypa/cibuildwheel@v2.16.5
         env:
-          CIBW_ARCHS_MACOS: "x86_64 arm64"
+          CIBW_ARCHS_MACOS: "arm64"
           CIBW_ENVIRONMENT: PIP_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu
 
 

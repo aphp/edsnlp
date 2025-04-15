@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.17.0 (2025-04-15)
 
 ### Added
 
@@ -24,7 +24,11 @@
 - The parameter "value_extract" of `eds.score` now correctly handles lists of patterns.
 - "Zero variance error" when computing param tuning importance are now catched and converted as a warning
 
-## v0.16.0 (2025-0.3-26)
+### Removed
+
+- We don't ship wheels for x86_64 macos anymore
+
+## v0.16.0 (2025-03-26)
 
 ### Added
 - Hyperparameter Tuning for EDS-NLP: introduced a new script `edsnlp.tune` for hyperparameter tuning using Optuna. This feature allows users to efficiently optimize model parameters with options for single-phase or two-phase tuning strategies. Includes support for parameter importance analysis, visualization, pruning, and automatic handling of GPU time budgets.

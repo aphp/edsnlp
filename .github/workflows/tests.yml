@@ -153,7 +153,11 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        URL=https://edsnlp-$BRANCH_NAME.vercel.app/
+        slugify () {
+            echo "$1" | iconv -c -t ascii//TRANSLIT | sed -E 's/[^a-zA-Z0-9-]+//g' | tr A-Z a-z
+        }
+        RAW_PROJECT_NAME="edsnlp-$BRANCH_NAME"
+        URL=https://$(slugify "$RAW_PROJECT_NAME").vercel.app/
         COMMENT_BODY="## Docs preview URL\n\n$URL\n\n"
         HEADER="Authorization: token $GITHUB_TOKEN"
         PR_COMMENTS_URL="https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments"

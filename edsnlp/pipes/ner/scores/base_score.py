@@ -7,6 +7,7 @@ from spacy.tokens import Doc, Span
 from edsnlp.core import PipelineProtocol, registry
 from edsnlp.pipes.base import SpanSetterArg
 from edsnlp.pipes.core.contextual_matcher import ContextualMatcher
+from edsnlp.utils.typing import AsList
 
 
 class SimpleScoreMatcher(ContextualMatcher):
@@ -55,7 +56,7 @@ class SimpleScoreMatcher(ContextualMatcher):
         *,
         regex: List[str] = None,
         attr: str = "NORM",
-        value_extract: Union[str, Dict[str, str], List[Dict[str, str]]] = None,
+        value_extract: Union[AsList[Dict[str, str]], str] = None,
         score_normalization: Union[str, Callable[[Union[str, None]], Any]] = None,
         window: int = 7,
         ignore_excluded: bool = False,
@@ -79,14 +80,13 @@ class SimpleScoreMatcher(ContextualMatcher):
             span_setter = {"ents": True, label: True}
 
         if isinstance(value_extract, str):
-            value_extract = dict(
-                name="value",
-                regex=value_extract,
-                window=window,
-            )
-
-        if isinstance(value_extract, dict):
-            value_extract = [value_extract]
+            value_extract = [
+                dict(
+                    name="value",
+                    regex=value_extract,
+                    window=window,
+                )
+            ]
 
         value_exists = False
         for i, extract in enumerate(value_extract):

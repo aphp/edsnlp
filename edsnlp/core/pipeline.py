@@ -1305,10 +1305,22 @@ def load_from_huggingface(
         new_mtime = max(os.path.getmtime(x) for x in Path(path).rglob("*"))
         should_install = new_mtime != mtime
 
-    pip = os.path.join(sysconfig.get_path("scripts"), "pip")
+    pip_paths = [
+        os.path.join(sys.exec_prefix, "bin", "pip"),
+        os.path.join(sys.executable.rsplit("/", 1)[0], "pip"),
+        os.path.join(sysconfig.get_path("scripts"), "pip"),
+        os.path.join(sys.exec_prefix, "bin", "pip3"),
+        os.path.join(sys.executable.rsplit("/", 1)[0], "pip3"),
+        os.path.join(sysconfig.get_path("scripts"), "pip3"),
+    ]
+    pip = next((p for p in pip_paths if os.path.exists(p)), None)
+    pip = pip or shutil.which("pip")
+
     if should_install or not any(
         p.startswith(module_name) and p.endswith(".dist-info") for p in os.listdir(path)
     ):
+        if pip is None:
+            raise RuntimeError(f"Couldn't find pip amongst {', '.join(pip_paths)}")
         subprocess.run(
             [pip, "install", "-e", path, "--target", path, "--no-deps", "--upgrade"]
         )
@@ -1344,6 +1356,8 @@ def load_from_huggingface(
                 f"pip install {' '.join((repr(str(dep)) for dep in missing_deps))}",
                 UserWarning,
             )
+            if pip is None:
+                raise RuntimeError(f"Couldn't find pip amongst {', '.join(pip_paths)}")
             subprocess.run([pip, "install", *(str(d) for d in missing_deps)])
     module = importlib.import_module(module_name)
     return module.load(**kwargs)

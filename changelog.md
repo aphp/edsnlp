@@ -20,7 +20,7 @@
 - `edsnlp.package` now correctly detect if a project uses an old-style poetry pyproject or a PEP621 pyproject.toml.
 - PEP621 projects containing nested directories (e.g., "my_project/pipes/foo.py") are now supported.
 - Try several paths to find current pip executable
-- Compatibility with Optuna 4.3.0
+- The parameter "value_extract" of `eds.score` now correctly handles lists of patterns.
 
 ## v0.16.0 (2025-0.3-26)
 

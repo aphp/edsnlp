@@ -1,6 +1,8 @@
 import re
 
-from edsnlp.pipelines.ner.scores import Score
+import edsnlp
+import edsnlp.pipes as eds
+from edsnlp.pipes.ner.scores import Score
 from edsnlp.utils.examples import parse_example
 
 example = """
@@ -67,8 +69,28 @@ def test_scores(blank_nlp):
     doc = testscore(doc)
 
     for entity, ent in zip(entities, doc.ents):
-
         for modifier in entity.modifiers:
-            assert (
-                getattr(ent._, modifier.key) == modifier.value
-            ), f"{modifier.key} labels don't match."
+            assert getattr(ent._, modifier.key) == modifier.value, (
+                f"{modifier.key} labels don't match."
+            )
+
+
+def test_multi_value_extract():
+    # dummy example, we have eds.quantities to extract sizes
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(
+        eds.score(
+            name="taille",
+            regex=[r"taille"],
+            value_extract=[
+                {"name": "value", "regex": r"(\d+)"},
+                {"name": "unit", "regex": r"(cm|mm)"},
+            ],
+            score_normalization=float,
+            label="taille",
+        )
+    )
+    doc = nlp("taille 12 cm")
+    assert len(doc.ents) == 1
+    ent = doc.ents[0]
+    assert ent._.score_value == 12.0

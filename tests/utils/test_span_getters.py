@@ -1,5 +1,18 @@
 import edsnlp
-from edsnlp.utils.span_getters import make_span_context_getter
+from edsnlp.utils.span_getters import get_spans, make_span_context_getter
+
+
+def test_span_getter_dedupliation(lang):
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe("eds.diabetes")
+
+    doc = nlp("le patient a un diabète")
+
+    span_getter = {"diabetes": True, "ents": True}
+
+    assert len(list(get_spans(doc, span_getter, deduplicate=False))) == 2
+    assert len(list(get_spans(doc, span_getter, deduplicate=True))) == 1
 
 
 def test_span_context_getter_symmetric(lang):

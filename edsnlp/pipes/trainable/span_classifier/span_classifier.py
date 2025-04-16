@@ -165,6 +165,11 @@ class TrainableSpanClassifier(
         Name of the component
     embedding : SpanEmbeddingComponent
         The word embedding component
+    label_weights: Dict[str, Dict[Any, float]]
+        The weight of each label for each attribute. The keys are the attribute names
+        and the values are dictionaries with the labels as keys and the weights as
+        values. For instance, `{"_.negation": {True: 1, False: 2}}` will give a weight
+        of 1 to the `True` value of the `negation` attribute and 2 to the `False` value.
     span_getter : SpanGetterArg
         How to extract the candidate spans and the attributes to predict or train on.
     context_getter : Optional[Union[Callable, SpanGetterArg]]
@@ -194,6 +199,7 @@ class TrainableSpanClassifier(
         embedding: SpanEmbeddingComponent,
         attributes: AttributesArg = None,
         qualifiers: AttributesArg = None,
+        label_weights: Dict[str, Dict[Any, float]] = None,
         span_getter: SpanGetterArg = None,
         context_getter: Optional[SpanGetterArg] = None,
         values: Optional[Dict[str, List[Any]]] = None,
@@ -226,9 +232,31 @@ class TrainableSpanClassifier(
 
         self.values = values
         self.keep_none = keep_none
+
+        attributes = {
+            k if k.startswith("_.") else f"_.{k}": v for k, v in attributes.items()
+        }
+        self.label_weights_bindings = (
+            {
+                (attr if attr.startswith("_.") else f"_.{attr}", value): weight
+                for attr, values in label_weights.items()
+                for value, weight in values.items()
+            }
+            if label_weights
+            else dict()
+        )
+
+        unknown = set([attr for attr, _ in self.label_weights_bindings]) - set(
+            attributes.keys()
+        )
+        if unknown:
+            warnings.warn(
+                f"Attributes ({unknown}) are present in label_weights "
+                f"but not in attributes: Those weights will be ignored"
+            )
+
         self.bindings: List[Tuple[str, List[str], List[Any]]] = [
-            (k if k.startswith("_.") else f"_.{k}", v, [])
-            for k, v in attributes.items()
+            (k, v, []) for k, v in attributes.items()
         ]
 
         super().__init__(nlp, name, span_getter=span_getter)
@@ -392,6 +420,11 @@ class TrainableSpanClassifier(
             simplify_indexer([new_bindings_to_idx[(qlf, value)] for value in values])
             for qlf, labels, values in bindings
         ]
+        self.label_weights = [
+            self.label_weights_bindings.get((qlf, value), 1)
+            for qlf, labels, values in bindings
+            for value in values
+        ]
         self._bindings_to_idx = None
 
     def preprocess(self, doc: Doc, **kwargs) -> Dict[str, Any]:
@@ -480,6 +513,9 @@ class TrainableSpanClassifier(
                         binding_scores[:, bindings_indexer],
                         batch["targets"][:, group_idx],
                         reduction="sum",
+                        weight=torch.tensor(self.label_weights, dtype=torch.float)[
+                            bindings_indexer
+                        ].to(binding_scores.device),
                     )
                 )
                 assert not torch.isnan(losses[-1]).any(), "NaN loss"

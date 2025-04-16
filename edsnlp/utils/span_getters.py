@@ -35,24 +35,25 @@ SpanSetter = Union[
 ]
 
 
-def get_spans(doc, span_getter):
+def get_spans(doc, span_getter, deduplicate=True):
     if span_getter is None:
         yield doc[:]
         return
     if callable(span_getter):
         yield from span_getter(doc)
         return
+    seen = set()
     for key, span_filter in span_getter.items():
         if key == "*":
             candidates = (span for group in doc.spans.values() for span in group)
         else:
             candidates = doc.spans.get(key, ()) if key != "ents" else doc.ents
-        if span_filter is True:
-            yield from candidates
-        else:
-            for span in candidates:
-                if span.label_ in span_filter:
+        for span in candidates:
+            if (span_filter is True) or (span.label_ in span_filter):
+                if span not in seen:
                     yield span
+                    if deduplicate:
+                        seen.add(span)
 
 
 def get_spans_with_group(doc, span_getter):

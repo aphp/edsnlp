@@ -3,15 +3,22 @@
 ## Unreleased
 
 ### Added
-
+- Handling intra-word linebreak as pollution : adds a pollution pattern that detects intra-word linebreak, which can then be removed in the `get_text` method
+- Qualifiers can process `Span` or `Doc` : this feature especially makes it easier to nest qualifiers components in other components
+- New label_weights parameter in eds.span_classifier`, which allows the user to set per label-value loss weights during training
 - Support for numpy>2.0, and formal support for Python 3.11 and Python 3.12
 
 ### Fixed
 
+- Various disorders/behaviors patches
 - `edsnlp.package` now correctly detect if a project uses an old-style poetry pyproject or a PEP621 pyproject.toml.
 - PEP621 projects containing nested directories (e.g., "my_project/pipes/foo.py") are now supported.
 - Try several paths to find current pip executable
 - Compatibility with Optuna 4.3.0
+
+### Changed
+
+- Deduplicate spans between doc.ents and doc.spans during train: previously, a `span_getter` requesting entities from both `ents` and `spans` could yield duplicates.
 
 ## v0.16.0 (2025-0.3-26)
 

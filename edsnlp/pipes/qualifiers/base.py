@@ -172,9 +172,13 @@ class RuleBasedQualifier(BaseSpanAttributeClassifierComponent):
 
         return list(matches)
 
-    def process(self, doc: Doc) -> BaseQualifierResults:
+    def ensure_doc(self, doc: Union[Doc, Span]) -> Doc:
+        return doc if isinstance(doc, Doc) else doc.as_doc()
+
+    def process(self, doc_like: Union[Doc, Span]) -> BaseQualifierResults:
+        doc_like = self.ensure_doc(doc_like)  # pragma: no cover
         raise NotImplementedError
 
     def __call__(self, doc: Doc) -> Doc:
-        results = self.process(doc)
+        results = self.process(doc)  # pragma: no cover
         raise NotImplementedError(f"{type(results)} should be used to tag the document")

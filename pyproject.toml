@@ -90,7 +90,7 @@ docs = [
 dev = [
     "edsnlp[dev-no-ml]",
     "edsnlp[ml]",
-    "optuna>=4.0.0,
+    "optuna>=4.0.0",
     "plotly>=5.18.0", # required by optuna viz
     "ruamel.yaml>=0.18.0",
     "configobj>=5.0.9",

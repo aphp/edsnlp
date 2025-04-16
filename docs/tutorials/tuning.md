@@ -94,7 +94,7 @@ tuning:
 Let's detail the new parameters:
 
 - `output_dir`: Directory where tuning results, visualizations, and best parameters will be saved.
-- `checkpoint_dir`: Directory where the tuning checkpoint will be saved each trial. Allows resuming previous tuning in case of a crash.
+- `checkpoint_dir`: Directory where the tuning checkpoint `study.pkl` will be saved each trial. This enables automatic resumption of tuning in case of a crash. To disable resumption, simply delete the `study.pkl` file.
 - `gpu_hours`: Estimated total GPU time available for tuning, in hours. Given this time, the script will automatically compute for how many training trials we can tune hyperparameters. By default, `gpu_hours` is set to 1.
 - `n_trials`: Number of training trials for tuning. If provided, it will override `gpu_hours` and tune the model for exactly `n_trial` trials.
 - `two_phase_tuning`: If True, performs a two-phase tuning. In the first phase, all hyperparameters are tuned, and in the second phase, the top half (based on importance) are fine-tuned while freezing others. By default, `two_phase_tuning` is False.
@@ -339,7 +339,7 @@ python -m edsnlp.tune --config configs/config.yml --seed 42
 At the end of the tuning process, `edsnlp.tune` generates various results and saves them in the `output_dir` specified in the `config.yml` file:
 
 - **Tuning Summary**: `result_summary.txt`, a summary file containing details about the best training trial, the best overall metric, the optimal hyperparameter values, and the average importance of each hyperparameter across all trials.
-- **Optimal Configuration**: `config.yml`, containing the best hyperparameter values. Warning: Since the Confit library does not preserve style and comments, these will be lost in the resulting configuration file. If you need to retain them, manually update your original `config.yml` using the information from `result_summary.txt`.
+- **Optimal Configuration**: `config.yml`, containing the best hyperparameter values.
 - **Graphs and Visualizations**: Various graphics illustrating the tuning process, such as:
   - [**Optimization History plot**](https://optuna.readthedocs.io/en/stable/reference/visualization/generated/optuna.visualization.plot_optimization_history.html#sphx-glr-reference-visualization-generated-optuna-visualization-plot-optimization-history-py): A line graph showing the performance of each trial over time, illustrating the optimization process and how the model's performance improves with each iteration.
   - [**Empirical Distribution Function (EDF) plot**](https://optuna.readthedocs.io/en/stable/reference/visualization/generated/optuna.visualization.plot_edf.html#sphx-glr-reference-visualization-generated-optuna-visualization-plot-edf-py): A graph showing the cumulative distribution of the results, helping you understand the distribution of performance scores and providing insights into the variability and robustness of the tuning process.

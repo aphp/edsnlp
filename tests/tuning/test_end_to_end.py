@@ -131,5 +131,7 @@ def test_tune(tmpdir, n_trials, two_phase_tuning, start_from_checkpoint):
         else:
             assert_results(output_dir)
     finally:
-        shutil.rmtree(output_dir)
-        shutil.rmtree("./artifacts")
+        if os.path.exists(output_dir):
+            shutil.rmtree(output_dir)
+        if os.path.exists("./artifacts"):
+            shutil.rmtree("./artifacts")

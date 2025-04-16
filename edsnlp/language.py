@@ -41,6 +41,15 @@ class EDSLanguage(French):
     Defaults = EDSDefaults
 
 
+TOKENIZER_EXCEPTIONS = [
+    r"Dr\.",
+    r"Pr\.",
+    r"M\.",
+    r"Mme\.",
+    r"Mlle\.",
+    r"(?i:(?:ep\.))",
+    r"(?<![\W\d_])-\n",
+]
 TOKENIZER_EXCEPTIONS = [r"Dr\.", r"Pr\.", r"M\.", r"Mme\.", r"Mlle\.", r"(?i:(?:ep\.))"]
 
 

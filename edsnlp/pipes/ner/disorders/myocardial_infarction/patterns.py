@@ -3,13 +3,13 @@ from ..terms import HEART
 main_pattern = dict(
     source="main",
     regex=[
-        r"coronaropathie",
+        r"coronaropath\w+",  # changed
         r"angor.{1,5}instable",
         r"cardiopathie(?!.{0,20}non).{0,20}(ischem|arteriosc)",
         r"cardio.?myopathie(?!.{0,20}non).{0,20}(ischem|arteriosc)",
         r"ischemi.{1,15}myocard",
-        r"syndrome.{1,5}corona.{1,10}aigu",
-        r"syndrome.{1,5}corona.{1,10}st",
+        r"syndrome?.{1,5}corona.{1,10}aigu",  # changed
+        r"syndrome?.{1,5}corona.{1,10}st",  # changed
         r"pontage.{1,5}mammaire",
     ],
     regex_attr="NORM",
@@ -22,8 +22,8 @@ with_localization = dict(
         r"endoprothese",
         r"pontage",
         r"anevr[iy]sme",
-        "infarctus",
-        r"angioplasti",
+        r"infa?r?a?ctus",  # changed
+        r"angioplast\w+",  # changed
     ],
     assign=[
         dict(

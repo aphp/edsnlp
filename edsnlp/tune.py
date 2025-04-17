@@ -5,6 +5,7 @@ import math
 import os
 import random
 import sys
+import warnings
 from typing import Dict, List, Optional, Tuple, Union
 
 import joblib
@@ -159,11 +160,16 @@ def compute_importances(study, n=10):
     cumulative_importances = collections.defaultdict(float)
 
     for i in range(n):
-        importance_scores = get_param_importances(
-            study,
-            evaluator=FanovaImportanceEvaluator(seed=i),
-            target=lambda t: t.value,
-        )
+        try:
+            importance_scores = get_param_importances(
+                study,
+                evaluator=FanovaImportanceEvaluator(seed=i),
+                target=lambda t: t.value,
+            )
+        except RuntimeError as e:
+            if "zero total variance" in str(e):  # pragma: no cover
+                warnings.warn("Zero total variance : skipping importance computation.")
+                continue
         for feature, importance in importance_scores.items():
             cumulative_importances[feature] += importance
 
@@ -357,7 +363,7 @@ def process_results(
                 if key_phase_1 not in best_params.keys():
                     f.write(f"  {key_phase_1}: {value_phase_1}\n")
         f.write("\nImportances:\n")
-        for key, value in importances.items():
+        for key, value in importances.items():  # pragma: no cover
             f.write(f"  {key}: {value}\n")
 
     write_final_config(output_dir, config_path, tuned_parameters, best_params)

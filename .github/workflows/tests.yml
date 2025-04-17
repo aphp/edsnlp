@@ -7,9 +7,11 @@ on:
     branches: [master]
 
 env:
-  # UV_INDEX_STRATEGY: "unsafe-first-match"
-  # UV_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
+  UV_INDEX_STRATEGY: "unsafe-first-match"
+  UV_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
   PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
+  UV_SYSTEM_PYTHON: 1
+  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
 
 jobs:
   linting:
@@ -22,7 +24,7 @@ jobs:
           # requites to grab the history of the PR
           fetch-depth: 0
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           cache: 'pip'
 
@@ -46,19 +48,6 @@ jobs:
           path: ~/.data/
           key: resources
 
-      # - name: Cache pip
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: ~/.cache/pip
-      #     key: ${{ runner.os }}-python-${{ matrix.python-version }}-pip
-
-      - run: echo WEEK=$(date +%V) >>$GITHUB_ENV
-        shell: bash
-
-      # - uses: hynek/setup-cached-uv@v1
-      #   with:
-      #     cache-suffix: -tests-${{ matrix.python-version }}-${{ env.WEEK }}
-
       - name: Set up Java
         uses: actions/setup-java@v2
         with:
@@ -72,48 +61,28 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
-        run: |
-          pip install poetry
-          pip install -e '.[dev]' pytest-xdist pip
+        run: pip install -e ".[dev]"
         if: matrix.python-version != '3.9' && matrix.python-version != '3.10' && matrix.python-version != '3.11' && matrix.python-version != '3.12'
-#          uv venv
-#          source .venv/bin/activate
-#          uv pip install -e '.[dev]' pytest-xdist pip
 
       - name: Install dependencies
-        run: |
-          pip install poetry
-          pip install -e '.[dev,setup]' pytest-xdist pip
+        run: pip install -e ".[dev,setup]"
         if: matrix.python-version == '3.9'
-#          uv venv
-#          source .venv/bin/activate
-#          uv pip install -e '.[dev]' pytest-xdist pip
 
       - name: Install dependencies
-        run: |
-          pip install poetry
-          pip install -e '.[dev-no-ml]' pytest-xdist pip
         # skip ML tests for 3.10 and 3.11
+        run: pip install -e ".[dev-no-ml]"
         if: matrix.python-version == '3.10' || matrix.python-version == '3.11' || matrix.python-version == '3.12'
 
       - name: Test with Pytest on Python ${{ matrix.python-version }}
         env:
           UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
-        run: |
-          coverage run -m pytest --ignore tests/test_docs.py # -n auto
-          # coverage combine
-          # mv .coverage .coverage.${{ matrix.python-version }}
-#          source .venv/bin/activate
+        run: coverage run -m pytest --ignore tests/test_docs.py
         if: matrix.python-version != '3.9'
 
       - name: Test with Pytest on Python ${{ matrix.python-version }}
         env:
           UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
-        run: |
-          coverage run -m pytest # -n auto
-          # coverage combine
-          # mv .coverage .coverage.${{ matrix.python-version }}
-#          source .venv/bin/activate
+        run: coverage run -m pytest
         if: matrix.python-version == '3.9'
 
       - name: Upload coverage data
@@ -137,33 +106,72 @@ jobs:
 
   documentation:
     name: Documentation
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
 
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
       with:
-        python-version: "3.9"
+        python-version: 3.9
         cache: 'pip'
 
-    - run: echo WEEK=$(date +%V) >>$GITHUB_ENV
-      shell: bash
-
-    # - uses: hynek/setup-cached-uv@v1
-    #   with:
-    #     cache-suffix: -docs-${{ matrix.python-version }}-${{ env.WEEK }}
-
     - name: Install dependencies
-      run: |
-        pip install '.[docs]'
-#        uv venv
-#        uv pip install '.[docs]'
+      run: pip install -e ".[docs]"
 
+    - name: Set up Git
+      run: |
+        git config user.name ${{ github.actor }}
+        git config user.email ${{ github.actor }}@users.noreply.github.com
+        echo Current branch: $BRANCH_NAME
 
     - name: Build documentation
       run: |
-        mkdocs build --clean
-#        source .venv/bin/activate
+        mike deploy --no-redirect --rebase --update-aliases $BRANCH_NAME latest
+        mike set-default $BRANCH_NAME
+
+    - name: Put content of gh-pages to public folder
+      run: rm -rf public && mkdir public && git archive gh-pages | tar -x -C ./public/
+
+    - name: Set up Vercel
+      run: npm install --global vercel@latest
+
+    - name: Pull Vercel environment
+      run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+    - name: Create new vercel project linked to this branch
+      run: vercel project add edsnlp-$BRANCH_NAME --token=${{ secrets.VERCEL_TOKEN }}
+
+    - name: Link public folder to the (maybe) new vercel project
+      run: vercel link --cwd public --project edsnlp-$BRANCH_NAME --yes --token=${{ secrets.VERCEL_TOKEN }}
+
+    - name: Deploy to Vercel
+      run: vercel deploy public/ --yes --token=${{ secrets.VERCEL_TOKEN }} --archive=tgz --prod > deployment-url.txt
+
+    - name: Post the documentation link
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        URL=https://edsnlp-$BRANCH_NAME.vercel.app/
+        COMMENT_BODY="## Docs preview URL\n\n$URL\n\n"
+        HEADER="Authorization: token $GITHUB_TOKEN"
+        PR_COMMENTS_URL="https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments"
+
+        # Fetch existing comments to find if one from this workflow already exists
+        COMMENTS=$(curl -s -H "$HEADER" "$PR_COMMENTS_URL")
+        COMMENT_ID=$(echo "$COMMENTS" | jq -r '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("## Docs preview URL"))) | .id')
+
+        # Check if we have a comment ID, if so, update it, otherwise create a new one
+        if [[ "$COMMENT_ID" ]]; then
+          # Update existing comment
+          curl -s -X PATCH -H "$HEADER" -H "Content-Type: application/json" -d "{\"body\": \"$COMMENT_BODY\"}" "https://api.github.com/repos/${{ github.repository }}/issues/comments/$COMMENT_ID"
+        else
+          # Post new comment
+          curl -s -X POST -H "$HEADER" -H "Content-Type: application/json" -d "{\"body\": \"$COMMENT_BODY\"}" "$PR_COMMENTS_URL"
+        fi
+
+        if [ $status -ne 0 ]; then
+          exit $status
+        fi
 
   simple-installation:
     name: Simple installation
@@ -175,7 +183,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
@@ -183,13 +191,7 @@ jobs:
       - run: echo WEEK=$(date +%V) >>$GITHUB_ENV
         shell: bash
 
-      # - uses: hynek/setup-cached-uv@v1
-      #   with:
-      #     cache-suffix: -simple-install-${{ matrix.python-version }}-${{ env.WEEK }}
-
       - name: Install library
         run: |
           pip install ".[ml]" pytest
           pytest tests/pipelines/test_pipelines.py
-#          uv venv
-#          uv pip install .

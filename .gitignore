@@ -24,6 +24,7 @@ site/
 *.cpp
 *.so
 *.c
+public/
 
 # Unit test / coverage reports
 htmlcov/
@@ -71,3 +72,4 @@ _build/
 docs/reference
 docs/changelog.md
 docs/contributing.md
+.vercel

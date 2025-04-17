@@ -337,11 +337,9 @@ class OldStylePoetryPackager(Packager):
             poetry = pyproject["tool"]["poetry"]
 
             # Extract packages
-            poetry_bin_path = (
-                subprocess.run(["which", "poetry"], stdout=subprocess.PIPE)
-                .stdout.decode()
-                .strip()
-            )
+            poetry_bin_path = shutil.which("poetry")
+            if poetry_bin_path is None:
+                raise RuntimeError("Poetry is not installed or not found in PATH.")
             python_executable = Path(poetry_bin_path).read_text().split("\n")[0][2:]
             result = subprocess.run(
                 [
@@ -407,9 +405,9 @@ class OldStylePoetryPackager(Packager):
                     pass
                 if "version" in constraint:
                     dep_version = constraint.pop("version")
-                    assert not dep_version.startswith(
-                        "^"
-                    ), "Packaging models with ^ dependencies is not supported"
+                    assert not dep_version.startswith("^"), (
+                        "Packaging models with ^ dependencies is not supported"
+                    )
                     dep += (
                         ""
                         if dep_version == "*"
@@ -421,9 +419,9 @@ class OldStylePoetryPackager(Packager):
                     dep += f"; {constraint.pop('markers')}"
                 except KeyError:
                     pass
-                assert (
-                    not constraint
-                ), f"Unsupported constraints for dependency {dep_name}: {constraint}"
+                assert not constraint, (
+                    f"Unsupported constraints for dependency {dep_name}: {constraint}"
+                )
                 if dep_name == "python":
                     new_pyproject["project"]["requires-python"] = dep.replace(
                         "python", ""

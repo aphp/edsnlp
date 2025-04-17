@@ -22,6 +22,7 @@
 - PEP621 projects containing nested directories (e.g., "my_project/pipes/foo.py") are now supported.
 - Try several paths to find current pip executable
 - The parameter "value_extract" of `eds.score` now correctly handles lists of patterns.
+- "Zero variance error" when computing param tuning importance are now catched and converted as a warning
 
 ## v0.16.0 (2025-0.3-26)
 

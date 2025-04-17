@@ -107,6 +107,8 @@ jobs:
   documentation:
     name: Documentation
     runs-on: ubuntu-latest
+    # Main docs are built in another workflow, we don't have to test them outside of PR
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     steps:
     - uses: actions/checkout@v2
 

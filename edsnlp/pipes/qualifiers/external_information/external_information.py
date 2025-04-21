@@ -288,13 +288,18 @@ class ExternalInformationQualifier(BaseSpanAttributeClassifierComponent):
 
             # Get context to annotate distantly
             binding_getter_doc_attr = make_binding_getter(context.doc_attr)
-            context_doc: List[Dict[str, Any]] = binding_getter_doc_attr(doc)
-            ctx_values = [i.get("value") for i in context_doc]  # values to look for
-            ctx_classes = [i.get("class") for i in context_doc]  # classes to assign
-
-            assert isinstance(
-                ctx_values[0], (dt.datetime, dt.date)
-            ), "Values should be datetime objects. Future: add support for other types"
+            context_doc: Optional[List[Dict[str, Any]]] = binding_getter_doc_attr(doc)
+            if context_doc is not None:
+                ctx_values = [i.get("value") for i in context_doc]  # values to look for
+                ctx_classes = [i.get("class") for i in context_doc]  # classes to assign
+                if len(ctx_values) > 0:
+                    assert isinstance(ctx_values[0], (dt.datetime, dt.date)), (
+                        "Values should be datetime objects. Future: add support for"
+                        " other types"
+                    )
+            else:
+                ctx_values = []
+                ctx_classes = []
 
             # Compute distance
             if context.comparison_type == "similarity":

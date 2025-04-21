@@ -289,7 +289,7 @@ class ExternalInformationQualifier(BaseSpanAttributeClassifierComponent):
             # Get context to annotate distantly
             binding_getter_doc_attr = make_binding_getter(context.doc_attr)
             context_doc: Optional[List[Dict[str, Any]]] = binding_getter_doc_attr(doc)
-            if context_doc is not None:
+            if isinstance(context_doc, list):
                 ctx_values = [i.get("value") for i in context_doc]  # values to look for
                 ctx_classes = [i.get("class") for i in context_doc]  # classes to assign
                 if len(ctx_values) > 0:

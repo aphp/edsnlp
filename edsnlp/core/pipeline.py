@@ -86,7 +86,7 @@ class CacheEnum(str, Enum):
 Pipe = TypeVar("Pipe", bound=Callable[[Doc], Doc])
 
 
-@registry.core.register("base")
+@registry.core.register("pipeline", deprecated=["base"])
 class Pipeline(Validated):
     """
     New pipeline to use as a drop-in replacement for spaCy's pipeline.

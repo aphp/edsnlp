@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
+import pandas as pd
 from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
@@ -279,7 +280,9 @@ class ExternalInformationQualifier(BaseSpanAttributeClassifierComponent):
             binding_getter_span_attr = make_binding_getter(context.span_attribute)
 
             filtered_spans = [
-                span for span in doc_spans if binding_getter_span_attr(span) is not None
+                span
+                for span in doc_spans
+                if not pd.isna(binding_getter_span_attr(span))
             ]
 
             filtered_spans_attr = [

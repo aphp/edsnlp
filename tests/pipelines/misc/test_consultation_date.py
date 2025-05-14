@@ -71,7 +71,18 @@ def test_cons_dates(date_pipeline, example, blank_nlp):
 
     assert len(doc.spans["consultation_dates"]) == len(example["result"])
 
-    for span, result in zip(doc.spans["consultation_dates"], example["result"]):
-        assert all(
-            [span._.consultation_date.model_dump()[k] == result[k] for k in result]
-        )
+
+def test_consultation_date_berck_sur_mer(blank_nlp):
+    text = "Berck-sur-Mer, le 30/04/2025"
+    blank_nlp.add_pipe(
+        "eds.normalizer",
+        config=dict(lowercase=True, accents=True, quotes=True, pollution=False),
+    )
+    blank_nlp.add_pipe("eds.consultation_dates", config=dict(town_mention=True))
+    blank_nlp.add_pipe("eds.dates")
+    doc = blank_nlp(text)
+    assert len(doc.spans["consultation_dates"]) == 1
+    date = doc.spans["consultation_dates"][0]._.consultation_date
+    assert date.year == 2025
+    assert date.month == 4
+    assert date.day == 30

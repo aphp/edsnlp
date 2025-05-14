@@ -28,7 +28,7 @@ town_mention = [
     "bondy",
     "colombes",
     "hendaye",
-    "herck.sur.mer",
+    "berck.sur.mer",
     "labruyere",
     "garches",
     "sevran",

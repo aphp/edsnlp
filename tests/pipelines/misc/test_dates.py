@@ -4,6 +4,7 @@ import pytest
 import spacy
 from pytest import fixture
 
+import edsnlp
 from edsnlp.core import PipelineProtocol
 from edsnlp.pipes.misc.dates.models import AbsoluteDate, Relative
 from edsnlp.utils.examples import parse_example
@@ -295,3 +296,22 @@ def test_note_datetime(blank_nlp, dt):
         assert str(doc.spans["dates"][2]._.date) == "+730 days"
         assert doc.spans["durations"][0]._.duration.duration.days == 365
         assert str(doc.spans["durations"][0]._.duration) == "during 365 days"
+
+
+def test_dates_bound_relative_to_duration():
+    """
+    Ensure that relative date expressions like 'depuis hier' are parsed correctly
+    and that duration conversion does not raise errors.
+    """
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe("eds.dates")
+    doc = nlp("Mal au bras depuis hier.")
+    # Force a note date for duration calculation
+    doc._.note_datetime = datetime.datetime(2024, 5, 14)
+    date_spans = doc.spans["dates"]
+    assert len(date_spans) > 0
+    # Check that duration conversion does not fail
+    duration = date_spans[0]._.date.to_duration(note_datetime=doc._.note_datetime)
+    assert duration is not None
+    assert duration.days == -1  # 'hier' should yield -1 day

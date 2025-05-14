@@ -10,6 +10,7 @@
 
 - Fixed mini-batch accumulation for multi-task training
 - Fixed a pickling error when applying a pipeline in multiprocessing mode. This occurred in some cases when one of the pipes was declared in a "difficultly importable" module (e.g., causing a "PicklingWarning: Cannot locate reference to <class...").
+- Fixed typo in `eds.consultation_dates` towns: `berck.sur.mer`.
 
 ## v0.17.0 (2025-04-15)
 

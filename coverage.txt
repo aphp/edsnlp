@@ -303,7 +303,7 @@ edsnlp/pipes/trainable/span_linker/factory.py                                   
 edsnlp/pipes/trainable/span_linker/span_linker.py                                         173      2  98.84%   403-404
 edsnlp/processing/__init__.py                                                               3      0 100.00%
 edsnlp/processing/deprecated_pipe.py                                                       57      2  96.49%   208-209
-edsnlp/processing/multiprocessing.py                                                      626     14  97.76%   388-392, 397-398, 537, 601-602, 1116-1121
+edsnlp/processing/multiprocessing.py                                                      626     14  97.76%   394-398, 403-404, 543, 607-608, 1122-1127
 edsnlp/processing/simple.py                                                                61      0 100.00%
 edsnlp/processing/spark.py                                                                 47      1  97.87%   51
 edsnlp/reducers.py                                                                         67      2  97.01%   116, 118

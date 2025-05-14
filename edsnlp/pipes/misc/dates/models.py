@@ -270,6 +270,7 @@ class Relative(BaseDate):
         direction = -1 if direction == Direction.PAST else 1
 
         d.pop("mode", None)
+        d.pop("bound", None)
 
         d = {f"{k}s": v for k, v in d.items()}
 

@@ -243,7 +243,13 @@ except (ImportError, AttributeError):  # pragma: no cover
         return dill.load(file, *args, **kwargs)
 
     def dump(obj, file, skip_tensors=False, *args, **kwargs):
-        return dill.dump(obj, file, *args, **kwargs)
+        old_settings = dict(dill.settings)
+        try:
+            dill.settings["recurse"] = False
+            dill.settings["byref"] = True
+            return dill.dump(obj, file, *args, **kwargs)
+        finally:
+            dill.settings.update(old_settings)
 
 
 if os.environ.get("TORCH_SHARING_STRATEGY"):  # pragma: no cover

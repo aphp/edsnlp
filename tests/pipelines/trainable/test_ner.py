@@ -4,6 +4,8 @@ from spacy.tokens import Span
 
 import edsnlp
 
+pytest.importorskip("torch.nn")
+
 
 @mark.parametrize(
     "ner_mode,window",

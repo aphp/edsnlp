@@ -1,7 +1,10 @@
+import pytest
 from spacy.tokens import Span
 
 import edsnlp
 import edsnlp.pipes as eds
+
+pytest.importorskip("torch.nn")
 
 
 def test_ner():

@@ -1,3 +1,4 @@
+import subprocess
 from datetime import datetime
 from typing import Any, Dict, List
 
@@ -229,3 +230,7 @@ def test_arbitrary_callback(param, model):
             "length",
         }
         assert (note_nlp.snippet.str.len() == note_nlp.length).all()
+
+
+def test_multiprocessing_with_pipe_in_module(run_in_test_dir):
+    subprocess.run(["python", "mp_simple_pipe.py"], check=True)

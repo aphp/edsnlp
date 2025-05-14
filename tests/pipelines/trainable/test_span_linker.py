@@ -7,6 +7,8 @@ from typing_extensions import Literal
 import edsnlp
 import edsnlp.pipes as eds
 
+pytest.importorskip("torch.nn")
+
 if not Span.has_extension("cui"):
     Span.set_extension("cui", default=None)
 

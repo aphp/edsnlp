@@ -24,8 +24,6 @@ try:
 except ImportError:
     torch = None
 
-pytest.importorskip("rich")
-
 
 def pytest_collection_modifyitems(items):
     """Run test_docs* at the end"""

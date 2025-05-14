@@ -1,3 +1,4 @@
+import pytest
 from pytest import fixture
 from spacy.tokens import Span
 
@@ -12,6 +13,8 @@ if not Span.has_extension("event_type"):
 
 if not Span.has_extension("test_negated"):
     Span.set_extension("test_negated", default=False)
+
+pytest.importorskip("torch.nn")
 
 
 @fixture

@@ -5,6 +5,8 @@ from spacy.tokens import Span
 import edsnlp
 from edsnlp.utils.span_getters import get_spans
 
+pytest.importorskip("torch.nn")
+
 if not Span.has_extension("label"):
     Span.set_extension("label", default=None)
 

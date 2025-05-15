@@ -19,6 +19,7 @@ examples = [
     f"""4. Codification  : <ent text={d1v1 + d2v6}>{d1v1 + d2v6}</ent>.
     J'aime edsnlp. : {d1v2 + d2v3}.  Une autre chose""",
     f"""5. J'aime edsnlp. : {d1v2 + d2v5}.  Une autre chose""",
+    """6. Codification  : XX. Une autre chose""",
 ]
 
 

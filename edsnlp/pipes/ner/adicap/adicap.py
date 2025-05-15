@@ -159,6 +159,7 @@ Name=cgts_sem_adicap_fiche-detaillee.pdf).
                     window=window,
                     replace_entity=True,
                     reduce_mode=None,
+                    required=True,
                 ),
             ],
         )

@@ -14,6 +14,7 @@
 - Fixed a bug where relative date expressions with bounds (e.g. 'depuis hier') raised an error when converted to durations.
 - Fixed pipe ADICAP to deal with cases where not code is found after 'codification'/'adicap'
 - Support "00"-like hours and minutes in the `eds.dates` component
+- Fix arc minutes, arc seconds and degree unit scales in `eds.quantities`, used when converting between different time (or angle) units
 
 ## v0.17.0 (2025-04-15)
 

@@ -301,9 +301,9 @@ units_config = {
     "hour":       {"dim": "time", "degree": 1, "scale": 3600, "terms": ["heure", "heures", "h"], "followed_by": "minute"},
     "minute":     {"dim": "time", "degree": 1, "scale": 60, "terms": ["mn", "min", "minute", "minutes"], "followed_by": "second"},
     "second":     {"dim": "time", "degree": 1, "scale": 1, "terms": ["seconde", "secondes", "s"], "followed_by": None},
-    "arc-minute": {"dim": "time", "degree": 1, "scale": 2, "terms": ["'"], "followed_by": "arc-second"},
-    "arc-second": {"dim": "time", "degree": 1, "scale": 0.03333333333333333, "terms": ['"', "''"], "followed_by": None},
-    "degree":     {"dim": "time", "degree": 1, "scale": 120, "terms": ["degre", "°", "deg"], "followed_by": "arc-minute"},
+    "arc-minute": {"dim": "time", "degree": 1, "scale": 60, "terms": ["'"], "followed_by": "arc-second"},
+    "arc-second": {"dim": "time", "degree": 1, "scale": 1, "terms": ['"', "''"], "followed_by": None},
+    "degree":     {"dim": "time", "degree": 1, "scale": 3600, "terms": ["degre", "°", "deg"], "followed_by": "arc-minute"},
 
     # Temperature
     "celsius": {"dim": "temperature", "degree": 1, "scale": 1, "terms": ["°C", "° celsius", "celsius"], "followed_by": None},

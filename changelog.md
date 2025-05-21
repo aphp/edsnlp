@@ -13,6 +13,7 @@
 - Fixed typo in `eds.consultation_dates` towns: `berck.sur.mer`.
 - Fixed a bug where relative date expressions with bounds (e.g. 'depuis hier') raised an error when converted to durations.
 - Fixed pipe ADICAP to deal with cases where not code is found after 'codification'/'adicap'
+- Support "00"-like hours and minutes in the `eds.dates` component
 
 ## v0.17.0 (2025-04-15)
 

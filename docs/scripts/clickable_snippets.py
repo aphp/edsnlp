@@ -1,7 +1,7 @@
 # Based on https://github.com/darwindarak/mdx_bib
 import os
-import re
 from bisect import bisect_right
+from collections import defaultdict
 from typing import Tuple
 
 import jedi
@@ -22,11 +22,7 @@ except ImportError:
 
 from bs4 import BeautifulSoup
 
-BRACKET_RE = re.compile(r"\[([^\[]+)\]")
-CITE_RE = re.compile(r"@([\w_:-]+)")
-DEF_RE = re.compile(r"\A {0,3}\[@([\w_:-]+)\]:\s*(.*)")
-INDENT_RE = re.compile(r"\A\t| {4}(.*)")
-
+# Used to match href in HTML to replace with a relative path
 HREF_REGEX = (
     r"(?<=<\s*(?:a[^>]*href|img[^>]*src)=)"
     r'(?:"([^"]*)"|\'([^\']*)|[ ]*([^ =>]*)(?![a-z]+=))'
@@ -39,6 +35,15 @@ HTML_PIPE_REGEX = r"""(?x)
 <span[^>]*>eds<\/span>
 <span[^>]*>[.]<\/span>
 <span[^>]*>([a-zA-Z0-9._-]*)<\/span>
+(?![a-zA-Z0-9._-])
+"""
+
+REGISTRY_REGEX = r"""(?x)
+(?<![a-zA-Z0-9._-])
+<span[^>]*>(?:"|&\#39;|&quot;)@([a-zA-Z0-9._-]*)(?:"|&\#39;|&quot;)<\/span>\s*
+<span[^>]*>:<\/span>\s*
+<span[^>]*>\s*<\/span>\s*
+<span[^>]*>(?:"|&\#39;|&quot;)?([a-zA-Z0-9._-]*)(?:"|&\#39;|&quot;)?<\/span>
 (?![a-zA-Z0-9._-])
 """
 
@@ -62,11 +67,15 @@ class ClickableSnippetsPlugin(BasePlugin):
         plugin.load_config(plugin_config)
 
     @classmethod
-    def get_ep_namespace(cls, ep, namespace):
+    def get_ep_namespace(cls, ep, namespace=None):
         if hasattr(ep, "select"):
-            return ep.select(group=namespace)
+            return ep.select(group=namespace) if namespace else list(ep._all)
         else:  # dict
-            return ep.get(namespace, [])
+            return (
+                ep.get(namespace, [])
+                if namespace
+                else (x for g in ep.values() for x in g)
+            )
 
     @mkdocs.plugins.event_priority(-1000)
     def on_post_page(
@@ -94,18 +103,26 @@ class ClickableSnippetsPlugin(BasePlugin):
         autorefs: AutorefsPlugin = config["plugins"]["autorefs"]
         ep = entry_points()
         page_url = os.path.join("/", page.file.url)
-        spacy_factories_entry_points = {
+        factories_entry_points = {
             ep.name: ep.value
             for ep in (
                 *self.get_ep_namespace(ep, "spacy_factories"),
                 *self.get_ep_namespace(ep, "edsnlp_factories"),
             )
         }
+        all_entry_points = defaultdict(dict)
+        for ep in self.get_ep_namespace(ep):
+            if ep.group.startswith("edsnlp_") or ep.group.startswith("spacy_"):
+                group = ep.group.split("_", 1)[1]
+                all_entry_points[group][ep.name] = ep.value
 
-        def replace_component(match):
-            full_group = match.group(0)
+        # This method is meant for replacing any component that
+        # appears in a "eds.component" format, no matter if it is
+        # preceded by a "@factory" or not.
+        def replace_factory_component(match):
+            full_match = match.group(0)
             name = "eds." + match.group(1)
-            ep = spacy_factories_entry_points.get(name)
+            ep = factories_entry_points.get(name)
             preceding = output[match.start(0) - 50 : match.start(0)]
             if ep is not None and "DEFAULT:" not in preceding:
                 try:
@@ -114,7 +131,27 @@ class ClickableSnippetsPlugin(BasePlugin):
                     pass
                 else:
                     return f"<a href={url}>{name}</a>"
-            return full_group
+            return full_match
+
+        # This method is meant for replacing any component that
+        # appears in a "@registry": "component" format
+        def replace_any_registry_component(match):
+            full_match = match.group(0)
+            group = match.group(1)
+            name = match.group(2)
+            ep = all_entry_points[group].get(name)
+            preceding = output[match.start(0) - 50 : match.start(0)]
+            if ep is not None and "DEFAULT:" not in preceding:
+                try:
+                    url = autorefs.get_item_url(ep.replace(":", "."))
+                except KeyError:
+                    pass
+                else:
+                    repl = f'<a href={url} class="discrete-link">{name}</a>'
+                    before = full_match[: match.start(2) - match.start(0)]
+                    after = full_match[match.end(2) - match.start(0) :]
+                    return before + repl + after
+            return full_match
 
         def replace_link(match):
             relative_url = url = match.group(1) or match.group(2) or match.group(3)
@@ -122,8 +159,9 @@ class ClickableSnippetsPlugin(BasePlugin):
                 relative_url = os.path.relpath(url, page_url)
             return f'"{relative_url}"'
 
-        output = regex.sub(PIPE_REGEX, replace_component, output)
-        output = regex.sub(HTML_PIPE_REGEX, replace_component, output)
+        output = regex.sub(PIPE_REGEX, replace_factory_component, output)
+        output = regex.sub(HTML_PIPE_REGEX, replace_factory_component, output)
+        output = regex.sub(REGISTRY_REGEX, replace_any_registry_component, output)
 
         all_snippets = ""
         all_offsets = []

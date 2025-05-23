@@ -15,7 +15,8 @@ dependencies = [
     "regex",
     # spacy doesn't provide binaries for python<3.9 from 3.8.2 so we need to cap it ourself
     "spacy>=3.2,<3.8.2; python_version<'3.9'",
-    "spacy>=3.8.5,<4.0.0; python_version>='3.9'",
+    # at the moment, spacy >=3.8.7 requires cython 3 and messes up the registration of factories
+    "spacy>=3.8.5,<3.8.7; python_version>='3.9'",
     # thinc doesn't provide binaries for python<3.9 from 8.2.5 so we need to cap it ourself
     "thinc<8.2.5; python_version<'3.9'",
     "thinc>=8.2.5; python_version>='3.9'",
@@ -52,7 +53,7 @@ dev-no-ml = [
 
     # Data libs
     "koalas>=1.8.1; python_version<'3.8'",
-    "pyspark",
+    "pyspark<4.0.0",  # TODO: uncap when we figure out the CI issue with pyspark 4.0.0
     "polars",
 
     "scikit-learn",

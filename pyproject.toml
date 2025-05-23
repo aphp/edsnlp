@@ -52,7 +52,7 @@ dev-no-ml = [
 
     # Data libs
     "koalas>=1.8.1; python_version<'3.8'",
-    "pyspark",
+    "pyspark<4.0.0",  # TODO: uncap when we figure out the CI issue with pyspark 4.0.0
     "polars",
 
     "scikit-learn",

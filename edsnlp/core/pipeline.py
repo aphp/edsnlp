@@ -1277,9 +1277,9 @@ def load_from_huggingface(
     owner, model_name = repo_id.split("/")
     module_name = model_name.replace("-", "_")
 
-    assert (
-        len(repo_id.split("/")) == 2
-    ), "Invalid repo_id format (expected 'owner/repo_name' format)"
+    assert len(repo_id.split("/")) == 2, (
+        "Invalid repo_id format (expected 'owner/repo_name' format)"
+    )
     path = None
     mtime = None
     try:

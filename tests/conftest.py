@@ -24,7 +24,17 @@ try:
 except ImportError:
     torch = None
 
-pytest.importorskip("rich")
+
+def pytest_collection_modifyitems(items):
+    """Run test_docs* at the end"""
+    first_tests = []
+    last_tests = []
+    for item in items:
+        if item.name.startswith("test_code_blocks"):
+            last_tests.append(item)
+        else:
+            first_tests.append(item)
+    items[:] = first_tests + last_tests
 
 EDS_SENTENCES_PIPE = "eds.sentences"
 

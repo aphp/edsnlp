@@ -66,9 +66,6 @@
   - Raise an error if the batch size in `stream.shuffle(batch_size=...)` is not compatible with the stream
 - `eds.split` now keeps doc and span attributes in the sub-documents.
 
-### Fixed
-- Correct the contributing documentation. Delete `$ pre-commit run --all-files`recommendation.
-- Fix the the `Obj Class` in the doc template `class.html`.
 
 ## v0.15.0 (2024-12-13)
 

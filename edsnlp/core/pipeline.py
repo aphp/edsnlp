@@ -338,7 +338,7 @@ class Pipeline(Validated):
         Dict[str, Any]
         """
         pipe = self.get_pipe(name)
-        return PIPE_META.get(pipe, {})
+        return PIPE_META.get(pipe, FactoryMeta([], [], False, {}))
 
     def make_doc(self, text: str) -> Doc:
         """
@@ -1277,9 +1277,9 @@ def load_from_huggingface(
     owner, model_name = repo_id.split("/")
     module_name = model_name.replace("-", "_")
 
-    assert (
-        len(repo_id.split("/")) == 2
-    ), "Invalid repo_id format (expected 'owner/repo_name' format)"
+    assert len(repo_id.split("/")) == 2, (
+        "Invalid repo_id format (expected 'owner/repo_name' format)"
+    )
     path = None
     mtime = None
     try:

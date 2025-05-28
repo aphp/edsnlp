@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- New `edsnlp.data.converters.MarkupToDocConverter` to convert Markdown or XML-like markup to documents, which is particularly useful to create annotated documents from scratch (e.g., for testing purposes).
+
 ## v0.17.1 (2025-05-26)
 
 ### Added

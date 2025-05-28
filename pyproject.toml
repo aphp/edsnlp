@@ -74,6 +74,7 @@ docs-no-ml = [
     "mkdocstrings-python~=1.1",
     "mkdocs-minify-plugin",
     "mkdocs-redirects>=1.2.1;python_version>='3.8'",
+    "markdown-grid-tables==0.4.0",
     "pybtex~=0.24.0",
     "pathspec>=0.11.1",  # required by vendored mkdocs-autorefs PR
     "astunparse",
@@ -279,21 +280,22 @@ where = ["."]
 "linear" = "edsnlp.training.optimizer:LinearSchedule"
 
 [project.entry-points."spacy_scorers"]
-"eds.ner_exact"                  = "edsnlp.metrics.ner:NerExactMetric"
-"eds.ner_token"                  = "edsnlp.metrics.ner:NerTokenMetric"
-"eds.ner_overlap"                = "edsnlp.metrics.ner:NerOverlapMetric"
-"eds.span_attributes"            = "edsnlp.metrics.span_attributes:SpanAttributeMetric"
-"eds.dep_parsing"                = "edsnlp.metrics.dep_parsing:DependencyParsingMetric"
+"eds.ner_exact"              = "edsnlp.metrics.ner:NerExactMetric"
+"eds.ner_token"              = "edsnlp.metrics.ner:NerTokenMetric"
+"eds.ner_overlap"            = "edsnlp.metrics.ner:NerOverlapMetric"
+"eds.span_attribute"         = "edsnlp.metrics.span_attribute:SpanAttributeMetric"
+"eds.dep_parsing"            = "edsnlp.metrics.dep_parsing:DependencyParsingMetric"
 
 # Deprecated
-"eds.ner_exact_metric"           = "edsnlp.metrics.ner:NerExactMetric"
-"eds.ner_token_metric"           = "edsnlp.metrics.ner:NerTokenMetric"
-"eds.ner_overlap_metric"         = "edsnlp.metrics.ner:NerOverlapMetric"
-"eds.span_attributes_metric"     = "edsnlp.metrics.span_attributes:SpanAttributeMetric"
-"eds.ner_exact_scorer"           = "edsnlp.metrics.ner:NerExactMetric"
-"eds.ner_token_scorer"           = "edsnlp.metrics.ner:NerTokenMetric"
-"eds.ner_overlap_scorer"         = "edsnlp.metrics.ner:NerOverlapMetric"
-"eds.span_attributes_scorer"     = "edsnlp.metrics.span_attributes:SpanAttributeMetric"
+"eds.ner_exact_metric"       = "edsnlp.metrics.ner:NerExactMetric"
+"eds.ner_token_metric"       = "edsnlp.metrics.ner:NerTokenMetric"
+"eds.ner_overlap_metric"     = "edsnlp.metrics.ner:NerOverlapMetric"
+"eds.span_attributes_metric" = "edsnlp.metrics.span_attributes:SpanAttributeMetric"
+"eds.span_attributes"        = "edsnlp.metrics.span_attribute:SpanAttributeMetric"
+"eds.ner_exact_scorer"       = "edsnlp.metrics.ner:NerExactMetric"
+"eds.ner_token_scorer"       = "edsnlp.metrics.ner:NerTokenMetric"
+"eds.ner_overlap_scorer"     = "edsnlp.metrics.ner:NerOverlapMetric"
+"eds.span_attributes_scorer" = "edsnlp.metrics.span_attributes:SpanAttributeMetric"
 
 [project.entry-points."edsnlp_readers"]
 "spark" =    "edsnlp.data:from_spark"

@@ -4,6 +4,7 @@ import re
 import sys
 import textwrap
 import warnings
+from math import isclose
 
 import catalogue
 import pytest
@@ -28,6 +29,42 @@ else:
     url_to_code = dict(extract_docs_code())
     # just to make sure something didn't go wrong
     assert len(url_to_code) > 50
+
+
+class nested_approx:
+    def __init__(self, value, rel=1e-12, abs=1e-12):
+        self._value, self._rel, self._abs = value, rel, abs
+
+    def __eq__(self, other):
+        return self._match(self._value, other)
+
+    def __req__(self, other):
+        return self._match(other, self._value)
+
+    __hash__ = None  # keep it un-hashable
+
+    def _match(self, a, b):
+        if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+            return isclose(a, b, rel_tol=self._rel, abs_tol=self._abs)
+        if isinstance(a, (list, tuple)):
+            return (
+                isinstance(b, (list, tuple))
+                and len(a) == len(b)
+                and all(self._match(x, y) for x, y in zip(a, b))
+            )
+        if isinstance(a, dict):
+            return (
+                isinstance(b, dict)
+                and a.keys() == b.keys()
+                and all(self._match(a[k], b[k]) for k in a)
+            )
+        return a == b
+
+    def __repr__(self):
+        return f"nested_approx({self._value!r}, rel={self._rel}, abs={self._abs})"
+
+
+pytest.nested_approx = nested_approx
 
 
 def printer(code: str) -> None:
@@ -62,16 +99,22 @@ def insert_assert_statements(code):
             if stmt.end_lineno == lineno:
                 if isinstance(stmt, ast.Expr):
                     expected = textwrap.dedent(match.group(1)).replace("\n# ", "\n")
+                    expected_s = expected
                     begin = line_table[stmt.lineno - 1]
                     if not (expected.startswith("'") or expected.startswith('"')):
-                        expected = repr(expected)
+                        expected_s = repr(expected)
                     end = match.end()
                     stmt_str = ast.unparse(stmt)
                     if stmt_str.startswith("print("):
                         stmt_str = stmt_str[len("print") :]
                     repl = f"""\
-value = {stmt_str}
-assert {expected} == str(value)
+val = {stmt_str}
+try:
+    import ast
+    expected = ast.literal_eval({expected_s})
+except (ValueError, SyntaxError):
+    expected = None
+assert str(val) == {expected_s} or val == pytest.nested_approx(expected, 0.01, 0.01)
 """
                     replacements.append((begin, end, repl))
                 if isinstance(stmt, ast.For):
@@ -83,7 +126,7 @@ assert {expected} == str(value)
                     repl = f"""\
 printed = []
 {stmt_str}
-assert {expected} == printed
+assert printed == {expected}
 """
                     replacements.append((begin, end, repl))
 
@@ -123,6 +166,8 @@ def reset_imports():
 def test_code_blocks(url, tmpdir, reset_imports):
     code = url_to_code[url]
     code_with_asserts = """
+import pytest
+
 def assert_print(*args, sep=" ", end="\\n", file=None, flush=False):
     printed.append((sep.join(map(str, args)) + end).rstrip('\\n'))
 

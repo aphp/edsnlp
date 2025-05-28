@@ -8,6 +8,7 @@
 - Qualifiers can process `Span` or `Doc` : this feature especially makes it easier to nest qualifiers components in other components
 - New label_weights parameter in eds.span_classifier`, which allows the user to set per label-value loss weights during training
 - New `edsnlp.data.converters.MarkupToDocConverter` to convert Markdown or XML-like markup to documents, which is particularly useful to create annotated documents from scratch (e.g., for testing purposes).
+- New [Metrics](https://aphp.github.io/edsnlp/master/metrics/) documentation page to document the available metrics and how to use them.
 
 ### Fixed
 

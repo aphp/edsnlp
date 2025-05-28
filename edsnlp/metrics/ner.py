@@ -1,3 +1,27 @@
+"""
+We provide several metrics to evaluate the performance of Named Entity Recognition (NER) components.
+Let's look at an example and see how they differ. We'll use the following two documents: a reference
+document (ref) and a document with predicted entities (pred).
+
++-------------------------------------------------------------+------------------------------------------+
+| pred                                                        | ref                                      |
++=============================================================+==========================================+
+| *La*{.chip data-chip=PER} *patiente*{.chip data-chip=PER} a | La *patiente*{.chip data-chip=PER} a     |
+| une *fièvre aigüe*{.chip data-chip=DIS}                     | *une fièvre*{.chip data-chip=DIS} aigüe. |
++-------------------------------------------------------------+------------------------------------------+
+
+Let's create matching documents in EDS-NLP using the following code snippet:
+
+```python
+from edsnlp.data.converters import MarkupToDocConverter
+
+conv = MarkupToDocConverter(preset="md", span_setter="entities")
+
+pred = conv("[La](PER) [patiente](PER) a une [fièvre aiguë](DIS).")
+ref = conv("La [patiente](PER) a [une fièvre](DIS) aiguë.")
+```
+"""  # noqa: E501
+
 import abc
 from collections import defaultdict
 from typing import Any, Dict, Optional
@@ -13,26 +37,6 @@ def ner_exact_metric(
     micro_key: str = "micro",
     filter_expr: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """
-    Scores the extracted entities that may be overlapping or nested
-    by looking in the spans returned by a given SpanGetter object.
-
-    Parameters
-    ----------
-    examples: Examples
-        The examples to score, either a tuple of (golds, preds) or a list of
-        spacy.training.Example objects
-    span_getter: SpanGetter
-        The span getter to use to extract the spans from the document
-    micro_key: str
-        The key to use to store the micro-averaged results for spans of all types
-    filter_expr: str
-        The filter expression to use to filter the documents
-
-    Returns
-    -------
-    Dict[str, Any]
-    """
     examples = make_examples(examples)
     if filter_expr is not None:
         filter_fn = eval(f"lambda doc: {filter_expr}")
@@ -65,27 +69,6 @@ def ner_token_metric(
     micro_key: str = "micro",
     filter_expr: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """
-    Scores the extracted entities that may be overlapping or nested
-    by looking in `doc.ents`, and `doc.spans`, and comparing the predicted
-    and gold entities at the TOKEN level.
-
-    Parameters
-    ----------
-    examples: Examples
-        The examples to score, either a tuple of (golds, preds) or a list of
-        spacy.training.Example objects
-    span_getter: SpanGetter
-        The span getter to use to extract the spans from the document
-    micro_key: str
-        The key to use to store the micro-averaged results for spans of all types
-    filter_expr: str
-        The filter expression to use to filter the documents
-
-    Returns
-    -------
-    Dict[str, Any]
-    """
     examples = make_examples(examples)
     if filter_expr is not None:
         filter_fn = eval(f"lambda doc: {filter_expr}")
@@ -130,30 +113,6 @@ def ner_overlap_metric(
     filter_expr: Optional[str] = None,
     threshold: float = 0.5,
 ) -> Dict[str, Any]:
-    """
-    Scores the extracted entities that may be overlapping or nested
-    by looking in `doc.ents`, and `doc.spans`, and comparing the predicted
-    and gold entities and counting true when a predicted entity overlaps
-    with a gold entity of the same label
-
-    Parameters
-    ----------
-    examples: Examples
-        The examples to score, either a tuple of (golds, preds) or a list of
-        spacy.training.Example objects
-    span_getter: SpanGetter
-        The span getter to use to extract the spans from the document
-    micro_key: str
-        The key to use to store the micro-averaged results for spans of all types
-    filter_expr: str
-        The filter expression to use to filter the documents
-    threshold: float
-        The threshold to use to consider that two spans overlap
-
-    Returns
-    -------
-    Dict[str, Any]
-    """
     examples = make_examples(*examples)
     if filter_expr is not None:
         filter_fn = eval(f"lambda doc: {filter_expr}")
@@ -239,6 +198,54 @@ class NerMetric(abc.ABC):
     deprecated=["eds.ner_exact_metric"],
 )
 class NerExactMetric(NerMetric):
+    r"""
+    The `eds.ner_exact` metric
+    scores the extracted entities (that may be overlapping or nested)
+    by looking in the spans returned by a given SpanGetter object and
+    comparing predicted spans to gold spans for **exact** boundary and label matches.
+
+    Let's view these elements as collections of (span → label) and count how
+    many of the predicted spans match the gold spans exactly (and vice versa):
+
+    +----------------------------------------------+--------------------------------------------+
+    | pred                                         | ref                                        |
+    +==============================================+============================================+
+    | *La*{.chip .fp data-chip=PER}<br/>           | *patiente*{.chip .tp data-chip=PER}<br/>   |
+    | *patiente*{.chip .tp data-chip=PER}<br/>     | *une fièvre*{.chip .fp data-chip=DIS}<br/> |
+    | *fièvre aiguë*{.chip .fp data-chip=DIS}<br/> |                                            |
+    +----------------------------------------------+--------------------------------------------+
+
+    Precision, Recall and F1 (micro-average and per‐label) are computed as follows:
+
+    - Precision: `p = |matched items of pred| / |pred|`
+    - Recall: `r = |matched items of ref| / |ref|`
+    - F1: `f = 2 / (1/p + 1/f)`
+
+    Examples
+    --------
+
+    ```python
+    from edsnlp.metrics.ner import NerExactMetric
+
+    metric = NerExactMetric(span_getter=conv.span_setter, micro_key="micro")
+    metric([ref], [pred])
+    # Out: {
+    #   'micro': {'f': 0.4, 'p': 0.33, 'r': 0.5, 'tp': 1, 'support': 2, 'positives': 3},
+    #   'PER': {'f': 0.67, 'p': 0.5, 'r': 1, 'tp': 1, 'support': 1, 'positives': 2},
+    #   'DIS': {'f': 0.0, 'p': 0.0, 'r': 0.0, 'tp': 0, 'support': 1, 'positives': 1},
+    # }
+    ```
+
+    Parameters
+    ----------
+    span_getter: SpanGetter
+        The span getter to use to extract the spans from the document
+    micro_key: str
+        The key to use to store the micro-averaged results for spans of all types
+    filter_expr: str
+        The filter expression to use to filter the documents. Evaluated with `doc` as the variable.
+    """  # noqa: E501
+
     def __init__(
         self,
         span_getter: SpanGetterArg,
@@ -265,6 +272,58 @@ class NerExactMetric(NerMetric):
     deprecated=["eds.ner_token_metric"],
 )
 class NerTokenMetric(NerMetric):
+    r"""
+    The `eds.ner_token` metric
+    scores the extracted entities that may be overlapping or nested by looking in
+    `doc.ents`, and `doc.spans`, and comparing the predicted and gold entities at the
+    **token** level.
+
+    Assuming we use the `eds` (or `fr` or `en`) tokenizer, in the above example, there
+    are 3 annotated tokens in the reference, and 4 annotated tokens in the prediction.
+    Let's view these elements as sets of (token, label) and count how many of the
+    predicted tokens match the gold tokens exactly (and vice versa):
+
+    +------------------------------------------+------------------------------------------+
+    | pred                                     | ref                                      |
+    +==========================================+==========================================+
+    | *La*{.chip .fp data-chip=PER}<br/>       | *patiente*{.chip .tp data-chip=PER}<br/> |
+    | *patiente*{.chip .tp data-chip=PER}<br/> | *une*{.chip .fp data-chip=DIS}<br/>      |
+    | *fièvre*{.chip .tp data-chip=DIS}<br/>   | *fièvre*{.chip .tp data-chip=DIS}        |
+    | *aiguë*{.chip .fp data-chip=DIS}         |                                          |
+    +------------------------------------------+------------------------------------------+
+
+    Precision, Recall and F1 (micro-average and per‐label) are computed as follows:
+
+    - Precision: `p = |matched items of pred| / |pred|`
+    - Recall: `r = |matched items of ref| / |ref|`
+    - F1: `f = 2 / (1/p + 1/f)`
+
+    Examples
+    --------
+
+    ```python
+    from edsnlp.metrics.ner import NerTokenMetric
+
+    metric = NerTokenMetric(span_getter=conv.span_setter, micro_key="micro")
+    metric([ref], [pred])
+    # Out: {
+    #   'micro': {'f': 0.57, 'p': 0.5, 'r': 0.67, 'tp': 2, 'support': 3, 'positives': 4},
+    #   'PER': {'f': 0.67, 'p': 0.5, 'r': 1, 'tp': 1, 'support': 1, 'positives': 2},
+    #   'DIS': {'f': 0.5, 'p': 0.5, 'r': 0.5, 'tp': 1, 'support': 2, 'positives': 2}
+    # }
+    ```
+
+    Parameters
+    ----------
+    span_getter: SpanGetter
+        The span getter to use to extract the spans from the document
+    micro_key: str
+        The key to use to store the micro-averaged results for spans of all types
+    filter_expr: str
+        The filter expression to use to filter the documents. Will be evaluated
+        with `doc` as the variable name, so you can use `doc.ents`, `doc.spans`, etc.
+    """  # noqa: E501
+
     def __init__(
         self,
         span_getter: SpanGetterArg,
@@ -291,6 +350,71 @@ class NerTokenMetric(NerMetric):
     deprecated=["eds.ner_overlap_metric"],
 )
 class NerOverlapMetric(NerMetric):
+    r"""
+    The `eds.ner_overlap` metric
+    scores the extracted entities that may be overlapping or nested
+    by looking in the spans returned by a given SpanGetter object and
+    counting a prediction as correct if it overlaps by at least the given
+    Dice‐coefficient threshold with a gold span of the same label.
+
+    This metric is useful for evaluating NER systems where the exact boundaries
+    do not matter too much, but the presence of the entity at the same spot is important.
+    For instance, you may not want to penalize a system that forgets determiners if
+    the rest of the entity is correctly identified.
+
+    Let's view these elements as sets of (span → label) and count how many of the
+    predicted spans match the gold spans by at least the given Dice coefficient
+    (and vice versa):
+
+    +---------------------------------------------+------------------------------------------+
+    | pred                                        | ref                                      |
+    +=============================================+==========================================+
+    | *La*{.chip .fp data-chip=PER}<br/>          | *patiente*{.chip .tp data-chip=PER}<br/> |
+    | *patiente*{.chip .tp data-chip=PER}<br/>    | *une fièvre*{.chip .tp data-chip=DIS}    |
+    | *fièvre aiguë*{.chip .tp data-chip=DIS}<br/>|                                          |
+    +---------------------------------------------+------------------------------------------+
+
+    Precision, Recall and F1 (micro-average and per‐label) are computed as follows:
+
+    - Precision: `p = |matched items of pred| / |pred|`
+    - Recall: `r = |matched items of ref| / |ref|`
+    - F1: `f = 2 / (1/p + 1/f)`
+
+    !!! note "Overlap threshold"
+
+        The threshold is the minimum Dice coefficient to consider two spans as overlapping. Setting
+        it to 1.0 will yield the same results as the `eds.ner_exact` metric, while setting it to a
+        near-zero value (e.g., like 1e-14) will match any two spans that share at least one token.
+
+    Examples
+    --------
+
+    ```python
+    from edsnlp.metrics.ner import NerOverlapMetric
+
+    metric = NerOverlapMetric(
+        span_getter=conv.span_setter, micro_key="micro", threshold=0.5
+    )
+    metric([ref], [pred])
+    # Out: {
+    #   'micro': {'f': 0.8, 'p': 0.67, 'r': 1.0, 'tp': 2, 'support': 2, 'positives': 3},
+    #   'PER': {'f': 0.67, 'p': 0.5, 'r': 1.0, 'tp': 1, 'support': 1, 'positives': 2},
+    #   'DIS': {'f': 1.0, 'p': 1.0, 'r': 1.0, 'tp': 1, 'support': 1, 'positives': 1}
+    # }
+    ```
+
+    Parameters
+    ----------
+    span_getter: SpanGetter
+        The span getter to use to extract the spans from the document
+    micro_key: str
+        The key to use to store the micro-averaged results for spans of all types
+    filter_expr: str
+        The filter expression to use to filter the documents
+    threshold: float
+        The threshold on the Dice coefficient to consider two spans as overlapping
+    """  # noqa: E501
+
     def __init__(
         self,
         span_getter: SpanGetterArg,

@@ -189,6 +189,7 @@ a.discrete-link {
 .sourced-heading > a {
     font-size: 1rem;
     align-content: center;
+    white-space: nowrap;
 }
 
 .doc-param-details .subdoc {
@@ -206,4 +207,102 @@ a.discrete-link {
 .doc-param-details .subdoc > summary {
     margin: 0;
     font-weight: normal;
+}
+
+/*.chip {
+    position: relative;
+    box-sizing: content-box;
+    display: inline-block;
+    padding: 2px 1px;
+    margin: 1px 0px 14px;
+    border-radius: 6px;
+    font-style: normal;
+    background: #dae8fc;
+    border: 1px solid #6c8ebf;
+    --border-color: #6c8ebf;
+    white-space: nowrap;
+}
+
+.chip::after {
+    content: attr(data-chip);
+    position: absolute;
+    right: -1px;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    line-height: 1;
+    top: calc(100% - 6px);
+    box-sizing: border-box;
+}*/
+
+.chip {
+    position: relative;
+    box-sizing: content-box;
+    display: inline-block;
+    padding: 0 0 0 2px;
+    margin: 1px 0px;
+    border-radius: 4px;
+    font-style: normal;
+    background: #dae8fc;
+    border: 1px solid #6c8ebf;
+    --border-color: #6c8ebf;
+    white-space: nowrap;
+}
+
+.chip::after {
+    content: attr(data-chip);
+    display: inline-block;
+    right: -1px;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 0px 3px 3px 0px;
+    padding: 0 1px;
+    margin: -2px -2px -2px 2px;
+    box-sizing: border-box;
+}
+
+.chip.tp {
+    background-color: #cef8ce;
+    border-color: #50b950;
+    --border-color: #50b950;
+}
+
+.chip-green {
+    display: inline-block;
+    padding: 2px 2px;
+    margin: 1px 1px;
+    border-radius: 6px;
+    font-style: normal;
+    background: #cef8ce;
+    border: 1px solid #50b950;
+    white-space: nowrap;
+}
+
+.chip-red {
+    display: inline-block;
+    padding: 2px 2px;
+    margin: 1px 1px;
+    border-radius: 6px;
+    font-style: normal;
+    background: #f8cecc;
+    border: 1px solid #b95450;
+    white-space: nowrap
+}
+
+.chip.fp, .chip.fn {
+    background-color: #f8cecc;
+    border-color: #b95450;
+    --border-color: #b95450;
+}
+
+.chip.na {
+    display: inline-block;
+    padding: 2px 2px;
+    margin: 1px 1px;
+    border-radius: 6px;
+    font-style: normal;
+    background: #efefef;
+    border: 1px solid #bababa;
+    color: #bababa;
+    white-space: nowrap;
 }

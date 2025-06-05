@@ -3,7 +3,7 @@ results_ckd = dict(
         True,
         False,
         True,
-        True,
+        False,
         False,
         True,
         False,
@@ -18,7 +18,7 @@ results_ckd = dict(
         "Patient atteint d'une glomérulopathie.",
         "Patient atteint d'une tubulopathie aigüe.",
         "Patient transplanté rénal",
-        "Présence d'une insuffisance rénale aigüe sur chronique",
+        "Présence d'une insuffisance rénale aigüe sur chronique",  # severity unknown
         "Le patient a été dialysé",  # ponctuelle
         "Le patient est dialysé chaque lundi",  # chronique
         "Présence d'une IRC",  # severity non mentionned

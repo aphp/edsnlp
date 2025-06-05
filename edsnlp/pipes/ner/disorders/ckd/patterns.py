@@ -1,20 +1,20 @@
 main_pattern = dict(
     source="main",
     regex=[
-        r"glomerulonephrite",
-        r"(?<!pyelo)nephrite.{1,10}chronique",
-        r"glomerulopathie",
+        r"glomerulo\s*neph\w+",
+        r"(?<!pyelo)nephrite.{1,10}chron\w+",
+        r"glomerulo\s*path\w+",
         r"\bGNIgA",
-        r"syndrome.{1,5}nephrotique",
-        r"nephroangiosclerose",
+        r"syndrome?.{1,5}nephroti\w+",
+        r"nephro\s*angio\s*sclerose",
         r"mal.de.bright",
-        r"(maladie|syndrome).{1,7}berger",
-        r"(maladie|syndrome).{1,7}bright",
+        r"(maladie|syndrome?).{1,7}berger",
+        r"(maladie|syndrome?).{1,7}bright",
         r"rachitisme.{1,5}renal",
-        r"sydrome.{1,5}alport",
+        r"sydrome?.{1,5}alport",
         r"good.?pasture",
         r"siadh",
-        r"tubulopathie",
+        r"tubulopath\w+",
     ],
     exclude=dict(
         regex=[
@@ -29,7 +29,7 @@ transplantation = dict(
     source="transplantation",
     regex=[
         r"transplant.{1,15}(rein|renal)",
-        r"greff.{1,10}(rein|renal)",
+        r"greff?.{1,10}(rein|renal)",
     ],
     regex_attr="NORM",
 )
@@ -37,7 +37,7 @@ transplantation = dict(
 acute_on_chronic = dict(
     source="acute_on_chronic",
     regex=[
-        r"insuffisan.{1,10}(rein|renal).{1,5}aig.{1,10}chron",
+        r"insuff?isan.{1,10}(rein|renal).{1,5}aig.{1,10}chron",
     ],
     regex_attr="NORM",
 )
@@ -85,10 +85,10 @@ dialysis = dict(
 general = dict(
     source="general",
     regex=[
-        r"(insuffisan|fonction|malad).{1,10}\b(rein|rena)",
+        r"(insuff?isan|fonction|malad).{1,10}\b(rein|rena)",
         r"\bmrc[^a-z]",
         r"\birc[^a-z]",
-        r"nephropathie",
+        r"nephropath\w+",
     ],
     regex_attr="NORM",
     assign=[

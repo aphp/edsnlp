@@ -156,6 +156,12 @@ def assert_print(*args, sep=" ", end="\\n", file=None, flush=False):
                 compile(code_with_asserts, test_file, "exec"),
                 {"__MODULE__": "__main__"},
             )
+    except ImportError as e:
+        # skip UMLS tests if the package is not installed
+        if "umls_downloader" in str(e):
+            pytest.skip("umls_downloader package not found")
+        else:
+            raise
     except Exception:
         printer(code_with_asserts)
         raise

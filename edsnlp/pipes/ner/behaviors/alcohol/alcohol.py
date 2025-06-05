@@ -120,7 +120,8 @@ class AlcoholMatcher(DisorderMatcher):
                 if not any(stopped_token.negation for stopped_token in stopped.tokens):
                     span._.status = 2
 
-            if "zero_after" in span._.assigned.keys():
-                span._.negation = True
+            else:
+                if "zero_after" in span._.assigned.keys():
+                    span._.negation = True
 
             yield span

@@ -228,7 +228,8 @@ class ReportedSpeechQualifier(RuleBasedQualifier):
 
         return list_rep_verbs
 
-    def process(self, doc: Doc) -> ReportedSpeechResults:
+    def process(self, doc_like: Union[Doc, Span]) -> ReportedSpeechResults:
+        doc = self.ensure_doc(doc_like)
         matches = self.get_matches(doc)
         matches += list(self.regex_matcher(doc, as_spans=True))
 

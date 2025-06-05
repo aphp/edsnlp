@@ -338,7 +338,8 @@ class HistoryQualifier(RuleBasedQualifier):
                 getter=deprecated_getter_factory("antecedent_cues", "history_cues"),
             )
 
-    def process(self, doc: Doc) -> HistoryResults:
+    def process(self, doc_like: Union[Doc, Span]) -> HistoryResults:
+        doc = self.ensure_doc(doc_like)
         note_datetime = None
         if doc._.note_datetime is not None:
             try:

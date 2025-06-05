@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- Handling intra-word linebreak as pollution : adds a pollution pattern that detects intra-word linebreak, which can then be removed in the `get_text` method
+- Qualifiers can process `Span` or `Doc` : this feature especially makes it easier to nest qualifiers components in other components
+- New label_weights parameter in eds.span_classifier`, which allows the user to set per label-value loss weights during training
+
+### Fixed
+
+- Various disorders/behaviors patches
+
+### Changed
+
+- Deduplicate spans between doc.ents and doc.spans during train: previously, a `span_getter` requesting entities from both `ents` and `spans` could yield duplicates.
+
 ## v0.17.1 (2025-05-26)
 
 ### Added

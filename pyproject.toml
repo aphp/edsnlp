@@ -289,6 +289,7 @@ where = ["."]
 "standoff" = "edsnlp.data:read_standoff"
 "brat"     = "edsnlp.data:read_brat"  # alias for standoff
 "conll"    = "edsnlp.data:read_conll"
+"polars"   = "edsnlp.data:from_polars"
 
 [project.entry-points."edsnlp_writers"]
 "spark" =    "edsnlp.data:to_spark"
@@ -296,6 +297,8 @@ where = ["."]
 "json" =     "edsnlp.data:write_json"
 "standoff" = "edsnlp.data:write_standoff"
 "brat"     = "edsnlp.data:write_brat"  # alias for standoff
+"polars"   = "edsnlp.data:to_polars"
+"parquet"  = "edsnlp.data:write_parquet"
 
 [project.entry-points."edsnlp_loggers"]
 "csv" = "edsnlp.training.loggers:CSVLogger"

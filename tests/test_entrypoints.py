@@ -22,3 +22,35 @@ def test_entrypoints():
         if ns.startswith("spacy_") or ns.startswith("edsnlp_"):
             reg = catalogue.Registry(ns.split("_"), entry_points=True)
             reg.get_all()
+
+
+def test_readers_and_writers_entrypoints():
+    import importlib.metadata
+
+    # Map of expected entry points for readers and writers
+    expected_readers = {
+        "spark": "from_spark",
+        "pandas": "from_pandas",
+        "json": "read_json",
+        "parquet": "read_parquet",
+        "standoff": "read_standoff",
+        "brat": "read_brat",
+        "conll": "read_conll",
+        "polars": "from_polars",
+    }
+    expected_writers = {
+        "spark": "to_spark",
+        "pandas": "to_pandas",
+        "json": "write_json",
+        "standoff": "write_standoff",
+        "brat": "write_brat",
+        "polars": "to_polars",
+        "parquet": "write_parquet",
+    }
+    eps = importlib.metadata.entry_points()
+    readers = {ep.name for ep in eps.select(group="edsnlp_readers")}
+    writers = {ep.name for ep in eps.select(group="edsnlp_writers")}
+    for name in expected_readers:
+        assert name in readers, f"Reader entry point '{name}' is missing"
+    for name in expected_writers:
+        assert name in writers, f"Writer entry point '{name}' is missing"

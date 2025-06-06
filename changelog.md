@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Added missing entry points for readers and writers in the registry, including `write_parquet` and support for `polars` in `pyproject.toml`. Now all implemented readers and writers are correctly registered as entry points.
+
 ## v0.17.1 (2025-05-26)
 
 ### Added

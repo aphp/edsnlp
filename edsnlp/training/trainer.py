@@ -85,15 +85,26 @@ def flatten_dict(d, path=""):
 
 
 def fill_flat_stats(x, result, path=()):
+    # Only recurse into dicts and lists/tuples
     if result is None:
         result = {}
     if isinstance(x, dict):
         for k, v in x.items():
             fill_flat_stats(v, result, (*path, k))
         return result
+    if isinstance(x, (list, tuple)):
+        for idx, v in enumerate(x):
+            fill_flat_stats(v, result, (*path, str(idx)))
+        return result
+    # Only accumulate numbers (int, float, or 0-dim tensor)
     if "stats" in path and "__batch_hash__" not in path[-1]:
-        path = "/".join(path)
-        result[path] = result.get(path, 0) + x
+        if isinstance(x, (int, float)):
+            path_str = "/".join(path)
+            result[path_str] = result.get(path_str, 0) + x
+        elif hasattr(x, "item") and callable(x.item):
+            # For 0-dim tensors
+            path_str = "/".join(path)
+            result[path_str] = result.get(path_str, 0) + x.item()
     return result
 
 
@@ -605,6 +616,8 @@ def train(
             for td in train_data
             if td.pipe_names is None or set(td.pipe_names) & set(pipe_names)
         ]
+        for td in phase_training_data:
+            print("phase_training_data", td)
 
         with nlp.select_pipes(disable=trainable_pipe_names - set(pipe_names)):
             accelerator.print(f"Phase {phase_i + 1}: training {', '.join(pipe_names)}")

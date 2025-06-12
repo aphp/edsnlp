@@ -586,11 +586,17 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                 offsets=batch["word_offsets"],
             )
             word_embeddings[batch["empty_word_indices"]] = self.empty_word_embedding
-            return {"embeddings": word_embeddings}
+            return {
+              "embeddings": word_embeddings,
+              "cls": wp_embs[:, 0, :],
+            }
         else:
             wp_embs = wp_embs.reshape(-1, self.output_size)[batch["word_indices"]]
             wp_embs = ft.as_folded_tensor(wp_embs, lengths=batch["out_structure"])
-            return {"embeddings": wp_embs}
+            return {
+              "embeddings": wp_embs,
+              "cls": wp_embs[:, 0, :],
+            }
 
     @staticmethod
     def align_words_with_trf_tokens(doc, trf_char_indices):

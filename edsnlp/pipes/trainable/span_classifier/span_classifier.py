@@ -322,7 +322,11 @@ class TrainableSpanClassifier(
                     if labels is True or span.label_ in labels:
                         value = BINDING_GETTERS[attr](span)
                         if value is not None or self.keep_none:
-                            values[value] = None
+                            if isinstance(value, dict):
+                                for k in value.keys():
+                                    values[k] = None
+                            else:
+                                values[value] = None
 
         bindings = [
             (attr, labels, sorted(values, key=str)) for attr, labels, values in bindings
@@ -413,7 +417,9 @@ class TrainableSpanClassifier(
             "$spans": spans,
         }
 
-    def preprocess_supervised(self, doc: Doc) -> Dict[str, Any]:
+    def preprocess_supervised(
+        self, doc: Doc
+    ) -> Dict[str, Any]:  # FIXME adapt to receive a dictionnary of labels (optionnal)
         preps = self.preprocess(doc)
         return {
             **preps,
@@ -478,7 +484,9 @@ class TrainableSpanClassifier(
                 losses.append(
                     F.cross_entropy(
                         binding_scores[:, bindings_indexer],
-                        batch["targets"][:, group_idx],
+                        batch["targets"][
+                            :, group_idx
+                        ],  # should be a vector of same shape of input
                         reduction="sum",
                     )
                 )

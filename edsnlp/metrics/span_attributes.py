@@ -108,6 +108,8 @@ def span_attribute_metric(
                     continue
                 getter_key = attr if attr.startswith("_.") else f"_.{attr}"
                 value = BINDING_GETTERS[getter_key](span)
+                if isinstance(value, dict):
+                    value = max(value, key=value.get)
                 if (value or include_falsy) and default_values[attr] != value:
                     labels[micro_key][1].add((eg_idx, span_idx, attr, value))
                     labels[attr][1].add((eg_idx, span_idx, attr, value))

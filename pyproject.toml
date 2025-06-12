@@ -258,6 +258,8 @@ where = ["."]
 "eds.span_classifier"     = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
 "eds.span_linker"         = "edsnlp.pipes.trainable.span_linker.factory:create_component"
 "eds.biaffine_dep_parser" = "edsnlp.pipes.trainable.biaffine_dep_parser.factory:create_component"
+"eds.doc_pooler"      = "edsnlp.pipes.trainable.embeddings.doc_pooler.factory:create_component"
+"eds.doc_classifier"      = "edsnlp.pipes.trainable.doc_classifier.factory:create_component"
 
 [project.entry-points."edsnlp_schedules"]
 "linear" = "edsnlp.training.optimizer:LinearSchedule"
@@ -268,6 +270,7 @@ where = ["."]
 "eds.ner_overlap"            = "edsnlp.metrics.ner:NerOverlapMetric"
 "eds.span_attribute"         = "edsnlp.metrics.span_attribute:SpanAttributeMetric"
 "eds.dep_parsing"            = "edsnlp.metrics.dep_parsing:DependencyParsingMetric"
+"eds.doc_classif"                = "edsnlp.metrics.doc_classif:DocClassificationMetric"
 
 # Deprecated
 "eds.ner_exact_metric"       = "edsnlp.metrics.ner:NerExactMetric"

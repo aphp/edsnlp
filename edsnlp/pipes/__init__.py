@@ -82,4 +82,5 @@ if TYPE_CHECKING:
     from .trainable.embeddings.span_pooler.factory import create_component as span_pooler
     from .trainable.embeddings.transformer.factory import create_component as transformer
     from .trainable.embeddings.text_cnn.factory import create_component as text_cnn
+    from .trainable.doc_classifier.factory import create_component as doc_classifier
     from .misc.split import Split as split

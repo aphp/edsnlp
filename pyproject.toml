@@ -273,6 +273,7 @@ where = ["."]
 "eds.span_classifier"     = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
 "eds.span_linker"         = "edsnlp.pipes.trainable.span_linker.factory:create_component"
 "eds.biaffine_dep_parser" = "edsnlp.pipes.trainable.biaffine_dep_parser.factory:create_component"
+"eds.doc_classifier"      = "edsnlp.pipes.trainable.doc_classifier.factory:create_component"
 
 [project.entry-points."spacy_scorers"]
 "eds.ner_exact"                  = "edsnlp.metrics.ner:NerExactMetric"

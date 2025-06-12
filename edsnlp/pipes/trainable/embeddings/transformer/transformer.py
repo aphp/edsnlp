@@ -539,6 +539,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         word_embeddings[batch["empty_word_indices"]] = self.empty_word_embedding
         return {
             "embeddings": word_embeddings.refold("context", "word"),
+            "cls": wordpiece_embeddings[:, 0, :],
         }
 
     @staticmethod

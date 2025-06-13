@@ -554,7 +554,7 @@ class TrainableSpanClassifier(
         # - `negated=False` and `negated=True`
         for group_idx, bindings_indexer in enumerate(self.bindings_indexers):
             if "targets" in batch:
-                weight = self.weights.get(self.bindings[group_idx])
+                weight = self.weights.get(self.bindings[group_idx][0])
                 mask = torch.all(batch["targets"][:, group_idx] != -100, axis=1)
                 losses.append(
                     F.cross_entropy(

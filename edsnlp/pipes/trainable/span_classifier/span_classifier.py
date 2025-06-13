@@ -198,6 +198,7 @@ class TrainableSpanClassifier(
         context_getter: Optional[SpanGetterArg] = None,
         values: Optional[Dict[str, List[Any]]] = None,
         keep_none: bool = False,
+        weights: Dict[str, list] = {},
     ):
         attributes: Attributes
         if attributes is None and qualifiers is None:
@@ -230,6 +231,7 @@ class TrainableSpanClassifier(
             (k if k.startswith("_.") else f"_.{k}", v, [])
             for k, v in attributes.items()
         ]
+        self.weights = {k: torch.tensor(v) for k, v in weights.items()}
 
         super().__init__(nlp, name, span_getter=span_getter)
         self.embedding = embedding
@@ -313,7 +315,6 @@ class TrainableSpanClassifier(
         self,
         gold_data: Iterable[Doc],
         exclude: Set[str],
-        weights: Dict[str, list] = {},
     ):
         super().post_init(gold_data, exclude=exclude)
 
@@ -353,7 +354,6 @@ class TrainableSpanClassifier(
                 )
         self.exist_soft_labels = max(self.binding_target_shape.values()) > 1
         self.update_bindings(bindings)
-        self.weights = {k: torch.tensor(v) for k, v in weights.items()}
 
     def update_bindings(self, bindings: List[Tuple[str, SpanFilter, List[Any]]]):
         keep_bindings = [

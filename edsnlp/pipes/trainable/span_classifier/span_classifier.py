@@ -231,7 +231,9 @@ class TrainableSpanClassifier(
             (k if k.startswith("_.") else f"_.{k}", v, [])
             for k, v in attributes.items()
         ]
-        self.weights = {k: torch.tensor(v) for k, v in weights.items()}
+        self.weights = {
+            k: torch.tensor(v, device=self.device) for k, v in weights.items()
+        }  # FIXME? mettre dans un autre endroit ?
 
         super().__init__(nlp, name, span_getter=span_getter)
         self.embedding = embedding

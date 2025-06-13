@@ -198,7 +198,6 @@ class TrainableSpanClassifier(
         context_getter: Optional[SpanGetterArg] = None,
         values: Optional[Dict[str, List[Any]]] = None,
         keep_none: bool = False,
-        weights: Dict[str, list] = {},
     ):
         attributes: Attributes
         if attributes is None and qualifiers is None:
@@ -231,9 +230,6 @@ class TrainableSpanClassifier(
             (k if k.startswith("_.") else f"_.{k}", v, [])
             for k, v in attributes.items()
         ]
-        self.weights = {
-            k: torch.tensor(v, device=self.device) for k, v in weights.items()
-        }  # FIXME? mettre dans un autre endroit ?
 
         super().__init__(nlp, name, span_getter=span_getter)
         self.embedding = embedding
@@ -524,7 +520,11 @@ class TrainableSpanClassifier(
         return collated
 
     # noinspection SpellCheckingInspection
-    def forward(self, batch: SpanClassifierBatchInput) -> BatchOutput:
+    def forward(
+        self,
+        batch: SpanClassifierBatchInput,
+        weights: Dict[str, list] = {},
+    ) -> BatchOutput:
         """
         Apply the span classifier module to the document embeddings and given spans to:
         - compute the loss
@@ -551,12 +551,16 @@ class TrainableSpanClassifier(
             pred = []
             losses = None
 
+        weights = {
+            k: torch.tensor(v, device=self.device) for k, v in weights.items()
+        }  # FIXME? mettre dans un autre endroit ?
+
         # For each group, for instance:
         # - `event=start` and `event=stop`
         # - `negated=False` and `negated=True`
         for group_idx, bindings_indexer in enumerate(self.bindings_indexers):
             if "targets" in batch:
-                weight = self.weights.get(self.bindings[group_idx][0])
+                weight = weights.get(self.bindings[group_idx][0])
                 mask = torch.all(batch["targets"][:, group_idx] != -100, axis=1)
                 losses.append(
                     F.cross_entropy(

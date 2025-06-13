@@ -135,7 +135,8 @@ class GenericScorer:
                 nlp.pipe(
                     d.copy() for d in tqdm(docs, desc="Computing model speed")
                 ).set_processing(
-                    batch_size=self.batch_size, autocast=self.autocast, backend="simple"
+                    batch_size=self.batch_size,
+                    autocast=self.autocast,
                 )
             )
             duration = time.time() - t0
@@ -163,7 +164,6 @@ class GenericScorer:
                     nlp.pipe(tqdm(clean_ner_docs, desc="Predicting")).set_processing(
                         batch_size=self.batch_size,
                         autocast=self.autocast,
-                        backend="simple",
                     )
                 )
             for name, scorer in ner_scorers.items():
@@ -193,7 +193,6 @@ class GenericScorer:
                     nlp.pipe(tqdm(clean_qlf_docs, desc="Predicting")).set_processing(
                         batch_size=self.batch_size,
                         autocast=self.autocast,
-                        backend="simple",
                     )
                 )
             for name, scorer in span_attr_scorers.items():
@@ -206,7 +205,6 @@ class GenericScorer:
                 nlp.pipe(tqdm(pred_docs, desc="Predicting")).set_processing(
                     batch_size=self.batch_size,
                     autocast=self.autocast,
-                    backend="simple",
                 )
             )
             scores[name] = scorer(docs, preds)

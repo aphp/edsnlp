@@ -27,7 +27,7 @@ def gold():
         Span(doc1, 0, 1, "event"),  # criteria = "si"
         Span(doc1, 3, 4, "criteria"),
     ]
-    doc1.spans["sc"][0]._.test_negated = False
+    doc1.spans["sc"][0]._.test_negated = {False: 0.6, True: 0.4}
     doc1.spans["sc"][1]._.test_negated = True
     doc1.spans["sc"][2]._.test_negated = False
     doc1.spans["sc"][1]._.event_type = "stop"

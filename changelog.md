@@ -65,6 +65,7 @@
   - Raise an error if the batch size in `stream.shuffle(batch_size=...)` is not compatible with the stream
 - `eds.split` now keeps doc and span attributes in the sub-documents.
 
+
 ## v0.15.0 (2024-12-13)
 
 ### Added

@@ -309,7 +309,12 @@ class TrainableSpanClassifier(
             if not Span.has_extension(qlf):
                 Span.set_extension(qlf, default=None)
 
-    def post_init(self, gold_data: Iterable[Doc], exclude: Set[str]):
+    def post_init(
+        self,
+        gold_data: Iterable[Doc],
+        exclude: Set[str],
+        weights: Dict[str, list] = {},
+    ):
         super().post_init(gold_data, exclude=exclude)
 
         bindings = [
@@ -348,6 +353,7 @@ class TrainableSpanClassifier(
                 )
         self.exist_soft_labels = max(self.binding_target_shape.values()) > 1
         self.update_bindings(bindings)
+        self.weights = {k: torch.tensor(v) for k, v in weights.items()}
 
     def update_bindings(self, bindings: List[Tuple[str, SpanFilter, List[Any]]]):
         keep_bindings = [
@@ -548,12 +554,14 @@ class TrainableSpanClassifier(
         # - `negated=False` and `negated=True`
         for group_idx, bindings_indexer in enumerate(self.bindings_indexers):
             if "targets" in batch:
+                weight = self.weights.get(self.bindings[group_idx])
                 mask = torch.all(batch["targets"][:, group_idx] != -100, axis=1)
                 losses.append(
                     F.cross_entropy(
                         binding_scores[mask, bindings_indexer],
                         batch["targets"][mask, group_idx],
                         reduction="sum",
+                        weight=weight,
                     )
                 )
                 assert not torch.isnan(losses[-1]).any(), "NaN loss"

@@ -265,16 +265,16 @@ class HypothesisQualifier(RuleBasedQualifier):
         )
 
     def process(self, doc_like: Union[Doc, Span]) -> HypothesisResults:
-        doc = self.ensure_doc(doc_like)
-        matches = self.get_matches(doc)
+        doc = doc_like.doc if isinstance(doc_like, Span) else doc_like
+        entities = list(get_spans(doc_like, self.span_getter))
+        matches = self.get_cues(doc_like, entities if self.on_ents_only else None)
 
         terminations = [m for m in matches if m.label_ == "termination"]
-        boundaries = self._boundaries(doc, terminations)
+        boundaries = self._boundaries(doc_like, terminations)
 
         # Removes duplicate matches and pseudo-expressions in one statement
         matches = filter_spans(matches, label_to_remove="pseudo")
 
-        entities = list(get_spans(doc, self.span_getter))
         ents = None
 
         token_results, ent_results = [], []

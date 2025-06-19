@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+
 - Handling intra-word linebreak as pollution : adds a pollution pattern that detects intra-word linebreak, which can then be removed in the `get_text` method
 - Qualifiers can process `Span` or `Doc` : this feature especially makes it easier to nest qualifiers components in other components
 - New label_weights parameter in eds.span_classifier`, which allows the user to set per label-value loss weights during training

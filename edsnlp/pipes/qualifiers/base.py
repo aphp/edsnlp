@@ -137,46 +137,42 @@ class RuleBasedQualifier(BaseSpanAttributeClassifierComponent):
             span_getter=validate_span_getter(span_getter),
         )
 
-    def get_matches(self, doc: Doc) -> List[Span]:
+    def get_cues(self, doc: Doc, spans: Optional[List[Span]] = None):
         """
-        Extract matches.
+        Extract cues (ex: ne/pas for negations) from the document.
 
         Parameters
         ----------
-        doc : Doc
-            spaCy `Doc` object.
+        doc: Doc
+            The document to process.
+        spans: Optional[List[Span]]
+            Optional list of spans to limit the search around.
+            If None, will search in the whole document.
+
         Returns
         -------
         List[Span]
-            List of detected spans
+            List of detected cues
         """
-
-        if self.on_ents_only:
-            sents = set([ent.sent for ent in self.get_spans(doc)])
-
-            match_iterator = (
-                (
-                    *self.phrase_matcher(s, as_spans=True),
-                    *self.regex_matcher(s, as_spans=True),
-                )
-                for s in sents
-            )
-
-            matches = chain.from_iterable(match_iterator)
-
-        else:
+        if spans is None:
             matches = (
                 *self.phrase_matcher(doc, as_spans=True),
                 *self.regex_matcher(doc, as_spans=True),
             )
-
+        else:
+            sents = dict.fromkeys((span.sent for span in spans))
+            matches = chain.from_iterable(
+                (
+                    (
+                        *self.phrase_matcher(s, as_spans=True),
+                        *self.regex_matcher(s, as_spans=True),
+                    )
+                    for s in sents
+                )
+            )
         return list(matches)
 
-    def ensure_doc(self, doc: Union[Doc, Span]) -> Doc:
-        return doc if isinstance(doc, Doc) else doc.as_doc()
-
     def process(self, doc_like: Union[Doc, Span]) -> BaseQualifierResults:
-        doc_like = self.ensure_doc(doc_like)  # pragma: no cover
         raise NotImplementedError
 
     def __call__(self, doc: Doc) -> Doc:

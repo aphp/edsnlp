@@ -1,11 +1,13 @@
 from datetime import datetime
+from functools import partial
 
 import spacy
 from pytest import mark
+from spacy.tokens.span import Span
 
-from edsnlp.pipelines.qualifiers.history import History
-from edsnlp.pipelines.qualifiers.history.patterns import history
-from edsnlp.pipelines.terminations import termination
+from edsnlp.pipes.qualifiers.history import History
+from edsnlp.pipes.qualifiers.history.patterns import history
+from edsnlp.pipes.terminations import termination
 
 text = """COMPTE RENDU D'HOSPITALISATION du 11/07/2018 au 12/07/2018
 
@@ -81,3 +83,42 @@ def test_history(lang, use_sections, use_dates, exclude_birthdate, on_ents_only)
         assert doc.ents[2]._.history_cues[0].label_ == "ATCD"
         if use_dates:
             assert doc.ents[2]._.recent_cues[0].label_ == "relative_date"
+
+
+def test_on_span(blank_nlp):
+    doc = blank_nlp(
+        "Lésion pulmonaire avec antécédent de lésion secondaire associée, et voilà."
+    )
+    doc.ents = [Span(doc, 5, 7, label="lesion")]
+    history_factory = partial(
+        History,
+        nlp=blank_nlp,
+        attr="NORM",
+        use_sections=True,
+        use_dates=True,
+        exclude_birthdate=False,
+        closest_dates_only=True,
+        history_limit=15,
+        explain=True,
+        on_ents_only=True,
+    )
+
+    history = history_factory(on_ents_only=True)
+    res = history.process(doc[2:11])
+    assert [(str(ent.ent), ent.history) for ent in res.ents] == [
+        ("lésion secondaire", True)
+    ]
+
+    history = history_factory(on_ents_only=False)
+    res = history.process(doc[2:8])
+    assert [(t.token.text, t.history) for t in res.tokens] == [
+        ("avec", True),
+        ("antécédent", True),
+        ("de", True),
+        ("lésion", True),
+        ("secondaire", True),
+        ("associée", True),
+        (",", False),
+        ("et", False),
+        ("voilà", False),
+    ]

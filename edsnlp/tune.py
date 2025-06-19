@@ -606,11 +606,12 @@ def tune(
     hyperparameters: Dict[str, HyperparameterConfig],
     output_dir: str,
     checkpoint_dir: str,
-    gpu_hours: confloat(gt=0) = DEFAULT_GPU_HOUR,
+    gpu_hours: Optional[confloat(gt=0)] = DEFAULT_GPU_HOUR,
     n_trials: Optional[conint(gt=0)] = None,
     two_phase_tuning: bool = False,
     seed: int = 42,
     metric="ner.micro.f",
+    keep_checkpoint: bool = False,
 ):
     """
     Perform hyperparameter tuning for a model using Optuna.
@@ -647,6 +648,10 @@ def tune(
         Default is False.
     seed : int, optional
         Random seed for reproducibility. Default is 42.
+    metric : str, optional
+        Metric used to evaluate trials. Default is "ner.micro.f".
+    keep_checkpoint : bool, optional
+        If True, keeps the checkpoint file after tuning. Default is False.
     """
     setup_logging()
     viz = is_plotly_install()
@@ -665,6 +670,7 @@ def tune(
         logger.info(f"Elapsed trials: {elapsed_trials}")
 
     if not is_fixed_n_trials:
+        gpu_hours = gpu_hours or DEFAULT_GPU_HOUR
         if not study:
             logger.info(f"Computing number of trials for {gpu_hours} hours of GPU.")
             study = optimize(
@@ -734,7 +740,7 @@ def tune(
         f"Tuning completed. Results available in {output_dir}. Deleting checkpoint."
     )
     checkpoint_file = os.path.join(checkpoint_dir, CHECKPOINT)
-    if os.path.exists(checkpoint_file):
+    if os.path.exists(checkpoint_file) and not keep_checkpoint:
         os.remove(checkpoint_file)
 
 

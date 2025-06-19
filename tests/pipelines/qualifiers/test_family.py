@@ -1,8 +1,9 @@
 from typing import List
 
 from pytest import fixture, mark
+from spacy.tokens import Span
 
-from edsnlp.pipelines.qualifiers.family import FamilyContext
+from edsnlp.pipes.qualifiers.family import FamilyContext
 from edsnlp.utils.examples import parse_example
 
 examples: List[str] = [
@@ -29,7 +30,6 @@ examples: List[str] = [
 
 @fixture
 def family_factory(blank_nlp):
-
     default_config = dict(
         family=None,
         termination=None,
@@ -39,7 +39,6 @@ def family_factory(blank_nlp):
     )
 
     def factory(on_ents_only, **kwargs):
-
         config = dict(**default_config)
         config.update(kwargs)
 
@@ -55,7 +54,6 @@ def family_factory(blank_nlp):
 @mark.parametrize("on_ents_only", [True, False])
 @mark.parametrize("use_sections", [True, False])
 def test_family(blank_nlp, family_factory, on_ents_only, use_sections):
-
     family = family_factory(
         on_ents_only=on_ents_only,
         use_sections=use_sections,
@@ -72,17 +70,47 @@ def test_family(blank_nlp, family_factory, on_ents_only, use_sections):
         doc = family(doc)
 
         for entity, ent in zip(entities, doc.ents):
-
             for modifier in entity.modifiers:
-
                 assert bool(ent._.family_cues) == (modifier.value in {"FAMILY", True})
 
-                assert (
-                    getattr(ent._, modifier.key) == modifier.value
-                ), f"{modifier.key} labels don't match."
+                assert getattr(ent._, modifier.key) == modifier.value, (
+                    f"{modifier.key} labels don't match."
+                )
 
                 if not on_ents_only:
                     for token in ent:
-                        assert (
-                            getattr(token._, modifier.key) == modifier.value
-                        ), f"{modifier.key} labels don't match."
+                        assert getattr(token._, modifier.key) == modifier.value, (
+                            f"{modifier.key} labels don't match."
+                        )
+
+
+def test_on_span(blank_nlp, family_factory):
+    doc = blank_nlp("Le père du patient est asthmatique, le patient n'est pas malade.")
+    doc.ents = [
+        Span(doc, 5, 6, label="ent"),
+        Span(doc, 12, 13, label="ent"),
+    ]
+
+    family = family_factory(on_ents_only=True)
+    res = family.process(doc[1:13])
+    assert [(ent.ent.text, bool(ent.family)) for ent in res.ents] == [
+        ("asthmatique", True),
+        ("malade", False),
+    ]
+
+    family = family_factory(on_ents_only=False)
+    res = family.process(doc[1:13])
+    assert [(t.token.text, t.family) for t in res.tokens] == [
+        ("père", True),
+        ("du", True),
+        ("patient", True),
+        ("est", True),
+        ("asthmatique", True),
+        (",", False),
+        ("le", False),
+        ("patient", False),
+        ("n'", False),
+        ("est", False),
+        ("pas", False),
+        ("malade", False),
+    ]

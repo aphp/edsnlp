@@ -1,12 +1,12 @@
 import abc
 import inspect
 import warnings
-from operator import attrgetter
 from typing import (
     Iterable,
     List,
     Optional,
     Tuple,
+    Union,
 )
 
 from spacy.tokens import Doc, Span
@@ -102,26 +102,8 @@ class BaseComponent(abc.ABC, metaclass=BaseComponentMeta):
             getter=value_getter,
         )
 
-    def get_spans(self, doc: Doc):  # noqa: F811
-        """
-        Returns sorted spans of interest according to the
-        possible value of `on_ents_only`.
-        Includes `doc.ents` by default, and adds eventual SpanGroups.
-        """
-        ents = list(doc.ents) + list(doc.spans.get("discarded", []))
-
-        on_ents_only = getattr(self, "on_ents_only", None)
-
-        if isinstance(on_ents_only, str):
-            on_ents_only = [on_ents_only]
-        if isinstance(on_ents_only, (set, list)):
-            for spankey in set(on_ents_only) & set(doc.spans.keys()):
-                ents.extend(doc.spans.get(spankey, []))
-
-        return sorted(list(set(ents)), key=(attrgetter("start", "end")))
-
     def _boundaries(
-        self, doc: Doc, terminations: Optional[List[Span]] = None
+        self, doc: Union[Doc, Span], terminations: Optional[List[Span]] = None
     ) -> List[Tuple[int, int]]:
         """
         Create sub sentences based sentences and terminations found in text.
@@ -142,10 +124,13 @@ class BaseComponent(abc.ABC, metaclass=BaseComponentMeta):
         if terminations is None:
             terminations = []
 
-        sent_starts = [sent.start for sent in doc.sents]
+        doc_start = doc.start if isinstance(doc, Span) else 0
+        doc_end = doc.end if isinstance(doc, Span) else len(doc)
+
+        sent_starts = [max(doc_start, sent.start) for sent in doc.sents]
         termination_starts = [t.start for t in terminations]
 
-        starts = sent_starts + termination_starts + [len(doc)]
+        starts = sent_starts + termination_starts + [doc_end]
 
         # Remove duplicates
         starts = list(set(starts))

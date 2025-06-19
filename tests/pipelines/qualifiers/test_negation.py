@@ -1,6 +1,7 @@
 from typing import List
 
 from pytest import fixture, mark
+from spacy.tokens import Span
 
 from edsnlp.pipes.qualifiers.negation import Negation
 from edsnlp.utils.examples import parse_example
@@ -79,15 +80,15 @@ def test_negation(blank_nlp, negation_factory, on_ents_only):
             for modifier in entity.modifiers:
                 assert bool(ent._.negation_cues) == (modifier.value in {True, "NEG"})
 
-                assert (
-                    getattr(ent._, modifier.key) == modifier.value
-                ), f"{modifier.key} labels don't match."
+                assert getattr(ent._, modifier.key) == modifier.value, (
+                    f"{modifier.key} labels don't match."
+                )
 
                 if not on_ents_only:
                     for token in ent:
-                        assert (
-                            getattr(token._, modifier.key) == modifier.value
-                        ), f"{modifier.key} labels don't match."
+                        assert getattr(token._, modifier.key) == modifier.value, (
+                            f"{modifier.key} labels don't match."
+                        )
 
 
 def test_negation_within_ents(blank_nlp, negation_factory):
@@ -111,6 +112,28 @@ def test_negation_within_ents(blank_nlp, negation_factory):
             for modifier in entity.modifiers:
                 assert bool(ent._.negation_cues) == (modifier.value in {True, "NEG"})
 
-                assert (
-                    getattr(ent._, modifier.key) == modifier.value
-                ), f"{modifier.key} labels don't match."
+                assert getattr(ent._, modifier.key) == modifier.value, (
+                    f"{modifier.key} labels don't match."
+                )
+
+
+def test_on_span(blank_nlp, negation_factory):
+    doc = blank_nlp("Lésion pulmonaire avec absence de lésion secondaire associée.")
+    doc.ents = [Span(doc, 5, 7, label="lesion")]
+
+    negation = negation_factory(on_ents_only=True)
+    res = negation.process(doc[2:8])
+    assert [(str(ent.ent), ent.negation) for ent in res.ents] == [
+        ("lésion secondaire", True)
+    ]
+
+    negation = negation_factory(on_ents_only=False)
+    res = negation.process(doc[2:8])
+    assert [(t.token.text, t.negation) for t in res.tokens] == [
+        ("avec", False),
+        ("absence", False),
+        ("de", True),
+        ("lésion", True),
+        ("secondaire", True),
+        ("associée", True),
+    ]

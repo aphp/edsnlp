@@ -274,6 +274,9 @@ where = ["."]
 "eds.span_linker"         = "edsnlp.pipes.trainable.span_linker.factory:create_component"
 "eds.biaffine_dep_parser" = "edsnlp.pipes.trainable.biaffine_dep_parser.factory:create_component"
 
+[project.entry-points."edsnlp_schedules"]
+"linear" = "edsnlp.training.optimizer:LinearSchedule"
+
 [project.entry-points."spacy_scorers"]
 "eds.ner_exact"                  = "edsnlp.metrics.ner:NerExactMetric"
 "eds.ner_token"                  = "edsnlp.metrics.ner:NerTokenMetric"

@@ -13,6 +13,7 @@ main_pattern = dict(
     regex=[
         r"\bds?n?id\b",
         r"\bdiabet[^o]",
+        r"\bdiab",
         r"\bdb\b",
         r"\bdt.?(i|ii|1|2)\b",
     ],
@@ -45,7 +46,7 @@ main_pattern = dict(
         ),
         dict(
             name="type",
-            regex=r"type.(i|ii|1|2)",
+            regex=r"type.?\s*(ii|i|1|2)",
             window=6,
         ),
         dict(

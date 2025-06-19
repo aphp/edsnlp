@@ -361,3 +361,24 @@ def test_empty_get_text(blank_nlp):
     doc = blank_nlp("==================================")
     clean = get_text(doc, attr="NORM", ignore_excluded=True, ignore_space_tokens=True)
     assert clean == ""
+
+
+def test_ignore_space_tokens_and_newline(blank_nlp):
+    # Fixed by
+    # `text_parts[i - 1] += " "` snippet in
+    # edsnlp.utils.doc_to_text.aggregate_tokens
+    blank_nlp.add_pipe("eds.normalizer")
+    blank_nlp.add_pipe(
+        "eds.matcher",
+        config=dict(
+            regex=dict(test=r"pneumopathie a coronavirus"),
+            attr="NORM",
+            ignore_excluded=True,
+            ignore_space_tokens=True,
+        ),
+    )
+    text = "Il a une\npneumopathie à coronavirus"
+    doc = blank_nlp(text)
+    clean = get_text(doc, attr="NORM", ignore_space_tokens=True, ignore_excluded=True)
+    assert clean == "il a une pneumopathie a coronavirus"
+    assert [e.text for e in doc.ents] == ["pneumopathie à coronavirus"]

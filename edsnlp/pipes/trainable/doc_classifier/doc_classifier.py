@@ -1,6 +1,5 @@
 from typing import Any, Dict, Optional, Sequence, Union
 
-# from edsnlp.utils.bindings import Attributes, AttributesArg
 import torch
 from spacy.tokens import Doc
 from typing_extensions import NotRequired, TypedDict
@@ -12,6 +11,7 @@ from edsnlp.pipes.trainable.embeddings.typing import (
     WordContextualizerComponent,
     WordEmbeddingComponent,
 )
+from edsnlp.utils.bindings import Attributes
 
 DocClassifierBatchInput = TypedDict(
     "DocClassifierBatchInput",
@@ -41,12 +41,12 @@ class TrainableDocClassifier(
         *,
         embedding: Union[WordEmbeddingComponent, WordContextualizerComponent],
         num_classes: int,
-        label_attr: str = "predicted_class",
+        label_attr: str = "label",
         loss_fn=None,
     ):
+        self.label_attr: Attributes = label_attr
         super().__init__(nlp, name)
         self.embedding = embedding
-        self.label_attr = label_attr
         self.loss_fn = loss_fn or torch.nn.CrossEntropyLoss()
 
         if not hasattr(self.embedding, "output_size"):
@@ -56,18 +56,27 @@ class TrainableDocClassifier(
         embedding_size = self.embedding.output_size
         self.classifier = torch.nn.Linear(embedding_size, num_classes)
 
+    def set_extensions(self) -> None:
+        super().set_extensions()
+        if not Doc.has_extension(self.label_attr):
+            Doc.set_extension(self.label_attr, default={})
+
     def preprocess(self, doc: Doc) -> Dict[str, Any]:
-        # Extract embedding for the document
         return {"embedding": self.embedding.preprocess(doc)}
 
     def preprocess_supervised(self, doc: Doc, label: int) -> Dict[str, Any]:
-        # Add label to the preprocessed dict
-        d = self.preprocess(doc)
-        d["targets"] = torch.tensor(label, dtype=torch.long)
-        return d
+        preps = self.preprocess(doc)
+        label = getattr(doc._, self.label_attr, None)
+        if label is None:
+            raise ValueError(
+                f"Document does not have a gold label in 'doc._.{self.label_attr}'"
+            )
+        return {
+            **preps,
+            "targets": torch.tensor(label, dtype=torch.long),
+        }
 
     def collate(self, batch: Dict[str, Sequence[Any]]) -> DocClassifierBatchInput:
-        # Collate embeddings and targets
         embeddings = self.embedding.collate(batch["embedding"])
         batch_input: DocClassifierBatchInput = {"embedding": embeddings}
         if "targets" in batch:
@@ -75,17 +84,26 @@ class TrainableDocClassifier(
         return batch_input
 
     def forward(self, batch: DocClassifierBatchInput) -> DocClassifierBatchOutput:
-        # Forward pass: compute logits, loss, and predictions
-        embeddings = batch["embedding"]
+        pooled = self.embedding(batch["embedding"])
+        embeddings = pooled["embeddings"]
+
         logits = self.classifier(embeddings)
+
         output: DocClassifierBatchOutput = {}
         if "targets" in batch:
             loss = self.loss_fn(logits, batch["targets"])
             output["loss"] = loss
-        output["labels"] = torch.argmax(logits, dim=-1)
+            output["labels"] = None
+        else:
+            output["loss"] = None
+            output["labels"] = torch.argmax(logits, dim=-1)
         return output
 
-    def postprocess(self, docs, results, inputs):
-        # Assign predicted label to doc._.<label_attr>
-        for doc, result in zip(docs, results):
-            setattr(doc._, self.label_attr, int(result["labels"]))
+    def postprocess(self, docs, results, input):
+        labels = results["labels"]
+        if isinstance(labels, torch.Tensor):
+            labels = labels.tolist()
+        for doc, label in zip(docs, labels):
+            setattr(doc._, self.label_attr, label)
+            # doc._.label = label
+        return docs

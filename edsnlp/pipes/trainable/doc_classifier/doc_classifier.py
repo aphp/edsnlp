@@ -1,4 +1,6 @@
-from typing import Any, Dict, Optional, Sequence, Union
+import os
+import pickle
+from typing import Any, Dict, Iterable, Optional, Sequence, Set, Union
 
 import torch
 from spacy.tokens import Doc
@@ -61,10 +63,13 @@ class TrainableDocClassifier(
         if not Doc.has_extension(self.label_attr):
             Doc.set_extension(self.label_attr, default={})
 
+    def post_init(self, gold_data: Iterable[Doc], exclude: Set[str]):
+        super().post_init(gold_data, exclude=exclude)
+
     def preprocess(self, doc: Doc) -> Dict[str, Any]:
         return {"embedding": self.embedding.preprocess(doc)}
 
-    def preprocess_supervised(self, doc: Doc, label: int) -> Dict[str, Any]:
+    def preprocess_supervised(self, doc: Doc) -> Dict[str, Any]:
         preps = self.preprocess(doc)
         label = getattr(doc._, self.label_attr, None)
         if label is None:
@@ -107,3 +112,14 @@ class TrainableDocClassifier(
             setattr(doc._, self.label_attr, label)
             # doc._.label = label
         return docs
+
+    def to_disk(self, path, *, exclude=set()):
+        repr_id = object.__repr__(self)
+        if repr_id in exclude:
+            return
+        exclude.add(repr_id)
+        os.makedirs(path, exist_ok=True)
+        data_path = path / "label_attr.pkl"
+        with open(data_path, "wb") as f:
+            pickle.dump({"label_attr": self.label_attr}, f)
+        return super().to_disk(path, exclude=exclude)

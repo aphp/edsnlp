@@ -30,8 +30,7 @@ class WordEmbeddingComponent(
             *,
             contexts: Optional[List[Span]],
             **kwargs,
-        ) -> Dict[str, Any]:
-            ...
+        ) -> Dict[str, Any]: ...
 
 
 class WordContextualizerComponent(
@@ -67,5 +66,4 @@ class SpanEmbeddingComponent(
             contexts: Optional[List[Span]],
             pre_aligned: bool = False,
             **kwargs,
-        ) -> Dict[str, Any]:
-            ...
+        ) -> Dict[str, Any]: ...

@@ -1,3 +1,4 @@
+from edsnlp.pipes.ner.tnm.patterns import tnm_pattern
 from edsnlp.utils.examples import parse_example
 
 examples = [
@@ -22,7 +23,7 @@ examples = [
 
 
 def test_scores(blank_nlp):
-    blank_nlp.add_pipe("eds.tnm")
+    blank_nlp.add_pipe("eds.tnm", config=dict(pattern=tnm_pattern))
 
     for example in examples:
         text, entities = parse_example(example=example)

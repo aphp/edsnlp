@@ -31,9 +31,9 @@ pleura_pattern = (
 
 resection_pattern = (
     r"R\s?"
-    r"(?P<resection>[Xx012]|[Oo])?" # Optional resection completeness
-    r"(?:\s?(?P<resection_specification>is|cy\+|\(is\)|\(cy\+\)))?"  # Optional specification
-    r"(?:\s?(?P<resection_loc>(\((?P<r_loc>[a-z]+)\)[,;\s]*)*))?"  # Optional localization with space
+    r"(?P<resection>[Xx012]|[Oo])?"  # Optional resection completeness
+    r"(?:\s?(?P<resection_specification>is|cy\+|\(is\)|\(cy\+\)))?"  # Optional spec
+    r"(?:\s?(?P<resection_loc>(\((?P<r_loc>[a-z]+)\)[,;\s]*)*))?"  # Optional loc
 )
 
 version_pattern = (
@@ -60,15 +60,20 @@ exclude_pattern = (
 
 exclude_pattern = (
     r"(?!"
-        r"(?:[cpyramP]{0,2}\s*)?"        # Optional prefix like p, yp, PT
-        r"T\s*"
-        r"(?:[0-4]|is|[xXoO])"           # T stage (includes is, x, o)
-        r"(?:[abcdx]|mi)?"               # Optional specification
-        r"(?:\s*\([^()]{1,10}\))?"       # Optional suffix
-        r"(?:\s*[\s,\/\.\(\)]|$)"        # <-- KEY ADDITION: allow end-of-string ($)
-        r"(?!\s*"
-            + node_pattern + "?" + TNM_space + "?" + metastasis_pattern + "?"
-        + ")"
+    r"(?:[cpyramP]{0,2}\s*)?"  # Optional prefix like p, yp, PT
+    r"T\s*"
+    r"(?:[0-4]|is|[xXoO])"  # T stage (includes is, x, o)
+    r"(?:[abcdx]|mi)?"  # Optional specification
+    r"(?:\s*\([^()]{1,10}\))?"  # Optional suffix
+    r"(?:\s*[\s,\/\.\(\)]|$)"  # <-- KEY ADDITION: allow end-of-string ($)
+    r"(?!\s*"
+    + node_pattern
+    + "?"
+    + TNM_space
+    + "?"
+    + metastasis_pattern
+    + "?"
+    + ")"
     + ")"
 )
 
@@ -106,5 +111,5 @@ tnm_pattern_new = (
     + ")?"
     + r")"
     + r"(?=[\s\(\)\.,;:/]|$)"
-    #+ r"(?:\b|$|\n)"
+    # + r"(?:\b|$|\n)"
 )

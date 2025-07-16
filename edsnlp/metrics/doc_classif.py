@@ -45,8 +45,6 @@ def doc_classification_metric(
         pred_labels.append(pred)
         gold_labels.append(gold)
 
-    print(pred_labels, gold_labels)
-
     labels = set(gold_labels) | set(pred_labels)
     results = {}
     for label in labels:

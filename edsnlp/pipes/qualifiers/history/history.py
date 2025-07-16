@@ -338,7 +338,11 @@ class HistoryQualifier(RuleBasedQualifier):
                 getter=deprecated_getter_factory("antecedent_cues", "history_cues"),
             )
 
-    def process(self, doc: Doc) -> HistoryResults:
+    def process(self, doc_like: Union[Doc, Span]) -> HistoryResults:
+        doc = doc_like.doc if isinstance(doc_like, Span) else doc_like
+        entities = list(get_spans(doc, self.span_getter))
+        matches = self.get_cues(doc, entities if self.on_ents_only else None)
+
         note_datetime = None
         if doc._.note_datetime is not None:
             try:
@@ -369,15 +373,12 @@ class HistoryQualifier(RuleBasedQualifier):
                 )
                 birth_datetime = None
 
-        matches = self.get_matches(doc)
-
         terminations = [m for m in matches if m.label_ == "termination"]
-        boundaries = self._boundaries(doc, terminations)
+        boundaries = self._boundaries(doc_like, terminations)
 
         # Removes duplicate matches and pseudo-expressions in one statement
         matches = filter_spans(matches, label_to_remove="pseudo")
 
-        entities = list(get_spans(doc, self.span_getter))
         ents = None
         sub_sections = None
         sub_recent_dates = None
@@ -583,14 +584,14 @@ class HistoryQualifier(RuleBasedQualifier):
                     )
                 )
 
-                if not self.on_ents_only:
-                    for token in ent:
-                        token_results.append(
-                            TokenHistoryResults(
-                                token=token,
-                                history=history,
-                            )
+            if not self.on_ents_only:
+                for token in doc[start:end]:
+                    token_results.append(
+                        TokenHistoryResults(
+                            token=token,
+                            history=history,
                         )
+                    )
 
         return HistoryResults(tokens=token_results, ents=ent_results)
 

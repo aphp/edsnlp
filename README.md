@@ -34,13 +34,13 @@ Check out our interactive [demo](https://aphp.github.io/edsnlp/demo/) !
 You can install EDS-NLP via `pip`. We recommend pinning the library version in your projects, or use a strict package manager like [Poetry](https://python-poetry.org/).
 
 ```shell
-pip install edsnlp==0.17.1
+pip install edsnlp==0.17.2
 ```
 
 or if you want to use the trainable components (using pytorch)
 
 ```shell
-pip install "edsnlp[ml]==0.17.1"
+pip install "edsnlp[ml]==0.17.2"
 ```
 
 ### A first pipeline

@@ -285,7 +285,7 @@ where = ["."]
 "eds.ner_exact"                  = "edsnlp.metrics.ner:NerExactMetric"
 "eds.ner_token"                  = "edsnlp.metrics.ner:NerTokenMetric"
 "eds.ner_overlap"                = "edsnlp.metrics.ner:NerOverlapMetric"
-"eds.span_attributes"            = "edsnlp.metrics.span_attributes:SpanAttributeMetric"
+"eds.span_attribute"             = "edsnlp.metrics.span_attribute:SpanAttributeMetric"
 "eds.dep_parsing"                = "edsnlp.metrics.dep_parsing:DependencyParsingMetric"
 "eds.doc_classif"                = "edsnlp.metrics.doc_classif:DocClassificationMetric"
 

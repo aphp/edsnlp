@@ -85,26 +85,15 @@ def flatten_dict(d, path=""):
 
 
 def fill_flat_stats(x, result, path=()):
-    # Only recurse into dicts and lists/tuples
     if result is None:
         result = {}
     if isinstance(x, dict):
         for k, v in x.items():
             fill_flat_stats(v, result, (*path, k))
         return result
-    if isinstance(x, (list, tuple)):
-        for idx, v in enumerate(x):
-            fill_flat_stats(v, result, (*path, str(idx)))
-        return result
-    # Only accumulate numbers (int, float, or 0-dim tensor)
     if "stats" in path and "__batch_hash__" not in path[-1]:
-        if isinstance(x, (int, float)):
-            path_str = "/".join(path)
-            result[path_str] = result.get(path_str, 0) + x
-        elif hasattr(x, "item") and callable(x.item):
-            # For 0-dim tensors
-            path_str = "/".join(path)
-            result[path_str] = result.get(path_str, 0) + x.item()
+        path = "/".join(path)
+        result[path] = result.get(path, 0) + x
     return result
 
 

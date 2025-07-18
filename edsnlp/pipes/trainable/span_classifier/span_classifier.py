@@ -595,6 +595,7 @@ class TrainableSpanClassifier(
                 # If the span is not filtered out...
                 if labels is True or span.label_ in labels:
                     # ...assign the predicted value to the span
+                    print(f"Setting {qlf} to {values[idx]} for span {span.text}")
                     BINDING_SETTERS[qlf](span, values[idx])
         return docs
 

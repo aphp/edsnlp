@@ -42,7 +42,7 @@ class TrainableDocClassifier(
         name: str = "doc_classifier",
         *,
         embedding: Union[WordEmbeddingComponent, WordContextualizerComponent],
-        num_classes: int,
+        num_classes: Optional[int] = None,
         label_attr: str = "label",
         label2id: Optional[Dict[str, int]] = None,
         id2label: Optional[Dict[int, str]] = None,
@@ -60,7 +60,8 @@ class TrainableDocClassifier(
                 "The embedding component must have an 'output_size' attribute."
             )
         embedding_size = self.embedding.output_size
-        self.classifier = torch.nn.Linear(embedding_size, num_classes)
+        if num_classes:
+            self.classifier = torch.nn.Linear(embedding_size, num_classes)
 
     def set_extensions(self) -> None:
         super().set_extensions()
@@ -77,6 +78,10 @@ class TrainableDocClassifier(
             if labels:
                 self.label2id = {label: i for i, label in enumerate(sorted(labels))}
                 self.id2label = {i: label for label, i in self.label2id.items()}
+                print("num classes:", len(self.label2id))
+                self.classifier = torch.nn.Linear(
+                    self.embedding.output_size, len(self.label2id)
+                )
         super().post_init(gold_data, exclude=exclude)
 
     def preprocess(self, doc: Doc) -> Dict[str, Any]:

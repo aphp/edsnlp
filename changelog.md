@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+## Fixed
+
+- `use_section` in `eds.history` should now correctly handle cases when there are other sections following history sections.
+
+## Changed
+
+- Sections cues in `eds.history` are now section titles, and not the full section.
+
 ## v0.17.2 (2025-06-25)
 
 ### Added

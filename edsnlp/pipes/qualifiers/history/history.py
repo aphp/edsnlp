@@ -374,6 +374,17 @@ class HistoryQualifier(RuleBasedQualifier):
                 birth_datetime = None
 
         terminations = [m for m in matches if m.label_ == "termination"]
+
+        sections = []
+        if self.sections:
+            sections = [
+                section
+                for section in doc.spans["sections"]
+                if section.label_ in sections_history
+            ]
+            # History contexts should start/stop around section starts too
+            terminations.extend([s._.section_title for s in doc.spans["sections"]])
+
         boundaries = self._boundaries(doc_like, terminations)
 
         # Removes duplicate matches and pseudo-expressions in one statement
@@ -383,14 +394,6 @@ class HistoryQualifier(RuleBasedQualifier):
         sub_sections = None
         sub_recent_dates = None
         sub_history_dates = None
-
-        sections = []
-        if self.sections:
-            sections = [
-                Span(doc, section.start, section.end, label="ATCD")
-                for section in doc.spans["sections"]
-                if section.label_ in sections_history
-            ]
 
         history_dates = []
         recent_dates = []
@@ -560,7 +563,7 @@ class HistoryQualifier(RuleBasedQualifier):
             recent_cues = []
 
             if self.sections:
-                history_cues.extend(sub_sections)
+                history_cues.extend([s._.section_title for s in sub_sections])
 
             if self.dates:
                 history_cues.extend(

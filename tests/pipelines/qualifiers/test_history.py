@@ -22,7 +22,12 @@ Antécédents médicaux :
 Premier épisode: il a été hospitalisé pour asthme cette semaine-ci,
 il y a 3 jours, le 13 août 2020.
 Hier, le patient est venu pour une toux dont les symptômes,
-seraient apparus il y a 2 mois."""
+seraient apparus il y a 2 mois.
+L'asthme est critique
+
+MODE DE VIE
+Rien à signaler.
+"""
 
 
 @mark.parametrize("use_sections", [True, False])
@@ -70,6 +75,7 @@ def test_history(lang, use_sections, use_dates, exclude_birthdate, on_ents_only)
         on_ents_only=on_ents_only,
     )
     doc = history_nlp(doc)
+    assert [t.text for t in doc.ents] == ["toux", "asthme", "asthme", "toux", "asthme"]
 
     if use_dates:
         assert doc.ents[0]._.history is not exclude_birthdate
@@ -80,9 +86,16 @@ def test_history(lang, use_sections, use_dates, exclude_birthdate, on_ents_only)
 
     if use_sections:
         assert doc.ents[2]._.history is not use_dates
-        assert doc.ents[2]._.history_cues[0].label_ == "ATCD"
+        assert doc.ents[2]._.history_cues[0].label_ == "antécédents"
         if use_dates:
             assert doc.ents[2]._.recent_cues[0].label_ == "relative_date"
+        # If we use date, the first asthme entity of the ANTÉCÉDENTS section
+        # will be considered to recent => not history. Otherwise, it's in the
+        # ANTÉCÉDENTS section, so it is considered history.
+        assert doc.ents[2]._.history == (not use_dates)
+        # Same as above, but now the date is "Hier"
+        assert doc.ents[3]._.history == (not use_dates)
+        assert doc.ents[4]._.history  # Default behavior of ANTÉCÉDENTS section
 
 
 def test_on_span(blank_nlp):

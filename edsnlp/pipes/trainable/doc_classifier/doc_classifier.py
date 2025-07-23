@@ -76,8 +76,11 @@ class TrainableDocClassifier(
                 if isinstance(label, str):
                     labels.add(label)
             if labels:
-                self.label2id = {label: i for i, label in enumerate(sorted(labels))}
-                self.id2label = {i: label for label, i in self.label2id.items()}
+                self.label2id = {}
+                self.id2label = {}
+                for i, label in enumerate(labels):
+                    self.label2id[label] = i
+                    self.id2label[i] = label
                 print("num classes:", len(self.label2id))
                 self.classifier = torch.nn.Linear(
                     self.embedding.output_size, len(self.label2id)

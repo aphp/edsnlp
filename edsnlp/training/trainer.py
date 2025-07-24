@@ -605,6 +605,8 @@ def train(
             for td in train_data
             if td.pipe_names is None or set(td.pipe_names) & set(pipe_names)
         ]
+        for td in phase_training_data:
+            print("phase_training_data", td)
 
         with nlp.select_pipes(disable=trainable_pipe_names - set(pipe_names)):
             accelerator.print(f"Phase {phase_i + 1}: training {', '.join(pipe_names)}")

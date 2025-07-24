@@ -47,10 +47,12 @@ class TrainableDocClassifier(
         label2id: Optional[Dict[str, int]] = None,
         id2label: Optional[Dict[int, str]] = None,
         loss_fn=None,
+        labels: Optional[Sequence[str]] = None,
     ):
         self.label_attr: Attributes = label_attr
         self.label2id = label2id or {}
         self.id2label = id2label or {}
+        self.labels = labels
         super().__init__(nlp, name)
         self.embedding = embedding
         self.loss_fn = loss_fn or torch.nn.CrossEntropyLoss()
@@ -70,11 +72,14 @@ class TrainableDocClassifier(
 
     def post_init(self, gold_data: Iterable[Doc], exclude: Set[str]):
         if not self.label2id:
-            labels = set()
-            for doc in gold_data:
-                label = getattr(doc._, self.label_attr, None)
-                if isinstance(label, str):
-                    labels.add(label)
+            if self.labels is not None:
+                labels = set(self.labels)
+            else:
+                labels = set()
+                for doc in gold_data:
+                    label = getattr(doc._, self.label_attr, None)
+                    if isinstance(label, str):
+                        labels.add(label)
             if labels:
                 self.label2id = {}
                 self.id2label = {}

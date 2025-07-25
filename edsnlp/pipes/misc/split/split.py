@@ -143,7 +143,8 @@ class Split:
         regex: Optional[str]
             The regex pattern to split the document on
         filter_expr: Optional[str]
-            An optional filter expression to filter the produced documents
+            An optional filter expression to filter the produced documents. The callable
+            expects a single argument, the new Doc, and should return a boolean.
         randomize: float
             The randomization factor to split the documents, to avoid
             producing documents that are all `max_length` tokens long

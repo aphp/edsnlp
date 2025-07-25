@@ -133,8 +133,6 @@ def span_attribute_metric(
             "predicted by another NER pipe in your model."
         )
 
-    for name, (pred, gold, pred_with_prob) in labels.items():
-        print("-", name, "pred/gold", pred, gold, "=>", prf(pred, gold))
     return {
         name: {
             **prf(pred, gold),

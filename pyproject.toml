@@ -205,6 +205,7 @@ where = ["."]
 
 # Data
 "eds.split"                       = "edsnlp.pipes.misc.split.split:Split"
+"eds.explode"                     = "edsnlp.pipes.misc.explode.explode:Explode"
 "eds.standoff_dict2doc"           = "edsnlp.data.converters:StandoffDict2DocConverter"
 "eds.standoff_doc2dict"           = "edsnlp.data.converters:StandoffDoc2DictConverter"
 "eds.conll_dict2doc"              = "edsnlp.data.converters:ConllDict2DocConverter"

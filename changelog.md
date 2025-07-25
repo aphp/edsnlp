@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- New `eds.explode` pipe that splits one document into multiple documents, one per span yielded by its `span_getter` parameter, each new document containing exactly that single span.
+
 ## Fixed
 
 - `use_section` in `eds.history` should now correctly handle cases when there are other sections following history sections.

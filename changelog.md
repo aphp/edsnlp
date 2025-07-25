@@ -8,6 +8,7 @@
 - Sub batch sizes for gradient accumulation can now be defined as simple "splits" of the original batch, e.g. `batch_size = 10000 tokens` and `sub_batch_size = 5 splits` to accumulate batches of 2000 tokens.
 - Parquet writer now has a `pyarrow_write_kwargs` to pass to [pyarrow.dataset.write_dataset](https://arrow.apache.org/docs/python/generated/pyarrow.dataset.write_dataset.html#pyarrow-dataset-write-dataset)
 - LinearSchedule (mostly used for LR scheduling) now allows a `end_value` parameter to configure if the learning rate should decay to zero or another value.
+- New `eds.explode` pipe that splits one document into multiple documents, one per span yielded by its `span_getter` parameter, each new document containing exactly that single span.
 
 ## Fixed
 

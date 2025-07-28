@@ -1,0 +1,4 @@
+T1	date 14 29	9 novembre 1943
+T2	date 68 80	31 août 2024
+T3	date 131 147	5 septembre 2024
+A1	is_biopsy_date T3

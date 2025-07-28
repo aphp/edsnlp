@@ -1,0 +1,5 @@
+T1	date 17 32	20 juillet 2025
+T2	date 88 103	21 juillet 2025
+T3	date 137 152	22 juillet 2025
+A1	is_biopsy_date T3
+T4	date 224 239	24 juillet 2025

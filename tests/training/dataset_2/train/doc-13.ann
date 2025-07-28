@@ -1,0 +1,6 @@
+T1	date 48 64	18 novembre 2018
+T2	date 125 138	22 avril 2025
+T3	date 217 230	25 avril 2025
+A1	is_biopsy_date T3
+T4	date 257 272	12 octobre 2025
+T5	date 315 331	18 novembre 2025

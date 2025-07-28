@@ -1,0 +1,7 @@
+T1	date 70 84	5 février 2024
+T2	date 123 134	28 mai 2024
+T3	date 239 253	2 janvier 2025
+A1	is_biopsy_date T3
+T4	date 290 303	10 avril 2025
+A2	is_biopsy_date T4
+T5	date 359 370	7 août 2025

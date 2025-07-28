@@ -53,7 +53,8 @@ nav:
       - tutorials/multiple-texts.md
       - advanced-tutorials/fastapi.md
       - tutorials/make-a-training-script.md
-      - tutorials/training.md
+      - tutorials/training-ner.md
+      - tutorials/training-span-classifier.md
       - tutorials/tuning.md
   - Pipes:
       - Overview: pipes/index.md
@@ -81,6 +82,7 @@ nav:
           - pipes/misc/reason.md
           - pipes/misc/tables.md
           - pipes/misc/split.md
+          - pipes/misc/explode.md
       - Named Entity Recognition:
           - Overview: pipes/ner/index.md
           - Scores:
@@ -148,6 +150,7 @@ nav:
       - concepts/pipeline.md
       - concepts/torch-component.md
       - concepts/inference.md
+      - concepts/deep-learning.md
   - Metrics:
       - metrics/index.md
       - metrics/ner.md
@@ -198,6 +201,7 @@ plugins:
   - redirects:
       redirect_maps:
         'pipes/trainable/span-qualifier.md': 'pipes/trainable/span-classifier.md'
+        'tutorials/training.md': 'concepts/deep-learning.md'
   - search
   - minify:
       minify_html: true

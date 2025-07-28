@@ -1,8 +1,8 @@
-# Deep-learning tutorial
+# Writing a training script
 
 In this tutorial, we'll see how we can write our own deep learning model training script with EDS-NLP. We will implement a script to train a named-entity recognition (NER) model.
 
-If you do not care about the details and just want to train a model, we suggest you to use the [training API](/tutorials/training) and move on to the next tutorial.
+If you do not care about the details and just want to train a model, we suggest that you use the [training API](/concepts/deep-learning) and move on to the [next tutorial](/tutorials/training-ner).
 
 !!! warning "Hardware requirements"
 
@@ -440,7 +440,7 @@ python train.py --config config.cfg --nlp.components.ner.embedding.embedding.tra
 
 ## Going further
 
-EDS-NLP also provides a generic training script that follows the same structure as the one we just wrote. You can learn more about in the [next Training API tutorial](/tutorials/training).
+EDS-NLP also provides a generic training script that follows the same structure as the one we just wrote. You can learn more about in the [next NER model training tutorial through EDS-NLP training API](/tutorials/training-ner).
 
 This tutorial gave you a glimpse of the training API of EDS-NLP. To build a custom trainable component, you can refer to the [TorchComponent][edsnlp.core.torch_component.TorchComponent] class or look up the implementation of [some of the trainable components on GitHub](https://github.com/aphp/edsnlp/tree/master/edsnlp/pipes/trainable).
 

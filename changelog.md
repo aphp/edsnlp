@@ -12,6 +12,7 @@
 - `use_section` in `eds.history` should now correctly handle cases when there are other sections following history sections.
 - Added clickable snippets in the documentation for more registered functions
 - We should now correctly support loading transformers in offline mode if they were already in huggingface's cache
+- We now support `words[-10:10]` syntax in trainable span classifier `context_getter` parameter
 
 ## Changed
 

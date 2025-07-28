@@ -126,13 +126,15 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
       "@core": optimizer !draft  # (2)!
       optim: torch.optim.AdamW
       groups:
-        'biopsy_classifier[.]embedding':
+        # Small learning rate for the pretrained transformer model
+        - selector: 'biopsy_classifier[.]embedding[.]embedding'
           lr:
             '@schedules': linear
             warmup_rate: 0.1
             start_value: 0.
             max_value: 5e-5
-        '.*':
+        # Larger learning rate for the rest of the model
+        - selector: '.*'
           lr:
             '@schedules': linear
             warmup_rate: 0.1

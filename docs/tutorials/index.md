@@ -83,21 +83,33 @@ We provide step-by-step guides to get you started. We cover the following use-ca
     ---
     Quickly visualize the results of your pipeline as annotations or tables.
 
+We also provide tutorials on how to train deep-learning models with EDS-NLP. These tutorials cover the training API, hyperparameter tuning, and more.
+
+<!-- --8<-- [start:deep-learning-tutorials] -->
+
 === card {: href=/tutorials/make-a-training-script }
 
     :fontawesome-solid-flask:
-    **Deep learning tutorial**
+    **Writing a training script**
 
     ---
-    Learn how EDS-NLP handles training deep-neural networks.
+    Learn how EDS-NLP handles training deep-neural networks, and how to write a training script on your own.
 
-=== card {: href=/tutorials/training }
+=== card {: href=/tutorials/training-ner }
 
-    :fontawesome-solid-brain:
-    **Training API**
+    :fontawesome-solid-highlighter:
+    **Training a NER model**
 
     ---
-    Learn how to quicky train a deep-learning model with `edsnlp.train`.
+    Learn how to quickly train a NER model with `edsnlp.train`.
+
+=== card {: href=/tutorials/training-span-classifier }
+
+    :fontawesome-solid-circle-check:
+    **Training a Span Classifier model**
+
+    ---
+    Learn how to quickly train a biopsy date classifier model model with `edsnlp.train`.
 
 === card {: href=/tutorials/tuning }
 
@@ -106,6 +118,9 @@ We provide step-by-step guides to get you started. We cover the following use-ca
 
     ---
     Learn how to tune hyperparameters of a model with `edsnlp.tune`.
+
+
+<!-- --8<-- [end:deep-learning-tutorials] -->
 
 
 <!-- --8<-- [end:tutorials] -->

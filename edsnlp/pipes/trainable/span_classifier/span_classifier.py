@@ -34,7 +34,12 @@ from edsnlp.utils.bindings import (
     Attributes,
     AttributesArg,
 )
-from edsnlp.utils.span_getters import SpanFilter, SpanGetterArg, get_spans
+from edsnlp.utils.span_getters import (
+    ContextWindow,
+    SpanFilter,
+    SpanGetterArg,
+    get_spans,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +146,8 @@ class TrainableSpanClassifier(
     nlp.post_init(gold_data)
     ```
 
-    To train the model, refer to the [Training](/tutorials/training) tutorial.
+    To train the model, refer to the [Training](/tutorials/training-span-classifier)
+    tutorial.
 
     You can inspect the bindings that will be used for training and prediction
     ```{ .python .no-check }
@@ -201,7 +207,7 @@ class TrainableSpanClassifier(
         qualifiers: AttributesArg = None,
         label_weights: Dict[str, Dict[Any, float]] = None,
         span_getter: SpanGetterArg = None,
-        context_getter: Optional[SpanGetterArg] = None,
+        context_getter: Optional[Union[ContextWindow, SpanGetterArg]] = None,
         values: Optional[Dict[str, List[Any]]] = None,
         keep_none: bool = False,
     ):

@@ -64,8 +64,10 @@ optimizer:
   optim: torch.optim.AdamW
   module: ${ nlp }
   groups:
-    "^transformer": false
-    ".*":
+    # Transformer
+    - selector: "ner[.]embedding[.]embedding"
+      exclude: true
+    - selector: ".*"
       lr:
           "@schedules": linear
           start_value: 1e-3

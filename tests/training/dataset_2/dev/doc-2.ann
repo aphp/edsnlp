@@ -1,0 +1,5 @@
+T1	date 18 33	30 octobre 1949
+T2	date 75 90	12 février 2025
+T3	date 146 161	20 février 2025
+A1	is_biopsy_date T3
+T4	date 190 205	27 février 2025

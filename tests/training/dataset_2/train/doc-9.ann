@@ -1,0 +1,7 @@
+T1	date 39 54	19 février 2021
+T2	date 99 110	2 juin 2025
+T3	date 158 169	9 juin 2025
+A1	is_biopsy_date T3
+T4	date 248 264	1er juillet 2025
+T5	date 313 325	20 août 2025
+T6	date 360 377	15 septembre 2025

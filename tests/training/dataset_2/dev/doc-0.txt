@@ -1,0 +1,4 @@
+Le patient est né le 6 février 1995.
+Il a été admis le 12 juillet 2025 pour douleur abdominale aiguë.
+Une appendicectomie laparoscopique a été réalisée le 13 juillet 2025.
+La sortie est prévue le 15 juillet 2025.

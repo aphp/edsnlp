@@ -9,6 +9,7 @@
 - Parquet writer now has a `pyarrow_write_kwargs` to pass to [pyarrow.dataset.write_dataset](https://arrow.apache.org/docs/python/generated/pyarrow.dataset.write_dataset.html#pyarrow-dataset-write-dataset)
 - LinearSchedule (mostly used for LR scheduling) now allows a `end_value` parameter to configure if the learning rate should decay to zero or another value.
 - New `eds.explode` pipe that splits one document into multiple documents, one per span yielded by its `span_getter` parameter, each new document containing exactly that single span.
+- New `Training a span classifier` tutorial, and reorganized deep-learning docs
 
 ## Fixed
 

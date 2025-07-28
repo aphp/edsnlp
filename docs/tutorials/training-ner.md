@@ -1,12 +1,12 @@
-# Training API {: #edsnlp.training.trainer.train }
+# Training a NER model
 
 In this tutorial, we'll see how we can quickly train a deep learning model with EDS-NLP using the `edsnlp.train` function.
 
 !!! warning "Hardware requirements"
 
-    Training a modern deep learning model requires a lot of computational resources. We recommend using a machine with a GPU, ideally with at least 16GB of VRAM. If you don't have access to a GPU, you can use a cloud service like [Google Colab](https://colab.research.google.com/), [Kaggle](https://www.kaggle.com/), [Paperspace](https://www.paperspace.com/) or [Vast.ai](https://vast.ai/).
+    Training modern deep-learning models is compute-intensive. A GPU with **≥ 16 GB VRAM** is recommended. Training on CPU is possible but much slower. On macOS, PyTorch’s MPS backend may not support all operations and you'll likely hit `NotImplementedError` messages : in this case, fall back to CPU using the `cpu=True` option.
 
-If you need a high level of control over the training procedure, we suggest you read the previous ["Deep learning tutorial"](./make-a-training-script.md) to understand how to build a training loop from scratch with EDS-NLP.
+This tutorial uses EDS-NLP’s command-line interface, `python -m edsnlp.train`. If you need fine-grained control over the loop, consider [**writing your own training script**](./make-a-training-script.md).
 
 ## Creating a project
 
@@ -66,13 +66,7 @@ uv pip install -e ".[dev]" -p $(uv python find)
 
 EDS-NLP supports training models either [from the command line](#from-the-command-line) or [from a Python script or notebook](#from-a-script-or-a-notebook), and switching between the two is straightforward thanks to the use of [Confit](https://aphp.github.io/confit/).
 
-??? note "A word about Confit"
-
-    EDS-NLP makes heavy use of [Confit](https://aphp.github.io/confit/), a configuration library that allows you call functions from Python or the CLI, and validate and optionally cast their arguments.
-
-    The EDS-NLP function used in this script is the `train` function of the `edsnlp.train` module. When passing a dict to a type-hinted argument (either from a `config.yml` file, or by calling the function in Python), Confit will instantiate the correct class with the arguments provided in the dict. For instance, we pass a dict to the `val_data` parameter, which is actually type hinted as a `SampleGenerator`: this dict will actually be used as keyword arguments to instantiate this `SampleGenerator` object. You can also instantiate a `SampleGenerator` object directly and pass it to the function.
-
-    You can also tell Confit specifically which class you want to instantiate by using the `@register_name = "name_of_the_registered_class"` key and value in a dict or config section. We make a heavy use of this mechanism to build pipeline architectures.
+Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a list of all the available options.
 
 === "From the command line"
 
@@ -170,7 +164,7 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
         - '@factory': eds.standoff_dict2doc
           span_setter: 'gold_spans'
 
-    logger:
+    loggers:
         - '@loggers': csv
         - '@loggers': rich
           fields:
@@ -206,7 +200,7 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
       grad_max_norm: 1.0
       scorer: ${ scorer }
       optimizer: ${ optimizer }
-      logger: ${ logger }
+      logger: ${ loggers }
       # Do preprocessing in parallel on 1 worker
       num_workers: 1
       # Enable on Mac OS X or if you don't want to use available GPUs
@@ -297,7 +291,7 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
     )
 
     #
-    logger = [
+    loggers = [
         CSVLogger(),
         RichLogger(
             fields={
@@ -328,7 +322,7 @@ EDS-NLP supports training models either [from the command line](#from-the-comman
         optimizer=optimizer,
         grad_max_norm=1.0,
         output_dir="artifacts",
-        loggers
+        logger=loggers,
         # Do preprocessing in parallel on 1 worker
         num_workers=1,
         # Enable on Mac OS X or if you don't want to use available GPUs
@@ -348,16 +342,6 @@ cfg = confit.Config.from_disk(
 )
 nlp = train(**cfg["train"])
 ```
-
-Here are the parameters you can pass to the `train` function:
-
-::: edsnlp.training.trainer.train
-    options:
-        heading_level: 4
-        only_parameters: true
-        skip_parameters: []
-        show_source: false
-        show_toc: false
 
 ## Use the model
 

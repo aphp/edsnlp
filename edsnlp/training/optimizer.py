@@ -128,7 +128,13 @@ class LinearSchedule(Schedule):
     def step(self, group, closure=None):
         self.idx += 1
         if self.max_value is None:
-            self.max_value = get_deep_attr(group, self.paths[0])
+            if isinstance(get_deep_attr(group, self.paths[0]), (int, float)):
+                self.max_value = get_deep_attr(group, self.paths[0])
+            else:
+                raise Exception(
+                    "The max_value parameter of the linear schedule "
+                    "must be set to a valid number."
+                )
         warmup_steps = self.total_steps * self.warmup_rate
         if self.idx < warmup_steps:
             progress = self.idx / warmup_steps

@@ -13,6 +13,7 @@
 - Added clickable snippets in the documentation for more registered functions
 - We should now correctly support loading transformers in offline mode if they were already in huggingface's cache
 - We now support `words[-10:10]` syntax in trainable span classifier `context_getter` parameter
+- :ambulance: Until now, `post_init` was applied **after** the instantiation of the optimizer : if the model discovered new labels, and therefore changed its parameter tensors to reflect that, these new tensors were not taken into account by the optimizer, which could likely lead to subpar performance. Now, `post_init` is applied **before** the optimizer is instantiated, so that the optimizer can correctly handle the new tensors.
 
 ## Changed
 

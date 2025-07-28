@@ -23,8 +23,7 @@ import torch
 from accelerate import Accelerator, PartialState
 from accelerate.tracking import GeneralTracker
 from accelerate.utils import gather_object
-from confit import validate_arguments
-from confit.registry import Draft
+from confit.registry import Draft, validate_arguments
 from confit.utils.random import set_seed
 from tqdm import tqdm, trange
 from typing_extensions import Literal
@@ -33,7 +32,7 @@ import edsnlp
 from edsnlp import Pipeline, registry
 from edsnlp.core.stream import Stream
 from edsnlp.metrics.ner import NerMetric
-from edsnlp.metrics.span_attributes import SpanAttributeMetric
+from edsnlp.metrics.span_attribute import SpanAttributeMetric
 from edsnlp.pipes.base import (
     BaseNERComponent,
     BaseSpanAttributeClassifierComponent,
@@ -404,7 +403,11 @@ def train(
     val_data: AsList[Stream] = [],
     seed: int = 42,
     max_steps: int = 1000,
-    optimizer: Union[ScheduledOptimizer, Draft[ScheduledOptimizer], torch.optim.Optimizer] = None,  # noqa: E501
+    optimizer: Union[
+        Draft[ScheduledOptimizer],
+        ScheduledOptimizer,
+        torch.optim.Optimizer,
+    ] = None,
     validation_interval: Optional[int] = None,
     checkpoint_interval: Optional[int] = None,
     grad_max_norm: float = 5.0,
@@ -601,9 +604,19 @@ def train(
         + "".join(f"\n - {i + 1}: {', '.join(n)}" for i, n in enumerate(phases))
     )
 
+    if kwargs:
+        raise ValueError(f"Unknown arguments: {', '.join(kwargs)}")
+
+    # Prepare validation docs
+    val_docs = list(chain.from_iterable(val_data))
+
+    # Initialize pipeline with training documents
+    nlp.post_init(chain_zip([td.data for td in train_data if td.post_init]))
+
     all_params = set(nlp.parameters())
     optim = optimizer
     del optimizer
+    optim = Draft.instantiate(optim, module=nlp, total_steps=max_steps)
     if optim is None:
         warnings.warn(
             "No optimizer provided, using default optimizer with default parameters"
@@ -622,15 +635,6 @@ def train(
         module=nlp,
         total_steps=max_steps,
     )
-
-    if kwargs:
-        raise ValueError(f"Unknown arguments: {', '.join(kwargs)}")
-
-    # Prepare validation docs
-    val_docs = list(chain.from_iterable(val_data))
-
-    # Initialize pipeline with training documents
-    nlp.post_init(chain_zip([td.data for td in train_data if td.post_init]))
 
     for phase_i, pipe_names in enumerate(phases):
         trained_pipes_local: Dict[str, TorchComponent] = {

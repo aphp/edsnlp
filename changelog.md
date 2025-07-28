@@ -16,6 +16,7 @@
 - Added clickable snippets in the documentation for more registered functions
 - Pyarrow dataset writing with multiprocessing should be faster, as we removed a useless data transfer
 - We should now correctly support loading transformers in offline mode if they were already in huggingface's cache
+- We now support `words[-10:10]` syntax in trainable span classifier `context_getter` parameter
 
 ## Changed
 

@@ -87,12 +87,29 @@ def deep_set_unflat(x, stats):
 class GenericScorer:
     def __init__(
         self,
-        speed: bool = True,
         batch_size: Union[int, str] = 1,
         autocast: Union[bool, Any] = None,
-        **scorers,
+        speed: bool = True,
+        **metrics,
     ):
-        self.scorers = scorers
+        """
+        A scorer to evaluate the model performance on various tasks.
+
+        Parameters
+        ----------
+        batch_size: Union[int, str]
+            The batch size to use for scoring. Can be an int (number of documents)
+            or a string (batching expression like "2000 words").
+        speed: bool
+            Whether to compute the model speed (words/documents per second)
+        autocast: Union[bool, Any]
+            Whether to use autocasting for mixed precision during the evaluation,
+            defaults to True.
+        metrics: Dict[str, Any]
+            A keyword arguments mapping of metric names to metrics objects. See the
+            [metrics](/metrics) documentation for more info.
+        """
+        self.metrics = metrics
         self.speed = speed
         self.batch_size = batch_size
         self.autocast = autocast
@@ -100,7 +117,7 @@ class GenericScorer:
     def __call__(self, nlp: Pipeline, docs: Iterable[Any]):
         scores = {}
         docs = list(docs)
-        scorers = dict(self.scorers)
+        metrics = dict(self.metrics)
 
         # Speed
         if self.speed:
@@ -123,12 +140,12 @@ class GenericScorer:
         ner_pipes = [
             name for name, pipe in nlp.pipeline if isinstance(pipe, BaseNERComponent)
         ]
-        ner_scorers = {
-            name: scorers.pop(name)
-            for name in list(scorers)
-            if isinstance(scorers[name], NerMetric)
+        ner_metrics = {
+            name: metrics.pop(name)
+            for name in list(metrics)
+            if isinstance(metrics[name], NerMetric)
         }
-        if ner_pipes and ner_scorers:
+        if ner_pipes and ner_metrics:
             clean_ner_docs = [d.copy() for d in tqdm(docs, desc="Copying docs")]
             for d in clean_ner_docs:
                 d.ents = []
@@ -140,8 +157,8 @@ class GenericScorer:
                         autocast=self.autocast,
                     )
                 )
-            for name, scorer in ner_scorers.items():
-                scores[name] = scorer(docs, ner_preds)
+            for name, metric in ner_metrics.items():
+                scores[name] = metric(docs, ner_preds)
 
         # Qualification
         qlf_pipes = [
@@ -149,12 +166,12 @@ class GenericScorer:
             for name, pipe in nlp.pipeline
             if isinstance(pipe, BaseSpanAttributeClassifierComponent)
         ]
-        span_attr_scorers = {
-            name: scorers.pop(name)
-            for name in list(scorers)
-            if isinstance(scorers[name], SpanAttributeMetric)
+        span_attr_metrics = {
+            name: metrics.pop(name)
+            for name in list(metrics)
+            if isinstance(metrics[name], SpanAttributeMetric)
         }
-        if qlf_pipes and span_attr_scorers:
+        if qlf_pipes and span_attr_metrics:
             clean_qlf_docs = [d.copy() for d in tqdm(docs, desc="Copying docs")]
             for doc in clean_qlf_docs:
                 for name in qlf_pipes:
@@ -169,11 +186,11 @@ class GenericScorer:
                         autocast=self.autocast,
                     )
                 )
-            for name, scorer in span_attr_scorers.items():
-                scores[name] = scorer(docs, qlf_preds)
+            for name, metric in span_attr_metrics.items():
+                scores[name] = metric(docs, qlf_preds)
 
-        # Custom scorers
-        for name, scorer in scorers.items():
+        # Custom metrics
+        for name, metric in metrics.items():
             pred_docs = [d.copy() for d in tqdm(docs, desc="Copying docs")]
             preds = list(
                 nlp.pipe(tqdm(pred_docs, desc="Predicting")).set_processing(
@@ -181,7 +198,7 @@ class GenericScorer:
                     autocast=self.autocast,
                 )
             )
-            scores[name] = scorer(docs, preds)
+            scores[name] = metric(docs, preds)
 
         return scores
 
@@ -496,6 +513,15 @@ def train(
     scorer: GenericScorer
         How to score the model. Expects a `GenericScorer` object or a dict
         containing a mapping of metric names to metric objects.
+
+        ??? note "`GenericScorer` object/dictionary"
+            ::: edsnlp.training.trainer.GenericScorer
+                options:
+                    heading_level: 1
+                    only_parameters: "no-header"
+                    skip_parameters: []
+                    show_source: false
+                    show_toc: false
     num_workers: int
         The number of workers to use for preprocessing the data in parallel.
         Setting it to 0 means no parallelization : data is processed on the

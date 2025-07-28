@@ -1,4 +1,5 @@
 import warnings
+from http.client import HTTPException
 from pathlib import Path
 from typing import List, Optional, Set, Tuple, Union
 
@@ -166,7 +167,10 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
             kwargs["quantization_config"] = quantization
 
         self.transformer = AutoModel.from_pretrained(model, **kwargs)
-        self.tokenizer = AutoTokenizer.from_pretrained(model)
+        try:
+            self.tokenizer = AutoTokenizer.from_pretrained(model)
+        except (HTTPException, ConnectionError):  # pragma: no cover
+            self.tokenizer = AutoTokenizer.from_pretrained(model, local_files_only=True)
         self.window = window
         self.stride = stride
         self.training_stride = training_stride
@@ -505,7 +509,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                 if "out of memory" in str(e) and trial_idx <= 2:
                     print(
                         f"Out of memory: tried to fit {max_windows} "
-                        f"in {free_mem / (1024 ** 3)} (try n°{trial_idx}/2)"
+                        f"in {free_mem / (1024**3)} (try n°{trial_idx}/2)"
                     )
                     torch.cuda.empty_cache()
                     self._mem_per_unit = (free_mem / max_windows) * 1.5

@@ -244,7 +244,7 @@ class SpanGetterArg(Validated):
 
     @classmethod
     def validate(cls, value, config=None) -> SpanSetter:
-        return validate_span_setter(value)
+        return validate_span_getter(value)
 
 
 if TYPE_CHECKING:

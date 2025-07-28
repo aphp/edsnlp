@@ -60,8 +60,10 @@ optimizer:
   optim: AdamW
   module: ${ nlp }
   groups:
-    "^transformer": false
-    ".*":
+    # Transformer
+    - selector: "transformer"
+      exclude: true
+    - selector: ".*"
       lr: 1e-3
 
 # 📚 DATA

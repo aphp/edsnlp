@@ -120,14 +120,14 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
       groups:
         # Assign parameters starting with transformer (ie the parameters of the transformer component)
         # to a first group
-        "^transformer":
+        - selector: "ner[.]embedding[.]embedding"
           lr:
             '@schedules': linear
             "warmup_rate": 0.1
             "start_value": 0
             "max_value": 5e-5
         # And every other parameters to the second group
-        "":
+        - selector: ".*"
           lr:
             '@schedules': linear
             "warmup_rate": 0.1

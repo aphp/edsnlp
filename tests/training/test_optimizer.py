@@ -68,6 +68,28 @@ def net():
                 "weight_decay": 0.0,
             },
         },
+        # New groups format
+        [
+            {
+                "selector": "fc1[.].*",
+                "lr": {
+                    "@schedules": "linear",
+                    "start_value": 0.0,
+                    "max_value": 0.1,
+                    "warmup_rate": 0.2,
+                },
+                "weight_decay": 0.01,
+            },
+            {
+                "selector": "fc2[.]bias",
+                "exclude": True,
+            },
+            {
+                "selector": "",
+                "lr": 0.0001,
+                "weight_decay": 0.0,
+            },
+        ],
     ],
 )
 def test_old_parameter_selection(net, groups):
@@ -172,3 +194,25 @@ def test_repr(net):
     optim.initialize()
 
     assert "ScheduledOptimizer[AdamW]" in repr(optim)
+
+
+def test_warn_empty_selector(net):
+    with pytest.warns(
+        UserWarning,
+        match="Selectors ['fc3[.].*'] did not match any parameters.",
+    ):
+        ScheduledOptimizer(
+            optim="adamw",
+            module=net,
+            groups=[
+                {
+                    "selector": "fc3[.].*",
+                    "lr": 0.1,
+                    "weight_decay": 0.01,
+                    "schedules": LinearSchedule(start_value=0.0, warmup_rate=0.2),
+                },
+                {"selector": "fc2[.]bias", "exclude": True},
+                {"selector": "", "lr": 0.0001, "weight_decay": 0.0},
+            ],
+            total_steps=10,
+        )

@@ -505,7 +505,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                 if "out of memory" in str(e) and trial_idx <= 2:
                     print(
                         f"Out of memory: tried to fit {max_windows} "
-                        f"in {free_mem / (1024 ** 3)} (try n°{trial_idx}/2)"
+                        f"in {free_mem / (1024**3)} (try n°{trial_idx}/2)"
                     )
                     torch.cuda.empty_cache()
                     self._mem_per_unit = (free_mem / max_windows) * 1.5
@@ -535,6 +535,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         word_embeddings[batch["empty_word_indices"]] = self.empty_word_embedding
         return {
             "embeddings": word_embeddings.refold("context", "word"),
+            "cls": wordpiece_embeddings[:, 0, :],
         }
 
     @staticmethod

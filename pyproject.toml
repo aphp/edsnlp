@@ -23,7 +23,7 @@ dependencies = [
     # blis>1.2.0 (dependency of thinc) doesn't provide binaries for python<3.10 so we need to cap it ourself
     "blis<1.0.0; python_version<'3.9'",
     "blis<1.2.1; python_version>='3.9' and python_version<'3.10'",
-    "confit>=0.7.3",
+    "confit@git+https://github.com/aphp/confit.git",
     "tqdm",
     "umls-downloader>=0.1.1",
     "numpy>=1.15.0",
@@ -84,15 +84,12 @@ docs-no-ml = [
 ]
 ml = [
     "rich-logger>=0.3.1",
-    # TODO: uv doesn't seem to resolve torch correctly, unless we cap it ourself
-    "torch>=1.13.0,<2.0.0; python_version<'3.8'",
-    "torch>=1.13.0,<2.5.0; python_version<'3.9'",
     "torch>=1.13.0; python_version>='3.9'",
     "foldedtensor>=0.4.0",
     "safetensors>=0.3.0; python_version>='3.8'",
     "safetensors>=0.3.0,<0.5.0; python_version<'3.8'",
-    "transformers>=4.0.0,<5.0.0",
-    "accelerate>=0.20.3,<1.0.0",
+    "transformers>=4.0.0",
+    "accelerate>=0.20.3",
 ]
 docs = [
     "edsnlp[docs-no-ml]",
@@ -101,6 +98,7 @@ docs = [
 dev = [
     "edsnlp[dev-no-ml]",
     "edsnlp[ml]",
+    "tensorboard",
     "optuna>=4.0.0",
     "plotly>=5.18.0", # required by optuna viz
     "ruamel.yaml>=0.18.0",
@@ -312,6 +310,18 @@ where = ["."]
 "json" =     "edsnlp.data:write_json"
 "standoff" = "edsnlp.data:write_standoff"
 "brat"     = "edsnlp.data:write_brat"  # alias for standoff
+
+[project.entry-points."edsnlp_loggers"]
+"csv" = "edsnlp.training.loggers:CSVLogger"
+"json" = "edsnlp.training.loggers:JSONLogger"
+"rich" = "edsnlp.training.loggers:RichLogger"
+"tensorboard" = "edsnlp.training.loggers:TensorBoardLogger"
+"aim" = "edsnlp.training.loggers:AimLogger"
+"wandb" = "edsnlp.training.loggers:WandBLogger"
+"mlflow" = "edsnlp.training.loggers:MLflowLogger"
+"cometml" = "edsnlp.training.loggers:CometMLLogger"
+"clearml" = "edsnlp.training.loggers:ClearMLLogger"
+"dvclive" = "edsnlp.training.loggers:DVCLiveLogger"
 
 [project.entry-points."spacy_misc"]
 "eds.span_context_getter" = "edsnlp.utils.span_getters:make_span_context_getter"

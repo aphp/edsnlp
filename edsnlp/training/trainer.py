@@ -11,23 +11,25 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Collection,
     Dict,
     Iterable,
+    List,
     Optional,
     Sequence,
     Union,
 )
 
 import torch
-from accelerate import Accelerator
+from accelerate import Accelerator, PartialState
+from accelerate.tracking import GeneralTracker
 from accelerate.utils import gather_object
 from confit import validate_arguments
+from confit.registry import Draft
 from confit.utils.random import set_seed
-from rich_logger import RichTablePrinter
 from tqdm import tqdm, trange
 from typing_extensions import Literal
 
+import edsnlp
 from edsnlp import Pipeline, registry
 from edsnlp.core.stream import Stream
 from edsnlp.metrics.ner import NerMetric
@@ -38,66 +40,38 @@ from edsnlp.pipes.base import (
 )
 from edsnlp.utils.batching import BatchSizeArg, stat_batchify
 from edsnlp.utils.bindings import BINDING_SETTERS
-from edsnlp.utils.collections import chain_zip, flatten, flatten_once, ld_to_dl
+from edsnlp.utils.collections import (
+    chain_zip,
+    decompress_dict,
+    flatten,
+    flatten_once,
+    ld_to_dl,
+)
 from edsnlp.utils.span_getters import get_spans
 from edsnlp.utils.typing import AsList
 
+from ..core.torch_component import TorchComponent
 from .optimizer import LinearSchedule, ScheduledOptimizer
 
-LOGGER_FIELDS = {
-    "step": {},
-    "(.*)loss": {
-        "goal": "lower_is_better",
-        "format": "{:.2e}",
-        "goal_wait": 2,
-    },
-    "lr": {"format": "{:.2e}"},
-    "speed/(.*)": {"format": "{:.2f}", r"name": r"\1"},
-    "labels": {"format": "{:.2f}"},
-    "(.*?)/micro/(f|r|p)$": {
-        "goal": "higher_is_better",
-        "format": "{:.2%}",
-        "goal_wait": 1,
-        "name": r"\1_\2",
-    },
-    "(.*?)/(uas|las)": {
-        "goal": "higher_is_better",
-        "format": "{:.2%}",
-        "goal_wait": 1,
-        "name": r"\1_\2",
-    },
-    "grad_norm/__all__": {
-        "format": "{:.2e}",
-        "name": "grad_norm",
-    },
-}
 
-
-def flatten_dict(d, path=""):
-    if not isinstance(d, dict):
-        return {path: d}
-
-    return {
-        k: v
-        for key, val in d.items()
-        for k, v in flatten_dict(val, f"{path}/{key}" if path else key).items()
-    }
-
-
-def fill_flat_stats(x, result, path=()):
+def deep_add_flat(x, result, path=(), check_stats_key=True):
     if result is None:
         result = {}
     if isinstance(x, dict):
         for k, v in x.items():
-            fill_flat_stats(v, result, (*path, k))
+            deep_add_flat(v, result, (*path, k), check_stats_key=check_stats_key)
         return result
-    if "stats" in path and "__batch_hash__" not in path[-1]:
-        path = "/".join(path)
-        result[path] = result.get(path, 0) + x
+    if not check_stats_key or "stats" in path and "__batch_hash__" not in path[-1]:
+        if isinstance(x, (float, int)):
+            path = "/".join(path)
+            result[path] = result.get(path, 0) + x
+        elif isinstance(x, torch.Tensor) and x.ndim == 0:
+            path = "/".join(path)
+            result[path] = result.get(path, 0) + x.item()
     return result
 
 
-def set_flat_stats(x, stats):
+def deep_set_unflat(x, stats):
     for k, v in stats.items():
         path = k.split("/")
         current = x
@@ -107,6 +81,7 @@ def set_flat_stats(x, stats):
             current = current[p]
         else:
             current[path[-1]] = v
+    return x
 
 
 @validate_arguments
@@ -315,7 +290,7 @@ class TrainingData:
         batch_size: BatchSizeArg,
         shuffle: Union[str, Literal[False]],
         sub_batch_size: Optional[BatchSizeArg] = None,
-        pipe_names: Optional[Collection[str]] = None,
+        pipe_names: Optional[AsList[str]] = None,
         post_init: bool = True,
     ):
         """
@@ -396,8 +371,29 @@ class PipeDict(torch.nn.ModuleDict):
                     loss = res["loss"] if loss is None else loss + res["loss"]
                     if torch.isnan(loss):
                         raise ValueError(f"NaN loss at component {name}")
-                    res[f"{name}_loss"] = res["loss"]
         return all_results, loss
+
+
+def get_logger(
+    logger: Union[bool, AsList[Union[str, Draft[GeneralTracker], GeneralTracker]]],
+    project_name,
+    logging_dir,
+    **kwargs,
+) -> List[GeneralTracker]:
+    logger = ["rich", "json"] if logger is True else [] if not logger else logger
+    logger_drafts_maybe = []
+    for log in logger:
+        if isinstance(log, str):
+            cls = edsnlp.registry.loggers.get(log)
+            logger_drafts_maybe.append(Draft(cls, {}))
+        else:
+            logger_drafts_maybe.append(log)
+    logger = logger_drafts_maybe
+    logger = [
+        Draft.instantiate(obj, project_name=project_name, logging_dir=logging_dir)
+        for obj in logger
+    ]
+    return logger
 
 
 @validate_arguments(registry=registry)
@@ -408,7 +404,7 @@ def train(
     val_data: AsList[Stream] = [],
     seed: int = 42,
     max_steps: int = 1000,
-    optimizer: Union[ScheduledOptimizer, torch.optim.Optimizer] = None,
+    optimizer: Union[ScheduledOptimizer, Draft[ScheduledOptimizer], torch.optim.Optimizer] = None,  # noqa: E501
     validation_interval: Optional[int] = None,
     checkpoint_interval: Optional[int] = None,
     grad_max_norm: float = 5.0,
@@ -423,12 +419,13 @@ def train(
     output_dir: Union[Path, str] = Path("artifacts"),
     output_model_dir: Optional[Union[Path, str]] = None,
     save_model: bool = True,
-    logger: bool = True,
+    logger: Union[bool, AsList[Union[str, GeneralTracker, Draft[GeneralTracker]]]] = True,  # noqa: E501
     log_weight_grads: bool = False,
     on_validation_callback: Optional[Callable[[Dict], None]] = None,
+    project_name: str = None,
     config_meta: Optional[Dict] = None,
     **kwargs,
-):
+):  # fmt: skip
     """
     Train a pipeline.
 
@@ -456,7 +453,7 @@ def train(
         The random seed
     max_steps: int
         The maximum number of training steps
-    optimizer: Union[ScheduledOptimizer, torch.optim.Optimizer]
+    optimizer: Union[ScheduledOptimizer, Draft[ScheduledOptimizer], torch.optim.Optimizer]
         The optimizer. If None, a default optimizer will be used.
 
         ??? note "`ScheduledOptimizer` object/dictionary"
@@ -524,12 +521,25 @@ def train(
         Whether to save the model or not. This can be useful if you are only
         interested in the metrics, but no the model, and want to avoid
         spending time dumping the model weights to the disk.
-    logger: bool
-        Whether to log the validation metrics in a rich table.
+    logger: Union[bool, AsList[Union[str, Partial[GeneralTracker], GeneralTracker]]]
+        The logger to use. Can be a boolean to use the default loggers (rich
+        and json), a list of logger names, or a list of logger objects.
+
+        You can use huggingface accelerate integrated loggers (`tensorboard`,
+        `wandb`, `comet_ml`, `aim`, `mlflow`, `clearml`, `dvclive`), or
+        EDS-NLP simple loggers, or a combination of both:
+
+        - `csv`: logs to a CSV file in `output_dir` (`artifacts/metrics.csv`)
+        - `json`: logs to a JSON file in `output_dir` (`artifacts/metrics.json`)
+        - `rich`: logs to a rich table in the terminal
     log_weight_grads: bool
         Whether to log the weight gradients during training.
     on_validation_callback: Optional[Callable[[Dict], None]]
         A callback function invoked during validation steps to handle custom logic.
+    project_name: str
+        The project name, used to group experiments in some loggers. If None,
+        defaults to the path of the config file, relative to the home directory, with
+        slashes replaced by double underscores.
     kwargs: Dict
         Additional keyword arguments.
 
@@ -537,9 +547,25 @@ def train(
     -------
     Pipeline
         The trained pipeline
-    """
-    # Prepare paths
-    accelerator = Accelerator(cpu=cpu, mixed_precision=mixed_precision)
+    """  # noqa: E501
+    # hack to ensure cpu is set before the accelerator is indirectly initialized
+    # when creating the trackers
+    PartialState(cpu=cpu)
+    project_name = project_name or str(
+        os.curdir if config_meta is None else config_meta["config_path"][0]
+    ).replace("/", "__")
+    output_dir = Path(output_dir or Path.cwd() / "artifacts")
+    output_model_dir = Path(output_model_dir or output_dir / "model-last")
+    accelerator = Accelerator(
+        cpu=cpu,
+        mixed_precision=mixed_precision,
+        log_with=get_logger(
+            logger,
+            # default project name, the user can override this when creating the logger
+            project_name=project_name,
+            logging_dir=output_dir,
+        ),
+    )
     # accelerator.register_for_checkpointing(dataset)
     is_main_process = accelerator.is_main_process
     device = accelerator.device
@@ -550,15 +576,20 @@ def train(
         )
         grad_max_norm = kwargs.pop("max_grad_norm")
 
-    output_dir = Path(output_dir or Path.cwd() / "artifacts")
-    output_model_dir = Path(output_model_dir or output_dir / "model-last")
-    train_metrics_path = output_dir / "train_metrics.json"
+    unresolved_config = None
     if is_main_process:
         os.makedirs(output_dir, exist_ok=True)
         os.makedirs(output_model_dir, exist_ok=True)
         if config_meta is not None:  # pragma: no cover
-            print(config_meta["unresolved_config"].to_yaml_str())
-            config_meta["unresolved_config"].to_disk(output_dir / "train_config.yml")
+            unresolved_config = config_meta["unresolved_config"]
+            unresolved_config["train"]["project_name"] = project_name
+            print(unresolved_config.to_yaml_str())
+            unresolved_config.to_disk(output_dir / "train_config.yml")
+        # TODO: handle config_meta is None
+    accelerator.init_trackers(
+        project_name,
+        config=json.loads(json.dumps(unresolved_config, default=str)),
+    )  # in theory project name shouldn't be used
 
     validation_interval = validation_interval or max_steps // 10
     checkpoint_interval = checkpoint_interval or validation_interval
@@ -586,6 +617,11 @@ def train(
                 if k in kwargs
             },
         )
+    optim: torch.nn.Optimizer = Draft.instantiate(
+        optim,
+        module=nlp,
+        total_steps=max_steps,
+    )
 
     if kwargs:
         raise ValueError(f"Unknown arguments: {', '.join(kwargs)}")
@@ -597,7 +633,9 @@ def train(
     nlp.post_init(chain_zip([td.data for td in train_data if td.post_init]))
 
     for phase_i, pipe_names in enumerate(phases):
-        trained_pipes_local = {n: nlp.get_pipe(n) for n in pipe_names}
+        trained_pipes_local: Dict[str, TorchComponent] = {
+            n: nlp.get_pipe(n) for n in pipe_names
+        }
         trained_pipes = PipeDict(trained_pipes_local, loss_scales)
         trained_pipes_params = set(trained_pipes.parameters())
         phase_training_data = [
@@ -654,183 +692,201 @@ def train(
                 accel_optim.optimizer.initialize()
 
             ewm_state = grad_mean = grad_var = None
-            default_metrics = dict(count=0, spikes=0)
-            cumulated_data = defaultdict(lambda: 0, **default_metrics)
-            all_metrics = []
+            count = 0
+            spikes = 0
+            flat_cum_stats = defaultdict(float)
+            flat_cum_res = defaultdict(float)
+            flat_cum_weight_metrics = defaultdict(float)
             set_seed(seed)
-            with (
-                RichTablePrinter(LOGGER_FIELDS, auto_refresh=False)
-                if is_main_process and logger
-                else nullcontext()
-            ) as logger:
-                # Training loop
-                for step in trange(
-                    max_steps + 1,
-                    desc="Training model",
-                    leave=True,
-                    mininterval=5.0,
-                    total=max_steps,
-                    disable=not is_main_process,
-                    smoothing=0.3,
-                ):
-                    if (
-                        save_model
-                        and is_main_process
-                        and (step % checkpoint_interval) == 0
-                    ):
-                        # torch.save(nlp, output_model_dir / "model.pt")
-                        nlp.to_disk(output_model_dir)
-                    if (
-                        is_main_process
-                        and step > 0
-                        and (step % validation_interval) == 0
-                    ):
-                        scores = scorer(nlp, val_docs) if val_docs else {}
+            # Training loop
+            for step in trange(
+                max_steps + 1,
+                desc="Training model",
+                leave=True,
+                mininterval=5.0,
+                total=max_steps,
+                disable=not is_main_process,
+                smoothing=0.3,
+            ):
+                if save_model and is_main_process and (step % checkpoint_interval) == 0:
+                    nlp.to_disk(output_model_dir)
+                if step > 0 and (step % validation_interval) == 0:
+                    flat_cum_res = {
+                        k: sum(v)
+                        for k, v in ld_to_dl(gather_object([flat_cum_res])).items()
+                    }
+                    cum_res = decompress_dict(flat_cum_res)
+                    if is_main_process:
+                        cum_stats = decompress_dict(flat_cum_stats)
+                        val_metrics = scorer(nlp, val_docs) if val_docs else {}
                         metrics = {
                             "step": step,
                             "lr": accel_optim.param_groups[0]["lr"],
-                            **cumulated_data,
-                            **scores,
+                            "loss": cum_res["__all__"]["loss"] / count,
+                            "count": count,
+                            "spikes": spikes,
+                            "weights": {
+                                k: v / count for k, v in flat_cum_weight_metrics.items()
+                            },
+                            "per_pipe": {
+                                n: {
+                                    "stats": cum_stats[n].get("stats", {}),
+                                    "results": (
+                                        {
+                                            k: v
+                                            for k, v in trained_pipes_local[n]
+                                            .compute_training_metrics(
+                                                cum_res[n],
+                                                cum_stats[n].get("stats", {}),
+                                                count,
+                                            )
+                                            .items()
+                                            if v is not None
+                                        }
+                                    ),
+                                }
+                                for n in pipe_names
+                            },
+                            "validation": val_metrics,
                         }
-                        all_metrics.append(metrics)
-                        cumulated_data = defaultdict(lambda: 0, **default_metrics)
-                        train_metrics_path.write_text(json.dumps(all_metrics, indent=2))
-                        if logger:
-                            logger.log_metrics(flatten_dict(metrics))
+                        accelerator.log(metrics, step=step)
+                    count = 0
+                    spikes = 0
+                    flat_cum_stats = defaultdict(float)
+                    flat_cum_res = defaultdict(float)
+                    flat_cum_weight_metrics = defaultdict(float)
 
-                        if on_validation_callback:
-                            on_validation_callback(metrics)
+                    if on_validation_callback:
+                        on_validation_callback(metrics)
 
-                    if step == max_steps:
-                        break
+                if step == max_steps:
+                    break
 
-                    accel_optim.zero_grad()
+                accel_optim.zero_grad()
 
-                    batches = list(next(iterator))
-                    batches_pipe_names = list(
-                        flatten_once(
-                            [
-                                [td.pipe_names or pipe_names] * len(b)
-                                for td, b in zip(phase_training_data, batches)
-                            ]
-                        )
+                batches = list(next(iterator))
+                batches_pipe_names = list(
+                    flatten_once(
+                        [
+                            [td.pipe_names or pipe_names] * len(b)
+                            for td, b in zip(phase_training_data, batches)
+                        ]
                     )
-                    batches = list(flatten(batches))
+                )
+                batches = list(flatten(batches))
 
-                    # Synchronize stats between sub-batches across workers
-                    local_batch_stats = {}
-                    for b in batches:
-                        fill_flat_stats(b, result=local_batch_stats)
-                    batch_stats = gather_object([local_batch_stats])
-                    batch_stats = {k: sum(v) for k, v in ld_to_dl(batch_stats).items()}
-                    for b in batches:
-                        set_flat_stats(b, batch_stats)
+                # Synchronize stats between sub-batches across workers
+                local_batch_stats = {}
+                for b in batches:
+                    deep_add_flat(b, result=local_batch_stats)
+                flat_batch_stats = ld_to_dl(gather_object([local_batch_stats]))
+                flat_batch_stats = {k: sum(v) for k, v in flat_batch_stats.items()}
 
-                    local_res_stats = defaultdict(lambda: 0.0)
-                    for idx, (batch, batch_pipe_names) in enumerate(
-                        zip(batches, batches_pipe_names)
-                    ):
-                        cache_ctx = (
-                            nlp.cache() if len(batch_pipe_names) > 1 else nullcontext()
+                # for training purposes (ie have the right denominator in the losses)
+                for b in batches:
+                    deep_set_unflat(b, flat_batch_stats)
+
+                # for logging purposes
+                for k, v in flat_batch_stats.items():
+                    flat_cum_stats[k] += flat_batch_stats[k]
+
+                for idx, (batch, batch_pipe_names) in enumerate(
+                    zip(batches, batches_pipe_names)
+                ):
+                    cache_ctx = (
+                        nlp.cache() if len(batch_pipe_names) > 1 else nullcontext()
+                    )
+                    no_sync_ctx = (
+                        accelerator.no_sync(trained_pipes)
+                        if idx < len(batches) - 1
+                        else nullcontext()
+                    )
+                    try:
+                        with cache_ctx, no_sync_ctx:
+                            all_res, loss = trained_pipes(
+                                batch,
+                                enable=batch_pipe_names,
+                            )
+                            deep_add_flat(all_res, flat_cum_res, check_stats_key=False)
+                            flat_cum_res["__all__/loss"] += loss.item()
+                            del all_res
+                            if isinstance(loss, torch.Tensor) and loss.requires_grad:
+                                # Trick to ensure all trained parameters participate in
+                                # the loss otherwise torch (in parallel) isn't happy as
+                                # it cannot reliably know if a param gradients haven't
+                                # been collected yet, or won't participate in the step
+                                # at all.
+                                loss0 = sum(p.sum() * 0 for p in grad_params)
+                                accelerator.backward(loss + loss0)
+                    except torch.cuda.OutOfMemoryError:  # pragma: no cover
+                        print(
+                            "Out of memory error encountered when processing a "
+                            "batch with the following statistics:"
                         )
-                        no_sync_ctx = (
-                            accelerator.no_sync(trained_pipes)
-                            if idx < len(batches) - 1
-                            else nullcontext()
+                        print(local_batch_stats)
+                        raise
+                    except Exception:
+                        print(
+                            "An error occurred when processing a batch with these"
+                            "dimensions"
                         )
-                        try:
-                            with cache_ctx, no_sync_ctx:
-                                all_res, loss = trained_pipes(
-                                    batch,
-                                    enable=batch_pipe_names,
-                                )
-                                for name, res in all_res.items():
-                                    for k, v in res.items():
-                                        if (
-                                            isinstance(v, (float, int))
-                                            or isinstance(v, torch.Tensor)
-                                            and v.ndim == 0
-                                        ):
-                                            local_res_stats[k] += float(v)
-                                        del k, v
-                                    del res
-                                del all_res
-                                if (
-                                    isinstance(loss, torch.Tensor)
-                                    and loss.requires_grad
-                                ):
-                                    accelerator.backward(loss)
-                        except torch.cuda.OutOfMemoryError:
-                            print(
-                                "Out of memory error encountered when processing a "
-                                "batch with the following statistics:"
-                            )
-                            print(local_batch_stats)
-                            raise
-                        del loss
+                        print(local_batch_stats)
+                        raise
 
-                    # Sync output stats after forward such as losses, supports, etc.
-                    res_stats = {
-                        k: sum(v)
-                        for k, v in ld_to_dl(
-                            gather_object([dict(local_res_stats)])
-                        ).items()
-                    }
-                    if is_main_process:
-                        for k, v in batch_stats.items():
-                            cumulated_data[k] += v
-                        for k, v in res_stats.items():
-                            cumulated_data[k] += v
+                    del loss
 
-                    del batch_stats, res_stats
-                    accelerator.unscale_gradients()
+                del flat_batch_stats
+                accelerator.unscale_gradients()
 
-                    # Log gradients
-                    if log_weight_grads:
-                        for pipe_name, pipe in trained_pipes_local.items():
-                            for param_name, param in pipe.named_parameters():
-                                if param.grad is not None:
-                                    cumulated_data[
-                                        f"grad_norm/{pipe_name}/{param_name}"
-                                    ] += param.grad.norm().item()
-                                    cumulated_data[
-                                        f"param_norm/{pipe_name}/{param_name}"
-                                    ] += param.norm().item()
+                # Log gradients
+                if log_weight_grads and is_main_process:
+                    for pipe_name, pipe in trained_pipes_local.items():
+                        for param_name, param in pipe.named_parameters():
+                            if param.grad is not None:
+                                flat_cum_weight_metrics[
+                                    f"grad_norm/{pipe_name}/{param_name}"
+                                ] += param.grad.norm().item()
+                                flat_cum_weight_metrics[
+                                    f"param_norm/{pipe_name}/{param_name}"
+                                ] += param.norm().item()
 
-                    grad_norm = torch.nn.utils.clip_grad_norm_(
-                        grad_params, grad_max_norm, norm_type=2
-                    ).item()
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                    grad_params, grad_max_norm, norm_type=2
+                ).item()
 
-                    # Detect grad spikes and skip the step if necessary
-                    if grad_dev_policy is not None:
-                        if step > grad_ewm_window and (
-                            grad_norm - grad_mean
-                        ) > grad_max_dev * math.sqrt(grad_var):
-                            spike = True
-                            cumulated_data["spikes"] += 1
-                        else:
-                            grad_mean, grad_var, ewm_state = ewm_moments(
-                                grad_norm, grad_ewm_window, state=ewm_state
-                            )
-                            spike = False
+                # Detect grad spikes and skip the step if necessary
+                if grad_dev_policy is not None:
+                    if step > grad_ewm_window and (
+                        grad_norm - grad_mean
+                    ) > grad_max_dev * math.sqrt(grad_var):
+                        spike = True
+                        spikes += 1
+                    else:
+                        grad_mean, grad_var, ewm_state = ewm_moments(
+                            grad_norm, grad_ewm_window, state=ewm_state
+                        )
+                        spike = False
 
-                        if spike and grad_dev_policy == "clip_mean":
-                            torch.nn.utils.clip_grad_norm_(
-                                grad_params, grad_mean, norm_type=2
-                            )
-                        elif spike and grad_dev_policy == "clip_threshold":
-                            torch.nn.utils.clip_grad_norm_(
-                                grad_params,
-                                grad_mean + math.sqrt(grad_var) * grad_max_dev,
-                                norm_type=2,
-                            )
+                    if spike and grad_dev_policy == "clip_mean":
+                        torch.nn.utils.clip_grad_norm_(
+                            grad_params, grad_mean, norm_type=2
+                        )
+                    elif spike and grad_dev_policy == "clip_threshold":
+                        torch.nn.utils.clip_grad_norm_(
+                            grad_params,
+                            grad_mean + math.sqrt(grad_var) * grad_max_dev,
+                            norm_type=2,
+                        )
 
-                    if grad_dev_policy != "skip" or not spike:
-                        accel_optim.step()
+                if grad_dev_policy != "skip" or not spike:
+                    accel_optim.step()
 
-                    cumulated_data["count"] += 1
-                    cumulated_data["grad_norm/__all__"] += grad_norm
+                count += 1
+                flat_cum_weight_metrics["grad_norm/__all__"] += grad_norm
 
-                del iterator
+            del iterator
+
+    # Should we put this in a finally block?
+    accelerator.end_training()
 
     return nlp

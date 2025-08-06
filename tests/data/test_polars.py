@@ -49,11 +49,21 @@ def test_read_shuffle_loop(num_cpu_workers: int):
         .set_processing(num_cpu_workers=num_cpu_workers)
     )
     notes = list(islice(notes, 6))
-    assert notes == [
-        "subfolder/doc-1",
-        "subfolder/doc-3",
-        "subfolder/doc-2",
-        "subfolder/doc-1",
-        "subfolder/doc-2",
-        "subfolder/doc-3",
-    ]
+    if polars.__version__ < "1.32.0":
+        assert notes == [
+            "subfolder/doc-1",
+            "subfolder/doc-3",
+            "subfolder/doc-2",
+            "subfolder/doc-1",
+            "subfolder/doc-2",
+            "subfolder/doc-3",
+        ]
+    else:
+        assert notes == [
+            "subfolder/doc-3",
+            "subfolder/doc-2",
+            "subfolder/doc-1",
+            "subfolder/doc-2",
+            "subfolder/doc-1",
+            "subfolder/doc-3",
+        ]

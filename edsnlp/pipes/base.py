@@ -12,7 +12,7 @@ from typing import (
 from spacy.tokens import Doc, Span
 
 from edsnlp.core import PipelineProtocol
-from edsnlp.core.registries import CurriedFactory
+from edsnlp.core.registries import DraftPipe
 from edsnlp.utils.span_getters import (
     SpanGetter,  # noqa: F401
     SpanGetterArg,  # noqa: F401
@@ -42,7 +42,7 @@ class BaseComponentMeta(abc.ABCMeta):
 
     def __call__(cls, nlp=inspect.Signature.empty, *args, **kwargs):
         # If this component is missing the nlp argument, we curry it with the
-        # provided arguments and return a CurriedFactory object.
+        # provided arguments and return a PartialFactory object.
         sig = inspect.signature(cls.__init__)
         try:
             bound = sig.bind_partial(None, nlp, *args, **kwargs)
@@ -52,7 +52,7 @@ class BaseComponentMeta(abc.ABCMeta):
                 and sig.parameters["nlp"].default is sig.empty
                 and bound.arguments.get("nlp", sig.empty) is sig.empty
             ):
-                return CurriedFactory(cls, bound.arguments)
+                return DraftPipe(cls, bound.arguments)
             if nlp is inspect.Signature.empty:
                 bound.arguments.pop("nlp", None)
         except TypeError:  # pragma: no cover

@@ -278,7 +278,7 @@ def objective_with_param(config, tuned_parameters, trial, metric):
 
     def on_validation_callback(all_metrics):
         step = all_metrics["step"]
-        score = all_metrics
+        score = all_metrics["validation"]
         for key in metric:
             score = score[key]
         trial.report(score, step)

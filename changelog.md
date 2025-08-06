@@ -2,13 +2,26 @@
 
 ## Unreleased
 
+## Added
+
+- Added support for multiple loggers (`tensorboard`, `wandb`, `comet_ml`, `aim`, `mlflow`, `clearml`, `dvclive`, `csv`, `json`, `rich`) in `edsnlp.train` via the `logger` parameter. Default is [`json` and `rich`] for backward compatibility.
+- New `eds.explode` pipe that splits one document into multiple documents, one per span yielded by its `span_getter` parameter, each new document containing exactly that single span.
+- New `Training a span classifier` tutorial, and reorganized deep-learning docs
+- `ScheduledOptimizer` now warns when a parameter selector does not match any parameter.
+
 ## Fixed
 
 - `use_section` in `eds.history` should now correctly handle cases when there are other sections following history sections.
+- Added clickable snippets in the documentation for more registered functions
+- We should now correctly support loading transformers in offline mode if they were already in huggingface's cache
+- We now support `words[-10:10]` syntax in trainable span classifier `context_getter` parameter
+- :ambulance: Until now, `post_init` was applied **after** the instantiation of the optimizer : if the model discovered new labels, and therefore changed its parameter tensors to reflect that, these new tensors were not taken into account by the optimizer, which could likely lead to subpar performance. Now, `post_init` is applied **before** the optimizer is instantiated, so that the optimizer can correctly handle the new tensors.
 
 ## Changed
 
 - Sections cues in `eds.history` are now section titles, and not the full section.
+- Validation metrics are now found under the root field `validation` in the training logs (e.g. `metrics['validation']['ner']['micro']['f']`)
+- It is now recommended to define optimizer groups of `ScheduledOptimizer` as a list of dicts of optim hyper-parameters, each containing a `selector` regex key, rather than as a single dict with a `selector` as keys and a dict of optim hyper-parameters as values. This allows for more flexibility in defining the optimizer groups, and is more consistent with the rest of the EDS-NLP API. This makes it easier to reference groups values from other places in config files, since their path doesn't contain a complex regex string anymore. See the updated training tutorials for more details.
 
 ## v0.17.2 (2025-06-25)
 
@@ -33,6 +46,8 @@
 ### Added
 
 - Added grad spike detection to the `edsnlp.train` script, and per weight layer gradient logging.
+- Added support for multiple loggers (`tensorboard`, `wandb`, `comet_ml`, `aim`, `mlflow`, `clearml`, `dvclive`, `csv`, `json`, `rich`) in `edsnlp.train` via the `logger` parameter. Default is [`json` and `rich`] for backward compatibility.
+- Added clickable snippets in the documentation for more registered functions
 
 ### Fixed
 

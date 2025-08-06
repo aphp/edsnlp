@@ -38,7 +38,7 @@ def test_read_shuffle_loop(num_cpu_workers: int):
     data = polars.read_parquet(
         Path(__file__).parent.parent.resolve() / "resources" / "docs.parquet"
     )
-    notes = (
+    notes_a, notes_b = (
         edsnlp.data.from_polars(
             data,
             shuffle="dataset",
@@ -47,13 +47,10 @@ def test_read_shuffle_loop(num_cpu_workers: int):
         )
         .map(lambda x: x["note_id"])
         .set_processing(num_cpu_workers=num_cpu_workers)
+        for _ in range(2)
     )
-    notes = list(islice(notes, 6))
-    assert notes == [
-        "subfolder/doc-1",
-        "subfolder/doc-3",
-        "subfolder/doc-2",
-        "subfolder/doc-1",
-        "subfolder/doc-2",
-        "subfolder/doc-3",
-    ]
+    # This test differs from other data rand perm test as polars rng has changed
+    # between versions (from 1.32 ?) so it's easier to check this
+    notes_a = list(islice(notes_a, 6))
+    notes_b = list(islice(notes_b, 6))
+    assert notes_a == notes_b, "Shuffling with loop should yield the same results"

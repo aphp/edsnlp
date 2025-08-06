@@ -106,7 +106,7 @@ def insert_assert_statements(code):
                     end = match.end()
                     stmt_str = ast.unparse(stmt)
                     if stmt_str.startswith("print("):
-                        stmt_str = stmt_str[len("print") :]
+                        stmt_str = stmt_str.replace("print", "print_to_string")
                     repl = f"""\
 val = {stmt_str}
 try:
@@ -168,8 +168,11 @@ def test_code_blocks(url, tmpdir, reset_imports):
     code_with_asserts = """
 import pytest
 
+def print_to_string(*args, sep=" ", end="\\n", file=None, flush=False):
+    return (sep.join(map(str, args)) + end).rstrip('\\n')
+
 def assert_print(*args, sep=" ", end="\\n", file=None, flush=False):
-    printed.append((sep.join(map(str, args)) + end).rstrip('\\n'))
+    printed.append(print_to_string(*args, sep=sep, end=end, file=file, flush=flush))
 
 """ + insert_assert_statements(code)
     assert "# Out:" not in code_with_asserts, (

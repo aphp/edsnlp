@@ -94,6 +94,11 @@ ml = [
     "transformers>=4.0.0,<5.0.0",
     "accelerate>=0.20.3,<1.0.0",
 ]
+llm = [
+    "openai>=1.90.0",
+    "vllm>=0.8.5.post1",
+    "nest_asyncio",
+]
 docs = [
     "edsnlp[docs-no-ml]",
     "edsnlp[ml]",
@@ -196,6 +201,7 @@ where = ["."]
 "eds.hypothesis"                  = "edsnlp.pipes.qualifiers.hypothesis.factory:create_component"
 "eds.negation"                    = "edsnlp.pipes.qualifiers.negation.factory:create_component"
 "eds.reported_speech"             = "edsnlp.pipes.qualifiers.reported_speech.factory:create_component"
+"eds.llm_span_qualifier"          = "edsnlp.pipes.qualifiers.llm.factory:create_component"
 
 # Misc
 "eds.consultation_dates"          = "edsnlp.pipes.misc.consultation_dates.factory:create_component"

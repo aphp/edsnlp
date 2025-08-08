@@ -58,6 +58,7 @@ nav:
       - tutorials/training-span-classifier.md
       - tutorials/tuning.md
       - advanced-tutorials/distant_annotation.md
+      - tutorials/qualifying-entities-with-llm.md
   - Pipes:
       - Overview: pipes/index.md
       - Core Pipelines:
@@ -77,6 +78,7 @@ nav:
           - pipes/qualifiers/history.md
           - pipes/qualifiers/contextual.md
           - pipes/qualifiers/external_information.md
+          - pipes/qualifiers/llm-qualifier.md
       - Miscellaneous:
           - pipes/misc/index.md
           - pipes/misc/dates.md

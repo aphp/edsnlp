@@ -102,7 +102,7 @@ class LLMSpanClassifier(
         A prefix prompt to paste after the `user_prompt` and before the selected context
         of the span (using the `context_getter`).
         It will be formatted specifically for each span, using the `span` variable.
-        Example: "Is '{span}' a Colonoscopy (procedure) date? \n\nText:\n"
+        Example: "Is '{span}' a Colonoscopy (procedure) date?"
     suffix_prompt: Optional[str]
         A suffix prompt to append at the end of the prompt.
     examples : Optional[List[Tuple[str, str]]]
@@ -162,6 +162,9 @@ class LLMSpanClassifier(
         This can include parameters like `n` for the number of responses to generate,
         or any other OpenAI API parameters.
 
+    Authors and citation
+    --------------------
+    The `eds.llm_qualifier` component was developed by AP-HP's Data Science team.
     """
 
     def __init__(

@@ -1,5 +1,10 @@
 # Using a LLM as a span qualifier
 In this tutorial we woud learn how to use the `LLMSpanClassifier` pipe to qualify spans.
+You should install the extra dependencies before:
+```bash
+pip install edsnlp[llm]
+```
+
 We suppose that there is an available LLM server compatible with OpenAI API.
 For example, using the library vllm you can launch an LLM server as follows in command line:
 ```bash

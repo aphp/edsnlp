@@ -55,6 +55,7 @@ nav:
       - tutorials/make-a-training-script.md
       - tutorials/training.md
       - tutorials/tuning.md
+      - tutorials/qualifying-entities-with-llm.md
   - Pipes:
       - Overview: pipes/index.md
       - Core Pipelines:
@@ -72,6 +73,7 @@ nav:
           - pipes/qualifiers/hypothesis.md
           - pipes/qualifiers/reported-speech.md
           - pipes/qualifiers/history.md
+          - pipes/qualifiers/llm-qualifier.md
       - Miscellaneous:
           - pipes/misc/index.md
           - pipes/misc/dates.md

@@ -62,7 +62,9 @@ if TYPE_CHECKING:
     from .ner.scores.elston_ellis.factory import create_component as elston_ellis
     from .ner.scores.emergency.ccmu.factory import create_component as emergency_ccmu
     from .ner.scores.emergency.gemsa.factory import create_component as emergency_gemsa
-    from .ner.scores.emergency.priority.factory import create_component as emergency_priority
+    from .ner.scores.emergency.priority.factory import (
+        create_component as emergency_priority,
+    )
     from .ner.scores.factory import create_component as score
     from .ner.scores.sofa.factory import create_component as sofa
     from .ner.suicide_attempt.factory import create_component as suicide_attempt
@@ -75,16 +77,27 @@ if TYPE_CHECKING:
     from .qualifiers.reported_speech.factory import create_component as reported_speech
     from .qualifiers.reported_speech.factory import create_component as rspeech
     from .qualifiers.contextual.factory import create_component as contextual_qualifier
-    from .qualifiers.external_information.factory import create_component as external_information_qualifier
+    from .qualifiers.external_information.factory import (
+        create_component as external_information_qualifier,
+    )
+    from .qualifiers.llm.factory import create_component as llm_span_qualifier
     from .trainable.ner_crf.factory import create_component as ner_crf
-    from .trainable.biaffine_dep_parser.factory import create_component as biaffine_dep_parser
+    from .trainable.biaffine_dep_parser.factory import (
+        create_component as biaffine_dep_parser,
+    )
     from .trainable.extractive_qa.factory import create_component as extractive_qa
     from .trainable.span_classifier.factory import create_component as span_classifier
     from .trainable.span_linker.factory import create_component as span_linker
-    from .trainable.embeddings.span_pooler.factory import create_component as span_pooler
-    from .trainable.embeddings.transformer.factory import create_component as transformer
+    from .trainable.embeddings.span_pooler.factory import (
+        create_component as span_pooler,
+    )
+    from .trainable.embeddings.transformer.factory import (
+        create_component as transformer,
+    )
     from .trainable.embeddings.text_cnn.factory import create_component as text_cnn
     from .misc.split import Split as split
     from .misc.explode import Explode as explode
-    from .llm.llm_markup_extractor.factory import create_component as llm_markup_extractor
+    from .llm.llm_markup_extractor.factory import (
+        create_component as llm_markup_extractor,
+    )
     from .llm.llm_span_qualifier.factory import create_component as llm_span_qualifier

@@ -1,4 +1,4 @@
-# Family Context {: #edsnlp.pipes.qualifiers.family.factory.create_component }
+# LLM qualifier {: #edsnlp.pipes.qualifiers.llm.factory.create_component }
 
 ::: edsnlp.pipes.qualifiers.llm.factory.create_component
     options:

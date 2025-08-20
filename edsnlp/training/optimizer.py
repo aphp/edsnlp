@@ -84,11 +84,12 @@ class LinearSchedule(Schedule):
         start_value: float = 0.0,
         path: Optional[Union[str, int, List[Union[str, int]]]] = None,
         warmup_rate: float = 0.0,
+        end_value: float = 0.0,
     ):
         """
         Linear schedule for a parameter group. The schedule will linearly increase
         the value from `start_value` to `max_value` in the first `warmup_rate` of the
-        `total_steps` and then linearly decrease it to `0`.
+        `total_steps` and then linearly decrease it to `end_value`.
 
         Parameters
         ----------
@@ -102,11 +103,14 @@ class LinearSchedule(Schedule):
             The path to the attribute to set.
         warmup_rate: float
             The rate of the warmup.
+        end_value: float
+            The final value to reach after the decay phase. Defaults to 0.0.
         """
         super().__init__(path, start_value)
         self.max_value = max_value
         self.warmup_rate = warmup_rate
         self.total_steps = total_steps
+        self.end_value = end_value
         self.idx = 0
 
     def reset(self, group):
@@ -133,7 +137,7 @@ class LinearSchedule(Schedule):
             progress = min(
                 1.0, (self.idx - warmup_steps) / (self.total_steps - warmup_steps)
             )
-            value = self.max_value + (0 - self.max_value) * progress
+            value = self.max_value + (self.end_value - self.max_value) * progress
         for path in self.paths:
             set_deep_attr(group, path, value)
 
@@ -141,6 +145,7 @@ class LinearSchedule(Schedule):
         format_string = type(self).__name__ + "(\n"
         format_string += f"    start_value: {self.start_value}\n"
         format_string += f"    max_value: {self.max_value}\n"
+        format_string += f"    end_value: {self.end_value}\n"
         format_string += f"    warmup_rate: {self.warmup_rate}\n"
         format_string += f"    paths: {self.paths}\n"
         format_string += f"    total_steps: {self.total_steps}\n"
@@ -289,9 +294,9 @@ class ScheduledOptimizer(torch.optim.Optimizer):
         self.schedules = self.extract_schedules(optim.param_groups)
         for schedule in self.schedules:
             if schedule.total_steps is None:
-                assert (
-                    total_steps is not None
-                ), "total_steps must be provided to the optimizer or the schedule"
+                assert total_steps is not None, (
+                    "total_steps must be provided to the optimizer or the schedule"
+                )
                 schedule.total_steps = total_steps
             if init_schedules:
                 schedule.step(optim.param_groups)

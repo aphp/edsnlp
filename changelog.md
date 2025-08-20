@@ -7,6 +7,7 @@
 - Added support for multiple loggers (`tensorboard`, `wandb`, `comet_ml`, `aim`, `mlflow`, `clearml`, `dvclive`, `csv`, `json`, `rich`) in `edsnlp.train` via the `logger` parameter. Default is [`json` and `rich`] for backward compatibility.
 - Sub batch sizes for gradient accumulation can now be defined as simple "splits" of the original batch, e.g. `batch_size = 10000 tokens` and `sub_batch_size = 5 splits` to accumulate batches of 2000 tokens.
 - Parquet writer now has a `pyarrow_write_kwargs` to pass to [pyarrow.dataset.write_dataset](https://arrow.apache.org/docs/python/generated/pyarrow.dataset.write_dataset.html#pyarrow-dataset-write-dataset)
+- LinearSchedule (mostly used for LR scheduling) now allows a `end_value` parameter to configure if the learning rate should decay to zero or another value.
 
 ## Fixed
 

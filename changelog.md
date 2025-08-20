@@ -5,6 +5,7 @@
 ## Added
 
 - Added support for multiple loggers (`tensorboard`, `wandb`, `comet_ml`, `aim`, `mlflow`, `clearml`, `dvclive`, `csv`, `json`, `rich`) in `edsnlp.train` via the `logger` parameter. Default is [`json` and `rich`] for backward compatibility.
+- Sub batch sizes for gradient accumulation can now be defined as simple "splits" of the original batch, e.g. `batch_size = 10000 tokens` and `sub_batch_size = 5 splits` to accumulate batches of 2000 tokens.
 
 ## Fixed
 
@@ -14,7 +15,7 @@
 ## Changed
 
 - Sections cues in `eds.history` are now section titles, and not the full section.
-- Validation metrics are now found under the root field `validation` in the training logs (e.g. `metrics['validation']['ner']['micro']['f']`)
+- :boom: Validation metrics are now found under the root field `validation` in the training logs (e.g. `metrics['validation']['ner']['micro']['f']`)
 
 ## v0.17.2 (2025-06-25)
 

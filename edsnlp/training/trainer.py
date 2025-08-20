@@ -318,6 +318,12 @@ class TrainingData:
         sub_batch_size: Optional[BatchSizeArg]
             How to split each batch into sub-batches that will be fed to
             the model independently to accumulate gradients over.
+            To split a batch of 8000 tokens into smaller batches of 1000
+            tokens each, just set this to "1000 tokens".
+
+            You can also request a number of splits, like "4 splits",
+            to split the batch into N parts each close to (but less than)
+            batch_size / N.
         pipe_names: Optional[Collection[str]]
             The names of the pipes that should be trained on this data.
             If None, defaults to all trainable pipes.
@@ -340,8 +346,15 @@ class TrainingData:
         with nlp.select_pipes(enable=self.pipe_names):
             data = data.map(nlp.preprocess, kwargs=dict(supervision=True))
         batcher = stat_batchify(self.batch_size[1] or "docs")
-        data = data.batchify(batch_size=self.batch_size[0], batch_by=batcher)
-        if self.sub_batch_size:
+        if self.sub_batch_size[1] == "splits":
+            data = data.batchify(
+                batch_size=self.batch_size[0] // self.sub_batch_size[0],
+                batch_by=batcher,
+            )
+            data = data.batchify(batch_size=self.sub_batch_size[0])
+            data = data.map(lambda b: [nlp.collate(sb, device=device) for sb in b])
+        elif self.sub_batch_size:
+            data = data.batchify(batch_size=self.batch_size[0], batch_by=batcher)
             sub_batcher = stat_batchify(self.sub_batch_size[1] or "docs")
             data = data.map(
                 lambda batch: [
@@ -350,6 +363,7 @@ class TrainingData:
                 ]
             )
         else:
+            data = data.batchify(batch_size=self.batch_size[0], batch_by=batcher)
             data = data.map(nlp.collate, kwargs=dict(device=device))
         return data
 

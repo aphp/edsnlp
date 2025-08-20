@@ -18,7 +18,7 @@ vllm serve Qwen/Qwen3-8B --port 8000 --enable-prefix-caching --tensor-parallel-s
 ## Import dependencies
 ```python
 from datetime import datetime
-from edsnlp.pipes.qualifier.llm.llm_qualifier import LLMSpanClassifier
+from edsnlp.pipes.qualifiers.llm.llm_qualifier import LLMSpanClassifier
 from edsnlp.utils.span_getters import make_span_context_getter
 import edsnlp, edsnlp.pipes as eds
 ```

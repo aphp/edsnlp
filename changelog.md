@@ -6,11 +6,13 @@
 
 - Added support for multiple loggers (`tensorboard`, `wandb`, `comet_ml`, `aim`, `mlflow`, `clearml`, `dvclive`, `csv`, `json`, `rich`) in `edsnlp.train` via the `logger` parameter. Default is [`json` and `rich`] for backward compatibility.
 - Sub batch sizes for gradient accumulation can now be defined as simple "splits" of the original batch, e.g. `batch_size = 10000 tokens` and `sub_batch_size = 5 splits` to accumulate batches of 2000 tokens.
+- Parquet writer now has a `pyarrow_write_kwargs` to pass to [pyarrow.dataset.write_dataset](https://arrow.apache.org/docs/python/generated/pyarrow.dataset.write_dataset.html#pyarrow-dataset-write-dataset)
 
 ## Fixed
 
 - `use_section` in `eds.history` should now correctly handle cases when there are other sections following history sections.
 - Added clickable snippets in the documentation for more registered functions
+- Pyarrow dataset writing with multiprocessing should be faster, as we removed a useless data transfer
 
 ## Changed
 

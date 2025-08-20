@@ -120,12 +120,14 @@ class ParquetWriter(BatchWriter):
         write_in_worker: bool = False,
         overwrite: bool,
         filesystem: Optional[FileSystem] = None,
+        pyarrow_write_kwargs: Optional[Dict[str, Any]] = None,
     ):
         super().__init__()
         self.fs, self.path = normalize_fs_path(filesystem, path)
 
         # Check that filesystem has the same protocol as indicated by path
         self.fs.makedirs(self.path, exist_ok=True)
+        self.pyarrow_write_kwargs = pyarrow_write_kwargs or {}
 
         dataset: pyarrow.dataset.FileSystemDataset = (  # type: ignore
             pyarrow.dataset.dataset(
@@ -164,8 +166,9 @@ class ParquetWriter(BatchWriter):
             table=fragment,
             root_path=self.path,
             filesystem=self.fs,
+            **self.pyarrow_write_kwargs,
         )
-        return (fragment, len(batch))
+        return (None, len(batch))
 
     def consolidate(
         self, items: Iterable[ParquetFileFragment]
@@ -297,6 +300,7 @@ def write_parquet(
     filesystem: Optional[FileSystem] = None,
     execute: bool = True,
     converter: Optional[Union[str, Callable]] = None,
+    pyarrow_write_kwargs: Optional[Dict[str, Any]] = None,
     **kwargs,
 ) -> pyarrow.dataset.Dataset:
     """
@@ -351,6 +355,8 @@ def write_parquet(
     filesystem: Optional[AbstractFileSystem] = None,
         The filesystem to use to write the files. If None, the filesystem will be
         inferred from the path (e.g. `s3://` will use S3).
+    pyarrow_write_kwargs: Optional[Dict[str, Any]]
+        Additional keyword arguments to pass to the `pyarrow.parquet.write_to_dataset`
     execute: bool
         Whether to execute the writing operation immediately or to return a stream
     converter: Optional[Union[str, Callable]]
@@ -364,9 +370,9 @@ def write_parquet(
 
     data = Stream.ensure_stream(data)
     if "num_rows_per_file" in kwargs:
-        assert (
-            batch_size is None
-        ), "Cannot specify both 'batch_size' and deprecated 'num_rows_per_file'."
+        assert batch_size is None, (
+            "Cannot specify both 'batch_size' and deprecated 'num_rows_per_file'."
+        )
         batch_size = kwargs.pop("num_rows_per_file")
         assert batch_by in (
             None,
@@ -386,6 +392,7 @@ def write_parquet(
             batch_size=batch_size,
             batch_by=batch_by,
             write_in_worker=write_in_worker,
+            pyarrow_write_kwargs=pyarrow_write_kwargs,
             overwrite=overwrite,
             filesystem=filesystem,
         ),

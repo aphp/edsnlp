@@ -5,25 +5,29 @@ You should install the extra dependencies before:
 pip install edsnlp[llm]
 ```
 
+## Using a local LLM server
 We suppose that there is an available LLM server compatible with OpenAI API.
 For example, using the library vllm you can launch an LLM server as follows in command line:
 ```bash
 vllm serve Qwen/Qwen3-8B --port 8000 --enable-prefix-caching --tensor-parallel-size 1 --max-num-seqs=10 --max-num-batched-tokens=35000
 ```
 
+## Using an external API
+You can also use the [Openai API](https://openai.com/index/openai-api/) or the [Groq API](https://groq.com/).
+
 !!! warning
 
-    As you are probably working with sensitive medical data, Please check whether you can use an external API or if you need to expose an API in your own infrastructure, as in the previous example.
+    As you are probably working with sensitive medical data, Please check whether you can use an external API or if you need to expose an API in your own infrastructure.
 
 ## Import dependencies
-```python
+```{ .python .no-check }
 from datetime import datetime
 from edsnlp.pipes.qualifiers.llm.llm_qualifier import LLMSpanClassifier
 from edsnlp.utils.span_getters import make_span_context_getter
 import edsnlp, edsnlp.pipes as eds
 ```
 ## Define prompt and examples
-```python
+```{ .python .no-check }
 task_prompts = {
     0: {
         "normalized_task_name": "biopsy_procedure",
@@ -65,7 +69,7 @@ task_prompts = {
 ```
 
 ## Format these examples for few-shot learning
-```python
+```{ .python .no-check }
 def format_examples(raw_examples, prefix_prompt, suffix_prompt):
     examples = []
 
@@ -77,7 +81,7 @@ def format_examples(raw_examples, prefix_prompt, suffix_prompt):
 ```
 
 ## Set parameters and prompts
-```python
+```{ .python .no-check }
 # Set prompt
 prompt_id = 0
 raw_examples = task_prompts.get(prompt_id).get("examples")
@@ -92,25 +96,41 @@ response_format = {
     "type": "json_schema",
     "json_schema": {
         "name": "DateModel",
-        "strict": True,
+        # "strict": True,
         "schema": task_prompts.get(prompt_id)["json_schema"],
     },
 }
 
 # Set parameters
 response_mapping = None
-model_name = "Qwen/Qwen3-8B"
-api_url = "http://localhost:8000/v1"
-max_tokens = 20
+max_tokens = 200
 extra_body = {
-    "chat_template_kwargs": {"enable_thinking": False},
+    # "chat_template_kwargs": {"enable_thinking": False},
 }
 temperature = 0
 ```
 
+=== "For local serving"
+
+    ```{ .python .no-check }
+    ### For local serving
+    model_name = "Qwen/Qwen3-8B"
+    api_url = "http://localhost:8000/v1"
+    api_key = "EMPTY_API_KEY"
+    ```
+
+
+=== "Using the Groq API"
+
+    ```{ .python .no-check }
+    ### Using Groq API
+    model_name = "openai/gpt-oss-20b"
+    api_url = "https://api.groq.com/openai/v1"
+    api_key = "TOKEN" ## your API KEY
+    ```
 
 ## Define the pipeline
-```python
+```{ .python .no-check }
 nlp = edsnlp.blank("eds")
 nlp.add_pipe("sentencizer")
 nlp.add_pipe(eds.dates())
@@ -130,6 +150,7 @@ nlp.add_pipe(
         suffix_prompt=suffix_prompt,
         examples=examples,
         api_url=api_url,
+        api_key=api_key,
         max_tokens=max_tokens,
         response_mapping=response_mapping,
         extra_body=extra_body,
@@ -142,7 +163,7 @@ nlp.add_pipe(
 
 ## Apply it on a document
 
-```python
+```{ .python .no-check }
 # Let's try with a fake LLM generated text
 text = """
 Centre Hospitalier Départemental – RCP Prostate – 20/02/2025
@@ -157,7 +178,7 @@ En RCP du 20/02/2025, patient classé cT3a N0 M0, haut risque. Décision : radio
 """
 ```
 
-```python
+```{ .python .no-check }
 t0 = datetime.now()
 doc = nlp(text)
 t1 = datetime.now()
@@ -168,18 +189,18 @@ for span in doc.spans["dates"]:
 ```
 
 Lets check the type
-```python
+```{ .python .no-check }
 type(span._.biopsy_procedure)
 ```
 # Apply on multiple documents
-```python
+```{ .python .no-check }
 docs = [
     doc,
 ] * 10
 predicted_docs = docs.map_pipeline(nlp, 4)
 ```
 
-```python
+```{ .python .no-check }
 t0 = datetime.now()
 note_nlp = edsnlp.data.to_pandas(
     predicted_docs,

@@ -199,5 +199,5 @@ jobs:
 
       - name: Install library
         run: |
-          pip install ".[ml]" pytest
+          pip install ".[ml,llm]" pytest
           pytest tests/pipelines/test_pipelines.py

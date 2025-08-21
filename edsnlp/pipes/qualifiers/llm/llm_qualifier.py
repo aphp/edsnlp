@@ -217,7 +217,7 @@ class LLMSpanClassifier(
         self.max_tokens = max_tokens
         self.response_format = response_format
         self.response_mapping = response_mapping
-        self.kwargs = kwargs
+        self.kwargs = kwargs.get("kwargs")
         self.timeout = timeout
         self.n_concurrent_tasks = n_concurrent_tasks
 

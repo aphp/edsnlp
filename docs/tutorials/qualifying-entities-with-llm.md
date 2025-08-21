@@ -22,9 +22,13 @@ You can also use the [Openai API](https://openai.com/index/openai-api/) or the [
 ## Import dependencies
 ```{ .python .no-check }
 from datetime import datetime
+
+import pandas as pd
+
+import edsnlp
+import edsnlp.pipes as eds
 from edsnlp.pipes.qualifiers.llm.llm_qualifier import LLMSpanClassifier
 from edsnlp.utils.span_getters import make_span_context_getter
-import edsnlp, edsnlp.pipes as eds
 ```
 ## Define prompt and examples
 ```{ .python .no-check }
@@ -194,10 +198,13 @@ type(span._.biopsy_procedure)
 ```
 # Apply on multiple documents
 ```{ .python .no-check }
-docs = [
-    doc,
-] * 10
-predicted_docs = docs.map_pipeline(nlp, 4)
+texts = [
+    text,
+] * 2
+
+notes = pd.DataFrame({"note_id": range(len(texts)), "note_text": texts})
+docs = edsnlp.data.from_pandas(notes, nlp=nlp, converter="omop")
+predicted_docs = docs.map_pipeline(nlp, 2)
 ```
 
 ```{ .python .no-check }
@@ -212,5 +219,5 @@ note_nlp = edsnlp.data.to_pandas(
 )
 t1 = datetime.now()
 print("Execution time", t1 - t0)
-pred.head()
+note_nlp.head()
 ```

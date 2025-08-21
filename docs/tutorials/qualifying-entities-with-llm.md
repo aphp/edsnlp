@@ -74,9 +74,6 @@ def format_examples(raw_examples, prefix_prompt, suffix_prompt):
         examples.append((prompt, answer))
 
     return examples
-
-
-examples = format_examples(raw_examples, prefix_prompt, suffix_prompt)
 ```
 
 ## Set parameters and prompts
@@ -88,7 +85,7 @@ prefix_prompt = task_prompts.get(prompt_id).get("prefix_prompt")
 user_prompt = task_prompts.get(prompt_id).get("user_prompt")
 system_prompt = task_prompts.get(prompt_id).get("system_prompt")
 suffix_prompt = task_prompts.get(prompt_id).get("suffix_prompt")
-
+examples = format_examples(raw_examples, prefix_prompt, suffix_prompt)
 
 # Define JSON schema
 response_format = {

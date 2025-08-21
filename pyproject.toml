@@ -45,6 +45,7 @@ docs = [
     "mike",
     "markdown-grid-tables==0.4.0",
     "edsnlp[ml]",
+    "edsnlp[llm]",
 ]
 dev = [
     "pre-commit>=2.21.0",

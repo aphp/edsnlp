@@ -16,7 +16,6 @@ from spacy.tokens import Doc, Span
 from typing_extensions import TypedDict
 
 from edsnlp.core.pipeline import Pipeline
-from edsnlp.core.torch_component import BatchOutput
 from edsnlp.pipes.base import BaseSpanAttributeClassifierComponent
 from edsnlp.pipes.qualifiers.llm.llm_utils import (
     AsyncLLM,
@@ -304,7 +303,7 @@ class LLMSpanClassifier(
     def forward(
         self,
         batch: LLMSpanClassifierBatchInput,
-    ) -> BatchOutput:
+    ) -> Dict[str, List[Any]]:
         """
         Apply the span classifier module to the document embeddings and given spans to:
         - compute the loss
@@ -337,18 +336,6 @@ class LLMSpanClassifier(
         return {
             "labels": pred,
         }
-
-    def update_bindings(
-        self,
-        all_labels: List[str],
-        spans: List[Span],
-        qlf: str,
-        labels: List[str],
-    ) -> None:
-        for value, span in zip(all_labels, spans):
-            if labels is True or span.label_ in labels:
-                # ...assign the predicted value to the span
-                BINDING_SETTERS[qlf](span, value)
 
     def postprocess(
         self,

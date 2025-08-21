@@ -101,6 +101,7 @@ llm = [
 docs = [
     "edsnlp[docs-no-ml]",
     "edsnlp[ml]",
+    "edsnlp[llm]",
 ]
 dev = [
     "edsnlp[dev-no-ml]",

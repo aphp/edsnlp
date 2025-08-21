@@ -217,7 +217,7 @@ class LLMSpanClassifier(
         self.max_tokens = max_tokens
         self.response_format = response_format
         self.response_mapping = response_mapping
-        self.kwargs = kwargs.get("kwargs")
+        self.kwargs = kwargs.get("kwargs") or {}
         self.timeout = timeout
         self.n_concurrent_tasks = n_concurrent_tasks
 
@@ -275,12 +275,12 @@ class LLMSpanClassifier(
             if self.suffix_prompt:
                 final_user_prompt += self.suffix_prompt
 
-                messages = create_prompt_messages(
-                    system_prompt=self.system_prompt,
-                    user_prompt=self.user_prompt,
-                    examples=self.examples,
-                    final_user_prompt=final_user_prompt,
-                )
+            messages = create_prompt_messages(
+                system_prompt=self.system_prompt,
+                user_prompt=self.user_prompt,
+                examples=self.examples,
+                final_user_prompt=final_user_prompt,
+            )
             doc_batch_messages.append(messages)
 
         return {

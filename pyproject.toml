@@ -96,7 +96,6 @@ ml = [
 ]
 llm = [
     "openai>=1.90.0",
-    "vllm>=0.8.5.post1",
     "nest_asyncio",
 ]
 docs = [

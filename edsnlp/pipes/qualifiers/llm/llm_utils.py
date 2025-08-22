@@ -155,7 +155,7 @@ class AsyncLLM:
 
         return id, parsed_response
 
-    async def store_responses(self, p_id, abbreviation_list):
+    def store_responses(self, p_id, abbreviation_list):
         """ """
         self.responses.append((p_id, abbreviation_list))
 
@@ -184,7 +184,7 @@ class AsyncLLM:
                     response = [""] * self.n_completions
 
             async with self.lock:
-                await self.store_responses(
+                self.store_responses(
                     idx,
                     response,
                 )

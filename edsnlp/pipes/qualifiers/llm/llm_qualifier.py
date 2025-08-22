@@ -227,6 +227,9 @@ class LLMSpanClassifier(
         super().__init__(nlp, name, span_getter=span_getter)
         self.context_getter = context_getter
 
+        if self.response_mapping:
+            self.get_response_mapping_regex_dict()
+
     @property
     def attributes(self) -> Attributes:
         return {qlf: labels for qlf, labels, _ in self.bindings}
@@ -339,6 +342,25 @@ class LLMSpanClassifier(
             "labels": pred,
         }
 
+    def get_response_mapping_regex_dict(self) -> Dict[str, str]:
+        self.response_mapping_regex = {
+            re.compile(regex): mapping_value
+            for regex, mapping_value in self.response_mapping.items()
+        }
+        return self.response_mapping_regex
+
+    def map_response(self, value: str) -> str:
+        for (
+            compiled_regex,
+            mapping_value,
+        ) in self.response_mapping_regex.items():
+            if compiled_regex.search(value):
+                mapped_value = mapping_value
+                break
+            else:
+                mapped_value = None
+        return mapped_value
+
     def postprocess(
         self,
         docs: Sequence[Doc],
@@ -349,33 +371,18 @@ class LLMSpanClassifier(
         spans = [span for sample in inputs for span in sample["$spans"]]
         all_labels = results["labels"]
         # For each prediction group (exclusive bindings)...
+
         for qlf, labels, _ in self.bindings:
-            if self.response_mapping:
-                response_mapping_regex = {
-                    re.compile(regex): mapping_value
-                    for regex, mapping_value in self.response_mapping.items()
-                }
-                for value, span in zip(all_labels, spans):
-                    if labels is True or span.label_ in labels:
-                        if value is None:
-                            mapped_value = None
-                        else:
-                            # ...assign the mapped value to the span
-                            for (
-                                compiled_regex,
-                                mapping_value,
-                            ) in response_mapping_regex.items():
-                                if compiled_regex.search(value):
-                                    mapped_value = mapping_value
-                                    break
-                                else:
-                                    mapped_value = None
-                        BINDING_SETTERS[qlf](span, mapped_value)
-            else:
-                for value, span in zip(all_labels, spans):
-                    if labels is True or span.label_ in labels:
-                        # ...assign the predicted value to the span
-                        BINDING_SETTERS[qlf](span, value)
+            for value, span in zip(all_labels, spans):
+                if labels is True or span.label_ in labels:
+                    if value is None:
+                        mapped_value = None
+                    elif self.response_mapping is not None:
+                        # ...assign the mapped value to the span
+                        mapped_value = self.map_response(value)
+                    else:
+                        mapped_value = value
+                    BINDING_SETTERS[qlf](span, mapped_value)
 
         return docs
 
@@ -388,7 +395,9 @@ class LLMSpanClassifier(
         return docs
 
     def enable_cache(self, cache_id=None):
+        # For compatibility
         pass
 
     def disable_cache(self, cache_id=None):
+        # For compatibility
         pass

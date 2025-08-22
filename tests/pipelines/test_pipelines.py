@@ -1,3 +1,5 @@
+import sys
+
 import pytest
 
 import edsnlp
@@ -22,6 +24,12 @@ def test_import_all():
                 getattr(edsnlp.pipes, name)
             except (ImportError, AttributeError) as e:
                 if "torch" in str(e):
+                    pass
+                if (
+                    "openai" in str(e)
+                    and sys.version_info.major == 3
+                    and sys.version_info.minor == 7
+                ):
                     pass
 
 

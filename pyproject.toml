@@ -256,6 +256,9 @@ include = ["edsnlp*"]
 "eds.span_linker"         = "edsnlp.pipes.trainable.span_linker.factory:create_component"
 "eds.biaffine_dep_parser" = "edsnlp.pipes.trainable.biaffine_dep_parser.factory:create_component"
 
+# LLM (optional dependencies)
+"eds.llm_span_qualifier"          = "edsnlp.pipes.qualifiers.llm.factory:create_component"
+
 [project.entry-points."edsnlp_schedules"]
 "linear" = "edsnlp.training.optimizer:LinearSchedule"
 

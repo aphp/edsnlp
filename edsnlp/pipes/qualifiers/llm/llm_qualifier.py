@@ -195,9 +195,12 @@ class LLMSpanClassifier(
         span_getter: SpanGetterArg = None,
         context_getter: Optional[SpanGetterArg] = None,
         response_mapping: Optional[Dict[str, Any]] = None,
-        api_params: APIParams = dict(
-            max_tokens=50, temperature=0.0, response_format=None, extra_body=None
-        ),
+        api_params: APIParams = {
+            "max_tokens": 50,
+            "temperature": 0.0,
+            "response_format": None,
+            "extra_body": None,
+        },
         timeout: float = 15.0,
         n_concurrent_tasks: int = 4,
         **kwargs,

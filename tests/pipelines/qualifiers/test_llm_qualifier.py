@@ -4,7 +4,7 @@ from edsnlp.utils.examples import parse_example
 from edsnlp.utils.span_getters import make_span_context_getter
 
 
-def test_llm_span_classifier_basic():
+def test_llm_span_classifier():
     # Patch AsyncLLM to avoid real API calls
     class DummyAsyncLLM:
         def __init__(self, *args, **kwargs):
@@ -39,25 +39,25 @@ def test_llm_span_classifier_basic():
                 context_sents=0,
                 context_words=(5, 5),
             ),
-            prompt=dict(
-                system_prompt="You are a medical assistant.",
-                user_prompt="You should help us identify dates in the text.",
-                prefix_prompt="Is '{span}' a date? The text is as follows:\n<<< ",
-                suffix_prompt=" >>>",
-                examples=[
+            prompt={
+                "system_prompt": "You are a medical assistant.",
+                "user_prompt": "You should help us identify dates in the text.",
+                "prefix_prompt": "Is '{span}' a date? The text is as follows:\n<<< ",
+                "suffix_prompt": " >>>",
+                "examples": [
                     (
                         "\nIs'07/12/2020' a date. The text is as follows:\n<<< 07/12/2020 : Anapath / biopsies rectales. >>>",  # noqa: E501
                         "False",
                     )
                 ],
-            ),
+            },
             api_url="https://dummy",
-            api_params=dict(
-                max_tokens=10,
-                temperature=0.0,
-                response_format=None,
-                extra_body=None,
-            ),
+            api_params={
+                "max_tokens": 10,
+                "temperature": 0.0,
+                "response_format": None,
+                "extra_body": None,
+            },
             response_mapping={"^True$": "1", "^False$": "0"},
             n_concurrent_tasks=1,
         )

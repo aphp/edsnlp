@@ -97,6 +97,7 @@ ml = [
 llm = [
     "openai>=1.90.0; python_version>='3.8'",
     "nest_asyncio",
+    "respx",
 ]
 docs = [
     "edsnlp[docs-no-ml]",

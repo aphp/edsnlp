@@ -15,6 +15,14 @@ def test_pipelines(doc):
     assert not doc[0]._.history
 
 
+def is_openai_3_7(e):
+    return (
+        "openai" in str(e)
+        and sys.version_info.major == 3
+        and sys.version_info.minor == 7
+    )
+
+
 def test_import_all():
     import edsnlp.pipes
 
@@ -25,11 +33,7 @@ def test_import_all():
             except (ImportError, AttributeError) as e:
                 if "torch" in str(e):
                     pass
-                if (
-                    "openai" in str(e)
-                    and sys.version_info.major == 3
-                    and sys.version_info.minor == 7
-                ):
+                if is_openai_3_7(e):
                     pass
 
 

@@ -8,6 +8,7 @@ def test_llm_span_classifier_basic():
     # Patch AsyncLLM to avoid real API calls
     class DummyAsyncLLM:
         def __init__(self, *args, **kwargs):
+            # Initialize the dummy LLM
             pass
 
         async def __call__(self, batch_messages):

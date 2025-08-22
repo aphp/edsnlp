@@ -1,6 +1,6 @@
 # Using a LLM as a span qualifier
 In this tutorial we woud learn how to use the `LLMSpanClassifier` pipe to qualify spans.
-You should install the extra dependencies before:
+You should install the extra dependencies before in a python environment (python>='3.8'):
 ```bash
 pip install edsnlp[llm]
 ```
@@ -17,7 +17,7 @@ You can also use the [Openai API](https://openai.com/index/openai-api/) or the [
 
 !!! warning
 
-    As you are probably working with sensitive medical data, Please check whether you can use an external API or if you need to expose an API in your own infrastructure.
+    As you are probably working with sensitive medical data, please check whether you can use an external API or if you need to expose an API in your own infrastructure.
 
 ## Import dependencies
 ```{ .python .no-check }
@@ -125,6 +125,8 @@ temperature = 0
 
 
 === "Using the Groq API"
+    !!! warning
+        ⚠️ This section involves the use of an external API. Please ensure you have the necessary credentials and understand the potential risks associated with external API usage.
 
     ```{ .python .no-check }
     ### Using Groq API

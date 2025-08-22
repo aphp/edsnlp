@@ -63,7 +63,22 @@ jobs:
       - name: Install dependencies
         run: uv pip install -e . --group dev
 
-      - name: Test (ML) with Pytest on Python ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: pip install -e ".[dev,setup,llm]"
+        if: matrix.python-version == '3.9'
+
+      - name: Install dependencies
+        # skip ML tests for 3.10 and 3.11
+        run: pip install -e ".[dev-no-ml]"
+        if: matrix.python-version == '3.10' || matrix.python-version == '3.11' || matrix.python-version == '3.12'
+
+      - name: Test with Pytest on Python ${{ matrix.python-version }}
+        env:
+          UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
+        run: coverage run -m pytest --ignore tests/test_docs.py --ignore tests/pipelines/qualifiers/test_llm_qualifier.py --ignore tests/pipelines/qualifiers/test_llm_utils.py
+        if: matrix.python-version != '3.9'
+
+      - name: Test with Pytest on Python ${{ matrix.python-version }}
         env:
           UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
         run: coverage run -m pytest

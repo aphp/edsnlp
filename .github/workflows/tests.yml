@@ -192,10 +192,10 @@ jobs:
         run: |
           uv pip install ".[ml]" pytest
           pytest tests/pipelines/test_pipelines.py
-        if: matrix.python-version >= '3.8'
+        if: matrix.python-version != '3.7'
 
       - name: Install library
         run: |
           pip install ".[ml]" pytest
           pytest tests/pipelines/test_pipelines.py
-        if: matrix.python-version < '3.8'
+        if: matrix.python-version == '3.7'

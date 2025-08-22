@@ -95,7 +95,7 @@ class LLMSpanClassifier(
         Example: "You are a medical expert. Classify the following text."
         If None, no system prompt will be used.
         Note: This is not the same as the `user_prompt` parameter.
-    user_prompt : str
+    user_prompt : Optional[str]
         A general prompt to use for all spans. This is a prompt that will be prepended
         to each span's specific prompt. This will be passed under the `user` role
         in the OpenAI API call.
@@ -173,9 +173,9 @@ class LLMSpanClassifier(
         nlp: Optional[Pipeline] = None,
         name: str = "span_classifier",
         system_prompt: Optional[str] = None,
-        user_prompt: str = "Classify the following text:",
-        prefix_prompt: str = None,
-        suffix_prompt: str = None,
+        user_prompt: Optional[str] = "Classify the following text:",
+        prefix_prompt: Optional[str] = None,
+        suffix_prompt: Optional[str] = None,
         examples: Optional[List[Tuple[str, str]]] = None,
         api_url: str = "http://localhost:8000/v1",
         model: str = "Qwen/Qwen3-8B",

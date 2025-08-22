@@ -42,19 +42,19 @@ def test_llm_span_classifier_basic():
                 context_sents=0,
                 context_words=(5, 5),
             ),
-            system_prompt="You are a medical assistant",
-            user_prompt=None,
-            prefix_prompt="Is '{span}' a date? ",
-            suffix_prompt="",
+            system_prompt="You are a medical assistant.",
+            user_prompt="You should help us identify dates in the text.",
+            prefix_prompt="Is '{span}' a date? The text is as follows:\n<<< ",
+            suffix_prompt=" >>>",
             examples=[
                 (
-                    "\nIs'07/12/2020' a date. 07/12/2020 : Anapath / biopsies rectales.",  # noqa: E501
+                    "\nIs'07/12/2020' a date. The text is as follows:\n<<< 07/12/2020 : Anapath / biopsies rectales. >>>",  # noqa: E501
                     "False",
                 )
             ],
             api_url="http://dummy",
             max_tokens=10,
-            response_mapping=None,
+            response_mapping={"^True$": "1", "^False$": "0"},
             extra_body=None,
             temperature=0.0,
             response_format=None,
@@ -66,4 +66,4 @@ def test_llm_span_classifier_basic():
     # Check that the extension is set and the dummy label is applied
     for span in doc.ents:
         assert hasattr(span._, "test_attr")
-        assert span._.test_attr == "True"
+        assert span._.test_attr == "1"

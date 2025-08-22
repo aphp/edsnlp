@@ -80,6 +80,8 @@ class LLMSpanClassifier(
     "binding". For instance, the binding `("_.negation", True)` means that the
     attribute `negation` of the span is (or should be, when predicted) set to `True`.
 
+    Python >= '3.8' is required to use this pipeline.
+
     Parameters
     ----------
     nlp : PipelineProtocol

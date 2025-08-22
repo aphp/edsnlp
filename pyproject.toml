@@ -201,7 +201,6 @@ where = ["."]
 "eds.hypothesis"                  = "edsnlp.pipes.qualifiers.hypothesis.factory:create_component"
 "eds.negation"                    = "edsnlp.pipes.qualifiers.negation.factory:create_component"
 "eds.reported_speech"             = "edsnlp.pipes.qualifiers.reported_speech.factory:create_component"
-"eds.llm_span_qualifier"          = "edsnlp.pipes.qualifiers.llm.factory:create_component"
 
 # Misc
 "eds.consultation_dates"          = "edsnlp.pipes.misc.consultation_dates.factory:create_component"
@@ -281,6 +280,9 @@ where = ["."]
 "eds.span_classifier"     = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
 "eds.span_linker"         = "edsnlp.pipes.trainable.span_linker.factory:create_component"
 "eds.biaffine_dep_parser" = "edsnlp.pipes.trainable.biaffine_dep_parser.factory:create_component"
+
+# LLM (optional dependencies)
+"eds.llm_span_qualifier"          = "edsnlp.pipes.qualifiers.llm.factory:create_component"
 
 [project.entry-points."edsnlp_schedules"]
 "linear" = "edsnlp.training.optimizer:LinearSchedule"

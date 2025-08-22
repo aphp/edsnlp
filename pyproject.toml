@@ -96,7 +96,6 @@ ml = [
 ]
 llm = [
     "openai>=1.90.0; python_version>='3.8'",
-    "openai>=1.53.1; python_version<'3.8'",
     "nest_asyncio",
 ]
 docs = [

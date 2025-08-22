@@ -20,9 +20,6 @@ def test_llm_span_classifier_basic():
     llm_mod.AsyncLLM = DummyAsyncLLM
 
     nlp = edsnlp.blank("eds")
-    # nlp.add_pipe("sentencizer")
-    # nlp.add_pipe(eds.dates(as_ents=True))
-
     example = "En RCP du <ent>20/02/2025</ent>, patient classé cT3a N0 M0, haut risque. IRM multiparamétrique du <ent>10/02/2025</ent>."  # noqa: E501
     text, entities = parse_example(example)
     doc = nlp(text)
@@ -42,22 +39,26 @@ def test_llm_span_classifier_basic():
                 context_sents=0,
                 context_words=(5, 5),
             ),
-            system_prompt="You are a medical assistant.",
-            user_prompt="You should help us identify dates in the text.",
-            prefix_prompt="Is '{span}' a date? The text is as follows:\n<<< ",
-            suffix_prompt=" >>>",
-            examples=[
-                (
-                    "\nIs'07/12/2020' a date. The text is as follows:\n<<< 07/12/2020 : Anapath / biopsies rectales. >>>",  # noqa: E501
-                    "False",
-                )
-            ],
+            prompt=dict(
+                system_prompt="You are a medical assistant.",
+                user_prompt="You should help us identify dates in the text.",
+                prefix_prompt="Is '{span}' a date? The text is as follows:\n<<< ",
+                suffix_prompt=" >>>",
+                examples=[
+                    (
+                        "\nIs'07/12/2020' a date. The text is as follows:\n<<< 07/12/2020 : Anapath / biopsies rectales. >>>",  # noqa: E501
+                        "False",
+                    )
+                ],
+            ),
             api_url="http://dummy",
-            max_tokens=10,
+            api_params=dict(
+                max_tokens=10,
+                temperature=0.0,
+                response_format=None,
+                extra_body=None,
+            ),
             response_mapping={"^True$": "1", "^False$": "0"},
-            extra_body=None,
-            temperature=0.0,
-            response_format=None,
             n_concurrent_tasks=1,
         )
     )

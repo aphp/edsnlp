@@ -64,6 +64,21 @@ labels: Optional[Union[List[str], List[List[str]]]]
 """
 
 
+class PromptConfig(TypedDict, total=False):
+    system_prompt: Optional[str]
+    user_prompt: Optional[str]
+    prefix_prompt: Optional[str]
+    suffix_prompt: Optional[str]
+    examples: Optional[List[Tuple[str, str]]]
+
+
+class APIParams(TypedDict, total=False):
+    max_tokens: int
+    temperature: float
+    response_format: Optional[Dict[str, Any]]
+    extra_body: Optional[Dict[str, Any]]
+
+
 class LLMSpanClassifier(
     BaseSpanAttributeClassifierComponent,
 ):
@@ -172,27 +187,21 @@ class LLMSpanClassifier(
         self,
         nlp: Optional[Pipeline] = None,
         name: str = "span_classifier",
-        system_prompt: Optional[str] = None,
-        user_prompt: Optional[str] = "Classify the following text:",
-        prefix_prompt: Optional[str] = None,
-        suffix_prompt: Optional[str] = None,
-        examples: Optional[List[Tuple[str, str]]] = None,
+        prompt: Optional[PromptConfig] = None,
         api_url: str = "http://localhost:8000/v1",
         model: str = "Qwen/Qwen3-8B",
         *,
         attributes: AttributesArg = None,
         span_getter: SpanGetterArg = None,
         context_getter: Optional[SpanGetterArg] = None,
-        extra_body: Optional[Dict[str, Any]] = None,
-        response_format: Optional[Dict[str, Any]] = None,
-        temperature: float = 0.0,
-        max_tokens: int = 50,
-        response_mapping: Optional[Dict[str, Any]] = None,  # TODO change for a function
+        response_mapping: Optional[Dict[str, Any]] = None,
+        api_params: APIParams = dict(
+            max_tokens=50, temperature=0.0, response_format=None, extra_body=None
+        ),
         timeout: float = 15.0,
         n_concurrent_tasks: int = 4,
         **kwargs,
     ):
-        attributes: Attributes
         if attributes is None:
             raise TypeError(
                 "The `attributes` parameter is required. Please provide a dict of "
@@ -209,20 +218,23 @@ class LLMSpanClassifier(
         # Store API configuration
         self.api_url = api_url
         self.model = model
-        self.system_prompt = system_prompt
-        self.user_prompt = user_prompt
-        self.prefix_prompt = prefix_prompt
-        self.suffix_prompt = suffix_prompt
-        self.extra_body = extra_body
-        self.temperature = temperature
-        self.max_tokens = max_tokens
-        self.response_format = response_format
+        self.extra_body = api_params.get("extra_body")
+        self.temperature = api_params.get("temperature")
+        self.max_tokens = api_params.get("max_tokens")
+        self.response_format = api_params.get("response_format")
         self.response_mapping = response_mapping
         self.kwargs = kwargs.get("kwargs") or {}
         self.timeout = timeout
         self.n_concurrent_tasks = n_concurrent_tasks
 
-        self.examples = examples
+        # Prompt config
+        prompt = prompt or {}
+        self.prompt = prompt
+        self.system_prompt = prompt.get("system_prompt")
+        self.user_prompt = prompt.get("user_prompt")
+        self.prefix_prompt = prompt.get("prefix_prompt")
+        self.suffix_prompt = prompt.get("suffix_prompt")
+        self.examples = prompt.get("examples")
 
         super().__init__(nlp, name, span_getter=span_getter)
         self.context_getter = context_getter

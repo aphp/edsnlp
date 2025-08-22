@@ -34,6 +34,7 @@ def test_import_all():
                 if "torch" in str(e):
                     pass
                 if is_openai_3_7(e):
+                    # Skip tests for OpenAI using python 3.7
                     pass
 
 

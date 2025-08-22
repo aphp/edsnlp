@@ -51,7 +51,7 @@ def test_llm_span_classifier_basic():
                     )
                 ],
             ),
-            api_url="http://dummy",
+            api_url="https://dummy",
             api_params=dict(
                 max_tokens=10,
                 temperature=0.0,

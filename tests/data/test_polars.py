@@ -49,8 +49,17 @@ def test_read_shuffle_loop(num_cpu_workers: int):
         .set_processing(num_cpu_workers=num_cpu_workers)
         for _ in range(2)
     )
-    # This test differs from other data rand perm test as polars rng has changed
-    # between versions (from 1.32 ?) so it's easier to check this
-    notes_a = list(islice(notes_a, 6))
-    notes_b = list(islice(notes_b, 6))
-    assert notes_a == notes_b, "Shuffling with loop should yield the same results"
+    n_notes = len(data)
+    multiplier = 5
+    notes = list(islice(notes, n_notes * multiplier))
+    assert len(set(notes)) == n_notes
+    assert len(notes) == n_notes * multiplier
+    assert (
+        notes
+        != [
+            "subfolder/doc-1",
+            "subfolder/doc-2",
+            "subfolder/doc-3",
+        ]
+        * multiplier
+    )

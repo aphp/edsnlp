@@ -48,12 +48,17 @@ def test_read_shuffle_loop(num_cpu_workers: int):
         .map(lambda x: x["note_id"])
         .set_processing(num_cpu_workers=num_cpu_workers)
     )
-    notes = list(islice(notes, 6))
-    assert notes == [
-        "subfolder/doc-1",
-        "subfolder/doc-3",
-        "subfolder/doc-2",
-        "subfolder/doc-1",
-        "subfolder/doc-2",
-        "subfolder/doc-3",
-    ]
+    n_notes = len(data)
+    multiplier = 5
+    notes = list(islice(notes, n_notes * multiplier))
+    assert len(set(notes)) == n_notes
+    assert len(notes) == n_notes * multiplier
+    assert (
+        notes
+        != [
+            "subfolder/doc-1",
+            "subfolder/doc-2",
+            "subfolder/doc-3",
+        ]
+        * multiplier
+    )

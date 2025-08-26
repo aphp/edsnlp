@@ -113,6 +113,14 @@ val_data:
       span_setter : 'gold_spans'
       span_attributes : ['sosy', 'unit', 'negation']
       bool_attributes : ['negation']  # default standoff to doc converter
+  '@readers': standoff
+  path: tests/training/dataset/
+  converter:
+    - '@factory': eds.standoff_dict2doc
+      span_setter : 'gold_spans'
+      span_attributes : ['sosy', 'unit', 'negation']
+      bool_attributes : ['negation']  # default standoff to doc converter
+
 
 # 🚀 TRAIN SCRIPT OPTIONS
 train:

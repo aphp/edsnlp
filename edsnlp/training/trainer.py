@@ -346,7 +346,7 @@ class TrainingData:
         with nlp.select_pipes(enable=self.pipe_names):
             data = data.map(nlp.preprocess, kwargs=dict(supervision=True))
         batcher = stat_batchify(self.batch_size[1] or "docs")
-        if self.sub_batch_size[1] == "splits":
+        if self.sub_batch_size and self.sub_batch_size[1] == "splits":
             data = data.batchify(
                 batch_size=self.batch_size[0] // self.sub_batch_size[0],
                 batch_by=batcher,

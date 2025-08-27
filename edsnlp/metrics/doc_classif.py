@@ -11,11 +11,11 @@ def doc_classification_metric(
     examples: Union[Tuple[Iterable[Doc], Iterable[Doc]], Iterable[Example]],
     label_attr: str = "label",
     micro_key: str = "micro",
+    macro_key: str = "macro",
     filter_expr: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Scores document-level classification (accuracy, precision, recall, F1).
-
     Parameters
     ----------
     examples: Examples
@@ -25,9 +25,10 @@ def doc_classification_metric(
         The Doc._ attribute containing the label
     micro_key: str
         The key to use to store the micro-averaged results
+    macro_key: str
+        The key to use to store the macro-averaged results
     filter_expr: str
         The filter expression to use to filter the documents
-
     Returns
     -------
     Dict[str, Any]
@@ -46,33 +47,88 @@ def doc_classification_metric(
         gold_labels.append(gold)
 
     labels = set(gold_labels) | set(pred_labels)
+    labels = {label for label in labels if label is not None}
     results = {}
+
     for label in labels:
-        pred_set = [i for i, p in enumerate(pred_labels) if p == label]
-        gold_set = [i for i, g in enumerate(gold_labels) if g == label]
-        tp = len(set(pred_set) & set(gold_set))
-        num_pred = len(pred_set)
-        num_gold = len(gold_set)
+        tp = sum(
+            1 for p, g in zip(pred_labels, gold_labels) if p == label and g == label
+        )
+        fp = sum(
+            1 for p, g in zip(pred_labels, gold_labels) if p == label and g != label
+        )
+        fn = sum(
+            1 for p, g in zip(pred_labels, gold_labels) if g == label and p != label
+        )
+
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        f1 = (
+            (2 * precision * recall) / (precision + recall)
+            if (precision + recall) > 0
+            else 0.0
+        )
+
         results[label] = {
-            "f": 2 * tp / max(1, num_pred + num_gold),
-            "p": 1 if tp == num_pred else (tp / num_pred) if num_pred else 0.0,
-            "r": 1 if tp == num_gold else (tp / num_gold) if num_gold else 0.0,
+            "f": f1,
+            "p": precision,
+            "r": recall,
             "tp": tp,
-            "support": num_gold,
-            "positives": num_pred,
+            "fp": fp,
+            "fn": fn,
+            "support": tp + fn,
+            "positives": tp + fp,
         }
 
-    tp = sum(1 for p, g in zip(pred_labels, gold_labels) if p == g)
-    num_pred = len(pred_labels)
-    num_gold = len(gold_labels)
+    total_tp = sum(1 for p, g in zip(pred_labels, gold_labels) if p == g)
+    total_fp = sum(1 for p, g in zip(pred_labels, gold_labels) if p != g)
+    total_fn = total_fp
+
+    micro_precision = (
+        total_tp / (total_tp + total_fp) if (total_tp + total_fp) > 0 else 0.0
+    )
+    micro_recall = (
+        total_tp / (total_tp + total_fn) if (total_tp + total_fn) > 0 else 0.0
+    )
+    micro_f1 = (
+        (2 * micro_precision * micro_recall) / (micro_precision + micro_recall)
+        if (micro_precision + micro_recall) > 0
+        else 0.0
+    )
+    accuracy = total_tp / len(pred_labels) if len(pred_labels) > 0 else 0.0
+
     results[micro_key] = {
-        "accuracy": tp / num_gold if num_gold else 0.0,
-        "f": 2 * tp / max(1, num_pred + num_gold),
-        "p": tp / num_pred if num_pred else 0.0,
-        "r": tp / num_gold if num_gold else 0.0,
-        "tp": tp,
-        "support": num_gold,
-        "positives": num_pred,
+        "accuracy": accuracy,
+        "f": micro_f1,
+        "p": micro_precision,
+        "r": micro_recall,
+        "tp": total_tp,
+        "fp": total_fp,
+        "fn": total_fn,
+        "support": len(gold_labels),
+        "positives": len(pred_labels),
+    }
+
+    per_class_precisions = [results[label]["p"] for label in labels]
+    per_class_recalls = [results[label]["r"] for label in labels]
+    per_class_f1s = [results[label]["f"] for label in labels]
+
+    macro_precision = (
+        sum(per_class_precisions) / len(per_class_precisions)
+        if per_class_precisions
+        else 0.0
+    )
+    macro_recall = (
+        sum(per_class_recalls) / len(per_class_recalls) if per_class_recalls else 0.0
+    )
+    macro_f1 = sum(per_class_f1s) / len(per_class_f1s) if per_class_f1s else 0.0
+
+    results[macro_key] = {
+        "f": macro_f1,
+        "p": macro_precision,
+        "r": macro_recall,
+        "support": len(labels),
+        "classes": len(labels),
     }
     return results
 

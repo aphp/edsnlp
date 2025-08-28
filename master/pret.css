@@ -1,0 +1,39 @@
+.pret-code-snippet {
+    width: 100%;
+}
+
+.pret-code-snippet > .render-with-pret > pre {
+    margin-bottom: 0;
+}
+
+.pret-code-snippet {
+    margin-bottom: 1em;
+}
+
+.pret-code-snippet > details {
+    margin-bottom: 0;
+}
+
+.pret-code-snippet .pret-code-snippet-view-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    border: 1px solid var(--md-typeset-table-color, #e8e8e8);
+}
+
+.pret-code-snippet .pret-code-snippet-view-content {
+    display: flex;
+    overflow-x: auto;
+    position: relative;
+    /* To prevent a weird bug, likely related to overflow and flexbox, adding scrollbars to the div */
+    padding: 1px;
+    margin: -1px;
+}
+
+.pret-code-snippet-view-content:has(.full-width, .metanno-table) {
+    width: 100%;
+}
+
+.pret-code-snippet-view-container .metanno-table {
+    min-height: 100px;
+}

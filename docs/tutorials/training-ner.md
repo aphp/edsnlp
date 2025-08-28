@@ -165,7 +165,7 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
           span_setter: 'gold_spans'
 
     loggers:
-        - '@loggers': csv
+        - '@loggers': csv !draft
         - '@loggers': rich
           fields:
               step: {}

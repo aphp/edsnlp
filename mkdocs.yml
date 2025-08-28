@@ -3,7 +3,7 @@ site_name: EDS-NLP
 repo_url: https://github.com/aphp/edsnlp
 repo_name: aphp/edsnlp
 
-# copyright: Copyright &copy; 2022 – Assistance Publique - Hôpitaux de Paris
+copyright: Copyright &copy; 2025 – Assistance Publique - Hôpitaux de Paris
 
 # extra:
 #   social:
@@ -145,13 +145,12 @@ nav:
       - data/spark.md
       - data/converters.md
   - Training:
+      - training/training-api.md
       - training/loggers.md
   - Concepts:
       - concepts/pipeline.md
       - concepts/torch-component.md
       - concepts/inference.md
-  - Training:
-      - training/training-api.md
   - Metrics:
       - metrics/index.md
       - metrics/ner.md
@@ -180,30 +179,27 @@ extra:
 
 extra_css:
   - assets/stylesheets/extra.css
-  - assets/stylesheets/cards.css
-  #- assets/termynal/termynal.css
-
-extra_javascript:
-  #- https://cdn.jsdelivr.net/npm/vega@5
-  #- https://cdn.jsdelivr.net/npm/vega-lite@5
-  #- https://cdn.jsdelivr.net/npm/vega-embed@6
-  - https://polyfill.io/v3/polyfill.min.js?features=es6
-  # - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 watch:
   - contributing.md
   - changelog.md
   - edsnlp
 
-hooks:
-    - docs/scripts/plugin.py
-
 plugins:
+  - auto_gen_pages:
+      package_dirs: ["pret"]
+      reference_section: Reference
+      exclude_glob: assets/fragments/*
+      copy_files:
+        changelog.md: changelog.md
+        contributing.md: contributing.md
+  - fix_fonts:
+  - cards:
   - redirects:
       redirect_maps:
         'pipes/trainable/span-qualifier.md': 'pipes/trainable/span-classifier.md'
         'tutorials/training.md': 'training/training-api.md'
-  - search
+  - search:
   - minify:
       minify_html: true
       minify_js: true
@@ -213,11 +209,12 @@ plugins:
       cache_safe: true
   - autorefs:
       priority:
-        - .*
+        - '*'
         - reference
+  - pret_snippet_renderer:
+  - mkdocstrings_options_templates:
   - mkdocstrings:
       enable_inventory: true
-      custom_templates: docs/assets/templates
       handlers:
         python:
           options:
@@ -230,9 +227,13 @@ plugins:
             show_root_toc_entry: false
             show_signature: false
             merge_init_into_class: true
+          inventories:
+            - https://aphp.github.io/confit/latest/objects.inv
+            - https://percevalw.github.io/metanno/latest/objects.inv
+            - https://percevalw.github.io/pret/latest/objects.inv
   - bibtex:
       bibtex_file: "docs/references.bib"
-  - clickable_snippets:
+  - clickable_code:
 # Just uncomment the following lines to enable i18n
 # and start creating .fr.md and .en.md files.
 #  - i18n:
@@ -267,7 +268,6 @@ markdown_extensions:
   - pymdownx.emoji:
       emoji_index: !!python/name:materialx.emoji.twemoji
       emoji_generator: !!python/name:materialx.emoji.to_svg
-  - docs.scripts.cards
 
 validation:
   absolute_links: ignore

@@ -3,13 +3,17 @@ import importlib
 import inspect
 import logging
 import sys
-from typing import Union
+from typing import Any, Union
 
 import astunparse
-from griffe import Extension, Object, ObjectNode
-from griffe.docstrings.dataclasses import DocstringSectionParameters
-from griffe.expressions import Expr
-from griffe.logger import patch_loggers
+from griffe import (
+    DocstringSectionParameters,
+    Expr,
+    Extension,
+    Object,
+    ObjectNode,
+    patch_loggers,
+)
 
 
 def get_logger(name):
@@ -31,7 +35,12 @@ class EDSNLPDocstrings(Extension):
         self.FACT_MEM = {}
         self.PIPE_TO_FACT = {}
 
-    def on_instance(self, node: Union[ast.AST, ObjectNode], obj: Object) -> None:
+    def on_instance(
+        self,
+        node: Union[ast.AST, ObjectNode],
+        obj: Object,
+        agent: Any = None,
+    ) -> None:
         if (
             isinstance(node, ast.Assign)
             and obj.name == "create_component"

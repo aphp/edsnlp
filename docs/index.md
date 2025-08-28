@@ -67,7 +67,11 @@ This example is complete, it should run as-is.
 
 To learn more about EDS-NLP, we have prepared a series of tutorials that should cover the main features of the library.
 
---8<-- "docs/tutorials/index.md:tutorials"
+--8<-- "docs/tutorials/index.md:classic-tutorials"
+
+We also provide tutorials on how to train deep-learning models with EDS-NLP. These tutorials cover the training API, hyperparameter tuning, and more.
+
+--8<-- "docs/tutorials/index.md:deep-learning-tutorials"
 
 ## Available pipeline components
 

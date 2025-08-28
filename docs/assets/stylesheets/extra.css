@@ -53,6 +53,7 @@
 }
 
 html {
+    font-size: 100% !important;
 }
 
 body, input {
@@ -65,7 +66,7 @@ body, input {
     word-wrap: normal;
     color: var(--md-typeset-color);
     font-weight: 600;
-    scroll-margin-top: 1.25rem;
+    scroll-margin-top: 1.5625rem;
     letter-spacing: 0;
 }
 
@@ -74,26 +75,17 @@ body, input {
 }
 
 .md-nav {
-    font-size: 0.8rem;
+    font-size: 1rem;
 }
 
 .md-typeset code {
     font-size: 0.95em;
 }
 
-.md-typeset pre > code, .termy > [data-termynal], .highlighttable .linenos {
-    font-size: .75rem;
+.md-typeset pre > code, .highlighttable .linenos {
+    font-size: .9375rem;
 }
 
-.termy > [data-termynal] {
-    font-size: 0.8rem;
-    font-family: var(--md-code-font);
-    padding: 45px 45px 25px;
-}
-
-.termy > [data-termynal] {
-
-}
 
 .md-typeset :is(.admonition,details) {
     font-size: inherit !important;
@@ -125,21 +117,21 @@ body, input {
 
 @media screen and (min-width: 76.1875em) {
     .md-sidebar {
-        margin-top: 1.5rem;
+        margin-top: 1.875rem;
     }
 }
 
 @media screen and (min-width: 60em) {
     .md-nav--secondary .md-nav__title {
         background: var(--md-main-bg) !important;
-        box-shadow: 0 0 0.4rem 0.4rem var(--md-main-bg) !important;
+        box-shadow: 0 0 0.5rem 0.5rem var(--md-main-bg) !important;
     }
 }
 
 @media screen and (min-width: 76.25em) {
     .md-nav--primary .md-nav__title, .md-nav--secondary .md-nav__title, .md-nav--lifted > .md-nav__list > .md-nav__item--active > .md-nav__link {
         background: var(--md-main-bg) !important;
-        box-shadow: 0 0 0.4rem 0.4rem var(--md-main-bg) !important;
+        box-shadow: 0 0 0.5rem 0.5rem var(--md-main-bg) !important;
     }
 }
 
@@ -152,7 +144,7 @@ body, input {
 }
 
 .md-content__inner {
-    margin-top: 1.5rem;
+    margin-top: 1.875rem;
 }
 
 .doc td > code {
@@ -160,7 +152,7 @@ body, input {
 }
 
 .md-typeset .card-set {
-    grid-template-columns: repeat(auto-fit,minmax(12rem,1fr)) !important;
+    grid-template-columns: repeat(auto-fit,minmax(15rem,1fr)) !important;
 }
 
 .md-typeset code a:not(.md-annotation__index) {
@@ -187,26 +179,8 @@ a.discrete-link {
 }
 
 .sourced-heading > a {
-    font-size: 1rem;
+    font-size: 1.25rem;
     align-content: center;
-    white-space: nowrap;
-}
-
-.doc-param-details .subdoc {
-    padding: 0;
-    box-shadow: none;
-    border-color: var(--md-typeset-table-color);
-}
-
-.doc-param-details .subdoc > div > div > div>  table {
-    padding: 0;
-    box-shadow: none;
-    border: none;
-}
-
-.doc-param-details .subdoc > summary {
-    margin: 0;
-    font-weight: normal;
 }
 
 /*.chip {
@@ -305,4 +279,12 @@ a.discrete-link {
     border: 1px solid #bababa;
     color: #bababa;
     white-space: nowrap;
+}
+
+.md-content {
+    contain: paint;
+}
+
+.hidden {
+    display: none !important;
 }

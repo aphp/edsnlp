@@ -64,23 +64,8 @@ dev-no-ml = [
     "edsnlp[docs-no-ml]",
 ]
 docs-no-ml = [
-    "mike~=1.1.2",
-    "mkdocs-charts-plugin==0.0.8",
-    "mkdocs-img2fig-plugin==0.9.3",
-    "mkdocs-material~=9.2.0",
-    "mkdocs-section-index==0.3.4",
-    "mkdocs~=1.5.2",
-    "mkdocstrings>=0.20,<0.28.0",
-    "mkdocstrings-python~=1.1",
-    "mkdocs-minify-plugin",
-    "mkdocs-redirects>=1.2.1;python_version>='3.8'",
-    "markdown-grid-tables==0.4.0",
-    "pybtex~=0.24.0",
-    "pathspec>=0.11.1",  # required by vendored mkdocs-autorefs PR
-    "astunparse",
-    "griffe<0.39",
-    "jedi",
-    "html5lib",
+    "mkdocs-eds @ git+https://github.com/percevalw/mkdocs-eds.git@main#egg=mkdocs-eds ; python_version>='3.9'",
+    "markdown-grid-tables==0.4.0; python_version>='3.9'",
 ]
 ml = [
     "rich-logger>=0.3.1",
@@ -332,11 +317,6 @@ where = ["."]
 
 [project.entry-points."spacy_tokenizers"]
 "eds.tokenizer" = "edsnlp.language:create_eds_tokenizer"
-
-[project.entry-points."mkdocs.plugins"]
-"bibtex" = "docs.scripts.bibtex:BibTexPlugin"
-"autorefs" = "docs.scripts.autorefs.plugin:AutorefsPlugin"
-"clickable_snippets" = "docs.scripts.clickable_snippets:ClickableSnippetsPlugin"
 
 [build-system]
 requires = [

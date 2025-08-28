@@ -22,7 +22,7 @@ You can configure loggers in `edsnlp.train` via the `logger` parameter of the `t
         train:
           ...
           logger:
-            "@loggers": csv
+            "@loggers": csv !draft
             ...
         ```
 
@@ -50,13 +50,13 @@ You can configure loggers in `edsnlp.train` via the `logger` parameter of the `t
 
 !!! note "Draft objects"
 
-    `edsnlp.train` can provide a default project name and logging dir for loggers that require these parameters. For these loggers, if you don't want to set the project name yourself, you can either:
+    `edsnlp.train` can provide a default `project_name` and `logging_dir` for loggers that require these parameters. For these loggers, if you don't want to set the project name yourself, you can either:
 
     - call `CSVLogger.draft(...)` without the normal init parameters minus the `project_name` or `logging_dir` parameters,
-      which will cause a `Draft[CSVLogger]` object to be returned if some required parameters are missing
-    - or use `"@loggers": csv !draft` in the config file, which will also cause a `Draft[CSVLogger]` object to be returned if some required
-      parameters are missing
-    - use the shorthand `logger: ["csv", "tensorboard", ...]`, which will use the default project name and logging dir
+      which will cause a `Draft[CSVLogger]` object to be returned, which be instantiated later when the required parameters
+      are available
+    - or use `"@loggers": csv !draft` in the config file, which is the config file equivalent to the `.draft()` method above
+    - use the string shorthands `logger: ["csv", "tensorboard", ...]`, which will use the default project name and logging dir
 
 The supported loggers are listed below.
 

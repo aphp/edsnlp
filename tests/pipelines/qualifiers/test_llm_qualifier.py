@@ -68,3 +68,5 @@ def test_llm_span_classifier():
     for span in doc.ents:
         assert hasattr(span._, "test_attr")
         assert span._.test_attr == "1"
+
+    assert nlp.get_pipe("llm").attributes == {"_.test_attr": True}

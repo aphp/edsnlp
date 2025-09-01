@@ -249,21 +249,6 @@ class LLMSpanClassifier(
     def attributes(self) -> Attributes:
         return {qlf: labels for qlf, labels, _ in self.bindings}
 
-    @attributes.setter
-    def attributes(self, value: Attributes):
-        bindings = []
-        for qlf, labels in value.items():
-            groups = [group for group in self.bindings if group[0] == qlf]
-            if len(groups) > 1:
-                raise ValueError(
-                    f"Attribute {qlf} has different label filters: "
-                    f"{[g[0] for g in groups]}. Please use the `update_bindings` "
-                    f"method to update the labels."
-                )
-            if groups:
-                bindings.append((qlf, labels, groups[0][2]))
-        self.bindings = bindings
-
     def set_extensions(self):
         super().set_extensions()
         for group in self.bindings:

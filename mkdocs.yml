@@ -79,6 +79,7 @@ nav:
           - pipes/qualifiers/contextual.md
           - pipes/qualifiers/external_information.md
           - pipes/qualifiers/llm-qualifier.md
+          - 'LLM Qualifier': pipes/qualifiers/llm-qualifier.md
       - Miscellaneous:
           - pipes/misc/index.md
           - pipes/misc/dates.md

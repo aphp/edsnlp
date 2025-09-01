@@ -139,7 +139,8 @@ def test_exception_handling(n_completions):
         assert response == [[""] * n_completions]
 
 
-def test_json_decode_error():
+@mark.parametrize("errors", ["ignore", "raw"])
+def test_json_decode_error(errors):
     raw_response = '{"biopsy";false}'
     response_format = {
         "type": "json_schema",
@@ -154,5 +155,8 @@ def test_json_decode_error():
         },
     }
 
-    response = parse_json_response(raw_response, response_format)
-    assert response == {}
+    response = parse_json_response(raw_response, response_format, errors=errors)
+    if errors == "ignore":
+        assert response == {}
+    else:
+        assert response == '{"biopsy";false}'

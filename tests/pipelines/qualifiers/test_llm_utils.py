@@ -1,5 +1,6 @@
 import httpx
 import respx
+from openai.types.chat.chat_completion import ChatCompletion
 from pytest import mark
 
 from edsnlp.pipes.qualifiers.llm.llm_utils import (
@@ -69,8 +70,77 @@ def test_create_prompt_messages():
     assert messages2 == messages_expected2
 
 
+def create_fake_chat_completion():
+    fake_response_data = {
+        "id": "chatcmpl-fake123",
+        "object": "chat.completion",
+        "created": 1699999999,
+        "model": "toto",
+        "choices": [
+            {
+                "index": 0,
+                "message": {"role": "assistant", "content": '{"biopsy":false}'},
+                "finish_reason": "stop",
+            }
+        ],
+        "usage": {"prompt_tokens": 10, "completion_tokens": 15, "total_tokens": 25},
+    }
+
+    # Create the ChatCompletion object
+    fake_completion = ChatCompletion.model_validate(fake_response_data)
+    return fake_completion
+
+
 def test_parse_json_response():
-    raw_response = '{"biopsy":false}'
+    response = create_fake_chat_completion()
+    response_format = {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "DateModel",
+            "schema": {
+                "properties": {"biopsy": {"title": "Biopsy", "type": "boolean"}},
+                "required": ["biopsy"],
+                "title": "DateModel",
+                "type": "object",
+            },
+        },
+    }
+
+    llm = AsyncLLM(n_concurrent_tasks=1)
+    parsed_response = llm.parse_messages(response, response_format)
+    assert parsed_response == {"biopsy": False}
+
+
+@mark.parametrize("n_completions", [1, 2])
+def test_exception_handling(n_completions):
+    api_url = "http://localhost:8000/v1/"
+    suffix_url = "chat/completions"
+    llm_api = AsyncLLM(
+        n_concurrent_tasks=1, api_url=api_url, n_completions=n_completions
+    )
+
+    with respx.mock:
+        respx.post(api_url + suffix_url).mock(
+            side_effect=[
+                httpx.Response(404, json={"choices": [{}]}),
+            ]
+        )
+
+        response = run_async(
+            llm_api(
+                batch_messages=[
+                    [{"role": "user", "content": "your prompt here"}],
+                ]
+            )
+        )
+    if n_completions == 1:
+        assert response == [""]
+    else:
+        assert response == [[""] * n_completions]
+
+
+def test_json_decode_error():
+    raw_response = '{"biopsy";false}'
     response_format = {
         "type": "json_schema",
         "json_schema": {
@@ -85,4 +155,4 @@ def test_parse_json_response():
     }
 
     response = parse_json_response(raw_response, response_format)
-    assert response == {"biopsy": False}
+    assert response == {}

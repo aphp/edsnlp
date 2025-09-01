@@ -77,12 +77,18 @@ class AsyncLLM:
         self.kwargs = kwargs
         self.n_concurrent_tasks = n_concurrent_tasks
         self.responses = []
-        self.lock = asyncio.Lock()
+        self._lock = None
 
         self.client = AsyncOpenAI(
             api_key=api_key,
             base_url=api_url,
         )
+
+    @property
+    def lock(self):
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+        return self._lock
 
     async def async_id_message_generator(
         self, batch_messages: List[List[Dict[str, str]]]

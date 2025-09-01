@@ -74,7 +74,7 @@ nav:
           - pipes/qualifiers/hypothesis.md
           - pipes/qualifiers/reported-speech.md
           - pipes/qualifiers/history.md
-          - pipes/qualifiers/llm-qualifier.md
+          - 'LLM Qualifier': pipes/qualifiers/llm-qualifier.md
       - Miscellaneous:
           - pipes/misc/index.md
           - pipes/misc/dates.md

@@ -65,44 +65,9 @@ labels: Optional[Union[List[str], List[List[str]]]]
 
 
 class PromptConfig(TypedDict, total=False):
-    system_prompt: Optional[str]
-    user_prompt: Optional[str]
-    prefix_prompt: Optional[str]
-    suffix_prompt: Optional[str]
-    examples: Optional[List[Tuple[str, str]]]
-
-
-class APIParams(TypedDict, total=False):
-    max_tokens: int
-    temperature: float
-    response_format: Optional[Dict[str, Any]]
-    extra_body: Optional[Dict[str, Any]]
-
-
-class LLMSpanClassifier(
-    BaseSpanAttributeClassifierComponent,
-):
     """
-    The `LLMSpanClassifier` component is a LLM attribute predictor.
-    In this context, the span classification task consists in assigning values (boolean,
-    strings or any object) to attributes/extensions of spans such as:
-
-    - `span._.negation`,
-    - `span._.date.mode`
-    - `span._.cui`
-
-    In the rest of this page, we will refer to a pair of (attribute, value) as a
-    "binding". For instance, the binding `("_.negation", True)` means that the
-    attribute `negation` of the span is (or should be, when predicted) set to `True`.
-
-    Python >= '3.8' is required to use this pipeline.
-
     Parameters
     ----------
-    nlp : PipelineProtocol
-        The pipeline object
-    name : str
-        Name of the component
     system_prompt : Optional[str]
         A system prompt to use for the LLM. This is a general prompt that will be
         prepended to each query. This prompt will be passed under the `system` role
@@ -127,6 +92,65 @@ class LLMSpanClassifier(
         expected classification.
         If None, no examples will be used.
         Example: [("This is a colonoscopy date.", "colonoscopy_date")]
+    """
+
+    system_prompt: Optional[str]
+    user_prompt: Optional[str]
+    prefix_prompt: Optional[str]
+    suffix_prompt: Optional[str]
+    examples: Optional[List[Tuple[str, str]]]
+
+
+class APIParams(TypedDict, total=False):
+    """
+    Parameters
+    ----------
+    extra_body : Optional[Dict[str, Any]]
+        Additional body parameters to pass to the vLLM API.
+        This can be used to pass additional parameters to the model, such as
+        `reasoning_parser` or `enable_reasoning`.
+    response_format : Optional[Dict[str, Any]]
+        The response format to use for the vLLM API call.
+        This can be used to specify how the response should be formatted.
+    temperature : float
+        The temperature for the vLLM API call. Default is 0.0 (deterministic).
+    max_tokens : int
+        The maximum number of tokens to generate in the response.
+        Default is 50.
+    """
+
+    max_tokens: int
+    temperature: float
+    response_format: Optional[Dict[str, Any]]
+    extra_body: Optional[Dict[str, Any]]
+
+
+class LLMSpanClassifier(
+    BaseSpanAttributeClassifierComponent,
+):
+    """
+    The `LLMSpanClassifier` component is a LLM attribute predictor.
+    In this context, the span classification task consists in assigning values (boolean,
+    strings or any object) to attributes/extensions of spans such as:
+
+    - `span._.negation`,
+    - `span._.date.mode`
+    - `span._.cui`
+
+    In the rest of this page, we will refer to a pair of (attribute, value) as a
+    "binding". For instance, the binding `("_.negation", True)` means that the
+    attribute `negation` of the span is (or should be, when predicted) set to `True`.
+
+    Python >= 3.8 is required.
+
+    Parameters
+    ----------
+    nlp : PipelineProtocol
+        The pipeline object
+    name : str
+        Name of the component
+    prompt : Optional[PromptConfig]
+        The prompt configuration to use for the LLM.
     api_url : str
         The base URL of the vLLM OpenAI-compatible server to call.
         Default: "http://localhost:8000/v1"
@@ -149,18 +173,8 @@ class LLMSpanClassifier(
         The attributes to predict or train on. If a dict is given, keys are the
         attributes and values are the labels for which the attr is allowed, or True
         if the attr is allowed for all labels.
-    extra_body : Optional[Dict[str, Any]]
-        Additional body parameters to pass to the vLLM API.
-        This can be used to pass additional parameters to the model, such as
-        `reasoning_parser` or `enable_reasoning`.
-    response_format : Optional[Dict[str, Any]]
-        The response format to use for the vLLM API call.
-        This can be used to specify how the response should be formatted.
-    temperature : float
-        The temperature for the vLLM API call. Default is 0.0 (deterministic).
-    max_tokens : int
-        The maximum number of tokens to generate in the response.
-        Default is 50.
+    api_params : APIParams
+        Additional parameters for the vLLM API call.
     response_mapping : Optional[Dict[str, Any]]
         A mapping from regex patterns to values that will be used to map the
         responses from the model to the bindings. If not provided, the raw

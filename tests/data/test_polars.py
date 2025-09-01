@@ -55,4 +55,3 @@ def test_read_shuffle_loop(num_cpu_workers: int):
     notes_a = list(islice(notes_a, 6))
     notes_b = list(islice(notes_b, 6))
     assert notes_a == notes_b, "Shuffling with loop should yield the same results"
-

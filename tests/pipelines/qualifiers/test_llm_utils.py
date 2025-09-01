@@ -1,5 +1,6 @@
 import httpx
 import respx
+from pytest import mark
 
 from edsnlp.pipes.qualifiers.llm.llm_utils import (
     AsyncLLM,
@@ -9,10 +10,11 @@ from edsnlp.pipes.qualifiers.llm.llm_utils import (
 from edsnlp.utils.asynchronous import run_async
 
 
-def test_async_llm():
+@mark.parametrize("n_concurrent_tasks", [1, 2])
+def test_async_llm(n_concurrent_tasks):
     api_url = "http://localhost:8000/v1/"
     suffix_url = "chat/completions"
-    llm_api = AsyncLLM(n_concurrent_tasks=1, api_url=api_url)
+    llm_api = AsyncLLM(n_concurrent_tasks=n_concurrent_tasks, api_url=api_url)
 
     with respx.mock:
         respx.post(api_url + suffix_url).mock(

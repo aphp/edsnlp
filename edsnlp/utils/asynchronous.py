@@ -28,7 +28,7 @@ def run_async(coro: Coroutine[Any, Any, T]) -> T:
     except RuntimeError:
         loop = None
 
-    if loop and loop.is_running():
+    if loop and loop.is_running():  # pragma: no cover
         import nest_asyncio
 
         nest_asyncio.apply()

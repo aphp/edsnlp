@@ -1,0 +1,5 @@
+
+Le patient est né le 14 mars 1950.
+Il s’est présenté en consultation le 2 mai 2025 pour douleurs thoraciques.
+Une biopsie pulmonaire a été réalisée le 4 mai 2025.
+La consultation de contrôle est fixée au 18 juin 2025.

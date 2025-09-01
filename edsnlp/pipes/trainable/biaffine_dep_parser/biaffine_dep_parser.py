@@ -340,7 +340,8 @@ class TrainableBiaffineDependencyParser(
     which you can load using the [`edsnlp.data.read_conll`][edsnlp.data.read_conll]
     function.
 
-    To train the model, refer to the [Training tutorial](/tutorials/training).
+    To train the model, you can adapt the the
+    [Training NER tutorial](/tutorials/training-ner).
 
     Parameters
     ----------

@@ -1,0 +1,3 @@
+Le patient est né le 14 avril 1950.
+Consultation initiale le 2 janvier 2025 pour douleurs thoraciques.
+Biopsie bronchique pratiquée le 4 janvier 2025, en salle d’endoscopie.

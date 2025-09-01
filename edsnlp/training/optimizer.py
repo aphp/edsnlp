@@ -1,4 +1,5 @@
 import importlib
+import warnings
 from collections import defaultdict
 from typing import (
     Any,
@@ -84,11 +85,12 @@ class LinearSchedule(Schedule):
         start_value: float = 0.0,
         path: Optional[Union[str, int, List[Union[str, int]]]] = None,
         warmup_rate: float = 0.0,
+        end_value: float = 0.0,
     ):
         """
         Linear schedule for a parameter group. The schedule will linearly increase
         the value from `start_value` to `max_value` in the first `warmup_rate` of the
-        `total_steps` and then linearly decrease it to `0`.
+        `total_steps` and then linearly decrease it to `end_value`.
 
         Parameters
         ----------
@@ -102,11 +104,14 @@ class LinearSchedule(Schedule):
             The path to the attribute to set.
         warmup_rate: float
             The rate of the warmup.
+        end_value: float
+            The final value to reach after the decay phase. Defaults to 0.0.
         """
         super().__init__(path, start_value)
         self.max_value = max_value
         self.warmup_rate = warmup_rate
         self.total_steps = total_steps
+        self.end_value = end_value
         self.idx = 0
 
     def reset(self, group):
@@ -124,7 +129,13 @@ class LinearSchedule(Schedule):
     def step(self, group, closure=None):
         self.idx += 1
         if self.max_value is None:
-            self.max_value = get_deep_attr(group, self.paths[0])
+            if isinstance(get_deep_attr(group, self.paths[0]), (int, float)):
+                self.max_value = get_deep_attr(group, self.paths[0])
+            else:
+                raise Exception(
+                    "The max_value parameter of the linear schedule "
+                    "must be set to a valid number."
+                )
         warmup_steps = self.total_steps * self.warmup_rate
         if self.idx < warmup_steps:
             progress = self.idx / warmup_steps
@@ -133,7 +144,7 @@ class LinearSchedule(Schedule):
             progress = min(
                 1.0, (self.idx - warmup_steps) / (self.total_steps - warmup_steps)
             )
-            value = self.max_value + (0 - self.max_value) * progress
+            value = self.max_value + (self.end_value - self.max_value) * progress
         for path in self.paths:
             set_deep_attr(group, path, value)
 
@@ -141,6 +152,7 @@ class LinearSchedule(Schedule):
         format_string = type(self).__name__ + "(\n"
         format_string += f"    start_value: {self.start_value}\n"
         format_string += f"    max_value: {self.max_value}\n"
+        format_string += f"    end_value: {self.end_value}\n"
         format_string += f"    warmup_rate: {self.warmup_rate}\n"
         format_string += f"    paths: {self.paths}\n"
         format_string += f"    total_steps: {self.total_steps}\n"
@@ -155,7 +167,9 @@ class ScheduledOptimizer(torch.optim.Optimizer):
         optim: Union[torch.optim.Optimizer, Type[torch.optim.Optimizer], str],
         module: Optional[Union[PipelineProtocol, torch.nn.Module]] = None,
         total_steps: Optional[int] = None,
-        groups: Optional[Dict[str, Union[Dict, Literal[False]]]] = None,
+        groups: Optional[
+            Union[List[Dict], Dict[str, Union[Dict, Literal[False]]]]
+        ] = None,
         init_schedules: bool = True,
         **kwargs,
     ):
@@ -172,13 +186,17 @@ class ScheduledOptimizer(torch.optim.Optimizer):
         optim = ScheduledOptimizer(
             cls="adamw",
             module=model,
-            groups={
+            groups=[
                 # Exclude all parameters matching 'bias' from optimization.
-                "bias": False,
-                # Parameters starting with 'transformer' receive this learning rate
+                {
+                    "selector": "bias",
+                    "exclude": True,
+                },
+                # Parameters of the NER module's embedding receive this learning rate
                 # schedule. If a parameter matches both 'transformer' and 'ner',
-                # the 'transformer' settings take precedence due to the order.
-                "^transformer": {
+                # the first group settings take precedence due to the order.
+                {
+                    "selector": "^ner[.]embedding"
                     "lr": {
                         "@schedules": "linear",
                         "start_value": 0.0,
@@ -188,7 +206,8 @@ class ScheduledOptimizer(torch.optim.Optimizer):
                 },
                 # Parameters starting with 'ner' receive this learning rate schedule,
                 # unless a 'lr' value has already been set by an earlier selector.
-                "^ner": {
+                {
+                    "selector": "^ner"
                     "lr": {
                         "@schedules": "linear",
                         "start_value": 0.0,
@@ -198,10 +217,11 @@ class ScheduledOptimizer(torch.optim.Optimizer):
                 },
                 # Apply a weight_decay of 0.01 to all parameters not excluded.
                 # This setting doesn't conflict with others and applies to all.
-                "": {
+                {
+                    "selector": "",
                     "weight_decay": 0.01,
                 },
-            },
+            ],
             total_steps=1000,
         )
         ```
@@ -210,24 +230,28 @@ class ScheduledOptimizer(torch.optim.Optimizer):
         ----------
         optim : Union[str, Type[torch.optim.Optimizer], torch.optim.Optimizer]
             The optimizer to use. If a string (like "adamw") or a type to instantiate,
-            the`module` and `groups` must be provided.
+            the `module` and `groups` must be provided.
         module : Optional[Union[PipelineProtocol, torch.nn.Module]]
             The module to optimize. Usually the `nlp` pipeline object.
         total_steps : Optional[int]
             The total number of steps, used for schedules.
-        groups : Optional[Dict[str, Group]]
-            The groups to optimize. The key is a regex selector to match parameters in
-            `module.named_parameters()` and the value is a dictionary with the keys
-            `params` and `schedules`.
+        groups : Optional[List[Group]]
+            The groups to optimize. Each group is a dictionary containing:
 
-            The matching is performed by running  `regex.search(selector, name)` so you
-            do not have to match the full name. Note that the order of dict keys
-            matter. If a parameter name matches multiple selectors, the
+            - a regex `selector` key to match the parameter of that group by their names
+              (as listed by `nlp.named_parameters()`)
+            - and several other keys that define the optimizer parameters for that
+              group, such as `lr`, `weight_decay` etc. The value for these keys can
+              be a `Schedule` instance or a simple value
+            - an `exclude` key that can be set to True to exclude parameters
+
+            The matching is performed by running `regex.search(selector, name)` so you
+            do not have to match the full name. Note that the order of the groups
+            matters. If a parameter name matches multiple selectors, the
             configurations of these selectors are combined in reverse order (from the
             last matched selector to the first), allowing later selectors to complete
-            options from earlier ones. If a selector maps to `False`, any parameters
-            matching it are excluded from optimization and not included in any parameter
-            group.
+            options from earlier ones. If a selector contains `exclude=True`, any
+            parameter matching it is excluded from optimization.
         """
         should_instantiate_optim = isinstance(optim, str) or isinstance(optim, type)
         if should_instantiate_optim and (groups is None or module is None):
@@ -246,6 +270,15 @@ class ScheduledOptimizer(torch.optim.Optimizer):
         if should_instantiate_optim:
             named_parameters = list(module.named_parameters())
             groups = Config.resolve(groups, registry=edsnlp.registry)
+
+            # New groups format
+            if isinstance(groups, list):
+                groups = [dict(g) for g in groups]
+                groups = {
+                    g.pop("selector"): g if not g.get("exclude") else False
+                    for g in groups
+                }
+
             groups = {
                 sel: dict(group) if group else False for sel, group in groups.items()
             }
@@ -257,8 +290,20 @@ class ScheduledOptimizer(torch.optim.Optimizer):
                     )
                 )
             groups_to_params = defaultdict(lambda: [])
+            empty_selectors = {sel for sel in groups}
             for params, group in param_to_groups.items():
                 groups_to_params[group].append(params)
+                for sel in group:
+                    empty_selectors.discard(sel)
+
+            if empty_selectors:
+                warnings.warn(
+                    f"Selectors {list(empty_selectors)} did not match any parameters."
+                )
+                warnings.warn(
+                    "For reference, here are the parameters of the module:\n"
+                    + "\n".join("- " + name for name, _ in named_parameters)
+                )
 
             cliques = []
             for selectors, params in groups_to_params.items():
@@ -289,9 +334,9 @@ class ScheduledOptimizer(torch.optim.Optimizer):
         self.schedules = self.extract_schedules(optim.param_groups)
         for schedule in self.schedules:
             if schedule.total_steps is None:
-                assert (
-                    total_steps is not None
-                ), "total_steps must be provided to the optimizer or the schedule"
+                assert total_steps is not None, (
+                    "total_steps must be provided to the optimizer or the schedule"
+                )
                 schedule.total_steps = total_steps
             if init_schedules:
                 schedule.step(optim.param_groups)

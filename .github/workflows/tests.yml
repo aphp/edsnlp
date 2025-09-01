@@ -128,7 +128,7 @@ jobs:
 
     - name: Build documentation
       run: |
-        mike deploy --no-redirect --rebase --update-aliases $BRANCH_NAME latest
+        mike deploy --alias-type=copy --update-aliases $BRANCH_NAME latest
         mike set-default $BRANCH_NAME
 
     - name: Put content of gh-pages to public folder

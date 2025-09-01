@@ -115,7 +115,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
     )
     ```
 
-    To train the model, refer to the [Training](/tutorials/training)
+    To train the model, refer to the [Training](/tutorials/training-ner)
     tutorial.
 
     Extensions

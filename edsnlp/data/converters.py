@@ -793,11 +793,11 @@ class MarkupToDocConverter:
     PRESETS = {
         "md": {
             "opener": r"(?P<opener>\[)",
-            "closer": r"(?P<closer>\]\(\s*(?P<closer_label>[a-zA-Z0-9]+)\s*(?P<closer_attrs>.*?)\))",  # noqa: E501
+            "closer": r"(?P<closer>\]\(\s*(?P<closer_label>[a-zA-Z0-9_]+)\s*(?P<closer_attrs>.*?)\))",  # noqa: E501
         },
         "xml": {
-            "opener": r"(?P<opener><(?P<opener_label>[a-zA-Z0-9]+)(?P<opener_attrs>.*?)>)",  # noqa: E501
-            "closer": r"(?P<closer></(?P<closer_label>[a-zA-Z0-9]+)>)",
+            "opener": r"(?P<opener><(?P<opener_label>[a-zA-Z0-9_]+)(?P<opener_attrs>.*?)>)",  # noqa: E501
+            "closer": r"(?P<closer></(?P<closer_label>[a-zA-Z0-9_]+)>)",
         },
     }
 
@@ -855,7 +855,11 @@ class MarkupToDocConverter:
             attrs = groups.get("closer_attrs", groups.get("opener_attrs")) or ""
             attrs = {
                 k: self._as_python(v)
-                for k, v in (kv.split("=") for kv in attrs.split())
+                for k, v in (
+                    kv.split("=") if "=" in kv else (kv.strip(), "True")
+                    for kv in attrs.split()
+                    if kv.strip()
+                )
             }
             text += inline_text[last_inline_offset:inline_start]
             if is_opener:

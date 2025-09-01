@@ -2,13 +2,24 @@ import inspect
 import types
 from dataclasses import dataclass
 from functools import wraps
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union,
+)
 from weakref import WeakKeyDictionary
 
 import catalogue
 import spacy
 from confit import Config, Registry, RegistryCollection, set_default_registry
 from confit.errors import ConfitValidationError, patch_errors
+from confit.registry import Draft
 from spacy.pipe_analysis import validate_attrs
 
 import edsnlp
@@ -57,14 +68,16 @@ class FactoryMeta:
     default_config: Dict
 
 
-class CurriedFactory:
+T = TypeVar("T")
+
+
+class DraftPipe(Draft[T]):
     def __init__(self, func, kwargs):
-        self.kwargs = kwargs
-        self.factory = func
+        super().__init__(func, kwargs)
         self.instantiated = None
         self.error = None
 
-    def maybe_nlp(self) -> Union["CurriedFactory", Any]:
+    def maybe_nlp(self) -> Union["DraftPipe", Any]:
         """
         If the factory requires an nlp argument and the user has explicitly
         provided it (this is unusual, we usually expect the factory to be
@@ -73,11 +86,11 @@ class CurriedFactory:
 
         Returns
         -------
-        Union["CurriedFactory", Any]
+        Union["PartialFactory", Any]
         """
         from edsnlp.core.pipeline import Pipeline, PipelineProtocol
 
-        sig = inspect.signature(self.factory)
+        sig = inspect.signature(self._func)
         if (
             not (
                 "nlp" in sig.parameters
@@ -86,29 +99,29 @@ class CurriedFactory:
                     or sig.parameters["nlp"].annotation in (Pipeline, PipelineProtocol)
                 )
             )
-            or "nlp" in self.kwargs
-        ) and not self.search_curried_factory(self.kwargs):
-            return self.factory(**self.kwargs)
+            or "nlp" in self._kwargs
+        ) and not self.search_nested_drafts(self._kwargs):
+            return self._func(**self._kwargs)
         return self
 
     @classmethod
-    def search_curried_factory(cls, obj):
-        if isinstance(obj, CurriedFactory):
+    def search_nested_drafts(cls, obj):
+        if isinstance(obj, DraftPipe):
             return obj
         elif isinstance(obj, dict):
             for value in obj.values():
-                result = cls.search_curried_factory(value)
+                result = cls.search_nested_drafts(value)
                 if result is not None:
                     return result
         elif isinstance(obj, (tuple, list, set)):
             for value in obj:
-                result = cls.search_curried_factory(value)
+                result = cls.search_nested_drafts(value)
                 if result is not None:
                     return result
         return None
 
     def instantiate(
-        obj: Any,
+        self,
         nlp: "edsnlp.Pipeline",
         path: Optional[Sequence[str]] = (),
     ):
@@ -117,51 +130,51 @@ class CurriedFactory:
         passing in the nlp object and name to factories. Since they can be
         nested, we need to add them to every factory in the config.
         """
-        if isinstance(obj, CurriedFactory):
-            if obj.error is not None:
-                raise obj.error
+        if isinstance(self, DraftPipe):
+            if self.error is not None:
+                raise self.error
 
-            if obj.instantiated is not None:
-                return obj.instantiated
+            if self.instantiated is not None:
+                return self.instantiated
 
             name = path[0] if len(path) == 1 else None
             parameters = (
-                inspect.signature(obj.factory.__init__).parameters
-                if isinstance(obj.factory, type)
-                else inspect.signature(obj.factory).parameters
+                inspect.signature(self._func.__init__).parameters
+                if isinstance(self._func, type)
+                else inspect.signature(self._func).parameters
             )
             kwargs = {
-                key: CurriedFactory.instantiate(
-                    obj=value,
+                key: DraftPipe.instantiate(
+                    self=value,
                     nlp=nlp,
                     path=(*path, key),
                 )
-                for key, value in obj.kwargs.items()
+                for key, value in self._kwargs.items()
             }
             try:
                 if nlp and "nlp" in parameters:
                     kwargs["nlp"] = nlp
                 if name and "name" in parameters:
                     kwargs["name"] = name
-                obj.instantiated = obj.factory(**kwargs)
+                self.instantiated = self._func(**kwargs)
             except ConfitValidationError as e:
-                obj.error = e
+                self.error = e
                 raise ConfitValidationError(
                     patch_errors(e.raw_errors, path, model=e.model),
                     model=e.model,
-                    name=obj.factory.__module__ + "." + obj.factory.__qualname__,
+                    name=self._func.__module__ + "." + self._func.__qualname__,
                 )  # .with_traceback(None)
             # except Exception as e:
             #     obj.error = e
             #     raise ConfitValidationError([ErrorWrapper(e, path)])
-            return obj.instantiated
-        elif isinstance(obj, dict):
+            return self.instantiated
+        elif isinstance(self, dict):
             instantiated = {}
             errors = []
-            for key, value in obj.items():
+            for key, value in self.items():
                 try:
-                    instantiated[key] = CurriedFactory.instantiate(
-                        obj=value,
+                    instantiated[key] = DraftPipe.instantiate(
+                        self=value,
                         nlp=nlp,
                         path=(*path, key),
                     )
@@ -170,41 +183,30 @@ class CurriedFactory:
             if errors:
                 raise ConfitValidationError(errors)
             return instantiated
-        elif isinstance(obj, (tuple, list)):
+        elif isinstance(self, (tuple, list)):
             instantiated = []
             errors = []
-            for i, value in enumerate(obj):
+            for i, value in enumerate(self):
                 try:
                     instantiated.append(
-                        CurriedFactory.instantiate(value, nlp, (*path, str(i)))
+                        DraftPipe.instantiate(value, nlp, (*path, str(i)))
                     )
                 except ConfitValidationError as e:  # pragma: no cover
                     errors.append(e.raw_errors)
             if errors:
                 raise ConfitValidationError(errors)
-            return type(obj)(instantiated)
+            return type(self)(instantiated)
         else:
-            return obj
+            return self
 
-    def _raise_curried_factory_error(self):
+    def _raise_draft_error(self):
         raise TypeError(
-            f"This component CurriedFactory({self.factory}) has not been instantiated "
+            f"This {self} component has not been instantiated "
             f"yet, likely because it was missing an `nlp` pipeline argument. You "
             f"should either:\n"
             f"- add it to a pipeline: `pipe = nlp.add_pipe(pipe)`\n"
             f"- or fill its `nlp` argument: `pipe = factory(nlp=nlp, ...)`"
         )
-
-    def __call__(self, *args, **kwargs):
-        self._raise_curried_factory_error()
-
-    def __getattr__(self, name):
-        if name.startswith("__"):
-            raise AttributeError(name)
-        self._raise_curried_factory_error()
-
-    def __repr__(self):
-        return f"CurriedFactory({self.factory})"
 
 
 glob = []
@@ -274,7 +276,7 @@ class FactoryRegistry(Registry):
 
             if catalogue.check_exists(*registry_path):
                 func = catalogue._get(registry_path)
-                return lambda **kwargs: CurriedFactory(func, kwargs=kwargs).maybe_nlp()
+                return lambda **kwargs: DraftPipe(func, kwargs=kwargs).maybe_nlp()
 
         # Steps 1 & 2
         func = check_and_return()
@@ -427,7 +429,7 @@ class FactoryRegistry(Registry):
 
             @wraps(fn)
             def curried_registered_fn(**kwargs):
-                return CurriedFactory(registered_fn, kwargs).maybe_nlp()
+                return DraftPipe(registered_fn, kwargs).maybe_nlp()
 
             return (
                 curried_registered_fn
@@ -453,6 +455,7 @@ class registry(RegistryCollection):
     core = Registry(("edsnlp", "core"), entry_points=True)
     optimizers = Registry(("edsnlp", "optimizers"), entry_points=True)
     schedules = Registry(("edsnlp", "schedules"), entry_points=True)
+    loggers = Registry(("edsnlp", "loggers"), entry_points=True)
 
 
 set_default_registry(registry)

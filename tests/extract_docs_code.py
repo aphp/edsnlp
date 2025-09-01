@@ -115,8 +115,6 @@ class PyCodeExtractorPlugin(BasePlugin):
         # After pymdownx.highlight, because of weird registering deleting the first
         # extension
         config["markdown_extensions"].append(self.ext)
-        config["markdown_extensions"].remove("pymdownx.highlight")
-        config["markdown_extensions"].remove("fenced_code")
 
     def on_pre_build(self, *, config: MkDocsConfig):
         mkdocstrings_plugin: MkdocstringsPlugin = config.plugins["mkdocstrings"]

@@ -1,0 +1,6 @@
+T1	date 52 63	2 juin 2019
+T2	date 101 114	15 avril 2023
+A1	is_biopsy_date T2
+T3	date 150 161	10 mai 2023
+T4	date 195 206	20 mai 2025
+A2	is_biopsy_date T4

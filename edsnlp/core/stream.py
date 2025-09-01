@@ -283,9 +283,9 @@ class Stream(metaclass=MetaStream):
                     "Cannot use both a batch_size expression and a batch_by function"
                 )
             batch_size, batch_by = BatchSizeArg.validate(batch_size)
-        if batch_size is not None and not isinstance(batch_size, int):
+        if batch_size is not None and not isinstance(batch_size, (int, float)):
             raise ValueError(
-                f"Invalid batch_size (must be an integer or None): {batch_size}"
+                f"Invalid batch_size (must be a number or None): {batch_size}"
             )
         if (
             batch_by is not None
@@ -348,7 +348,7 @@ class Stream(metaclass=MetaStream):
     @with_non_default_args
     def set_processing(
         self,
-        batch_size: Optional[Union[int, str]] = None,
+        batch_size: Optional[Union[int, float, str]] = None,
         batch_by: BatchBy = None,
         split_into_batches_after: str = None,
         num_cpu_workers: Optional[int] = None,
@@ -369,7 +369,7 @@ class Stream(metaclass=MetaStream):
         """
         Parameters
         ----------
-        batch_size: Optional[Union[int, str]]
+        batch_size: Optional[Union[int, float, str]]
             The batch size. Can also be a batching expression like
             "32 docs", "1024 words", "dataset", "fragment", etc.
         batch_by: BatchBy
@@ -518,7 +518,7 @@ class Stream(metaclass=MetaStream):
         pipe,
         name: Optional[str] = None,
         kwargs={},
-        batch_size: Optional[Union[int, str]] = None,
+        batch_size: Optional[Union[int, float, str]] = None,
         batch_by: BatchBy = None,
     ) -> "Stream":
         """
@@ -533,7 +533,7 @@ class Stream(metaclass=MetaStream):
             The callable to map to the documents.
         kwargs: Dict
             The keyword arguments to pass to the callable.
-        batch_size: Optional[Union[int, str]]
+        batch_size: Optional[Union[int, float, str]]
             The batch size. Can also be a batching expression like
             "32 docs", "1024 words", "dataset", "fragment", etc.
         batch_by: BatchBy
@@ -567,7 +567,7 @@ class Stream(metaclass=MetaStream):
 
     def batchify(
         self,
-        batch_size: Optional[Union[int, str]] = None,
+        batch_size: Optional[Union[int, float, str]] = None,
         batch_by: BatchBy = None,
     ) -> "Stream":
         """
@@ -575,7 +575,7 @@ class Stream(metaclass=MetaStream):
 
         Parameters
         ----------
-        batch_size: Optional[Union[int, str]]
+        batch_size: Optional[Union[int, float, str]]
             The batch size. Can also be a batching expression like
             "32 docs", "1024 words", "dataset", "fragment", etc.
         batch_by: BatchBy
@@ -607,7 +607,7 @@ class Stream(metaclass=MetaStream):
         forward: Callable[[Any], Any],
         postprocess: Optional[Callable[[List, Any], Any]] = None,
         name: Optional[str] = None,
-        batch_size: Optional[Union[int, str]] = None,
+        batch_size: Optional[Union[int, float, str]] = None,
         batch_by: BatchBy = None,
     ) -> "Stream":
         """
@@ -626,7 +626,7 @@ class Stream(metaclass=MetaStream):
             An optional callable that takes the list of documents and the output of the
             deep learning operation, and returns the final output. This will be called
             on the same CPU-bound worker that called the `prepare_batch` function.
-        batch_size: Optional[Union[int, str]]
+        batch_size: Optional[Union[int, float, str]]
             The batch size. Can also be a batching expression like
             "32 docs", "1024 words", "dataset", "fragment", etc.
         batch_by: BatchBy
@@ -662,7 +662,7 @@ class Stream(metaclass=MetaStream):
     def map_pipeline(
         self,
         model: Pipeline,
-        batch_size: Optional[Union[int, str]] = None,
+        batch_size: Optional[Union[int, float, str]] = None,
         batch_by: BatchBy = None,
     ) -> "Stream":
         """
@@ -673,7 +673,7 @@ class Stream(metaclass=MetaStream):
         ----------
         model: Pipeline
             The pipeline to map to the documents.
-        batch_size: Optional[Union[int, str]]
+        batch_size: Optional[Union[int, float, str]]
             The batch size. Can also be a batching expression like
             "32 docs", "1024 words", "dataset", "fragment", etc.
         batch_by: BatchBy
@@ -741,7 +741,7 @@ class Stream(metaclass=MetaStream):
 
     def shuffle(
         self,
-        batch_size: Optional[Union[str, int]] = None,
+        batch_size: Optional[Union[int, float, str]] = None,
         batch_by: Optional[str, BatchFn] = None,
         seed: Optional[int] = None,
         shuffle_reader: Optional[Union[bool, str]] = None,
@@ -763,7 +763,7 @@ class Stream(metaclass=MetaStream):
 
         Parameters
         ----------
-        batch_size: Optional[Union[int, str]]
+        batch_size: Optional[Union[int, float, str]]
             The batch size. Can also be a batching expression like
             "32 docs", "1024 words", "dataset", "fragment", etc.
         batch_by: BatchBy

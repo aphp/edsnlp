@@ -233,7 +233,7 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
     import edsnlp
     from edsnlp.training import train, ScheduledOptimizer, TrainingData
     from edsnlp.metrics.ner import NerExactMetric
-    from edsnlp.training.loggers import CSVLogger, RichLogger, WandbLogger
+    from edsnlp.training.loggers import CSVLogger, RichLogger, WandBLogger
     import edsnlp.pipes as eds
     import torch
 
@@ -242,6 +242,7 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
     nlp.add_pipe(
         # The NER pipe will be a CRF model
         eds.ner_crf(
+            name="ner",
             mode="joint",
             target_span_getter="gold_spans",
             # Set spans as both to ents and in separate `ent.label` groups
@@ -280,19 +281,21 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
         optim=torch.optim.Adam,
         module=nlp,
         total_steps=max_steps,
-        groups={
-            "^transformer": {
-                "lr": {"@schedules": "linear", "warmup_rate": 0.1, "start_value": 0 "max_value": 5e-5,},
+        groups=[
+            {
+                "selector": "transformer",
+                "lr": {"@schedules": "linear", "warmup_rate": 0.1, "start_value": 0, "max_value": 5e-5,},
             },
-            "": {
-                "lr": {"@schedules": "linear", "warmup_rate": 0.1, "start_value": 3e-4 "max_value": 3e-4,},
+            {
+                "selector": ".*",
+                "lr": {"@schedules": "linear", "warmup_rate": 0.1, "start_value": 3e-4, "max_value": 3e-4,},
             },
-        },
+        ],
     )
 
     #
     loggers = [
-        CSVLogger(),
+        CSVLogger.draft(), # draft as we will let the train function specify the logging_dir
         RichLogger(
             fields={
                 "step": {},

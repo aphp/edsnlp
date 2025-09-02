@@ -265,8 +265,9 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
     # 🎛️ OPTIMIZER (here it will be the same as thedefault one)
     optimizer = ScheduledOptimizer.draft(  # (2)!
         optim=torch.optim.AdamW,
-        groups={
-            "biopsy_classifier[.]embedding": {
+        groups=[
+            {
+                "selector": "biopsy_classifier[.]embedding",
                 "lr": {
                     "@schedules": "linear",
                     "warmup_rate": 0.1,
@@ -274,7 +275,8 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
                     "max_value": 5e-5,
                 },
             },
-            ".*": {
+            {
+                "selector": ".*",
                 "lr": {
                     "@schedules": "linear",
                     "warmup_rate": 0.1,
@@ -282,7 +284,7 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
                     "max_value": 3e-4,
                 },
             },
-        }
+        ]
     )
 
     # 🚀 TRAIN

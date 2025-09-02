@@ -676,6 +676,14 @@ def train(
         total_steps=max_steps,
     )
 
+    for td in train_data:
+        if not (td.pipe_names is None or td.pipe_names <= trainable_pipe_names):
+            raise ValueError(
+                f"Training data pipe names {td.pipe_names} should be a subset of "
+                f"the trainable pipe names {trainable_pipe_names}, or left to None "
+                f"use this dataset for all trainable components."
+            )
+
     for phase_i, pipe_names in enumerate(phases):
         trained_pipes_local: Dict[str, TorchComponent] = {
             n: nlp.get_pipe(n) for n in pipe_names
@@ -687,6 +695,14 @@ def train(
             for td in train_data
             if td.pipe_names is None or set(td.pipe_names) & set(pipe_names)
         ]
+
+        if len(phase_training_data) == 0:
+            raise ValueError(
+                f"No training data found for phase {phase_i + 1} with components "
+                f"{', '.join(pipe_names)}. Make sure that these components are "
+                f"listed in the 'pipe_names' attribute of at least one of the "
+                f"provided training data."
+            )
 
         with nlp.select_pipes(disable=trainable_pipe_names - set(pipe_names)):
             accelerator.print(f"Phase {phase_i + 1}: training {', '.join(pipe_names)}")
@@ -700,19 +716,17 @@ def train(
                     grad_params.add(param)
                 param.requires_grad_(has_grad_param)
 
-            accelerator.print(
-                "Optimizing groups:"
-                + "".join(
-                    "\n - {} weight tensors ({:,} parameters){}".format(
+            accelerator.print("Optimizing groups:")
+            for g in optim.param_groups:
+                accelerator.print(
+                    " - {} weight tensors ({:,} parameters){}".format(
                         len([p for p in g["params"] if p in grad_params]),
                         sum([p.numel() for p in g["params"] if p in grad_params]),
                         ": " + " & ".join(g.get("selectors", "*"))
                         if "selectors" in g
                         else "",
                     )
-                    for g in optim.param_groups
                 )
-            )
             accelerator.print(
                 f"Keeping frozen {len(all_params - grad_params):} weight tensors "
                 f"({sum(p.numel() for p in all_params - grad_params):,} parameters)"
@@ -720,17 +734,14 @@ def train(
 
             nlp.train(True)
 
-            iterator = iter(
-                zip(
-                    *(
-                        td(nlp, device).set_processing(
-                            num_cpu_workers=num_workers,
-                            process_start_method="spawn",
-                        )
-                        for td in phase_training_data
-                    )
+            phase_datasets = [
+                td(nlp, device).set_processing(
+                    num_cpu_workers=num_workers,
+                    process_start_method="spawn",
                 )
-            )
+                for td in phase_training_data
+            ]
+            iterator = iter(zip(*(phase_datasets)))
             (accel_optim, trained_pipes) = accelerator.prepare(optim, trained_pipes)
             if hasattr(accel_optim.optimizer, "initialize"):
                 accel_optim.optimizer.initialize()

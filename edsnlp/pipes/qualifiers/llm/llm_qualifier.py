@@ -137,9 +137,11 @@ class LLMSpanClassifier(
     - `span._.date.mode`
     - `span._.cui`
 
-    In the rest of this page, we will refer to a pair of (attribute, value) as a
-    "binding". For instance, the binding `("_.negation", True)` means that the
-    attribute `negation` of the span is (or should be, when predicted) set to `True`.
+    This pipe will use an LLM API to classify previously identified spans using
+    the context and instructions around each span.
+
+    Check out the <a href="/tutorials/llm-qualifier">LLM classifier tutorial</a>
+    for examples !
 
     Python >= 3.8 is required.
 

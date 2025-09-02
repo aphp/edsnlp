@@ -1,4 +1,4 @@
-## LLM qualifier {: #edsnlp.pipes.qualifiers.llm.factory.create_component }
+## LLM Span Classifier {: #edsnlp.pipes.qualifiers.llm.factory.create_component }
 
 ::: edsnlp.pipes.qualifiers.llm.factory.create_component
     options:

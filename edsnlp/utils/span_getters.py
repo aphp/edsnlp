@@ -570,7 +570,7 @@ RelationCandidateGetter = TypedDict(
         "head": SpanGetterArg,
         "tail": SpanGetterArg,
         "labels": AsList[str],
-        "label_filter": NotRequired[Dict[str, Set[str]]],
+        "label_filter": NotRequired[Optional[Dict[str, Set[str]]]],
         "symmetric": Optional[bool],
     },
 )

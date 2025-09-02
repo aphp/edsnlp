@@ -63,10 +63,8 @@ def relations_scorer(
                 for t in get_spans(eg.predicted, tail_getter)
             ]
             for (h_key, head), (t_key, tail) in product(pred_heads, pred_tails):
-                if (
-                    label_filter is not None
-                    and head.label_ not in label_filter
-                    or tail.label_ not in label_filter
+                if label_filter is not None and (
+                    head.label_ not in label_filter or tail.label_ not in label_filter
                 ):
                     continue
                 total_pred_count += 1

@@ -116,6 +116,7 @@ class RelationDetectorFFN(
         name: str = "relation_detector_ffn",
         *,
         span_embedding: SpanEmbeddingComponent,
+        inter_span_embedding: Optional[SpanEmbeddingComponent] = None,
         word_embedding: WordEmbeddingComponent,
         candidate_getter: AsList[RelationCandidateGetter],
         hidden_size: int = 128,
@@ -128,6 +129,7 @@ class RelationDetectorFFN(
             candidate_getter=candidate_getter,
         )
         self.span_embedding = span_embedding
+        self.inter_span_embedding = inter_span_embedding or span_embedding
         self.word_embedding = word_embedding
         self.use_inter_words = use_inter_words
 
@@ -180,7 +182,6 @@ class RelationDetectorFFN(
             head_spans = list(get_spans(doc, getter["head"]))
             tail_spans = list(get_spans(doc, getter["tail"]))
             lab_filter = getter.get("label_filter")
-            assert lab_filter is not None
             for head, tail in product(head_spans, tail_spans):
                 if lab_filter and head in lab_filter and tail not in lab_filter[head]:
                     continue
@@ -271,14 +272,16 @@ class RelationDetectorFFN(
             torch.minimum(flat_begins, flat_ends),
             torch.maximum(flat_begins, flat_ends),
         )
-        flat_embeds = word_embeds.view(-1, dim)
+        lengths = flat_ends - flat_begins
+        word_to_span_idx = torch.arange(
+            len(head_idx), device=word_embeds.device
+        ).repeat_interleave(lengths)
         flat_indices, flat_offsets = make_ranges(flat_begins, flat_ends)
         flat_offsets[0] = 0
-        inter_span_embeds = torch.nn.functional.embedding_bag(  # type: ignore
-            input=flat_indices,
-            weight=flat_embeds,
+        inter_span_embeds = self.inter_span_embedding._pool_spans(
+            flat_embeds=word_embeds.view(-1, dim)[flat_indices],
+            word_to_span_idx=word_to_span_idx,
             offsets=flat_offsets,
-            mode="mean",
         )
         return inter_span_embeds
 
@@ -303,8 +306,8 @@ class RelationDetectorFFN(
 
         n_words = word_embeds.size(-2)
         spans = batch["span_embedding"]
-        flat_begins = n_words * spans["sequence_idx"] + spans["begins"].as_tensor()
-        flat_ends = n_words * spans["sequence_idx"] + spans["ends"].as_tensor()
+        flat_begins = n_words * spans["span_to_ctx_idx"] + spans["begins"].as_tensor()
+        flat_ends = n_words * spans["span_to_ctx_idx"] + spans["ends"].as_tensor()
         if self.use_inter_words:
             inter_span_embeds = self.compute_inter_span_embeds(
                 word_embeds=word_embeds,

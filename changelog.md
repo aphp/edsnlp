@@ -11,6 +11,7 @@
 - New `eds.explode` pipe that splits one document into multiple documents, one per span yielded by its `span_getter` parameter, each new document containing exactly that single span.
 - New `Training a span classifier` tutorial, and reorganized deep-learning docs
 - `ScheduledOptimizer` now warns when a parameter selector does not match any parameter.
+- New `DocToMarkupConverter` to convert documents to markdown or xml
 
 ## Fixed
 

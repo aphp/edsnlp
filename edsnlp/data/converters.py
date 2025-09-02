@@ -810,6 +810,7 @@ class MarkupToDocConverter:
         keep_raw_attribute_values: bool = False,
         default_attributes: AttributesMappingArg = {},
         bool_attributes: AsList[str] = [],
+        attr_splitter=r"\s+",
         preset: Literal["md", "xml"] = "md",
         opener: Optional[str] = None,
         closer: Optional[str] = None,
@@ -823,6 +824,7 @@ class MarkupToDocConverter:
             self.default_attributes[attr] = False
         self.opener = opener or self.PRESETS[preset]["opener"]
         self.closer = closer or self.PRESETS[preset]["closer"]
+        self.attr_splitter = attr_splitter
 
     def _as_python(self, value: str):
         import ast
@@ -857,7 +859,7 @@ class MarkupToDocConverter:
                 k: self._as_python(v)
                 for k, v in (
                     kv.split("=") if "=" in kv else (kv.strip(), "True")
-                    for kv in attrs.split()
+                    for kv in re.split(self.attr_splitter, attrs)
                     if kv.strip()
                 )
             }
@@ -931,6 +933,162 @@ class MarkupToDocConverter:
         return doc
 
 
+@registry.factory.register("eds.doc_to_markup", spacy_compatible=False)
+class DocToMarkupConverter:
+    """
+    Convert a Doc to a string with inline markup.
+
+    This is the inverse of :class:`MarkupToDocConverter`. It renders selected
+    spans as either Markdown-like tags (``[text](LABEL key=val ...)``)
+    or XML-like tags (``<LABEL key=val ...>text</LABEL>``).
+
+    Parameters
+    ----------
+    span_getter : SpanGetterArg, default {"ents": True}
+        Which spans to render from the document.
+    span_attributes : AttributesMappingArg, default {}
+        Mapping from Span extensions (or builtins like ``label_``, ``kb_id_``)
+        to attribute names in the rendered markup. Only attributes with a
+        non-``None`` value are emitted.
+    default_attributes : AttributesMappingArg, default {}
+        When an attribute equals its provided default value, it is omitted
+        from the output (e.g., avoid printing ``negated=False`` when ``False``
+        is the default).
+    preset : Literal["md", "xml"], default "md"
+        Output syntax. ``"md"`` produces the Markdown‑like form, ``"xml"`` the
+        XML‑like form.
+
+    Notes
+    -----
+    - Overlapping but non‑nested ("crossing") spans cannot be represented with
+      well‑formed markup. Such spans are skipped with a warning.
+    - Attribute values are emitted as ``k=v`` pairs. Strings containing spaces or
+      special characters are quoted using Python's ``repr`` so that they round‑trip
+      through :class:`MarkupToDocConverter`.
+    """
+
+    def __init__(
+        self,
+        *,
+        span_getter: SpanGetterArg = {"ents": True},
+        span_attributes: AttributesMappingArg = {},
+        default_attributes: AttributesMappingArg = {},
+        preset: Literal["md", "xml"] = "md",
+    ):
+        self.span_getter = span_getter
+        self.span_attributes = span_attributes
+        self.default_attributes = dict(default_attributes)
+        self.preset = preset
+
+    # ---------------------------- helpers ---------------------------- #
+    def _format_value(self, value: Any) -> str:
+        """Format a single attribute value for markup emission."""
+        # Booleans / numbers: use repr for canonical True/False, ints, floats
+        if isinstance(value, (bool, int, float)):
+            return repr(value)
+        s = str(value)
+        # Quote strings containing spaces or tag delimiters so they round‑trip
+        if any(c.isspace() for c in s) or any(c in "<>[]()" for c in s):
+            return repr(s)
+        return s
+
+    def _attrs_to_str(self, attrs: Dict[str, Any]) -> str:
+        if not attrs:
+            return ""
+        parts = [f"{k}={self._format_value(v)}" for k, v in attrs.items()]
+        return " ".join(parts)
+
+    # ---------------------------- main API --------------------------- #
+    def __call__(self, doc: Doc) -> str:
+        # Build getters once
+        span_binding_getters = {
+            obj_name: BINDING_GETTERS[
+                ("_." + ext_name)
+                if ext_name.split(".")[0] not in SPAN_BUILTIN_ATTRS
+                else ext_name
+            ]
+            for ext_name, obj_name in (self.span_attributes or {}).items()
+        }
+
+        # Collect and dedupe spans
+        spans = list(sorted(dict.fromkeys(get_spans(doc, self.span_getter))))
+
+        text = doc.text
+        starts: Dict[int, list[Span]] = {}
+        for sp in spans:
+            starts.setdefault(sp.start_char, []).append(sp)
+        # No need for an explicit ends dict; we use the stack to close by position
+
+        out: list[str] = []
+        stack: list[tuple[Span, str, str]] = []  # (span, label, attrs_str)
+        last = 0
+
+        # Process all event positions (starts and ends)
+        positions = sorted({*starts.keys(), *[sp.end_char for sp in spans]})
+        for pos in positions:
+            pos = min(pos, len(text))
+            if pos > last:
+                out.append(text[last:pos])
+
+            # Close any spans that end here (LIFO to preserve nesting)
+            while stack and stack[-1][0].end_char == pos:
+                _sp, label, attrs_str = stack.pop()
+                if self.preset == "md":
+                    out.append(f"]({label}{(' ' + attrs_str) if attrs_str else ''})")
+                else:  # xml
+                    out.append(f"</{label}>")
+
+            # Open spans that start here, outermost first (longest first)
+            for sp in sorted(
+                starts.get(pos, []), key=lambda s: s.end_char, reverse=True
+            ):
+                # Skip "crossing" spans that cannot be properly nested
+                if any(open_sp.end_char < sp.end_char for open_sp, *_ in stack):
+                    warnings.warn(
+                        f"Skipping crossing span '{sp.text}' at "
+                        f"{sp.start_char}-{sp.end_char}"
+                    )
+                    continue
+
+                # Compute attributes; drop Nones and defaults
+                attrs = {
+                    obj_name: getter(sp)
+                    for obj_name, getter in span_binding_getters.items()
+                }
+                attrs = {
+                    k: v
+                    for k, v in attrs.items()
+                    if v is not None
+                    and not (
+                        k in self.default_attributes and self.default_attributes[k] == v
+                    )
+                }
+                attrs_str = self._attrs_to_str(attrs)
+                label = sp.label_
+
+                stack.append((sp, label, attrs_str))
+                if self.preset == "md":
+                    out.append("[")
+                else:  # xml
+                    out.append(f"<{label}{(' ' + attrs_str) if attrs_str else ''}>")
+
+            last = pos
+
+        # Trailing text after the last event
+        if last < len(text):
+            out.append(text[last:])
+
+        # Close any remaining open spans (best‑effort)
+        while stack:
+            _sp, label, attrs_str = stack.pop()
+            if self.preset == "md":
+                out.append(f"]({label}{(' ' + attrs_str) if attrs_str else ''})")
+            else:
+                out.append(f"</{label}>")
+
+        return "".join(out)
+
+
 def get_dict2doc_converter(
     converter: Union[str, Callable], kwargs
 ) -> Tuple[Callable, Dict]:
@@ -976,19 +1134,14 @@ def get_doc2dict_converter(
                 name
                 for name in available
                 if converter == name
-                or (
-                    converter in name
-                    and (name.endswith("2dict") or name.endswith("to_dict"))
-                )
+                or (converter in name and ("doc2" in name or "doc_to" in name))
             ]
             converter = edsnlp.registry.factory.get(filtered[0])
             converter = converter(**kwargs)
             kwargs = {}
             return converter, kwargs
         except (KeyError, IndexError):
-            available = [
-                v for v in available if (v.endswith("2dict") or v.endswith("to_dict"))
-            ]
+            available = [v for v in available if ("doc2" in v or "doc_to" in v)]
             raise ValueError(
                 f"Cannot find converter for format {converter}. "
                 f"Available converters are {', '.join(available)}"

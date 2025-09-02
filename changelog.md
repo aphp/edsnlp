@@ -24,6 +24,7 @@
 - New trainable `eds.relation_detector_ffn` component to detect relations between entities. These relations are stored in each entity: `head._.rel[relation_label] = [tail1, tail2, ...]`.
 - Load "Status" annotator notes as `status` dict attribute
 - Support different poolers for span embedding and inter-span embeddings in `eds.relation_detector_ffn`
+- New `DocToMarkupConverter` to convert documents to markdown or xml
 
 ### Fixed
 

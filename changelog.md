@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+
+- New `attention` pooling mode in `eds.span_pooler`
+- New `word_pooling_mode=False` in `eds.transformer` to allow returning the worpiece embeddings directly, instead of the mean-pooled word embeddings. At the moment, this only works with `eds.span_pooler` which can pool over wordpieces or words seamlessly.
+
 ### Changed
 
 - Rewrite the `eds.tnm` regex, which now covers more staging notations and rejects most lookalike abbreviations. Qualified against annotations from two physicians: precision 98.64% ± 1% (95% CI), entity-level recall 79.40% ± 1% (99% CI), document-level recall 95.53% ± 1% (99% CI)

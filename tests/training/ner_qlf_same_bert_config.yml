@@ -36,6 +36,7 @@ nlp:
 
       embedding:
         '@factory': eds.span_pooler
+        pooling_mode: attention
 
         embedding: # ${ nlp.components.ner.embedding }
           '@factory': eds.text_cnn

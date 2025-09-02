@@ -48,14 +48,19 @@ class TrainableDocClassifier(
         id2label: Optional[Dict[int, str]] = None,
         loss_fn=None,
         labels: Optional[Sequence[str]] = None,
+        class_weights: Optional[Union[Dict[str, float], str]] = None, 
     ):
         self.label_attr: Attributes = label_attr
         self.label2id = label2id or {}
         self.id2label = id2label or {}
         self.labels = labels
+        self.class_weights = class_weights  
+        
         super().__init__(nlp, name)
         self.embedding = embedding
-        self.loss_fn = loss_fn or torch.nn.CrossEntropyLoss()
+        
+        self._loss_fn = loss_fn
+        self.loss_fn = None
 
         if not hasattr(self.embedding, "output_size"):
             raise ValueError(
@@ -64,6 +69,27 @@ class TrainableDocClassifier(
         embedding_size = self.embedding.output_size
         if num_classes:
             self.classifier = torch.nn.Linear(embedding_size, num_classes)
+
+    def _compute_class_weights(self, freq_dict: Dict[str, int]) -> torch.Tensor:
+        """
+        Compute class weights from frequency dictionary.
+        Uses inverse frequency weighting: weight = 1 / frequency
+        """
+        total_samples = sum(freq_dict.values())
+        
+        weights = torch.zeros(len(self.label2id))
+        
+        for label, freq in freq_dict.items():
+            if label in self.label2id:
+                weight = total_samples / (len(self.label2id) * freq)
+                weights[self.label2id[label]] = weight
+        
+        return weights
+
+    def _load_class_weights_from_file(self, filepath: str) -> Dict[str, int]:
+        """Load class weights from pickle file."""
+        with open(filepath, 'rb') as f:
+            return pickle.load(f)
 
     def set_extensions(self) -> None:
         super().set_extensions()
@@ -90,6 +116,22 @@ class TrainableDocClassifier(
                 self.classifier = torch.nn.Linear(
                     self.embedding.output_size, len(self.label2id)
                 )
+        
+        weight_tensor = None
+        if self.class_weights is not None:
+            if isinstance(self.class_weights, str):
+                freq_dict = self._load_class_weights_from_file(self.class_weights)
+                weight_tensor = self._compute_class_weights(freq_dict)
+            elif isinstance(self.class_weights, dict):
+                weight_tensor = self._compute_class_weights(self.class_weights)
+            
+            print(f"Using class weights: {weight_tensor}")
+        
+        if self._loss_fn is not None:
+            self.loss_fn = self._loss_fn
+        else:
+            self.loss_fn = torch.nn.CrossEntropyLoss(weight=weight_tensor)
+        
         super().post_init(gold_data, exclude=exclude)
 
     def preprocess(self, doc: Doc) -> Dict[str, Any]:

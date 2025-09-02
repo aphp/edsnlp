@@ -1,4 +1,4 @@
-from typing import Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 
 import torch
 from typing_extensions import Literal, TypedDict
@@ -86,6 +86,10 @@ class TextCnnEncoder(WordContextualizerComponent):
             residual=residual,
             normalize=normalize,
         )
+
+    def collate(self, batch: Dict[str, Any]) -> BatchInput:
+        emb = self.embedding.collate(batch["embedding"])
+        return {"embedding": emb, "out_structure": emb["out_structure"]}
 
     def forward(self, batch: BatchInput) -> WordEmbeddingBatchOutput:
         """

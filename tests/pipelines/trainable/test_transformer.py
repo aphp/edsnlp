@@ -1,8 +1,11 @@
 import pytest
+from confit.utils.random import set_seed
 from pytest import fixture
 from spacy.tokens import Span
 
 import edsnlp
+import edsnlp.pipes as eds
+from edsnlp.data.converters import MarkupToDocConverter
 from edsnlp.utils.collections import batch_compress_dict, decompress_dict
 
 if not Span.has_extension("label"):
@@ -89,4 +92,39 @@ def test_span_getter(gold):
     batch = trf.collate(batch)
     batch = trf.batch_to_device(batch, device=trf.device)
     res = trf(batch)
-    assert res["embeddings"].shape == (2, 5, 128)
+    assert res["embeddings"].shape == (9, 128)
+
+
+def test_transformer_pooling():
+    nlp = edsnlp.blank("eds")
+    converter = MarkupToDocConverter(tokenizer=nlp.tokenizer)
+    doc1 = converter("These are small sentencesstuff.")
+    doc2 = converter("A tiny one.")
+
+    def run_trf(word_pooling_mode):
+        set_seed(42)
+        trf = eds.transformer(
+            model="prajjwal1/bert-tiny",
+            window=128,
+            stride=96,
+            word_pooling_mode=word_pooling_mode,
+        )
+        prep1 = trf.preprocess(doc1)
+        prep2 = trf.preprocess(doc2)
+        assert prep1["input_ids"] == [
+            [2122, 2024, 2235, 11746, 3367, 16093, 2546, 1012]
+        ]
+        assert prep2["input_ids"] == [[1037, 4714, 2028, 1012]]
+        batch = decompress_dict(list(batch_compress_dict([prep1, prep2])))
+        batch = trf.collate(batch)
+        return trf(batch)
+
+    res_pool = run_trf(word_pooling_mode="mean")
+    assert res_pool["embeddings"].shape == (9, 128)
+
+    res_flat = run_trf(word_pooling_mode=False)
+    assert res_flat["embeddings"].shape == (12, 128)
+
+    # The second sequence is identical in both cases (only one subword per word)
+    # so the last 4 word/subword embeddings should be identical
+    assert res_pool["embeddings"][-4:].allclose(res_flat["embeddings"][-4:])

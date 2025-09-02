@@ -34,6 +34,8 @@ TransformerBatchInput = TypedDict(
     },
 )
 """
+Attributes
+----------
 input_ids: FoldedTensor
     Tokenized input (prompt + text) to embed
 word_indices: torch.LongTensor
@@ -51,6 +53,8 @@ TransformerBatchOutput = TypedDict(
     },
 )
 """
+Attributes
+----------
 embeddings: FoldedTensor
     The embeddings of the words
 """
@@ -101,9 +105,23 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
             stride=96,
         ),
     )
+
+    doc1 = nlp.make_doc("My name is Michael.")
+    doc2 = nlp.make_doc("And I am the best boss in the world.")
+    prep = nlp.pipes.transformer.preprocess_batch([doc1, doc2])
+    batch = nlp.pipes.transformer.collate(prep)
+    res = nlp.pipes.transformer(batch)
+
+    # Embeddings are flattened by default
+    print(res["embeddings"].shape)
+    # Out: torch.Size([15, 128])
+
+    # But they can be refolded to materialize the sample dimension
+    print(res["embeddings"].refold("sample", "word").shape)
+    # Out: torch.Size([2, 10, 128])
     ```
 
-    You can then compose this embedding with a task specific component such as
+    You can compose this embedding with a task specific component such as
     `eds.ner_crf`.
 
     Parameters
@@ -131,9 +149,25 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
 
         If "auto", the component will try to estimate the maximum number of tokens that
         can be processed by the model on the current device at a given time.
-    span_getter: Optional[SpanGetterArg]
-        Which spans of the document should be embedded. Defaults to the full document
-        if None.
+    new_tokens: Optional[List[Tuple[str, str]]]
+        A list of (pattern, replacement) tuples to add to the tokenizer. The pattern
+        should be a valid regular expression. The replacement should be a string.
+
+        This can be used to add new tokens to the tokenizer that are not present in the
+        original vocabulary. For example, if you want to add a new token for new lines
+        you can use the following:
+
+        ```python
+        new_tokens = [("\\n", "⏎")]
+        ```
+    quantization: Optional[BitsAndBytesConfig]
+        Quantization configuration to use for the model. If None, no quantization
+        will be applied. This requires the `bitsandbytes` library to be installed.
+    word_pooling_mode: Literal["mean", False]
+        If "mean", the embeddings of the wordpieces corresponding to each word will be
+        averaged to produce a single embedding per word. If False, the embeddings of the
+        wordpieces will be returned as a FoldedTensor with an additional "token"
+        dimension. (default: "mean")
     """
 
     def __init__(
@@ -149,6 +183,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         span_getter: Optional[SpanGetterArg] = None,
         new_tokens: Optional[List[Tuple[str, str]]] = [],
         quantization: Optional[BitsAndBytesConfig] = None,
+        word_pooling_mode: Literal["mean", False] = "mean",
         **kwargs,
     ):
         super().__init__(nlp, name)
@@ -167,6 +202,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
             kwargs["quantization_config"] = quantization
 
         self.transformer = AutoModel.from_pretrained(model, **kwargs)
+        self.word_pooling_mode = word_pooling_mode
         try:
             self.tokenizer = AutoTokenizer.from_pretrained(model)
         except (HTTPException, ConnectionError):  # pragma: no cover
@@ -353,6 +389,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         empty_word_indices = []
         overlap = self.window - stride
         word_offset = 0
+        word_sizes = []
         all_word_wp_offset = 0
         for (
             sample_text_input_ids,
@@ -422,23 +459,38 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                         ]
                     ]
                     word_indices.extend(word_wp_indices)
+                    word_sizes.append(length)
                     word_wp_offset += length
                     word_offset += 1
                 all_word_wp_offset += word_wp_offset
 
+        word_offsets = ft.as_folded_tensor(
+            word_offsets,
+            data_dims=("word",),
+            full_names=("sample", "context", "word"),
+            dtype=torch.long,
+        )
+        out_structure = (
+            ft.FoldedTensorLayout(
+                [
+                    *word_offsets.lengths,
+                    word_sizes,
+                ],
+                full_names=("sample", "context", "word", "token"),
+                data_dims=("token",),
+            )
+            if not self.word_pooling_mode
+            else word_offsets.lengths
+        )
         return {
+            "out_structure": out_structure,
             "input_ids": ft.as_folded_tensor(
                 input_ids,
                 data_dims=("context", "subword"),
                 full_names=("context", "subword"),
                 dtype=torch.long,
             ),
-            "word_offsets": ft.as_folded_tensor(
-                word_offsets,
-                data_dims=("word",),
-                full_names=("sample", "context", "word"),
-                dtype=torch.long,
-            ),
+            "word_offsets": word_offsets,
             "word_indices": torch.as_tensor(word_indices, dtype=torch.long),
             "empty_word_indices": torch.as_tensor(empty_word_indices, dtype=torch.long),
             "stats": {
@@ -480,7 +532,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
             max_windows = max(1, max_tokens // input_ids.size(1))
             total_windows = input_ids.size(0)
             try:
-                wordpiece_embeddings = [
+                wp_embs = [
                     self.transformer.base_model(
                         **{
                             k: None if v is None else v[offset : offset + max_windows]
@@ -490,11 +542,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                     for offset in range(0, total_windows, max_windows)
                 ]
 
-                wordpiece_embeddings = (
-                    torch.cat(wordpiece_embeddings, dim=0)
-                    if len(wordpiece_embeddings) > 1
-                    else wordpiece_embeddings[0]
-                )
+                wp_embs = torch.cat(wp_embs, dim=0) if len(wp_embs) > 1 else wp_embs[0]
 
                 if auto_batch_size:  # pragma: no cover
                     batch_mem = torch.cuda.max_memory_allocated(device)
@@ -520,26 +568,29 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
 
         # mask = batch["mask"].clone()
         # word_embeddings = torch.zeros(
-        #     (mask.size(0), mask.size(1), wordpiece_embeddings.size(2)),
+        #     (mask.size(0), mask.size(1), wp_embs.size(2)),
         #     dtype=torch.float,
         #     device=device,
         # )
         # embeddings_plus_empty = torch.cat(
         #     [
-        #         wordpiece_embeddings.view(-1, wordpiece_embeddings.size(2)),
+        #         wp_embs.view(-1, wp_embs.size(2)),
         #         self.empty_word_embedding,
         #     ],
         #     dim=0,
         # )
-        word_embeddings = torch.nn.functional.embedding_bag(
-            input=batch["word_indices"],
-            weight=wordpiece_embeddings.reshape(-1, wordpiece_embeddings.size(2)),
-            offsets=batch["word_offsets"],
-        )
-        word_embeddings[batch["empty_word_indices"]] = self.empty_word_embedding
-        return {
-            "embeddings": word_embeddings.refold("context", "word"),
-        }
+        if self.word_pooling_mode == "mean":
+            word_embeddings = torch.nn.functional.embedding_bag(
+                input=batch["word_indices"],
+                weight=wp_embs.reshape(-1, wp_embs.size(2)),
+                offsets=batch["word_offsets"],
+            )
+            word_embeddings[batch["empty_word_indices"]] = self.empty_word_embedding
+            return {"embeddings": word_embeddings}
+        else:
+            wp_embs = wp_embs.reshape(-1, self.output_size)[batch["word_indices"]]
+            wp_embs = ft.as_folded_tensor(wp_embs, lengths=batch["out_structure"])
+            return {"embeddings": wp_embs}
 
     @staticmethod
     def align_words_with_trf_tokens(doc, trf_char_indices):

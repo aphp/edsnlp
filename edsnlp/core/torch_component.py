@@ -339,7 +339,14 @@ class TorchComponent(
         This is useful to compute averages when doing multi-gpu training or mini-batch
         accumulation since full denominators are not known during the forward pass.
         """
-        return batch_output
+        return (
+            {
+                **batch_output,
+                "loss": batch_output["loss"] / count,
+            }
+            if "loss" in batch_output
+            else batch_output
+        )
 
     def module_forward(self, *args, **kwargs):  # pragma: no cover
         """
@@ -347,6 +354,31 @@ class TorchComponent(
         with the components `__call__` method.
         """
         return torch.nn.Module.__call__(self, *args, **kwargs)
+
+    def preprocess_batch(self, docs: Sequence[Doc], supervision=False, **kwargs):
+        """
+        Convenience method to preprocess a batch of documents.
+        Features corresponding to the same path are grouped together in a list,
+        under the same key.
+
+        Parameters
+        ----------
+        docs: Sequence[Doc]
+            Batch of documents
+        supervision: bool
+            Whether to extract supervision features or not
+
+        Returns
+        -------
+        Dict[str, Sequence[Any]]
+            The batch of features
+        """
+        batch = [
+            (self.preprocess_supervised(d) if supervision else self.preprocess(d))
+            for d in docs
+        ]
+        batch = decompress_dict(list(batch_compress_dict(batch)))
+        return batch
 
     def prepare_batch(
         self,
@@ -372,11 +404,7 @@ class TorchComponent(
         -------
         Dict[str, Sequence[Any]]
         """
-        batch = [
-            (self.preprocess_supervised(doc) if supervision else self.preprocess(doc))
-            for doc in docs
-        ]
-        batch = decompress_dict(list(batch_compress_dict(batch)))
+        batch = self.preprocess_batch(docs, supervision=supervision)
         batch = self.collate(batch)
         batch = self.batch_to_device(batch, device=device)
         return batch

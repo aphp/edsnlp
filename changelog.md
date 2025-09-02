@@ -1,10 +1,10 @@
 # Changelog
 
-## Unreleased
+## v0.18.0 (2025-09-02)
 
 📢 EDS-NLP will drop support for Python 3.7, 3.8 and 3.9 support in the next major release (v0.19.0), in October 2025. Please upgrade to Python 3.10 or later.
 
-## Added
+### Added
 
 - Added support for multiple loggers (`tensorboard`, `wandb`, `comet_ml`, `aim`, `mlflow`, `clearml`, `dvclive`, `csv`, `json`, `rich`) in `edsnlp.train` via the `logger` parameter. Default is [`json` and `rich`] for backward compatibility.
 - Sub batch sizes for gradient accumulation can now be defined as simple "splits" of the original batch, e.g. `batch_size = 10000 tokens` and `sub_batch_size = 5 splits` to accumulate batches of 2000 tokens.
@@ -14,7 +14,7 @@
 - New `Training a span classifier` tutorial, and reorganized deep-learning docs
 - `ScheduledOptimizer` now warns when a parameter selector does not match any parameter.
 
-## Fixed
+### Fixed
 
 - `use_section` in `eds.history` should now correctly handle cases when there are other sections following history sections.
 - Added clickable snippets in the documentation for more registered functions
@@ -25,7 +25,7 @@
 - Added missing entry points for readers and writers in the registry, including `write_parquet` and support for `polars` in `pyproject.toml`. Now all implemented readers and writers are correctly registered as entry points.
 - Parameters are now updated *in place* by "post_init" is run in `eds.ner_crf` and `eds.span_classifier`, and are therefore correctly taken into account by the optimizer.
 
-## Changed
+### Changed
 
 - Sections cues in `eds.history` are now section titles, and not the full section.
 - :boom: Validation metrics are now found under the root field `validation` in the training logs (e.g. `metrics['validation']['ner']['micro']['f']`)

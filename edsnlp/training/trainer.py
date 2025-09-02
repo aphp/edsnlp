@@ -849,9 +849,7 @@ def train(
                 for idx, (batch, batch_pipe_names) in enumerate(
                     zip(batches, batches_pipe_names)
                 ):
-                    cache_ctx = (
-                        nlp.cache() if len(batch_pipe_names) > 1 else nullcontext()
-                    )
+                    cache_ctx = nlp.cache()
                     no_sync_ctx = (
                         accelerator.no_sync(trained_pipes)
                         if idx < len(batches) - 1

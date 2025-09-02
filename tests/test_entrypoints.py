@@ -35,8 +35,6 @@ def test_entrypoints():
 
 
 def test_readers_and_writers_entrypoints():
-    import importlib.metadata
-
     # Map of expected entry points for readers and writers
     expected_readers = {
         "spark": "from_spark",
@@ -57,9 +55,16 @@ def test_readers_and_writers_entrypoints():
         "polars": "to_polars",
         "parquet": "write_parquet",
     }
-    eps = importlib.metadata.entry_points()
-    readers = {ep.name for ep in eps.select(group="edsnlp_readers")}
-    writers = {ep.name for ep in eps.select(group="edsnlp_writers")}
+    eps = entry_points()
+    if hasattr(eps, "select"):
+        readers_eps = eps.select(group="edsnlp_readers")
+        writers_eps = eps.select(group="edsnlp_writers")
+    else:
+        readers_eps = eps.get("edsnlp_readers", [])
+        writers_eps = eps.get("edsnlp_writers", [])
+
+    readers = {ep.name for ep in readers_eps}
+    writers = {ep.name for ep in writers_eps}
     for name in expected_readers:
         assert name in readers, f"Reader entry point '{name}' is missing"
     for name in expected_writers:

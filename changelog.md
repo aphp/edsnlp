@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased
+## v0.18.0 (2025-07-02)
 
-## Added
+### Added
 
 - Added support for multiple loggers (`tensorboard`, `wandb`, `comet_ml`, `aim`, `mlflow`, `clearml`, `dvclive`, `csv`, `json`, `rich`) in `edsnlp.train` via the `logger` parameter. Default is [`json` and `rich`] for backward compatibility.
 - Sub batch sizes for gradient accumulation can now be defined as simple "splits" of the original batch, e.g. `batch_size = 10000 tokens` and `sub_batch_size = 5 splits` to accumulate batches of 2000 tokens.
@@ -12,7 +12,7 @@
 - New `Training a span classifier` tutorial, and reorganized deep-learning docs
 - `ScheduledOptimizer` now warns when a parameter selector does not match any parameter.
 
-## Fixed
+### Fixed
 
 - `use_section` in `eds.history` should now correctly handle cases when there are other sections following history sections.
 - Added clickable snippets in the documentation for more registered functions
@@ -22,7 +22,7 @@
 - :ambulance: Until now, `post_init` was applied **after** the instantiation of the optimizer : if the model discovered new labels, and therefore changed its parameter tensors to reflect that, these new tensors were not taken into account by the optimizer, which could likely lead to subpar performance. Now, `post_init` is applied **before** the optimizer is instantiated, so that the optimizer can correctly handle the new tensors.
 - Added missing entry points for readers and writers in the registry, including `write_parquet` and support for `polars` in `pyproject.toml`. Now all implemented readers and writers are correctly registered as entry points.
 
-## Changed
+### Changed
 
 - Sections cues in `eds.history` are now section titles, and not the full section.
 - :boom: Validation metrics are now found under the root field `validation` in the training logs (e.g. `metrics['validation']['ner']['micro']['f']`)

@@ -273,3 +273,35 @@ def test_converter_types(blank_nlp):
             )
         )
         assert texts == data
+
+
+def test_markup_converter(blank_nlp):
+    data = [
+        "La patient <finding>ne souffre pas de <diag negation code='A 16 2'>tuberculose</diag></finding>.",  # noqa: E501
+        "On teste <group>le <one>croisement <two>entre</one> deux</two> entités</group>.",  # noqa: E501
+        "Exemple de <ent>entité <ent>imbriquée</ent></ent>.",
+        "Example d'autre <ent>entité <ent>double</ent> <ent>imbrication</ent></ent>.",
+    ]
+    docs = list(
+        edsnlp.data.from_iterable(
+            data,
+            converter="markup",
+            span_attributes=["negation", "code"],
+            bool_attributes="negation",
+            preset="xml",
+            span_setter="entities",
+        )
+    )
+    assert docs[0].spans["entities"][1].label_ == "diag"
+    assert docs[0].spans["entities"][1]._.negation is True
+    out = list(
+        edsnlp.data.to_iterable(
+            docs,
+            converter="markup",
+            preset="xml",
+            span_attributes=["negation", "code"],
+            span_getter="entities",
+            bool_attributes="negation",
+        )
+    )
+    assert out == data

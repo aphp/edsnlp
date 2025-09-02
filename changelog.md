@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+# Unreleased
+
+### Added
+
+- New `DocToMarkupConverter` to convert documents to markdown and improved `MarkupToDocConverter` to allow overlapping markup annotations (e.g., `This is a <a>text <b>with</a> overlapping</b> tags`).
 
 ### Fixed
 

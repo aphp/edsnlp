@@ -1314,6 +1314,40 @@ def tune_two_phase(
     )
 
 
+def compute_remaining_n_trials_possible(
+    study: optuna.study.Study,
+    gpu_hours: float,
+) -> int:
+    """
+    Compute the remaining number of trials possible within the GPU time budget
+    that was not used by the study (in cases where multiple trials were pruned).
+
+    Parameters:
+    -----------
+    study : optuna.study.Study
+        An Optuna study object containing past trials.
+    gpu_hours : float
+        The total amount of GPU time available for tuning, in hours.
+
+    Returns:
+    --------
+    int: The remaining number of trials possible.
+    """
+    first_trial = study.trials[0]
+    last_trial = study.trials[-1]
+    elapsed_gpu_time = (
+        last_trial.datetime_complete - first_trial.datetime_start
+    ).total_seconds()
+    remaining_gpu_time = (gpu_hours * 3600 - elapsed_gpu_time) / 3600
+    try:
+        n_trials = compute_n_trials(
+            remaining_gpu_time, compute_time_per_trial(study, ema=True)
+        )
+        return n_trials
+    except ValueError:  # pragma: no cover
+        return 0
+
+
 @app.command(name="tuning", registry=registry)
 def tune(
     *,

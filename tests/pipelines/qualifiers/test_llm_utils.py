@@ -70,7 +70,7 @@ def test_create_prompt_messages():
     assert messages2 == messages_expected2
 
 
-def create_fake_chat_completion():
+def create_fake_chat_completion(choices: int = 1, content: str = '{"biopsy":false}'):
     fake_response_data = {
         "id": "chatcmpl-fake123",
         "object": "chat.completion",
@@ -78,10 +78,11 @@ def create_fake_chat_completion():
         "model": "toto",
         "choices": [
             {
-                "index": 0,
-                "message": {"role": "assistant", "content": '{"biopsy":false}'},
+                "index": i,
+                "message": {"role": "assistant", "content": content},
                 "finish_reason": "stop",
             }
+            for i in range(choices)
         ],
         "usage": {"prompt_tokens": 10, "completion_tokens": 15, "total_tokens": 25},
     }
@@ -109,6 +110,8 @@ def test_parse_json_response():
     llm = AsyncLLM(n_concurrent_tasks=1)
     parsed_response = llm.parse_messages(response, response_format)
     assert parsed_response == {"biopsy": False}
+    parsed_response = llm.parse_messages(response, response_format=None)
+    assert parsed_response == response
 
 
 @mark.parametrize("n_completions", [1, 2])
@@ -159,4 +162,36 @@ def test_json_decode_error(errors):
     if errors == "ignore":
         assert response == {}
     else:
-        assert response == '{"biopsy";false}'
+        assert response == raw_response
+
+
+def test_decode_no_format():
+    raw_response = '{"biopsy":false}'
+
+    response = parse_json_response(raw_response, response_format=None)
+
+    assert response == raw_response
+
+
+def test_multiple_completions(n_completions=2):
+    api_url = "http://localhost:8000/v1/"
+    suffix_url = "chat/completions"
+    llm_api = AsyncLLM(
+        n_concurrent_tasks=1, api_url=api_url, n_completions=n_completions
+    )
+    completion = create_fake_chat_completion(n_completions, content="false")
+    with respx.mock:
+        respx.post(api_url + suffix_url).mock(
+            side_effect=[
+                httpx.Response(200, json=completion.model_dump()),
+            ]
+        )
+
+        response = run_async(
+            llm_api(
+                batch_messages=[
+                    [{"role": "user", "content": "your prompt here"}],
+                ]
+            )
+        )
+    assert response == [["false", "false"]]

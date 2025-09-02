@@ -24,6 +24,7 @@ BASE_DIR = Path(__file__).parent
 # route imports of submodules of edsnlp.pipelines to their edsnlp.pipes counterparts.
 # The same is done for edsnlp.scorers -> edsnlp.metrics
 
+
 class AliasPathFinder(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path, target=None):  # pragma: no cover
         if not fullname.startswith("edsnlp."):

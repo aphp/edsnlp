@@ -1,5 +1,6 @@
-from typing import Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 
+import foldedtensor as ft
 import torch
 from typing_extensions import Literal, TypedDict
 
@@ -86,6 +87,18 @@ class TextCnnEncoder(WordContextualizerComponent):
             residual=residual,
             normalize=normalize,
         )
+
+    def collate(self, batch: Dict[str, Any]) -> BatchInput:
+        emb = self.embedding.collate(batch["embedding"])
+        # Span pooling indexes the padded context rows returned by the CNN
+        return {
+            "embedding": emb,
+            "out_structure": ft.FoldedTensorLayout(
+                emb["out_structure"],
+                full_names=emb["out_structure"].full_names,
+                data_dims=("context", "word"),
+            ),
+        }
 
     def forward(self, batch: BatchInput) -> WordEmbeddingBatchOutput:
         """

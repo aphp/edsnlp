@@ -5,6 +5,8 @@
 ### Added
 
 - `edsnlp.package` now supports `code="dependency"` and `code="none"` to build model packages without embedding project code, which is better for model finetuning with custom code, since finetuned models only require the custom code and not the original model weights. Dependency mode infers the project package requirement from `pyproject.toml` and can check the selected uv index for unreleased local code changes.
+- Add attention pooling to `eds.span_pooler`
+- Add `word_pooling_mode=False` to `eds.transformer` to return wordpiece embeddings for `eds.span_pooler`
 
 ### Changed
 

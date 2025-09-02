@@ -1,8 +1,10 @@
 import pytest
+import torch
 from pytest import fixture
 from spacy.tokens import Span
 
 import edsnlp
+import edsnlp.pipes as eds
 from edsnlp.utils.collections import batch_compress_dict, decompress_dict
 
 pytestmark = pytest.mark.ml
@@ -91,7 +93,7 @@ def test_span_getter(gold):
     batch = trf.collate(batch)
     batch = trf.batch_to_device(batch, device=trf.device)
     res = trf(batch)
-    assert res["embeddings"].shape == (2, 5, 32)
+    assert res["embeddings"].shape == (9, 32)
 
 
 def test_preprocess_suppresses_transformers_sequence_length_warning(caplog):
@@ -118,3 +120,25 @@ def test_preprocess_suppresses_transformers_sequence_length_warning(caplog):
         in record.message
         for record in caplog.records
     )
+
+
+def test_transformer_pooling():
+    nlp = edsnlp.blank("eds")
+    docs = [
+        nlp.make_doc(text)
+        for text in ("These are small sentencesstuff.", "A tiny one.")
+    ]
+    trf = eds.transformer(
+        model="hf-internal-testing/tiny-random-bert", window=128, stride=96
+    )
+    trf.eval()
+    prep = [trf.preprocess(doc) for doc in docs]
+    batch = decompress_dict(list(batch_compress_dict(prep)))
+    pooled = trf(trf.collate(batch))["embeddings"]
+    trf.word_pooling_mode = False
+    pieces = trf(trf.collate(batch))["embeddings"]
+    sizes = [size for doc in prep for ctx in doc["word_lengths"] for size in ctx]
+    assert pooled.shape == (9, 32)
+    assert pieces.shape == (sum(sizes), 32)
+    expected = torch.stack([part.mean(0) for part in pieces.as_tensor().split(sizes)])
+    assert torch.allclose(pooled.as_tensor(), expected, atol=1e-6)

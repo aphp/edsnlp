@@ -11,6 +11,10 @@
 - New `eds.explode` pipe that splits one document into multiple documents, one per span yielded by its `span_getter` parameter, each new document containing exactly that single span.
 - New `Training a span classifier` tutorial, and reorganized deep-learning docs
 - `ScheduledOptimizer` now warns when a parameter selector does not match any parameter.
+- New trainable `eds.relation_detector_ffn` component to detect relations between entities. These relations are stored in each entity: `head._.rel[relation_label] = [tail1, tail2, ...]`.
+- Load "Status" annotator notes as `status` dict attribute
+- New `attention` pooling mode in
+- Support different poolers for span embedding and inter-span embeddings in `eds.relation_detector_ffn`
 
 ### Fixed
 

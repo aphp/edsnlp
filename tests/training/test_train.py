@@ -208,6 +208,22 @@ def test_dep_parser_train(run_in_test_dir, tmp_path):
     assert last_scores["dep"]["las"] >= 0.4
 
 
+def test_rel_train(run_in_test_dir, tmp_path):
+    set_seed(42)
+    config = Config.from_disk("rel_config.yml")
+    shutil.rmtree(tmp_path, ignore_errors=True)
+    kwargs = Config.resolve(config["train"], registry=registry, root=config)
+    nlp = train(**kwargs, output_dir=tmp_path, cpu=True)
+    scorer = GenericScorer(**kwargs["scorer"])
+    val_data = kwargs["val_data"]
+    last_scores = scorer(nlp, val_data)
+
+    # Check empty doc
+    nlp("")
+
+    assert last_scores["rel"]["micro"]["f"] >= 0.4
+
+
 def test_optimizer():
     net = torch.nn.Linear(10, 10)
     optim = ScheduledOptimizer(

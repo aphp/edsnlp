@@ -24,7 +24,10 @@ SpanPoolerBatchInput = TypedDict(
         "embedding": BatchInput,
         "begins": ft.FoldedTensor,
         "ends": ft.FoldedTensor,
-        "sequence_idx": torch.Tensor,
+        "word_to_span_idx": torch.Tensor,
+        "span_to_ctx_idx": torch.Tensor,
+        "flat_indices": torch.Tensor,
+        "offsets": torch.Tensor,
         "stats": TypedDict("SpanPoolerBatchStats", {"spans": int}),
     },
 )
@@ -35,8 +38,16 @@ begins: torch.LongTensor
     Begin offsets of the spans
 ends: torch.LongTensor
     End offsets of the spans
-sequence_idx: torch.LongTensor
-    Sequence (cf Embedding spans) index of the spans
+word_to_span_idx: torch.LongTensor
+    Span index of each token in the flattened span tokens
+span_to_ctx_idx: torch.LongTensor
+    Sequence/context (cf Embedding spans) index of the spans
+flat_indices: torch.LongTensor
+    Indices of the tokens in the flattened span tokens
+offsets: torch.LongTensor
+    Offsets of the spans in the flattened span tokens
+stats: Dict[str, int]
+    Statistics about the batch, e.g. number of spans
 """
 
 SpanPoolerBatchOutput = TypedDict(
@@ -61,8 +72,14 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         Name of the component
     embedding : WordEmbeddingComponent
         The word embedding component
-    pooling_mode: Literal["max", "sum", "mean"]
-        How word embeddings are aggregated into a single embedding per span.
+    pooling_mode: Literal["max", "sum", "mean", "attention"]
+        How word embeddings are aggregated into a single embedding per span:
+
+        - "max": max pooling
+        - "sum": sum pooling
+        - "mean": mean pooling
+        - "attention": attention pooling, where attention scores are computed using a
+            linear layer followed by a softmax over the tokens in the span.
     hidden_size : Optional[int]
         The size of the hidden layer. If None, no projection is done and the output
         of the span pooler is used directly.
@@ -74,7 +91,9 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         name: str = "span_pooler",
         *,
         embedding: WordEmbeddingComponent,
-        pooling_mode: Literal["max", "sum", "mean"] = "mean",
+        pooling_mode: Literal["max", "sum", "mean", "attention"] = "mean",
+        activation: Optional[str] = None,
+        norm: Optional[str] = None,
         hidden_size: Optional[int] = None,
         span_getter: Any = None,
     ):
@@ -99,11 +118,35 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         self.pooling_mode = pooling_mode
         self.span_getter = span_getter
         self.embedding = embedding
-        self.projector = (
-            torch.nn.Linear(self.embedding.output_size, hidden_size)
-            if hidden_size is not None
-            else torch.nn.Identity()
-        )
+        self.activation = activation
+        self.projector = torch.nn.Sequential()
+        if hidden_size is not None:
+            self.projector.append(
+                torch.nn.Linear(self.embedding.output_size, hidden_size)
+            )
+        if activation is not None:
+            self.projector.append(
+                {
+                    "relu": torch.nn.ReLU,
+                    "gelu": torch.nn.GELU,
+                    "silu": torch.nn.SiLU,
+                }[activation]()
+            )
+        if norm is not None:
+            self.projector.append(
+                {
+                    "layernorm": torch.nn.LayerNorm,
+                    "batchnorm": torch.nn.BatchNorm1d,
+                }[norm](
+                    hidden_size
+                    if hidden_size is not None
+                    else self.embedding.output_size
+                )
+            )
+        if self.pooling_mode in {"attention"}:
+            self.attention_scorer = torch.nn.Linear(
+                self.embedding.output_size, 1, bias=False
+            )
 
     def feed_forward(self, span_embeds: torch.Tensor) -> torch.Tensor:
         return self.projector(span_embeds)
@@ -119,7 +162,7 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
     ) -> Dict[str, Any]:
         contexts = contexts if contexts is not None else [doc[:]]
 
-        sequence_idx = []
+        context_indices = []
         begins = []
         ends = []
 
@@ -140,43 +183,95 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
                     f"span: {[s.text for s in ctx]}"
                 )
             start = ctx[0].start
-            sequence_idx.append(contexts_to_idx[ctx[0]])
+            context_indices.append(contexts_to_idx[ctx[0]])
             begins.append(span.start - start)
             ends.append(span.end - start)
         return {
             "begins": begins,
             "ends": ends,
-            "sequence_idx": sequence_idx,
+            "span_to_ctx_idx": context_indices,
             "num_sequences": len(contexts),
             "embedding": self.embedding.preprocess(doc, contexts=contexts, **kwargs),
             "stats": {"spans": len(begins)},
         }
 
     def collate(self, batch: Dict[str, Sequence[Any]]) -> SpanPoolerBatchInput:
-        sequence_idx = []
-        offset = 0
-        for indices, seq_length in zip(batch["sequence_idx"], batch["num_sequences"]):
-            sequence_idx.extend([offset + idx for idx in indices])
-            offset += seq_length
+        embedding_batch = self.embedding.collate(batch["embedding"])
+        n_words = embedding_batch["stats"]["words"]
+        span_to_ctx_idx = []
+        word_to_span_idx = []
+        offset_ctx = 0
+        offset_span = 0
+        flat_indices = []
+        offsets = [0]
+        for indices, num_sample_contexts, begins, ends in zip(
+            batch["span_to_ctx_idx"],
+            batch["num_sequences"],
+            batch["begins"],
+            batch["ends"],
+        ):
+            span_to_ctx_idx.extend([offset_ctx + idx for idx in indices])
+            offset_ctx += num_sample_contexts
+            for b, e, ctx_idx in zip(begins, ends, indices):
+                offset_word = n_words * ctx_idx
+                word_to_span_idx.extend([offset_span] * (e - b))
+                flat_indices.extend(range(offset_word + b, offset_word + e))
+                offsets.append(len(flat_indices))
+                offset_span += 1
+        offsets = offsets[:-1]
 
+        begins = ft.as_folded_tensor(
+            batch["begins"],
+            data_dims=("span",),
+            full_names=("sample", "span"),
+            dtype=torch.long,
+        )
+        ends = ft.as_folded_tensor(
+            batch["ends"],
+            data_dims=("span",),
+            full_names=("sample", "span"),
+            dtype=torch.long,
+        )
         collated: SpanPoolerBatchInput = {
-            "embedding": self.embedding.collate(batch["embedding"]),
-            "begins": ft.as_folded_tensor(
-                batch["begins"],
-                data_dims=("span",),
-                full_names=("sample", "span"),
-                dtype=torch.long,
-            ),
-            "ends": ft.as_folded_tensor(
-                batch["ends"],
-                data_dims=("span",),
-                full_names=("sample", "span"),
-                dtype=torch.long,
-            ),
-            "sequence_idx": torch.as_tensor(sequence_idx),
+            "embedding": embedding_batch,
+            "begins": begins,
+            "ends": ends,
+            "flat_indices": torch.as_tensor(flat_indices),  # (num_span_tokens,)
+            "offsets": torch.as_tensor(offsets),  # (num_spans,)
+            "word_to_span_idx": torch.as_tensor(word_to_span_idx),  # (num_span_tokens,)
+            "span_to_ctx_idx": torch.as_tensor(span_to_ctx_idx),  # (num_spans,)
             "stats": {"spans": sum(batch["stats"]["spans"])},
         }
         return collated
+
+    def _pool_spans(self, flat_embeds, word_to_span_idx, offsets):
+        dev = offsets.device
+        dim = flat_embeds.size(-1)
+        n_spans = len(offsets)
+
+        if self.pooling_mode == "attention":
+            weights = self.attention_scorer(flat_embeds)
+            # compute max for softmax stability
+            max_weights = torch.full((n_spans, 1), float("-inf"), device=dev)
+            max_weights.index_reduce_(0, word_to_span_idx, weights, reduce="amax")
+            # softmax numerator
+            exp_scores = torch.exp(weights - max_weights[word_to_span_idx])
+            # softmax denominator
+            denom = torch.zeros((n_spans, 1), device=dev)
+            denom.index_add_(0, word_to_span_idx, exp_scores)
+            # softmax output = embeds * weight num / weight denom
+            weighted_embeds = flat_embeds * exp_scores / denom[word_to_span_idx]
+            span_embeds = torch.zeros((n_spans, dim), device=dev)
+            span_embeds.index_add_(0, word_to_span_idx, weighted_embeds)
+        else:
+            span_embeds = torch.nn.functional.embedding_bag(  # type: ignore
+                input=torch.arange(len(flat_embeds), device=dev),
+                weight=flat_embeds,
+                offsets=offsets,
+                mode=self.pooling_mode,
+            )
+        span_embeds = self.feed_forward(span_embeds)
+        return span_embeds
 
     # noinspection SpellCheckingInspection
     def forward(self, batch: SpanPoolerBatchInput) -> SpanPoolerBatchOutput:
@@ -196,36 +291,25 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         -------
         BatchOutput
         """
-        device = next(self.parameters()).device
-        if len(batch["begins"]) == 0:
-            span_embeds = torch.empty(0, self.output_size, device=device)
+        n_spans = len(batch["begins"])
+        word_to_span_idx = batch["word_to_span_idx"]
+        offsets = batch["offsets"]
+        flat_indices = batch["flat_indices"]
+
+        if n_spans == 0:
+            span_embeds = torch.empty(0, self.output_size, device=offsets.dev)
             return {
                 "embeddings": batch["begins"].with_data(span_embeds),
             }
 
         embeds = self.embedding(batch["embedding"])["embeddings"]
-        _, n_words, dim = embeds.shape
-        device = embeds.device
-
-        flat_begins = n_words * batch["sequence_idx"] + batch["begins"].as_tensor()
-        flat_ends = n_words * batch["sequence_idx"] + batch["ends"].as_tensor()
-        flat_embeds = embeds.view(-1, dim)
-        flat_indices = torch.cat(
-            [
-                torch.arange(b, e, device=device)
-                for b, e in zip(flat_begins.cpu().tolist(), flat_ends.cpu().tolist())
-            ]
-        ).to(device)
-        offsets = (flat_ends - flat_begins).cumsum(0).roll(1)
-        offsets[0] = 0
-        span_embeds = torch.nn.functional.embedding_bag(  # type: ignore
-            input=flat_indices,
-            weight=flat_embeds,
-            offsets=offsets,
-            mode=self.pooling_mode,
+        embeds = embeds.refold(["context", "word"])
+        flat_embeds = embeds.view(-1, embeds.size(-1))[flat_indices]
+        span_embeds = self._pool_spans(
+            flat_embeds,
+            word_to_span_idx,
+            offsets,
         )
-        span_embeds = self.feed_forward(span_embeds)
-
         return {
             "embeddings": batch["begins"].with_data(span_embeds),
         }

@@ -43,7 +43,18 @@ dependencies = [
     "pydantic<2.0.0; python_version<'3.8'",
     "pydantic-core<2.0.0; python_version<'3.8'",
 ]
-[project.optional-dependencies]
+[optional-dependencies]
+ml = [
+    "rich-logger>=0.3.1",
+    "torch>=1.13.0; python_version>='3.9'",
+    "foldedtensor>=0.4.0",
+    "safetensors>=0.3.0; python_version>='3.8'",
+    "safetensors>=0.3.0,<0.5.0; python_version<'3.8'",
+    "transformers>=4.0.0",
+    "accelerate>=0.20.3",
+]
+
+[dependency-groups]
 dev-no-ml = [
     "pre-commit>=2.0.0; python_version<'3.8'",
     "pre-commit>=2.21.0; python_version>='3.8'",
@@ -67,15 +78,6 @@ docs-no-ml = [
     "mkdocs-eds @ git+https://github.com/percevalw/mkdocs-eds.git@main#egg=mkdocs-eds ; python_version>='3.9'",
     "markdown-grid-tables==0.4.0; python_version>='3.9'",
 ]
-ml = [
-    "rich-logger>=0.3.1",
-    "torch>=1.13.0; python_version>='3.9'",
-    "foldedtensor>=0.4.0",
-    "safetensors>=0.3.0; python_version>='3.8'",
-    "safetensors>=0.3.0,<0.5.0; python_version<'3.8'",
-    "transformers>=4.0.0",
-    "accelerate>=0.20.3",
-]
 docs = [
     "edsnlp[docs-no-ml]",
     "edsnlp[ml]",
@@ -93,6 +95,9 @@ dev = [
 setup = [
     "mlconjug3<3.9.0",  # bug https://github.com/Ars-Linguistica/mlconjug3/pull/506
     "numpy<2",  # mlconjug has scikit-learn dep which doesn't support for numpy 2 yet
+]
+ml = [
+    "edsnlp[ml]",
 ]
 
 [project.urls]
@@ -249,16 +254,17 @@ where = ["."]
 # edsnlp will look both in the above dict and in the one below.
 [project.entry-points."edsnlp_factories"]
 # Trainable
-"eds.transformer"         = "edsnlp.pipes.trainable.embeddings.transformer.factory:create_component"
-"eds.text_cnn"            = "edsnlp.pipes.trainable.embeddings.text_cnn.factory:create_component"
-"eds.span_pooler"         = "edsnlp.pipes.trainable.embeddings.span_pooler.factory:create_component"
-"eds.ner_crf"             = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
-"eds.extractive_qa"      = "edsnlp.pipes.trainable.extractive_qa.factory:create_component"
-"eds.nested_ner"          = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
-"eds.span_qualifier"     = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
-"eds.span_classifier"     = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
-"eds.span_linker"         = "edsnlp.pipes.trainable.span_linker.factory:create_component"
-"eds.biaffine_dep_parser" = "edsnlp.pipes.trainable.biaffine_dep_parser.factory:create_component"
+"eds.transformer"           = "edsnlp.pipes.trainable.embeddings.transformer.factory:create_component"
+"eds.text_cnn"              = "edsnlp.pipes.trainable.embeddings.text_cnn.factory:create_component"
+"eds.span_pooler"           = "edsnlp.pipes.trainable.embeddings.span_pooler.factory:create_component"
+"eds.ner_crf"               = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
+"eds.extractive_qa"         = "edsnlp.pipes.trainable.extractive_qa.factory:create_component"
+"eds.nested_ner"            = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
+"eds.span_qualifier"        = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
+"eds.span_classifier"       = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
+"eds.span_linker"           = "edsnlp.pipes.trainable.span_linker.factory:create_component"
+"eds.biaffine_dep_parser"   = "edsnlp.pipes.trainable.biaffine_dep_parser.factory:create_component"
+"eds.relation_detector_ffn" = "edsnlp.pipes.trainable.relation_detector_ffn.factory:create_component"
 
 [project.entry-points."edsnlp_schedules"]
 "linear" = "edsnlp.training.optimizer:LinearSchedule"
@@ -269,6 +275,7 @@ where = ["."]
 "eds.ner_overlap"            = "edsnlp.metrics.ner:NerOverlapMetric"
 "eds.span_attribute"         = "edsnlp.metrics.span_attribute:SpanAttributeMetric"
 "eds.dep_parsing"            = "edsnlp.metrics.dep_parsing:DependencyParsingMetric"
+"eds.relations"              = "edsnlp.metrics.relations:RelationsMetric"
 
 # Deprecated
 "eds.ner_exact_metric"       = "edsnlp.metrics.ner:NerExactMetric"

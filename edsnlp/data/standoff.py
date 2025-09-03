@@ -32,6 +32,7 @@ REGEX_RELATION = re.compile(r"^(R\d+)\t(\S+) Arg1:(\S+) Arg2:(\S+)")
 REGEX_ATTRIBUTE = re.compile(r"^([AM]\d+)\t(.+?) ([TE]\d+)(?: (.+))?$")
 REGEX_EVENT = re.compile(r"^(E\d+)\t(.+)$")
 REGEX_EVENT_PART = re.compile(r"(\S+):([TE]\d+)")
+REGEX_STATUS = re.compile(r"^(#\d+)\tStatus ([^\t]+)\t(.*)$")
 
 
 class BratParsingError(ValueError):
@@ -71,6 +72,7 @@ def parse_standoff_file(
     entities = {}
     relations = []
     events = {}
+    doc = {}
 
     with fs.open(txt_path, "r", encoding="utf-8") as f:
         text = f.read()
@@ -178,6 +180,11 @@ def parse_standoff_file(
                             "arguments": arguments,
                         }
                     elif line.startswith("#"):
+                        match = REGEX_STATUS.match(line)
+                        if match:
+                            comment = match.group(3)
+                            doc["status"] = comment
+                            continue
                         match = REGEX_NOTE.match(line)
                         if match is None:
                             raise BratParsingError(ann_file, line)
@@ -201,6 +208,7 @@ def parse_standoff_file(
         "entities": list(entities.values()),
         "relations": relations,
         "events": list(events.values()),
+        **doc,
     }
 
 
@@ -260,19 +268,19 @@ def dump_standoff_file(
                                 )
                                 attribute_idx += 1
 
-                    # fmt: off
-                    # if "relations" in doc:
-                    #     for i, relation in enumerate(doc["relations"]):
-                    #         entity_from = entities_ids[relation["from_entity_id"]]
-                    #         entity_to = entities_ids[relation["to_entity_id"]]
-                    #         print(
-                    #             "R{}\t{} Arg1:{} Arg2:{}\t".format(
-                    #                 i + 1, str(relation["label"]), entity_from,
-                    #                 entity_to
-                    #             ),
-                    #             file=f,
-                    #         )
-                    # fmt: on
+            # fmt: off
+            if "relations" in doc:
+                for i, relation in enumerate(doc["relations"]):
+                    entity_from = entities_ids[relation["from_entity_id"]]
+                    entity_to = entities_ids[relation["to_entity_id"]]
+                    print(
+                        "R{}\t{} Arg1:{} Arg2:{}\t".format(
+                            i + 1, str(relation["label"]), entity_from,
+                            entity_to
+                        ),
+                        file=f,
+                    )
+            # fmt: on
 
 
 class StandoffReader(FileBasedReader):

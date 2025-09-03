@@ -95,7 +95,7 @@ class DocPooler(WordEmbeddingComponent, BaseComponent):
         elif self.pooling_mode == "max":
             pooled = embeds.max(dim=1).values
         elif self.pooling_mode == "sum":
-            pooled = embeds.sum(dim=1)
+            pooled = embeds.sum(dim=1) / embeds.size(1)
         elif self.pooling_mode == "cls":
             pooled = self.embedding(batch["embedding"])["cls"].to(device)
         else:

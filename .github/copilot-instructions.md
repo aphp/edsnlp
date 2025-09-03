@@ -1,7 +1,7 @@
 First, when starting to develop, install the project with
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[dev]" "mkdocs-eds@git+https://github.com/percevalw/mkdocs-eds.git@main#egg=mkdocs-eds ; python_version>='3.9'"
 pre-commit install
 ```
 

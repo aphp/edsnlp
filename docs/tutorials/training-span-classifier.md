@@ -40,7 +40,7 @@ dependencies = [
     "sentencepiece>=0.1.96"
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "dvc>=2.37.0; python_version >= '3.8'",
     "pandas>=1.4.0,<2.0.0; python_version >= '3.8'",
@@ -56,7 +56,7 @@ We recommend using a virtual environment and [uv](https://docs.astral.sh/uv/):
 pip install uv
 uv venv .venv
 source .venv/bin/activate
-uv pip install -e ".[dev]"
+uv pip install -e . --group dev
 ```
 
 ## Creating the dataset

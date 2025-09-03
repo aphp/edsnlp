@@ -31,9 +31,9 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install '.[docs]'
+        pip install . --group docs
 #        uv venv
-#        uv pip install '.[docs]'
+#        uv pip install . --group docs
 
     - name: Set up Git
       run: |

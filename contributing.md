@@ -24,7 +24,7 @@ $ python -m venv venv
 $ source venv/bin/activate
 
 # Install the package with common, dev, setup dependencies in editable mode
-$ pip install -e '.[dev,setup]'
+$ pip install -e '.[dev,setup]' "mkdocs-eds@git+https://github.com/aphp/mkdocs-eds.git@main#egg=mkdocs-eds ; python_version>='3.9'"
 # And build resources
 $ python scripts/conjugate_verbs.py
 ```
@@ -107,13 +107,13 @@ Most modern editors propose extensions that will format files on save.
 Make sure to document your improvements, both within the code with comprehensive docstrings,
 as well as in the documentation itself if need be.
 
-We use `MkDocs` for EDS-NLP's documentation. You can checkout the changes you make with:
+We use `MkDocs` for EDS-NLP's documentation. You can check out the changes you make with:
 
 <div class="termy">
 
 ```console
 # Install the requirements
-$ pip install -e '.[docs]'
+$ pip install -e '.[docs]' "mkdocs-eds@git+https://github.com/aphp/mkdocs-eds.git@main#egg=mkdocs-eds ; python_version>='3.9'"
 ---> 100%
 color:green Installation successful
 

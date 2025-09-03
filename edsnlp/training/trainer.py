@@ -728,7 +728,8 @@ def train(
                     )
                 )
             accelerator.print(
-                f"Keeping frozen {len(all_params - grad_params):} weight tensors "
+                ("! WARNING ! " if (len(all_params - grad_params) > 0) else "")
+                + f"Keeping frozen {len(all_params - grad_params):} weight tensors "
                 f"({sum(p.numel() for p in all_params - grad_params):,} parameters)"
             )
 

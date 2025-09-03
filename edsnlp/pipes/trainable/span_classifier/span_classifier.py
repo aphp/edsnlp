@@ -401,7 +401,7 @@ class TrainableSpanClassifier(
         new_index = [new_bindings_to_idx[label] for label in common]
         new_linear = torch.nn.Linear(self.classifier.in_features, len(new_bindings))
         new_linear.weight.data[new_index] = self.classifier.weight.data[old_index]
-        self.classifier.weight = new_linear.weight
+        self.classifier.weight.data = new_linear.weight.data
         self.classifier.out_features = new_bindings
         missing_bindings = set(new_bindings) - set(old_bindings)
         if missing_bindings and len(old_bindings) > 0:
@@ -412,7 +412,7 @@ class TrainableSpanClassifier(
 
         if hasattr(self.classifier, "bias"):
             new_linear.bias.data[new_index] = self.classifier.bias.data[old_index]
-            self.classifier.bias = new_linear.bias
+            self.classifier.bias.data = new_linear.bias.data
 
         def simplify_indexer(indexer):
             return (

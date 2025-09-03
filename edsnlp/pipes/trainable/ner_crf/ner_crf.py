@@ -362,9 +362,9 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         new_linear = torch.nn.Linear(self.embedding.output_size, len(labels) * 5)
         new_linear.weight.data[new_index] = self.linear.weight.data[old_index]
         new_linear.bias.data[new_index] = self.linear.bias.data[old_index]
-        self.linear.weight = new_linear.weight
+        self.linear.weight.data = new_linear.weight.data
         self.linear.out_features = new_linear.out_features
-        self.linear.bias = new_linear.bias
+        self.linear.bias.data = new_linear.bias.data
 
         # Update initialization arguments
         self.labels = labels

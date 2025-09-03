@@ -56,13 +56,17 @@ scorer:
 
 # 🎛️ OPTIMIZER
 optimizer:
-  "@core": optimizer
+  "@core": optimizer !draft
   optim: AdamW
   module: ${ nlp }
   groups:
     # Transformer
     - selector: "transformer"
-      exclude: true
+      lr:
+          "@schedules": linear
+          start_value: 1e-5
+          max_value: 2e-5
+          warmup_rate: 0.5
     - selector: ".*"
       lr: 1e-3
 

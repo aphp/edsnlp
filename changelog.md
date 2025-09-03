@@ -23,6 +23,7 @@
 - We now support `words[-10:10]` syntax in trainable span classifier `context_getter` parameter
 - :ambulance: Until now, `post_init` was applied **after** the instantiation of the optimizer : if the model discovered new labels, and therefore changed its parameter tensors to reflect that, these new tensors were not taken into account by the optimizer, which could likely lead to subpar performance. Now, `post_init` is applied **before** the optimizer is instantiated, so that the optimizer can correctly handle the new tensors.
 - Added missing entry points for readers and writers in the registry, including `write_parquet` and support for `polars` in `pyproject.toml`. Now all implemented readers and writers are correctly registered as entry points.
+- Parameters are now updated *in place* by "post_init" is run in `eds.ner_crf` and `eds.span_classifier`, and are therefore correctly taken into account by the optimizer.
 
 ## Changed
 

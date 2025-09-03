@@ -187,7 +187,7 @@ watch:
 
 plugins:
   - auto_gen_pages:
-      package_dirs: ["pret"]
+      package_dirs: ["edsnlp"]
       reference_section: Reference
       exclude_glob: assets/fragments/*
       copy_files:

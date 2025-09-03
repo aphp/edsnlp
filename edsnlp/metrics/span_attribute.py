@@ -156,7 +156,7 @@ class SpanAttributeMetric:
     the Average Precision (ap). A micro‐average over all attributes is also
     provided under `micro_key`.
 
-    ```python
+    ```python { .no-check }
     from edsnlp.metrics.span_attribute import SpanAttributeMetric
 
     metric = SpanAttributeMetric(

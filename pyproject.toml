@@ -64,7 +64,6 @@ dev-no-ml = [
     "edsnlp[docs-no-ml]",
 ]
 docs-no-ml = [
-    "mkdocs-eds @ git+https://github.com/percevalw/mkdocs-eds.git@main#egg=mkdocs-eds ; python_version>='3.9'",
     "markdown-grid-tables==0.4.0; python_version>='3.9'",
 ]
 ml = [

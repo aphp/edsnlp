@@ -49,6 +49,7 @@ def test_read_shuffle_loop(num_cpu_workers: int):
         .set_processing(num_cpu_workers=num_cpu_workers)
         for _ in range(2)
     )
+
     # This test differs from other data rand perm test as polars rng has changed
     # between versions (from 1.32 ?) so it's easier to check this
     notes_a = list(islice(notes_a, 6))

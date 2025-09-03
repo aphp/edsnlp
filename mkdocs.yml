@@ -56,6 +56,7 @@ nav:
       - tutorials/training-ner.md
       - tutorials/training-span-classifier.md
       - tutorials/tuning.md
+      - tutorials/qualifying-entities-with-llm.md
   - Pipes:
       - Overview: pipes/index.md
       - Core Pipelines:
@@ -73,6 +74,7 @@ nav:
           - pipes/qualifiers/hypothesis.md
           - pipes/qualifiers/reported-speech.md
           - pipes/qualifiers/history.md
+          - 'LLM Classifier': pipes/qualifiers/llm-qualifier.md
       - Miscellaneous:
           - pipes/misc/index.md
           - pipes/misc/dates.md

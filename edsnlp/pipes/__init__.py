@@ -74,6 +74,7 @@ if TYPE_CHECKING:
     from .qualifiers.negation.factory import create_component as negation
     from .qualifiers.reported_speech.factory import create_component as reported_speech
     from .qualifiers.reported_speech.factory import create_component as rspeech
+    from .qualifiers.llm.factory import create_component as llm_span_qualifier
     from .trainable.ner_crf.factory import create_component as ner_crf
     from .trainable.biaffine_dep_parser.factory import create_component as biaffine_dep_parser
     from .trainable.extractive_qa.factory import create_component as extractive_qa

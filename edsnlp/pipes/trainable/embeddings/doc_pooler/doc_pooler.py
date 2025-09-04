@@ -52,20 +52,11 @@ class DocPooler(WordEmbeddingComponent, BaseComponent):
         *,
         embedding: WordEmbeddingComponent,
         pooling_mode: Literal["max", "sum", "mean", "cls"] = "mean",
-        hidden_size: Optional[int] = None,
     ):
         super().__init__(nlp, name)
         self.embedding = embedding
         self.pooling_mode = pooling_mode
-        self.output_size = embedding.output_size if hidden_size is None else hidden_size
-        self.projector = (
-            torch.nn.Linear(self.embedding.output_size, hidden_size)
-            if hidden_size is not None
-            else torch.nn.Identity()
-        )
-
-    def feed_forward(self, doc_embed: torch.Tensor) -> torch.Tensor:
-        return self.projector(doc_embed)
+        self.output_size = embedding.output_size
 
     def preprocess(self, doc: Doc, **kwargs) -> Dict[str, Any]:
         embedding_out = self.embedding.preprocess(doc, **kwargs)
@@ -85,21 +76,26 @@ class DocPooler(WordEmbeddingComponent, BaseComponent):
         }
 
     def forward(self, batch: DocPoolerBatchInput) -> DocPoolerBatchOutput:
-        device = next(self.parameters()).device
-
         embeds = self.embedding(batch["embedding"])["embeddings"]
         device = embeds.device
 
-        if self.pooling_mode == "mean":
-            pooled = embeds.mean(dim=1)
-        elif self.pooling_mode == "max":
-            pooled = embeds.max(dim=1).values
-        elif self.pooling_mode == "sum":
-            pooled = embeds.sum(dim=1) / embeds.size(1)
-        elif self.pooling_mode == "cls":
+        if self.pooling_mode == "cls":
             pooled = self.embedding(batch["embedding"])["cls"].to(device)
+            return {"embeddings": pooled}
+
+        mask = embeds.mask
+        mask_expanded = mask.unsqueeze(-1)
+        masked_embeds = embeds * mask_expanded
+        sum_embeds = masked_embeds.sum(dim=1)
+        if self.pooling_mode == "mean":
+            valid_counts = mask.sum(dim=1, keepdim=True).clamp(min=1)
+            pooled = sum_embeds / valid_counts
+        elif self.pooling_mode == "max":
+            masked_embeds = embeds.masked_fill(~mask_expanded, float("-inf"))
+            pooled, _ = masked_embeds.max(dim=1)
+        elif self.pooling_mode == "sum":
+            pooled = sum_embeds
         else:
             raise ValueError(f"Unknown pooling mode: {self.pooling_mode}")
 
-        pooled = self.feed_forward(pooled)
         return {"embeddings": pooled}

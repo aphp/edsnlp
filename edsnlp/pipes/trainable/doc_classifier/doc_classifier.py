@@ -3,8 +3,9 @@ import pickle
 from typing import Any, Dict, Iterable, Optional, Sequence, Set, Union
 
 import torch
+import torch.nn as nn
 from spacy.tokens import Doc
-from typing_extensions import NotRequired, TypedDict
+from typing_extensions import Literal, NotRequired, TypedDict
 
 from edsnlp.core.pipeline import PipelineProtocol
 from edsnlp.core.torch_component import BatchInput, TorchComponent
@@ -36,6 +37,8 @@ class TrainableDocClassifier(
     TorchComponent[DocClassifierBatchOutput, DocClassifierBatchInput],
     BaseComponent,
 ):
+    """A trainable document classifier that uses embeddings to classify documents."""
+
     def __init__(
         self,
         nlp: Optional[PipelineProtocol] = None,
@@ -49,12 +52,21 @@ class TrainableDocClassifier(
         loss_fn=None,
         labels: Optional[Sequence[str]] = None,
         class_weights: Optional[Union[Dict[str, float], str]] = None,
+        hidden_size: Optional[int] = None,
+        activation_mode: Literal["relu", "gelu", "silu"] = "relu",
+        dropout_rate: Optional[float] = 0.0,
+        layer_norm: Optional[bool] = False,
     ):
+        self.num_classes = num_classes
         self.label_attr: Attributes = label_attr
         self.label2id = label2id or {}
         self.id2label = id2label or {}
         self.labels = labels
         self.class_weights = class_weights
+        self.hidden_size = hidden_size
+        self.activation_mode = activation_mode
+        self.dropout_rate = dropout_rate
+        self.layer_norm = layer_norm
 
         super().__init__(nlp, name)
         self.embedding = embedding
@@ -66,9 +78,23 @@ class TrainableDocClassifier(
             raise ValueError(
                 "The embedding component must have an 'output_size' attribute."
             )
-        embedding_size = self.embedding.output_size
-        if num_classes:
-            self.classifier = torch.nn.Linear(embedding_size, num_classes)
+        self.embedding_size = self.embedding.output_size
+        if self.num_classes:
+            self.build_classifier()
+
+    def build_classifier(self):
+        """Build classification head"""
+        if self.hidden_size:
+            self.hidden_layer = torch.nn.Linear(self.embedding_size, self.hidden_size)
+            self.activation = {"relu": nn.ReLU(), "gelu": nn.GELU(), "silu": nn.SiLU()}[
+                self.activation_mode
+            ]
+            if self.layer_norm:
+                self.norm = nn.LayerNorm(self.hidden_size)
+            self.dropout = nn.Dropout(self.dropout_rate)
+            self.classifier = torch.nn.Linear(self.hidden_size, self.num_classes)
+        else:
+            self.classifier = torch.nn.Linear(self.embedding_size, self.num_classes)
 
     def _compute_class_weights(self, freq_dict: Dict[str, int]) -> torch.Tensor:
         """
@@ -112,10 +138,9 @@ class TrainableDocClassifier(
                 for i, label in enumerate(labels):
                     self.label2id[label] = i
                     self.id2label[i] = label
-                print("num classes:", len(self.label2id))
-                self.classifier = torch.nn.Linear(
-                    self.embedding.output_size, len(self.label2id)
-                )
+                self.num_classes = len(self.label2id)
+                print("num classes:", self.num_classes)
+                self.build_classifier()
 
         weight_tensor = None
         if self.class_weights is not None:
@@ -138,6 +163,7 @@ class TrainableDocClassifier(
         return {"embedding": self.embedding.preprocess(doc)}
 
     def preprocess_supervised(self, doc: Doc) -> Dict[str, Any]:
+        """Preprocess document with target labels for training."""
         preps = self.preprocess(doc)
         label = getattr(doc._, self.label_attr, None)
         if label is None:
@@ -166,9 +192,14 @@ class TrainableDocClassifier(
         if targets provided.
         """
         pooled = self.embedding(batch["embedding"])
-        embeddings = pooled["embeddings"]
-
-        logits = self.classifier(embeddings)
+        x = pooled["embeddings"]
+        if self.hidden_size:
+            x = self.hidden_layer(x)
+            x = self.activation(x)
+            if self.layer_norm:
+                x = self.norm(x)
+            x = self.dropout(x)
+        logits = self.classifier(x)
 
         output: DocClassifierBatchOutput = {}
         if "targets" in batch:
@@ -181,6 +212,7 @@ class TrainableDocClassifier(
         return output
 
     def postprocess(self, docs, results, input):
+        """Postprocess predictions by assigning labels to documents."""
         labels = results["labels"]
         if isinstance(labels, torch.Tensor):
             labels = labels.tolist()

@@ -312,7 +312,7 @@ edsnlp/reducers.py                                                              
 edsnlp/training/__init__.py                                                                 2      0 100.00%
 edsnlp/training/loggers.py                                                                140     11  92.14%   110, 279, 370-388, 393-394
 edsnlp/training/optimizer.py                                                              177      0 100.00%
-edsnlp/training/trainer.py                                                                333     12  96.40%   58, 366-371, 883-889, 917-918, 926, 930
+edsnlp/training/trainer.py                                                                333     12  96.40%   58, 366-371, 884-890, 918-919, 927, 931
 edsnlp/tune.py                                                                            289      2  99.31%   170, 685
 edsnlp/utils/__init__.py                                                                    0      0 100.00%
 edsnlp/utils/batching.py                                                                  190      0 100.00%

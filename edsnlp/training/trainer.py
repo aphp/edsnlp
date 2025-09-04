@@ -695,6 +695,8 @@ def train(
             for td in train_data
             if td.pipe_names is None or set(td.pipe_names) & set(pipe_names)
         ]
+        for td in phase_training_data:
+            print("phase_training_data", td)
 
         if len(phase_training_data) == 0:
             raise ValueError(

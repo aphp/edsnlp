@@ -115,7 +115,7 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
 
     # 🎛️ OPTIMIZER
     optimizer:
-      "@core": optimizer
+      "@core": optimizer !draft  # (2)!
       optim: adamw
       groups:
         # Assign parameters starting with transformer (ie the parameters of the transformer component)
@@ -133,7 +133,6 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
             "warmup_rate": 0.1
             "start_value": 3e-4
             "max_value": 3e-4
-      module: ${ nlp }
       total_steps: ${ train.max_steps }
 
     # 📚 DATA
@@ -216,6 +215,14 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
     1. Why do we use `'@core': pipeline` here ? Because we need the reference used in `optimizer.module = ${ nlp }` to be the actual Pipeline and not its keyword arguments : when confit sees `'@core': pipeline`, it will instantiate the `Pipeline` class with the arguments provided in the dict.
 
         In fact, you could also use `'@core': eds.pipeline` in every config when you define a pipeline, but sometimes it's more convenient to let Confit infer that the type of the nlp argument based on the function when it's type hinted. Not specifying `'@core': pipeline` is also more aligned with `spacy`'s pipeline config API. However, in general, explicit is better than implicit, so feel free to use explicitly write `'@core': eds.pipeline` when you define a pipeline.
+    1. What does "draft" mean here ? We'll let the train function pass the nlp object
+    to the optimizer after it has been been `post_init`'ed : `post_init` is the operation that
+    looks at some data, finds how many label the model must learn, and updates the model weights
+    to have as many heads as there are labels observed in the train data. This function will be
+    called by `train`, so the optimizer should be defined *after*, when the model parameter
+    tensors are final. To do that, instead of instantiating the optimizer right now, we create
+    a "Draft", which will be instantiated inside the `train` function, once all the required
+    parameters are set.
 
     To train the model, you can use the following command:
 
@@ -277,9 +284,8 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
 
     # 🎛️ OPTIMIZER
     max_steps = 2000
-    optimizer = ScheduledOptimizer(
+    optimizer = ScheduledOptimizer.draft(  # (1)!
         optim=torch.optim.Adam,
-        module=nlp,
         total_steps=max_steps,
         groups=[
             {
@@ -332,6 +338,15 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
         # cpu=True,
     )
     ```
+
+    1. Wait, what's does "draft" mean here ? We'll let the train function pass the nlp object
+    to the optimizer after it has been been `post_init`'ed : `post_init` is the operation that
+    looks at some data, finds how many label the model must learn, and updates the model weights
+    to have as many heads as there are labels observed in the train data. This function will be
+    called by `train`, so the optimizer should be defined *after*, when the model parameter
+    tensors are final. To do that, instead of instantiating the optimizer right now, we create
+    a "Draft", which will be instantiated inside the `train` function, once all the required
+    parameters are set.
 
 or use the config file:
 

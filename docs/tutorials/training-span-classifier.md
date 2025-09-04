@@ -184,13 +184,14 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
     ```
 
     1. Put entities extracted by `eds.dates` in `doc.ents`, instead of `doc.spans['dates']`.
-    2. Wait, what's does "draft" mean here ? The rationale is this: we don't want to
-    instantiate the optimizer now, because the nlp object hasn't been `post_init`'ed
-    yet : `post_init` is the operation that looks at some data, finds how many labels the model must learn,
-    and updates the model weights to have as many heads as there are labels. This function will
-    be called by `train`, so the optimizer should be defined *after*, when the model parameter tensors are
-    final. To do that, instead of instantiating the optimizer, we create a "Draft", which will be
-    instantiated inside the `train` function, once all the required parameters are set.
+    2. What does "draft" mean here ? We'll let the train function pass the nlp object
+    to the optimizer after it has been been `post_init`'ed : `post_init` is the operation that
+    looks at some data, finds how many label the model must learn, and updates the model weights
+    to have as many heads as there are labels observed in the train data. This function will be
+    called by `train`, so the optimizer should be defined *after*, when the model parameter
+    tensors are final. To do that, instead of instantiating the optimizer right now, we create
+    a "Draft", which will be instantiated inside the `train` function, once all the required
+    parameters are set.
 
     And train the model:
 
@@ -309,13 +310,14 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
     ```
 
     1. Put entities extracted by `eds.dates` in `doc.ents`, instead of `doc.spans['dates']`.
-    2. Wait, what's does "draft" mean here ? The rationale is this: we don't want to
-    instantiate the optimizer now, because the nlp object hasn't been `post_init`'ed
-    yet : `post_init` is the operation that looks at some data, finds how many label the model must learn,
-    and updates the model weights to have as many heads as there are labels. This function will
-    be called by `train`, so the optimizer should be defined *after*, when the model parameter tensors are
-    final. To do that, instead of instantiating the optimizer, we create a "Draft", which will be
-    instantiated inside the `train` function, once all the required parameters are set.
+    2. What does "draft" mean here ? We'll let the train function pass the nlp object
+    to the optimizer after it has been been `post_init`'ed : `post_init` is the operation that
+    looks at some data, finds how many label the model must learn, and updates the model weights
+    to have as many heads as there are labels observed in the train data. This function will be
+    called by `train`, so the optimizer should be defined *after*, when the model parameter
+    tensors are final. To do that, instead of instantiating the optimizer right now, we create
+    a "Draft", which will be instantiated inside the `train` function, once all the required
+    parameters are set.
 
 
 !!! note "Upstream annotations at training vs inference time"

@@ -343,20 +343,36 @@ class TrainableSpanClassifier(
             if not Span.has_extension(qlf):
                 Span.set_extension(qlf, default=None)
 
-    def post_init(self, gold_data: Iterable[Doc], exclude: Set[str]):
+    def post_init(
+        self,
+        gold_data: Iterable[Doc],
+        exclude: Set[str],
+    ):
         super().post_init(gold_data, exclude=exclude)
 
         bindings = [
             (qlf, labels, dict.fromkeys(vals)) for qlf, labels, vals in self.bindings
         ]
+        self.binding_target_shape = dict.fromkeys(qlf for qlf, _, _ in bindings)
+
         for doc in gold_data:
             spans = list(get_spans(doc, self.span_getter))
             for span in spans:
-                for attr, labels, values in bindings:
+                for attr, labels, values in bindings:  # FIXME
+                    binding_has_softlabels = False
                     if labels is True or span.label_ in labels:
                         value = BINDING_GETTERS[attr](span)
                         if value is not None or self.keep_none:
-                            values[value] = None
+                            if isinstance(value, dict):
+                                binding_has_softlabels = True
+                                for k in value.keys():
+                                    values[k] = None
+                            else:
+                                values[value] = None
+
+                        self.binding_target_shape[attr] = (
+                            len(values) if binding_has_softlabels else 1
+                        )
 
         bindings = [
             (attr, labels, sorted(values, key=str)) for attr, labels, values in bindings
@@ -368,7 +384,7 @@ class TrainableSpanClassifier(
                     f"Attribute {attr} for labels {labels} should have at "
                     f"least 2 values but found {len(values)}: {values}."
                 )
-
+        self.exist_soft_labels = max(self.binding_target_shape.values()) > 1
         self.update_bindings(bindings)
 
     def update_bindings(self, bindings: List[Tuple[str, SpanFilter, List[Any]]]):
@@ -457,18 +473,77 @@ class TrainableSpanClassifier(
 
     def preprocess_supervised(self, doc: Doc) -> Dict[str, Any]:
         preps = self.preprocess(doc)
-        return {
-            **preps,
-            "targets": [
-                [
-                    values_to_idx.get(BINDING_GETTERS[qlf](span), -100)
-                    if labels is True or span.label_ in labels
-                    else -100
-                    for qlf, labels, values_to_idx in self.bindings_to_idx
-                ]
-                for span in preps["$spans"]
-            ],
-        }
+        targets = []
+        for span in preps["$spans"]:
+            span_targets = []
+            for qlf, labels, values_to_idx in self.bindings_to_idx:
+                if labels is True or span.label_ in labels:
+                    value = BINDING_GETTERS[qlf](span)
+                    if isinstance(value, dict):
+                        # Probabilities dict: convert to vector in
+                        # order of values_to_idx
+                        prob_vec = [
+                            float(value.get(val, -100)) for val in values_to_idx
+                        ]
+
+                        span_targets.append(prob_vec)
+                    else:
+                        idx = values_to_idx.get(value, -100)
+                        if self.exist_soft_labels:
+                            if idx != -100:
+                                target = F.one_hot(
+                                    torch.tensor(idx),
+                                    num_classes=len(values_to_idx),
+                                ).tolist()
+                            else:
+                                target = [idx] * len(values_to_idx)
+                        else:
+                            target = idx
+                        span_targets.append(target)
+                else:
+                    if self.exist_soft_labels:
+                        ignore_value = [-100] * len(values_to_idx)
+                        span_targets.append(ignore_value)
+                    else:
+                        span_targets.append(-100)
+            targets.append(span_targets)
+        return {**preps, "targets": targets}
+
+    # def transform_label(self, value, values_to_idx, target_shape):
+    #     if isinstance(value, dict):
+    #         target = [float(value.get(val, -100)) for val in values_to_idx]
+    #     else:
+    #         idx = values_to_idx.get(value, -100)
+    #         if target_shape > 1:
+    #             target = F.one_hot(
+    #                 torch.tensor(idx),
+    #                 num_classes=len(values_to_idx),
+    #             ).tolist()
+    #         else:
+    #             target = idx
+    #     return target
+
+    # def preprocess_supervised(self, doc: Doc) -> Dict[str, Any]:
+    #     preps = self.preprocess(doc)
+    #     targets = []
+
+    #     for qlf, labels, values_to_idx in self.bindings_to_idx:
+    #         qlf_target_shape = self.binding_target_shape[qlf]
+    #         qlf_targets = []
+    #         for span in preps["$spans"]:
+    #             if labels is True or span.label_ in labels:
+    #                 value = BINDING_GETTERS[qlf](span)
+    #                 target = self.transform_label(
+    #                     value, values_to_idx, qlf_target_shape
+    #                 )
+    #             else:
+    #                 if qlf_target_shape > 1:
+    #                     target = [-100] * len(values_to_idx)
+    #                 else:
+    #                     target = -100
+    #             qlf_targets.append(target)
+    #         targets.append(qlf_targets)
+    #     return {**preps, "targets": targets}
 
     def collate(self, batch: Dict[str, Sequence[Any]]) -> SpanClassifierBatchInput:
         collated: SpanClassifierBatchInput = {
@@ -477,15 +552,21 @@ class TrainableSpanClassifier(
         if "targets" in batch:
             targets = ft.as_folded_tensor(
                 batch["targets"],
-                dtype=torch.long,
+                dtype=torch.float,
                 full_names=("sample", "span", "group"),
                 data_dims=("span", "group"),
             ).as_tensor()
-            collated["targets"] = targets.view(len(targets), len(self.bindings))
+            # collated["targets"] = targets.view(len(targets), len(self.bindings))
+            collated["targets"] = targets
+
         return collated
 
     # noinspection SpellCheckingInspection
-    def forward(self, batch: SpanClassifierBatchInput) -> BatchOutput:
+    def forward(
+        self,
+        batch: SpanClassifierBatchInput,
+        weights: Dict[str, list] = {},
+    ) -> BatchOutput:
         """
         Apply the span classifier module to the document embeddings and given spans to:
         - compute the loss
@@ -512,20 +593,23 @@ class TrainableSpanClassifier(
             pred = []
             losses = None
 
+        weights = {
+            k: torch.tensor(v, device=self.device) for k, v in weights.items()
+        }  # FIXME? mettre dans un autre endroit ?
+
         # For each group, for instance:
         # - `event=start` and `event=stop`
         # - `negated=False` and `negated=True`
         for group_idx, bindings_indexer in enumerate(self.bindings_indexers):
             if "targets" in batch:
+                weight = weights.get(self.bindings[group_idx][0])
+                mask = torch.all(batch["targets"][:, group_idx] != -100, axis=1)
                 losses.append(
                     F.cross_entropy(
-                        binding_scores[:, bindings_indexer],
-                        batch["targets"][:, group_idx],
+                        binding_scores[mask, bindings_indexer],
+                        batch["targets"][mask, group_idx],
                         reduction="sum",
-                        weight=torch.tensor(self.label_weights, dtype=torch.float)[
-                            bindings_indexer
-                        ].to(binding_scores.device)
-                        / len(span_embeds),
+                        weight=weight,
                     )
                 )
                 assert not torch.isnan(losses[-1]).any(), "NaN loss"

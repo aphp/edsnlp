@@ -16,7 +16,8 @@ nlp:
 
     qualifier:
       '@factory': eds.span_classifier
-      attributes: { "_.negation": [ "sosy" ] }
+      attributes: { "_.negation": [ "sosy" ], "speciality":True }
+      # attributes:  ["_.negation"]
       span_getter: ["ents", "gold_spans"]
       context_getter: { '@misc': eds.span_context_getter, "context_words": 30, "context_sents": 1 }
 
@@ -63,7 +64,7 @@ scorer:
 train_data:
   data:
     "@readers": json
-    path: ./dataset.jsonl
+    path: ./dataset2.jsonl
     converter:
       - '@factory': 'myproject.custom_dict2doc'
         span_setter : 'gold_spans'
@@ -80,17 +81,17 @@ train_data:
         # regex: '\\n{2,}'
   shuffle: dataset
   batch_size: 4 docs
-  pipe_names: [ "qualifier" ]
+  pipe_names: []
   sub_batch_size: 10 words
 
 val_data:
   "@readers": json
-  path: ./dataset.jsonl
+  path: ./dataset2.jsonl
   converter:
     - '@factory': myproject.custom_dict2doc
       span_setter : 'gold_spans'
       span_attributes : ['negation']
-      bool_attributes : ['negation']  # default standoff to doc converter
+      bool_attributes : []  # default standoff to doc converter
 
 # 🚀 TRAIN SCRIPT OPTIONS
 train:

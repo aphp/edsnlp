@@ -43,16 +43,7 @@ $ pre-commit install
 
 The pre-commit hooks defined in the [configuration](https://github.com/aphp/edsnlp/blob/master/.pre-commit-config.yaml) will automatically run when you commit your changes, letting you know if something went wrong.
 
-The hooks only run on staged changes. To force-run it on all files, run:
-
-<div class="termy">
-
-```console
-$ pre-commit run --all-files
----> 100%
-color:green All good !
-```
-
+The hooks only run on staged changes.
 </div>
 
 ## Proposing a merge request

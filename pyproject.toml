@@ -15,15 +15,14 @@ dependencies = [
     "regex",
     # spacy doesn't provide binaries for python<3.9 from 3.8.2 so we need to cap it ourself
     "spacy>=3.2,<3.8.2; python_version<'3.9'",
-    # at the moment, spacy >=3.8.7 requires cython 3 and messes up the registration of factories
-    "spacy>=3.8.5,<3.8.7; python_version>='3.9'",
+    "spacy>=3.8.5,<4.0.0; python_version>='3.9'",
     # thinc doesn't provide binaries for python<3.9 from 8.2.5 so we need to cap it ourself
     "thinc<8.2.5; python_version<'3.9'",
     "thinc>=8.2.5; python_version>='3.9'",
     # blis>1.2.0 (dependency of thinc) doesn't provide binaries for python<3.10 so we need to cap it ourself
     "blis<1.0.0; python_version<'3.9'",
     "blis<1.2.1; python_version>='3.9' and python_version<'3.10'",
-    "confit>=0.9.0",
+    "confit>=0.7.3",
     "tqdm",
     "umls-downloader>=0.1.1",
     "numpy>=1.15.0",
@@ -64,16 +63,34 @@ dev-no-ml = [
     "edsnlp[docs-no-ml]",
 ]
 docs-no-ml = [
-    "markdown-grid-tables==0.4.0; python_version>='3.9'",
+    "mike~=1.1.2",
+    "mkdocs-charts-plugin==0.0.8",
+    "mkdocs-img2fig-plugin==0.9.3",
+    "mkdocs-material~=9.2.0",
+    "mkdocs-section-index==0.3.4",
+    "mkdocs~=1.5.2",
+    "mkdocstrings>=0.20,<0.28.0",
+    "mkdocstrings-python~=1.1",
+    "mkdocs-minify-plugin",
+    "mkdocs-redirects>=1.2.1;python_version>='3.8'",
+    "pybtex~=0.24.0",
+    "pathspec>=0.11.1",  # required by vendored mkdocs-autorefs PR
+    "astunparse",
+    "griffe<0.39",
+    "jedi",
+    "html5lib",
 ]
 ml = [
     "rich-logger>=0.3.1",
+    # TODO: uv doesn't seem to resolve torch correctly, unless we cap it ourself
+    "torch>=1.13.0,<2.0.0; python_version<'3.8'",
+    "torch>=1.13.0,<2.5.0; python_version<'3.9'",
     "torch>=1.13.0; python_version>='3.9'",
     "foldedtensor>=0.4.0",
     "safetensors>=0.3.0; python_version>='3.8'",
     "safetensors>=0.3.0,<0.5.0; python_version<'3.8'",
-    "transformers>=4.0.0",
-    "accelerate>=0.20.3",
+    "transformers>=4.0.0,<5.0.0",
+    "accelerate>=0.20.3,<1.0.0",
 ]
 docs = [
     "edsnlp[docs-no-ml]",
@@ -82,7 +99,6 @@ docs = [
 dev = [
     "edsnlp[dev-no-ml]",
     "edsnlp[ml]",
-    "tensorboard",
     "optuna>=4.0.0",
     "plotly>=5.18.0", # required by optuna viz
     "ruamel.yaml>=0.18.0",
@@ -178,6 +194,8 @@ where = ["."]
 "eds.hypothesis"                  = "edsnlp.pipes.qualifiers.hypothesis.factory:create_component"
 "eds.negation"                    = "edsnlp.pipes.qualifiers.negation.factory:create_component"
 "eds.reported_speech"             = "edsnlp.pipes.qualifiers.reported_speech.factory:create_component"
+"eds.contextual_qualifier"        = "edsnlp.pipes.qualifiers.contextual.factory:create_component"
+"eds.external_information_qualifier" = "edsnlp.pipes.qualifiers.external_information.factory:create_component"
 
 # Misc
 "eds.consultation_dates"          = "edsnlp.pipes.misc.consultation_dates.factory:create_component"

@@ -549,12 +549,14 @@ class TrainableSpanClassifier(
         if "targets" in batch:
             targets = ft.as_folded_tensor(
                 batch["targets"],
-                dtype=torch.float,
+                dtype=torch.float if self.exist_soft_labels else torch.long,
                 full_names=("sample", "span", "group"),
                 data_dims=("span", "group"),
             ).as_tensor()
-            # collated["targets"] = targets.view(len(targets), len(self.bindings))
-            collated["targets"] = targets
+            if self.exist_soft_labels:
+                collated["targets"] = targets
+            else:
+                collated["targets"] = targets.view(len(targets), len(self.bindings))
 
         return collated
 
@@ -562,7 +564,6 @@ class TrainableSpanClassifier(
     def forward(
         self,
         batch: SpanClassifierBatchInput,
-        weights: Dict[str, list] = {},
     ) -> BatchOutput:
         """
         Apply the span classifier module to the document embeddings and given spans to:
@@ -590,23 +591,23 @@ class TrainableSpanClassifier(
             pred = []
             losses = None
 
-        weights = {
-            k: torch.tensor(v, device=self.device) for k, v in weights.items()
-        }  # FIXME? mettre dans un autre endroit ?
-
         # For each group, for instance:
         # - `event=start` and `event=stop`
         # - `negated=False` and `negated=True`
         for group_idx, bindings_indexer in enumerate(self.bindings_indexers):
             if "targets" in batch:
-                weight = weights.get(self.bindings[group_idx][0])
-                mask = torch.all(batch["targets"][:, group_idx] != -100, axis=1)
+                if self.exist_soft_labels:
+                    mask = torch.all(batch["targets"][:, group_idx] != -100, axis=1)
+                else:
+                    mask = batch["targets"][:, group_idx] != -100
                 losses.append(
                     F.cross_entropy(
                         binding_scores[mask, bindings_indexer],
                         batch["targets"][mask, group_idx],
                         reduction="sum",
-                        weight=weight,
+                        weight=torch.tensor(self.label_weights, dtype=torch.float)[
+                            bindings_indexer
+                        ].to(binding_scores.device),
                     )
                 )
                 assert not torch.isnan(losses[-1]).any(), "NaN loss"

@@ -99,6 +99,7 @@ Make sure to document your improvements, both within the code with comprehensive
 as well as in the documentation itself if need be.
 
 We use `MkDocs` for EDS-NLP's documentation. You can check out the changes you make with:
+We use `MkDocs` for EDS-NLP's documentation. You can check out the changes you make with:
 
 <div class="termy">
 

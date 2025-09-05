@@ -1,3 +1,5 @@
+import sys
+
 import pytest
 
 import edsnlp
@@ -13,6 +15,14 @@ def test_pipelines(doc):
     assert not doc[0]._.history
 
 
+def is_openai_3_7(e):
+    return (
+        "openai" in str(e)
+        and sys.version_info.major == 3
+        and sys.version_info.minor == 7
+    )
+
+
 def test_import_all():
     import edsnlp.pipes
 
@@ -22,6 +32,9 @@ def test_import_all():
                 getattr(edsnlp.pipes, name)
             except (ImportError, AttributeError) as e:
                 if "torch" in str(e):
+                    pass
+                if is_openai_3_7(e):
+                    # Skip tests for OpenAI using python 3.7
                     pass
 
 

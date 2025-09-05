@@ -6,6 +6,7 @@ try:
 except ImportError:
     from importlib_metadata import entry_points
 
+# Torch installation
 try:
     import torch.nn
 except ImportError:
@@ -13,6 +14,15 @@ except ImportError:
 
 if torch is None:
     pytest.skip("torch not installed", allow_module_level=True)
+
+# openai installation
+try:
+    import openai
+except ImportError:
+    openai = None
+
+if openai is None:
+    pytest.skip("openai not installed", allow_module_level=True)
 
 
 def test_entrypoints():

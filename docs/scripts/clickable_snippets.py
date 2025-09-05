@@ -99,7 +99,6 @@ class ClickableSnippetsPlugin(BasePlugin):
             for ep in (
                 *self.get_ep_namespace(ep, "spacy_factories"),
                 *self.get_ep_namespace(ep, "edsnlp_factories"),
-                *self.get_ep_namespace(ep, "spacy_scorers"),
             )
         }
 

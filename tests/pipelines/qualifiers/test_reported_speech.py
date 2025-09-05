@@ -1,12 +1,16 @@
 from typing import List
 
 from pytest import fixture, mark
-from spacy.tokens import Span
 
-from edsnlp.pipes.qualifiers.reported_speech import ReportedSpeech
+from edsnlp.pipelines.qualifiers.reported_speech import ReportedSpeech
 from edsnlp.utils.examples import parse_example
 
 examples: List[str] = [
+    # (
+    #     'Pas de critique de sa TS de nov 2020 "je '
+    #     "<ent reported_speech_=REPORTED>regrette</ent> d'avoir raté\"."
+    # ),
+    # "Décrit un scénario d'<ent reported_speech_=REPORTED>IMV</ent>",
     (
         "Elles sont décrites par X.x. comme des appels à l'aide "
         "« La <ent reported_speech_=REPORTED>pendaison</ent> "
@@ -35,16 +39,20 @@ examples: List[str] = [
         "lorsqu'il était dans la rue, diminution de ces "
         "idées noires depuis qu'il vit chez son fils"
     ),
-    # A long test to check leakage from one entity to the next.
+]
+
+# A long test to check leakage from one entity to the next.
+examples.append(
     "le patient est admis pour coronavirus. il dit qu'il n'est "
     "pas <ent reported_speech=True>malade</ent>.\n"
     "les tests sont positifs.\n"
-    "il est <ent reported_speech=False>malade</ent>",
-]
+    "il est <ent reported_speech=False>malade</ent>"
+)
 
 
 @fixture
 def reported_speech_factory(blank_nlp):
+
     default_config = dict(
         pseudo=None,
         preceding=None,
@@ -57,6 +65,7 @@ def reported_speech_factory(blank_nlp):
     )
 
     def factory(on_ents_only, **kwargs):
+
         config = dict(**default_config)
         config.update(kwargs)
 
@@ -71,6 +80,7 @@ def reported_speech_factory(blank_nlp):
 
 @mark.parametrize("on_ents_only", [True, False])
 def test_reported_speech(blank_nlp, reported_speech_factory, on_ents_only):
+
     reported_speech = reported_speech_factory(on_ents_only=on_ents_only)
 
     for example in examples:
@@ -84,7 +94,9 @@ def test_reported_speech(blank_nlp, reported_speech_factory, on_ents_only):
         doc = reported_speech(doc)
 
         for entity, ent in zip(entities, doc.ents):
+
             for modifier in entity.modifiers:
+
                 assert getattr(ent._, modifier.key) == modifier.value
 
                 if not on_ents_only:
@@ -93,6 +105,7 @@ def test_reported_speech(blank_nlp, reported_speech_factory, on_ents_only):
 
 
 def test_reported_speech_within_ents(blank_nlp, reported_speech_factory):
+
     reported_speech = reported_speech_factory(on_ents_only=True, within_ents=True)
 
     examples = [
@@ -111,41 +124,9 @@ def test_reported_speech_within_ents(blank_nlp, reported_speech_factory):
         doc = reported_speech(doc)
 
         for entity, ent in zip(entities, doc.ents):
+
             for modifier in entity.modifiers:
-                assert getattr(ent._, modifier.key) == modifier.value, (
-                    f"{modifier.key} labels don't match."
-                )
 
-
-def test_on_span(blank_nlp, reported_speech_factory):
-    doc = blank_nlp(
-        "Le patient a déclaré être asthmatique. Le patient n'est pas malade."
-    )
-    doc.ents = [
-        Span(doc, 5, 6, label="ent"),
-        Span(doc, 12, 13, label="ent"),
-    ]
-
-    reported_speech = reported_speech_factory(on_ents_only=True)
-    res = reported_speech.process(doc[1:13])
-    assert [(ent.ent.text, bool(ent.reported_speech)) for ent in res.ents] == [
-        ("asthmatique", True),
-        ("malade", False),
-    ]
-
-    reported_speech = reported_speech_factory(on_ents_only=False)
-    res = reported_speech.process(doc[1:13])
-    assert [(t.token.text, t.reported_speech) for t in res.tokens] == [
-        ("patient", False),
-        ("a", False),
-        ("déclaré", False),
-        ("être", True),
-        ("asthmatique", True),
-        (".", True),
-        ("Le", False),
-        ("patient", False),
-        ("n'", False),
-        ("est", False),
-        ("pas", False),
-        ("malade", False),
-    ]
+                assert (
+                    getattr(ent._, modifier.key) == modifier.value
+                ), f"{modifier.key} labels don't match."

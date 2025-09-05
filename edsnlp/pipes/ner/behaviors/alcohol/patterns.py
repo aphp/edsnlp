@@ -3,7 +3,7 @@ default_pattern = dict(
     regex=[
         r"\balco[ol]",
         r"\bethyl",
-        r"(?<!(25.{0,10}))\boh\b",
+        r"(?<!(25.?)|(sevrage)).?\boh\b",
         r"exogenose",
         r"delirium.tremens",
     ],

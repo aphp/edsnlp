@@ -137,44 +137,44 @@ class RuleBasedQualifier(BaseSpanAttributeClassifierComponent):
             span_getter=validate_span_getter(span_getter),
         )
 
-    def get_cues(self, doc: Doc, spans: Optional[List[Span]] = None):
+    def get_matches(self, doc: Doc) -> List[Span]:
         """
-        Extract cues (ex: ne/pas for negations) from the document.
+        Extract matches.
 
         Parameters
         ----------
-        doc: Doc
-            The document to process.
-        spans: Optional[List[Span]]
-            Optional list of spans to limit the search around.
-            If None, will search in the whole document.
-
+        doc : Doc
+            spaCy `Doc` object.
         Returns
         -------
         List[Span]
-            List of detected cues
+            List of detected spans
         """
-        if spans is None:
+
+        if self.on_ents_only:
+            sents = set([ent.sent for ent in self.get_spans(doc)])
+
+            match_iterator = (
+                (
+                    *self.phrase_matcher(s, as_spans=True),
+                    *self.regex_matcher(s, as_spans=True),
+                )
+                for s in sents
+            )
+
+            matches = chain.from_iterable(match_iterator)
+
+        else:
             matches = (
                 *self.phrase_matcher(doc, as_spans=True),
                 *self.regex_matcher(doc, as_spans=True),
             )
-        else:
-            sents = dict.fromkeys((span.sent for span in spans))
-            matches = chain.from_iterable(
-                (
-                    (
-                        *self.phrase_matcher(s, as_spans=True),
-                        *self.regex_matcher(s, as_spans=True),
-                    )
-                    for s in sents
-                )
-            )
+
         return list(matches)
 
-    def process(self, doc_like: Union[Doc, Span]) -> BaseQualifierResults:
+    def process(self, doc: Doc) -> BaseQualifierResults:
         raise NotImplementedError
 
     def __call__(self, doc: Doc) -> Doc:
-        results = self.process(doc)  # pragma: no cover
+        results = self.process(doc)
         raise NotImplementedError(f"{type(results)} should be used to tag the document")

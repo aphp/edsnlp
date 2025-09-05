@@ -1,4 +1,3 @@
-import pytest
 from pytest import fixture
 
 from edsnlp.matchers.utils import get_text
@@ -26,6 +25,7 @@ def test_full_normalization(doc):
 @fixture
 def nlp_factory(blank_nlp):
     def f(a=False, lc=False, q=False, p=False):
+
         if a:
             a = dict(accents=accents)
         if q:
@@ -48,6 +48,7 @@ def nlp_factory(blank_nlp):
 
 
 def test_normalization_accents(nlp_factory, text):
+
     nlp = nlp_factory(a=True)
     doc = nlp(text)
 
@@ -57,6 +58,7 @@ def test_normalization_accents(nlp_factory, text):
 
 
 def test_normalization_spaces(nlp_factory, text):
+
     nlp = nlp_factory(a=True)
     doc = nlp("Phrase    avec des espaces \n et un retour à la ligne")
 
@@ -65,6 +67,7 @@ def test_normalization_spaces(nlp_factory, text):
 
 
 def test_normalization_quotes(nlp_factory, text):
+
     nlp = nlp_factory(q=True)
     doc = nlp(text)
 
@@ -76,6 +79,7 @@ def test_normalization_quotes(nlp_factory, text):
 
 
 def test_normalization_lowercase(nlp_factory, text):
+
     nlp = nlp_factory(lc=True)
     doc = nlp(text)
 
@@ -85,6 +89,7 @@ def test_normalization_lowercase(nlp_factory, text):
 
 
 def test_normalization_pollution(nlp_factory, text):
+
     nlp = nlp_factory(p=True)
     doc = nlp(text)
 
@@ -112,14 +117,3 @@ def test_normalization_pollution(nlp_factory, text):
         doc = nlp(example)
         norm = get_text(doc, attr="NORM", ignore_excluded=True)
         assert norm == expected
-
-
-def test_normalization_intraword_breaks(nlp_factory, lang):
-    nlp = nlp_factory(p=True)
-    example = "Le patient a un diab-\nète de type II."
-    expected = "Le patient a un diabète de type II."
-    doc = nlp(example)
-    norm = get_text(doc, attr="NORM", ignore_excluded=True)
-    if lang != "eds":
-        pytest.xfail("This test is expected to fail when EDS's language isn't used")
-    assert norm == expected

@@ -189,17 +189,16 @@ class FamilyContextQualifier(RuleBasedQualifier):
         if not Doc.has_extension("family"):
             Doc.set_extension("family", default=[])
 
-    def process(self, doc_like: Union[Doc, Span]) -> FamilyResults:
-        doc = doc_like.doc if isinstance(doc_like, Span) else doc_like
-        entities = list(get_spans(doc_like, self.span_getter))
-        matches = self.get_cues(doc_like, entities if self.on_ents_only else None)
+    def process(self, doc: Doc) -> FamilyResults:
+        matches = self.get_matches(doc)
 
         terminations = [m for m in matches if m.label_ == "termination"]
-        boundaries = self._boundaries(doc_like, terminations)
+        boundaries = self._boundaries(doc, terminations)
 
         # Removes duplicate matches and pseudo-expressions in one statement
         matches = filter_spans(matches, label_to_remove="pseudo")
 
+        entities = list(get_spans(doc, self.span_getter))
         ents = None
 
         token_results, ent_results = [], []

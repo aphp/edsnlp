@@ -55,6 +55,7 @@ nav:
       - tutorials/make-a-training-script.md
       - tutorials/training.md
       - tutorials/tuning.md
+      - advanced-tutorials/distant_annotation.md
   - Pipes:
       - Overview: pipes/index.md
       - Core Pipelines:
@@ -72,6 +73,8 @@ nav:
           - pipes/qualifiers/hypothesis.md
           - pipes/qualifiers/reported-speech.md
           - pipes/qualifiers/history.md
+          - pipes/qualifiers/contextual.md
+          - pipes/qualifiers/external_information.md
       - Miscellaneous:
           - pipes/misc/index.md
           - pipes/misc/dates.md
@@ -146,10 +149,6 @@ nav:
       - concepts/pipeline.md
       - concepts/torch-component.md
       - concepts/inference.md
-  - Metrics:
-      - metrics/index.md
-      - metrics/ner.md
-      - metrics/span-attribute.md
   - Utilities:
       - utilities/index.md
       - utilities/tests/blocs.md
@@ -175,14 +174,15 @@ extra:
 extra_css:
   - assets/stylesheets/extra.css
   - assets/stylesheets/cards.css
-  #- assets/termynal/termynal.css
+  - assets/termynal/termynal.css
 
 extra_javascript:
-  #- https://cdn.jsdelivr.net/npm/vega@5
-  #- https://cdn.jsdelivr.net/npm/vega-lite@5
-  #- https://cdn.jsdelivr.net/npm/vega-embed@6
+  - https://cdn.jsdelivr.net/npm/vega@5
+  - https://cdn.jsdelivr.net/npm/vega-lite@5
+  - https://cdn.jsdelivr.net/npm/vega-embed@6
+  - assets/termynal/termynal.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6
-  # - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 watch:
   - contributing.md
@@ -248,9 +248,8 @@ markdown_extensions:
       slugify: !!python/object/apply:pymdownx.slugs.slugify
         kwds:
           case: lower
-  #- pymdownx.arithmatex:
-  #    generic: true
-  - markdown_grid_tables
+  - pymdownx.arithmatex:
+      generic: true
   - footnotes
   - md_in_html
   - attr_list

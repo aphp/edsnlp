@@ -218,13 +218,3 @@ one per entity, that can be used to write to a dataframe. The schema of each pro
     options:
         heading_level: 4
         show_source: false
-
-## Markup (`converter="markup"`) {: #edsnlp.data.converters.MarkupToDocConverter }
-
-This converter is used to convert markup data, such as Markdown or XML into documents.
-This can be particularly useful when you want to create annotated documents from scratch (e.g., for testing purposes).
-
-::: edsnlp.data.converters.MarkupToDocConverter
-    options:
-        heading_level: 4
-        show_source: false

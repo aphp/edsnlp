@@ -1,14 +1,14 @@
 main_pattern = dict(
     source="main",
     regex=[
-        r"alveolites?.{1,5}fibrosante",
+        r"alveolites.{1,5}fibrosante",
         r"asthm",
-        r"broncho.?pneumopath\w+.{1,5}chroni\w+.{1,5}obstru",
-        r"bronchites?.{1,5}chroni\w+.{1,5}obstru",
+        r"broncho.?pneumopathies.{1,5}chroniques.{1,5}obstru",
+        r"bronchites.{1,5}chroniques.{1,5}obstru",
         r"fibro.{1,20}(poumon|pulmo|pleur)",
-        r"fibrose.{1,5}interstitiell?e.{1,5}dif?fuse.{1,5}idiopathi\w+",
+        r"fibrose.{1,5}interstitielle.{1,5}diffuse.{1,5}idiopathique",
         r"fibrose.{1,5}intersti",
-        r"obstruction.{1,5}chroni\w+.{1,10}voie.{1,5}aerienne",
+        r"obstruction.{1,5}chronique.{1,10}voie.{1,5}aerienne",
         r"pneumoconiose",
         r"pneumo(nie|pathie).{0,15}(intersti|radiq|infiltr|fibro|organis)",
         r"poumon.{1,5}noir",
@@ -16,9 +16,9 @@ main_pattern = dict(
         r"fibro.?elastose.{1,5}pleuro.?paren",
         r"apnee.{1,25}sommeil",
         r"emphyseme",
-        r"insuff?isan.{1,5}respiratoire.{1,5}chron\w+",
+        r"insuffisan.{1,5}respiratoire.{1,5}chron",
         r"mucoviscidose",
-        r"bronchiolite.obliterante.{1,10}pneumo.{1,20}organis",
+        r"bronchiolite.oblilerante.{1,10}pneumo.{1,20}organis",
     ],
     regex_attr="NORM",
 )
@@ -27,8 +27,8 @@ htap = dict(
     source="htap",
     regex=[
         r"\bhtap\b",
-        r"hyper\s*tension.{0,10}pulmo",
-        r"hyper\s*tension.{1,5}arter.{1,15}(poumon|pulmo)",
+        r"hypertension.{0,10}pulmo",
+        r"hypertension.{1,5}arter.{1,15}(poumon|pulmo)",
     ],
     regex_attr="NORM",
     exclude=[
@@ -46,7 +46,7 @@ oxygen = dict(
         r"oxygeno.?requeran",
         r"oxygenation",
         r"oxygeno.?ther",
-        r"oxygene?",
+        r"oxygene",
     ],
     regex_attr="NORM",
     assign=[

@@ -114,17 +114,8 @@ class DisorderMatcher(ContextualMatcher):
             annotated spaCy Doc object
         """
         spans = list(self.process(doc))
-        all_detailed_status = set(self.detailed_status_mapping.keys())
         for span in spans:
-            if span._.status is not None and span._.status not in all_detailed_status:
-                raise ValueError(
-                    f"Got incorrect status value for '{span}'. Expected "
-                    f"None or one of {all_detailed_status}, got {span._.status}"
-                )
-            span._.detailed_status = self.detailed_status_mapping.get(
-                span._.status,
-                None,
-            )
+            span._.detailed_status = self.detailed_status_mapping[span._.status]
 
         self.set_spans(doc, filter_spans(spans))
 

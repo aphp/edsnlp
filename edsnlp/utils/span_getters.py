@@ -37,14 +37,13 @@ SpanSetter = Union[
 ]
 
 
-def get_spans(doclike, span_getter, deduplicate=True):
+def get_spans(doclike, span_getter):
     if span_getter is None:
         yield doclike[:]
         return
     if callable(span_getter):
         yield from span_getter(doclike)
         return
-    seen = set()
     for k, span_filter in span_getter.items():
         if isinstance(doclike, Doc):
             if k == "*":
@@ -66,12 +65,12 @@ def get_spans(doclike, span_getter, deduplicate=True):
                     for s in (doc.spans.get(k, ()) if k != "ents" else doc.ents)
                     if not (s.end < doclike.start or s.start > doclike.end)
                 )
-        for span in candidates:
-            if (span_filter is True) or (span.label_ in span_filter):
-                if span not in seen:
+        if span_filter is True:
+            yield from candidates
+        else:
+            for span in candidates:
+                if span.label_ in span_filter:
                     yield span
-                    if deduplicate:
-                        seen.add(span)
 
 
 def get_spans_with_group(doc, span_getter):

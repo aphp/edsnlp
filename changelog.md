@@ -2,34 +2,6 @@
 
 ## Unreleased
 
-## Fixed
-
-- `use_section` in `eds.history` should now correctly handle cases when there are other sections following history sections.
-
-## Changed
-
-- Sections cues in `eds.history` are now section titles, and not the full section.
-
-## v0.17.2 (2025-06-25)
-
-### Added
-
-- Handling intra-word linebreak as pollution : adds a pollution pattern that detects intra-word linebreak, which can then be removed in the `get_text` method
-- Qualifiers can process `Span` or `Doc` : this feature especially makes it easier to nest qualifiers components in other components
-- New label_weights parameter in eds.span_classifier`, which allows the user to set per label-value loss weights during training
-- New `edsnlp.data.converters.MarkupToDocConverter` to convert Markdown or XML-like markup to documents, which is particularly useful to create annotated documents from scratch (e.g., for testing purposes).
-- New [Metrics](https://aphp.github.io/edsnlp/master/metrics/) documentation page to document the available metrics and how to use them.
-
-### Fixed
-
-- Various disorders/behaviors patches
-
-### Changed
-
-- Deduplicate spans between doc.ents and doc.spans during train: previously, a `span_getter` requesting entities from both `ents` and `spans` could yield duplicates.
-
-## v0.17.1 (2025-05-26)
-
 ### Added
 
 - Added grad spike detection to the `edsnlp.train` script, and per weight layer gradient logging.
@@ -41,8 +13,6 @@
 - Fixed typo in `eds.consultation_dates` towns: `berck.sur.mer`.
 - Fixed a bug where relative date expressions with bounds (e.g. 'depuis hier') raised an error when converted to durations.
 - Fixed pipe ADICAP to deal with cases where not code is found after 'codification'/'adicap'
-- Support "00"-like hours and minutes in the `eds.dates` component
-- Fix arc minutes, arc seconds and degree unit scales in `eds.quantities`, used when converting between different time (or angle) units
 
 ## v0.17.0 (2025-04-15)
 
@@ -92,6 +62,7 @@
   - Ensure we don't overwrite the RNG of the data reader when calling `stream.shuffle()` with no seed
   - Raise an error if the batch size in `stream.shuffle(batch_size=...)` is not compatible with the stream
 - `eds.split` now keeps doc and span attributes in the sub-documents.
+
 
 ## v0.15.0 (2024-12-13)
 

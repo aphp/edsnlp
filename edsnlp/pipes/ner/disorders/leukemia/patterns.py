@@ -1,8 +1,8 @@
 main_pattern = dict(
     source="main",
     regex=[
-        r"leucemie?",
-        r"(syndrome?.)?myelo\s*proliferatif",
+        r"leucemie",
+        r"(syndrome.)?myeloproliferatif",
         r"m[yi]eloprolifer",
     ],
     exclude=dict(
@@ -44,10 +44,10 @@ other = dict(
     regex=[
         r"myelofibrose",
         r"vaquez",
-        r"thrombocytem\w+.{1,3}essentiell?e?",
-        r"splenomegal\w+.{1,3}myeloide",
-        r"mastocytose.{1,5}maligne?",
-        r"polyglobul\w+.{1,10}essentiell?e?",
+        r"thrombocytemie.{1,3}essentielle",
+        r"splenomegalie.{1,3}myeloide",
+        r"mastocytose.{1,5}maligne",
+        r"polyglobulie.{1,10}essentielle",
         r"letterer.?siwe",
         r"anemie.refractaire.{1,20}blaste",
         r"m[iy]elod[iy]splasi",

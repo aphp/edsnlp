@@ -3,12 +3,13 @@ from ..terms import ASYMPTOMATIC
 main_pattern = dict(
     source="main",
     regex=[
-        r"defaill?ance.{1,10}cardi\w+",
-        r"(œ|oe)deme?.{1,10}pulmon",
+        r"defaillance.{1,10}cardi",
+        r"(œ|oe)deme.{1,10}pulmon",
+        r"(œ|oe)deme.{1,10}poumon",
         r"decompensation.{1,10}card",
         r"choc.{1,30}cardio",
-        r"greff?e.{1,10}c(œ|oe)ur",
-        r"greff?e.{1,10}cardia",
+        r"greffe.{1,10}c(œ|oe)ur",
+        r"greffe.{1,10}cardia",
         r"transplantation.{1,10}c(œ|oe)ur",
         r"transplantation.{1,10}cardia",
         r"arret.{1,10}cardi",
@@ -24,10 +25,10 @@ main_pattern = dict(
 symptomatic = dict(
     source="symptomatic",
     regex=[
-        r"cardio\s*path\w+",
-        r"cardio\s*myopath\w+",
+        r"cardiopathi",
+        r"cardiomyopathi",
         r"d(i|y)sfonction.{1,15}(ventricul|\bvg|cardiaque)",
-        r"valvulo\s*path\w+?",
+        r"valvulopathie",
         r"\bic\b.{1,10}(droite|gauche)",
     ],
     regex_attr="NORM",
@@ -40,7 +41,7 @@ symptomatic = dict(
 with_minimum_severity = dict(
     source="min_severity",
     regex=[
-        r"insuf?fisance.{1,10}(\bcardi|\bdiasto|\bventri|\bmitral|tri.?cusp)",
+        r"insuffisance.{1,10}(\bcardi|\bdiasto|\bventri|\bmitral|tri.?cusp)",
         r"(retrecissement|stenose).(aortique|mitral)",
         r"\brac\b",
         r"\brm\b",

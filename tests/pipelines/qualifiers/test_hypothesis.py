@@ -1,9 +1,8 @@
 from typing import List
 
 from pytest import fixture, mark
-from spacy.tokens import Span
 
-from edsnlp.pipes.qualifiers.hypothesis import Hypothesis
+from edsnlp.pipelines.qualifiers.hypothesis import Hypothesis
 from edsnlp.utils.examples import parse_example
 
 examples: List[str] = [
@@ -21,6 +20,7 @@ examples: List[str] = [
 
 @fixture
 def hypothesis_factory(blank_nlp):
+
     default_config = dict(
         pseudo=None,
         preceding=None,
@@ -34,6 +34,7 @@ def hypothesis_factory(blank_nlp):
     )
 
     def factory(on_ents_only, **kwargs):
+
         config = dict(**default_config)
         config.update(kwargs)
 
@@ -48,6 +49,7 @@ def hypothesis_factory(blank_nlp):
 
 @mark.parametrize("on_ents_only", [True, False])
 def test_hypothesis(blank_nlp, hypothesis_factory, on_ents_only):
+
     hypothesis = hypothesis_factory(on_ents_only)
 
     for example in examples:
@@ -61,19 +63,22 @@ def test_hypothesis(blank_nlp, hypothesis_factory, on_ents_only):
         doc = hypothesis(doc)
 
         for entity, ent in zip(entities, doc.ents):
+
             for modifier in entity.modifiers:
+
                 assert bool(ent._.hypothesis_cues) == (modifier.value in {"HYP", True})
 
                 assert getattr(ent._, modifier.key) == modifier.value
 
                 if not on_ents_only:
                     for token in ent:
-                        assert getattr(token._, modifier.key) == modifier.value, (
-                            f"{modifier.key} labels don't match."
-                        )
+                        assert (
+                            getattr(token._, modifier.key) == modifier.value
+                        ), f"{modifier.key} labels don't match."
 
 
 def test_hypothesis_within_ents(blank_nlp, hypothesis_factory):
+
     hypothesis = hypothesis_factory(True, within_ents=True)
 
     examples = [
@@ -91,27 +96,7 @@ def test_hypothesis_within_ents(blank_nlp, hypothesis_factory):
         doc = hypothesis(doc)
 
         for entity, ent in zip(entities, doc.ents):
+
             for modifier in entity.modifiers:
+
                 assert bool(ent._.hypothesis_cues) == (modifier.value in {"HYP", True})
-
-
-def test_on_span(blank_nlp, hypothesis_factory):
-    doc = blank_nlp("Lésion pulmonaire avec hypothèse de lésion secondaire associée.")
-    doc.ents = [Span(doc, 5, 7, label="lesion")]
-
-    hypothesis = hypothesis_factory(on_ents_only=True)
-    res = hypothesis.process(doc[2:8])
-    assert [(str(ent.ent), ent.hypothesis) for ent in res.ents] == [
-        ("lésion secondaire", True)
-    ]
-
-    hypothesis = hypothesis_factory(on_ents_only=False)
-    res = hypothesis.process(doc[2:8])
-    assert [(t.token.text, t.hypothesis) for t in res.tokens] == [
-        ("avec", False),
-        ("hypothèse", False),
-        ("de", True),
-        ("lésion", True),
-        ("secondaire", True),
-        ("associée", True),
-    ]

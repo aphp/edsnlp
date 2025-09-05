@@ -5,7 +5,7 @@ main_pattern = dict(
         r"lymphom",
         r"lymphangio",
         r"sezary",
-        r"burkitt?",
+        r"burkitt",
         r"kaposi",
         r"hodgkin",
         r"amylose",
@@ -14,13 +14,13 @@ main_pattern = dict(
         r"lympho.?prolif",
         r"hemopathie.{1,10}lymphoide",
         r"macroglobulinemie",
-        r"imm?unocytome",
-        r"maladie.des.chaines?",
-        r"histi?ocytose.{1,5}(maligne|langerhans?)",
+        r"immunocytome",
+        r"maladie.des.chaine",
+        r"histiocytose.{1,5}(maligne|langerhans)",
         r"waldenst(ro|or)m",
         r"mycos.{1,10}fongoide",
         r"myelome",
-        r"maladie.{1,5}imm?uno\s*proliferative.{1,5}maligne",
+        r"maladie.{1,5}immunoproliferative.{1,5}maligne",
         r"leucemie.{1,10}plasmocyte",
     ],
     regex_attr="NORM",
@@ -46,7 +46,7 @@ acronym = dict(
 gammapathy = dict(
     source="gammapathy",
     regex=[
-        r"gam?mapath\w+\s*monoclonale",
+        r"gammapathie monoclonale",
     ],
     exclude=dict(
         regex=[

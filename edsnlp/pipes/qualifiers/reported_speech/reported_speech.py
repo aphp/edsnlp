@@ -228,16 +228,16 @@ class ReportedSpeechQualifier(RuleBasedQualifier):
 
         return list_rep_verbs
 
-    def process(self, doc_like: Union[Doc, Span]) -> ReportedSpeechResults:
-        doc = doc_like.doc if isinstance(doc_like, Span) else doc_like
-        entities = list(get_spans(doc_like, self.span_getter))
-        matches = self.get_cues(doc_like, entities if self.on_ents_only else None)
+    def process(self, doc: Doc) -> ReportedSpeechResults:
+        matches = self.get_matches(doc)
+        matches += list(self.regex_matcher(doc, as_spans=True))
 
-        boundaries = self._boundaries(doc_like)
+        boundaries = self._boundaries(doc)
 
         # Removes duplicate matches and pseudo-expressions in one statement
         matches = filter_spans(matches, label_to_remove="pseudo")
 
+        entities = list(get_spans(doc, self.span_getter))
         ents = None
 
         token_results, ent_results = [], []

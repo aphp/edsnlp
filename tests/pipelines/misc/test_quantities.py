@@ -165,7 +165,7 @@ def test_quantities_all_input(
     blank_nlp: PipelineProtocol,
     matcher: QuantitiesMatcher,
 ):
-    all_text = "On mesure 13 mol/ml de ...On compte 16x10*9 ..."
+    all_text = "On mesure 13 mol/ml de ..." "On compte 16x10*9 ..."
     blank_nlp.add_pipe(
         "eds.quantities",
         config={"quantities": "all", "extract_ranges": True},
@@ -375,31 +375,6 @@ def test_conversions(blank_nlp, matcher: QuantitiesMatcher):
         doc = blank_nlp(text)
         doc = matcher(doc)
         result = getattr(doc.spans["quantities"][0]._.value, unit)
-        assert result == pytest.approx(expected, 1e-6), (
-            f"{result} != {expected} for {text} in {unit}"
-        )
-
-
-def test_time_quantities(blank_nlp: PipelineProtocol):
-    blank_nlp.add_pipe(
-        "eds.quantities",
-        config={"quantities": {"duration": {"unit": "second"}}},
-    )
-    tests = [
-        (
-            "Le test a duré entre 5'14'' et 6'05.",
-            (5 * 60 + 14, 6 * 60 + 5),
-        ),
-        ("La perfusion a duré 2 heures.", (2 * 3600,)),
-        ("L'examen a pris 45 min.", (45 * 60,)),
-        ("La procédure a duré 1h30.", (1 * 3600 + 30 * 60,)),
-        ("Le patient a attendu 90 secondes.", (90,)),
-    ]
-
-    for text, expected_seconds in tests:
-        doc = blank_nlp(text)
-        quantities = sorted(doc.spans["quantities"])
-        for i, expected in enumerate(expected_seconds):
-            value = quantities[i]._.value
-            seconds = value.second
-            assert seconds == pytest.approx(expected, 1e-6)
+        assert result == pytest.approx(
+            expected, 1e-6
+        ), f"{result} != {expected} for {text} in {unit}"

@@ -1,5 +1,6 @@
 <div class="doc doc-object doc-class">
-{% with html_id = class.path %}
+{% with obj = class %}
+  {% with html_id = class.path %}
 
   {% if config.only_parameters or config.only_class_level %}
 
@@ -115,13 +116,12 @@
         {% endif %}
       {% endif %}
 
-      {% with obj = class %}
-        {% set root = False %}
-        {% set heading_level = heading_level + 1 %}
-        {% include "children.html" with context %}
-      {% endwith %}
+      {% set root = False %}
+      {% set heading_level = heading_level + 1 %}
+      {% include "children.html" with context %}
     </div>
   {% endif %}
 
+{% endwith %}
 {% endwith %}
 </div>

@@ -338,11 +338,7 @@ class HistoryQualifier(RuleBasedQualifier):
                 getter=deprecated_getter_factory("antecedent_cues", "history_cues"),
             )
 
-    def process(self, doc_like: Union[Doc, Span]) -> HistoryResults:
-        doc = doc_like.doc if isinstance(doc_like, Span) else doc_like
-        entities = list(get_spans(doc, self.span_getter))
-        matches = self.get_cues(doc, entities if self.on_ents_only else None)
-
+    def process(self, doc: Doc) -> HistoryResults:
         note_datetime = None
         if doc._.note_datetime is not None:
             try:
@@ -373,27 +369,27 @@ class HistoryQualifier(RuleBasedQualifier):
                 )
                 birth_datetime = None
 
+        matches = self.get_matches(doc)
+
         terminations = [m for m in matches if m.label_ == "termination"]
-
-        sections = []
-        if self.sections:
-            sections = [
-                section
-                for section in doc.spans["sections"]
-                if section.label_ in sections_history
-            ]
-            # History contexts should start/stop around section starts too
-            terminations.extend([s._.section_title for s in doc.spans["sections"]])
-
-        boundaries = self._boundaries(doc_like, terminations)
+        boundaries = self._boundaries(doc, terminations)
 
         # Removes duplicate matches and pseudo-expressions in one statement
         matches = filter_spans(matches, label_to_remove="pseudo")
 
+        entities = list(get_spans(doc, self.span_getter))
         ents = None
         sub_sections = None
         sub_recent_dates = None
         sub_history_dates = None
+
+        sections = []
+        if self.sections:
+            sections = [
+                Span(doc, section.start, section.end, label="ATCD")
+                for section in doc.spans["sections"]
+                if section.label_ in sections_history
+            ]
 
         history_dates = []
         recent_dates = []
@@ -563,7 +559,7 @@ class HistoryQualifier(RuleBasedQualifier):
             recent_cues = []
 
             if self.sections:
-                history_cues.extend([s._.section_title for s in sub_sections])
+                history_cues.extend(sub_sections)
 
             if self.dates:
                 history_cues.extend(
@@ -587,14 +583,14 @@ class HistoryQualifier(RuleBasedQualifier):
                     )
                 )
 
-            if not self.on_ents_only:
-                for token in doc[start:end]:
-                    token_results.append(
-                        TokenHistoryResults(
-                            token=token,
-                            history=history,
+                if not self.on_ents_only:
+                    for token in ent:
+                        token_results.append(
+                            TokenHistoryResults(
+                                token=token,
+                                history=history,
+                            )
                         )
-                    )
 
         return HistoryResults(tokens=token_results, ents=ent_results)
 

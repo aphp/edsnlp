@@ -24,7 +24,6 @@ import spacy
 from confit.registry import ValidatedFunction
 from spacy.tokenizer import Tokenizer
 from spacy.tokens import Doc, Span
-from typing_extensions import Literal
 
 import edsnlp
 from edsnlp import registry
@@ -708,225 +707,6 @@ class EntsDoc2DictConverter:
         ]
 
 
-# ex: `[The [cat](ANIMAL) is [black](COLOR hex="#000000")].
-
-
-@registry.factory.register("eds.markup_to_doc", spacy_compatible=False)
-class MarkupToDocConverter:
-    """
-    Examples
-    --------
-    ```python
-    import edsnlp
-
-    # Any kind of reader (`edsnlp.data.read/from_...`) can be used here
-    # If input items are dicts, the converter expects a "text" key/column.
-    docs = list(
-        edsnlp.data.from_iterable(
-            [
-                "This [is](VERB negation=True) not a [test](NOUN).",
-                "This is another [test](NOUN).",
-            ],
-            converter="markup",
-            span_setter="entities",
-        ),
-    )
-    print(docs[0].spans["entities"])
-    # Out: [is, test]
-    ```
-
-    You can also use it directly on a string:
-
-    ```python
-    from edsnlp.data.converters import MarkupToDocConverter
-
-    converter = MarkupToDocConverter(
-        span_setter={"verb": "VERB", "noun": "NOUN"},
-        preset="xml",
-    )
-    doc = converter("This <VERB negation=True>is</VERB> not a <NOUN>test</NOUN>.")
-    print(doc.spans["verb"])
-    # Out: [is]
-    print(doc.spans["verb"][0]._.negation)
-    # Out: True
-    ```
-
-    Parameters
-    ----------
-    preset: Literal["md", "xml"]
-        The preset to use for the markup format. Defaults to "md" (Markdown-like
-        syntax). Use "xml" for XML-like syntax.
-    opener: Optional[str]
-        The regex pattern to match the opening tag of the markup. Defaults to the
-        preset's opener.
-    closer: Optional[str]
-        The regex pattern to match the closing tag of the markup. Defaults to the
-        preset's closer.
-    tokenizer: Optional[Tokenizer]
-        The tokenizer instance used to tokenize the documents. Likely not needed since
-        by default it uses the current context tokenizer :
-
-        - the tokenizer of the next pipeline run by `.map_pipeline` in a
-          [Stream][edsnlp.core.stream.Stream].
-        - or the `eds` tokenizer by default.
-    span_setter: SpanSetterArg
-        The span setter to use when setting the spans in the documents. Defaults to
-        setting the spans in the `ents` attribute and creates a new span group for
-        each JSON entity label.
-    span_attributes: Optional[AttributesMappingArg]
-        Mapping from markup attributes to Span extensions (can be a list too).
-        By default, all attributes are imported as Span extensions with the same name.
-    keep_raw_attribute_values: bool
-        Whether to keep the raw attribute values (as strings) or to convert them to
-        Python objects (e.g. booleans).
-    default_attributes: AttributesMappingArg
-        How to set attributes on spans for which no attribute value was found in the
-        input format. This is especially useful for negation, or frequent attributes
-        values (e.g. "negated" is often False, "temporal" is often "present"), that
-        annotators may not want to annotate every time.
-    bool_attributes: AsList[str]
-        List of boolean attributes to set to False by default. This is useful for
-        attributes that are often not annotated, but you want to have a default value
-        for them.
-    """
-
-    PRESETS = {
-        "md": {
-            "opener": r"(?P<opener>\[)",
-            "closer": r"(?P<closer>\]\(\s*(?P<closer_label>[a-zA-Z0-9]+)\s*(?P<closer_attrs>.*?)\))",  # noqa: E501
-        },
-        "xml": {
-            "opener": r"(?P<opener><(?P<opener_label>[a-zA-Z0-9]+)(?P<opener_attrs>.*?)>)",  # noqa: E501
-            "closer": r"(?P<closer></(?P<closer_label>[a-zA-Z0-9]+)>)",
-        },
-    }
-
-    def __init__(
-        self,
-        *,
-        tokenizer: Optional[Tokenizer] = None,
-        span_setter: SpanSetterArg = {"ents": True, "*": True},
-        span_attributes: Optional[AttributesMappingArg] = None,
-        keep_raw_attribute_values: bool = False,
-        default_attributes: AttributesMappingArg = {},
-        bool_attributes: AsList[str] = [],
-        preset: Literal["md", "xml"] = "md",
-        opener: Optional[str] = None,
-        closer: Optional[str] = None,
-    ):
-        self.tokenizer = tokenizer
-        self.span_setter = span_setter
-        self.span_attributes = span_attributes
-        self.keep_raw_attribute_values = keep_raw_attribute_values
-        self.default_attributes = dict(default_attributes)
-        for attr in bool_attributes:
-            self.default_attributes[attr] = False
-        self.opener = opener or self.PRESETS[preset]["opener"]
-        self.closer = closer or self.PRESETS[preset]["closer"]
-
-    def _as_python(self, value: str):
-        import ast
-
-        if self.keep_raw_attribute_values:
-            return value
-        try:
-            return ast.literal_eval(value)
-        except Exception:
-            if value.lower() == "true":
-                return True
-            elif value.lower() == "false":
-                return False
-        return value
-
-    def _parse(self, inline_text: str):
-        import re
-
-        last_inline_offset = 0
-        starts = []
-        text = ""
-        seps = list(re.finditer(self.opener + "|" + self.closer, inline_text))
-        entities = []
-        for i, sep in enumerate(seps):
-            is_opener = bool(sep["opener"])
-            groups = sep.groupdict()
-            inline_start = sep.start("opener") if is_opener else sep.start("closer")
-            inline_end = sep.end("opener") if is_opener else sep.end("closer")
-            label = groups.get("closer_label", groups.get("opener_label"))
-            attrs = groups.get("closer_attrs", groups.get("opener_attrs")) or ""
-            attrs = {
-                k: self._as_python(v)
-                for k, v in (kv.split("=") for kv in attrs.split())
-            }
-            text += inline_text[last_inline_offset:inline_start]
-            if is_opener:
-                starts.append((len(text), label, attrs))
-            else:
-                try:
-                    idx = next(
-                        i
-                        for i in range(len(starts) - 1, -1, -1)
-                        if starts[i][1] == label or not label or not starts[i][1]
-                    )
-                except StopIteration:
-                    warnings.warn(f"Unmatched closing tag for '{sep.group()}'")
-                    continue
-                start, start_label, start_attrs = starts.pop(idx)
-                entities.append(
-                    (start, len(text), start_label or label, {**attrs, **start_attrs})
-                )
-            last_inline_offset = inline_end
-        if last_inline_offset < len(inline_text):
-            text += inline_text[last_inline_offset:]
-        if starts:
-            warnings.warn(
-                f"Unmatched opening tags at indices {', '.join(s[1] for s in starts)}"
-            )
-        entities = sorted(entities)
-        return text, entities
-
-    def __call__(self, obj, tokenizer=None):
-        tok = tokenizer or self.tokenizer or get_current_tokenizer()
-        if isinstance(obj, str):
-            obj = {"text": obj}
-        annotated = obj["text"]
-        plain, raw_ents = self._parse(annotated)
-
-        doc = tok(plain)
-        doc._.note_id = obj.get("doc_id", obj.get(FILENAME))
-
-        for dst in (
-            *(() if self.span_attributes is None else self.span_attributes.values()),
-            *self.default_attributes,
-        ):
-            if not Span.has_extension(dst):
-                Span.set_extension(dst, default=None)
-
-        spans = []
-        for start, end, label, attrs in raw_ents:
-            span = doc.char_span(start, end, label=label, alignment_mode="expand")
-            if span is None:
-                continue
-            for k, v in attrs.items():
-                new_k = (
-                    self.span_attributes.get(k)
-                    if self.span_attributes is not None
-                    else k
-                )
-                if self.span_attributes is None and not Span.has_extension(new_k):
-                    Span.set_extension(new_k, default=None)
-                if new_k:
-                    span._.set(new_k, v)
-            spans.append(span)
-
-        set_spans(doc, spans, span_setter=self.span_setter)
-        for attr, value in self.default_attributes.items():
-            for span in spans:
-                if span._.get(attr) is None:
-                    span._.set(attr, value)
-
-        return doc
-
-
 def get_dict2doc_converter(
     converter: Union[str, Callable], kwargs
 ) -> Tuple[Callable, Dict]:
@@ -936,11 +716,7 @@ def get_dict2doc_converter(
             filtered = [
                 name
                 for name in available
-                if converter == name
-                or (
-                    converter in name
-                    and (name.endswith("2doc") or name.endswith("to_doc"))
-                )
+                if converter == name or (converter in name and "dict2doc" in name)
             ]
             converter = edsnlp.registry.factory.get(filtered[0])
             nlp = kwargs.pop("nlp", None)
@@ -950,9 +726,7 @@ def get_dict2doc_converter(
             kwargs = {}
             return converter, kwargs
         except (KeyError, IndexError):
-            available = [
-                v for v in available if (v.endswith("2doc") or v.endswith("to_doc"))
-            ]
+            available = [v for v in available if "dict2doc" in v]
             raise ValueError(
                 f"Cannot find converter for format {converter}. "
                 f"Available converters are {', '.join(available)}"
@@ -971,20 +745,14 @@ def get_doc2dict_converter(
             filtered = [
                 name
                 for name in available
-                if converter == name
-                or (
-                    converter in name
-                    and (name.endswith("2dict") or name.endswith("to_dict"))
-                )
+                if converter == name or (converter in name and "doc2dict" in name)
             ]
             converter = edsnlp.registry.factory.get(filtered[0])
             converter = converter(**kwargs)
             kwargs = {}
             return converter, kwargs
         except (KeyError, IndexError):
-            available = [
-                v for v in available if (v.endswith("2dict") or v.endswith("to_dict"))
-            ]
+            available = [v for v in available if "doc2dict" in v]
             raise ValueError(
                 f"Cannot find converter for format {converter}. "
                 f"Available converters are {', '.join(available)}"

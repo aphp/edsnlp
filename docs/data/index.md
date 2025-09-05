@@ -46,10 +46,9 @@ At the moment, we support the following data sources:
 
 and the following schemas:
 
-| Schema                                                              | Snippet                |
-|:--------------------------------------------------------------------|------------------------|
-| [Custom](./converters/#custom)                                      | `converter=custom_fn`  |
-| [OMOP](./converters/#omop)                                          | `converter="omop"`     |
-| [Standoff](./converters/#standoff)                                  | `converter="standoff"` |
-| [Ents](./converters/#edsnlp.data.converters.EntsDoc2DictConverter)  | `converter="ents"`     |
-| [Markup](./converters/#edsnlp.data.converters.MarkupToDocConverter) | `converter="markup"`   |
+| Schema                                                                     | Snippet                |
+|:---------------------------------------------------------------------------|------------------------|
+| [Custom](./converters/#custom)                                             | `converter=custom_fn`  |
+| [OMOP](./converters/#omop)                                                 | `converter="omop"`     |
+| [Standoff](./converters/#standoff)                                         | `converter="standoff"` |
+| [Ents](./converters/#edsnlp.data.converters.EntsDoc2DictConverter)         | `converter="ents"`     |

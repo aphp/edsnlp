@@ -25,7 +25,7 @@ def average_precision(pred: Dict[Any, float], gold: Iterable[Any]):
     for i in range(1, len(precisions)):
         if recalls[i] > recalls[i - 1]:
             ap += (recalls[i] - recalls[i - 1]) * precisions[i]
-    return float(ap)
+    return ap
 
 
 def prf(pred: Collection, gold: Collection):

@@ -233,6 +233,7 @@ def read_parquet(
             Shuffling the dataset can be expensive, especially for large datasets,
             since it requires reading the entire dataset into memory. If you have a
             large dataset, consider shuffling at the "fragment" level.
+
     seed: Optional[int]
         The seed to use for shuffling.
     loop: bool

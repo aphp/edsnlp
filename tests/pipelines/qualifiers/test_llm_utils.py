@@ -1,3 +1,5 @@
+from typing import Optional
+
 import httpx
 import respx
 from openai.types.chat.chat_completion import ChatCompletion
@@ -70,7 +72,9 @@ def test_create_prompt_messages():
     assert messages2 == messages_expected2
 
 
-def create_fake_chat_completion(choices: int = 1, content: str = '{"biopsy":false}'):
+def create_fake_chat_completion(
+    choices: int = 1, content: Optional[str] = '{"biopsy":false}'
+):
     fake_response_data = {
         "id": "chatcmpl-fake123",
         "object": "chat.completion",
@@ -110,8 +114,16 @@ def test_parse_json_response():
     llm = AsyncLLM(n_concurrent_tasks=1)
     parsed_response = llm.parse_messages(response, response_format)
     assert parsed_response == {"biopsy": False}
+
+    response = create_fake_chat_completion(content=None)
+    parsed_response = llm.parse_messages(response, response_format=response_format)
+    assert parsed_response == {}
+
     parsed_response = llm.parse_messages(response, response_format=None)
     assert parsed_response == response
+
+    parsed_response = llm.parse_messages(None, response_format=None)
+    assert parsed_response is None
 
 
 @mark.parametrize("n_completions", [1, 2])

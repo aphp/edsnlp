@@ -69,7 +69,7 @@ docs-no-ml = [
 ml = [
     "rich-logger>=0.3.1",
     "torch>=1.13.0; python_version>='3.9'",
-    "foldedtensor>=0.4.0",
+    "foldedtensor @ git+https://github.com/aphp/foldedtensor.git@indice-mapping#egg=foldedtensor",
     "safetensors>=0.3.0; python_version>='3.8'",
     "safetensors>=0.3.0,<0.5.0; python_version<'3.8'",
     "transformers>=4.0.0",

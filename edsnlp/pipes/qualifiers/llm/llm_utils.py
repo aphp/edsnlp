@@ -108,7 +108,7 @@ class AsyncLLM:
         if (response_format is not None) and (isinstance(response, ChatCompletion)):
             prediction = [
                 parse_json_response(
-                    choice.message.content.strip(), response_format=response_format
+                    choice.message.content, response_format=response_format
                 )
                 for choice in response.choices
             ]
@@ -200,10 +200,10 @@ class AsyncLLM:
         for i, output in sorted(self.responses, key=lambda x: x[0]):
             if isinstance(output, ChatCompletion):
                 if self.n_completions == 1:
-                    sorted_responses.append(output.choices[0].message.content.strip())
+                    sorted_responses.append(output.choices[0].message.content)
                 else:
                     sorted_responses.append(
-                        [choice.message.content.strip() for choice in output.choices]
+                        [choice.message.content for choice in output.choices]
                     )
             else:
                 sorted_responses.append(output)
@@ -339,10 +339,12 @@ def parse_json_response(
         If parsing fails and errors is not "ignore", returns the raw response string.
         If no response format is specified, returns the raw response string.
     """
+    if response is None:
+        return {}
 
     if (response_format is not None) and (response_format.get("type") == "json_schema"):
         try:
-            return json.loads(response)
+            return json.loads(response.strip())
         except json.JSONDecodeError:
             if errors == "ignore":
                 return {}

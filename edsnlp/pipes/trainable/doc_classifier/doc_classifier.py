@@ -7,6 +7,7 @@ import torch.nn as nn
 from spacy.tokens import Doc
 from typing_extensions import Literal, NotRequired, TypedDict
 
+import edsnlp
 from edsnlp.core.pipeline import PipelineProtocol
 from edsnlp.core.torch_component import BatchInput, TorchComponent
 from edsnlp.pipes.base import BaseComponent
@@ -33,6 +34,52 @@ DocClassifierBatchOutput = TypedDict(
 )
 
 
+@edsnlp.registry.misc.register("focal_loss")
+class FocalLoss(nn.Module):
+    """
+    Focal Loss implementation for multi-class classification.
+
+    Parameters
+    ----------
+    alpha : torch.Tensor or float, optional
+        Class weights. If None, no weighting is applied
+    gamma : float, default=2.0
+        Focusing parameter. Higher values give more weight to hard examples
+    reduction : str, default='mean'
+        Specifies the reduction to apply to the output: 'none' | 'mean' | 'sum'
+    """
+
+    def __init__(
+        self,
+        alpha: Optional[Union[torch.Tensor, float]] = None,
+        gamma: float = 2.0,
+        reduction: str = "mean",
+    ):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.reduction = reduction
+
+    def forward(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass
+        """
+        ce_loss = torch.nn.functional.cross_entropy(
+            inputs, targets, weight=self.alpha, reduction="none"
+        )
+
+        pt = torch.exp(-ce_loss)
+
+        focal_loss = (1 - pt) ** self.gamma * ce_loss
+
+        if self.reduction == "mean":
+            return focal_loss.mean()
+        elif self.reduction == "sum":
+            return focal_loss.sum()
+        else:
+            return focal_loss
+
+
 class TrainableDocClassifier(
     TorchComponent[DocClassifierBatchOutput, DocClassifierBatchInput],
     BaseComponent,
@@ -49,9 +96,9 @@ class TrainableDocClassifier(
         label_attr: str = "label",
         label2id: Optional[Dict[str, int]] = None,
         id2label: Optional[Dict[int, str]] = None,
-        loss_fn=None,
+        loss: Literal["ce", "focal"] = "ce",
         labels: Optional[Sequence[str]] = None,
-        class_weights: Optional[Union[Dict[str, float], str]] = None,
+        class_weights: Optional[Dict[str, float]] = None,
         hidden_size: Optional[int] = None,
         activation_mode: Literal["relu", "gelu", "silu"] = "relu",
         dropout_rate: Optional[float] = 0.0,
@@ -71,8 +118,7 @@ class TrainableDocClassifier(
         super().__init__(nlp, name)
         self.embedding = embedding
 
-        self._loss_fn = loss_fn
-        self.loss_fn = None
+        self.loss = loss
 
         if not hasattr(self.embedding, "output_size"):
             raise ValueError(
@@ -112,17 +158,13 @@ class TrainableDocClassifier(
 
         return weights
 
-    def _load_class_weights_from_file(self, filepath: str) -> Dict[str, int]:
-        """Load class weights from pickle file."""
-        with open(filepath, "rb") as f:
-            return pickle.load(f)
-
     def set_extensions(self) -> None:
         super().set_extensions()
         if not Doc.has_extension(self.label_attr):
             Doc.set_extension(self.label_attr, default={})
 
     def post_init(self, gold_data: Iterable[Doc], exclude: Set[str]):
+        print("post_init")
         if not self.label2id:
             if self.labels is not None:
                 labels = set(self.labels)
@@ -141,22 +183,19 @@ class TrainableDocClassifier(
                 self.num_classes = len(self.label2id)
                 print("num classes:", self.num_classes)
                 self.build_classifier()
-
+        print("label2id fini")
         weight_tensor = None
         if self.class_weights is not None:
-            if isinstance(self.class_weights, str):
-                freq_dict = self._load_class_weights_from_file(self.class_weights)
-                weight_tensor = self._compute_class_weights(freq_dict)
-            elif isinstance(self.class_weights, dict):
-                weight_tensor = self._compute_class_weights(self.class_weights)
-
+            weight_tensor = self._compute_class_weights(self.class_weights)
             print(f"Using class weights: {weight_tensor}")
-
-        if self._loss_fn is not None:
-            self.loss_fn = self._loss_fn
-        else:
+        print("weight tensor fini")
+        if self.loss == "ce":
             self.loss_fn = torch.nn.CrossEntropyLoss(weight=weight_tensor)
-
+        elif self.loss == "focal":
+            self.loss_fn = FocalLoss(alpha=weight_tensor, gamma=2.0, reduction="mean")
+        else:
+            raise ValueError(f"Unknown loss: {self.loss}")
+        print("loss finie")
         super().post_init(gold_data, exclude=exclude)
 
     def preprocess(self, doc: Doc) -> Dict[str, Any]:

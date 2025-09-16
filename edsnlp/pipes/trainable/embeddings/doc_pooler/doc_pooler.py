@@ -13,7 +13,7 @@ DocPoolerBatchInput = TypedDict(
     "DocPoolerBatchInput",
     {
         "embedding": BatchInput,
-        "mask": torch.Tensor,  # shape: (batch_size, seq_len)
+        "mask": torch.Tensor,
         "stats": Dict[str, Any],
     },
 )
@@ -21,7 +21,7 @@ DocPoolerBatchInput = TypedDict(
 DocPoolerBatchOutput = TypedDict(
     "DocPoolerBatchOutput",
     {
-        "embeddings": torch.Tensor,  # shape: (batch_size, embedding_dim)
+        "embeddings": torch.Tensor,
     },
 )
 
@@ -51,12 +51,16 @@ class DocPooler(WordEmbeddingComponent, BaseComponent):
         name: str = "document_pooler",
         *,
         embedding: WordEmbeddingComponent,
-        pooling_mode: Literal["max", "sum", "mean", "cls"] = "mean",
+        pooling_mode: Literal["max", "sum", "mean", "cls", "attention"] = "mean",
     ):
         super().__init__(nlp, name)
         self.embedding = embedding
         self.pooling_mode = pooling_mode
         self.output_size = embedding.output_size
+
+        # Add attention layer if needed
+        if pooling_mode == "attention":
+            self.attention = torch.nn.Linear(self.output_size, 1)
 
     def preprocess(self, doc: Doc, **kwargs) -> Dict[str, Any]:
         embedding_out = self.embedding.preprocess(doc, **kwargs)
@@ -76,7 +80,12 @@ class DocPooler(WordEmbeddingComponent, BaseComponent):
         }
 
     def forward(self, batch: DocPoolerBatchInput) -> DocPoolerBatchOutput:
-        embeds = self.embedding(batch["embedding"])["embeddings"]
+        """
+        Forward pass: compute document embeddings using the selected pooling strategy
+        """
+        embeds = self.embedding(batch["embedding"])["embeddings"].refold(
+            "context", "word"
+        )
         device = embeds.device
 
         if self.pooling_mode == "cls":
@@ -84,18 +93,34 @@ class DocPooler(WordEmbeddingComponent, BaseComponent):
             return {"embeddings": pooled}
 
         mask = embeds.mask
-        mask_expanded = mask.unsqueeze(-1)
-        masked_embeds = embeds * mask_expanded
-        sum_embeds = masked_embeds.sum(dim=1)
-        if self.pooling_mode == "mean":
-            valid_counts = mask.sum(dim=1, keepdim=True).clamp(min=1)
-            pooled = sum_embeds / valid_counts
-        elif self.pooling_mode == "max":
-            masked_embeds = embeds.masked_fill(~mask_expanded, float("-inf"))
-            pooled, _ = masked_embeds.max(dim=1)
-        elif self.pooling_mode == "sum":
-            pooled = sum_embeds
+
+        if self.pooling_mode == "attention":
+            attention_weights = self.attention(embeds)  # (batch_size, seq_len, 1)
+            attention_weights = attention_weights.squeeze(-1)  # (batch_size, seq_len)
+
+            attention_weights = attention_weights.masked_fill(~mask, float("-inf"))
+
+            attention_weights = torch.softmax(attention_weights, dim=1)
+
+            attention_weights = attention_weights.unsqueeze(
+                -1
+            )  # (batch_size, seq_len, 1)
+            pooled = (embeds * attention_weights).sum(dim=1)  # (batch_size, embed_dim)
+
         else:
-            raise ValueError(f"Unknown pooling mode: {self.pooling_mode}")
+            mask_expanded = mask.unsqueeze(-1)
+            masked_embeds = embeds * mask_expanded
+            sum_embeds = masked_embeds.sum(dim=1)
+
+            if self.pooling_mode == "mean":
+                valid_counts = mask.sum(dim=1, keepdim=True).clamp(min=1)
+                pooled = sum_embeds / valid_counts
+            elif self.pooling_mode == "max":
+                masked_embeds = embeds.masked_fill(~mask_expanded, float("-inf"))
+                pooled, _ = masked_embeds.max(dim=1)
+            elif self.pooling_mode == "sum":
+                pooled = sum_embeds
+            else:
+                raise ValueError(f"Unknown pooling mode: {self.pooling_mode}")
 
         return {"embeddings": pooled}

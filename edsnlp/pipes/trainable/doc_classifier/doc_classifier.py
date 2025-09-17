@@ -2,6 +2,7 @@ import os
 import pickle
 from typing import Any, Dict, Iterable, Optional, Sequence, Set, Union
 
+import pandas as pd
 import torch
 import torch.nn as nn
 from spacy.tokens import Doc
@@ -97,8 +98,8 @@ class TrainableDocClassifier(
         label2id: Optional[Dict[str, int]] = None,
         id2label: Optional[Dict[int, str]] = None,
         loss: Literal["ce", "focal"] = "ce",
-        labels: Optional[Sequence[str]] = None,
-        class_weights: Optional[Dict[str, float]] = None,
+        labels: Optional[str] = None,
+        class_weights: Optional[str] = None,
         hidden_size: Optional[int] = None,
         activation_mode: Literal["relu", "gelu", "silu"] = "relu",
         dropout_rate: Optional[float] = 0.0,
@@ -108,8 +109,11 @@ class TrainableDocClassifier(
         self.label_attr: Attributes = label_attr
         self.label2id = label2id or {}
         self.id2label = id2label or {}
-        self.labels = labels
-        self.class_weights = class_weights
+        if labels:
+            self.labels = pd.read_pickle(labels)
+            self.num_classes = len(self.labels)
+        if class_weights:
+            self.class_weights = pd.read_pickle(class_weights)
         self.hidden_size = hidden_size
         self.activation_mode = activation_mode
         self.dropout_rate = dropout_rate

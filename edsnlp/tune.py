@@ -260,9 +260,15 @@ def update_config(
 
         current_config = config
         for key in p_path[:-1]:
-            if key not in current_config:
-                raise KeyError(f"Path '{key}' not found in config.")
-            current_config = current_config[key]
+            try:
+                current_config = current_config[key]
+            except KeyError:
+                try:
+                    current_config = current_config[int(key)]
+                except (KeyError, ValueError):
+                    raise KeyError(
+                        f"Path '{key}' not found in config ({current_config})"
+                    )
         current_config[p_path[-1]] = value
 
     if resolve:

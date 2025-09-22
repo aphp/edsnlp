@@ -384,7 +384,7 @@ python -m edsnlp.package --pipeline artifacts/model-last/ --name my_ner_model --
 
 *Parametrize either via the CLI or in `config.yml` under `[package]`.*
 
-Tthe model saved at the train script output path (`artifacts/model-last`) will be named `my_ner_model` and will be saved in the `dist` folder. You can upload it to a package registry or install it directly with
+The model saved at the train script output path (`artifacts/model-last`) will be named `my_ner_model` and will be saved in the `dist` folder. You can upload it to a package registry or install it directly with
 
 ```{ .bash data-md-color-scheme="slate" }
 pip install dist/my_ner_model-0.1.0.tar.gz

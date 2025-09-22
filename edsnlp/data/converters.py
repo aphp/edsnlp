@@ -191,9 +191,6 @@ class StandoffDict2DocConverter:
     span_attributes : Optional[AttributesMappingArg]
         Mapping from BRAT attributes to Span extensions (can be a list too).
         By default, all attributes are imported as Span extensions with the same name.
-    span_rel : Optional[AttributesMappingArg]
-        Mapping from BRAT relations to Span extensions (can be a list too).
-        By default, all relations are imported as Span extensions with the name rel.
     keep_raw_attribute_values : bool
         Whether to keep the raw attribute values (as strings) or to convert them to
         Python objects (e.g. booleans).
@@ -217,7 +214,6 @@ class StandoffDict2DocConverter:
         tokenizer: Optional[Tokenizer] = None,
         span_setter: SpanSetterArg = {"ents": True, "*": True},
         span_attributes: Optional[AttributesMappingArg] = None,
-        span_rel: Optional[AttributesMappingArg] = None,  # to keep ?
         keep_raw_attribute_values: bool = False,
         bool_attributes: SequenceStr = [],
         default_attributes: AttributesMappingArg = {},
@@ -227,7 +223,6 @@ class StandoffDict2DocConverter:
         self.tokenizer = tokenizer or (nlp.tokenizer if nlp is not None else None)
         self.span_setter = span_setter
         self.span_attributes = span_attributes  # type: ignore
-        self.span_rel = span_rel  # to keep ?
         self.keep_raw_attribute_values = keep_raw_attribute_values
         self.default_attributes = default_attributes
         self.notes_as_span_attribute = notes_as_span_attribute
@@ -321,7 +316,7 @@ class StandoffDict2DocConverter:
 
         ############## Modifications fo relations ###############
         # add relations in spans
-        if self.span_rel is None and not Span.has_extension("rel"):
+        if not Span.has_extension("rel"):
             Span.set_extension("rel", default=[])
 
         for rel in obj.get("relations") or ():  # iterates relations
@@ -424,24 +419,26 @@ class StandoffDoc2DictConverter:
 
     def __call__(self, doc):
         spans = get_spans(doc, self.span_getter)
-        entities = [
-            {
-                "entity_id": i,
-                "fragments": [
-                    {
-                        "begin": ent.start_char,
-                        "end": ent.end_char,
-                    }
-                ],
-                "attributes": {
-                    obj_name: getattr(ent._, ext_name)
-                    for ext_name, obj_name in self.span_attributes.items()
-                    if ent._.has(ext_name)
-                },
-                "label": ent.label_,
-            }
-            for i, ent in enumerate(sorted(dict.fromkeys(spans)))
-        ]
+        entities = []
+        for i, ent in enumerate(sorted(dict.fromkeys(spans))):
+            entity = {
+                    "entity_id": i,
+                    "fragments": [
+                        {
+                            "begin": ent.start_char,
+                            "end": ent.end_char,
+                        }
+                    ],
+                    "attributes": {
+                        obj_name: getattr(ent._, ext_name)
+                        for ext_name, obj_name in self.span_attributes.items()
+                        if ent._.has(ext_name)
+                    },
+                    "label": ent.label_,
+                }
+            if ent._.has("note") and ent._.note is not None:
+                entity["note"] = ent._.note
+            entities.append(entity)
 
         # mapping between entities and their `entity_id`
         entity_map = {
@@ -458,31 +455,32 @@ class StandoffDoc2DictConverter:
         relation_idx = 1
         for span_label, span_list in doc.spans.items():
             for spa in span_list:
-                source_entity_id = entity_map.get(
-                    (spa.start_char, spa.end_char, spa.label_)
-                )
-                for rel in spa._.rel:
-                    if not rel["type"].startswith("inv_"):
-                        target_entity_id = entity_map.get(
-                            (
-                                rel["target"].start_char,
-                                rel["target"].end_char,
-                                rel["target"].label_,
+                if spa._.has("rel") and len(spa._.rel) > 0:
+                    source_entity_id = entity_map.get(
+                        (spa.start_char, spa.end_char, spa.label_)
+                    )
+                    for rel in spa._.rel:
+                        if not rel["type"].startswith("inv_"):
+                            target_entity_id = entity_map.get(
+                                (
+                                    rel["target"].start_char,
+                                    rel["target"].end_char,
+                                    rel["target"].label_,
+                                )
                             )
-                        )
-                        if (
-                            source_entity_id is not None
-                            and target_entity_id is not None
-                        ):
-                            relations.append(
-                                {
-                                    "rel_id": relation_idx,
-                                    "from_entity_id": source_entity_id,
-                                    "relation_type": rel["type"],
-                                    "to_entity_id": target_entity_id,
-                                }
-                            )
-                            relation_idx += 1
+                            if (
+                                source_entity_id is not None
+                                and target_entity_id is not None
+                            ):
+                                relations.append(
+                                    {
+                                        "rel_id": relation_idx,
+                                        "from_entity_id": source_entity_id,
+                                        "relation_type": rel["type"],
+                                        "to_entity_id": target_entity_id,
+                                    }
+                                )
+                                relation_idx += 1
 
         # final object
         obj = {

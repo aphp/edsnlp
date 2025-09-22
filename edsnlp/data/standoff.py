@@ -220,14 +220,15 @@ def dump_standoff_file(
     if parent_dir and not fs.exists(parent_dir):
         fs.makedirs(parent_dir, exist_ok=True)
     if not fs.exists(txt_filename) or overwrite_txt:
-        with fs.open(txt_filename, "w") as f:
+        with fs.open(txt_filename, "w", encoding="utf-8") as f:
             f.write(doc["text"])
 
     ann_filename = txt_filename.replace(".txt", ".ann")
     attribute_idx = 1
+    note_idx = 1
     entities_ids = defaultdict(lambda: "T" + str(len(entities_ids) + 1))
     if not fs.exists(ann_filename) or overwrite_ann:
-        with fs.open(ann_filename, "w") as f:
+        with fs.open(ann_filename, "w", encoding="utf-8") as f:
             if "entities" in doc:
                 for entity in doc["entities"]:
                     spans = []
@@ -264,6 +265,16 @@ def dump_standoff_file(
                                     file=f,
                                 )
                                 attribute_idx += 1
+                    if "note" in entity:
+                        print(
+                            "#{}\tAnnotatorNotes {}\t{}".format(
+                                note_idx,
+                                brat_entity_id,
+                                (" " + str(entity["note"])),
+                            ),
+                            file=f,
+                        )
+                        note_idx += 1
             # Ajout du traitement des relations
             relation_idx = 1
             if "relations" in doc:

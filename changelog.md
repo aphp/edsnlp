@@ -5,6 +5,8 @@
 ### Fixed
 
 - Since `fork` hangs when HDFS has been used in the main process, we now auto detect if the currently running program has interacted with HDFS before auto-picking a process starting method.
+- We now account for pipe selection (ie `enable`, `disable` and `exclude`) when loading a model from huggingface hub.
+- We do not instantiate pipes in `exclude` anymore when loading a model (before they were instantiated but not added to the pipeline).
 
 ## v0.18.0 (2025-09-02)
 

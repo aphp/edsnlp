@@ -69,7 +69,7 @@ To learn more about EDS-NLP, we have prepared a series of tutorials that should 
 
 --8<-- "docs/tutorials/index.md:classic-tutorials"
 
-We also provide tutorials on how to train deep-learning models with EDS-NLP. These tutorials cover the training API, hyperparameter tuning, and more.
+**Deep-learning tutorials**: we also provide tutorials on how to train deep-learning models with EDS-NLP. These tutorials cover the training API, hyperparameter tuning, and more.
 
 --8<-- "docs/tutorials/index.md:deep-learning-tutorials"
 

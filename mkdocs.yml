@@ -51,6 +51,7 @@ nav:
       - tutorials/endlines.md
       - tutorials/aggregating-results.md
       - tutorials/multiple-texts.md
+      - tutorials/hpc.md
       - advanced-tutorials/fastapi.md
       - tutorials/make-a-training-script.md
       - tutorials/training-ner.md

@@ -7,6 +7,7 @@ import math
 import multiprocessing
 import multiprocessing.reduction
 import os
+import re
 import sys
 import tempfile
 import threading
@@ -18,8 +19,8 @@ from collections import defaultdict
 from contextlib import nullcontext
 from itertools import tee
 from multiprocessing.connection import wait
+from multiprocessing.queues import Empty
 from typing import (
-    TYPE_CHECKING,
     Dict,
     Iterable,
     List,
@@ -39,20 +40,13 @@ from edsnlp.utils.collections import (
     decompress_dict,
 )
 
-doc_size_fns = {
-    "words": len,
-}
-
-if TYPE_CHECKING:
-    import torch
-
-
-# Singleton is important since the STOP objects may be passed to
-# other processes, i.e. pickled, unpickled, while they should
-# always be the same object.
+WORKER_STOP_CHECK_INTERVAL = 5.0  # seconds
 
 
 class StopType:
+    # Singleton is important since the STOP objects may be passed to
+    # other processes, i.e. pickled, unpickled, while they should
+    # always be the same object.
     instance = None
 
     def __repr__(self):
@@ -216,6 +210,63 @@ def cpu_count():  # pragma: no cover
             cpu_count_cgroup = math.ceil(cpu_quota_us / cpu_period_us)
 
     return max(1, min(os_cpu_count, cpu_count_affinity, cpu_count_cgroup))
+
+
+def hdfs_or_jvm_loaded() -> bool:
+    libs = ("libhdfs", "libhdfs3", "libhadoop", "libjvm")
+
+    def loaded_libs():
+        if sys.platform.startswith("linux"):
+            try:
+                with open("/proc/self/maps", "r") as f:
+                    return re.findall(r"/[^\s]+\.so[^\s]*", f.read())
+            except Exception:
+                return []
+        try:
+            import psutil
+
+            return [m.path for m in psutil.Process().memory_maps() if m.path]
+        except Exception:
+            return []
+
+    try:
+        loaded = loaded_libs()
+    except Exception:
+        return False
+    return any(any(k in os.path.basename(p).lower() for k in libs) for p in loaded)
+
+
+def get_multiprocessing_context(has_torch_pipes, process_start_method):
+    methods = multiprocessing.get_all_start_methods()
+    default_method = "fork" if "fork" in methods else "spawn"
+    has_hdfs = hdfs_or_jvm_loaded()
+
+    # Base choice, ie torch based pipes prefer spawn
+    method = process_start_method or (
+        "spawn" if has_torch_pipes or has_hdfs else default_method
+    )
+
+    # Warn for torch + fork
+    if has_torch_pipes and method == "fork":
+        warnings.warn(
+            "Using fork start method with GPU workers may lead to deadlocks. "
+            "Consider using process_start_method='spawn' instead."
+        )
+        method = "spawn"
+
+    # Avoid fork if HDFS/JVM already loaded
+    if has_hdfs and method == "fork":
+        safe = "forkserver" if "forkserver" in methods else "spawn"
+        warnings.warn(
+            "Using fork start method with HDFS may lead to deadlocks. "
+            f"Consider using process_start_method='{safe}' instead."
+        )
+        method = safe
+
+    if default_method != method:
+        logging.info(f"Switching process start method to {method}")
+
+    return multiprocessing.get_context(method)
 
 
 # Should we check if the multiprocessing module of edsnlp
@@ -394,7 +445,7 @@ class Worker:
         except BaseException as e:
             if self.stop:  # pragma: no cover
                 return
-            print(f"Error in {self.uid}:\n{traceback.format_exc()}", flush=True)
+            print(f"Error in {self.uid}/{stage}:\n{traceback.format_exc()}", flush=True)
             self.main_control_queue.put(e)
         finally:
             try:
@@ -427,7 +478,12 @@ class Worker:
             self.main_control_queue.put("READY")
 
             while not self.stop:
-                notification = self.worker_control_queue.get()
+                try:
+                    notification = self.worker_control_queue.get(
+                        timeout=WORKER_STOP_CHECK_INTERVAL
+                    )
+                except Empty:  # pragma: no cover
+                    continue
                 if notification is STOP and not self.stop:
                     self.stop = True
                     self.on_stop()
@@ -444,16 +500,6 @@ class Worker:
                 print(f"Error in {self.uid}:\n{traceback.format_exc()}", flush=True)
             self.main_control_queue.put(e)
         finally:
-            # print(f"Waiting time for {self.uid}", flush=True)
-            # print(
-            #     "\n"
-            #     + "\n".join(
-            #         f"Waiting time for {self.uid}/{k}: {v:.2f}"
-            #         for k, v in self.waiting_times.items()
-            #     )
-            #     + "\n",
-            #     flush=True,
-            # )
             for thread in threads:
                 thread.join()
             for stage in self.stages_to_run:
@@ -517,6 +563,16 @@ class CPUWorker(Worker):
             task_idx = 0
             for item in iter(self.stream.reader.read_records()):
                 if self.stop:  # pragma: no cover
+                    # I don't know why, sometimes when a KeyboardInterrupt is captured
+                    # by the main process, and converted to a stop=True in the workers,
+                    # this line is correctly reached, but the StopSignal exception is
+                    # not bubbled up most of the time to `self.send_results(items)` in
+                    # `CPUWorker.process_items` and therefore not caught in
+                    # `self.process_items(stage)` in `Worker.run_stage_thread`.
+                    # This makes the worker hang at the end instead of stopping.
+                    # Simply wrapping this iter_tasks() generator in a try/except
+                    # next(iterator) doesn't catch the exception when raised here, as if
+                    # the exception bubbling mechanism was broken in these cases.
                     raise StopSignal()
                 if isinstance(item, StreamSentinel):
                     yield item
@@ -529,7 +585,7 @@ class CPUWorker(Worker):
 
                 task_idx += 1
         else:
-            task_idx = -1
+            last_task_idx = -1
             deterministic = self.stream.deterministic
             schedule = self.stage_schedule[stage]
 
@@ -538,8 +594,8 @@ class CPUWorker(Worker):
                     raise StopSignal()
 
                 if stage > 0:
-                    task_idx = (task_idx + 1) % len(schedule)
-                    while schedule[task_idx] is None:
+                    task_idx = (last_task_idx + 1) % len(schedule)
+                    while schedule[task_idx] is None:  # pragma: no cover
                         task_idx = (task_idx + 1) % len(schedule)
 
                     if deterministic:
@@ -563,9 +619,15 @@ class CPUWorker(Worker):
                 name = f"from-{prod}_to-stage-{stage}_of-{self.uid}"
                 queue = self.data_queues[name]
                 t = time.time()
-                item = queue.get()
+                try:
+                    item = queue.get(timeout=WORKER_STOP_CHECK_INTERVAL)
+                except Empty:  # pragma: no cover
+                    continue
+                else:
+                    if stage > 0:
+                        last_task_idx = task_idx
+                    self.waiting_times["get-" + name] += time.time() - t
 
-                self.waiting_times["get-" + name] += time.time() - t
                 if item is STOP:
                     schedule[:] = [s if s != prod else None for s in schedule]
                     self.num_producers_alive[stage] -= 1
@@ -751,18 +813,18 @@ class GPUWorker(Worker):
                 del batch, item
 
     def iter_tasks(self, stage, stop_mode=False):
-        offset = -1
         queues = [
             key
             for key, q in self.data_queues.items()
             if key.endswith(f"-{stage}_of-{self.uid}")
         ]
         # Get items from the previous stage
+        last_offset = -1
         while self.num_producers_alive[stage] > 0:
             if self.stop and not stop_mode:  # pragma: no cover
                 raise StopSignal()
 
-            offset = (offset + 1) % len(queues)
+            offset = (last_offset + 1) % len(queues)
             while queues[offset] is None:  # pragma: no cover
                 offset = (offset + 1) % len(queues)
 
@@ -773,9 +835,13 @@ class GPUWorker(Worker):
             name = names[conns.index(ready)]
             queue = self.data_queues[name]
             t = time.time()
-            item = queue.get()
-
-            self.waiting_times["get-" + name] += time.time() - t
+            try:
+                item = queue.get(timeout=WORKER_STOP_CHECK_INTERVAL)
+            except Empty:  # pragma: no cover
+                continue
+            else:
+                last_offset = offset
+                self.waiting_times["get-" + name] += time.time() - t
 
             if item is STOP:
                 queues[:] = [s if s != name else None for s in queues]
@@ -826,7 +892,7 @@ class MultiprocessingStreamExecutor:
         self.stream = stream
         self.stages = stream._make_stages(split_torch_pipes=num_gpu_workers > 0)
         self.has_torch_pipes = has_torch_pipes
-        mp = self.get_multiprocessing_context(
+        mp = get_multiprocessing_context(
             has_torch_pipes=has_torch_pipes,
             process_start_method=stream.process_start_method,
         )
@@ -867,7 +933,7 @@ class MultiprocessingStreamExecutor:
             for cpu in self.cpu_worker_names:
                 name = f"from-main_to-stage-0_of-{cpu}"
                 if not share_queues:
-                    queue = mp.SimpleQueue()
+                    queue = mp.Queue()
                 self.data_queues[name] = queue
                 self.input_queue_names.append(name)
 
@@ -951,7 +1017,7 @@ class MultiprocessingStreamExecutor:
         self.stopped = False
         self.num_alive_workers = num_cpu_workers
         self.workers_status = [True] * num_cpu_workers
-        self.current_worker_idx = -1
+        self.current_worker_idx = 0
         self.error = None
         self.dequeue_notifications_thread = None
         self.queue_feeder_threads: List[threading.Thread] = []
@@ -1080,17 +1146,10 @@ class MultiprocessingStreamExecutor:
         )
         missing_sentinels = len(self.cpu_worker_names) if requires_sentinel else 0
         buffer = []
+        last_heartbeat = {name: time.time() for name in self.cpu_worker_names}
         while self.num_alive_workers > 0:
             if self.stopped and not stop_mode:  # pragma: no cover
                 raise StopSignal()
-
-            self.current_worker_idx = (self.current_worker_idx + 1) % len(
-                self.cpu_worker_names
-            )
-            while not self.workers_status[self.current_worker_idx]:
-                self.current_worker_idx = (self.current_worker_idx + 1) % len(
-                    self.cpu_worker_names
-                )
 
             if deterministic:
                 worker_idx = self.current_worker_idx
@@ -1112,7 +1171,20 @@ class MultiprocessingStreamExecutor:
             name = f"from-{self.cpu_worker_names[worker_idx]}_to-main"
             queue = self.data_queues[name]
 
-            out = queue.get()
+            try:
+                out = queue.get(timeout=10)
+            except Empty:  # pragma: no cover
+                continue
+
+            last_heartbeat[self.cpu_worker_names[worker_idx]] = time.time()
+            self.current_worker_idx = (self.current_worker_idx + 1) % len(
+                self.cpu_worker_names
+            )
+            while not self.workers_status[self.current_worker_idx]:
+                self.current_worker_idx = (self.current_worker_idx + 1) % len(
+                    self.cpu_worker_names
+                )
+
             if out is STOP:
                 self.num_alive_workers -= 1
                 self.workers_status[worker_idx] = False
@@ -1131,8 +1203,6 @@ class MultiprocessingStreamExecutor:
             else:
                 yield out
         yield from buffer
-        if self.error:
-            raise self.error
 
     def feed_queue(self, queue, items):
         """
@@ -1225,6 +1295,7 @@ class MultiprocessingStreamExecutor:
         self.revert_environ()
         self.revert_pickler()
 
+        self.error = None
         for _ in self.iter_outputs(stop_mode=True):
             pass
 
@@ -1327,26 +1398,6 @@ class MultiprocessingStreamExecutor:
             gpu_worker_devices,
             has_torch_pipes,
         )
-
-    @staticmethod
-    def get_multiprocessing_context(has_torch_pipes, process_start_method):
-        if has_torch_pipes:
-            if process_start_method == "fork":
-                warnings.warn(
-                    "Using fork start method with GPU workers may lead to deadlocks. "
-                    "Consider using process_start_method='spawn' instead."
-                )
-
-            process_start_method = process_start_method or "spawn"
-
-        default_method = (
-            "fork" if "fork" in multiprocessing.get_all_start_methods() else "spawn"
-        )
-        if process_start_method is not None and default_method != process_start_method:
-            logging.info(f"Switching process start method to {process_start_method}")
-        process_start_method = process_start_method or default_method
-
-        return multiprocessing.get_context(process_start_method)
 
     @staticmethod
     def setup_environ(disable_implicit_parallelism):

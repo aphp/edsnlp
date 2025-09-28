@@ -1,5 +1,6 @@
 import inspect
 import types
+from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import wraps
 from typing import (
@@ -71,11 +72,25 @@ class FactoryMeta:
 T = TypeVar("T")
 
 
+_AUTO_INSTANTIATE_COMPLETE_PIPE_DRAFT = True
+
+
 class DraftPipe(Draft[T]):
     def __init__(self, func, kwargs):
         super().__init__(func, kwargs)
         self.instantiated = None
         self.error = None
+
+    @staticmethod
+    @contextmanager
+    def disable_auto_instantiation():
+        global _AUTO_INSTANTIATE_COMPLETE_PIPE_DRAFT
+        old_value = _AUTO_INSTANTIATE_COMPLETE_PIPE_DRAFT
+        _AUTO_INSTANTIATE_COMPLETE_PIPE_DRAFT = False
+        try:
+            yield
+        finally:
+            _AUTO_INSTANTIATE_COMPLETE_PIPE_DRAFT = old_value
 
     def maybe_nlp(self) -> Union["DraftPipe", Any]:
         """
@@ -92,15 +107,20 @@ class DraftPipe(Draft[T]):
 
         sig = inspect.signature(self._func)
         if (
-            not (
-                "nlp" in sig.parameters
-                and (
-                    sig.parameters["nlp"].default is sig.empty
-                    or sig.parameters["nlp"].annotation in (Pipeline, PipelineProtocol)
+            _AUTO_INSTANTIATE_COMPLETE_PIPE_DRAFT
+            and (
+                not (
+                    "nlp" in sig.parameters
+                    and (
+                        sig.parameters["nlp"].default is sig.empty
+                        or sig.parameters["nlp"].annotation
+                        in (Pipeline, PipelineProtocol)
+                    )
                 )
+                or "nlp" in self._kwargs
             )
-            or "nlp" in self._kwargs
-        ) and not self.search_nested_drafts(self._kwargs):
+            and not self.search_nested_drafts(self._kwargs)
+        ):
             return self._func(**self._kwargs)
         return self
 

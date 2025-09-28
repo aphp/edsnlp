@@ -558,7 +558,8 @@ class Pipeline(Validated):
                 config["nlp"]["components"] = Reference("components")
             config = config["nlp"]
 
-        config = Config(config).resolve(root=root_config, registry=registry)
+        with DraftPipe.disable_auto_instantiation():
+            config = Config(config).resolve(root=root_config, registry=registry)
         if isinstance(config, Pipeline):  # pragma: no cover
             return config
         config = dict(config)
@@ -590,6 +591,7 @@ class Pipeline(Validated):
         enable: Container[str],
         disable: Container[str],
     ):
+        components = {n: comp for n, comp in components.items() if n not in exclude}
         try:
             components = DraftPipe.instantiate(components, nlp=self)
         except ConfitValidationError as e:
@@ -1225,6 +1227,7 @@ def load(
                     auto_update=auto_update,
                     install_dependencies=install_dependencies,
                     **kwargs,
+                    **pipe_selection,
                 )
             except (
                 ImportError,
@@ -1237,7 +1240,7 @@ def load(
     if not isinstance(model, Config):
         raise ValueError(error) from base_exc
 
-    return Pipeline.from_config(model)
+    return Pipeline.from_config(model, **pipe_selection)
 
 
 def load_from_huggingface(

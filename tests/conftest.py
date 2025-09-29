@@ -10,6 +10,7 @@ from helpers import make_nlp
 from pytest import fixture
 
 import edsnlp
+from edsnlp.data.converters import DocToMarkupConverter, MarkupToDocConverter
 
 os.environ["EDSNLP_MAX_CPU_WORKERS"] = "2"
 os.environ["TZ"] = "Europe/Paris"
@@ -235,3 +236,13 @@ def stop_spark():
     session = getActiveSession()
     if session is not None:
         session.stop()
+
+
+@pytest.fixture
+def doc2md(nlp):
+    return DocToMarkupConverter(preset="md")
+
+
+@pytest.fixture
+def md2doc(nlp):
+    return MarkupToDocConverter(preset="md")

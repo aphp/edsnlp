@@ -5,6 +5,7 @@
 ### Added
 
 - New `DocToMarkupConverter` to convert documents to markdown and improved `MarkupToDocConverter` to allow overlapping markup annotations (e.g., `This is a <a>text <b>with</a> overlapping</b> tags`).
+- New helper `edsnlp.utils.fuzzy_alignment.align` to map the entities of an annotated document to another document with similar but not identical text (e.g., after some text normalization or minor edits).
 
 ### Fixed
 

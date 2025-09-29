@@ -84,6 +84,19 @@ class AsyncLLM:
             base_url=api_url,
         )
 
+    async def __aenter__(self):
+        """Async context manager entry."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit - properly close the client."""
+        await self.aclose()
+
+    async def aclose(self):
+        """Properly close the AsyncOpenAI client to prevent resource leaks."""
+        if hasattr(self, "client") and self.client is not None:
+            await self.client.close()
+
     @property
     def lock(self):
         if self._lock is None:
@@ -261,21 +274,28 @@ class AsyncLLM:
             List of message batches to send to the LLM, where each batch is a list
             of dictionaries with keys 'role' and 'content'.
         """
-        # Shared prompt generator
-        id_messages_tuples = self.async_id_message_generator(batch_messages)
+        try:
+            # Shared prompt generator
+            id_messages_tuples = self.async_id_message_generator(batch_messages)
 
-        # n concurrent tasks
-        tasks = {
-            asyncio.create_task(self.async_worker(f"Worker-{i}", id_messages_tuples))
-            for i in range(self.n_concurrent_tasks)
-        }
+            # n concurrent tasks
+            tasks = {
+                asyncio.create_task(
+                    self.async_worker(f"Worker-{i}", id_messages_tuples)
+                )
+                for i in range(self.n_concurrent_tasks)
+            }
 
-        await asyncio.gather(*tasks)
-        tasks.clear()
-        predictions = self.sort_responses()
-        self.clean_storage()
+            await asyncio.gather(*tasks)
+            tasks.clear()
+            predictions = self.sort_responses()
+            self.clean_storage()
 
-        return predictions
+            return predictions
+        except Exception:
+            # Ensure cleanup even if an exception occurs
+            await self.aclose()
+            raise
 
 
 def create_prompt_messages(

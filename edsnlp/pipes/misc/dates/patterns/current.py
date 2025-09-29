@@ -1,6 +1,6 @@
 from typing import List
 
-from edsnlp.utils.regex import make_pattern
+from edsnlp.utils.regex_utils import make_pattern
 
 current_patterns: List[str] = [
     r"(?P<year_0>cette\s+ann[ée]e)(?![-\s]l[àa])",

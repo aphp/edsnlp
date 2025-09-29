@@ -34,7 +34,11 @@ def test_async_llm(n_concurrent_tasks):
         response = run_async(
             llm_api(
                 batch_messages=[
-                    [{"role": "user", "content": "your prompt here"}],
+                    [
+                        {"role": "user", "content": "your prompt here"},
+                        {"role": "assistant", "content": "Hello!"},
+                        {"role": "user", "content": "your second prompt here"},
+                    ],
                     [{"role": "user", "content": "your second prompt here"}],
                 ]
             )

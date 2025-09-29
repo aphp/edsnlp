@@ -165,30 +165,66 @@ class AsyncLLM:
         """ """
         self.responses.append((p_id, abbreviation_list))
 
+    # async def async_worker(
+    #     self,
+    #     name: str,
+    #     id_messages_tuples: AsyncIterator[Tuple[int, List[List[Dict[str, str]]]]],
+    # ):
+    #     """ """
+
+    #     async for (
+    #         idx,
+    #         message,
+    #     ) in id_messages_tuples:
+    #         logger.info(idx)
+
+    #         try:
+    #             idx, response = await self.call_llm(idx, message)
+
+    #             logger.info(f"Worker {name} has finished process {idx}")
+    #         except Exception as e:  # BaseException
+    #             logger.error(
+    #                 f"[{name}] Exception raised on chunk {idx}\n{e}"
+    #             )  # type(e)
+    #             if self.n_completions == 1:
+    #                 response = ""
+    #             else:
+    #                 response = [""] * self.n_completions
+
+    #         async with self.lock:
+    #             self.store_responses(
+    #                 idx,
+    #                 response,
+    #             )
+
     async def async_worker(
         self,
         name: str,
         id_messages_tuples: AsyncIterator[Tuple[int, List[List[Dict[str, str]]]]],
     ):
-        """ """
-
-        async for (
-            idx,
-            message,
-        ) in id_messages_tuples:
-            logger.info(idx)
-
+        while True:
             try:
+                (
+                    idx,
+                    message,
+                ) = await anext(id_messages_tuples)  # noqa: F821
                 idx, response = await self.call_llm(idx, message)
 
                 logger.info(f"Worker {name} has finished process {idx}")
-            except Exception as e:
-                logger.error(f"[{name}] Exception raised on chunk {idx}\n{e}")
+            except StopAsyncIteration:
+                # Everything has been parsed!
+                logger.info(
+                    f"[{name}] Received StopAsyncIteration, worker will shutdown"
+                )
+                break
+            except BaseException as e:
+                logger.error(
+                    f"[{name}] Exception raised on chunk {idx}\n{e}"
+                )  # type(e)
                 if self.n_completions == 1:
                     response = ""
                 else:
                     response = [""] * self.n_completions
-
             async with self.lock:
                 self.store_responses(
                     idx,

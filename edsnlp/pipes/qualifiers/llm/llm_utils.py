@@ -231,6 +231,13 @@ class AsyncLLM:
                     f"[{name}] Received StopAsyncIteration, worker will shutdown"
                 )
                 break
+            except TimeoutError as e:
+                logger.error(f"[{name}] TimeoutError on chunk {idx}\n{e}")
+                logger.error(f"Timeout was set to {self.timeout} seconds")
+                if self.n_completions == 1:
+                    response = ""
+                else:
+                    response = [""] * self.n_completions
             except BaseException as e:
                 logger.error(
                     f"[{name}] Exception raised on chunk {idx}\n{e}"

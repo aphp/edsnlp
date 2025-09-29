@@ -82,6 +82,7 @@ class AsyncLLM:
         self.client = AsyncOpenAI(
             api_key=api_key,
             base_url=api_url,
+            default_headers={"Connection": "close"},
         )
 
     async def __aenter__(self):

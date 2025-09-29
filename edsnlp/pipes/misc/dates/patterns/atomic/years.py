@@ -1,7 +1,7 @@
 from datetime import date
 from typing import List
 
-from edsnlp.utils.regex import make_pattern
+from edsnlp.utils.regex_utils import make_pattern
 
 year_patterns: List[str] = [
     r"19\d\d",

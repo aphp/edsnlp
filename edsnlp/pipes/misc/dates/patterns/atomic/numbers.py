@@ -1,4 +1,4 @@
-from edsnlp.utils.regex import make_pattern
+from edsnlp.utils.regex_utils import make_pattern
 
 letter_numbers = [
     r"(?P<number_01>l'|le|la|une?|ce|cette|cet)",

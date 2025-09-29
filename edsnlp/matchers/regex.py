@@ -6,7 +6,7 @@ from loguru import logger
 from spacy.tokens import Doc, Span
 
 from edsnlp.utils.doc_to_text import get_char_offsets, get_text
-from edsnlp.utils.regex import compile_regex
+from edsnlp.utils.regex_utils import compile_regex
 
 from .utils import Patterns
 

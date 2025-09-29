@@ -1,4 +1,4 @@
-from edsnlp.utils.regex import make_pattern
+from edsnlp.utils.regex_utils import make_pattern
 
 letter_days = [
     r"(?P<day_01>premier|1\s*er)",

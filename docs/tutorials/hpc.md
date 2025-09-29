@@ -2,17 +2,19 @@
 
 This tutorial shows how to run an existing deep-learning based EDS-NLP model (for example the
 public pseudonymisation model [eds-pseudo-public](https://eds-pseudo-public.streamlit.app) efficiently
-on a Slurm cluster. We focus on a Parquet → Parquet workflow and a Slurm batch script. For background
-on streams, batching and backends, see the tutorial [Processing multiple texts](/tutorials/multiple-texts).
+on a cluster. In a Clinical Data Warehouse like AP-HP's, most research projects might want to:
+
+1. first fetch a corpus of documents with PySpark. Depending on your computing setup, this might run on a specific cluster like Hadoop/YARN.
+2. run the NLP model on these notes. This is often best done on a GPU cluster, for instance one managed by Slurm.
 
 ## Python inference script
 
-We’ll write an inference script that:
+Let's start by the Python NLP inference script. We’ll write an inference script that:
 
 - loads an existing model, e.g. `AP-HP/dummy-ner` which annotates entities of the [DEFT 2020 dataset](https://hal.science/hal-03095262/document) on documents.
-- reads notes
+- reads notes from a Parquet dataset (e.g. exported from Spark)
 - applies the model on these notes
-- writes entities to files
+- writes entities back to a new Parquet dataset (e.g. to be re-imported in Spark)
 
 ```python { title="inference.py" }
 import logging
@@ -27,6 +29,14 @@ import edsnlp
 
 
 def make_fs(path: str, endpoint: str = None):
+    """
+    This function can be used to define the filesystem explicitly.
+    Otherwise, it's automatically created from the path
+    (ex: "s3://", "hdfs://", ...) using default parameters.
+    """
+
+    # For instance, if you have a s3 volume (S3 is not necessarily AWS !)
+    # you can use the S3 filesystem and provide credentials as env vars.
     if path.startswith("s3://"):
         return pyarrow.fs.S3FileSystem(
             access_key=os.getenv("S3_ACCESS_KEY"),
@@ -36,7 +46,7 @@ def make_fs(path: str, endpoint: str = None):
     return None
 
 
-app = confit.Cli()
+app = confit.Cli()  #(1)!
 
 
 @app.command("inference")
@@ -87,6 +97,7 @@ def main(
         converter="omop",
         filesystem=input_fs,
         read_in_worker=True,
+        doc_attributes=["note_id", "person_id"],  #(2)!
     )
 
     # Apply the model lazily
@@ -112,9 +123,10 @@ def main(
                 offset_end=ent.end_char,
                 label=ent.label_,
                 snippet=ent.text,
+                date=getattr(ent._, 'date'),
+                # You can add other ent attributes here
+                # like ent._.certainty, ent._.family, etc.
                 nlp_system=model_name,
-                date=ent._.date,
-                date_format=None,
             )
             for ent in doc.ents
         ]
@@ -126,12 +138,14 @@ def main(
                 offset_end=0,
                 label="EMPTY",
                 snippet="",
-                nlp_system=model_name,
                 date=None,
-                date_format=None,
+                # You can add other ent attributes here
+                nlp_system=model_name,
             )
         ]
 
+    # We declare here where we want to write the output
+    # All writers trigger the execution by default (unless execute=False)
     docs.write_parquet(
         path=output_path,
         overwrite=True,
@@ -146,6 +160,8 @@ def main(
 if __name__ == "__main__":
     app()
 ```
+
+1. We use [confit](https://github.com/aphp/confit) to create a CLI application and enforce parameter types.
 
 !!! tip "Converters and schemas"
 
@@ -186,9 +202,9 @@ set -euo pipefail
 # Setup the env. Simple setup for AP-HP cluster below
 # Refer to your HPC documentation for your own setup.
 /etc/start.sh
+export HADOOP_HOME=/usr/local/hadoop
 export CLASSPATH=`$HADOOP_HOME/bin/hdfs classpath --glob`
 export ARROW_LIBHDFS_DIR=/usr/local/hadoop/usr/lib/
-export HADOOP_HOME=/usr/local/hadoop
 source "$HOME/.user_conda/miniconda/etc/profile.d/conda.sh"
 
 # Activate your environment(s), e.g. conda/venv/uv or a mix of these
@@ -243,6 +259,7 @@ python inference.py \
 
 ## Fetching data with PySpark
 
+The above job requires a Parquet dataset as input. You can use PySpark to extract notes from your CDW and write them to Parquet.
 In theory, you could run end-to-end with Spark using
 ```python { .no-check }
 docs = edsnlp.data.from_spark(...)

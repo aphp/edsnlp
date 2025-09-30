@@ -82,7 +82,21 @@ class AsyncLLM:
         self.client = AsyncOpenAI(
             api_key=api_key,
             base_url=api_url,
+            default_headers={"Connection": "close"},
         )
+
+    async def __aenter__(self):
+        """Async context manager entry."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit - properly close the client."""
+        await self.aclose()
+
+    async def aclose(self):
+        """Properly close the AsyncOpenAI client to prevent resource leaks."""
+        if hasattr(self, "client") and self.client is not None:
+            await self.client.close()
 
     @property
     def lock(self):
@@ -170,25 +184,36 @@ class AsyncLLM:
         name: str,
         id_messages_tuples: AsyncIterator[Tuple[int, List[List[Dict[str, str]]]]],
     ):
-        """ """
-
-        async for (
-            idx,
-            message,
-        ) in id_messages_tuples:
-            logger.info(idx)
-
+        while True:
             try:
+                (
+                    idx,
+                    message,
+                ) = await anext(id_messages_tuples)  # noqa: F821
                 idx, response = await self.call_llm(idx, message)
 
                 logger.info(f"Worker {name} has finished process {idx}")
-            except Exception as e:
-                logger.error(f"[{name}] Exception raised on chunk {idx}\n{e}")
+            except StopAsyncIteration:
+                # Everything has been parsed!
+                logger.info(
+                    f"[{name}] Received StopAsyncIteration, worker will shutdown"
+                )
+                break
+            except TimeoutError as e:
+                logger.error(f"[{name}] TimeoutError on chunk {idx}\n{e}")
+                logger.error(f"Timeout was set to {self.timeout} seconds")
                 if self.n_completions == 1:
                     response = ""
                 else:
                     response = [""] * self.n_completions
-
+            except BaseException as e:
+                logger.error(
+                    f"[{name}] Exception raised on chunk {idx}\n{e}"
+                )  # type(e)
+                if self.n_completions == 1:
+                    response = ""
+                else:
+                    response = [""] * self.n_completions
             async with self.lock:
                 self.store_responses(
                     idx,
@@ -225,21 +250,28 @@ class AsyncLLM:
             List of message batches to send to the LLM, where each batch is a list
             of dictionaries with keys 'role' and 'content'.
         """
-        # Shared prompt generator
-        id_messages_tuples = self.async_id_message_generator(batch_messages)
+        try:
+            # Shared prompt generator
+            id_messages_tuples = self.async_id_message_generator(batch_messages)
 
-        # n concurrent tasks
-        tasks = {
-            asyncio.create_task(self.async_worker(f"Worker-{i}", id_messages_tuples))
-            for i in range(self.n_concurrent_tasks)
-        }
+            # n concurrent tasks
+            tasks = {
+                asyncio.create_task(
+                    self.async_worker(f"Worker-{i}", id_messages_tuples)
+                )
+                for i in range(self.n_concurrent_tasks)
+            }
 
-        await asyncio.gather(*tasks)
-        tasks.clear()
-        predictions = self.sort_responses()
-        self.clean_storage()
+            await asyncio.gather(*tasks)
+            tasks.clear()
+            predictions = self.sort_responses()
+            self.clean_storage()
 
-        return predictions
+            return predictions
+        except Exception:
+            # Ensure cleanup even if an exception occurs
+            await self.aclose()
+            raise
 
 
 def create_prompt_messages(

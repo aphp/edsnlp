@@ -53,7 +53,7 @@ class ExternalInformation:
     span_attribute: str
     threshold: Union[float, dt.timedelta]
     reduce: str = "all"  # "one_only" , "closest" # TODO: implement
-    comparison_type: str = "similarity"  # "exact_match" # TODO: implement
+    comparison_type: str = "similarity"  # "exact_match"
 
 
 class ExternalInformationQualifier(BaseSpanAttributeClassifierComponent):
@@ -144,7 +144,7 @@ class ExternalInformationQualifier(BaseSpanAttributeClassifierComponent):
             if not Span.has_extension(name):
                 Span.set_extension(name, default=None)
 
-    def distance(self, spans, ctx_spans_values):
+    def numeric_distance(self, spans, ctx_spans_values):
         """
         Computes the distance between spans and context values.
 
@@ -163,6 +163,28 @@ class ExternalInformationQualifier(BaseSpanAttributeClassifierComponent):
         doc_elements = np.array(spans)  # shape: N
         ctx_elements = np.array(ctx_spans_values)  # shape: M
         distances = doc_elements[:, None] - ctx_elements[None, :]  # shape: N x M
+
+        return distances
+
+    def exact_match(self, spans, ctx_spans_values):
+        """
+        Computes the exact match between spans and context values.
+
+        Parameters
+        ----------
+        spans : List
+            The list of span attributes.
+        ctx_spans_values : List
+            The list of context values.
+
+        Returns
+        -------
+        np.ndarray
+            A mask indicating which spans match the context values.
+        """
+        doc_elements = np.array(spans)  # shape: N
+        ctx_elements = np.array(ctx_spans_values)  # shape: M
+        distances = doc_elements[:, None] == ctx_elements[None, :]  # shape: N x M
 
         return distances
 
@@ -296,8 +318,12 @@ class ExternalInformationQualifier(BaseSpanAttributeClassifierComponent):
                 ctx_values = [i.get("value") for i in context_doc]  # values to look for
                 ctx_classes = [i.get("class") for i in context_doc]  # classes to assign
                 if len(ctx_values) > 0:
-                    assert isinstance(ctx_values[0], (dt.datetime, dt.date)), (
-                        "Values should be datetime objects. Future: add support for"
+                    instance_type = type(ctx_values[0])
+                    assert isinstance(
+                        ctx_values[0], (dt.datetime, dt.date, str, float, int)
+                    ), (
+                        "Values should be (dt.datetime, dt.date, str, float, int)."
+                        "Future: add support for"
                         " other types"
                     )
             else:
@@ -305,10 +331,12 @@ class ExternalInformationQualifier(BaseSpanAttributeClassifierComponent):
                 ctx_classes = []
 
             # Compute distance
-            if context.comparison_type == "similarity":
-                distances = self.distance(filtered_spans_attr, ctx_values)
+            if context.comparison_type == "similarity" and instance_type is not str:
+                distances = self.numeric_distance(filtered_spans_attr, ctx_values)
                 mask = self.threshold(distances, context.threshold)
-
+                labels = self.reduce(mask, context.reduce)
+            elif context.comparison_type == "exact_match" and instance_type is str:
+                mask = self.exact_match(filtered_spans_attr, ctx_values)
                 labels = self.reduce(mask, context.reduce)
             else:
                 raise NotImplementedError

@@ -134,6 +134,10 @@ nav:
           - 'Span Linker': pipes/trainable/span-linker.md
           - 'Biaffine Dependency Parser': pipes/trainable/biaffine-dependency-parser.md
           - 'Extractive QA': pipes/trainable/extractive-qa.md
+
+      - LLM based:
+          - pipes/llm/index.md
+          - pipes/llm/llm-markup-extraction.md
   - tokenizers.md
   - Data Connectors:
       - data/index.md

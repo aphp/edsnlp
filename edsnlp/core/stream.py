@@ -137,11 +137,24 @@ class MapOp(Op):
     def __init__(self, pipe, kwargs, context=None):
         self.pipe = pipe
         self.kwargs = kwargs
-        self.is_generator = deep_isgeneratorfunction(pipe)
+        self.has_pipe_method = hasattr(pipe, "pipe") and callable(pipe.pipe)
+        self.is_generator = self.has_pipe_method or deep_isgeneratorfunction(pipe)
         self.elementwise = not self.is_generator
         self.context = context or {}
 
     def __call__(self, items):
+        if self.has_pipe_method:
+            CONTEXT[0], old = self.context, CONTEXT[0]
+            res = self.pipe.pipe(
+                (x for x in items if not isinstance(x, StreamSentinel)),
+                **self.kwargs,
+            )
+            CONTEXT[0] = old
+            if self.is_generator:
+                yield from res
+            else:
+                yield res
+            return
         for item in items:
             if isinstance(item, StreamSentinel):
                 yield item
@@ -714,17 +727,27 @@ class Stream(metaclass=MetaStream):
             if isinstance(op, (MapOp, MapBatchesOp)):
                 op.context["tokenizer"] = tokenizer
             new_ops.append(op)
+        has_batches = batch_by is not None or any(
+            hasattr(p, "batch_process") for n, p in model.pipeline
+        )
         new_ops.append(MapOp(model._ensure_doc, {}))
-        batch_size, batch_by = self.validate_batching(batch_size, batch_by)
-        batch_by = batchify_fns.get(batch_by, batch_by)
-        new_ops.append(BatchifyOp(batch_size, batch_by))
+        if has_batches:
+            batch_size, batch_by = self.validate_batching(batch_size, batch_by)
+            batch_by = batchify_fns.get(batch_by, batch_by)
+            new_ops.append(BatchifyOp(batch_size, batch_by))
+
         for name, pipe in model.pipeline:
             if name not in model._disabled:
-                op = MapBatchesOp(
-                    pipe, {}, elementwise=not deep_isgeneratorfunction(pipe)
+                op = (
+                    MapBatchesOp(
+                        pipe, {}, elementwise=not deep_isgeneratorfunction(pipe)
+                    )
+                    if has_batches
+                    else MapOp(pipe, {})
                 )
                 new_ops.append(op)
-        new_ops.append(UnbatchifyOp())
+        if has_batches:
+            new_ops.append(UnbatchifyOp())
         config = (
             {**self.config, "batch_size": model.batch_size}
             if self.batch_size is None
@@ -999,7 +1022,7 @@ class Stream(metaclass=MetaStream):
         ):
             requires_sentinels.add(self.writer.batch_fn.requires_sentinel)
 
-        for op in reversed(ops):
+        for op in list(reversed(ops)):
             if isinstance(op, BatchifyOp):
                 if op.batch_fn is None and op.size is None:
                     batch_size = self_batch_size

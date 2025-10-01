@@ -46,26 +46,21 @@ def get_spans(doclike, span_getter, deduplicate=True):
         return
     seen = set()
     for k, span_filter in span_getter.items():
-        if isinstance(doclike, Doc):
-            if k == "*":
-                candidates = (s for grp in doclike.spans.values() for s in grp)
-            else:
-                candidates = doclike.spans.get(k, ()) if k != "ents" else doclike.ents
+        doc = doclike if isinstance(doclike, Doc) else doclike.doc
+        if k == "*":
+            candidates = (s for grp in doc.spans.values() for s in grp)
+        elif k == "ents":
+            candidates = doc.ents
+        elif k == "sents":
+            candidates = doc.sents
         else:
-            doc = doclike.doc
-            if k == "*":
-                candidates = (
-                    s
-                    for grp in doc.spans.values()
-                    for s in grp
-                    if not (s.end < doclike.start or s.start > doclike.end)
-                )
-            else:
-                candidates = (
-                    s
-                    for s in (doc.spans.get(k, ()) if k != "ents" else doc.ents)
-                    if not (s.end < doclike.start or s.start > doclike.end)
-                )
+            candidates = doc.spans.get(k, ())
+        if not isinstance(doclike, Doc):
+            candidates = (
+                s
+                for s in candidates
+                if not (s.end < doclike.start or s.start > doclike.end)
+            )
         for span in candidates:
             if (span_filter is True) or (span.label_ in span_filter):
                 if span not in seen:
@@ -74,21 +69,31 @@ def get_spans(doclike, span_getter, deduplicate=True):
                         seen.add(span)
 
 
-def get_spans_with_group(doc, span_getter):
+def get_spans_with_group(doclike, span_getter):
     if span_getter is None:
-        yield doc[:], None
+        yield doclike[:], None
         return
     if callable(span_getter):
-        yield from span_getter(doc)
+        yield from span_getter(doclike)
         return
     for key, span_filter in span_getter.items():
+        doc = doclike if isinstance(doclike, Doc) else doclike.doc
         if key == "*":
             candidates = (
-                (span, group) for group in doc.spans.values() for span in group
+                (span, name) for name, group in doc.spans.items() for span in group
             )
+        elif key == "sents":
+            candidates = ((sent, key) for sent in doc.sents)
+        elif key == "ents":
+            candidates = ((ent, key) for ent in doc.ents)
         else:
-            candidates = doc.spans.get(key, ()) if key != "ents" else doc.ents
-            candidates = ((span, key) for span in candidates)
+            candidates = ((span, key) for span in doc.spans.get(key, ()))
+        if not isinstance(doclike, Doc):
+            candidates = (
+                x
+                for x in candidates
+                if not (x[0].end < doclike.start or x[0].start > doclike.end)
+            )
         if span_filter is True:
             yield from candidates
         else:
@@ -98,6 +103,7 @@ def get_spans_with_group(doc, span_getter):
 
 
 def set_spans(doc, matches, span_setter):
+    # TODO: prevent "sents" in span_getter ?
     if callable(span_setter):
         span_setter(doc, matches)
     else:

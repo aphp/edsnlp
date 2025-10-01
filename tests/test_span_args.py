@@ -10,6 +10,7 @@ from edsnlp.pipes.base import (
 
 def test_span_getter():
     assert validate_span_getter("ents") == {"ents": True}
+    assert validate_span_getter("sents") == {"sents": True}
     assert validate_span_getter(["ents"]) == {"ents": True}
     assert validate_span_getter(["ents", "group"]) == {"ents": True, "group": True}
     assert validate_span_getter({"grp": True}) == {"grp": True}

@@ -6,6 +6,7 @@ import edsnlp.pipes as eds
 from edsnlp.utils.span_getters import (
     ContextWindow,
     get_spans,
+    get_spans_with_group,
     make_span_context_getter,
     validate_span_setter,
 )
@@ -80,13 +81,23 @@ def test_span_getter_on_span():
         "There was a snake. "
         "His friend was a dog. "
         "He liked baking cakes. "
-        "But since he had no hands, he was a bad baker. "
+        "But since he had no hands, he was a bad baker."
     )
     sents = list(doc.sents)
+
+    # fmt: off
     assert str(list(get_spans(sents[0], validate_span_setter("ents")))) == "[snake]"
     assert str(list(get_spans(sents[0], validate_span_setter("animals")))) == "[snake]"
     assert str(list(get_spans(doc[5:], validate_span_setter("animals")))) == "[dog]"
     assert str(list(get_spans(doc[5:], validate_span_setter("*")))) == "[dog]"
+    assert str(list(get_spans(doc[5:], validate_span_setter("sents")))) == "[There was a snake., His friend was a dog., He liked baking cakes., But since he had no hands, he was a bad baker.]"  # noqa: E501
+
+    assert str(list(get_spans_with_group(sents[0], validate_span_setter("ents")))) == "[(snake, 'ents')]"  # noqa: E501
+    assert str(list(get_spans_with_group(sents[0], validate_span_setter("animals")))) == "[(snake, 'animals')]"  # noqa: E501
+    assert str(list(get_spans_with_group(doc[5:], validate_span_setter("animals")))) == "[(dog, 'animals')]"  # noqa: E501
+    assert str(list(get_spans_with_group(doc[5:], validate_span_setter("*")))) == "[(dog, 'animals')]"  # noqa: E501
+    assert str(list(get_spans_with_group(doc[5:], validate_span_setter("sents")))) == "[(There was a snake., 'sents'), (His friend was a dog., 'sents'), (He liked baking cakes., 'sents'), (But since he had no hands, he was a bad baker., 'sents')]"  # noqa: E501
+    # fmt: on
 
 
 def test_span_context_getter_asymmetric(lang):

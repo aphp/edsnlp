@@ -7,6 +7,7 @@
 - New `DocToMarkupConverter` to convert documents to markdown and improved `MarkupToDocConverter` to allow overlapping markup annotations (e.g., `This is a <a>text <b>with</a> overlapping</b> tags`).
 - New helper `edsnlp.utils.fuzzy_alignment.align` to map the entities of an annotated document to another document with similar but not identical text (e.g., after some text normalization or minor edits).
 - We now support `span_getter="sents"` to apply various pipes on sentences instead of entities or spans.
+- New LLM generic extractor pipe `eds.llm_markup_extractor`, that can be used to extract entities using a large language model served through an *OpenAPI-style* API.
 
 ### Fixed
 

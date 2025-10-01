@@ -31,26 +31,26 @@ Once you've installed the library, let's begin with a very simple example that e
 ```python
 import edsnlp, edsnlp.pipes as eds
 
-nlp = edsnlp.blank("eds")  # (1)
+nlp = edsnlp.blank("eds")  # (1)!
 
 terms = dict(
-    covid=["covid", "coronavirus"],  # (2)
+    covid=["covid", "coronavirus"],  # (2)!
 )
 
 # Sentencizer component, needed for negation detection
-nlp.add_pipe(eds.sentences())  # (3)
+nlp.add_pipe(eds.sentences())  # (3)!
 # Matcher component
-nlp.add_pipe(eds.matcher(terms=terms))  # (4)
+nlp.add_pipe(eds.matcher(terms=terms))  # (4)!
 # Negation detection
 nlp.add_pipe(eds.negation())
 
 # Process your text in one call !
 doc = nlp("Le patient n'est pas atteint de covid")
 
-doc.ents  # (5)
+doc.ents  # (5)!
 # Out: (covid,)
 
-doc.ents[0]._.negation  # (6)
+doc.ents[0]._.negation  # (6)!
 # Out: True
 ```
 
@@ -61,7 +61,9 @@ doc.ents[0]._.negation  # (6)
 5. spaCy stores extracted entities in the [`Doc.ents` attribute](https://spacy.io/api/doc#ents).
 6. The `eds.negation` component has adds a `negation` custom attribute.
 
-This example is complete, it should run as-is.
+## Available pipeline components
+
+--8<-- "docs/pipes/index.md:components"
 
 ## Tutorials
 
@@ -72,10 +74,6 @@ To learn more about EDS-NLP, we have prepared a series of tutorials that should 
 **Deep-learning tutorials**: we also provide tutorials on how to train deep-learning models with EDS-NLP. These tutorials cover the training API, hyperparameter tuning, and more.
 
 --8<-- "docs/tutorials/index.md:deep-learning-tutorials"
-
-## Available pipeline components
-
---8<-- "docs/pipes/index.md:components"
 
 ## Disclaimer
 

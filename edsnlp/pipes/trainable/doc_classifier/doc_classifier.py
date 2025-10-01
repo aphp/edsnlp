@@ -161,8 +161,8 @@ class TrainableDocClassifier(
 
     ```python
     doc = nlp("Patient was admitted with pneumonia and discharged alive.")
-    print(doc._.labels)
-    # {"_.icd10": "J18", "_.mortality": "alive"}
+    print(doc._.icd10, doc._.mortality)
+    # J18 alive
     ```
 
     Parameters

@@ -21,6 +21,7 @@ Check out our interactive [demo](https://aphp.github.io/edsnlp/demo/) !
 
 - [Rule-based components](https://aphp.github.io/edsnlp/latest/pipes/) for French clinical notes
 - [Trainable components](https://aphp.github.io/edsnlp/latest/pipes/trainable): NER, Span classification
+- [LLM-based components](https://aphp.github.io/edsnlp/latest/pipes/llm/)
 - Support for multitask deep-learning models with [weights sharing](https://aphp.github.io/edsnlp/latest/concepts/torch-component/#sharing-subcomponents)
 - [Fast inference](https://aphp.github.io/edsnlp/latest/concepts/inference/), with multi-GPU support out of the box
 - Easy to use, with a spaCy-like API

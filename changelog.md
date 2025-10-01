@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- New `attention` pooling mode in `eds.span_pooler`
+- New `word_pooling_mode=False` in `eds.transformer` to allow returning the worpiece embeddings directly, instead of the mean-pooled word embeddings. At the moment, this only works with `eds.span_pooler` which can pool over wordpieces or words seamlessly.
+
 ## v0.18.0 (2025-09-02)
 
 📢 EDS-NLP will drop support for Python 3.7, 3.8 and 3.9 support in the next major release (v0.19.0), in October 2025. Please upgrade to Python 3.10 or later.
@@ -13,6 +20,7 @@
 - New `eds.explode` pipe that splits one document into multiple documents, one per span yielded by its `span_getter` parameter, each new document containing exactly that single span.
 - New `Training a span classifier` tutorial, and reorganized deep-learning docs
 - `ScheduledOptimizer` now warns when a parameter selector does not match any parameter.
+- New `attention` pooling mode in `eds.span_pooler`
 
 ### Fixed
 

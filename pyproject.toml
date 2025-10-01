@@ -69,7 +69,7 @@ docs-no-ml = [
 ml = [
     "rich-logger>=0.3.1",
     "torch>=1.13.0; python_version>='3.9'",
-    "foldedtensor>=0.4.0",
+    "foldedtensor @ git+https://github.com/aphp/foldedtensor.git@indice-mapping#egg=foldedtensor",
     "safetensors>=0.3.0; python_version>='3.8'",
     "safetensors>=0.3.0,<0.5.0; python_version<'3.8'",
     "transformers>=4.0.0",
@@ -258,6 +258,8 @@ where = ["."]
 "eds.span_classifier"     = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
 "eds.span_linker"         = "edsnlp.pipes.trainable.span_linker.factory:create_component"
 "eds.biaffine_dep_parser" = "edsnlp.pipes.trainable.biaffine_dep_parser.factory:create_component"
+"eds.doc_pooler"      = "edsnlp.pipes.trainable.embeddings.doc_pooler.factory:create_component"
+"eds.doc_classifier"      = "edsnlp.pipes.trainable.doc_classifier.factory:create_component"
 
 [project.entry-points."edsnlp_schedules"]
 "linear" = "edsnlp.training.optimizer:LinearSchedule"
@@ -268,6 +270,7 @@ where = ["."]
 "eds.ner_overlap"            = "edsnlp.metrics.ner:NerOverlapMetric"
 "eds.span_attribute"         = "edsnlp.metrics.span_attribute:SpanAttributeMetric"
 "eds.dep_parsing"            = "edsnlp.metrics.dep_parsing:DependencyParsingMetric"
+"eds.doc_classif"                = "edsnlp.metrics.doc_classif:DocClassificationMetric"
 
 # Deprecated
 "eds.ner_exact_metric"       = "edsnlp.metrics.ner:NerExactMetric"

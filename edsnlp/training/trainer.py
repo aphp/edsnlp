@@ -695,6 +695,8 @@ def train(
             for td in train_data
             if td.pipe_names is None or set(td.pipe_names) & set(pipe_names)
         ]
+        for td in phase_training_data:
+            print("phase_training_data", td)
 
         if len(phase_training_data) == 0:
             raise ValueError(
@@ -849,9 +851,7 @@ def train(
                 for idx, (batch, batch_pipe_names) in enumerate(
                     zip(batches, batches_pipe_names)
                 ):
-                    cache_ctx = (
-                        nlp.cache() if len(batch_pipe_names) > 1 else nullcontext()
-                    )
+                    cache_ctx = nlp.cache()
                     no_sync_ctx = (
                         accelerator.no_sync(trained_pipes)
                         if idx < len(batches) - 1

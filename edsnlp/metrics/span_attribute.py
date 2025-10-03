@@ -121,7 +121,6 @@ def span_attribute_metric(
                         key = f"{attr}:{value}"
                         labels[key][0].add((eg_idx, beg, end, attr, value))
 
-
         doc_spans = get_spans(eg.reference, span_getter)
         for span in doc_spans:
             total_gold_count += 1
@@ -164,6 +163,7 @@ def span_attribute_metric(
             metrics[attr] = submetrics
 
     return metrics
+
 
 @registry.metrics.register(
     "eds.span_attribute",
@@ -335,4 +335,4 @@ create_span_attributes_scorer = SpanAttributeScorer = SpanAttributeMetric
 __all__ = [
     "span_attribute_metric",
     "SpanAttributeMetric",
-    ]
+]

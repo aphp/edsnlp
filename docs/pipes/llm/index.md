@@ -10,5 +10,6 @@ to perform various information extraction tasks.
 | Component                  | Description                                               |
 |----------------------------|-----------------------------------------------------------|
 | `eds.llm_markup_extractor` | Extract structured information using LLMs through markup. |
+| `eds.llm_span_qualifier`   | Predict attributes of spans using LLMs.                   |
 
 <!-- --8<-- [end:components] -->

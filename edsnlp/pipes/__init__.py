@@ -84,4 +84,5 @@ if TYPE_CHECKING:
     from .trainable.embeddings.text_cnn.factory import create_component as text_cnn
     from .misc.split import Split as split
     from .misc.explode import Explode as explode
-    from .llm.llm_markup_extractor import LlmMarkupExtractor as llm_markup_extractor
+    from .llm.llm_markup_extractor.factory import create_component as llm_markup_extractor
+    from .llm.llm_span_qualifier.factory import create_component as llm_span_qualifier

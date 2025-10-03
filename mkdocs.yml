@@ -138,6 +138,7 @@ nav:
       - LLM based:
           - pipes/llm/index.md
           - pipes/llm/llm-markup-extraction.md
+          - pipes/llm/llm-span-qualifier.md
   - tokenizers.md
   - Data Connectors:
       - data/index.md

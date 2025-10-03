@@ -326,22 +326,27 @@ class ExternalInformationQualifier(BaseSpanAttributeClassifierComponent):
                         "Future: add support for"
                         " other types"
                     )
-            else:
-                ctx_values = []
-                ctx_classes = []
 
-            # Compute distance
-            if context.comparison_type == "similarity" and instance_type is not str:
-                distances = self.numeric_distance(filtered_spans_attr, ctx_values)
-                mask = self.threshold(distances, context.threshold)
-                labels = self.reduce(mask, context.reduce)
-            elif context.comparison_type == "exact_match" and instance_type is str:
-                mask = self.exact_match(filtered_spans_attr, ctx_values)
-                labels = self.reduce(mask, context.reduce)
-            else:
-                raise NotImplementedError
+                    # Compute distance
+                    if (
+                        context.comparison_type == "similarity"
+                        and instance_type is not str
+                    ):
+                        distances = self.numeric_distance(
+                            filtered_spans_attr, ctx_values
+                        )
+                        mask = self.threshold(distances, context.threshold)
+                        labels = self.reduce(mask, context.reduce)
+                    elif (
+                        context.comparison_type == "exact_match"
+                        and instance_type is str
+                    ):
+                        mask = self.exact_match(filtered_spans_attr, ctx_values)
+                        labels = self.reduce(mask, context.reduce)
+                    else:
+                        raise NotImplementedError
 
-            # Qualify / Annotate
-            self.annotate(labels, filtered_spans, ctx_classes, name)
+                    # Qualify / Annotate
+                    self.annotate(labels, filtered_spans, ctx_classes, name)
 
         return doc

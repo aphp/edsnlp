@@ -246,3 +246,13 @@ def doc2md(nlp):
 @pytest.fixture
 def md2doc(nlp):
     return MarkupToDocConverter(preset="md")
+
+
+@pytest.fixture
+def doc2xml(nlp):
+    return DocToMarkupConverter(preset="xml")
+
+
+@pytest.fixture
+def xml2doc(nlp):
+    return MarkupToDocConverter(preset="xml")

@@ -1,7 +1,8 @@
-from edsnlp.core import registry
+from edsnlp import registry
 
-from .llm_span_qualifier import LLMSpanClassifier
+from .llm_span_qualifier import LlmSpanQualifier
 
 create_component = registry.factory.register(
     "eds.llm_span_qualifier",
-)(LLMSpanClassifier)
+    assigns=["doc.ents", "doc.spans"],
+)(LlmSpanQualifier)

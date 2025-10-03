@@ -1,419 +1,750 @@
-from __future__ import annotations
-
-import logging
-import re
+import json
+import os
+import warnings
 from typing import (
     Any,
+    Callable,
+    Coroutine,
     Dict,
+    Iterable,
     List,
     Optional,
-    Sequence,
     Tuple,
+    Type,
     Union,
 )
 
+from pydantic import BaseModel
 from spacy.tokens import Doc, Span
-from typing_extensions import TypedDict
+from typing_extensions import Annotated, Literal
 
-from edsnlp.core.pipeline import Pipeline
+from edsnlp.core import PipelineProtocol
 from edsnlp.pipes.base import BaseSpanAttributeClassifierComponent
-from edsnlp.pipes.qualifiers.llm.llm_utils import (
-    AsyncLLM,
-    create_prompt_messages,
-)
-from edsnlp.utils.asynchronous import run_async
-from edsnlp.utils.bindings import (
-    BINDING_SETTERS,
-    Attributes,
-    AttributesArg,
-)
-from edsnlp.utils.span_getters import SpanGetterArg, get_spans
+from edsnlp.utils.bindings import BINDING_GETTERS, BINDING_SETTERS, AttributesArg
+from edsnlp.utils.span_getters import ContextWindow, SpanGetterArg, get_spans
 
-logger = logging.getLogger(__name__)
-
-LLMSpanClassifierBatchInput = TypedDict(
-    "LLMSpanClassifierBatchInput",
-    {
-        "queries": List[str],
-    },
-)
-"""
-queries: List[str]
-    List of queries to send to the LLM for classification.
-    Each query corresponds to a span and its context.
-"""
-
-LLMSpanClassifierBatchOutput = TypedDict(
-    "LLMSpanClassifierBatchOutput",
-    {
-        "labels": Optional[Union[List[str], List[List[str]]]],
-    },
-)
-"""
-labels: Optional[Union[List[str], List[List[str]]]]
-    The predicted labels for each query.
-    If `n > 1`, this will be a list of lists, where each inner list contains the
-    predictions for a single query.
-    If `n == 1`, this will be a list of strings, where each string is the prediction
-    for a single query.
-
-    If the API call fails or no predictions are made, this will be None.
-    If `n > 1`, it will be a list of None values for each query.
-    If `n == 1`, it will be a single None value.
-
-"""
+from ..async_worker import AsyncRequestWorker
 
 
-class PromptConfig(TypedDict, total=False):
-    """
-    Parameters
-    ----------
-    system_prompt : Optional[str]
-        A system prompt to use for the LLM. This is a general prompt that will be
-        prepended to each query. This prompt will be passed under the `system` role
-        in the OpenAI API call.
-        Example: "You are a medical expert. Classify the following text."
-        If None, no system prompt will be used.
-        Note: This is not the same as the `user_prompt` parameter.
-    user_prompt : Optional[str]
-        A general prompt to use for all spans. This is a prompt that will be prepended
-        to each span's specific prompt. This will be passed under the `user` role
-        in the OpenAI API call.
-    prefix_prompt : Optional[str]
-        A prefix prompt to paste after the `user_prompt` and before the selected context
-        of the span (using the `context_getter`).
-        It will be formatted specifically for each span, using the `span` variable.
-        Example: "Is '{span}' a Colonoscopy (procedure) date?"
-    suffix_prompt: Optional[str]
-        A suffix prompt to append at the end of the prompt.
-    examples : Optional[List[Tuple[str, str]]]
-        A list of examples to use for the prompt. Each example is a tuple of
-        (input, output). The input is the text to classify and the output is the
-        expected classification.
-        If None, no examples will be used.
-        Example: [("This is a colonoscopy date.", "colonoscopy_date")]
-    """
+class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
+    r'''
+    The `eds.llm_span_qualifier` component qualifies spans using a
+    Large Language Model (LLM) that returns structured JSON attributes.
 
-    system_prompt: Optional[str]
-    user_prompt: Optional[str]
-    prefix_prompt: Optional[str]
-    suffix_prompt: Optional[str]
-    examples: Optional[List[Tuple[str, str]]]
+    This component takes existing spans, wraps them with `<ent>` markers inside a
+    context window and prompts an LLM to answer with a JSON object that matches the
+    configured schema. The response is validated and written back on the span
+    extensions.
+
+    In practice, along with a system prompt that constrains the allowed attributes
+    and optional few-shot examples provided as previous user / assistant messages,
+    the component sends snippets such as:
+    ```
+    Biopsies du <date>12/02/2025</date> : adénocarcinome.
+    ```
+
+    and expects a minimal JSON answer, for example:
+    ```json
+    {"biopsy_procedure": "yes"}
+    ```
+    which is then parsed and assigned to the span attributes.
 
 
-class APIParams(TypedDict, total=False):
-    """
-    Parameters
-    ----------
-    extra_body : Optional[Dict[str, Any]]
-        Additional body parameters to pass to the vLLM API.
-        This can be used to pass additional parameters to the model, such as
-        `reasoning_parser` or `enable_reasoning`.
-    response_format : Optional[Dict[str, Any]]
-        The response format to use for the vLLM API call.
-        This can be used to specify how the response should be formatted.
-    temperature : float
-        The temperature for the vLLM API call. Default is 0.0 (deterministic).
-    max_tokens : int
-        The maximum number of tokens to generate in the response.
-        Default is 50.
-    """
+    !!! warning "Experimental"
 
-    max_tokens: int
-    temperature: float
-    response_format: Optional[Dict[str, Any]]
-    extra_body: Optional[Dict[str, Any]]
+        This component is experimental. The API and behavior may change in future
+        versions. Make sure to pin your `edsnlp` version if you use it in a project.
 
+    !!! note "Dependencies"
 
-class LLMSpanClassifier(
-    BaseSpanAttributeClassifierComponent,
-):
-    """
-    The `LLMSpanClassifier` component is a LLM attribute predictor.
-    In this context, the span classification task consists in assigning values (boolean,
-    strings or any object) to attributes/extensions of spans such as:
+        This component requires several dependencies. Run the following command to
+        install them:
+        ```bash { data-md-color-scheme="slate" }
+        pip install openai bm25s Stemmer
+        ```
+        We recommend even to add them to your `pyproject.toml` or `requirements.txt`.
 
-    - `span._.negation`,
-    - `span._.date.mode`
-    - `span._.cui`
+    Examples
+    --------
+    If your data is sensitive, we recommend you to use a self-hosted
+    model with an OpenAI-compatible API, such as
+    [vLLM](https://github.com/vllm-project/vllm).
 
-    This pipe will use an LLM API to classify previously identified spans using
-    the context and instructions around each span.
+    Start a server with the model of your choice:
 
-    Check out the <a href="/tutorials/llm-qualifier">LLM classifier tutorial</a>
-    for examples !
+    ```bash { data-md-color-scheme="slate" }
+    python -m vllm.entrypoints.openai.api_server \
+       --model mistral-small-24b-instruct-2501 \
+       --port 8080 \
+       --enable-prefix-caching
+    ```
 
-    Python >= 3.8 is required.
+    You can then use the `llm_span_qualifier` component as follows:
+
+    <!-- blacken-docs:off -->
+
+    === "Yes/no bool classification"
+
+        ```python { .no-check }
+        from typing import Annotated
+        from pydantic import BeforeValidator, PlainSerializer, WithJsonSchema
+        import edsnlp, edsnlp.pipes as eds
+
+        BiopsySchema = Annotated[
+            bool,
+            BeforeValidator(lambda v: str(v).lower() in {"yes", "y", "true"}),
+            PlainSerializer(lambda v: "yes" if v else "no", when_used="json"),
+        ]
+
+        PROMPT = """
+        You are a span classifier. The user sends text where the target is
+        marked with <ent>...</ent>. Answer ONLY with a JSON value: "yes" or
+        "no" indicating whether the span is a biopsy date.
+        """.strip()
+
+        nlp = edsnlp.blank("eds")
+        nlp.add_pipe(eds.sentences())
+        nlp.add_pipe(eds.dates(span_setter="ents"))
+
+        # EDS-NLP util to create documents from Markdown or XML markup.
+        # This has nothing to do with the LLM component itself. The following
+        # will create docs with entities labelled "date", store them in doc.ents,
+        # and set their span._.biopsy_procedure attribute.
+        examples = list(edsnlp.data.from_iterable(
+            [
+                "IRM du 10/02/2025. Biopsies du <date biopsy_procedure=true>12/02/2025</date> : adénocarcinome.",
+                "Chirurgie le 24/12/2021. Colectomie. Consultation du <date biopsy_procedure=false>26/12/2021</date>.",
+            ],
+            converter="markup",
+            preset="xml",
+        ).map(nlp.pipes.sentences))
+
+        doc_to_xml = edsnlp.data.converters.DocToMarkupConverter(preset="xml")
+        nlp.add_pipe(
+            eds.llm_span_qualifier(
+                api_url="http://localhost:8080/v1",
+                model="mistral-small-24b-instruct-2501",
+                prompt=PROMPT,
+                span_getter="ents",
+                context_getter="sent",
+                context_formatter=doc_to_xml,
+                attributes=["biopsy_procedure"],
+                schema=BiopsySchema,
+                examples=examples,
+                max_few_shot_examples=2,
+                max_concurrent_requests=4,
+                seed=0,
+            )
+        )
+
+        text = """
+        RCP Prostate – 20/02/2025
+        Biopsies du 12/02/2025 : adénocarcinome Gleason 4+4=8.
+        Simulation scanner le 25/02/2025.
+        """
+        doc = nlp(text)
+        for d in doc.ents:
+            print(d.text, "→ biopsy_procedure:", d._.biopsy_procedure)
+        # Out: 20/02/2025 → biopsy_procedure: False
+        # Out: 12/02/2025 → biopsy_procedure: True
+        # Out: 25/02/2025 → biopsy_procedure: False
+        ```
+
+    === "Multi-attribute classification"
+
+        ```python { .no-check }
+        from typing import Annotated, Optional
+        import datetime
+        from pydantic import BaseModel, Field
+        import edsnlp, edsnlp.pipes as eds
+
+        # Pydantic schema used to validate the LLM response, serialize the
+        # few-shot example answers constrain the model output.
+        class CovidMentionSchema(BaseModel):
+            negation: bool = Field(..., description="Is the span negated or not")
+            date: Optional[datetime.date] = Field(
+                None, description="Date associated with the span, if any"
+            )
+
+        PROMPT = """
+        You are a span classifier. For every piece of markup-annotated text the
+        user provides, you predict the attributes of the annotated spans.
+        You must follow these rules strictly:
+        - Be consistent, similar queries must lead to similar answers.
+        - Do not add any comment or explanation, just provide the answer.
+        Example with a negation and a date:
+        User: "Le 1er mai 2024, le patient a été testé <ent>covid</ent> négatif"
+        Assistant: "{"negation": true, "date": "2024-05-01"}"
+        For each span, provide a JSON with a "negation" boolean attribute, set to
+        true if the span is negated, false otherwise. If a date is associated with
+        the span, provide it as a "date" attribute in ISO format (YYYY-MM-DD).
+        """.strip()
+
+        nlp = edsnlp.blank("eds")
+        nlp.add_pipe(eds.sentences())
+        nlp.add_pipe(eds.covid())
+
+        # EDS-NLP util to create documents from Markdown or XML markup.
+        # This has nothing to do with the LLM component itself.
+        examples = list(edsnlp.data.from_iterable(
+            [
+                "<ent negation=false date=2024-05-01>Covid</ent> positif le 1er mai 2024.",
+                "Pas de <ent negation=true>covid</ent>",
+                # ... add more examples if you can
+            ],
+            converter="markup", preset="xml",
+        ).map(nlp.pipes.sentences))
+
+        doc_to_xml = edsnlp.data.converters.DocToMarkupConverter(preset="xml")
+        nlp.add_pipe(
+            eds.llm_span_qualifier(
+                api_url="https://api.openai.com/v1",
+                model="gpt-5-mini",
+                prompt=PROMPT,
+                span_getter="ents",
+                context_getter="words[-10:10]",
+                context_formatter=doc_to_xml,
+                schema=CovidMentionSchema,
+                examples=examples,
+                max_few_shot_examples=1,
+                max_concurrent_requests=4,
+                seed=0,
+            )
+        )
+        doc = nlp("Pas d'indication de <ent>covid</ent> le 3 mai 2024.")
+        (ent,) = doc.ents
+        print(ent.text, "→ negation:", ent._.negation, "date:", ent._.date)
+        # Out: covid → negation: True date: 2024-05-03
+        ```
+
+    <!-- blacken-docs:on -->
+
+    You can also control the prompt more finely by providing a callable instead of a
+    string. For example, to put few-shot examples in the system message and keep the
+    span context as the user payload:
+
+    ```python { .no-check }
+    # Use this for the `prompt` argument instead of PROMPT above
+    def prompt(context_text, examples):
+        messages = []
+        system_content = (
+            "You are a span classifier.\n"
+            "Answer with JSON using the keys: biopsy_procedure.\n"
+            "Here are some examples:\n"
+        )
+        for ex_context, ex_json in examples:
+            system_content += f"- Context: {ex_context}\n"
+            system_content += f"  JSON: {ex_json}\n"
+        messages.append({"role": "system", "content": system_content})
+        messages.append({"role": "user", "content": context_text})
+        return messages
+    ```
 
     Parameters
     ----------
     nlp : PipelineProtocol
-        The pipeline object
+        Pipeline object.
     name : str
-        Name of the component
-    prompt : Optional[PromptConfig]
-        The prompt configuration to use for the LLM.
+        Component name.
     api_url : str
-        The base URL of the vLLM OpenAI-compatible server to call.
-        Default: "http://localhost:8000/v1"
+        Base URL of the OpenAI-compatible API.
     model : str
-        The name of the model to use for classification.
-        Default: "Qwen/Qwen3-8B"
-    span_getter : SpanGetterArg
-        How to extract the candidate spans and the attributes to predict or train on.
-    context_getter : Optional[Union[Callable, SpanGetterArg]]
-        What context to use when computing the span embeddings (defaults to the whole
-        document). This can be:
+        Model identifier exposed by the API.
+    prompt : Union[str, Callable[[str, List[Tuple[str, str]]], List[Dict[str, str]]]]
+        The prompt is the main way to control the model's behavior.
+        It can be either:
 
-        - a `SpanGetterArg` to retrieve contexts from a whole document. For example
-          `{"section": "conclusion"}` to only use the conclusion as context (you
-          must ensure that all spans produced by the `span_getter` argument do fall
-          in the conclusion in this case)
-        - a callable, that gets a span and should return a context for this span.
-          For instance, `lambda span: span.sent` to use the sentence as context.
-    attributes : AttributesArg
-        The attributes to predict or train on. If a dict is given, keys are the
-        attributes and values are the labels for which the attr is allowed, or True
-        if the attr is allowed for all labels.
-    api_params : APIParams
-        Additional parameters for the vLLM API call.
-    response_mapping : Optional[Dict[str, Any]]
-        A mapping from regex patterns to values that will be used to map the
-        responses from the model to the bindings. If not provided, the raw
-        responses will be used. The first matching regex will be used to map the
-        response to the binding.
-        Example: `{"^yes$": True, "^no$": False}` will map "yes" to True and "no" to
-        False.
-    timeout : float
-        The timeout for the vLLM API call. Default is 15.0 seconds.
-    n_concurrent_tasks : int
-        The number of concurrent tasks to run when calling the vLLM API.
-        Default is 4.
-    kwargs: Dict[str, Any]
-        Additional keyword arguments passed to the vLLM API call.
-        This can include parameters like `n` for the number of responses to generate,
-        or any other OpenAI API parameters.
+        - A string, which will be used as a system prompt.
+          Few-shot examples (if any) will be provided as user/assistant
+          messages before the actual user query.
+        - A callable that takes two arguments and returns a list of messages in the
+          format expected by the OpenAI chat completions API.
 
-    Authors and citation
-    --------------------
-    The `eds.llm_qualifier` component was developed by AP-HP's Data Science team.
-    """
+            * `context`: the context text with the target span marked up
+            * `examples`: a list of few-shot examples, each being a tuple of
+                (context, answer)
+    span_getter : Optional[SpanGetterArg]
+        Spans to classify. Defaults to `{"ents": True}`.
+    context_getter : Optional[ContextWindow]
+        Optional context window specification (e.g. `"sent"`, `"words[-10:10]"`).
+        If `None`, the whole document text is used.
+    context_formatter : Optional[Callable[[Doc], str]]
+        Callable used to render the context passed to the LLM. Defaults to
+        `lambda doc: doc.text`.
+    attributes : Optional[AttributesArg]
+        Attributes to predict. If omitted, the keys are inferred from the provided
+        schema.
+    schema : Optional[Any]
+        Pydantic model class used to validate responses and serialise few-shot
+        examples. If the schema is a mapping/object, it will also be used to
+        force the model to output a valid JSON object.
+    examples : Optional[Iterable[Doc]]
+        Few-shot examples used in prompts.
+    max_few_shot_examples : int
+        Maximum number of few-shot examples per request (`-1` means all).
+    use_retriever : Optional[bool]
+        Whether to select few-shot examples with BM25 (defaults to automatic choice).
+        If there are few shot examples and `max_few_shot_examples > 0`, this enabled
+        by default.
+    seed : Optional[int]
+        Optional seed forwarded to the API.
+    max_concurrent_requests : int
+        Maximum number of concurrent span requests per document.
+    api_kwargs : Dict[str, Any]
+        Extra keyword arguments forwarded to `chat.completions.create`.
+    on_error : Literal["raise", "warn"]
+        Error handling strategy. If `"raise"`, exceptions are raised. If `"warn"`,
+        exceptions are logged as warnings and processing continues.
+    '''  # noqa: E501
 
     def __init__(
         self,
-        nlp: Optional[Pipeline] = None,
-        name: str = "span_classifier",
-        prompt: Optional[PromptConfig] = None,
-        api_url: str = "http://localhost:8000/v1",
-        model: str = "Qwen/Qwen3-8B",
+        nlp: PipelineProtocol,
+        name: str = "llm_span_qualifier",
         *,
-        attributes: AttributesArg = None,
-        span_getter: SpanGetterArg = None,
-        context_getter: Optional[SpanGetterArg] = None,
-        response_mapping: Optional[Dict[str, Any]] = None,
-        api_params: APIParams = {
-            "max_tokens": 50,
-            "temperature": 0.0,
-            "response_format": None,
-            "extra_body": None,
-        },
-        timeout: float = 15.0,
-        n_concurrent_tasks: int = 4,
-        **kwargs,
+        api_url: str,
+        model: str,
+        prompt: Union[
+            str, Callable[[str, List[Tuple[str, str]]], List[Dict[str, str]]]
+        ],
+        span_getter: Optional[SpanGetterArg] = None,
+        context_getter: Optional[ContextWindow] = None,
+        context_formatter: Optional[Callable[[Doc], str]] = None,
+        attributes: Optional[AttributesArg] = None,  # confit will auto cast to dict
+        schema: Optional[Union[Type[BaseModel], Type[Any], Annotated[Any, Any]]] = None,
+        examples: Optional[Iterable[Doc]] = None,
+        max_few_shot_examples: int = -1,
+        use_retriever: Optional[bool] = None,
+        seed: Optional[int] = None,
+        max_concurrent_requests: int = 1,
+        api_kwargs: Optional[Dict[str, Any]] = None,
+        on_error: Literal["raise", "warn"] = "raise",
     ):
-        if attributes is None:
-            raise TypeError(
-                "The `attributes` parameter is required. Please provide a dict of "
-                "attributes to predict or train on."
-            )
+        import openai
 
         span_getter = span_getter or {"ents": True}
-
-        self.bindings: List[Tuple[str, List[str], List[Any]]] = [
-            (k if k.startswith("_.") else f"_.{k}", v, [])
-            for k, v in attributes.items()
-        ]
-
-        # Store API configuration
+        self.lang = nlp.lang
         self.api_url = api_url
         self.model = model
-        self.extra_body = api_params.get("extra_body")
-        self.temperature = api_params.get("temperature")
-        self.max_tokens = api_params.get("max_tokens")
-        self.response_format = api_params.get("response_format")
-        self.response_mapping = response_mapping
-        self.kwargs = kwargs.get("kwargs") or {}
-        self.timeout = timeout
-        self.n_concurrent_tasks = n_concurrent_tasks
-
-        # Prompt config
-        prompt = prompt or {}
         self.prompt = prompt
-        self.system_prompt = prompt.get("system_prompt")
-        self.user_prompt = prompt.get("user_prompt")
-        self.prefix_prompt = prompt.get("prefix_prompt")
-        self.suffix_prompt = prompt.get("suffix_prompt")
-        self.examples = prompt.get("examples")
+        self.context_window = (
+            ContextWindow.validate(context_getter)
+            if context_getter is not None
+            else None
+        )
+        self.context_formatter = context_formatter or (lambda doc: doc.text)
+        self.seed = seed
+        self.api_kwargs = api_kwargs or {}
+        self.max_concurrent_requests = max_concurrent_requests
+        self.on_error = on_error
 
-        super().__init__(nlp, name, span_getter=span_getter)
-        self.context_getter = context_getter
-
-        if self.response_mapping:
-            self.get_response_mapping_regex_dict()
-
-    @property
-    def attributes(self) -> Attributes:
-        return {qlf: labels for qlf, labels, _ in self.bindings}
-
-    def set_extensions(self):
-        super().set_extensions()
-        for group in self.bindings:
-            qlf = group[0]
-            if qlf.startswith("_."):
-                qlf = qlf[2:]
-            if not Span.has_extension(qlf):
-                Span.set_extension(qlf, default=None)
-
-    def preprocess(self, doc: Doc, **kwargs) -> Dict[str, Any]:
-        spans = list(get_spans(doc, self.span_getter))
-        spans_text = [span.text for span in spans]
-        if self.context_getter is None or not callable(self.context_getter):
-            contexts = list(get_spans(doc, self.context_getter))
+        if attributes is None:
+            if hasattr(schema, "model_fields"):
+                attr_map = {name: True for name in schema.model_fields.keys()}
+            else:
+                raise ValueError(
+                    "You must provide either `attributes` or a valid pydantic"
+                    "`schema` for llm_span_qualifier."
+                )
         else:
-            contexts = [self.context_getter(span) for span in spans]
+            attr_map = attributes
 
-        contexts_text = [context.text for context in contexts]
+        self.scalar_schema = True
+        if schema is not None:
+            try:
+                self.scalar_schema = not issubclass(schema, BaseModel)
+            except TypeError:
+                self.scalar_schema = True
 
-        doc_batch_messages = []
-        for span_text, context_text in zip(spans_text, contexts_text):
-            if self.prefix_prompt:
-                final_user_prompt = (
-                    self.prefix_prompt.format(span=span_text) + context_text
+        if self.scalar_schema and schema is not None:
+            if not attributes or len(attributes) != 1:
+                raise ValueError(
+                    "When the provided schema is a scalar type, you must provide "
+                    "exactly one attribute."
+                )
+
+            # This class name is produced in the json schema so the model
+            # may see this depending on API implementation !
+            from pydantic import RootModel
+
+            class Output(RootModel):
+                root: schema  # type: ignore
+
+            self.schema = Output  # type: ignore
+
+        else:
+            self.schema = schema
+
+        self.response_format = (
+            self._build_response_format(self.schema) if self.schema else None
+        )
+
+        self.bindings: List[
+            Tuple[str, Union[bool, List[str]], str, Callable, Callable]
+        ] = []
+        for attr_name, labels in attr_map.items():
+            if (
+                attr_name.startswith("_.")
+                or attr_name.endswith("_")
+                or attr_name in {"label_", "kb_id_"}
+            ):
+                attr_path = attr_name
+            else:
+                attr_path = f"_.{attr_name}"
+            json_key = attr_path[2:] if attr_path.startswith("_.") else attr_path
+            setter = BINDING_SETTERS[attr_path]
+            getter = BINDING_GETTERS[attr_path]
+            self.bindings.append((attr_path, labels, json_key, setter, getter))
+        self.attributes = {path: labels for path, labels, *_ in self.bindings}
+
+        self.examples: List[Tuple[str, str]] = []
+        for doc in examples or []:
+            for span in get_spans(doc, span_getter):
+                context_doc = self._build_context_doc(span)
+                context_text = self.context_formatter(context_doc)
+                values: Dict[str, Any] = {}
+                for _, labels, json_key, _, getter in self.bindings:
+                    if (
+                        labels is False
+                        or labels is not True
+                        and span.label_ not in (labels or [])
+                    ):
+                        continue
+                    try:
+                        values[json_key] = getter(span)
+                    except Exception:  # pragma: no cover
+                        self._handle_err(
+                            f"Failed to get attribute {attr_path!r} for span "
+                            f"{span.text!r} in example doc {span.doc._.note_id}"
+                        )
+                if self.scalar_schema:
+                    values = next(iter(values.values()))
+                if self.schema is not None:
+                    try:
+                        answer = self.schema.model_validate(values).model_dump_json(
+                            exclude_none=True
+                        )
+                    except Exception:  # pragma: no cover
+                        self._handle_err(
+                            f"[llm_span_qualifier] Failed to validate example "
+                            f"values against schema: {values!r}"
+                        )
+                        continue
+                else:
+                    answer = json.dumps(values)
+                self.examples.append((context_text, answer))
+
+        self.max_few_shot_examples = max_few_shot_examples
+        self.retriever = None
+        self.retriever_stemmer = None
+        if self.max_few_shot_examples > 0 and use_retriever is not False:
+            self.build_few_shot_retriever_(self.examples)
+
+        api_key = os.getenv("OPENAI_API_KEY", "")
+        self.client = openai.Client(base_url=self.api_url, api_key=api_key)
+        self._async_client = openai.AsyncOpenAI(base_url=self.api_url, api_key=api_key)
+
+        super().__init__(nlp=nlp, name=name, span_getter=span_getter)
+
+    def _handle_err(self, msg):
+        if self.on_error == "raise":
+            raise RuntimeError(msg)
+        else:
+            warnings.warn(msg)
+
+    def set_extensions(self) -> None:
+        super().set_extensions()
+        for attr_path, *_ in self.bindings:
+            if attr_path.startswith("_."):
+                ext_name = attr_path[2:].split(".")[0]
+                if not Span.has_extension(ext_name):
+                    Span.set_extension(ext_name, default=None)
+
+    def build_few_shot_retriever_(self, samples: List[Tuple[str, str]]) -> None:
+        # Same BM25 strategy as llm_markup_extractor
+        import bm25s
+        import Stemmer
+
+        lang = {"eds": "french"}.get(self.lang, self.lang)
+        stemmer = Stemmer.Stemmer(lang)
+        corpus = bm25s.tokenize(
+            [text for text, _ in samples], stemmer=stemmer, stopwords=lang
+        )
+        retriever = bm25s.BM25()
+        retriever.index(corpus)
+        self.retriever = retriever
+        self.retriever_stemmer = stemmer
+
+    def build_prompt(self, context_text: str) -> List[Dict[str, str]]:
+        import bm25s
+
+        few_shot_examples: List[Tuple[str, str]] = []
+        if self.retriever is not None:
+            closest, _ = self.retriever.retrieve(
+                bm25s.tokenize(
+                    context_text,
+                    stemmer=self.retriever_stemmer,
+                    show_progress=False,
+                ),
+                k=self.max_few_shot_examples,
+                show_progress=False,
+            )
+            for i in closest[0][: self.max_few_shot_examples]:
+                few_shot_examples.append(self.examples[i])
+            few_shot_examples = few_shot_examples[::-1]
+        else:
+            few_shot_examples = self.examples[: self.max_few_shot_examples]
+
+        if isinstance(self.prompt, str):
+            messages = [{"role": "system", "content": self.prompt}]
+            for ctx, ans in few_shot_examples:
+                messages.append({"role": "user", "content": ctx})
+                messages.append({"role": "assistant", "content": ans})
+            messages.append({"role": "user", "content": context_text})
+            return messages
+        return self.prompt(context_text, few_shot_examples)
+
+    def _llm_request_sync(self, messages: List[Dict[str, str]]) -> str:
+        call_kwargs = dict(self.api_kwargs)
+        if "response_format" not in call_kwargs and self.response_format is not None:
+            call_kwargs["response_format"] = self.response_format
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            seed=self.seed,
+            **call_kwargs,
+        )
+        return response.choices[0].message.content or ""
+
+    def _llm_request_coro(
+        self, messages: List[Dict[str, str]]
+    ) -> Coroutine[Any, Any, str]:
+        async def _coro():
+            call_kwargs = dict(self.api_kwargs)
+            if (
+                "response_format" not in call_kwargs
+                and self.response_format is not None
+            ):
+                call_kwargs["response_format"] = self.response_format
+            response = await self._async_client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                seed=self.seed,
+                **call_kwargs,
+            )
+            return response.choices[0].message.content or ""
+
+        return _coro()
+
+    def _parse_response(self, raw: str) -> Optional[Dict[str, Any]]:
+        text = raw.strip()
+        data = text
+        if self.schema is not None:
+            if self.scalar_schema:
+                start = 0
+                end = len(text)
+            else:
+                if text.startswith("```"):
+                    text = text.strip("`")
+                    text = text.strip()
+                    if text.startswith("json"):
+                        text = text[4:].strip()
+                start = text.find("{")
+                end = text.rfind("}") + 1
+            if start == -1 or end <= 0 or end <= start:
+                return None
+            try:
+                data = self.schema.model_validate_json(text).model_dump()
+            except Exception:
+                try:
+                    # Interpret as a string
+                    data = self.schema.model_validate_json(
+                        json.dumps(text)
+                    ).model_dump()
+                except Exception:  # pragma: no cover
+                    self._handle_err(
+                        "[llm_span_qualifier] Failed to validate LLM response"
+                        f" against schema: {text!r}",
+                    )
+                    data = raw
+        if self.scalar_schema:
+            data = {next(iter(self.attributes.keys())): data}
+        return data
+
+    def _build_context_doc(self, span: Span) -> Doc:
+        ctx_source = (
+            span.doc[:] if self.context_window is None else self.context_window(span)
+        )
+        context = ctx_source.as_doc()
+        offset = ctx_source.start
+        rel_start = max(0, span.start - offset)
+        rel_end = max(rel_start, min(len(context), span.end - offset))
+        ent = Span(context, rel_start, rel_end, label=span.label_)
+        context.ents = (ent,)
+        return context
+
+    def _set_values_on_span(self, span: Span, data: Optional[Dict[str, Any]]) -> None:
+        for attr_path, labels, json_key, setter, _ in self.bindings:
+            if (
+                labels is False
+                or labels is not True
+                and span.label_ not in (labels or [])
+            ):
+                continue
+            # only when scalar mode we use attr_path as key, maybe change that later ?
+            value = (
+                None
+                if data is None
+                else data.get(json_key)
+                if json_key in data
+                else data.get(attr_path)
+            )
+            try:
+                setter(span, value)
+            except Exception as exc:  # pragma: no cover
+                self._handle_err(
+                    f"[llm_span_qualifier] Failed to set attribute {attr_path!r} "
+                    f"for span {span.text!r} in doc {span.doc._.note_id}: {exc!r}"
+                )
+
+    def _build_response_format(self, schema: Type[BaseModel]) -> Dict[str, Any]:
+        raw_schema = schema.model_json_schema()
+        json_schema = json.loads(json.dumps(raw_schema))
+
+        if isinstance(json_schema, dict):
+            json_schema.setdefault("type", "object")
+            json_schema.setdefault("additionalProperties", False)
+
+        return {
+            "type": "json_schema",
+            "json_schema": {
+                "name": schema.__name__.replace(" ", "_"),
+                "schema": json_schema,
+            },
+        }
+
+    def _process_docs_async(self, docs: Iterable[Doc]) -> Iterable[Doc]:
+        worker = AsyncRequestWorker.instance()
+        pending: Dict[int, Tuple[Dict[str, Any], Span]] = {}
+        doc_states: List[Dict[str, Any]] = []
+        docs_iter = iter(docs)
+        exhausted = False
+        next_yield = 0
+
+        def make_state(doc: Doc) -> Dict[str, Any]:
+            spans = list(get_spans(doc, self.span_getter))
+            return {
+                "doc": doc,
+                "spans": spans,
+                "next_span": 0,
+                "pending": 0,
+            }
+
+        def doc_done(state: Dict[str, Any]) -> bool:
+            return state["next_span"] >= len(state["spans"]) and state["pending"] == 0
+
+        def schedule() -> None:
+            if next_yield >= len(doc_states):
+                return
+            for state in doc_states[next_yield:]:
+                while (
+                    state["next_span"] < len(state["spans"])
+                    and len(pending) < self.max_concurrent_requests
+                ):
+                    span = state["spans"][state["next_span"]]
+                    state["next_span"] += 1
+                    context_doc = self._build_context_doc(span)
+                    context_text = self.context_formatter(context_doc)
+                    messages = self.build_prompt(context_text)
+                    task_id = worker.submit(self._llm_request_coro(messages))
+                    pending[task_id] = (state, span)
+                    state["pending"] += 1
+                    if len(pending) >= self.max_concurrent_requests:
+                        return
+
+        while True:
+            while not exhausted and len(pending) < self.max_concurrent_requests:
+                try:
+                    doc = next(docs_iter)
+                except StopIteration:
+                    exhausted = True
+                    break
+                doc_states.append(make_state(doc))
+            schedule()
+
+            while next_yield < len(doc_states) and doc_done(
+                doc_states[next_yield]
+            ):  # pragma: no cover
+                yield doc_states[next_yield]["doc"]
+                next_yield += 1
+
+            if exhausted and len(pending) == 0 and next_yield == len(doc_states):
+                break
+
+            if len(pending) == 0:  # pragma: no cover
+                if exhausted and next_yield == len(doc_states):
+                    break
+                continue
+
+            done_task = worker.wait_for_any(pending.keys())
+            result = worker.pop_result(done_task)
+            state, span = pending.pop(done_task)
+            state["pending"] -= 1
+            raw = None
+            err = None
+            if result is not None:
+                raw, err = result
+            if err is not None:  # pragma: no cover
+                self._handle_err(
+                    f"[llm_span_qualifier] request failed for span "
+                    f"'{span.text}' in doc {span.doc._.note_id}: {err!r}"
+                )
+                data = None
+            else:
+                data = self._parse_response(str(raw))
+                if data is None:  # pragma: no cover
+                    self._handle_err(
+                        "[llm_span_qualifier] Failed to parse LLM response for span "
+                        f"'{span.text}' in doc {span.doc._.note_id}: {raw!r}"
+                    )
+            self._set_values_on_span(span, data)
+            schedule()
+            while next_yield < len(doc_states) and doc_done(doc_states[next_yield]):
+                yield doc_states[next_yield]["doc"]
+                next_yield += 1
+
+    def process(self, doc: Doc) -> Doc:
+        spans = list(get_spans(doc, self.span_getter))
+
+        for span in spans:
+            context_doc = self._build_context_doc(span)
+            context_text = self.context_formatter(context_doc)
+            messages = self.build_prompt(context_text)
+            data = None
+            try:
+                raw = self._llm_request_sync(messages)
+            except Exception as err:  # pragma: no cover
+                self._handle_err(
+                    "[llm_span_qualifier] request failed for span "
+                    f"'{span.text}' in doc {doc._.note_id}: {err!r}"
                 )
             else:
-                final_user_prompt = context_text
-            if self.suffix_prompt:
-                final_user_prompt += self.suffix_prompt
+                data = self._parse_response(raw)
+                if data is None:  # pragma: no cover
+                    self._handle_err(
+                        "[llm_span_qualifier] Failed to parse LLM response for span "
+                        f"'{span.text}' in doc {doc._.note_id}: {raw!r}"
+                    )
+            self._set_values_on_span(span, data)
+        return doc
 
-            messages = create_prompt_messages(
-                system_prompt=self.system_prompt,
-                user_prompt=self.user_prompt,
-                examples=self.examples,
-                final_user_prompt=final_user_prompt,
-            )
-            doc_batch_messages.append(messages)
+    def __call__(self, doc: Doc) -> Doc:
+        return self.process(doc)
 
-        return {
-            "$spans": spans,
-            "spans_text": spans_text,
-            "contexts": contexts,
-            "contexts_text": contexts_text,
-            "doc_batch_messages": doc_batch_messages,
-        }
+    def pipe(self, docs: Iterable[Doc]) -> Iterable[Doc]:
+        if self.max_concurrent_requests <= 1:  # pragma: no cover
+            for doc in docs:
+                yield self(doc)
+            return
 
-    def collate(self, batch: Dict[str, Sequence[Any]]) -> LLMSpanClassifierBatchInput:
-        collated = {
-            "batch_messages": [
-                message for item in batch for message in item["doc_batch_messages"]
-            ]
-        }
-
-        return collated
-
-    # noinspection SpellCheckingInspection
-    def forward(
-        self,
-        batch: LLMSpanClassifierBatchInput,
-    ) -> Dict[str, List[Any]]:
-        """
-        Apply the span classifier module to the document embeddings and given spans to:
-        - compute the loss
-        - and/or predict the labels of spans
-
-        Parameters
-        ----------
-        batch: SpanClassifierBatchInput
-            The input batch
-
-        Returns
-        -------
-        BatchOutput
-        """
-
-        # Here call the LLM API
-        llm = AsyncLLM(
-            model_name=self.model,
-            api_url=self.api_url,
-            extra_body=self.extra_body,
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
-            response_format=self.response_format,
-            timeout=self.timeout,
-            n_concurrent_tasks=self.n_concurrent_tasks,
-            **self.kwargs,
-        )
-        pred = run_async(llm(batch_messages=batch["batch_messages"]))
-
-        return {
-            "labels": pred,
-        }
-
-    def get_response_mapping_regex_dict(self) -> Dict[str, str]:
-        self.response_mapping_regex = {
-            re.compile(regex): mapping_value
-            for regex, mapping_value in self.response_mapping.items()
-        }
-        return self.response_mapping_regex
-
-    def map_response(self, value: str) -> str:
-        for (
-            compiled_regex,
-            mapping_value,
-        ) in self.response_mapping_regex.items():
-            if compiled_regex.search(value):
-                mapped_value = mapping_value
-                break
-            else:
-                mapped_value = None
-        return mapped_value
-
-    def postprocess(
-        self,
-        docs: Sequence[Doc],
-        results: LLMSpanClassifierBatchOutput,
-        inputs: List[Dict[str, Any]],
-    ) -> Sequence[Doc]:
-        # Preprocessed docs should still be in the cache
-        spans = [span for sample in inputs for span in sample["$spans"]]
-        all_labels = results["labels"]
-        # For each prediction group (exclusive bindings)...
-
-        for qlf, labels, _ in self.bindings:
-            for value, span in zip(all_labels, spans):
-                if labels is True or span.label_ in labels:
-                    if value is None:
-                        mapped_value = None
-                    elif self.response_mapping is not None:
-                        # ...assign the mapped value to the span
-                        mapped_value = self.map_response(value)
-                    else:
-                        mapped_value = value
-                    BINDING_SETTERS[qlf](span, mapped_value)
-
-        return docs
-
-    def batch_process(self, docs):
-        inputs = [self.preprocess(doc) for doc in docs]
-        collated = self.collate(inputs)
-        res = self.forward(collated)
-        docs = self.postprocess(docs, res, inputs)
-
-        return docs
-
-    def enable_cache(self, cache_id=None):
-        # For compatibility
-        pass
-
-    def disable_cache(self, cache_id=None):
-        # For compatibility
-        pass
+        yield from self._process_docs_async(docs)

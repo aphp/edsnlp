@@ -204,7 +204,8 @@ where = ["."]
 "eds.markup_to_doc"               = "edsnlp.data.converters:MarkupToDocConverter"
 
 # LLM
-"eds.llm_markup_extractor"       = "edsnlp.pipes.llm.llm_markup_extractor.factory:create_component"
+"eds.llm_markup_extractor"        = "edsnlp.pipes.llm.llm_markup_extractor.factory:create_component"
+"eds.llm_span_qualifier"          = "edsnlp.pipes.llm.llm_span_qualifier.factory:create_component"
 
 # Deprecated (links to the same factories as above)
 "SOFA"                   = "edsnlp.pipes.ner.scores.sofa.factory:create_component"

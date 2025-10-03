@@ -224,10 +224,10 @@ class AsyncLLM:
                 ) = await anext(id_messages_tuples)  # noqa: F821
                 idx, response = await self.call_llm(idx, message)
 
-                logger.info(f"Worker {name} has finished process {idx}")
+                logger.debug(f"Worker {name} has finished process {idx}")
             except StopAsyncIteration:
                 # Everything has been parsed!
-                logger.info(
+                logger.debug(
                     f"[{name}] Received StopAsyncIteration, worker will shutdown"
                 )
                 break

@@ -52,6 +52,10 @@ class AliasPathFinder(importlib.abc.MetaPathFinder):
             new_name = "edsnlp.metrics.span_attribute" + fullname[30:]
             spec = importlib.util.spec_from_loader(fullname, AliasLoader(new_name))
             return spec
+        if fullname == "edsnlp.utils.regex":
+            new_name = "edsnlp.utils.regex_utils"
+            spec = importlib.util.spec_from_loader(fullname, AliasLoader(new_name))
+            return spec
         if "span_qualifier" in fullname.split("."):
             new_name = fullname.replace("span_qualifier", "span_classifier")
             spec = importlib.util.spec_from_loader(fullname, AliasLoader(new_name))

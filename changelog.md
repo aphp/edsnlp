@@ -1,6 +1,8 @@
 # Changelog
 
-# Unreleased
+## v0.19.0 (2025-10-04)
+
+📢 EDS-NLP will drop support for Python 3.7, 3.8 and 3.9 support in the next major release (v0.20.0), in October 2025. Please upgrade to Python 3.10 or later.
 
 ### Added
 
@@ -16,8 +18,6 @@
 - We do not instantiate pipes in `exclude` anymore when loading a model (before they were instantiated but not added to the pipeline).
 
 ## v0.18.0 (2025-09-02)
-
-📢 EDS-NLP will drop support for Python 3.7, 3.8 and 3.9 support in the next major release (v0.19.0), in October 2025. Please upgrade to Python 3.10 or later.
 
 ### Added
 

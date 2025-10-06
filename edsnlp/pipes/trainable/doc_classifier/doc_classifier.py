@@ -642,7 +642,7 @@ class TrainableDocClassifier(
         repr_id = object.__repr__(self)
         if repr_id in exclude:
             return
-        exclude.add(repr_id)
+        # exclude.add(repr_id)
         os.makedirs(path, exist_ok=True)
         data_path = path / "multi_head_data.pkl"
         with open(data_path, "wb") as f:
@@ -661,38 +661,20 @@ class TrainableDocClassifier(
             )
         return super().to_disk(path, exclude=exclude)
 
-    @classmethod
-    def from_disk(cls, path, **kwargs):
-        """
-        Load a classifier from disk.
-
-        Restores label mappings, per-head configurations, and rebuilds
-        the classifier architecture.
-
-        Parameters
-        ----------
-        path : Path
-            Directory containing saved files.
-        kwargs : dict
-            Extra arguments passed to the constructor.
-
-        Returns
-        -------
-        TrainableDocClassifier
-            Restored classifier instance.
-        """
+    def from_disk(self, path, exclude=tuple()):
+        repr_id = object.__repr__(self)
+        if repr_id in exclude:
+            return
         data_path = path / "multi_head_data.pkl"
         with open(data_path, "rb") as f:
             data = pickle.load(f)
-
-        obj = super().from_disk(path, **kwargs)
-        obj.label_attr = data.get("label_attr", [])
-        obj.head_names = obj.label_attr
-        obj.label2id = data.get("label2id", {})
-        obj.id2label = data.get("id2label", {})
-        obj.loss_config = data.get("loss_config", {})
-        obj.hidden_size_config = data.get("hidden_size_config", {})
-        obj.activation_mode_config = data.get("activation_mode_config", {})
-        obj.dropout_rate_config = data.get("dropout_rate_config", {})
-        obj.layer_norm_config = data.get("layer_norm_config", {})
-        return obj
+        self.label_attr = data.get("label_attr", [])
+        self.head_names = self.label_attr
+        self.label2id = data.get("label2id", {})
+        self.id2label = data.get("id2label", {})
+        self.loss_config = data.get("loss_config", {})
+        self.hidden_size_config = data.get("hidden_size_config", {})
+        self.activation_mode_config = data.get("activation_mode_config", {})
+        self.dropout_rate_config = data.get("dropout_rate_config", {})
+        self.layer_norm_config = data.get("layer_norm_config", {})
+        super().from_disk(path, exclude=exclude)

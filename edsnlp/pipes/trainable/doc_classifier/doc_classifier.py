@@ -642,7 +642,6 @@ class TrainableDocClassifier(
         repr_id = object.__repr__(self)
         if repr_id in exclude:
             return
-        # exclude.add(repr_id)
         os.makedirs(path, exist_ok=True)
         data_path = path / "multi_head_data.pkl"
         with open(data_path, "wb") as f:

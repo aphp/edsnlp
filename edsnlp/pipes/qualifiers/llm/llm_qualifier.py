@@ -293,7 +293,7 @@ class LLMSpanClassifier(
             else:
                 final_user_prompt = context_text
             if self.suffix_prompt:
-                final_user_prompt += self.suffix_prompt
+                final_user_prompt += self.suffix_prompt.format(span=span_text)
 
             messages = create_prompt_messages(
                 system_prompt=self.system_prompt,

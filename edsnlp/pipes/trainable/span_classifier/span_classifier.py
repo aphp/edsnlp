@@ -94,8 +94,9 @@ class NormalizedCrossEntropy(_Loss):
             pred = F.log_softmax(pred, dim=1) * weight
         else:
             pred = F.log_softmax(pred, dim=1)
-        label_one_hot = torch.nn.functional.one_hot(labels, self.num_classes).float()
-        nce = -1 * torch.sum(label_one_hot * pred, dim=1) / (-pred.sum(dim=1))
+        # label_one_hot = torch.nn.functional.one_hot(labels, self.num_classes).float()
+
+        nce = -1 * torch.sum(labels * pred, dim=1) / (-pred.sum(dim=1))  # FIXME
         return self.scale * nce.mean()
 
 
@@ -108,8 +109,9 @@ class ReverseCrossEntropy(_Loss):
     def forward(self, pred, labels):
         pred = F.softmax(pred, dim=1)
         pred = torch.clamp(pred, min=1e-7, max=1.0)
-        label_one_hot = torch.nn.functional.one_hot(labels, self.num_classes).float()
-        label_one_hot = torch.clamp(label_one_hot, min=1e-4, max=1.0)
+        # label_one_hot = torch.nn.functional.one_hot(labels, self.num_classes).float()
+
+        label_one_hot = torch.clamp(labels, min=1e-4, max=1.0)  # FIXME
         rce = -1 * torch.sum(pred * torch.log(label_one_hot), dim=1)
         return self.scale * rce.mean()
 

@@ -298,14 +298,6 @@ class TrainableSpanClassifier(
             f"Choose between 'cross_entropy' and 'NCEandRCE'."
         )
 
-        if loss_name == "NCEandRCE":
-            # FIXME
-            self.loss_fn = NCEandRCE(
-                alpha=loss_params.get("alpha", 1.0),
-                beta=loss_params.get("beta", 1.0),
-                num_classes=loss_params.get("num_classes", 2),
-            )
-
         attributes = {
             k if k.startswith("_.") else f"_.{k}": v for k, v in attributes.items()
         }
@@ -338,6 +330,14 @@ class TrainableSpanClassifier(
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)
             self.classifier = torch.nn.Linear(embedding.output_size, 0)
+
+        if loss_name == "NCEandRCE":
+            # FIXME
+            self.loss_fn = NCEandRCE(
+                alpha=loss_params.get("alpha", 1.0),
+                beta=loss_params.get("beta", 1.0),
+                num_classes=loss_params.get("num_classes", 2),
+            )
 
     @property
     def attributes(self) -> Attributes:

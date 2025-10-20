@@ -670,19 +670,19 @@ class TrainableSpanClassifier(
                     mask = torch.all(batch["targets"][:, group_idx] != -100, axis=1)
                 else:
                     mask = batch["targets"][:, group_idx] != -100
-                    preds = binding_scores[mask, bindings_indexer]
-                    targets = batch["targets"][mask, group_idx]
-                    if self.loss_name == "cross_entropy":
-                        loss = F.cross_entropy(
-                            preds,
-                            targets,
-                            reduction="sum",
-                            weight=torch.tensor(self.label_weights, dtype=torch.float)[
-                                bindings_indexer
-                            ].to(binding_scores.device),
-                        )
-                    elif self.loss_name == "NCEandRCE":
-                        loss = self.loss_fn(preds, targets)
+                preds = binding_scores[mask, bindings_indexer]
+                targets = batch["targets"][mask, group_idx]
+                if self.loss_name == "cross_entropy":
+                    loss = F.cross_entropy(
+                        preds,
+                        targets,
+                        reduction="sum",
+                        weight=torch.tensor(self.label_weights, dtype=torch.float)[
+                            bindings_indexer
+                        ].to(binding_scores.device),
+                    )
+                elif self.loss_name == "NCEandRCE":
+                    loss = self.loss_fn(preds, targets)
                 losses.append(loss)
                 assert not torch.isnan(losses[-1]).any(), "NaN loss"
             else:

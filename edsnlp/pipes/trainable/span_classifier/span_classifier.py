@@ -6,6 +6,7 @@ import pickle
 import warnings
 from typing import (
     Any,
+    Callable,
     Dict,
     Iterable,
     List,
@@ -20,7 +21,6 @@ import foldedtensor as ft
 import torch
 import torch.nn.functional as F
 from spacy.tokens import Doc, Span
-from torch.nn.modules.loss import _Loss
 from typing_extensions import NotRequired, TypedDict
 
 from edsnlp.core import PipelineProtocol
@@ -75,58 +75,6 @@ loss: Optional[torch.Tensor]
 labels: Optional[List[torch.Tensor]]
     The predicted labels
 """
-
-
-class NormalizedCrossEntropy(_Loss):
-    def __init__(self, num_classes, scale=1.0, weight: Optional[List[float]] = None):
-        super(NormalizedCrossEntropy, self).__init__()
-        self.num_classes = num_classes
-        self.scale = scale
-
-        if weight is not None:
-            self.weight = torch.Tensor(weight)
-        else:
-            self.weight = weight
-
-    def forward(self, pred, labels):
-        if self.weight is not None:
-            weight = self.weight.to(pred.device)
-            pred = F.log_softmax(pred, dim=1) * weight
-        else:
-            pred = F.log_softmax(pred, dim=1)
-        # label_one_hot = torch.nn.functional.one_hot(labels, self.num_classes).float()
-
-        nce = -1 * torch.sum(labels * pred, dim=1) / (-pred.sum(dim=1))  # FIXME
-        return self.scale * nce.mean()
-
-
-class ReverseCrossEntropy(_Loss):
-    def __init__(self, num_classes, scale=1.0):
-        super(ReverseCrossEntropy, self).__init__()
-        self.num_classes = num_classes
-        self.scale = scale
-
-    def forward(self, pred, labels):
-        pred = F.softmax(pred, dim=1)
-        pred = torch.clamp(pred, min=1e-7, max=1.0)
-        # label_one_hot = torch.nn.functional.one_hot(labels, self.num_classes).float()
-
-        label_one_hot = torch.clamp(labels, min=1e-4, max=1.0)  # FIXME
-        rce = -1 * torch.sum(pred * torch.log(label_one_hot), dim=1)
-        return self.scale * rce.mean()
-
-
-class NCEandRCE(_Loss):
-    def __init__(self, alpha, beta, num_classes, weight: Optional[List[float]] = None):
-        super(NCEandRCE, self).__init__()
-        self.num_classes = num_classes
-        self.nce = NormalizedCrossEntropy(
-            scale=alpha, num_classes=num_classes, weight=weight
-        )
-        self.rce = ReverseCrossEntropy(scale=beta, num_classes=num_classes)
-
-    def forward(self, pred, labels):
-        return self.nce(pred, labels) + self.rce(pred, labels)
 
 
 class TrainableSpanClassifier(
@@ -263,8 +211,7 @@ class TrainableSpanClassifier(
         context_getter: Optional[Union[ContextWindow, SpanGetterArg]] = None,
         values: Optional[Dict[str, List[Any]]] = None,
         keep_none: bool = False,
-        loss_name: str = "cross_entropy",
-        loss_params: dict = {"alpha": 1.0, "beta": 1.0, "num_classes": 2},
+        loss_fn: Optional[Callable] = None,
     ):
         attributes: Attributes
         if attributes is None and qualifiers is None:
@@ -293,12 +240,6 @@ class TrainableSpanClassifier(
 
         self.values = values
         self.keep_none = keep_none
-        self.loss_name = loss_name
-
-        assert loss_name in ["cross_entropy", "NCEandRCE"], (
-            f"Loss '{loss_name}' not implemented. "
-            f"Choose between 'cross_entropy' and 'NCEandRCE'."
-        )
 
         attributes = {
             k if k.startswith("_.") else f"_.{k}": v for k, v in attributes.items()
@@ -333,13 +274,7 @@ class TrainableSpanClassifier(
             warnings.simplefilter("ignore", UserWarning)
             self.classifier = torch.nn.Linear(embedding.output_size, 0)
 
-        if loss_name == "NCEandRCE":
-            # FIXME
-            self.loss_fn = NCEandRCE(
-                alpha=loss_params.get("alpha", 1.0),
-                beta=loss_params.get("beta", 1.0),
-                num_classes=loss_params.get("num_classes", 2),
-            )
+        self.loss_fn = loss_fn
 
     @property
     def attributes(self) -> Attributes:
@@ -674,7 +609,9 @@ class TrainableSpanClassifier(
                     mask = batch["targets"][:, group_idx] != -100
                 preds = binding_scores[mask, bindings_indexer]
                 targets = batch["targets"][mask, group_idx]
-                if self.loss_name == "cross_entropy":
+                if self.loss_fn is not None:
+                    loss = self.loss_fn(preds, targets)
+                else:
                     loss = F.cross_entropy(
                         preds,
                         targets,
@@ -683,8 +620,6 @@ class TrainableSpanClassifier(
                             bindings_indexer
                         ].to(binding_scores.device),
                     )
-                elif self.loss_name == "NCEandRCE":
-                    loss = self.loss_fn(preds, targets)
                 losses.append(loss)
                 assert not torch.isnan(losses[-1]).any(), "NaN loss"
             else:

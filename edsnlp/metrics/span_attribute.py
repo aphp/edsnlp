@@ -41,7 +41,7 @@ ref = conv(
 
 import warnings
 from collections import defaultdict
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union, Sequence
 
 from edsnlp import registry
 from edsnlp.metrics import Examples, average_precision, make_examples, prf
@@ -57,6 +57,7 @@ def span_attribute_metric(
     default_values: Dict = {},
     micro_key: str = "micro",
     filter_expr: Optional[str] = None,
+    split_by_values: Union[str, Sequence[str]] = None,
     **kwargs: Any,
 ):
     if "qualifiers" in kwargs:
@@ -80,6 +81,8 @@ def span_attribute_metric(
     if filter_expr is not None:
         filter_fn = eval(f"lambda doc: {filter_expr}")
         examples = [eg for eg in examples if filter_fn(eg.reference)]
+    if isinstance(split_by_values, str):
+        split_by_values = [split_by_values]
     labels = defaultdict(lambda: (set(), set(), dict()))
     labels["micro"] = (set(), set(), dict())
     total_pred_count = 0
@@ -108,9 +111,15 @@ def span_attribute_metric(
                 if (top_val or include_falsy) and default_values[attr] != top_val:
                     labels[attr][2][(eg_idx, beg, end, attr, top_val)] = top_p
                     labels[micro_key][2][(eg_idx, beg, end, attr, top_val)] = top_p
+                    if split_by_values and attr in split_by_values:
+                        key = f"{attr}:{top_val}"
+                        labels[key][2][(eg_idx, beg, end, attr, top_val)] = top_p
                 if (value or include_falsy) and default_values[attr] != value:
                     labels[micro_key][0].add((eg_idx, beg, end, attr, value))
                     labels[attr][0].add((eg_idx, beg, end, attr, value))
+                    if split_by_values and attr in split_by_values:
+                        key = f"{attr}:{value}"
+                        labels[key][0].add((eg_idx, beg, end, attr, value))
 
         doc_spans = get_spans(eg.reference, span_getter)
         for span in doc_spans:
@@ -124,6 +133,9 @@ def span_attribute_metric(
                 if (value or include_falsy) and default_values[attr] != value:
                     labels[micro_key][1].add((eg_idx, beg, end, attr, value))
                     labels[attr][1].add((eg_idx, beg, end, attr, value))
+                    if split_by_values and attr in split_by_values:
+                        key = f"{attr}:{value}"
+                        labels[key][1].add((eg_idx, beg, end, attr, value))
 
     if total_pred_count != total_gold_count:
         raise ValueError(
@@ -133,13 +145,24 @@ def span_attribute_metric(
             "predicted by another NER pipe in your model."
         )
 
-    return {
+    metrics = {
         name: {
             **prf(pred, gold),
             "ap": average_precision(pred_with_prob, gold),
         }
         for name, (pred, gold, pred_with_prob) in labels.items()
     }
+
+    if split_by_values:
+        for attr in split_by_values:
+            submetrics = {"micro": metrics[attr]}
+            for key in list(metrics.keys()):
+                if key.startswith(f"{attr}:"):
+                    val = key.split(":", 1)[1]
+                    submetrics[val] = metrics.pop(key)
+            metrics[attr] = submetrics
+
+    return metrics
 
 
 @registry.metrics.register(
@@ -230,7 +253,10 @@ class SpanAttributeMetric:
         Key under which to store the micro‐averaged results across all attributes.
     filter_expr : Optional[str]
         A Python expression (using `doc`) to filter which examples are scored.
-
+    split_by_values : Union[str, Sequence[str]] = None
+        One or more attributes for which metrics should reported separately for each
+        attribute value. If `None` (default), metrics are computed on the global attribute-level.
+        Useful when attributes are multiclass.
     Returns
     -------
     Dict[str, Dict[str, float]]
@@ -258,6 +284,7 @@ class SpanAttributeMetric:
         include_falsy: bool = False,
         micro_key: str = "micro",
         filter_expr: Optional[str] = None,
+        split_by_values: Union[str, Sequence[str]] = None,
     ):
         if qualifiers is not None:
             warnings.warn(
@@ -270,6 +297,7 @@ class SpanAttributeMetric:
         self.include_falsy = include_falsy
         self.micro_key = micro_key
         self.filter_expr = filter_expr
+        self.split_by_values = split_by_values
 
     __init__.__doc__ = span_attribute_metric.__doc__
 
@@ -296,6 +324,7 @@ class SpanAttributeMetric:
             include_falsy=self.include_falsy,
             micro_key=self.micro_key,
             filter_expr=self.filter_expr,
+            split_by_values=self.split_by_values,
         )
 
 

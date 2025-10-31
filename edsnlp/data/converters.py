@@ -792,12 +792,16 @@ class MarkupToDocConverter:
 
     PRESETS = {
         "md": {
+            # "["
             "opener": r"(?P<opener>\[)",
-            "closer": r"(?P<closer>\]\(\s*(?P<closer_label>[a-zA-Z0-9_]+)\s*(?P<closer_attrs>.*?)\))",  # noqa: E501
+            # "](LABEL attr1=val1 attr2='val 2')"
+            "closer": r"(?P<closer>\]\(\s*(?P<closer_label>[^\s\)\]\[\(<>\/]+)\s*(?P<closer_attrs>.*?)\))",  # noqa: E501
         },
         "xml": {
-            "opener": r"(?P<opener><(?P<opener_label>[a-zA-Z0-9_]+)(?P<opener_attrs>.*?)>)",  # noqa: E501
-            "closer": r"(?P<closer></(?P<closer_label>[a-zA-Z0-9_]+)>)",
+            # "<LABEL attr1=val1 attr2='val 2'>"
+            "opener": r"(?P<opener><(?P<opener_label>[^\s\)\]\[\(<>\/]+)(?P<opener_attrs>.*?)>)",  # noqa: E501
+            # "</LABEL>"
+            "closer": r"(?P<closer></(?P<closer_label>[^\s\)\]\[\(<>\/]+)>)",
         },
     }
 
@@ -810,6 +814,7 @@ class MarkupToDocConverter:
         keep_raw_attribute_values: bool = False,
         default_attributes: AttributesMappingArg = {},
         bool_attributes: AsList[str] = [],
+        attr_splitter=r"\w+(?:='[^']*'|=\"[^\"]*\"|=[^\s]+)?",
         preset: Literal["md", "xml"] = "md",
         opener: Optional[str] = None,
         closer: Optional[str] = None,
@@ -823,6 +828,7 @@ class MarkupToDocConverter:
             self.default_attributes[attr] = False
         self.opener = opener or self.PRESETS[preset]["opener"]
         self.closer = closer or self.PRESETS[preset]["closer"]
+        self.attr_splitter = attr_splitter
 
     def _as_python(self, value: str):
         import ast
@@ -842,49 +848,61 @@ class MarkupToDocConverter:
         import re
 
         last_inline_offset = 0
-        starts = []
+        pattern = f"{self.closer}|{self.opener}"
+        seps = list(re.finditer(pattern, inline_text))
+        pairs = []
+        stack = []
         text = ""
-        seps = list(re.finditer(self.opener + "|" + self.closer, inline_text))
-        entities = []
-        for i, sep in enumerate(seps):
-            is_opener = bool(sep["opener"])
-            groups = sep.groupdict()
-            inline_start = sep.start("opener") if is_opener else sep.start("closer")
-            inline_end = sep.end("opener") if is_opener else sep.end("closer")
-            label = groups.get("closer_label", groups.get("opener_label"))
-            attrs = groups.get("closer_attrs", groups.get("opener_attrs")) or ""
-            attrs = {
-                k: self._as_python(v)
-                for k, v in (
-                    kv.split("=") if "=" in kv else (kv.strip(), "True")
-                    for kv in attrs.split()
-                    if kv.strip()
-                )
-            }
-            text += inline_text[last_inline_offset:inline_start]
-            if is_opener:
-                starts.append((len(text), label, attrs))
-            else:
-                try:
-                    idx = next(
-                        i
-                        for i in range(len(starts) - 1, -1, -1)
-                        if starts[i][1] == label or not label or not starts[i][1]
+        for sep in seps:
+            text += inline_text[last_inline_offset : sep.start()]
+            offset = len(text)
+            last_inline_offset = sep.end()
+            sep_gd = sep.groupdict()
+            if sep_gd.get("opener"):
+                stack.insert(0, (sep_gd, offset))
+            elif sep_gd.get("closer"):
+                label = sep_gd.get("closer_label")
+                if stack:
+                    matching_opener = next(
+                        (
+                            (op_gd, start)
+                            for (op_gd, start) in stack
+                            if "opener_label" not in op_gd
+                            or op_gd.get("opener_label") == label
+                            or not label
+                        ),
+                        None,
                     )
-                except StopIteration:
-                    warnings.warn(f"Unmatched closing tag for '{sep.group()}'")
-                    continue
-                start, start_label, start_attrs = starts.pop(idx)
-                entities.append(
-                    (start, len(text), start_label or label, {**attrs, **start_attrs})
-                )
-            last_inline_offset = inline_end
-        if last_inline_offset < len(inline_text):
-            text += inline_text[last_inline_offset:]
-        if starts:
-            warnings.warn(
-                f"Unmatched opening tags at indices {', '.join(s[1] for s in starts)}"
+                    if matching_opener is not None:
+                        stack.remove(matching_opener)
+                        op_gd, start = matching_opener
+                        pairs.append((start, offset, op_gd, sep_gd))
+        text += inline_text[last_inline_offset:]
+        pairs = sorted(pairs, key=lambda x: (x[0], -x[1]))
+
+        entities = []
+        for i, (start, end, opener_gd, closer_gd) in enumerate(pairs):
+            label = (
+                opener_gd.get("opener_label")
+                if opener_gd.get("opener_label")
+                else closer_gd.get("closer_label")
             )
+            attrs_str = " ".join(
+                (
+                    (opener_gd.get("opener_attrs", "")),
+                    (closer_gd.get("closer_attrs", "")),
+                )
+            )
+            attrs = {}
+            for attr in re.findall(self.attr_splitter, attrs_str.strip()):
+                if not attr:
+                    continue
+                if "=" in attr:
+                    k, v = attr.split("=", 1)
+                    attrs[k] = self._as_python(v)
+                else:
+                    attrs[attr] = True
+            entities.append((start, end, label, attrs))
         entities = sorted(entities)
         return text, entities
 
@@ -929,6 +947,140 @@ class MarkupToDocConverter:
                     span._.set(attr, value)
 
         return doc
+
+
+@registry.factory.register("eds.doc_to_markup", spacy_compatible=False)
+class DocToMarkupConverter:
+    """
+    Convert a Doc to a string with inline markup.
+
+    This is the inverse of :class:`MarkupToDocConverter`. It renders selected
+    spans as either Markdown-like tags (``[text](LABEL key=val ...)``)
+    or XML-like tags (``<LABEL key=val ...>text</LABEL>``).
+
+    Parameters
+    ----------
+    span_getter : SpanGetterArg, default {"ents": True}
+        Which spans to render from the document.
+    span_attributes : AttributesMappingArg, default {}
+        Mapping from Span extensions (or builtins like ``label_``, ``kb_id_``)
+        to attribute names in the rendered markup. Only attributes with a
+        non-``None`` value are emitted.
+    default_attributes : AttributesMappingArg, default {}
+        When an attribute equals its provided default value, it is omitted
+        from the output (e.g., avoid printing ``negated=False`` when ``False``
+        is the default).
+    preset : Literal["md", "xml"], default "md"
+        Output syntax. ``"md"`` produces the Markdown‑like form, ``"xml"`` the
+        XML‑like form.
+    """
+
+    def __init__(
+        self,
+        *,
+        span_getter: SpanGetterArg = {"ents": True},
+        span_attributes: AttributesMappingArg = {},
+        default_attributes: AttributesMappingArg = {},
+        bool_attributes: AsList[str] = [],
+        preset: Literal["md", "xml"] = "md",
+    ):
+        self.span_getter = span_getter
+        self.span_attributes = span_attributes
+        self.default_attributes = dict(default_attributes)
+        self.bool_attributes = bool_attributes
+        for attr in bool_attributes:
+            self.default_attributes[attr] = False
+        self.preset = preset
+
+    def _format_attr(self, key: str, value: Any) -> str:
+        if key in self.bool_attributes:
+            return f"{key}" if value else ""
+
+        if isinstance(value, (bool, int, float)):
+            return repr(value)
+        s = str(value)
+        # Quote strings containing spaces or tag delimiters so they round‑trip
+        if any(c.isspace() for c in s) or any(c in "<>[]()" for c in s):
+            s = repr(s)
+        return f"{key}={s}"
+
+    def __call__(self, doc: Doc) -> str:
+        # Build getters once
+        span_binding_getters = {
+            obj_name: BINDING_GETTERS[
+                ("_." + ext_name)
+                if ext_name.split(".")[0] not in SPAN_BUILTIN_ATTRS
+                else ext_name
+            ]
+            for ext_name, obj_name in (self.span_attributes or {}).items()
+        }
+
+        # Collect and dedupe spans
+        spans = list(sorted(dict.fromkeys(get_spans(doc, self.span_getter))))
+
+        text = doc.text
+        starts: Dict[int, list[Span]] = {}
+        ends: Dict[int, list[Span]] = {}
+        for sp in spans:
+            attrs = {
+                obj_name: getter(sp)
+                for obj_name, getter in span_binding_getters.items()
+            }
+            attrs = {
+                k: v
+                for k, v in attrs.items()
+                if v is not None
+                and not (
+                    k in self.default_attributes and self.default_attributes[k] == v
+                )
+            }
+            attrs_str = (
+                " ".join(self._format_attr(k, v) for k, v in attrs.items())
+                if attrs
+                else ""
+            )
+            starts.setdefault(sp.start_char, []).append((sp, attrs_str))
+            ends.setdefault(sp.end_char, []).append((sp, attrs_str))
+
+        out: list[str] = []
+        last = 0
+
+        positions = sorted({*starts.keys(), *[sp.end_char for sp in spans]})
+        for pos in positions:
+            pos = min(pos, len(text))
+            if pos > last:
+                out.append(text[last:pos])
+
+            # Close any spans that end here (LIFO to preserve nesting)
+            for sp, attrs_str in sorted(
+                ends.get(pos, []),
+                key=lambda s: s[0].start_char,
+                reverse=True,
+            ):
+                if self.preset == "md":
+                    out.append(
+                        f"]({sp.label_}{(' ' + attrs_str) if attrs_str else ''})"
+                    )
+                else:  # xml
+                    out.append(f"</{sp.label_}>")
+
+            # Open any spans that start here (FIFO to preserve nesting)
+            for sp, attrs_str in sorted(
+                starts.get(pos, []),
+                key=lambda s: s[0].end_char,
+            ):
+                if self.preset == "md":
+                    out.append("[")
+                else:  # xml
+                    out.append(f"<{sp.label_}{(' ' + attrs_str) if attrs_str else ''}>")
+
+            last = pos
+
+        # Trailing text after the last event
+        if last < len(text):
+            out.append(text[last:])
+
+        return "".join(out)
 
 
 def get_dict2doc_converter(
@@ -976,19 +1128,14 @@ def get_doc2dict_converter(
                 name
                 for name in available
                 if converter == name
-                or (
-                    converter in name
-                    and (name.endswith("2dict") or name.endswith("to_dict"))
-                )
+                or (converter in name and ("doc2" in name or "doc_to" in name))
             ]
             converter = edsnlp.registry.factory.get(filtered[0])
             converter = converter(**kwargs)
             kwargs = {}
             return converter, kwargs
         except (KeyError, IndexError):
-            available = [
-                v for v in available if (v.endswith("2dict") or v.endswith("to_dict"))
-            ]
+            available = [v for v in available if ("doc2" in v or "doc_to" in v)]
             raise ValueError(
                 f"Cannot find converter for format {converter}. "
                 f"Available converters are {', '.join(available)}"

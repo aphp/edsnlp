@@ -46,6 +46,14 @@ We provide step-by-step guides to get you started. We cover the following use-ca
     ---
     Improve the inference speed of your pipeline
 
+=== card {: href=/tutorials/hpc }
+
+    :fontawesome-solid-microchip:
+    **Running on HPC (eg. Slurm)**
+
+    ---
+    Use an existing model at scale with an High-Performance Computing (HPC) job scheduler like Slurm.
+
 === card {: href=/tutorials/reason }
 
     :fontawesome-regular-hospital:
@@ -84,6 +92,8 @@ We provide step-by-step guides to get you started. We cover the following use-ca
 
     ---
     Quickly visualize the results of your pipeline as annotations or tables.
+
+<!-- --8<-- [end:classic-tutorials] -->
 
 ### Deep learning tutorials
 

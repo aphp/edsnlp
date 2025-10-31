@@ -15,7 +15,7 @@ import edsnlp.data  # noqa: F401
 import edsnlp.pipes
 from . import reducers
 
-__version__ = "0.18.0"
+__version__ = "0.19.0"
 
 BASE_DIR = Path(__file__).parent
 
@@ -50,6 +50,10 @@ class AliasPathFinder(importlib.abc.MetaPathFinder):
             return spec
         if fullname.startswith("edsnlp.metrics.span_attributes"):
             new_name = "edsnlp.metrics.span_attribute" + fullname[30:]
+            spec = importlib.util.spec_from_loader(fullname, AliasLoader(new_name))
+            return spec
+        if fullname == "edsnlp.utils.regex":
+            new_name = "edsnlp.utils.regex_utils"
             spec = importlib.util.spec_from_loader(fullname, AliasLoader(new_name))
             return spec
         if "span_qualifier" in fullname.split("."):

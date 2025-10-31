@@ -1,4 +1,4 @@
-from edsnlp.utils.regex import make_pattern
+from edsnlp.utils.regex_utils import make_pattern
 
 from .atomic import directions, numbers, units
 from .atomic.modes import mode_pattern

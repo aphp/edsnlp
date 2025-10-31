@@ -36,6 +36,12 @@ EDS-NLP provides easy-to-use pipeline components (aka pipes).
 
     --8<-- "docs/pipes/trainable/index.md:components"
 
+=== "LLM-based"
+
+    See the [LLM-based components overview](/pipes/llm/) for more information.
+
+    --8<-- "docs/pipes/llm/index.md:components"
+
 <!-- --8<-- [end:components] -->
 
 You can add them to your pipeline by simply calling `add_pipe`, for instance:

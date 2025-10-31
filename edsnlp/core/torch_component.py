@@ -79,7 +79,9 @@ def cached(key, store_key=False):
     def wrapper(fn):
         @wraps(fn)
         def wrapped(self: "TorchComponent", *args, **kwargs):
-            if self._current_cache_id is None or len(args) == 0:
+            # Got an error once in the CI where self._current_cache_id (!= None) was not
+            # in _caches. This should not happen, but just in case, we check here.
+            if _caches.get(self._current_cache_id) is None or len(args) == 0:
                 return fn(self, *args, **kwargs)
             cache_key = (
                 fn.__name__,

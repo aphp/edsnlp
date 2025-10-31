@@ -1,4 +1,4 @@
-from edsnlp.utils.regex import make_pattern
+from edsnlp.utils.regex_utils import make_pattern
 
 modes = [
     r"(?P<bound_from>depuis|depuis\s+le|[àa]\s+partir\s+d[eu]|du)",

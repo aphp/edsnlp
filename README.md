@@ -21,6 +21,7 @@ Check out our interactive [demo](https://aphp.github.io/edsnlp/demo/) !
 
 - [Rule-based components](https://aphp.github.io/edsnlp/latest/pipes/) for French clinical notes
 - [Trainable components](https://aphp.github.io/edsnlp/latest/pipes/trainable): NER, Span classification
+- [LLM-based components](https://aphp.github.io/edsnlp/latest/pipes/llm/)
 - Support for multitask deep-learning models with [weights sharing](https://aphp.github.io/edsnlp/latest/concepts/torch-component/#sharing-subcomponents)
 - [Fast inference](https://aphp.github.io/edsnlp/latest/concepts/inference/), with multi-GPU support out of the box
 - Easy to use, with a spaCy-like API
@@ -34,13 +35,13 @@ Check out our interactive [demo](https://aphp.github.io/edsnlp/demo/) !
 You can install EDS-NLP via `pip`. We recommend pinning the library version in your projects, or use a strict package manager like [Poetry](https://python-poetry.org/).
 
 ```shell
-pip install edsnlp==0.18.0
+pip install edsnlp==0.19.0
 ```
 
 or if you want to use the trainable components (using pytorch)
 
 ```shell
-pip install "edsnlp[ml]==0.18.0"
+pip install "edsnlp[ml]==0.19.0"
 ```
 
 ### A first pipeline

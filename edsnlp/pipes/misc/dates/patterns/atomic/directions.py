@@ -1,4 +1,4 @@
-from edsnlp.utils.regex import make_pattern
+from edsnlp.utils.regex_utils import make_pattern
 
 preceding_directions = [
     r"(?P<direction_past>depuis|depuis\s+le|il\s+y\s+a|à)",

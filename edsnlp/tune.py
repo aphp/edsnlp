@@ -595,7 +595,7 @@ def compute_remaining_n_trials_possible(
             remaining_gpu_time, compute_time_per_trial(study, ema=True)
         )
         return n_trials
-    except ValueError:
+    except ValueError:  # pragma: no cover
         return 0
 
 

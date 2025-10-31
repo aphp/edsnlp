@@ -1,8 +1,23 @@
 # Changelog
 
-## v0.18.0 (2025-09-02)
+## v0.19.0 (2025-10-04)
 
-📢 EDS-NLP will drop support for Python 3.7, 3.8 and 3.9 support in the next major release (v0.19.0), in October 2025. Please upgrade to Python 3.10 or later.
+📢 EDS-NLP will drop support for Python 3.7, 3.8 and 3.9 support in the next major release (v0.20.0), in October 2025. Please upgrade to Python 3.10 or later.
+
+### Added
+
+- New `DocToMarkupConverter` to convert documents to markdown and improved `MarkupToDocConverter` to allow overlapping markup annotations (e.g., `This is a <a>text <b>with</a> overlapping</b> tags`).
+- New helper `edsnlp.utils.fuzzy_alignment.align` to map the entities of an annotated document to another document with similar but not identical text (e.g., after some text normalization or minor edits).
+- We now support `span_getter="sents"` to apply various pipes on sentences instead of entities or spans.
+- New LLM generic extractor pipe `eds.llm_markup_extractor`, that can be used to extract entities using a large language model served through an *OpenAPI-style* API.
+
+### Fixed
+
+- Since `fork` hangs when HDFS has been used in the main process, we now auto detect if the currently running program has interacted with HDFS before auto-picking a process starting method.
+- We now account for pipe selection (ie `enable`, `disable` and `exclude`) when loading a model from huggingface hub.
+- We do not instantiate pipes in `exclude` anymore when loading a model (before they were instantiated but not added to the pipeline).
+
+## v0.18.0 (2025-09-02)
 
 ### Added
 

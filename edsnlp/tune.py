@@ -668,7 +668,7 @@ def tune(
         A dictionary specifying pruning parameters:
         - "n_startup_trials": Number of startup trials before pruning starts.
         - "n_warmup_steps": Number of warmup steps before pruning starts.
-        Default is None meaning no pruning.
+        Default is None, meaning no pruning.
     """
     setup_logging()
     viz = is_plotly_install()

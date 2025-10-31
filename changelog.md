@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- New parameter `pruning_params` to `edsnlp.tune` in order to control pruning during tuning.
+
 ## v0.19.0 (2025-10-04)
 
 📢 EDS-NLP will drop support for Python 3.7, 3.8 and 3.9 support in the next major release (v0.20.0), in October 2025. Please upgrade to Python 3.10 or later.

@@ -300,10 +300,18 @@ def objective_with_param(config, tuned_parameters, trial, metric, pruning_params
 
 
 def optimize(
-    config_path, tuned_parameters, n_trials, metric, checkpoint_dir, pruning_params, study=None
+    config_path,
+    tuned_parameters,
+    n_trials,
+    metric,
+    checkpoint_dir,
+    pruning_params,
+    study=None,
 ):
     def objective(trial):
-        return objective_with_param(config_path, tuned_parameters, trial, metric, pruning_params)
+        return objective_with_param(
+            config_path, tuned_parameters, trial, metric, pruning_params
+        )
 
     if not study:
         pruner = None

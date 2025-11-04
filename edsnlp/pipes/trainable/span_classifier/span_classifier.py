@@ -610,7 +610,7 @@ class TrainableSpanClassifier(
                 preds = binding_scores[mask, bindings_indexer]
                 targets = batch["targets"][mask, group_idx]
                 if self.loss_fn is not None:
-                    loss = self.loss_fn(preds, targets)
+                    loss = self.loss_fn(preds, targets, **{"model": self})
                 else:
                     loss = F.cross_entropy(
                         preds,

@@ -641,7 +641,7 @@ class OmopDoc2DictConverter:
                         )
                     },
                 }
-                for i, ent in enumerate(sorted(dict.fromkeys(spans)))
+                for i, ent in enumerate(sorted(spans))
             ],
         }
         return obj

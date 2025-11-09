@@ -600,13 +600,15 @@ class OmopDoc2DictConverter:
         span_getter: SpanGetterArg = {"ents": True},
         doc_attributes: AttributesMappingArg = {},
         span_attributes: AttributesMappingArg = {},
+        deduplicate: bool = False,
     ):
         self.span_getter = span_getter
         self.doc_attributes = doc_attributes
         self.span_attributes = span_attributes
+        self.deduplicate = deduplicate
 
     def __call__(self, doc):
-        spans = get_spans(doc, self.span_getter)
+        spans = get_spans(doc, self.span_getter, deduplicate=self.deduplicate)
         span_binding_getters = {
             obj_name: BINDING_GETTERS[
                 ("_." + ext_name)

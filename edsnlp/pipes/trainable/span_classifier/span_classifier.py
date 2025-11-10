@@ -23,7 +23,7 @@ import torch.nn.functional as F
 from spacy.tokens import Doc, Span
 from typing_extensions import NotRequired, TypedDict
 
-from edsnlp.core import PipelineProtocol
+from edsnlp.core.pipeline import Pipeline
 from edsnlp.core.torch_component import BatchInput, BatchOutput, TorchComponent
 from edsnlp.pipes.base import BaseSpanAttributeClassifierComponent
 from edsnlp.pipes.trainable.embeddings.typing import (
@@ -200,7 +200,7 @@ class TrainableSpanClassifier(
 
     def __init__(
         self,
-        nlp: Optional[PipelineProtocol] = None,
+        nlp: Optional[Pipeline] = None,
         name: str = "span_classifier",
         *,
         embedding: SpanEmbeddingComponent,
@@ -212,6 +212,7 @@ class TrainableSpanClassifier(
         values: Optional[Dict[str, List[Any]]] = None,
         keep_none: bool = False,
         loss_fn: Optional[Callable] = None,
+        deduplicate: bool = False,
     ):
         attributes: Attributes
         if attributes is None and qualifiers is None:
@@ -275,6 +276,7 @@ class TrainableSpanClassifier(
             self.classifier = torch.nn.Linear(embedding.output_size, 0)
 
         self.loss_fn = loss_fn
+        self.deduplicate = deduplicate
 
     @property
     def attributes(self) -> Attributes:
@@ -360,7 +362,7 @@ class TrainableSpanClassifier(
         self.binding_target_shape = dict.fromkeys(qlf for qlf, _, _ in bindings)
 
         for doc in gold_data:
-            spans = list(get_spans(doc, self.span_getter))
+            spans = list(get_spans(doc, self.span_getter, deduplicate=self.deduplicate))
             for span in spans:
                 for attr, labels, values in bindings:  # FIXME
                     binding_has_softlabels = False
@@ -457,9 +459,11 @@ class TrainableSpanClassifier(
         self._bindings_to_idx = None
 
     def preprocess(self, doc: Doc, **kwargs) -> Dict[str, Any]:
-        spans = list(get_spans(doc, self.span_getter))
+        spans = list(get_spans(doc, self.span_getter, deduplicate=self.deduplicate))
         if self.context_getter is None or not callable(self.context_getter):
-            contexts = list(get_spans(doc, self.context_getter))
+            contexts = list(
+                get_spans(doc, self.context_getter, deduplicate=self.deduplicate)
+            )
             pre_aligned = False
         else:
             contexts = [self.context_getter(span) for span in spans]

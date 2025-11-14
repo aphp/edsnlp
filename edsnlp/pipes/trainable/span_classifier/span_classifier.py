@@ -29,6 +29,7 @@ from edsnlp.pipes.base import BaseSpanAttributeClassifierComponent
 from edsnlp.pipes.trainable.embeddings.typing import (
     SpanEmbeddingComponent,
 )
+from edsnlp.pipes.trainable.span_classifier.lrt import lrt_flip_scheme
 from edsnlp.utils.bindings import (
     BINDING_GETTERS,
     BINDING_SETTERS,
@@ -277,6 +278,9 @@ class TrainableSpanClassifier(
 
         self.loss_fn = loss_fn
         self.deduplicate = deduplicate
+        self.corrected_targets = {}
+        for b in self.bindings:
+            self.corrected_targets[b[0]] = {}
 
     @property
     def attributes(self) -> Attributes:
@@ -460,6 +464,7 @@ class TrainableSpanClassifier(
 
     def preprocess(self, doc: Doc, **kwargs) -> Dict[str, Any]:
         spans = list(get_spans(doc, self.span_getter, deduplicate=self.deduplicate))
+        span_ids = [span._.instance_id for span in spans]
         if self.context_getter is None or not callable(self.context_getter):
             contexts = list(
                 get_spans(doc, self.context_getter, deduplicate=self.deduplicate)
@@ -477,6 +482,7 @@ class TrainableSpanClassifier(
                 **kwargs,
             ),
             "$spans": spans,
+            "span_ids": span_ids,
         }
 
     def preprocess_supervised(self, doc: Doc) -> Dict[str, Any]:
@@ -568,13 +574,105 @@ class TrainableSpanClassifier(
                 collated["targets"] = targets
             else:
                 collated["targets"] = targets.view(len(targets), len(self.bindings))
+        if "span_ids" in batch:
+            collated["span_ids"] = torch.tensor(batch["span_ids"], dtype=torch.long)
 
         return collated
+
+    def correct_targets(self, batch, group_idx, mask, targets):
+        # If external corrected targets were provided, override (coalesce)
+        # the corresponding rows in `targets` for spans whose instance ids
+        # appear in corrected_targets for this task.
+        if "span_ids" in batch:
+            task = self.bindings[group_idx][0]
+            span_ids = batch["span_ids"].squeeze(0)[mask]
+            # corrected_targets expected shape:
+            # { "_.attr": { span_instance_id: { value: prob, ... }  OR single_value } }
+            corr_for_task = self.corrected_targets.get(task, {})
+            if corr_for_task and span_ids.numel() > 0:
+                # targets may be float (soft labels) or long (discrete)
+                # make a mutable copy
+                targets = targets.clone()
+                # values ordering for this group
+                _, _, values_order = self.bindings[group_idx]
+                # dict that maps value->idx for this group
+                _, _, values_to_idx = self.bindings_to_idx[group_idx]
+                for row_idx, sid in enumerate(span_ids.tolist()):
+                    if sid in corr_for_task:
+                        corr_val = corr_for_task[sid]
+                        # Soft distribution provided as dict
+                        if isinstance(corr_val, dict):
+                            vec = torch.tensor(
+                                [
+                                    float(corr_val.get(str(v), -100))
+                                    for v in values_order
+                                ],
+                                dtype=torch.float,
+                                device=targets.device,
+                            )
+                            if self.exist_soft_labels:
+                                targets[row_idx] = vec
+                            else:
+                                # convert distribution to discrete index (argmax),
+                                #  unless all -100
+                                if torch.all(vec == -100):
+                                    targets[row_idx] = -100
+                                else:
+                                    targets[row_idx] = int(torch.argmax(vec).item())
+                        else:
+                            # Single discrete value provided
+                            idx = values_to_idx.get(corr_val, -100)
+                            if self.exist_soft_labels:
+                                if idx != -100:
+                                    onehot = F.one_hot(
+                                        torch.tensor(idx, device=targets.device),
+                                        num_classes=len(values_order),
+                                    ).to(torch.float)
+                                    targets[row_idx] = onehot
+                                else:
+                                    targets[row_idx] = torch.tensor(
+                                        [-100.0] * len(values_order),
+                                        device=targets.device,
+                                    )
+                            else:
+                                targets[row_idx] = idx
+                # replace `targets` used below with the coalesced version
+                # (preds and loss computation will use this variable)
+                # no further action required here
+
+        return targets
+
+    def lrt_scheme(self, scores, targets, lrt_parameters):
+        new_y_tilde, changed_idx = lrt_flip_scheme(
+            scores, targets, delta=lrt_parameters.get("delta", 0.5)
+        )
+        return new_y_tilde, changed_idx
+
+    def update_corrected_targets(self, group_idx, new_y_tilde, changed_idx, span_ids):
+        task = self.bindings[group_idx][0]
+        task_labels = self.bindings[group_idx][2]
+        for idx in changed_idx:
+            idx = idx.item()
+            span_id = span_ids[idx].item()
+            self.corrected_targets[task][span_id] = {
+                k: v.item()
+                for k, v in zip(
+                    task_labels,
+                    torch.nn.functional.one_hot(
+                        new_y_tilde[idx], num_classes=len(task_labels)
+                    ),
+                )
+            }
+
+        logger.debug(f"## {len(changed_idx)} data points changed ##")
 
     # noinspection SpellCheckingInspection
     def forward(
         self,
         batch: SpanClassifierBatchInput,
+        apply_lrt: bool = False,
+        use_corrected_targets: bool = False,
+        lrt_parameters: Optional[Dict[str, Any]] = {},
     ) -> BatchOutput:
         """
         Apply the span classifier module to the document embeddings and given spans to:
@@ -597,10 +695,13 @@ class TrainableSpanClassifier(
 
         if "targets" in batch:
             losses = []
-            pred = None
+            span_ids = None
         else:
-            pred = []
+            predictions = []
             losses = None
+            scores = None
+            span_ids = None
+            targets = None
 
         # For each group, for instance:
         # - `event=start` and `event=stop`
@@ -611,13 +712,36 @@ class TrainableSpanClassifier(
                     mask = torch.all(batch["targets"][:, group_idx] != -100, axis=1)
                 else:
                     mask = batch["targets"][:, group_idx] != -100
-                preds = binding_scores[mask, bindings_indexer]
+                logits = binding_scores[mask, bindings_indexer]
                 targets = batch["targets"][mask, group_idx]
+
+                scores = torch.softmax(
+                    logits.as_tensor().detach(), dim=1
+                )  # FIXME append to a list , else we are overwriting
+                predictions = logits.argmax(
+                    dim=1
+                ).as_tensor()  # FIXME append to a list , else we are overwriting
+
+                if "span_ids" in batch:
+                    span_ids = batch["span_ids"].squeeze(0)
+
+                ## Apply here the target correction
+                if apply_lrt:
+                    new_y_tilde, changed_idx = self.lrt_scheme(
+                        scores, targets, lrt_parameters=lrt_parameters
+                    )
+                    self.update_corrected_targets(
+                        group_idx, new_y_tilde, changed_idx, span_ids
+                    )
+                if use_corrected_targets:
+                    targets = self.correct_targets(batch, group_idx, mask, targets)
+
+                # Loss computation
                 if self.loss_fn is not None:
-                    loss = self.loss_fn(preds, targets, **{"model": self})
+                    loss = self.loss_fn(logits, targets, **{"model": self})
                 else:
                     loss = F.cross_entropy(
-                        preds,
+                        logits,
                         targets,
                         reduction="sum",
                         weight=torch.tensor(self.label_weights, dtype=torch.float)[
@@ -627,11 +751,14 @@ class TrainableSpanClassifier(
                 losses.append(loss)
                 assert not torch.isnan(losses[-1]).any(), "NaN loss"
             else:
-                pred.append(binding_scores[:, bindings_indexer].argmax(dim=1))
+                predictions.append(binding_scores[:, bindings_indexer].argmax(dim=1))
 
         return {
             "loss": sum(losses) if losses is not None else None,
-            "labels": pred,
+            "labels": predictions,
+            "scores": scores,
+            "span_ids": span_ids,
+            "targets": targets,
         }
 
     def postprocess(

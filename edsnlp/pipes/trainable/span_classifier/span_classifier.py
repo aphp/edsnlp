@@ -593,7 +593,7 @@ class TrainableSpanClassifier(
         # appear in corrected_targets for this task.
         if "span_ids" in batch:
             task = self.bindings[group_idx][0]
-            span_ids = batch["span_ids"].squeeze(0)[mask]
+            span_ids = batch["span_ids"].squeeze()[mask]
             # corrected_targets expected shape:
             # { "_.attr": { span_instance_id: { value: prob, ... }  OR single_value } }
             corr_for_task = self.corrected_targets.get(task, {})

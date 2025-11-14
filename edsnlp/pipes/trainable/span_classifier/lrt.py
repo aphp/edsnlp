@@ -38,7 +38,6 @@ def lrt_flip_scheme(scores_bar, targets, delta):
         pred_softlabels_bar_max
         / (scores_bar[torch.arange(scores_bar.size(0)), y_tilde])
     )
-    print(ratio.mean(), ratio.std(), ratio.min(), ratio.max())
     cond_2 = ratio > delta
 
     condition = torch.logical_and(cond_1, cond_2)

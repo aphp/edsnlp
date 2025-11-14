@@ -463,8 +463,13 @@ class TrainableSpanClassifier(
         self._bindings_to_idx = None
 
     def preprocess(self, doc: Doc, **kwargs) -> Dict[str, Any]:
+        batch = {}
         spans = list(get_spans(doc, self.span_getter, deduplicate=self.deduplicate))
-        span_ids = [span._.instance_id for span in spans]
+
+        if spans[0].has_extension("instance_id"):
+            span_ids = [span._.instance_id for span in spans]
+            batch["span_ids"] = span_ids
+
         if self.context_getter is None or not callable(self.context_getter):
             contexts = list(
                 get_spans(doc, self.context_getter, deduplicate=self.deduplicate)
@@ -473,17 +478,20 @@ class TrainableSpanClassifier(
         else:
             contexts = [self.context_getter(span) for span in spans]
             pre_aligned = True
-        return {
-            "embedding": self.embedding.preprocess(
-                doc,
-                spans=spans,
-                contexts=contexts,
-                pre_aligned=pre_aligned,
-                **kwargs,
-            ),
-            "$spans": spans,
-            "span_ids": span_ids,
-        }
+
+        batch.update(
+            {
+                "embedding": self.embedding.preprocess(
+                    doc,
+                    spans=spans,
+                    contexts=contexts,
+                    pre_aligned=pre_aligned,
+                    **kwargs,
+                ),
+                "$spans": spans,
+            }
+        )
+        return batch
 
     def preprocess_supervised(self, doc: Doc) -> Dict[str, Any]:
         preps = self.preprocess(doc)

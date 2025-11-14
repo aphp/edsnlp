@@ -466,7 +466,7 @@ class TrainableSpanClassifier(
         batch = {}
         spans = list(get_spans(doc, self.span_getter, deduplicate=self.deduplicate))
 
-        if spans[0].has_extension("instance_id"):
+        if spans[0].has_extension("instance_id") and spans[0]._.instance_id is not None:
             span_ids = [span._.instance_id for span in spans]
             batch["span_ids"] = span_ids
 

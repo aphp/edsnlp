@@ -587,7 +587,7 @@ class TrainableSpanClassifier(
 
         return collated
 
-    def correct_targets(self, batch, group_idx, mask, targets):
+    def get_correct_targets(self, batch, group_idx, mask, targets):
         # If external corrected targets were provided, override (coalesce)
         # the corresponding rows in `targets` for spans whose instance ids
         # appear in corrected_targets for this task.
@@ -674,6 +674,54 @@ class TrainableSpanClassifier(
 
         logger.debug(f"## {len(changed_idx)} data points changed ##")
 
+    def _forward(self, batch: SpanClassifierBatchInput) -> BatchOutput:
+        embedding = self.embedding(batch["embedding"])
+        span_embeds = embedding["embeddings"]
+
+        binding_scores = self.classifier(span_embeds)
+        return binding_scores
+
+    def _get_logits_and_predictions(
+        self,
+        batch,
+        binding_scores,
+        group_idx,
+        bindings_indexer,
+    ):
+        if self.exist_soft_labels:
+            mask = torch.all(batch["targets"][:, group_idx] != -100, axis=1)
+        else:
+            mask = batch["targets"][:, group_idx] != -100
+        logits = binding_scores[mask, bindings_indexer]
+        targets = batch["targets"][mask, group_idx]
+        scores = torch.softmax(logits.as_tensor().detach(), dim=1)
+        predictions = logits.argmax(dim=1).as_tensor()
+
+        if "span_ids" in batch:
+            span_ids = batch["span_ids"].squeeze(0)
+        return logits, mask, targets, scores, predictions, span_ids
+
+    def _compute_loss(
+        self,
+        logits,
+        targets,
+        bindings_indexer,
+        device,
+    ):
+        if self.loss_fn is not None:
+            loss = self.loss_fn(logits, targets, **{"model": self})
+        else:
+            loss = F.cross_entropy(
+                logits,
+                targets,
+                reduction="sum",
+                weight=torch.tensor(self.label_weights, dtype=torch.float)[
+                    bindings_indexer
+                ].to(device),
+            )
+        assert not torch.isnan(loss).any(), "NaN loss"
+        return loss
+
     # noinspection SpellCheckingInspection
     def forward(
         self,
@@ -681,29 +729,24 @@ class TrainableSpanClassifier(
         apply_lrt: bool = False,
         use_corrected_targets: bool = False,
         lrt_parameters: Optional[Dict[str, Any]] = {},
-    ) -> BatchOutput:
-        """
-        Apply the span classifier module to the document embeddings and given spans to:
-        - compute the loss
-        - and/or predict the labels of spans
+        compute_loss: bool = True,
+    ):
+        # 1 Get the binding scores
+        # 2 For each group of exclusive bindings:
+        # 2.1 Get logits, mask, targets, scores and predictions
+        # 2.2 Update labels if LRT is applied
+        # 2.3 Get corrected targets if needed
+        # 2.4 Compute loss
 
-        Parameters
-        ----------
-        batch: SpanClassifierBatchInput
-            The input batch
+        # 1 Get the binding scores
+        binding_scores = self._forward(batch)
 
-        Returns
-        -------
-        BatchOutput
-        """
-        embedding = self.embedding(batch["embedding"])
-        span_embeds = embedding["embeddings"]
-
-        binding_scores = self.classifier(span_embeds)
-
+        # Define outputs
         if "targets" in batch:
             losses = []
             span_ids = None
+            scores = []
+            predictions = []
         else:
             predictions = []
             losses = None
@@ -711,53 +754,42 @@ class TrainableSpanClassifier(
             span_ids = None
             targets = None
 
-        # For each group, for instance:
-        # - `event=start` and `event=stop`
-        # - `negated=False` and `negated=True`
+        # 2 For each group of exclusive bindings:
         for group_idx, bindings_indexer in enumerate(self.bindings_indexers):
             if "targets" in batch:
-                if self.exist_soft_labels:
-                    mask = torch.all(batch["targets"][:, group_idx] != -100, axis=1)
-                else:
-                    mask = batch["targets"][:, group_idx] != -100
-                logits = binding_scores[mask, bindings_indexer]
-                targets = batch["targets"][mask, group_idx]
-
-                scores = torch.softmax(
-                    logits.as_tensor().detach(), dim=1
-                )  # FIXME append to a list , else we are overwriting
-                predictions = logits.argmax(
-                    dim=1
-                ).as_tensor()  # FIXME append to a list , else we are overwriting
-
-                if "span_ids" in batch:
-                    span_ids = batch["span_ids"].squeeze(0)
-
-                ## Apply here the target correction
+                # 2.1 Get logits, mask, targets, scores and predictions
+                logits, mask, targets, _scores, _predictions, span_ids = (
+                    self._get_logits_and_predictions(
+                        batch,
+                        binding_scores,
+                        group_idx,
+                        bindings_indexer,
+                    )
+                )
+                scores.append(_scores)
+                predictions.append(_predictions)
+                # 2.2 Apply LRT if needed
                 if apply_lrt:
+                    targets = self.get_correct_targets(batch, group_idx, mask, targets)
                     new_y_tilde, changed_idx = self.lrt_scheme(
-                        scores, targets, lrt_parameters=lrt_parameters
+                        _scores, targets, lrt_parameters=lrt_parameters
                     )
                     self.update_corrected_targets(
                         group_idx, new_y_tilde, changed_idx, span_ids
                     )
+                # 2.3 Get corrected targets if needed
                 if use_corrected_targets:
-                    targets = self.correct_targets(batch, group_idx, mask, targets)
+                    targets = self.get_correct_targets(batch, group_idx, mask, targets)
 
-                # Loss computation
-                if self.loss_fn is not None:
-                    loss = self.loss_fn(logits, targets, **{"model": self})
-                else:
-                    loss = F.cross_entropy(
+                # 2.4 Compute loss
+                if compute_loss:
+                    loss = self._compute_loss(
                         logits,
                         targets,
-                        reduction="sum",
-                        weight=torch.tensor(self.label_weights, dtype=torch.float)[
-                            bindings_indexer
-                        ].to(binding_scores.device),
+                        bindings_indexer,
+                        binding_scores.device,
                     )
-                losses.append(loss)
-                assert not torch.isnan(losses[-1]).any(), "NaN loss"
+                    losses.append(loss)
             else:
                 predictions.append(binding_scores[:, bindings_indexer].argmax(dim=1))
 

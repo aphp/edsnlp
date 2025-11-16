@@ -652,7 +652,7 @@ class TrainableSpanClassifier(
 
     def lrt_scheme(self, scores, targets, lrt_parameters):
         new_y_tilde, changed_idx = lrt_flip_scheme(
-            scores, targets, delta=lrt_parameters.get("delta", 0.5)
+            scores, targets, delta=lrt_parameters.get("delta")
         )
         return new_y_tilde, changed_idx
 

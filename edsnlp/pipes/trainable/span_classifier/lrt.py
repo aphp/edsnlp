@@ -27,6 +27,7 @@ def lrt_flip_scheme(scores_bar, targets, delta):
       Chao Chen
     Paper Link Presented at ICML 2020" >>
     """
+    assert delta is not None, "Please provide delta for LRT scheme."
     if targets.shape[1] > 1:
         y_tilde = targets.argmax(dim=1)
     else:

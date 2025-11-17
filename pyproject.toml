@@ -332,8 +332,8 @@ where = ["."]
 requires = [
     "setuptools",
     "cython>=0.25,<3.1.0",  # v3 causes issues with spacy and numpy (.../spacy/tokens/token.pxd:1:0: 'numpy/ndarray.pxd' not found)
-    "spacy>=3.2,!=3.8.2,<3.8.10; python_version<'3.9'",
-    "spacy>=3.2,!=3.8.2,<3.8.10; python_version>='3.9'",
+    "spacy>=3.2,!=3.8.2,<3.8.9; python_version<'3.9'",
+    "spacy>=3.2,!=3.8.2,<3.8.9; python_version>='3.9'",
     # thinc doesn't provide binaries for python<3.9 from 8.2.5 so we need to cap it ourselves
     "thinc<8.2.5; python_version<'3.9'",
     "thinc>=8.2.5; python_version>='3.9'",

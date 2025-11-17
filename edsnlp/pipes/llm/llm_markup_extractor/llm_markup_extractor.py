@@ -196,6 +196,8 @@ class LlmMarkupExtractor(BaseNERComponent):
         The markup format to use when formatting the few-shot examples and
         parsing the model's output. Either "xml" (default) or "md" (Markdown).
         Make sure the prompt template matches the chosen format.
+    alignment_threshold : float
+        The threshold used to align the model's output with the original text.
     prompt : Union[str, Callable[[str, List[Tuple[str, str]]], List[Dict[str, str]]]]
         The prompt is the main way to control the model's behavior.
         It can be either:
@@ -262,6 +264,7 @@ class LlmMarkupExtractor(BaseNERComponent):
             str, Callable[[str, List[Tuple[str, str]]], List[Dict[str, str]]]
         ],
         markup_mode: Literal["xml", "md"] = "xml",
+        alignment_threshold: float = 0.0,
         examples: Iterable[Doc] = (),
         max_few_shot_examples: int = -1,
         use_retriever: Optional[bool] = None,
@@ -301,7 +304,9 @@ class LlmMarkupExtractor(BaseNERComponent):
         self.api_kwargs = api_kwargs or {}
         self.max_concurrent_requests = max_concurrent_requests
         self.on_error = on_error
-        self.seed = seed
+        self.alignment_threshold = alignment_threshold
+        if seed is not None:
+            api_kwargs["seed"] = seed
         self.retriever = None
         if self.max_few_shot_examples > 0 and use_retriever is not False:
             self.build_few_shot_retriever_(self.examples)
@@ -335,6 +340,7 @@ class LlmMarkupExtractor(BaseNERComponent):
             aligned = align(
                 {"text": res_text, "entities": ents},
                 {"text": stripped_text, "entities": []},
+                threshold=self.alignment_threshold,
             )
             res_ents = [
                 (f["begin"], f["end"], e["label"], e["attributes"])
@@ -504,7 +510,6 @@ class LlmMarkupExtractor(BaseNERComponent):
         response = self.client.chat.completions.create(
             model=self.model,
             messages=messages,
-            seed=self.seed,
             **self.api_kwargs,
         )
         return response.choices[0].message.content
@@ -514,7 +519,6 @@ class LlmMarkupExtractor(BaseNERComponent):
             response = await self.async_client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                seed=self.seed,
                 **self.api_kwargs,
             )
             return response.choices[0].message.content

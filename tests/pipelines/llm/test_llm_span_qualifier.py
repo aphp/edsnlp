@@ -220,8 +220,9 @@ def test_llm_span_qualifier_async_error(xml2doc, doc2xml):
         assert_response_schema(response_format)
         raise ValueError("Simulated error")
 
-    with mock_llm_service(responder=responder), pytest.warns(
-        UserWarning, match="request failed"
+    with (
+        mock_llm_service(responder=responder),
+        pytest.warns(UserWarning, match="request failed"),
     ):
         doc = nlp(doc)
 

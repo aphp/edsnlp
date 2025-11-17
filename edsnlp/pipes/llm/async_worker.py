@@ -25,14 +25,16 @@ class AsyncRequestWorker:
             cls._instance = AsyncRequestWorker()
         return cls._instance
 
-    def submit(self, coro: Coroutine[Any, Any, Any]) -> int:
+    def submit(
+        self, coro: Coroutine[Any, Any, Any], timeout: Optional[float] = None
+    ) -> int:
         with self._lock:
             task_id = self._next_id
             self._next_id += 1
 
         async def _wrap():
             try:
-                res = await coro
+                res = await asyncio.wait_for(coro, timeout=timeout)
                 exc = None
             except BaseException as e:  # noqa: BLE001
                 res = None

@@ -70,6 +70,13 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
     model with an OpenAI-compatible API, such as
     [vLLM](https://github.com/vllm-project/vllm).
 
+    You can store your OpenAI API key in the `OPENAI_API_KEY` environment
+    variable.
+    ```python { .no-check }
+    import os
+    os.environ["OPENAI_API_KEY"] = "your_api_key_here"
+    ```
+
     Start a server with the model of your choice:
 
     ```bash { data-md-color-scheme="slate" }
@@ -86,15 +93,42 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
     === "Yes/no bool classification"
 
         ```python { .no-check }
-        from typing import Annotated
+        from typing import Annotated, TypedDict
         from pydantic import BeforeValidator, PlainSerializer, WithJsonSchema
         import edsnlp, edsnlp.pipes as eds
 
-        BiopsySchema = Annotated[
+        # Pydantic schema used to validate and parse the LLM response
+        # The output will be a boolean field.
+        # Example:
+        # ent._.biopsy_procedure → False
+        class BiopsySchema1(BaseModel):
+            biopsy_procedure: bool = Field(
+                ..., description="Is the span a biopsy procedure or not"
+            )
+
+        # Alternative schema using a TypedDict
+        # The output will be a dict with a boolean value instead of a boolean field.
+        # Example:
+        # ent._.biopsy_procedure → {'biopsy_procedure': False}
+        class BiopsySchema2(TypedDict):
+            biopsy_procedure: bool
+
+        # Alternative annotated schema with custom (de)serializers.
+        # This schema transforms the LLM’s output into a boolean before validation.
+        # Any case-insensitive variant of "yes", "y", or "true" is interpreted as True;
+        # all other values are treated as False.
+        #
+        # When serializing to JSON, the boolean is converted back into the strings
+        # "yes" (for True) or "no" (for False).
+        # The output will be a boolean field.
+        # Example:
+        # ent._.biopsy_procedure → False
+        BiopsySchema3 = Annotated[
             bool,
             BeforeValidator(lambda v: str(v).lower() in {"yes", "y", "true"}),
             PlainSerializer(lambda v: "yes" if v else "no", when_used="json"),
         ]
+
 
         PROMPT = """
         You are a span classifier. The user sends text where the target is
@@ -129,7 +163,7 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
                 context_getter="sent",
                 context_formatter=doc_to_xml,
                 attributes=["biopsy_procedure"],
-                output_schema=BiopsySchema,
+                output_schema=BiopsySchema1, # or BiopsySchema2 or BiopsySchema3
                 examples=examples,
                 max_few_shot_examples=2,
                 max_concurrent_requests=4,
@@ -219,6 +253,8 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
 
     <!-- blacken-docs:on -->
 
+    Advanced usage
+    --------
     You can also control the prompt more finely by providing a callable instead of a
     string. For example, to put few-shot examples in the system message and keep the
     span context as the user payload:
@@ -240,6 +276,33 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
         return messages
     ```
 
+    You can also control the context formatting by providing a custom callable
+    to the `context_formatter` parameter. For example, to wrap the context with
+    a custom prefix and suffix as follows:
+
+    ```python { .no-check }
+    from spacy.tokens import Doc
+
+    class ContextFormatter:
+        def __init__(self, prefix: str, suffix: str):
+            self.prefix = prefix
+            self.suffix = suffix
+
+        def __call__(self, context: Doc) -> str:
+            span = context.ents[0].text if context.ents else ""
+            prefix = self.prefix.format(span=span)
+            suffix = self.suffix.format(span=span)
+            return f"{prefix}{context.text}{suffix}"
+
+    context_formatter = ContextFormatter(prefix="\n## Context\n\n<<<\n",
+                                         suffix= "\n>>>\n\n## Instruction\nDoes '{span}' corresponds to a Biopsy date?")
+    ```
+
+    !!! note "`max_concurrent_requests` parameter"
+
+        We recommend setting the `max_concurrent_requests` parameter to a greater value
+          to improve throughput when processing batches of documents.
+
     Parameters
     ----------
     nlp : PipelineProtocol
@@ -250,14 +313,14 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
         Base URL of the OpenAI-compatible API.
     model : str
         Model identifier exposed by the API.
-    prompt : Union[str, Callable[[str, List[Tuple[str, str]]], List[Dict[str, str]]]]
+    prompt : Union[str, Callable[[Union[str, Doc], List[Tuple[Union[str, Doc], str]]], List[Dict[str, str]]]]
         The prompt is the main way to control the model's behavior.
         It can be either:
 
         - A string, which will be used as a system prompt.
           Few-shot examples (if any) will be provided as user/assistant
           messages before the actual user query.
-        - A callable that takes two arguments and returns a list of messages in the
+        - A callable that takes three arguments and returns a list of messages in the
           format expected by the OpenAI chat completions API.
 
             * `context`: the context text with the target span marked up
@@ -270,7 +333,7 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
         If `None`, the whole document text is used.
     context_formatter : Optional[Callable[[Doc], str]]
         Callable used to render the context passed to the LLM. Defaults to
-        `lambda doc: doc.text`.
+        `lambda context_getter_output:  context_getter_output.text`.
     attributes : Optional[AttributesArg]
         Attributes to predict. If omitted, the keys are inferred from the provided
         schema.
@@ -289,12 +352,16 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
     seed : Optional[int]
         Optional seed forwarded to the API.
     max_concurrent_requests : int
-        Maximum number of concurrent span requests per document.
+        Maximum number of concurrent span requests per batch of documents.
     api_kwargs : Dict[str, Any]
         Extra keyword arguments forwarded to `chat.completions.create`.
     on_error : Literal["raise", "warn"]
         Error handling strategy. If `"raise"`, exceptions are raised. If `"warn"`,
         exceptions are logged as warnings and processing continues.
+    timeout : Optional[float]
+        Optional timeout (in seconds) for each LLM request.
+    default_headers : Optional[Dict[str, str]]
+        Optional default headers for the API client.
     '''  # noqa: E501
 
     def __init__(
@@ -305,11 +372,15 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
         api_url: str,
         model: str,
         prompt: Union[
-            str, Callable[[str, List[Tuple[str, str]]], List[Dict[str, str]]]
+            str,
+            Callable[
+                [Union[str, Doc], List[Tuple[Union[str, Doc], str]]],
+                List[Dict[str, str]],
+            ],
         ],
         span_getter: Optional[SpanGetterArg] = None,
         context_getter: Optional[ContextWindow] = None,
-        context_formatter: Optional[Callable[[Doc], str]] = None,
+        context_formatter: Optional[Callable[[Doc], Union[str, Doc]]] = None,
         attributes: Optional[AttributesArg] = None,  # confit will auto cast to dict
         output_schema: Optional[
             Union[
@@ -325,6 +396,8 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
         max_concurrent_requests: int = 1,
         api_kwargs: Optional[Dict[str, Any]] = None,
         on_error: Literal["raise", "warn"] = "raise",
+        timeout: Optional[float] = None,
+        default_headers: Optional[Dict[str, str]] = {"Connection": "close"},
     ):
         import openai
 
@@ -333,12 +406,15 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
         self.api_url = api_url
         self.model = model
         self.prompt = prompt
+        self.timeout = timeout
         self.context_window = (
             ContextWindow.validate(context_getter)
             if context_getter is not None
             else None
         )
-        self.context_formatter = context_formatter or (lambda doc: doc.text)
+        self.context_formatter = context_formatter or (
+            lambda context_getter_output: context_getter_output.text
+        )
         self.seed = seed
         self.api_kwargs = api_kwargs or {}
         self.max_concurrent_requests = max_concurrent_requests
@@ -405,11 +481,11 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
             self.bindings.append((attr_path, labels, json_key, setter, getter))
         self.attributes = {path: labels for path, labels, *_ in self.bindings}
 
-        self.examples: List[Tuple[str, str]] = []
+        self.examples: List[Tuple[Union[str, Doc], str]] = []
         for doc in examples or []:
             for span in get_spans(doc, span_getter):
                 context_doc = self._build_context_doc(span)
-                context_text = self.context_formatter(context_doc)
+                formatted_context = self.context_formatter(context_doc)
                 values: Dict[str, Any] = {}
                 for _, labels, json_key, _, getter in self.bindings:
                     if (
@@ -440,7 +516,7 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
                         continue
                 else:
                     answer = json.dumps(values)
-                self.examples.append((context_text, answer))
+                self.examples.append((formatted_context, answer))
 
         self.max_few_shot_examples = max_few_shot_examples
         self.retriever = None
@@ -448,9 +524,15 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
         if self.max_few_shot_examples > 0 and use_retriever is not False:
             self.build_few_shot_retriever_(self.examples)
 
-        api_key = os.getenv("OPENAI_API_KEY", "")
+        api_key = os.getenv(
+            "OPENAI_API_KEY", "EMPTY_API_KEY"
+        )  # API key should be non empty (even when exposing local models without auth)
         self.client = openai.Client(base_url=self.api_url, api_key=api_key)
-        self._async_client = openai.AsyncOpenAI(base_url=self.api_url, api_key=api_key)
+        self._async_client = openai.AsyncOpenAI(
+            base_url=self.api_url,
+            api_key=api_key,
+            default_headers=default_headers,
+        )
 
         super().__init__(nlp=nlp, name=name, span_getter=span_getter)
 
@@ -468,7 +550,9 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
                 if not Span.has_extension(ext_name):
                     Span.set_extension(ext_name, default=None)
 
-    def build_few_shot_retriever_(self, samples: List[Tuple[str, str]]) -> None:
+    def build_few_shot_retriever_(
+        self, samples: List[Tuple[Union[str, Doc], str]]
+    ) -> None:
         # Same BM25 strategy as llm_markup_extractor
         import bm25s
         import Stemmer
@@ -476,15 +560,26 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
         lang = {"eds": "french"}.get(self.lang, self.lang)
         stemmer = Stemmer.Stemmer(lang)
         corpus = bm25s.tokenize(
-            [text for text, _ in samples], stemmer=stemmer, stopwords=lang
+            [
+                sample.text if isinstance(sample, Doc) else sample
+                for sample, _ in samples
+            ],
+            stemmer=stemmer,
+            stopwords=lang,
         )
         retriever = bm25s.BM25()
         retriever.index(corpus)
         self.retriever = retriever
         self.retriever_stemmer = stemmer
 
-    def build_prompt(self, context_text: str) -> List[Dict[str, str]]:
+    def build_prompt(self, formatted_context: Union[str, Doc]) -> List[Dict[str, str]]:
+        """Build the prompt messages for the LLM request."""
         import bm25s
+
+        if isinstance(formatted_context, Doc):
+            context_text = formatted_context.text
+        else:
+            context_text = formatted_context
 
         few_shot_examples: List[Tuple[str, str]] = []
         if self.retriever is not None:
@@ -510,7 +605,7 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
                 messages.append({"role": "assistant", "content": ans})
             messages.append({"role": "user", "content": context_text})
             return messages
-        return self.prompt(context_text, few_shot_examples)
+        return self.prompt(formatted_context, few_shot_examples)
 
     def _llm_request_sync(self, messages: List[Dict[str, str]]) -> str:
         call_kwargs = dict(self.api_kwargs)
@@ -662,9 +757,11 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
                     span = state["spans"][state["next_span"]]
                     state["next_span"] += 1
                     context_doc = self._build_context_doc(span)
-                    context_text = self.context_formatter(context_doc)
-                    messages = self.build_prompt(context_text)
-                    task_id = worker.submit(self._llm_request_coro(messages))
+                    formatted_context = self.context_formatter(context_doc)
+                    messages = self.build_prompt(formatted_context)
+                    task_id = worker.submit(
+                        self._llm_request_coro(messages), timeout=self.timeout
+                    )
                     pending[task_id] = (state, span)
                     state["pending"] += 1
                     if len(pending) >= self.max_concurrent_requests:
@@ -726,8 +823,8 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
 
         for span in spans:
             context_doc = self._build_context_doc(span)
-            context_text = self.context_formatter(context_doc)
-            messages = self.build_prompt(context_text)
+            formatted_context = self.context_formatter(context_doc)
+            messages = self.build_prompt(formatted_context)
             data = None
             try:
                 raw = self._llm_request_sync(messages)

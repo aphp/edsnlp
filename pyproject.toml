@@ -23,6 +23,7 @@ dependencies = [
     # blis>1.2.0 (dependency of thinc) doesn't provide binaries for python<3.10 so we need to cap it ourself
     "blis<1.0.0; python_version<'3.9'",
     "blis<1.2.1; python_version>='3.9' and python_version<'3.10'",
+    "murmurhash<1.0.14", # binary compatibility issues otherwise
     "confit>=0.9.0",
     "tqdm",
     "umls-downloader>=0.1.1",
@@ -332,8 +333,9 @@ where = ["."]
 requires = [
     "setuptools",
     "cython>=0.25,<3.1.0",  # v3 causes issues with spacy and numpy (.../spacy/tokens/token.pxd:1:0: 'numpy/ndarray.pxd' not found)
-    "spacy>=3.2,!=3.8.2; python_version<'3.9'",
-    "spacy>=3.2,!=3.8.2,<4.0.0; python_version>='3.9'",
+    "spacy>=3.2,!=3.8.2,<3.8.9; python_version<'3.9'",
+    "spacy>=3.2,!=3.8.2,<3.8.9; python_version>='3.9'",
+    "murmurhash<1.0.14", # binary compatibility issues otherwise
     # thinc doesn't provide binaries for python<3.9 from 8.2.5 so we need to cap it ourselves
     "thinc<8.2.5; python_version<'3.9'",
     "thinc>=8.2.5; python_version>='3.9'",

@@ -23,6 +23,7 @@ dependencies = [
     # blis>1.2.0 (dependency of thinc) doesn't provide binaries for python<3.10 so we need to cap it ourself
     "blis<1.0.0; python_version<'3.9'",
     "blis<1.2.1; python_version>='3.9' and python_version<'3.10'",
+    "murmurhash<1.0.14", # binary compatibility issues otherwise
     "confit>=0.9.0",
     "tqdm",
     "umls-downloader>=0.1.1",

@@ -145,3 +145,49 @@ def test_async_worker_error():
         docs = docs.to_iterable(converter="markup", preset="md")
         docs = list(docs)
         assert docs == md
+
+
+def test_context_getter_async():
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe("eds.normalizer")
+    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe(
+        eds.llm_markup_extractor(
+            api_url="http://localhost:8080/v1",
+            model="my-custom-model",
+            prompt=PROMPT,
+            max_concurrent_requests=2,
+            context_getter="sents",
+        )
+    )
+
+    md = [
+        "La patient souffre de [tuberculose](diagnosis). On débute une "
+        "[antibiothérapie](treatment) dès ajd.",
+        "Il a une [pneumonie](diagnosis) du thorax. C'est très grave.",
+    ]
+
+    counter = 0
+
+    def responder(messages, **kw):
+        nonlocal counter
+        counter += 1
+        assert len(messages) == 2  # 1 system + 1 user
+        res = (
+            messages[-1]["content"]
+            .replace("tuberculose", "<diagnosis>tuberculose</diagnosis>")
+            .replace("antibiothérapie", "<treatment>antibiothérapie</treatment>")
+            .replace("pneumonie", "<diagnosis>pneumonie</diagnosis>")
+            .replace("grave", "grave</diagnosis>")
+        )
+        return res
+
+    with mock_llm_service(responder=responder):
+        docs = edsnlp.data.from_iterable(md, converter="markup", preset="md")
+        docs = docs.map(lambda x: x.text)
+        docs = docs.map_pipeline(nlp)
+        docs = docs.to_iterable(converter="markup", preset="md")
+        docs = list(docs)
+        assert docs == md
+
+    assert counter == 4

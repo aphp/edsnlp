@@ -6,7 +6,7 @@ authors = [
 ]
 license = { file = "LICENSE" }
 readme = "README.md"
-requires-python = ">=3.7.1"
+requires-python = ">=3.10"
 dynamic = ['version']
 dependencies = [
     "loguru",
@@ -14,21 +14,14 @@ dependencies = [
     "pysimstring>=1.2.1",
     "regex",
     # spacy doesn't provide binaries for python<3.9 from 3.8.2 so we need to cap it ourself
-    "spacy>=3.2,<3.8.2; python_version<'3.9'",
     # at the moment, spacy >=3.8.7 requires cython 3 and messes up the registration of factories
-    "spacy>=3.8.5,<3.8.7; python_version>='3.9'",
+    "spacy>=3.8.7,<4",
     # thinc doesn't provide binaries for python<3.9 from 8.2.5 so we need to cap it ourself
-    "thinc<8.2.5; python_version<'3.9'",
-    "thinc>=8.2.5; python_version>='3.9'",
     # blis>1.2.0 (dependency of thinc) doesn't provide binaries for python<3.10 so we need to cap it ourself
-    "blis<1.0.0; python_version<'3.9'",
-    "blis<1.2.1; python_version>='3.9' and python_version<'3.10'",
     "confit>=0.9.0",
     "tqdm",
     "umls-downloader>=0.1.1",
-    "numpy>=1.15.0",
-    "pandas>=1.1.0; python_version<'3.8'",
-    "pandas>=1.4.0; python_version>='3.8'",
+    "pandas>=1.4.0",
     "typing-extensions>=4.0.0",
     "dill",
     # Packaging
@@ -36,32 +29,28 @@ dependencies = [
     "toml",
     "xxhash",
     "pyarrow>=3.0.0",  # support for fragment.metadata.num_rows
-    "fsspec; python_version>='3.8'",
-    "fsspec<2023.1.0; python_version<'3.8'",
-    # this is only to avoid backtracking issues with spacy's capping
-    "pydantic>=1.10.2",
-    "pydantic<2.0.0; python_version<'3.8'",
-    "pydantic-core<2.0.0; python_version<'3.8'",
+    "fsspec",
+    "pydantic>=2",
 ]
+
+[project.optional-dependencies]
 ml = [
     "rich-logger>=0.3.1",
-    "torch>=1.13.0; python_version>='3.9'",
+    "torch>=2",
     "foldedtensor>=0.4.0",
-    "safetensors>=0.3.0; python_version>='3.8'",
-    "safetensors>=0.3.0,<0.5.0; python_version<'3.8'",
+    "safetensors>=0.3.0",
     "transformers>=4.0.0",
     "accelerate>=0.20.3",
 ]
+
 [dependency-groups]
 dev-no-ml = [
-    "pre-commit>=2.0.0; python_version<'3.8'",
-    "pre-commit>=2.21.0; python_version>='3.8'",
+    "pre-commit>=2.21.0",
     "pytest>=7.1.0",
     "pytest-cov>=3.0.0",
     "pytest-timeout",
 
     # Data libs
-    "koalas>=1.8.1; python_version<'3.8'",
     "pyspark<4.0.0",  # TODO: uncap when we figure out the CI issue with pyspark 4.0.0
     "polars",
 
@@ -73,14 +62,14 @@ dev-no-ml = [
     { include-group = "docs-no-ml" },
 
     # LLM
-    "bm25s; python_version>='3.8'",
-    "PyStemmer; python_version>='3.8'",
-    "openai; python_version>='3.8'",
+    "bm25s",
+    "PyStemmer",
+    "openai",
 ]
 docs-no-ml = [
     "mkdocs-eds@git+https://github.com/aphp/mkdocs-eds.git@main#egg=mkdocs-eds",
     "mike",
-    "markdown-grid-tables==0.4.0; python_version>='3.9'",
+    "markdown-grid-tables==0.4.0",
 ]
 docs = [
     { include-group = "docs-no-ml" },
@@ -336,31 +325,9 @@ where = ["."]
 [build-system]
 requires = [
     "setuptools",
-    "cython>=0.25,<3.1.0",  # v3 causes issues with spacy and numpy (.../spacy/tokens/token.pxd:1:0: 'numpy/ndarray.pxd' not found)
-    "spacy>=3.2,!=3.8.2; python_version<'3.9'",
-    "spacy>=3.2,!=3.8.2,<4.0.0; python_version>='3.9'",
-    # thinc doesn't provide binaries for python<3.9 from 8.2.5 so we need to cap it ourselves
-    "thinc<8.2.5; python_version<'3.9'",
-    "thinc>=8.2.5; python_version>='3.9'",
-    # to update from https://github.com/scipy/oldest-supported-numpy/blob/main/setup.cfg
-    # while setting numpy >= 1.15.0 due to spacy reqs
-    "numpy==1.15.0; python_version=='3.7' and platform_machine not in 'arm64|aarch64|loongarch64' and platform_system!='AIX' and platform_python_implementation != 'PyPy'",
-    "numpy==1.15.0; python_version=='3.7' and platform_machine=='arm64' and platform_system=='Windows' and platform_python_implementation != 'PyPy'",
-    "numpy==1.16.0; python_version=='3.7' and platform_system=='AIX' and platform_machine!='loongarch64' and platform_python_implementation != 'PyPy'",
-    "numpy==1.17.3; python_version=='3.8' and platform_machine not in 'arm64|aarch64|s390x|loongarch64' and platform_python_implementation != 'PyPy'",
-    "numpy==1.17.3; python_version=='3.8' and platform_machine=='arm64' and platform_system=='Windows' and platform_python_implementation != 'PyPy'",
-    "numpy==1.17.5; python_version=='3.8' and platform_machine=='s390x' and platform_python_implementation != 'PyPy'",
-    "numpy==1.19.0; python_version=='3.6' and platform_machine!='loongarch64' and platform_python_implementation=='PyPy'",
-    "numpy==1.19.2; python_version=='3.7' and platform_machine=='aarch64' and platform_system!='AIX' and platform_python_implementation != 'PyPy'",
-    "numpy==1.19.2; python_version=='3.8' and platform_machine=='aarch64' and platform_python_implementation != 'PyPy'",
-    "numpy==1.20.0; python_version=='3.7' and platform_machine!='loongarch64' and platform_python_implementation=='PyPy'",
-    "numpy==1.21.0; python_version=='3.7' and platform_machine=='arm64' and platform_system=='Darwin' and platform_python_implementation!='PyPy'",
-    "numpy==1.21.0; python_version=='3.8' and platform_machine=='arm64' and platform_system=='Darwin' and platform_python_implementation!='PyPy'",
-    "numpy==1.22.2; python_version>='3.8' and python_version<'3.9' and platform_machine=='loongarch64' and platform_python_implementation!='PyPy'",
-    "numpy==1.22.2; python_version=='3.8' and platform_machine!='loongarch64' and platform_python_implementation=='PyPy'",
-    "numpy>=2.0; python_version>='3.9'",
-    "blis<1.0.0; python_version<'3.9'",
-    "blis<1.2.1; python_version>='3.9' and python_version<'3.10'",
+    "cython",  # v3 causes issues with spacy and numpy (.../spacy/tokens/token.pxd:1:0: 'numpy/ndarray.pxd' not found)
+    "spacy>=3.8.7,<4",
+    "numpy>2.0.0",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -459,7 +426,6 @@ torch-backend = "auto"
 
 [tool.cibuildwheel]
 skip = [
-    "*p36-*", # Skip Python 3.6
     "pp*", # Skip PyPy
     "*-win32", # Skip 32-bit Windows
     "*-manylinux_i686", # Skip 32-bit Linux
@@ -467,7 +433,7 @@ skip = [
     "*-musllinux*", # Skip slow Linux
     "*-manylinux_ppc64le", # Skip slow Linux
     "*-manylinux_s390x", # Skip slow Linux
-    "*p313-*", # skip 3.13 for now (spacy build issue): users will have to build it on their own
+    "*p314-*",
 ]
 
 before-test = 'pip install pytest "urllib3<2"'

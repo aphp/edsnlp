@@ -13,13 +13,13 @@ env:
 
 jobs:
   Documentation:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
 
     - uses: actions/setup-python@v4
       with:
-        python-version: "3.9"
+        python-version: "3.11"
         cache: 'pip'
 
     - run: echo WEEK=$(date +%V) >>$GITHUB_ENV

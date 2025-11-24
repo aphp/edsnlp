@@ -1,3 +1,4 @@
+import importlib.metadata as importlib_metadata
 import inspect
 import types
 from contextlib import contextmanager
@@ -17,19 +18,17 @@ from typing import (
 from weakref import WeakKeyDictionary
 
 import catalogue
+import confit
 import spacy
-from confit import Config, Registry, RegistryCollection, set_default_registry
+import spacy.registrations
+from confit import Config, RegistryCollection, set_default_registry
 from confit.errors import ConfitValidationError, patch_errors
 from confit.registry import Draft
 from spacy.pipe_analysis import validate_attrs
+from spacy.pipeline.factories import register_factories
 
 import edsnlp
 from edsnlp.utils.collections import FrozenDict, FrozenList
-
-try:
-    import importlib.metadata as importlib_metadata
-except ImportError:
-    import importlib_metadata
 
 PIPE_META = WeakKeyDictionary()
 
@@ -73,6 +72,13 @@ T = TypeVar("T")
 
 
 _AUTO_INSTANTIATE_COMPLETE_PIPE_DRAFT = True
+
+
+class Registry(confit.Registry):
+    def get(self, name: str) -> Any:
+        if name.startswith("spacy."):
+            spacy.registrations.populate_registry()
+        return super().get(name)
 
 
 class DraftPipe(Draft[T]):
@@ -277,10 +283,15 @@ class FactoryRegistry(Registry):
         registry_path = list(self.namespace) + [name]
         registry_spacy_path = ["spacy", "factories", name]
         registry_internal_spacy_path = ["spacy", "internal_factories", name]
+        registry_legacy_spacy_path = ["spacy-legacy", "factories", name]
 
         def check_and_return():
             if not catalogue.check_exists(*registry_path):
-                for path in (registry_spacy_path, registry_internal_spacy_path):
+                for path in (
+                    registry_spacy_path,
+                    registry_internal_spacy_path,
+                    registry_legacy_spacy_path,
+                ):
                     if catalogue.check_exists(*path):
                         func = catalogue._get(path)
                         meta = spacy.Language.get_factory_meta(name)
@@ -301,6 +312,7 @@ class FactoryRegistry(Registry):
         # Steps 1 & 2
         func = check_and_return()
         if func is None and self.entry_points:
+            register_factories()
             # Update entry points in case packages lookup paths have changed
             catalogue.AVAILABLE_ENTRY_POINTS = importlib_metadata.entry_points()
             # Otherwise, step 3
@@ -308,7 +320,6 @@ class FactoryRegistry(Registry):
             # Then redo steps 1 & 2
             func = check_and_return()
         if func is None:
-            # Otherwise, step 4
             if hasattr(spacy.registry, "_entry_point_factories"):
                 spacy.registry._entry_point_factories.get_entry_point(name)
                 # Then redo steps 1 & 2

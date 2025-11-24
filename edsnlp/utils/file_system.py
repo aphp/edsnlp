@@ -6,17 +6,9 @@ from typing import Optional, Tuple, Union
 import fsspec.implementations.local
 import pyarrow.fs
 from fsspec import AbstractFileSystem
-from fsspec import __version__ as fsspec_version
 from fsspec.implementations.arrow import ArrowFSWrapper
 
 FileSystem = Union[AbstractFileSystem, pyarrow.fs.FileSystem]
-
-if fsspec_version < "2023.3.0":
-    # Ugly hack to make fsspec's arrow implementation work in python 3.7
-    # since arrow requires files to be seekable, and the default fsspec
-    # open(..., seekable) parameter is False
-    # See https://github.com/fsspec/filesystem_spec/pull/1186
-    ArrowFSWrapper._open.__wrapped__.__defaults__ = ("rb", None, True)
 
 
 def walk_match(

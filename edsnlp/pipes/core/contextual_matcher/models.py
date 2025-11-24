@@ -1,8 +1,9 @@
 import re
-from typing import TYPE_CHECKING, Any, List, Optional, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Type, Union
 
 import regex
-from pydantic import BaseModel
+from pydantic import BaseModel, GetCoreSchemaHandler, field_validator, model_validator
+from pydantic_core import core_schema
 
 from edsnlp.matchers.utils import ListOrStr
 from edsnlp.utils.span_getters import (
@@ -12,20 +13,16 @@ from edsnlp.utils.span_getters import (
 )
 from edsnlp.utils.typing import AsList
 
+
+def validator(x, allow_reuse=True, pre=False):
+    return field_validator(x, mode="before" if pre else "after")
+
+
+def root_validator(allow_reuse=True, pre=False):
+    return model_validator(mode="before" if pre else "after")
+
+
 Flags = Union[re.RegexFlag, int]
-
-try:
-    from pydantic import field_validator, model_validator
-
-    def validator(x, allow_reuse=True, pre=False):
-        return field_validator(x, mode="before" if pre else "after")
-
-    def root_validator(allow_reuse=True, pre=False):
-        return model_validator(mode="before" if pre else "after")
-
-
-except ImportError:
-    from pydantic import root_validator, validator
 
 
 def validate_window(cls, values):
@@ -216,10 +213,18 @@ class AssignModel(AsList[SingleAssignModel]):
         return v
 
     @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-        yield cls.name_uniqueness
-        yield cls.replace_uniqueness
+    def __get_pydantic_core_schema__(
+        cls,
+        source: Type[Any],
+        handler: GetCoreSchemaHandler,
+    ) -> core_schema.CoreSchema:
+        return core_schema.chain_schema(
+            [
+                handler.generate_schema(AsList[SingleAssignModel]),
+                core_schema.no_info_plain_validator_function(cls.name_uniqueness),
+                core_schema.no_info_plain_validator_function(cls.replace_uniqueness),
+            ]
+        )
 
 
 if TYPE_CHECKING:
@@ -298,9 +303,17 @@ class FullConfig(AsList[SingleConfig]):
         return v
 
     @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-        yield cls.source_uniqueness
+    def __get_pydantic_core_schema__(
+        cls,
+        source: Type[Any],
+        handler: GetCoreSchemaHandler,
+    ) -> core_schema.CoreSchema:
+        return core_schema.chain_schema(
+            [
+                handler.generate_schema(AsList[SingleConfig]),
+                core_schema.no_info_plain_validator_function(cls.source_uniqueness),
+            ]
+        )
 
 
 if TYPE_CHECKING:

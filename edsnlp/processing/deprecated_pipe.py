@@ -163,7 +163,7 @@ def pipe(
     except (AttributeError, KeyError):
         KoalasDataFrame = None
     is_koalas = KoalasDataFrame and isinstance(df, KoalasDataFrame)  # type: ignore
-    if is_koalas:
+    if is_koalas:  # pragma: no cover
         df: SparkDataFrame = df.to_spark()  # type: ignore
 
     docs = edsnlp.data.from_spark(
@@ -230,7 +230,7 @@ def pipe(
         )
     )
 
-    if is_koalas:
+    if is_koalas:  # pragma: no cover
         docs = docs.to_koalas()
 
     return docs

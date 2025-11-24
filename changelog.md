@@ -4,6 +4,7 @@
 
 ### Changed
 
+- :explosion: EDS-NLP now requires Python 3.10 or later.
 - Dependencies (dev, docs and setup) are now listed in dependency groups and installable via `pip install -e . --group the_group`
 
 ## v0.19.0 (2025-10-04)

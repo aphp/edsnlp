@@ -165,8 +165,6 @@ def load(*args, map_location=None, **kwargs):
     if torch.__version__ >= "2.1" and isinstance(args[0], str):
         kwargs["mmap"] = True
     try:
-        if torch.__version__ < "2.0.0":
-            torch.load.__globals__["pickle"] = dill
         result = torch.load(
             *args,
             pickle_module=dill,

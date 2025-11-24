@@ -11,7 +11,6 @@ from typing import Dict, List, Optional, Tuple, Union
 import joblib
 import optuna
 import optuna.visualization as vis
-import pydantic
 from configobj import ConfigObj
 from confit import Cli, Config
 from confit.utils.collections import split_path
@@ -48,9 +47,6 @@ class HyperparameterConfig(BaseModel, extra="forbid"):
     step: Optional[Union[float, int]] = None
     log: Optional[bool] = None
     choices: Optional[List[Union[str, float, int, bool]]] = None
-
-    if pydantic.VERSION < "2":
-        model_dump = BaseModel.dict
 
     def to_dict(self) -> dict:
         """

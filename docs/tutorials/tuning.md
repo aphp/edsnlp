@@ -32,7 +32,7 @@ authors = [
     { name="Firstname Lastname", email="firstname.lastname@domain.com" }
 ]
 readme = "README.md"
-requires-python = ">3.7.1,<4.0"
+requires-python = ">3.10,<4.0"
 
 dependencies = [
     "edsnlp[ml]>=0.16.0",

@@ -61,15 +61,27 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Install dependencies
+<<<<<<< HEAD
         run: uv pip install -e . --group dev
 
       - name: Install dependencies
         run: pip install -e ".[dev,setup,llm]"
+=======
+        run: pip install -e . --group dev
+        if: matrix.python-version != '3.9' && matrix.python-version != '3.10' && matrix.python-version != '3.11' && matrix.python-version != '3.12'
+
+      - name: Install dependencies
+        run: pip install -e . --group dev --group setup
+>>>>>>> b87e1b241 (chore: move most of optional dependencies to dependency groups)
         if: matrix.python-version == '3.9'
 
       - name: Install dependencies
         # skip ML tests for 3.10 and 3.11
+<<<<<<< HEAD
         run: pip install -e ".[dev-no-ml]" "mkdocs-eds@git+https://github.com/percevalw/mkdocs-eds.git@main#egg=mkdocs-eds ; python_version>='3.9'"
+=======
+        run: pip install -e . --group dev-no-ml
+>>>>>>> b87e1b241 (chore: move most of optional dependencies to dependency groups)
         if: matrix.python-version == '3.10' || matrix.python-version == '3.11' || matrix.python-version == '3.12'
 
       - name: Test with Pytest on Python ${{ matrix.python-version }}

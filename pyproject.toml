@@ -88,6 +88,9 @@ dev = [
 ml = [
     "edsnlp[ml]"
 ]
+ml = [
+    "edsnlp[ml]"
+]
 
 [project.urls]
 "Source Code" = "https://github.com/aphp/edsnlp"

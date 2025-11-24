@@ -68,10 +68,11 @@ jobs:
         run: pip install -e ".[dev,setup,llm]"
 =======
         run: pip install -e . --group dev
-        if: matrix.python-version != '3.9' && matrix.python-version != '3.10' && matrix.python-version != '3.11' && matrix.python-version != '3.12'
+        if: matrix.python-version != '3.10' && matrix.python-version != '3.12' && matrix.python-version != '3.13' && matrix.python-version != '3.14'
 
       - name: Install dependencies
         run: pip install -e . --group dev --group setup
+<<<<<<< HEAD
 >>>>>>> b87e1b241 (chore: move most of optional dependencies to dependency groups)
         if: matrix.python-version == '3.9'
 
@@ -83,17 +84,26 @@ jobs:
         run: pip install -e . --group dev-no-ml
 >>>>>>> b87e1b241 (chore: move most of optional dependencies to dependency groups)
         if: matrix.python-version == '3.10' || matrix.python-version == '3.11' || matrix.python-version == '3.12'
+=======
+        if: matrix.python-version == '3.10'
+
+      - name: Install dependencies
+        # skip ML tests for 3.12 and 3.13
+        run: pip install -e . --group dev-no-ml
+        if: matrix.python-version == '3.12' || matrix.python-version == '3.13' || matrix.python-version == '3.14'
+>>>>>>> 96f6b7bf7 (refacto: we now require python>=3.10, pydantic>=2 and spacy>=3.8.7)
 
       - name: Test with Pytest on Python ${{ matrix.python-version }}
         env:
           UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
-        run: coverage run -m pytest --ignore tests/test_docs.py --ignore tests/pipelines/qualifiers/test_llm_qualifier.py --ignore tests/pipelines/qualifiers/test_llm_utils.py
-        if: matrix.python-version != '3.9'
+        run: coverage run -m pytest --ignore tests/test_docs.py
+        if: matrix.python-version != '3.10'
 
       - name: Test with Pytest on Python ${{ matrix.python-version }}
         env:
           UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
         run: coverage run -m pytest
+<<<<<<< HEAD
         if: matrix.python-version == '3.11'
 
       - name: Test with Pytest on Python ${{ matrix.python-version }}
@@ -101,6 +111,9 @@ jobs:
           UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
         run: coverage run -m pytest --ignore tests/test_docs.py --ignore tests/pipelines/trainable --ignore tests/training
         if: matrix.python-version != '3.11'
+=======
+        if: matrix.python-version == '3.10'
+>>>>>>> 96f6b7bf7 (refacto: we now require python>=3.10, pydantic>=2 and spacy>=3.8.7)
 
       - name: Upload coverage data
         uses: actions/upload-artifact@v4
@@ -129,9 +142,16 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+<<<<<<< HEAD
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+=======
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: 'pip'
+>>>>>>> 96f6b7bf7 (refacto: we now require python>=3.10, pydantic>=2 and spacy>=3.8.7)
 
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v7
@@ -204,7 +224,11 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
+<<<<<<< HEAD
         python-version: [ "3.10", "3.11", "3.12", "3.13" ]
+=======
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+>>>>>>> 96f6b7bf7 (refacto: we now require python>=3.10, pydantic>=2 and spacy>=3.8.7)
     steps:
       - uses: actions/checkout@v2
 

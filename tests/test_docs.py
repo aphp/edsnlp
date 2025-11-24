@@ -22,13 +22,9 @@ pytest.importorskip("rich")
 
 from extract_docs_code import extract_docs_code  # noqa: E402
 
-# We don't check documentation for Python <= 3.7:
-if sys.version_info < (3, 8):
-    url_to_code = {}
-else:
-    url_to_code = dict(extract_docs_code())
-    # just to make sure something didn't go wrong
-    assert len(url_to_code) > 50
+url_to_code = dict(extract_docs_code())
+# just to make sure something didn't go wrong
+assert len(url_to_code) > 50
 
 
 class nested_approx:
@@ -176,7 +172,7 @@ def assert_print(*args, sep=" ", end="\\n", file=None, flush=False):
 
 """ + insert_assert_statements(code)
     assert "# Out:" not in code_with_asserts, (
-        "Unparsed asserts in {url}:\n" + code_with_asserts
+        f"Unparsed asserts in {url}:\n" + code_with_asserts
     )
     # We'll import test_code_blocks from here
     sys.path.insert(0, str(tmpdir))

@@ -1,15 +1,9 @@
+import warnings
 from enum import Enum
 from typing import TYPE_CHECKING, Optional, Union
 
 import pydantic
-
-try:
-    from pydantic import field_validator
-
-    def validator(x, allow_reuse=True, pre=False):
-        return field_validator(x, mode="before" if pre else "after")
-except ImportError:
-    from pydantic import validator
+from pydantic import field_validator
 
 if TYPE_CHECKING:
     from pydantic.typing import (
@@ -18,7 +12,9 @@ if TYPE_CHECKING:
         MappingIntStrAny,
     )
 
-import warnings
+
+def validator(x: str, allow_reuse=True, pre=False):
+    return field_validator(x, mode="before" if pre else "after")
 
 
 class TnmEnum(Enum):
@@ -197,6 +193,3 @@ class TNM(pydantic.BaseModel):
                 d[k] = v.value
 
         return d
-
-    if pydantic.VERSION < "2":
-        model_dump = pydantic.BaseModel.dict

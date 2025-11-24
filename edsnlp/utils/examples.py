@@ -3,17 +3,9 @@ from typing import Any, Dict, List, Tuple, Union
 
 import regex
 from confit.utils.xjson import loads
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 from edsnlp.utils.typing import cast
-
-try:
-    from pydantic import field_validator
-except ImportError:
-    from pydantic import validator
-
-    def field_validator(x):
-        return validator(x, allow_reuse=True)
 
 
 class Match(BaseModel):
@@ -31,7 +23,7 @@ class Modifier(BaseModel):
     def optional_dict_parsing(cls, v):
         try:
             return loads(v)
-        except Exception:
+        except Exception:  # pragma: no cover
             return v
 
 

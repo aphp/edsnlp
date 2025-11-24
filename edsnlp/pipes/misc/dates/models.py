@@ -2,25 +2,20 @@ import datetime
 from enum import Enum
 from typing import Any, Dict, Optional, Union
 
-import pydantic
 from pandas._libs.tslibs.nattype import NaTType
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 from pytz import timezone
 from spacy.tokens import Span
 
 from edsnlp.pipes.misc.dates.patterns.relative import specific_dict
 
-try:
-    from pydantic import field_validator, model_validator
 
-    def validator(x, allow_reuse=True, pre=False):
-        return field_validator(x, mode="before" if pre else "after")
+def validator(x, allow_reuse=True, pre=False):
+    return field_validator(x, mode="before" if pre else "after")
 
-    def root_validator(allow_reuse=True, pre=False):
-        return model_validator(mode="before" if pre else "after")
 
-except ImportError:
-    from pydantic import root_validator, validator
+def root_validator(allow_reuse=True, pre=False):
+    return model_validator(mode="before" if pre else "after")
 
 
 class Direction(str, Enum):
@@ -74,9 +69,6 @@ class BaseDate(BaseModel):
     @property
     def duration(self):
         return self.to_duration()
-
-    if pydantic.VERSION < "2":
-        model_dump = BaseModel.dict
 
     def __str__(self):
         return self.norm()

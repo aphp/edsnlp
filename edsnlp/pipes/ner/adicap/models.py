@@ -17,6 +17,3 @@ class AdicapCode(pydantic.BaseModel):
 
     def __str__(self):
         return self.norm()
-
-    if pydantic.VERSION < "2":
-        model_dump = pydantic.BaseModel.dict

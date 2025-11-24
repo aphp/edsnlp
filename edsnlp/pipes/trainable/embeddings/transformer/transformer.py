@@ -225,14 +225,14 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         # Fix for https://github.com/aphp/edsnlp/issues/317
         old_params_data = {}
         for param in self.transformer.parameters():
-            if not param.is_contiguous():
+            if not param.is_contiguous():  # pragma: no cover
                 old_params_data[param] = param.data
                 param.data = param.data.contiguous()
 
         self.transformer.save_pretrained(path)
 
         # Restore non-contiguous tensors
-        for param, data in old_params_data.items():
+        for param, data in old_params_data.items():  # pragma: no cover
             param.data = data
 
         for param in self.transformer.parameters():

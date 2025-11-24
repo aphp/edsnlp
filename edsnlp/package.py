@@ -328,7 +328,7 @@ class OldStylePoetryPackager(Packager):
             "project": {
                 "name": model_package,
                 "version": version,
-                "requires-python": ">=3.7",
+                "requires-python": ">=3.10",
             },
         }
         file_paths = []
@@ -505,7 +505,7 @@ class StandardPackager(Packager):
                 "project": {
                     "name": model_package,
                     "version": version,
-                    "requires-python": ">=3.7",
+                    "requires-python": ">=3.10",
                 },
             }
         )

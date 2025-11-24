@@ -1,6 +1,7 @@
 import contextlib
 import functools
 import importlib
+import importlib.metadata as importlib_metadata
 import os
 import re
 import shutil
@@ -30,19 +31,24 @@ from typing import (
     Union,
 )
 
-import pkg_resources
 import requests
 import spacy
 import srsly
 from confit import Config
 from confit.errors import ConfitValidationError, patch_errors
 from confit.utils.xjson import Reference
+from packaging.requirements import Requirement
+from packaging.version import Version
+from pydantic_core import core_schema
 from spacy.language import BaseDefaults
 from spacy.tokenizer import Tokenizer
 from spacy.tokens import Doc
 from spacy.util import get_lang_class
 from spacy.vocab import Vocab, create_vocab
 from typing_extensions import Literal, Self
+
+import edsnlp
+from edsnlp.utils.collections import flatten
 
 from ..core.registries import PIPE_META, DraftPipe, FactoryMeta, registry
 from ..utils.collections import (
@@ -57,14 +63,6 @@ from .stream import Stream
 
 if TYPE_CHECKING:
     import torch
-
-try:
-    import importlib.metadata as importlib_metadata
-except ModuleNotFoundError:
-    import importlib_metadata
-
-import edsnlp
-from edsnlp.utils.collections import flatten
 
 EMPTY_LIST = FrozenList()
 FORBIDDEN_AUTO_HF_OWNERS = {
@@ -626,11 +624,8 @@ class Pipeline(Validated):
         return FrozenList(self._disabled)
 
     @classmethod
-    def __get_validators__(cls):
-        """
-        Pydantic validators generator
-        """
-        yield cls.validate
+    def __get_pydantic_core_schema__(cls, source, handler):
+        return core_schema.no_info_plain_validator_function(cls.validate)
 
     @classmethod
     def validate(cls, v, config=None):
@@ -1336,10 +1331,13 @@ def load_from_huggingface(
     missing_deps = []
     # Check if the dependencies are installed, with the correct version
     for req in reqs:
-        req_without_extra = re.sub(r"\[.*\]", "", req)
+        r = Requirement(re.sub(r"\[.*\]", "", req))
         try:
-            pkg_resources.require(req_without_extra)
-        except (pkg_resources.VersionConflict, pkg_resources.DistributionNotFound):
+            installed = Version(importlib_metadata.version(r.name))
+        except importlib_metadata.PackageNotFoundError:
+            installed = None
+
+        if installed is None or r.specifier and installed not in r.specifier:
             missing_deps.append(req)
 
     if missing_deps:

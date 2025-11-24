@@ -33,14 +33,14 @@ authors = [
     { name = "Firstname Lastname", email = "firstname.lastname@domain.com" }
 ]
 readme = "README.md"
-requires-python = ">3.7.1,<4.0"
+requires-python = ">3.10,<4.0"
 
 dependencies = [
     "edsnlp[ml]>=0.16.0",
     "sentencepiece>=0.1.96"
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "dvc>=2.37.0; python_version >= '3.8'",
     "pandas>=1.4.0,<2.0.0; python_version >= '3.8'",

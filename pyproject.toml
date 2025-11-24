@@ -43,7 +43,16 @@ dependencies = [
     "pydantic<2.0.0; python_version<'3.8'",
     "pydantic-core<2.0.0; python_version<'3.8'",
 ]
-[project.optional-dependencies]
+ml = [
+    "rich-logger>=0.3.1",
+    "torch>=1.13.0; python_version>='3.9'",
+    "foldedtensor>=0.4.0",
+    "safetensors>=0.3.0; python_version>='3.8'",
+    "safetensors>=0.3.0,<0.5.0; python_version<'3.8'",
+    "transformers>=4.0.0",
+    "accelerate>=0.20.3",
+]
+[dependency-groups]
 dev-no-ml = [
     "pre-commit>=2.0.0; python_version<'3.8'",
     "pre-commit>=2.21.0; python_version>='3.8'",
@@ -61,7 +70,7 @@ dev-no-ml = [
     # Packaging
     "poetry",
 
-    "edsnlp[docs-no-ml]",
+    { include-group = "docs-no-ml" },
 
     # LLM
     "bm25s; python_version>='3.8'",
@@ -69,24 +78,17 @@ dev-no-ml = [
     "openai; python_version>='3.8'",
 ]
 docs-no-ml = [
+    "mkdocs-eds@git+https://github.com/aphp/mkdocs-eds.git@main#egg=mkdocs-eds",
+    "mike",
     "markdown-grid-tables==0.4.0; python_version>='3.9'",
 ]
-ml = [
-    "rich-logger>=0.3.1",
-    "torch>=1.13.0; python_version>='3.9'",
-    "foldedtensor>=0.4.0",
-    "safetensors>=0.3.0; python_version>='3.8'",
-    "safetensors>=0.3.0,<0.5.0; python_version<'3.8'",
-    "transformers>=4.0.0",
-    "accelerate>=0.20.3",
-]
 docs = [
-    "edsnlp[docs-no-ml]",
-    "edsnlp[ml]",
+    { include-group = "docs-no-ml" },
+    { include-group = "ml" },
 ]
 dev = [
-    "edsnlp[dev-no-ml]",
-    "edsnlp[ml]",
+    { include-group = "dev-no-ml" },
+    { include-group = "ml" },
     "tensorboard",
     "optuna>=4.0.0",
     "plotly>=5.18.0", # required by optuna viz
@@ -97,6 +99,9 @@ dev = [
 setup = [
     "mlconjug3<3.9.0",  # bug https://github.com/Ars-Linguistica/mlconjug3/pull/506
     "numpy<2",  # mlconjug has scikit-learn dep which doesn't support for numpy 2 yet
+]
+ml = [
+    "edsnlp[ml]"
 ]
 
 [project.urls]

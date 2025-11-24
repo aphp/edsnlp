@@ -2,7 +2,7 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.2.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
         exclude: |
@@ -37,7 +37,7 @@ repos:
         additional_dependencies: [black==20.8b1]
         exclude: notebooks/
   - repo: https://github.com/econchick/interrogate
-    rev: 237be78
+    rev: 1.7.0
     hooks:
       - id: interrogate
         args: ["--config=pyproject.toml"]

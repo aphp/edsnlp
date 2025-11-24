@@ -24,7 +24,7 @@ $ python -m venv venv
 $ source venv/bin/activate
 
 # Install the package with common, dev, setup dependencies in editable mode
-$ pip install -e '.[dev,setup]' "mkdocs-eds@git+https://github.com/aphp/mkdocs-eds.git@main#egg=mkdocs-eds ; python_version>='3.9'"
+$ pip install -e . --group dev --group setup
 # And build resources
 $ python scripts/conjugate_verbs.py
 ```
@@ -113,7 +113,7 @@ We use `MkDocs` for EDS-NLP's documentation. You can check out the changes you m
 
 ```console
 # Install the requirements
-$ pip install -e '.[docs]' "mkdocs-eds@git+https://github.com/aphp/mkdocs-eds.git@main#egg=mkdocs-eds ; python_version>='3.9'"
+$ pip install -e . --group docs
 ---> 100%
 color:green Installation successful
 

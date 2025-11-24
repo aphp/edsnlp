@@ -31,9 +31,9 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install '.[docs]' "mkdocs-eds@git+https://github.com/aphp/mkdocs-eds.git@main#egg=mkdocs-eds ; python_version>='3.9'"
+        pip install . --group docs
 #        uv venv
-#        uv pip install '.[docs]'
+#        uv pip install . --group docs
 
     - name: Set up Git
       run: |

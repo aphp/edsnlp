@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Dependencies (dev, docs and setup) are now listed in dependency groups and installable via `pip install -e . --group the_group`
+
 ## v0.19.0 (2025-10-04)
 
 📢 EDS-NLP will drop support for Python 3.7, 3.8 and 3.9 support in the next major release (v0.20.0), in October 2025. Please upgrade to Python 3.10 or later.

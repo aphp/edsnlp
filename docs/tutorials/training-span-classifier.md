@@ -56,7 +56,7 @@ We recommend using a virtual environment and [uv](https://docs.astral.sh/uv/):
 pip install uv
 uv venv .venv
 source .venv/bin/activate
-uv pip install -e ".[dev]"
+uv pip install -e . --group dev
 ```
 
 ## Creating the dataset

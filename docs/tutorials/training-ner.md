@@ -41,7 +41,7 @@ dependencies = [
     "sentencepiece>=0.1.96"
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "dvc>=2.37.0; python_version >= '3.8'",
     "pandas>=1.1.0,<2.0.0; python_version < '3.8'",
@@ -59,7 +59,7 @@ pip install uv
 # skip the next two lines if you do not want a venv
 uv venv .venv
 source .venv/bin/activate
-uv pip install -e ".[dev]" -p $(uv python find)
+uv pip install -e . --group dev -p $(uv python find)
 ```
 
 ## Training the model

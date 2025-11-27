@@ -13,6 +13,10 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Iterator,
+    List,
+    Mapping,
+    MutableMapping,
     Optional,
     Sequence,
     Tuple,
@@ -1079,7 +1083,305 @@ class DocToMarkupConverter:
 
         return "".join(out)
 
+@registry.factory.register("eds.hf_text_dict2doc", spacy_compatible=False)
+class HfTextDict2DocConverter:
+    """
+    Converter for HuggingFace datasets where each example is a single text field.
 
+    This converter expects the dataset examples to contain a single column with
+    the document text (default: ``"text"``). It tokenizes the text using the
+    provided tokenizer (or the current context tokenizer) and returns a spaCy
+    ``Doc``. If the example contains an id column (default: ``"id"``) it will
+    be stored as ``doc._.note_id``.
+
+    Examples
+    --------
+    ```python
+    docs = from_huggingface_hub(
+        "wikimedia/wikipedia",
+        name="20231101.ady",
+        split='train',
+        converter="hf_text",
+        id_column="id", #this argument is set by default in `from_huggingface_hub()` to "id"
+        text_column="text", #this argument is set by default in `from_huggingface_hub()` to "text"
+    )
+    ```
+
+    Parameters
+    ----------
+    tokenizer: Optional[Tokenizer]
+        The tokenizer instance used to tokenize the documents. Likely not needed since
+        by default it uses the current context tokenizer :
+
+        - the tokenizer of the next pipeline run by `.map_pipeline` in a
+          [Stream][edsnlp.core.stream.Stream].
+        - or the `eds` tokenizer by default.
+    text_column: str
+        Column name containing the document text.
+    id_column: str
+        Column name containing the document id.
+    """
+
+    def __init__(
+        self,
+        *,
+        tokenizer: Optional[Tokenizer] = None,
+        text_column: str,
+        id_column: str,
+    ) -> None:
+        self.tokenizer = tokenizer
+        self.text_column = text_column
+        self.id_column = id_column
+
+    def __call__(self, obj, tokenizer=None) -> Doc:
+        tok = tokenizer or self.tokenizer or get_current_tokenizer()
+        doc = tok(obj[self.text_column] or "")
+        doc._.note_id = obj.get(self.id_column, obj.get(FILENAME))
+        return doc
+
+class IdentityStrDict(dict):
+    def __missing__(self, key: object) -> str:
+        return str(key)
+
+
+@registry.factory.register("eds.hf_ner_dict2doc", spacy_compatible=False)
+class HfNerDict2DocConverter:
+    """
+    Converter for HuggingFace NER datasets (e.g., WikiNER, CoNLL-2003).
+    
+    Examples
+    --------
+    ```python
+    docs = from_huggingface_hub(
+        "lhoestq/conll2003",
+        split="train",
+        id_column="id", #this argument is set by default in `from_huggingface_hub()` to "id"
+        words_column="tokens", #this argument is set by default in `from_huggingface_hub()` to "tokens"
+        ner_tags_column="ner_tags", #this argument is set by default in `from_huggingface_hub()` to "ner_tags"
+        tag_order=['O', 'B-PER', 'I-PER', 'B-ORG', 'I-ORG', 'B-LOC', 'I-LOC', 'B-MISC','I-MISC'],
+        converter="hf_ner",
+    )
+    ```
+
+    Parameters
+    ----------
+    tokenizer: Optional[Tokenizer]
+        Optional spaCy tokenizer.
+    words_column: str
+        Column with token words.
+    ner_tags_column: str
+        Column with token-level tags.
+    id_column: str
+        Column to use for doc id.
+    tag_map: Optional[Union[Mapping[int,str], Sequence[str], Mapping[str,str]]]
+        Mapping/index-to-label for tag ids. If provided, it is used as-is.
+        If not provided, you may pass `tag_order`, a sequence of labels
+        (e.g. `['O','B-PER','I-PER', ...]`) to construct the mapping via
+        ``{i: label for i, label in enumerate(tag_order)}``. If neither is
+        provided, labels are stringified.
+    tag_order: Optional[Sequence[str]]
+        Optional sequence of labels used to build ``tag_map`` when
+        ``tag_map`` is not provided.
+    span_setter: SpanSetterArg
+        Span setter (defaults to `{"ents": True}`).
+    """
+
+    def __init__(
+        self,
+        *,
+        tokenizer: Optional[Tokenizer] = None,
+        words_column: str,
+        ner_tags_column: str,
+        id_column: str,
+        tag_map: Optional[Mapping[Any, str]] = None,
+        tag_order: Optional[Sequence[str]] = None,
+        span_setter: SpanSetterArg = {"ents": True},
+    ) -> None:
+        self.tokenizer = tokenizer
+        self.words_column = words_column
+        self.ner_tags_column = ner_tags_column
+        self.id_column = id_column
+        # Build tag_map from tag_order if provided, otherwise use provided
+        # tag_map or fallback to IdentityStrDict which stringifies unknown keys.
+        if tag_map is not None and tag_order is not None:
+            raise ValueError("Provide only one of tag_map or tag_order, not both.")
+        elif tag_map is not None:
+            self.tag_map = tag_map  # type: ignore[arg-type]
+        elif tag_order is not None:
+            # Map indices to labels: 0 -> tag_order[0], etc.
+            self.tag_map = {i: lbl for i, lbl in enumerate(tag_order)}
+        else:
+            self.tag_map = IdentityStrDict()
+        self.span_setter = span_setter
+
+    def _resolve_label(self, tag: Any) -> str:
+        """
+        Resolve tag id or tag string to a label string.
+        Supports:
+         - integer ids with tag_map being list/dict
+         - tag strings like "B-PER", "I-PER", "B_PER", "I_PER", "O"
+        """
+        # If tag_map behaves like a mapping (dict or list)
+        try:
+            label = self.tag_map[tag]
+        except Exception:
+            # Fallback: if tag is already a string, use it
+            label = str(tag)
+        return label
+
+    def _tag_name(self, tag: Any) -> str:
+        label = self._resolve_label(tag)
+        # label might be "B-PER", "B_PER", "PER" or int str — return the entity type
+        if "-" in label and label.split('-')[0] in ['B', 'I', 'E', 'S', 'U', 'L']: #just to make sure tags follow a BIOES/BILOU schema
+            return label.split("-", 1)[-1]
+        elif "_" in label and label.split('_')[0] in ['B', 'I', 'E', 'S', 'U', 'L']: #just to make sure tags follow a BIOES/BILOU schema
+            return label.split("_", 1)[-1]
+        return label
+
+    def _split_tag(self, raw: str) -> tuple:
+        """
+        Split a tag into (prefix, entity_type).
+        Handles both hyphen (B-PER) and underscore (B_PER) separators.
+        Returns (None, raw) if no separator is found.
+        """
+        if "-" in raw and raw.split('-')[0] in ['B', 'I', 'E', 'S', 'U', 'L']: #just to make sure tags follow a BIOES/BILOU schema
+            return tuple(raw.split("-", 1))
+        elif "_" in raw and raw.split('_')[0] in ['B', 'I', 'E', 'S', 'U', 'L']: #just to make sure tags follow a BIOES/BILOU schema
+            return tuple(raw.split("_", 1))
+        else:
+            return (None, raw)
+
+    def _extract_entities(self, doc: Doc, ner_tags: Sequence[Any]) -> List[Dict[str, Any]]:
+        """Extract entities from a spaCy `Doc` and token-level NER tags.
+
+        The method implements a forgiving BIO-like logic:
+        - `B-<TYPE>` or `B_<TYPE>` starts a new entity
+        - `I-<TYPE>` or `I_<TYPE>` continues an entity of the same type, otherwise treated as `B-`
+        - `O` marks outside
+        - Labels without a prefix are treated as plain types and grouped when
+          consecutive tokens have the same type
+
+        Returns a list of dicts with keys: 'label', 'begin', 'end', 'text'.
+        """
+        entities: List[Dict[str, Any]] = []
+        n_tokens = len(doc)
+        if len(ner_tags) != n_tokens:
+            warnings.warn(
+                f"Length mismatch between tokens ({n_tokens}) and ner_tags ({len(ner_tags)}); using min length."
+            )
+
+        L = min(n_tokens, len(ner_tags))
+        current_type: Optional[str] = None
+        start_idx: Optional[int] = None
+
+        def close_entity(end_idx: int):
+            nonlocal current_type, start_idx
+            if current_type is None or start_idx is None:
+                return
+            span = doc[start_idx : end_idx + 1]
+            entities.append(
+                {
+                    "label": current_type,
+                    "begin": span.start_char,
+                    "end": span.end_char,
+                    "text": span.text,
+                }
+            )
+            current_type = None
+            start_idx = None
+
+        i = 0
+        while i < L:
+            raw = self._resolve_label(ner_tags[i])
+            if raw in ("O", "0"):
+                if current_type is not None:
+                    close_entity(i - 1)
+                i += 1
+                continue
+
+            prefix, etype = self._split_tag(raw)
+
+            if prefix in ("B", "S") or current_type is None:
+                if current_type is not None:
+                    close_entity(i - 1)
+                current_type = etype
+                start_idx = i
+                if prefix == "S":
+                    close_entity(i)
+                i += 1
+                continue
+
+            if prefix in ("I", "E"):
+                if current_type == etype:
+                    if prefix == "E":
+                        close_entity(i)
+                    i += 1
+                    continue
+                # Mismatched I- tag -> treat as B-
+                if current_type is not None:
+                    close_entity(i - 1)
+                current_type = etype
+                start_idx = i
+                i += 1
+                continue
+
+            # No explicit prefix: group consecutive same-type tokens
+            if current_type is None:
+                current_type = etype
+                start_idx = i
+            elif current_type != etype:
+                close_entity(i - 1)
+                current_type = etype
+                start_idx = i
+            i += 1
+
+        if current_type is not None:
+            close_entity(L - 1)
+
+        return entities
+
+    def __call__(self, obj: Mapping[str, Any], tokenizer: Optional[Tokenizer] = None) -> Doc:
+        tok = tokenizer or self.tokenizer or get_current_tokenizer()
+
+        # Get data from the example
+        words = obj[self.words_column]
+        ner_tags = obj[self.ner_tags_column]
+
+        # Build a spaCy Doc directly from words to avoid tokenizer mismatches
+        vocab = tok.vocab
+        # assume single-space separation between tokens
+        spaces = [True] * (len(words) - 1) + [False]
+        doc = Doc(vocab, words=words, spaces=spaces)
+
+        # Set document ID
+        doc._.note_id = obj.get(self.id_column, obj.get(FILENAME))
+
+        # Extract entities using the token-aligned Doc
+        entities = self._extract_entities(doc, ner_tags)
+
+        # Add entities to doc
+        spans: List[Span] = []
+        for entity in entities:
+            span = doc.char_span(
+                entity["begin"],
+                entity["end"],
+                label=entity["label"],
+                alignment_mode="expand",
+            )
+
+            if span is not None:
+                spans.append(span)
+            else:
+                warnings.warn(
+                    f"Could not align entity '{entity['text']}' "
+                    f"at ({entity['begin']}, {entity['end']})"
+                )
+
+        # Set entities on the doc
+        set_spans(doc, spans, span_setter=self.span_setter)
+
+        return doc
+    
 def get_dict2doc_converter(
     converter: Union[str, Callable], kwargs
 ) -> Tuple[Callable, Dict]:

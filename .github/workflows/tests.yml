@@ -70,7 +70,7 @@ jobs:
 
       - name: Install dependencies
         # skip ML tests for 3.12 and 3.13
-        run: pip install -e . --group dev-no-ml
+        run: pip install -e . --group dev
         if: matrix.python-version == '3.12' || matrix.python-version == '3.13' || matrix.python-version == '3.14'
 
       - name: Test with Pytest on Python ${{ matrix.python-version }}

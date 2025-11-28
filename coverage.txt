@@ -82,7 +82,7 @@ edsnlp/pipes/llm/__init__.py                                                    
 edsnlp/pipes/llm/async_worker.py                                                           48      0 100.00%
 edsnlp/pipes/llm/llm_markup_extractor/__init__.py                                           1      0 100.00%
 edsnlp/pipes/llm/llm_markup_extractor/factory.py                                            3      0 100.00%
-edsnlp/pipes/llm/llm_markup_extractor/llm_markup_extractor.py                             148      8  94.59%   349, 461, 468, 486, 490-493
+edsnlp/pipes/llm/llm_markup_extractor/llm_markup_extractor.py                             157      5  96.82%   310, 356, 468-469, 491
 edsnlp/pipes/misc/__init__.py                                                               0      0 100.00%
 edsnlp/pipes/misc/consultation_dates/__init__.py                                            0      0 100.00%
 edsnlp/pipes/misc/consultation_dates/consultation_dates.py                                 48      2  95.83%   132, 135
@@ -341,4 +341,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      81      9  88.89%   103, 119, 122-128, 144
 edsnlp/utils/typing.py                                                                     46      0 100.00%
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   12220    252  97.94%
+TOTAL                                                                                   12229    249  97.96%

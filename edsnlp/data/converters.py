@@ -13,10 +13,8 @@ from typing import (
     Any,
     Callable,
     Dict,
-    Iterator,
     List,
     Mapping,
-    MutableMapping,
     Optional,
     Sequence,
     Tuple,
@@ -1083,6 +1081,7 @@ class DocToMarkupConverter:
 
         return "".join(out)
 
+
 @registry.factory.register("eds.hf_text_dict2doc", spacy_compatible=False)
 class HfTextDict2DocConverter:
     """
@@ -1100,10 +1099,10 @@ class HfTextDict2DocConverter:
     docs = from_huggingface_hub(
         "wikimedia/wikipedia",
         name="20231101.ady",
-        split='train',
+        split="train",
         converter="hf_text",
-        id_column="id", #this argument is set by default in `from_huggingface_hub()` to "id"
-        text_column="text", #this argument is set by default in `from_huggingface_hub()` to "text"
+        id_column="id",
+        text_column="text",
     )
     ```
 
@@ -1158,6 +1157,7 @@ class HfTextDoc2DictConverter:
             self.text_column: doc.text,
         }
 
+
 class IdentityStrDict(dict):
     def __missing__(self, key: object) -> str:
         return str(key)
@@ -1167,17 +1167,27 @@ class IdentityStrDict(dict):
 class HfNerDict2DocConverter:
     """
     Converter for HuggingFace NER datasets (e.g., WikiNER, CoNLL-2003).
-    
+
     Examples
     --------
     ```python
     docs = from_huggingface_hub(
         "lhoestq/conll2003",
         split="train",
-        id_column="id", #this argument is set by default in `from_huggingface_hub()` to "id"
-        words_column="tokens", #this argument is set by default in `from_huggingface_hub()` to "tokens"
-        ner_tags_column="ner_tags", #this argument is set by default in `from_huggingface_hub()` to "ner_tags"
-        tag_order=['O', 'B-PER', 'I-PER', 'B-ORG', 'I-ORG', 'B-LOC', 'I-LOC', 'B-MISC','I-MISC'],
+        id_column="id",
+        words_column="tokens",
+        ner_tags_column="ner_tags",
+        tag_order=[
+            "O",
+            "B-PER",
+            "I-PER",
+            "B-ORG",
+            "I-ORG",
+            "B-LOC",
+            "I-LOC",
+            "B-MISC",
+            "I-MISC",
+        ],
         converter="hf_ner",
     )
     ```
@@ -1251,9 +1261,23 @@ class HfNerDict2DocConverter:
     def _tag_name(self, tag: Any) -> str:
         label = self._resolve_label(tag)
         # label might be "B-PER", "B_PER", "PER" or int str — return the entity type
-        if "-" in label and label.split('-')[0] in ['B', 'I', 'E', 'S', 'U', 'L']: #just to make sure tags follow a BIOES/BILOU schema
+        if "-" in label and label.split("-")[0] in [
+            "B",
+            "I",
+            "E",
+            "S",
+            "U",
+            "L",
+        ]:  # just to make sure tags follow a BIOES/BILOU schema
             return label.split("-", 1)[-1]
-        elif "_" in label and label.split('_')[0] in ['B', 'I', 'E', 'S', 'U', 'L']: #just to make sure tags follow a BIOES/BILOU schema
+        elif "_" in label and label.split("_")[0] in [
+            "B",
+            "I",
+            "E",
+            "S",
+            "U",
+            "L",
+        ]:  # just to make sure tags follow a BIOES/BILOU schema
             return label.split("_", 1)[-1]
         return label
 
@@ -1263,19 +1287,36 @@ class HfNerDict2DocConverter:
         Handles both hyphen (B-PER) and underscore (B_PER) separators.
         Returns (None, raw) if no separator is found.
         """
-        if "-" in raw and raw.split('-')[0] in ['B', 'I', 'E', 'S', 'U', 'L']: #just to make sure tags follow a BIOES/BILOU schema
+        if "-" in raw and raw.split("-")[0] in [
+            "B",
+            "I",
+            "E",
+            "S",
+            "U",
+            "L",
+        ]:  # just to make sure tags follow a BIOES/BILOU schema
             return tuple(raw.split("-", 1))
-        elif "_" in raw and raw.split('_')[0] in ['B', 'I', 'E', 'S', 'U', 'L']: #just to make sure tags follow a BIOES/BILOU schema
+        elif "_" in raw and raw.split("_")[0] in [
+            "B",
+            "I",
+            "E",
+            "S",
+            "U",
+            "L",
+        ]:  # just to make sure tags follow a BIOES/BILOU schema
             return tuple(raw.split("_", 1))
         else:
             return (None, raw)
 
-    def _extract_entities(self, doc: Doc, ner_tags: Sequence[Any]) -> List[Dict[str, Any]]:
+    def _extract_entities(
+        self, doc: Doc, ner_tags: Sequence[Any]
+    ) -> List[Dict[str, Any]]:
         """Extract entities from a spaCy `Doc` and token-level NER tags.
 
         The method implements a forgiving BIO-like logic:
         - `B-<TYPE>` or `B_<TYPE>` starts a new entity
-        - `I-<TYPE>` or `I_<TYPE>` continues an entity of the same type, otherwise treated as `B-`
+        - `I-<TYPE>` or `I_<TYPE>` continues an entity of the same type,
+        otherwise treated as `B-`
         - `O` marks outside
         - Labels without a prefix are treated as plain types and grouped when
           consecutive tokens have the same type
@@ -1286,7 +1327,8 @@ class HfNerDict2DocConverter:
         n_tokens = len(doc)
         if len(ner_tags) != n_tokens:
             warnings.warn(
-                f"Length mismatch between tokens ({n_tokens}) and ner_tags ({len(ner_tags)}); using min length."
+                f"Length mismatch between tokens ({n_tokens}) and ner_tags "
+                "({len(ner_tags)}); using min length."
             )
 
         L = min(n_tokens, len(ner_tags))
@@ -1359,7 +1401,9 @@ class HfNerDict2DocConverter:
 
         return entities
 
-    def __call__(self, obj: Mapping[str, Any], tokenizer: Optional[Tokenizer] = None) -> Doc:
+    def __call__(
+        self, obj: Mapping[str, Any], tokenizer: Optional[Tokenizer] = None
+    ) -> Doc:
         tok = tokenizer or self.tokenizer or get_current_tokenizer()
 
         # Get data from the example
@@ -1448,7 +1492,8 @@ class HfNerDoc2DictConverter:
             self.words_column: tokens,
             self.ner_tags_column: tags,
         }
-    
+
+
 def get_dict2doc_converter(
     converter: Union[str, Callable], kwargs
 ) -> Tuple[Callable, Dict]:

@@ -1,8 +1,9 @@
+import ast
 import random
 import re
-import ast
 import warnings
-from typing import Any, Callable, Iterable, Literal, Optional, Union, Dict
+from typing import Any, Callable, Dict, Iterable, Literal, Optional, Union
+
 from confit import validate_arguments
 
 from edsnlp import registry
@@ -27,7 +28,7 @@ class HFDatasetReader(MemoryBasedReader):
         self.rng = random.Random(seed)
         self.loop = loop
         self.emitted_sentinels = {"dataset"}
-    
+
     def read_records(self) -> Iterable[Any]:
         while True:
             data = self.dataset
@@ -39,7 +40,7 @@ class HFDatasetReader(MemoryBasedReader):
                     data = self.dataset
                 else:
                     self.rng.shuffle(data)
-            
+
             # If dataset supports iteration of examples
             try:
                 for item in data:
@@ -52,15 +53,15 @@ class HFDatasetReader(MemoryBasedReader):
             yield DatasetEndSentinel()
             if not self.loop:
                 break
-    
+
     def __repr__(self):
         return (
             f"{self.__class__.__name__}(data={object.__repr__(self.dataset)}, "
             f"shuffle={self.shuffle}, "
             f"loop={self.loop})"
         )
-            
-        
+
+
 @registry.readers.register("huggingface_hub")
 @validate_arguments()
 def from_huggingface_hub(
@@ -76,7 +77,7 @@ def from_huggingface_hub(
 ) -> Stream:
     """
     Load a dataset from the HuggingFace Hub as a Stream.
-    
+
     Example
     -------
     ```{ .python .no-check }
@@ -88,12 +89,22 @@ def from_huggingface_hub(
     doc_iterator = edsnlp.data.from_huggingface_hub(
         "lhoestq/conll2003",
         split="train",
-        tag_order=['O', 'B-PER', 'I-PER', 'B-ORG', 'I-ORG', 'B-LOC', 'I-LOC', 'B-MISC', 'I-MISC'],
+        tag_order=[
+            'O',
+            'B-PER',
+            'I-PER',
+            'B-ORG',
+            'I-ORG',
+            'B-LOC',
+            'I-LOC',
+            'B-MISC',
+            'I-MISC',
+        ],
         converter="hf_ner",
     )
     annotated_docs = nlp.pipe(doc_iterator)
     ```
-    
+
     Parameters
     ----------
     dataset: Union[str, Any]
@@ -103,7 +114,7 @@ def from_huggingface_hub(
         Which split to load (e.g. "train"). If None, the default dataset split
         returned by `datasets.load_dataset` is used.
     name: Optional[str]
-        Configuration name for datasets with multiple configs (e.g. "en" for 
+        Configuration name for datasets with multiple configs (e.g. "en" for
         a multilingual dataset). Also known as the subset name.
     converter: Optional[Union[str, Callable]]
         Converter(s) to transform dataset dicts to Doc objects. Recommended
@@ -117,7 +128,7 @@ def from_huggingface_hub(
     loop: bool
         Whether to loop over the dataset indefinitely.
     load_kwargs: dict
-        Dictionary of additional kwargs that will be passed to the 
+        Dictionary of additional kwargs that will be passed to the
         `datasets.load_dataset()` method.
     kwargs: dict
         Additional keyword arguments passed to the converter, these are
@@ -137,7 +148,7 @@ def from_huggingface_hub(
             "Install it with `pip install datasets` or with the edsnlp extras: "
             "`pip install 'edsnlp[ml]'`"
         ) from e
-    
+
     # If user passed a dataset identifier string, load it
     ds = dataset
     if isinstance(dataset, str):
@@ -159,21 +170,26 @@ def from_huggingface_hub(
                                 f"'{chosen}'. Pass `name` to select another config.",
                                 UserWarning,
                             )
-                            ds = datasets.load_dataset(dataset, name=chosen, split=split, **load_kwargs)
+                            ds = datasets.load_dataset(
+                                dataset, name=chosen, split=split, **load_kwargs
+                            )
                         else:
                             raise
                     except Exception:
                         raise ValueError(
                             f"Config name is missing for dataset {dataset!r}. "
-                            f"Please pass a `name` among the available configs as reported by the dataset builder."
+                            f"Please pass a `name` among the available configs as "
+                            f"reported by the dataset builder."
                         ) from e
                 else:
                     raise ValueError(
                         f"Config name is missing for dataset {dataset!r}. "
-                        f"Please pass a `name` among the available configs as reported by the dataset builder."
+                        f"Please pass a `name` among the available configs as "
+                        f"reported by the dataset builder."
                     ) from e
             else:
                 raise
+
     else:
         # If user passed a (split) name to select
         if split is not None and hasattr(dataset, "select"):
@@ -187,14 +203,16 @@ def from_huggingface_hub(
     try:
         if split is None and hasattr(ds, "keys") and "train" in ds.keys():
             warnings.warn(
-                f"Dataset {dataset!r} contains multiple splits and no `split` was provided; "
-                f"using 'train' by default. Pass `split` to select another split.",
+                f"Dataset {dataset!r} contains multiple splits and no `split` "
+                f"was provided; using 'train' by default. Pass `split` to "
+                f"select another split.",
                 UserWarning,
             )
             ds = ds["train"]
     except Exception:
         # Be conservative: if detection fails, keep ds as-is
         pass
+
     # Inspect available columns / features to give better errors and autodetection
     col_names = None
     try:
@@ -236,27 +254,26 @@ def from_huggingface_hub(
                 missing.append(f"`ner_tags_column`={ner_col}")
 
         if col_names is not None and missing:
-            # Build helpful message
             raise ValueError(
                 "Cannot find these columns in dataset: "
                 f"{missing}. "
                 + f"Dataset columns are: {col_names}."
                 + (
-                    " If you intended to process raw text, consider using the 'hf_text' "
-                    "converter (pass `converter='hf_text'` and `text_column='<column>'`)."
+                    " If you intended to process raw text, consider using the "
+                    "'hf_text' converter (pass `converter='hf_text'` and "
+                    "`text_column='<column>'`)."
                 )
             )
-         
+
         kwargs["id_column"] = id_col
         kwargs["words_column"] = words_col
         kwargs["ner_tags_column"] = ner_col
-        
-        
+
     # If the user requested the hf_text converter, ensure required column exists
     if converter == "hf_text":
         id_col = kwargs.get("id_column", "id")
         text_col = kwargs.get("text_column", "text")
-        
+
         missing = []
         if col_names is not None:
             if id_col not in col_names:
@@ -265,28 +282,28 @@ def from_huggingface_hub(
                 missing.append(f"`text_column`={text_col}")
 
         if col_names is not None and missing:
-            # Build helpful message
             raise ValueError(
                 "Cannot find these columns in dataset: "
                 f"{missing}. "
                 + f"Dataset columns are: {col_names}."
                 + (
-                    " If you intended to process a NER dataset, consider using the 'hf_ner' "
-                    "converter (pass `converter='hf_ner')."
+                    " If you intended to process a NER dataset, consider using the "
+                    "'hf_ner' converter (pass `converter='hf_ner')."
                 )
             )
-        
+
         kwargs["id_column"] = id_col
         kwargs["text_column"] = text_col
 
     reader = HFDatasetReader(ds, shuffle=shuffle, seed=seed, loop=loop)
     stream = Stream(reader=reader)
-    
+
     if converter:
         conv, kwargs = get_dict2doc_converter(converter, kwargs)
         stream = stream.map(conv, kwargs=kwargs)
-    
+
     return stream
+
 
 @registry.writers.register("huggingface_hub")
 def to_huggingface_hub(
@@ -316,9 +333,9 @@ def to_huggingface_hub(
       `Dataset` object is returned.
 
     Note on pushing: converting to a map-style dataset requires materializing
-    the examples which can be expensive for large collections. Prefer `push_to_hub=False`
-    when streaming or when the target repository already supports an iterable
-    import.
+    the examples which can be expensive for large collections. Prefer
+    `push_to_hub=False` when streaming or when the target repository already
+    supports an iterable import.
 
     Examples
     --------

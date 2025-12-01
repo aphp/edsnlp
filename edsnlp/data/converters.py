@@ -1139,6 +1139,25 @@ class HfTextDict2DocConverter:
         doc._.note_id = obj.get(self.id_column, obj.get(FILENAME))
         return doc
 
+
+@registry.factory.register("eds.hf_text_doc2dict", spacy_compatible=False)
+class HfTextDoc2DictConverter:
+    """Doc -> dict converter for simple text datasets.
+
+    Outputs a dict with the configured `id_column` and `text_column`.
+    """
+
+    def __init__(self, *, text_column: str, id_column: str):
+        self.text_column = text_column
+        self.id_column = id_column
+
+    def __call__(self, doc: Doc) -> Dict[str, Any]:
+        return {
+            FILENAME: doc._.note_id,
+            self.id_column: doc._.note_id,
+            self.text_column: doc.text,
+        }
+
 class IdentityStrDict(dict):
     def __missing__(self, key: object) -> str:
         return str(key)
@@ -1381,6 +1400,54 @@ class HfNerDict2DocConverter:
         set_spans(doc, spans, span_setter=self.span_setter)
 
         return doc
+
+
+@registry.factory.register("eds.hf_ner_doc2dict", spacy_compatible=False)
+class HfNerDoc2DictConverter:
+    """Doc -> dict converter for token-level NER datasets used by HuggingFace.
+
+    Produces a dict with token list in `words_column`, token tags in
+    `ner_tags_column`, and an identifier in `id_column`.
+    """
+
+    def __init__(
+        self,
+        *,
+        words_column: str = "tokens",
+        ner_tags_column: str = "ner_tags",
+        id_column: str = "id",
+        span_getter: SpanGetterArg = {"ents": True},
+    ) -> None:
+        self.words_column = words_column
+        self.ner_tags_column = ner_tags_column
+        self.id_column = id_column
+        self.span_getter = span_getter
+
+    def __call__(self, doc: Doc) -> Dict[str, Any]:
+        # Tokens as simple texts
+        tokens = [t.text for t in doc]
+        # Initialize tags to 'O'
+        tags = ["O"] * len(tokens)
+
+        # Get spans to export
+        spans = list(sorted(dict.fromkeys(get_spans(doc, self.span_getter))))
+        # Mark tags using simple BIO scheme
+        for sp in spans:
+            start = sp.start
+            end = sp.end  # end is exclusive
+            label = sp.label_
+            if start < 0 or start >= len(tags):
+                continue
+            tags[start] = f"B-{label}"
+            for i in range(start + 1, min(end, len(tags))):
+                tags[i] = f"I-{label}"
+
+        return {
+            FILENAME: doc._.note_id,
+            self.id_column: doc._.note_id,
+            self.words_column: tokens,
+            self.ner_tags_column: tags,
+        }
     
 def get_dict2doc_converter(
     converter: Union[str, Callable], kwargs

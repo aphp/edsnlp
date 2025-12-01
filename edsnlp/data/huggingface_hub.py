@@ -8,7 +8,7 @@ from confit import validate_arguments
 from edsnlp import registry
 from edsnlp.core.stream import Stream
 from edsnlp.data.base import MemoryBasedReader
-from edsnlp.data.converters import get_dict2doc_converter
+from edsnlp.data.converters import get_dict2doc_converter, get_doc2dict_converter
 from edsnlp.utils.stream_sentinels import DatasetEndSentinel
 
 
@@ -289,6 +289,146 @@ def from_huggingface_hub(
     return stream
 
 @registry.writers.register("huggingface_hub")
-def to_huggingface_hub():
-    #TODO : implement this ?
-    pass
+def to_huggingface_hub(
+    data: Union[Any, Stream],
+    dataset_name: Optional[str] = None,
+    *,
+    push_to_hub: bool = False,
+    token: Optional[str] = None,
+    converter: Optional[Union[str, Callable]] = None,
+    execute: bool = True,
+    **kwargs,
+) -> Any:
+    """
+    Convert a collection/`Stream` of spaCy `Doc` objects (or already-converted
+    dicts) into a `datasets.IterableDataset` and optionally push it to the
+    HuggingFace Hub.
+
+    Behavior summary
+    - Accepts any iterable or a `Stream` (use `Stream.ensure_stream()` internally).
+    - If `converter` is provided, it is used to map `Doc` -> dict (via
+      `get_doc2dict_converter`). If not provided the stream items must already
+      be mapping-like objects suitable for HF datasets.
+    - Returns a `datasets.IterableDataset` when `push_to_hub=False` (default).
+    - If `push_to_hub=True` the function will materialize a map-style
+      `datasets.Dataset` using `datasets.Dataset.from_generator(...)` and call
+      `.push_to_hub(dataset_name, token=token)`. In that case the pushed
+      `Dataset` object is returned.
+
+    Note on pushing: converting to a map-style dataset requires materializing
+    the examples which can be expensive for large collections. Prefer `push_to_hub=False`
+    when streaming or when the target repository already supports an iterable
+    import.
+
+    Examples
+    --------
+    1) Convert a `Stream` of HuggingFace NER examples into spaCy `Doc`s (reader),
+       process them and create an `IterableDataset` of dictionaries using the
+       `hf_ner` writer converter::
+
+           import edsnlp
+
+           stream = edsnlp.data.from_huggingface_hub(
+               "lhoestq/conll2003",
+               split="train",
+               converter="hf_ner",
+           )
+
+           # Apply a pipeline or other processing
+           stream = stream.map_pipeline(nlp)
+
+           # Export as HF IterableDataset of dicts (no push)
+           hf_iter = edsnlp.data.to_huggingface_hub(
+               stream,
+               converter="hf_ner_doc2dict",
+           )
+
+    2) Push a processed dataset to the HuggingFace Hub (materializes data)::
+
+           edsnlp.data.to_huggingface_hub(
+               stream,
+               dataset_name="username/my-ner-dataset",
+               push_to_hub=True,
+               token="<HF_TOKEN>",
+               converter="hf_ner_doc2dict",
+           )
+
+    3) Convert plain text Docs to HF text-format dicts::
+
+           edsnlp.data.to_huggingface_hub(
+               docs_stream,
+               converter=("hf_text_doc2dict"),
+               execute=True,
+               # converter kwargs are validated and forwarded by
+               # `get_doc2dict_converter` (e.g. `text_column`, `id_column`).
+           )
+
+    Parameters
+    ----------
+    data: Union[Any, Stream]
+        Iterable of `Doc` objects or a `Stream`. If `converter` is provided the
+        stream items are expected to be spaCy `Doc`s. Otherwise items should
+        already be mapping-like dicts.
+    dataset_name: Optional[str]
+        Destination repository name (``"user/repo"``) used when pushing.
+    push_to_hub: bool
+        Whether to push to HF Hub (defaults to False). When True, `dataset_name`
+        is required.
+    token: Optional[str]
+        HF token to use for `push_to_hub`. If None the default HF auth is used.
+    converter: Optional[Union[str, Callable]]
+        Converter name or callable used to transform `Doc` -> dict before
+        creating the dataset. Typical values: ``"hf_ner_doc2dict"`` or
+        ``"hf_text_doc2dict"``. Converter kwargs may be passed via ``**kwargs``.
+    execute: bool
+        If False, return a transformed `Stream` (not executed). If True (default)
+        produce and return a `datasets.IterableDataset` (or pushed `Dataset`).
+    **kwargs: dict
+        Extra kwargs forwarded to the converter factory.
+
+    Returns
+    -------
+    Union[datasets.IterableDataset, datasets.Dataset]
+        An ``IterableDataset`` when `push_to_hub=False`, otherwise the pushed
+        `Dataset` object returned by `push_to_hub`.
+    """
+
+    data = Stream.ensure_stream(data)
+
+    if converter:
+        conv, kwargs = get_doc2dict_converter(converter, kwargs)
+        data = data.map(conv, kwargs=kwargs)
+
+    if not execute:
+        return data
+
+    try:
+        import datasets
+    except Exception as e:  # pragma: no cover - dependency handling
+        raise ImportError(
+            "The 'datasets' library is required to write huggingface datasets. "
+            "Install it with `pip install datasets` or with the edsnlp extras: "
+            "`pip install 'edsnlp[ml]'`"
+        ) from e
+
+    def gen():
+        for item in data.execute():
+            if isinstance(item, DatasetEndSentinel):
+                continue
+            if isinstance(item, (list, tuple)):
+                for rec in item:
+                    yield rec
+            else:
+                yield item
+
+    iterable = datasets.IterableDataset.from_generator(gen)
+
+    if push_to_hub:
+        if not dataset_name:
+            raise ValueError("`dataset_name` must be provided when push_to_hub=True")
+        # Convert to a map-style dataset to push (this will materialize the data)
+        map_ds = datasets.Dataset.from_generator(gen)
+        map_ds.push_to_hub(dataset_name, token=token)
+        return map_ds
+
+    return iterable

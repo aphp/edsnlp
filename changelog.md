@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fixed
+
+- Don't pass seed to openai API calls (only as extra body)
+- Default to alignment threshold = 0 (better recall) for LLM annotated markup alignment with the original text
+- Fix `eds.llm_markup_extractor` context splitting to yield full docs and not parts of docs
+
 ### Changed
 
 - :explosion: EDS-NLP now requires Python 3.10 or later.

@@ -44,7 +44,13 @@ ml = [
 ]
 
 [dependency-groups]
-dev-no-ml = [
+docs = [
+    "mkdocs-eds@git+https://github.com/aphp/mkdocs-eds.git@main#egg=mkdocs-eds",
+    "mike",
+    "markdown-grid-tables==0.4.0",
+    "edsnlp[ml]",
+]
+dev = [
     "pre-commit>=2.21.0",
     "pytest>=7.1.0",
     "pytest-cov>=3.0.0",
@@ -59,31 +65,22 @@ dev-no-ml = [
     # Packaging
     "poetry",
 
-    { include-group = "docs-no-ml" },
+    # Docs
+    "mkdocs-eds@git+https://github.com/aphp/mkdocs-eds.git@main#egg=mkdocs-eds",
+    "mike",
+    "markdown-grid-tables==0.4.0",
 
     # LLM
     "bm25s",
     "PyStemmer",
     "openai",
-]
-docs-no-ml = [
-    "mkdocs-eds@git+https://github.com/aphp/mkdocs-eds.git@main#egg=mkdocs-eds",
-    "mike",
-    "markdown-grid-tables==0.4.0",
-]
-docs = [
-    { include-group = "docs-no-ml" },
-    { include-group = "ml" },
-]
-dev = [
-    { include-group = "dev-no-ml" },
-    { include-group = "ml" },
+
+    "edsnlp[ml]",
     "tensorboard",
     "optuna>=4.0.0",
     "plotly>=5.18.0", # required by optuna viz
     "ruamel.yaml>=0.18.0",
     "configobj>=5.0.9",
-    "scikit-learn",
 ]
 setup = [
     "mlconjug3<3.9.0",  # bug https://github.com/Ars-Linguistica/mlconjug3/pull/506

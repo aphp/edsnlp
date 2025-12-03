@@ -1229,7 +1229,7 @@ class HfNerDict2DocConverter:
         id_column: Optional[str] = None,
         tag_map: Optional[Mapping[Any, str]] = None,
         tag_order: Optional[Sequence[str]] = None,
-        span_setter: SpanSetterArg = {"ents": True},
+        span_setter: Optional[SpanSetterArg] = None,
     ) -> None:
         self.tokenizer = tokenizer
         self.words_column = words_column
@@ -1243,9 +1243,11 @@ class HfNerDict2DocConverter:
             self.tag_map = tag_map  # type: ignore[arg-type]
         elif tag_order is not None:
             # Map indices to labels: 0 -> tag_order[0], etc.
-            self.tag_map = {i: lbl for i, lbl in enumerate(tag_order)}
+            self.tag_map = dict(enumerate(tag_order))
         else:
             self.tag_map = IdentityStrDict()
+        if span_setter is None:
+            span_setter = {"ents": True}
         self.span_setter = span_setter
 
     def _resolve_label(self, tag: Any) -> str:
@@ -1313,6 +1315,31 @@ class HfNerDict2DocConverter:
         else:
             return (None, raw)
 
+    def _close_entity(
+        self,
+        doc: Doc,
+        entities: List[Dict[str, Any]],
+        current_type: Optional[str],
+        start_idx: Optional[int],
+        end_idx: int,
+    ) -> Optional[str]:
+        """Close the current entity and append it to the entities list.
+        
+        Returns None to signal that current_type should be reset.
+        """
+        if current_type is None or start_idx is None:
+            return None
+        span = doc[start_idx : end_idx + 1]
+        entities.append(
+            {
+                "label": current_type,
+                "begin": span.start_char,
+                "end": span.end_char,
+                "text": span.text,
+            }
+        )
+        return None
+
     def _extract_entities(
         self, doc: Doc, ner_tags: Sequence[Any]
     ) -> List[Dict[str, Any]]:
@@ -1321,7 +1348,7 @@ class HfNerDict2DocConverter:
         The method implements a forgiving BIO-like logic:
         - `B-<TYPE>` or `B_<TYPE>` starts a new entity
         - `I-<TYPE>` or `I_<TYPE>` continues an entity of the same type,
-        otherwise treated as `B-`
+          otherwise treated as `B-`
         - `O` marks outside
         - Labels without a prefix are treated as plain types and grouped when
           consecutive tokens have the same type
@@ -1333,35 +1360,22 @@ class HfNerDict2DocConverter:
         if len(ner_tags) != n_tokens:
             warnings.warn(
                 f"Length mismatch between tokens ({n_tokens}) and ner_tags "
-                "({len(ner_tags)}); using min length."
+                f"({len(ner_tags)}); using min length."
             )
 
         L = min(n_tokens, len(ner_tags))
         current_type: Optional[str] = None
         start_idx: Optional[int] = None
 
-        def close_entity(end_idx: int):
-            nonlocal current_type, start_idx
-            if current_type is None or start_idx is None:
-                return
-            span = doc[start_idx : end_idx + 1]
-            entities.append(
-                {
-                    "label": current_type,
-                    "begin": span.start_char,
-                    "end": span.end_char,
-                    "text": span.text,
-                }
-            )
-            current_type = None
-            start_idx = None
-
         i = 0
         while i < L:
             raw = self._resolve_label(ner_tags[i])
             if raw in ("O", "0"):
                 if current_type is not None:
-                    close_entity(i - 1)
+                    current_type = self._close_entity(
+                        doc, entities, current_type, start_idx, i - 1
+                    )
+                    start_idx = None
                 i += 1
                 continue
 
@@ -1369,23 +1383,35 @@ class HfNerDict2DocConverter:
 
             if prefix in ("B", "S") or current_type is None:
                 if current_type is not None:
-                    close_entity(i - 1)
+                    current_type = self._close_entity(
+                        doc, entities, current_type, start_idx, i - 1
+                    )
+                    start_idx = None
                 current_type = etype
                 start_idx = i
                 if prefix == "S":
-                    close_entity(i)
+                    current_type = self._close_entity(
+                        doc, entities, current_type, start_idx, i
+                    )
+                    start_idx = None
                 i += 1
                 continue
 
-            if prefix in ("I", "E"):
+            elif prefix in ("I", "E"):
                 if current_type == etype:
                     if prefix == "E":
-                        close_entity(i)
+                        current_type = self._close_entity(
+                            doc, entities, current_type, start_idx, i
+                        )
+                        start_idx = None
                     i += 1
                     continue
                 # Mismatched I- tag -> treat as B-
                 if current_type is not None:
-                    close_entity(i - 1)
+                    current_type = self._close_entity(
+                        doc, entities, current_type, start_idx, i - 1
+                    )
+                    start_idx = None
                 current_type = etype
                 start_idx = i
                 i += 1
@@ -1396,13 +1422,16 @@ class HfNerDict2DocConverter:
                 current_type = etype
                 start_idx = i
             elif current_type != etype:
-                close_entity(i - 1)
+                current_type = self._close_entity(
+                    doc, entities, current_type, start_idx, i - 1
+                )
+                start_idx = None
                 current_type = etype
                 start_idx = i
             i += 1
 
         if current_type is not None:
-            close_entity(L - 1)
+            self._close_entity(doc, entities, current_type, start_idx, L - 1)
 
         return entities
 
@@ -1462,17 +1491,19 @@ class HfNerDoc2DictConverter:
     Produces a dict with token list in `words_column`, token tags in
     `ner_tags_column`, and an identifier in `id_column`.
     """
-
     def __init__(
         self,
         *,
         words_column: str = "tokens",
         ner_tags_column: str = "ner_tags",
         id_column: str = "id",
-        span_getter: SpanGetterArg = {"ents": True},
+        span_getter: Optional[SpanSetterArg] = None,
     ) -> None:
         self.words_column = words_column
         self.ner_tags_column = ner_tags_column
+        if span_getter is None:
+            span_getter = {"ents": True}
+        self.span_getter = span_getter
         self.id_column = id_column
         self.span_getter = span_getter
 
@@ -1483,7 +1514,7 @@ class HfNerDoc2DictConverter:
         tags = ["O"] * len(tokens)
 
         # Get spans to export
-        spans = list(sorted(dict.fromkeys(get_spans(doc, self.span_getter))))
+        spans = list(dict.fromkeys(get_spans(doc, self.span_getter)))
         # Mark tags using simple BIO scheme
         for sp in spans:
             start = sp.start

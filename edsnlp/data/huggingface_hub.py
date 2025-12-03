@@ -41,15 +41,9 @@ class HFDatasetReader(MemoryBasedReader):
                 else:
                     self.rng.shuffle(data)
 
-            # If dataset supports iteration of examples
-            try:
-                for item in data:
-                    yield item
-            except TypeError:
-                # Not iterable? try indexes
-                for i in range(len(data)):
-                    yield data[i]
-
+            for item in data:
+                yield item
+       
             yield DatasetEndSentinel()
             if not self.loop:
                 break
@@ -61,6 +55,112 @@ class HFDatasetReader(MemoryBasedReader):
             f"loop={self.loop})"
         )
 
+
+def _import_datasets():
+    try:
+        import datasets
+        return datasets
+    except Exception as e:  # pragma: no cover - dependency handling
+        raise ImportError(
+            "The 'datasets' library is required to write huggingface datasets. "
+            "Install it with `pip install datasets` or with the edsnlp extras: "
+            "`pip install 'edsnlp[ml]'`"
+        ) from e
+
+def _validate_hf_ner_columns(col_names: Optional[Iterable[str]], kwargs: Dict[str, Any]):
+        words_col = kwargs.get("words_column", "tokens")
+        ner_col = kwargs.get("ner_tags_column", "ner_tags")
+
+        missing = []
+        if words_col not in col_names:
+            missing.append(f"words_column=\"{words_col}\"")
+        if ner_col not in col_names:
+            missing.append(f"ner_tags_column=\"{ner_col}\"")
+        if missing:
+            raise ValueError(
+                "Cannot find these columns in dataset: "
+                f"{missing}. "
+                + f"Dataset columns are: {col_names}."
+                + (
+                    " If you intended to process raw text, consider using the "
+                    "'hf_text' converter (pass `converter='hf_text'` and "
+                    "`text_column='<column>'`)."
+                )
+            )
+
+        kwargs["words_column"] = words_col
+        kwargs["ner_tags_column"] = ner_col
+        
+        if col_names is not None and "id" in col_names and "id_column" not in kwargs:
+            kwargs["id_column"] = "id"
+
+def _validate_hf_text_columns(col_names: Optional[Iterable[str]], kwargs: Dict[str, Any]):
+        text_col = kwargs.get("text_column", "text")
+
+        missing = []
+        if text_col not in col_names:
+                missing.append(f"text_column=\"{text_col}\"")
+        if missing:
+            raise ValueError(
+                "Cannot find these columns in dataset: "
+                f"{missing}. "
+                + f"Dataset columns are: {col_names}."
+                + (
+                    " If you intended to process a NER dataset, consider using the "
+                    "'hf_ner' converter (pass `converter='hf_ner')."
+                )
+            )
+
+        kwargs["text_column"] = text_col
+        
+        if col_names is not None and "id" in col_names and "id_column" not in kwargs:
+            kwargs["id_column"] = "id"
+
+def _load_hf_dataset_with_config(
+    dataset: str,
+    split: Optional[str] = None,
+    name: Optional[str] = None,
+    load_kwargs: Optional[Dict[str, Any]] = None,
+) -> Any:
+    datasets = _import_datasets()
+
+    try:
+        ds = datasets.load_dataset(dataset, name=name, split=split, **load_kwargs)
+    except ValueError as e:
+        msg = str(e)
+        # Handle datasets that require a config name when none was provided
+        if "Config name is missing" not in msg or name is not None:
+            raise
+            
+        m = re.search(r"available configs: (\[.*\])", msg)
+        if not m:
+            raise ValueError(
+                f"Config name is missing for dataset {dataset!r}. "
+                f"Please pass a `name` among the available configs as "
+                f"reported by the dataset builder."
+            ) from e
+            
+        try:
+            configs = ast.literal_eval(m.group(1))
+            if not configs:
+                raise
+            chosen = configs[0]
+            warnings.warn(
+                f"Dataset {dataset!r} requires a config name; "
+                f"no `name` was provided. Using first available config "
+                f"'{chosen}'. Pass `name` to select another config among: {configs}.",
+                UserWarning,
+            )
+            ds = datasets.load_dataset(
+                dataset, name=chosen, split=split, **load_kwargs
+            )
+        except Exception:
+            raise ValueError(
+                f"Config name is missing for dataset {dataset!r}. "
+                f"Please pass a `name` among the available configs as "
+                f"reported by the dataset builder."
+            ) from e
+    return ds
 
 @registry.readers.register("huggingface_hub")
 @validate_arguments()
@@ -140,161 +240,40 @@ def from_huggingface_hub(
     """
     load_kwargs = load_kwargs or {}
 
-    try:
-        import datasets
-    except Exception as e:  # pragma: no cover - dependency handling
-        raise ImportError(
-            "The 'datasets' library is required to load huggingface datasets. "
-            "Install it with `pip install datasets` or with the edsnlp extras: "
-            "`pip install 'edsnlp[ml]'`"
-        ) from e
-
     # If user passed a dataset identifier string, load it
     ds = dataset
     if isinstance(dataset, str):
-        try:
-            ds = datasets.load_dataset(dataset, name=name, split=split, **load_kwargs)
-        except ValueError as e:
-            msg = str(e)
-            # Handle datasets that require a config name when none was provided
-            if "Config name is missing" in msg and name is None:
-                m = re.search(r"available configs: (\[.*\])", msg)
-                if m:
-                    try:
-                        configs = ast.literal_eval(m.group(1))
-                        if configs:
-                            chosen = configs[0]
-                            warnings.warn(
-                                f"Dataset {dataset!r} requires a config name; "
-                                f"no `name` was provided. Using first available config "
-                                f"'{chosen}'. Pass `name` to select another config.",
-                                UserWarning,
-                            )
-                            ds = datasets.load_dataset(
-                                dataset, name=chosen, split=split, **load_kwargs
-                            )
-                        else:
-                            raise
-                    except Exception:
-                        raise ValueError(
-                            f"Config name is missing for dataset {dataset!r}. "
-                            f"Please pass a `name` among the available configs as "
-                            f"reported by the dataset builder."
-                        ) from e
-                else:
-                    raise ValueError(
-                        f"Config name is missing for dataset {dataset!r}. "
-                        f"Please pass a `name` among the available configs as "
-                        f"reported by the dataset builder."
-                    ) from e
-            else:
-                raise
+        ds = _load_hf_dataset_with_config(
+            dataset, split=split, name=name, load_kwargs=load_kwargs
+        )
 
     else:
         # If user passed a (split) name to select
-        if split is not None and hasattr(dataset, "select"):
+        if split is not None:
             try:
                 ds = dataset[split]
             except Exception:
-                pass
+                raise ValueError(
+                    f"Cannot select split {split!r} from dataset {dataset!r}."
+                )
+    
     # If no split was provided and the loaded dataset exposes multiple splits
     # (e.g., a `DatasetDict`), pick the 'train' split by default and warn
     # the user to be explicit.
-    try:
-        if split is None and hasattr(ds, "keys") and "train" in ds.keys():
-            warnings.warn(
-                f"Dataset {dataset!r} contains multiple splits and no `split` "
-                f"was provided; using 'train' by default. Pass `split` to "
-                f"select another split.",
-                UserWarning,
-            )
-            ds = ds["train"]
-    except Exception:
-        # Be conservative: if detection fails, keep ds as-is
-        pass
+    if split is None and hasattr(ds, "keys") and "train" in ds.keys():
+        warnings.warn(
+            f"Dataset {dataset!r} contains multiple splits and no `split` "
+            f"was provided; using 'train' by default. Pass `split` to "
+            f"select another split.",
+            UserWarning,
+        )
+        ds = ds["train"]
 
-    # Inspect available columns / features to give better errors and autodetection
-    col_names = None
-    try:
-        if hasattr(ds, "column_names"):
-            col_names = list(ds.column_names)
-        elif hasattr(ds, "features") and isinstance(ds.features, dict):
-            col_names = list(ds.features.keys())
-        else:
-            # Try to peek the first example
-            try:
-                first = ds[0]
-                if isinstance(first, dict):
-                    col_names = list(first.keys())
-            except Exception:
-                # Could be streaming/iterable without indexing
-                try:
-                    it = iter(ds)
-                    first = next(it)
-                    if isinstance(first, dict):
-                        col_names = list(first.keys())
-                except Exception:
-                    col_names = None
-    except Exception:
-        col_names = None
-
-    # If the user requested the hf_ner converter, ensure required columns exist
-    if converter == "hf_ner":
-        id_col = kwargs.get("id_column", "id")
-        words_col = kwargs.get("words_column", "tokens")
-        ner_col = kwargs.get("ner_tags_column", "ner_tags")
-
-        missing = []
-        if col_names is not None:
-            if id_col not in col_names:
-                missing.append(f"`id_column`={id_col}")
-            if words_col not in col_names:
-                missing.append(f"`words_column`={words_col}")
-            if ner_col not in col_names:
-                missing.append(f"`ner_tags_column`={ner_col}")
-
-        if col_names is not None and missing:
-            raise ValueError(
-                "Cannot find these columns in dataset: "
-                f"{missing}. "
-                + f"Dataset columns are: {col_names}."
-                + (
-                    " If you intended to process raw text, consider using the "
-                    "'hf_text' converter (pass `converter='hf_text'` and "
-                    "`text_column='<column>'`)."
-                )
-            )
-
-        kwargs["id_column"] = id_col
-        kwargs["words_column"] = words_col
-        kwargs["ner_tags_column"] = ner_col
-
-    # If the user requested the hf_text converter, ensure required column exists
-    if converter == "hf_text":
-        id_col = kwargs.get("id_column", "id")
-        text_col = kwargs.get("text_column", "text")
-
-        missing = []
-        if col_names is not None:
-            if id_col not in col_names:
-                missing.append(f"`id_column`={id_col}")
-            if text_col not in col_names:
-                missing.append(f"`text_column`={text_col}")
-
-        if col_names is not None and missing:
-            raise ValueError(
-                "Cannot find these columns in dataset: "
-                f"{missing}. "
-                + f"Dataset columns are: {col_names}."
-                + (
-                    " If you intended to process a NER dataset, consider using the "
-                    "'hf_ner' converter (pass `converter='hf_ner')."
-                )
-            )
-
-        kwargs["id_column"] = id_col
-        kwargs["text_column"] = text_col
-
+    if "hf_ner" in converter:
+        _validate_hf_ner_columns(list(ds.column_names), kwargs)
+    if "hf_text" in converter:
+        _validate_hf_text_columns(list(ds.column_names), kwargs)
+        
     reader = HFDatasetReader(ds, shuffle=shuffle, seed=seed, loop=loop)
     stream = Stream(reader=reader)
 
@@ -303,6 +282,18 @@ def from_huggingface_hub(
         stream = stream.map(conv, kwargs=kwargs)
 
     return stream
+
+
+
+def _iter_from_stream(data_stream):
+    for item in data_stream.execute():
+        if isinstance(item, DatasetEndSentinel):
+            continue
+        if isinstance(item, (list, tuple)):
+            for rec in item:
+                yield rec
+        else:
+            yield item
 
 
 @registry.writers.register("huggingface_hub")
@@ -419,33 +410,20 @@ def to_huggingface_hub(
     if not execute:
         return data
 
-    try:
-        import datasets
-    except Exception as e:  # pragma: no cover - dependency handling
-        raise ImportError(
-            "The 'datasets' library is required to write huggingface datasets. "
-            "Install it with `pip install datasets` or with the edsnlp extras: "
-            "`pip install 'edsnlp[ml]'`"
-        ) from e
+    datasets = _import_datasets()
 
-    def gen():
-        for item in data.execute():
-            if isinstance(item, DatasetEndSentinel):
-                continue
-            if isinstance(item, (list, tuple)):
-                for rec in item:
-                    yield rec
-            else:
-                yield item
+    # Pass a zero-arg callable that returns a generator function expected by HF
+    gen_callable = lambda: _iter_from_stream(data)
 
-    iterable = datasets.IterableDataset.from_generator(gen)
+    iterable = datasets.IterableDataset.from_generator(gen_callable)
 
-    if push_to_hub:
-        if not dataset_name:
-            raise ValueError("`dataset_name` must be provided when push_to_hub=True")
-        # Convert to a map-style dataset to push (this will materialize the data)
-        map_ds = datasets.Dataset.from_generator(gen)
-        map_ds.push_to_hub(dataset_name, token=token)
-        return map_ds
+    if not push_to_hub:
+        return iterable
 
-    return iterable
+    if not dataset_name:
+        raise ValueError("`dataset_name` must be provided when push_to_hub=True")
+
+    # Convert to a map-style dataset to push (this will materialize the data)
+    map_ds = datasets.Dataset.from_generator(gen_callable)
+    map_ds.push_to_hub(dataset_name, token=token)
+    return map_ds

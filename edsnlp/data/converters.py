@@ -1126,7 +1126,7 @@ class HfTextDict2DocConverter:
         *,
         tokenizer: Optional[Tokenizer] = None,
         text_column: str,
-        id_column: str,
+        id_column: Optional[str] = None,
     ) -> None:
         self.tokenizer = tokenizer
         self.text_column = text_column
@@ -1135,7 +1135,12 @@ class HfTextDict2DocConverter:
     def __call__(self, obj, tokenizer=None) -> Doc:
         tok = tokenizer or self.tokenizer or get_current_tokenizer()
         doc = tok(obj[self.text_column] or "")
-        doc._.note_id = obj.get(self.id_column, obj.get(FILENAME))
+        # Set note_id from configured id column when provided, otherwise
+        # fall back to the file-name sentinel if present.
+        if self.id_column is not None:
+            doc._.note_id = obj.get(self.id_column, obj.get(FILENAME))
+        else:
+            doc._.note_id = obj.get(FILENAME)
         return doc
 
 
@@ -1221,7 +1226,7 @@ class HfNerDict2DocConverter:
         tokenizer: Optional[Tokenizer] = None,
         words_column: str,
         ner_tags_column: str,
-        id_column: str,
+        id_column: Optional[str] = None,
         tag_map: Optional[Mapping[Any, str]] = None,
         tag_order: Optional[Sequence[str]] = None,
         span_setter: SpanSetterArg = {"ents": True},
@@ -1416,8 +1421,12 @@ class HfNerDict2DocConverter:
         spaces = [True] * (len(words) - 1) + [False]
         doc = Doc(vocab, words=words, spaces=spaces)
 
-        # Set document ID
-        doc._.note_id = obj.get(self.id_column, obj.get(FILENAME))
+        # Set document ID: prefer configured id column, otherwise use
+        # the file-name sentinel if present.
+        if self.id_column is not None:
+            doc._.note_id = obj.get(self.id_column, obj.get(FILENAME))
+        else:
+            doc._.note_id = obj.get(FILENAME)
 
         # Extract entities using the token-aligned Doc
         entities = self._extract_entities(doc, ner_tags)

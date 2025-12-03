@@ -24,7 +24,7 @@ class HFDatasetReader(MemoryBasedReader):
         super().__init__()
         self.dataset = dataset
         self.shuffle = "dataset" if shuffle == "dataset" or shuffle is True else False
-        seed = seed if seed is not None else random.getrandbits(32)
+        seed = seed if seed is not None else random.getrandbits(32) 
         self.rng = random.Random(seed)
         self.loop = loop
         self.emitted_sentinels = {"dataset"}
@@ -91,7 +91,7 @@ def _validate_hf_ner_columns(col_names: Optional[Iterable[str]], kwargs: Dict[st
         kwargs["words_column"] = words_col
         kwargs["ner_tags_column"] = ner_col
         
-        if col_names is not None and "id" in col_names and "id_column" not in kwargs:
+        if "id" in col_names and "id_column" not in kwargs:
             kwargs["id_column"] = "id"
 
 def _validate_hf_text_columns(col_names: Optional[Iterable[str]], kwargs: Dict[str, Any]):
@@ -113,7 +113,7 @@ def _validate_hf_text_columns(col_names: Optional[Iterable[str]], kwargs: Dict[s
 
         kwargs["text_column"] = text_col
         
-        if col_names is not None and "id" in col_names and "id_column" not in kwargs:
+        if "id" in col_names and "id_column" not in kwargs:
             kwargs["id_column"] = "id"
 
 def _load_hf_dataset_with_config(

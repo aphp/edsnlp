@@ -1340,18 +1340,79 @@ class HfNerDict2DocConverter:
         )
         return None
 
+    def _handle_b_or_s(
+        self,
+        doc: Doc,
+        entities: List[Dict[str, Any]],
+        prefix: str,
+        etype: str,
+        current_type: Optional[str],
+        start_idx: Optional[int],
+        i: int,
+    ) -> Tuple[Optional[str], Optional[int]]:
+        """Handle B- or S- prefixed tags and start (or single) entities."""
+        if current_type is not None:
+            current_type = self._close_entity(doc, entities, current_type, start_idx, i - 1)
+            start_idx = None
+        current_type = etype
+        start_idx = i
+        if prefix == "S":
+            current_type = self._close_entity(doc, entities, current_type, start_idx, i)
+            start_idx = None
+        return current_type, start_idx
+
+    def _handle_i_or_e(
+        self,
+        doc: Doc,
+        entities: List[Dict[str, Any]],
+        prefix: str,
+        etype: str,
+        current_type: Optional[str],
+        start_idx: Optional[int],
+        i: int,
+    ) -> Tuple[Optional[str], Optional[int]]:
+        """Handle I- or E- prefixed tags, including mismatches treated as B-."""
+        if current_type == etype:
+            if prefix == "E":
+                current_type = self._close_entity(doc, entities, current_type, start_idx, i)
+                start_idx = None
+            return current_type, start_idx
+
+        # Mismatched I- tag -> treat as B-
+        if current_type is not None:
+            current_type = self._close_entity(doc, entities, current_type, start_idx, i - 1)
+            start_idx = None
+        current_type = etype
+        start_idx = i
+        return current_type, start_idx
+
+    def _handle_no_prefix(
+        self,
+        doc: Doc,
+        entities: List[Dict[str, Any]],
+        etype: str,
+        current_type: Optional[str],
+        start_idx: Optional[int],
+        i: int,
+    ) -> Tuple[Optional[str], Optional[int]]:
+        """Handle labels without BIO prefixes by grouping consecutive same-type tokens."""
+        if current_type is None:
+            return etype, i
+        if current_type != etype:
+            current_type = self._close_entity(doc, entities, current_type, start_idx, i - 1)
+            start_idx = None
+            return etype, i
+        return current_type, start_idx
+
     def _extract_entities(
-        self, doc: Doc, ner_tags: Sequence[Any]
+        self,
+        doc: Doc,
+        ner_tags: Sequence[Any],
     ) -> List[Dict[str, Any]]:
         """Extract entities from a spaCy `Doc` and token-level NER tags.
 
-        The method implements a forgiving BIO-like logic:
-        - `B-<TYPE>` or `B_<TYPE>` starts a new entity
-        - `I-<TYPE>` or `I_<TYPE>` continues an entity of the same type,
-          otherwise treated as `B-`
-        - `O` marks outside
-        - Labels without a prefix are treated as plain types and grouped when
-          consecutive tokens have the same type
+        Implements a forgiving BIO-like logic; logic branches are delegated
+        to small helper methods to keep cognitive complexity low.
 
         Returns a list of dicts with keys: 'label', 'begin', 'end', 'text'.
         """
@@ -1367,68 +1428,26 @@ class HfNerDict2DocConverter:
         current_type: Optional[str] = None
         start_idx: Optional[int] = None
 
-        i = 0
-        while i < L:
+        for i in range(L):
             raw = self._resolve_label(ner_tags[i])
             if raw in ("O", "0"):
                 if current_type is not None:
-                    current_type = self._close_entity(
-                        doc, entities, current_type, start_idx, i - 1
-                    )
+                    current_type = self._close_entity(doc, entities, current_type, start_idx, i - 1)
                     start_idx = None
-                i += 1
                 continue
 
             prefix, etype = self._split_tag(raw)
 
             if prefix in ("B", "S") or current_type is None:
-                if current_type is not None:
-                    current_type = self._close_entity(
-                        doc, entities, current_type, start_idx, i - 1
-                    )
-                    start_idx = None
-                current_type = etype
-                start_idx = i
-                if prefix == "S":
-                    current_type = self._close_entity(
-                        doc, entities, current_type, start_idx, i
-                    )
-                    start_idx = None
-                i += 1
+                current_type, start_idx = self._handle_b_or_s(doc, entities, prefix, etype, current_type, start_idx, i)
                 continue
 
-            elif prefix in ("I", "E"):
-                if current_type == etype:
-                    if prefix == "E":
-                        current_type = self._close_entity(
-                            doc, entities, current_type, start_idx, i
-                        )
-                        start_idx = None
-                    i += 1
-                    continue
-                # Mismatched I- tag -> treat as B-
-                if current_type is not None:
-                    current_type = self._close_entity(
-                        doc, entities, current_type, start_idx, i - 1
-                    )
-                    start_idx = None
-                current_type = etype
-                start_idx = i
-                i += 1
+            if prefix in ("I", "E"):
+                current_type, start_idx = self._handle_i_or_e(doc, entities, prefix, etype, current_type, start_idx, i)
                 continue
 
             # No explicit prefix: group consecutive same-type tokens
-            if current_type is None:
-                current_type = etype
-                start_idx = i
-            elif current_type != etype:
-                current_type = self._close_entity(
-                    doc, entities, current_type, start_idx, i - 1
-                )
-                start_idx = None
-                current_type = etype
-                start_idx = i
-            i += 1
+            current_type, start_idx = self._handle_no_prefix(doc, entities, etype, current_type, start_idx, i)
 
         if current_type is not None:
             self._close_entity(doc, entities, current_type, start_idx, L - 1)
@@ -1436,7 +1455,9 @@ class HfNerDict2DocConverter:
         return entities
 
     def __call__(
-        self, obj: Mapping[str, Any], tokenizer: Optional[Tokenizer] = None
+        self,
+        obj: Mapping[str, Any],
+        tokenizer: Optional[Tokenizer] = None,
     ) -> Doc:
         tok = tokenizer or self.tokenizer or get_current_tokenizer()
 

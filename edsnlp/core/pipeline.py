@@ -1284,7 +1284,7 @@ def load_from_huggingface(
     try:
         path = snapshot_download(
             repo_id,
-            local_files_only=True, 
+            local_files_only=True,
             token=token,
             revision=revision,
         )

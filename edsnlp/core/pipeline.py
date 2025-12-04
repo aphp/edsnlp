@@ -1280,10 +1280,11 @@ def load_from_huggingface(
     )
     path = None
     mtime = None
+    # A. First snapshot_download() - with local_files_only=True
     try:
         path = snapshot_download(
             repo_id,
-            local_files_only=auto_update,
+            local_files_only=True,
             token=token,
             revision=revision,
         )
@@ -1292,6 +1293,8 @@ def load_from_huggingface(
         pass
 
     should_install = False
+    # B. If FileNotFoundError or auto_update, second snapshot_download()
+    #     with local_files_only=False => update files (if HF HUB is accessible)
     if path is None or auto_update:
         # Download the snapshot, which is the source distribution of the packaged model
         path = snapshot_download(

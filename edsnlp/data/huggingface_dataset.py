@@ -260,14 +260,11 @@ def from_huggingface_dataset (
     # If no split was provided and the loaded dataset exposes multiple splits
     # (e.g., a `DatasetDict`), pick the 'train' split by default and warn
     # the user to be explicit.
-    if split is None and hasattr(ds, "keys") and "train" in ds.keys():
-        warnings.warn(
-            f"Dataset {dataset!r} contains multiple splits and no `split` "
-            f"was provided; using 'train' by default. Pass `split` to "
-            f"select another split.",
-            UserWarning,
+    if split is None and hasattr(ds, "keys"):
+        raise ValueError(
+            f"Dataset {dataset!r} contains multiple splits; please provide "
+            f"a `split` argument to select one among: {list(ds.keys())}."
         )
-        ds = ds["train"]
 
     if "hf_ner" in converter:
         _validate_hf_ner_columns(list(ds.column_names), kwargs)

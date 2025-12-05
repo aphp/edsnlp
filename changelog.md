@@ -22,6 +22,10 @@
 - Fix `eds.llm_markup_extractor` context splitting to yield full docs and not parts of docs
 - Fix accelerate trackers integration for most loggers, in particular in multi GPU training
 
+### Fixed
+
+- Move the model to the device (e.g., a GPU) before running the post_init step and only post_init with the data included of the current training phase
+
 ## v0.19.0 (2025-10-04)
 
 📢 EDS-NLP will drop support for Python 3.7, 3.8 and 3.9 support in the next major release (v0.20.0), in October 2025. Please upgrade to Python 3.10 or later.

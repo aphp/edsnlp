@@ -127,39 +127,11 @@ def _load_hf_dataset_with_config(
     try:
         ds = datasets.load_dataset(dataset, name=name, split=split, **load_kwargs)
     except ValueError as e:
-        msg = str(e)
-        # Handle datasets that require a config name when none was provided
-        if "Config name is missing" not in msg or name is not None:
-            raise
-            
-        m = re.search(r"available configs: (\[.*\])", msg)
-        if not m:
-            raise ValueError(
-                f"Config name is missing for dataset {dataset!r}. "
-                f"Please pass a `name` among the available configs as "
-                f"reported by the dataset builder."
-            ) from e
-            
-        try:
-            configs = ast.literal_eval(m.group(1))
-            if not configs:
-                raise
-            chosen = configs[0]
-            warnings.warn(
-                f"Dataset {dataset!r} requires a config name; "
-                f"no `name` was provided. Using first available config "
-                f"'{chosen}'. Pass `name` to select another config among: {configs}.",
-                UserWarning,
-            )
-            ds = datasets.load_dataset(
-                dataset, name=chosen, split=split, **load_kwargs
-            )
-        except Exception:
-            raise ValueError(
-                f"Config name is missing for dataset {dataset!r}. "
-                f"Please pass a `name` among the available configs as "
-                f"reported by the dataset builder."
-            ) from e
+        raise ValueError(
+            f"Could not load dataset {dataset!r} with name={name!r} and "
+            f"split={split!r}. Please verify that the dataset identifier, "
+            "configuration name and split are correct."
+        ) from e
     return ds
 
 @registry.readers.register("huggingface_dataset ")

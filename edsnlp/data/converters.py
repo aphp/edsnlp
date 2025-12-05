@@ -1163,11 +1163,6 @@ class HfTextDoc2DictConverter:
         }
 
 
-class IdentityStrDict(dict):
-    def __missing__(self, key: object) -> str:
-        return str(key)
-
-
 @registry.factory.register("eds.hf_ner_dict2doc", spacy_compatible=False)
 class HfNerDict2DocConverter:
     """
@@ -1236,7 +1231,7 @@ class HfNerDict2DocConverter:
         self.ner_tags_column = ner_tags_column
         self.id_column = id_column
         # Build tag_map from tag_order if provided, otherwise use provided
-        # tag_map or fallback to IdentityStrDict which stringifies unknown keys.
+        # tag_map or fallback to an empty dict, converting tags into span labels.
         if tag_map is not None and tag_order is not None:
             raise ValueError("Provide only one of tag_map or tag_order, not both.")
         elif tag_map is not None:
@@ -1264,133 +1259,6 @@ class HfNerDict2DocConverter:
             # Fallback: return the same tag
             return str(tag)
         return label
-
-    def _tag_name(self, tag: Any) -> str:
-        label = self._resolve_label(tag)
-        # label might be "B-PER", "B_PER", "PER" or int str — return the entity type
-        if "-" in label and label.split("-")[0] in [
-            "B",
-            "I",
-            "E",
-            "S",
-            "U",
-            "L",
-        ]:  # just to make sure tags follow a BIOES/BILOU schema
-            return label.split("-", 1)[-1]
-        elif "_" in label and label.split("_")[0] in [
-            "B",
-            "I",
-            "E",
-            "S",
-            "U",
-            "L",
-        ]:  # just to make sure tags follow a BIOES/BILOU schema
-            return label.split("_", 1)[-1]
-        return label
-
-    def _split_tag(self, raw: str) -> tuple:
-        """
-        Split a tag into (prefix, entity_type).
-        Handles both hyphen (B-PER) and underscore (B_PER) separators.
-        Returns (None, raw) if no separator is found.
-        """
-        prefix_tags = ["B", "I", "E", "S", "U", "L"]
-        # just to make sure tags follow a BIOES/BILOU schema
-        if "-" in raw and (parts := raw.split("-", n=1))[0] in prefix_tags:
-            return parts
-        elif "_" in raw and (parts := raw.split("_", n=1))[0] in prefix_tags:
-            return parts
-        else:
-            return (None, raw)
-
-    def _close_entity(
-        self,
-        doc: Doc,
-        entities: List[Dict[str, Any]],
-        current_type: Optional[str],
-        start_idx: Optional[int],
-        end_idx: int,
-    ) -> Optional[str]:
-        """Close the current entity and append it to the entities list.
-        
-        Returns None to signal that current_type should be reset.
-        """
-        if current_type is None or start_idx is None:
-            return None
-        span = doc[start_idx : end_idx + 1]
-        entities.append(
-            {
-                "label": current_type,
-                "begin": span.start_char,
-                "end": span.end_char,
-                "text": span.text,
-            }
-        )
-        return None
-
-    def _handle_b_or_s(
-        self,
-        doc: Doc,
-        entities: List[Dict[str, Any]],
-        prefix: str,
-        etype: str,
-        current_type: Optional[str],
-        start_idx: Optional[int],
-        i: int,
-    ) -> Tuple[Optional[str], Optional[int]]:
-        """Handle B- or S- prefixed tags and start (or single) entities."""
-        if current_type is not None:
-            current_type = self._close_entity(doc, entities, current_type, start_idx, i - 1)
-            start_idx = None
-        current_type = etype
-        start_idx = i
-        if prefix == "S":
-            current_type = self._close_entity(doc, entities, current_type, start_idx, i)
-            start_idx = None
-        return current_type, start_idx
-
-    def _handle_i_or_e(
-        self,
-        doc: Doc,
-        entities: List[Dict[str, Any]],
-        prefix: str,
-        etype: str,
-        current_type: Optional[str],
-        start_idx: Optional[int],
-        i: int,
-    ) -> Tuple[Optional[str], Optional[int]]:
-        """Handle I- or E- prefixed tags, including mismatches treated as B-."""
-        if current_type == etype:
-            if prefix == "E":
-                current_type = self._close_entity(doc, entities, current_type, start_idx, i)
-                start_idx = None
-            return current_type, start_idx
-
-        # Mismatched I- tag -> treat as B-
-        if current_type is not None:
-            current_type = self._close_entity(doc, entities, current_type, start_idx, i - 1)
-            start_idx = None
-        current_type = etype
-        start_idx = i
-        return current_type, start_idx
-
-    def _handle_no_prefix(
-        self,
-        doc: Doc,
-        entities: List[Dict[str, Any]],
-        etype: str,
-        current_type: Optional[str],
-        start_idx: Optional[int],
-        i: int,
-    ) -> Tuple[Optional[str], Optional[int]]:
-        """Handle labels without BIO prefixes by grouping consecutive same-type tokens."""
-        if current_type is None:
-            return etype, i
-        if current_type != etype:
-            current_type = self._close_entity(doc, entities, current_type, start_idx, i - 1)
-            start_idx = None
-            return etype, i
-        return current_type, start_idx
 
     def _extract_entities(
         self,

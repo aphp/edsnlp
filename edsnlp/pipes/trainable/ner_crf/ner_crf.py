@@ -275,6 +275,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         ] = target_span_getter
 
         self.compute_confidence_score: bool = False
+        self._has_warned = False
 
     def set_extensions(self) -> None:
         """
@@ -344,22 +345,25 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
             )
 
     def update_labels(self, labels: Sequence[str]):
+        dev = self.linear.weight.device
         old_labels = self.labels if self.labels is not None else ()
         old_index = (
-            torch.arange(len(old_labels) * 5)
+            torch.arange(len(old_labels) * 5, device=dev)
             .view(-1, 5)[
                 [labels.index(label) for label in old_labels if label in labels]
             ]
             .view(-1)
         )
         new_index = (
-            torch.arange(len(labels) * 5)
+            torch.arange(len(labels) * 5, device=dev)
             .view(-1, 5)[
                 [old_labels.index(label) for label in old_labels if label in labels]
             ]
             .view(-1)
         )
-        new_linear = torch.nn.Linear(self.embedding.output_size, len(labels) * 5)
+        new_linear = torch.nn.Linear(self.embedding.output_size, len(labels) * 5).to(
+            dev
+        )
         new_linear.weight.data[new_index] = self.linear.weight.data[old_index]
         new_linear.bias.data[new_index] = self.linear.bias.data[old_index]
         self.linear.weight.data = new_linear.weight.data
@@ -436,11 +440,12 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
                         span_tags[i][label_idx] = 1
             tags.append(span_tags)
 
-        if discarded:
+        if discarded and not self._has_warned:
             warnings.warn(
                 "Some spans were discarded in the training data because they "
                 "were overlapping with other spans with the same label."
             )
+            self._has_warned = True
 
         return {
             **prep,

@@ -651,7 +651,21 @@ def train(
     val_docs = list(chain.from_iterable(val_data))
 
     # Initialize pipeline with training documents
-    nlp.post_init(chain_zip([td.data for td in train_data if td.post_init]))
+    nlp.to(device)
+    post_init_pipes = set()
+    for name in trainable_pipe_names:
+        (
+            nlp.get_pipe(name).post_init(
+                chain_zip(
+                    [
+                        td.data
+                        for td in train_data
+                        if td.post_init and name in set(td.pipe_names or {})
+                    ]
+                ),
+                exclude=post_init_pipes,
+            )
+        )
 
     all_params = set(nlp.parameters())
     optim = optimizer

@@ -372,6 +372,7 @@ class TrainableSpanClassifier(
         self.update_bindings(bindings)
 
     def update_bindings(self, bindings: List[Tuple[str, SpanFilter, List[Any]]]):
+        dev = self.classifier.weight.device
         keep_bindings = [
             (labels is True or len(labels) > 0) and len(values) > 0
             for k, labels, values in bindings
@@ -399,7 +400,9 @@ class TrainableSpanClassifier(
         common = [b for b in new_bindings if b in old_bindings]
         old_index = [old_bindings_to_idx[label] for label in common]
         new_index = [new_bindings_to_idx[label] for label in common]
-        new_linear = torch.nn.Linear(self.classifier.in_features, len(new_bindings))
+        new_linear = torch.nn.Linear(self.classifier.in_features, len(new_bindings)).to(
+            dev
+        )
         new_linear.weight.data[new_index] = self.classifier.weight.data[old_index]
         self.classifier.weight.data = new_linear.weight.data
         self.classifier.out_features = new_bindings
@@ -521,7 +524,8 @@ class TrainableSpanClassifier(
                         reduction="sum",
                         weight=torch.tensor(self.label_weights, dtype=torch.float)[
                             bindings_indexer
-                        ].to(binding_scores.device),
+                        ].to(binding_scores.device)
+                        / len(span_embeds),
                     )
                 )
                 assert not torch.isnan(losses[-1]).any(), "NaN loss"

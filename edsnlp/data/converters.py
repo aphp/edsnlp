@@ -1096,7 +1096,7 @@ class HfTextDict2DocConverter:
     Examples
     --------
     ```python
-    docs = from_huggingface_hub(
+    docs = from_huggingface_dataset (
         "wikimedia/wikipedia",
         name="20231101.ady",
         split="train",
@@ -1171,7 +1171,7 @@ class HfNerDict2DocConverter:
     Examples
     --------
     ```python
-    docs = from_huggingface_hub(
+    docs = from_huggingface_dataset (
         "lhoestq/conll2003",
         split="train",
         id_column="id",

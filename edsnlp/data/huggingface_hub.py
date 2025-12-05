@@ -8,12 +8,12 @@ from confit import validate_arguments
 
 from edsnlp import registry
 from edsnlp.core.stream import Stream
-from edsnlp.data.base import MemoryBasedReader
+from edsnlp.data.base import FileBasedReader
 from edsnlp.data.converters import get_dict2doc_converter, get_doc2dict_converter
 from edsnlp.utils.stream_sentinels import DatasetEndSentinel
 
 
-class HFDatasetReader(MemoryBasedReader):
+class HFDatasetReader(FileBasedReader):
     def __init__(
         self,
         dataset: Any,
@@ -171,7 +171,7 @@ def from_huggingface_dataset (
     shuffle: Union[Literal["dataset"], bool] = False,
     seed: Optional[int] = None,
     loop: bool = False,
-    converter: Union[str, Callable] = "hf_ner",
+    converter: Optional[Union[str, Callable]] = None,
     load_kwargs: Optional[Dict[str, Any]] = None,
     **kwargs,
 ) -> Stream:

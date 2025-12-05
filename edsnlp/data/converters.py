@@ -1284,56 +1284,55 @@ class HfNerDict2DocConverter:
         current_type: Optional[str] = None
         start_idx: Optional[int] = None
 
-        entities: Tuple[int, int, str] = []
+        entities: List[Tuple[int, int, str]] = []
         prefix_tags = ["B", "I", "E", "S", "U", "L"]
         
         for i in range(L):
-            tag = ner_tags[i]
-            try:
-                tag = self.tag_map[tag]
-            except KeyError:
-                pass  # Keep the tag as is
+            raw = ner_tags[i]
 
-            # Split the tag (if we can)
-            if "-" in raw and (parts := raw.split("-", n=1))[0] in prefix_tags:
-                prefix, current_type = parts
-            elif "_" in raw and (parts := raw.split("_", n=1))[0] in prefix_tags:
-                prefix, current_type = parts
+            # Resolve tag mapping if needed
+            tag = self.tag_map.get(raw, str(raw))
+
+            # Parse prefix + etype
+            if "-" in tag and (parts := tag.split("-", 1))[0] in prefix_tags:
+                prefix, etype = parts
+            elif "_" in tag and (parts := tag.split("_", 1))[0] in prefix_tags:
+                prefix, etype = parts
+            elif tag in ("O", "0"):
+                prefix = "O"
+                etype = tag
             else:
                 prefix = "S"
-                current_type = raw
-                
-            # Close any currently open ent since we are now in an empty zone
-            if prefix in ("O", "0") and current_type is not None:
-                entities.append((start_idx, i, current_type))
-                continue
-            # From now on, we're only dealing with non empty tags, so etype is not None
-            
-            # Begin/Single token entity marker : we must start a new ent
-            if prefix in ("B", "S", "U"):
-                # Close any existing entity since we are starting a new one
-                if current_type is not None:
-                    entities.append((start_idx, i, current_type))
-                start_idx = i
-                current_type = etype
-            # Someone forgot to open the ent with a proper begin tag, let's open it now
-            elif current_type != etype:
-                # Close any existing entity since we are starting a new one
-                if current_type is not None:
-                    entities.append((start_idx, i, current_type))
-                start_idx = i
-                current_type = etype
-            elif prefix == "I":  # here we know that current_type == e_type, so noop
-                pass
-            
-            # End/single token entity marker : we must close the current entity (end = this token + 1)
-            if prefix in ("L", "E", "S", "U"):
-                entities.append((start_idx, i+1, current_type))
-                current_type = None
+                etype = tag
 
-        # Close any currently open ent since we are now at the end of the tag sequence
+            # Empty tag → close entity if one is open
+            if prefix in ("O", "0"):
+                if current_type is not None:
+                    entities.append((start_idx, i, current_type))
+                    current_type = None
+                    start_idx = None
+                continue
+
+            # Begin / Single → start new entity
+            start_new = (prefix in ("B", "S", "U")) or (current_type != etype)
+
+            if start_new:
+                if current_type is not None:
+                    entities.append((start_idx, i, current_type))
+                start_idx = i
+                current_type = etype
+
+            # I → continuation; nothing to do besides keeping entity open
+
+            # End markers → close entity
+            if prefix in ("L", "E", "S", "U"):
+                entities.append((start_idx, i + 1, current_type))
+                current_type = None
+                start_idx = None
+
+        # Close leftover entity
         if current_type is not None:
-            entities.append((start_idx, i, current_type))
+            entities.append((start_idx, L, current_type))
 
         return entities
 

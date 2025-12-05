@@ -420,14 +420,21 @@ class TrainableBiaffineDependencyParser(
         )
 
     def update_labels(self, labels: Sequence[str], attrs: Dict[str, List[str]]):
+        dev = self.arc_biaffine.bilinear.weight.device
         old_labs = self.labels if self.labels is not None else ()
         old_index = torch.as_tensor(
-            [i for i, lab in enumerate(old_labs) if lab in labels], dtype=torch.long
+            [i for i, lab in enumerate(old_labs) if lab in labels],
+            dtype=torch.long,
+            device=dev,
         )
         new_index = torch.as_tensor(
-            [labels.index(lab) for lab in old_labs if lab in labels], dtype=torch.long
+            [labels.index(lab) for lab in old_labs if lab in labels],
+            dtype=torch.long,
+            device=dev,
         )
-        new_biaffine = BiAffine(self.arc_biaffine.bilinear.in1_features, len(labels))
+        new_biaffine = BiAffine(
+            self.arc_biaffine.bilinear.in1_features, len(labels)
+        ).to(dev)
         # fmt: off
         new_biaffine.bilinear.weight.data[new_index] = self.arc_biaffine.bilinear.weight.data[old_index]  # noqa: E501
         new_biaffine.bilinear.bias.data[new_index] = self.arc_biaffine.bilinear.bias.data[old_index]  # noqa: E501
@@ -443,18 +450,23 @@ class TrainableBiaffineDependencyParser(
 
         for attr, vals in attrs.items():
             emb = self.attr_embeddings[attr]
+            dev = emb.weight.device
             old_vals = (
                 self.attr_vocabs[attr] if self.attr_vocabs[attr] is not None else ()
             )
             old_index = torch.as_tensor(
-                [i for i, val in enumerate(old_vals) if val in vals], dtype=torch.long
+                [i for i, val in enumerate(old_vals) if val in vals],
+                dtype=torch.long,
+                device=dev,
             )
             new_index = torch.as_tensor(
-                [vals.index(val) for val in old_vals if val in vals], dtype=torch.long
+                [vals.index(val) for val in old_vals if val in vals],
+                dtype=torch.long,
+                device=dev,
             )
             new_emb = torch.nn.Embedding(
                 len(vals), self.attr_embeddings[attr].weight.size(1)
-            )
+            ).to(dev)
             new_emb.weight.data[new_index] = emb.weight.data[old_index]
             self.attr_embeddings[attr].weight.data = new_emb.weight.data
             self.attr_vocabs[attr] = vals

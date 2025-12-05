@@ -361,8 +361,7 @@ def to_huggingface_dataset (
     Returns
     -------
     Union[datasets.IterableDataset, datasets.Dataset]
-        An ``IterableDataset`` when `push_to_hub=False`, otherwise the pushed
-        `Dataset` object returned by `push_to_hub`.
+        An ``IterableDataset`` containing the converted data.
     """
 
     data = Stream.ensure_stream(data)

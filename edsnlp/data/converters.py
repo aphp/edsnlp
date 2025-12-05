@@ -1088,10 +1088,10 @@ class HfTextDict2DocConverter:
     Converter for HuggingFace datasets where each example is a single text field.
 
     This converter expects the dataset examples to contain a single column with
-    the document text (default: ``"text"``). It tokenizes the text using the
+    the document text (default: `"text"`). It tokenizes the text using the
     provided tokenizer (or the current context tokenizer) and returns a spaCy
-    ``Doc``. If the example contains an id column (default: ``"id"``) it will
-    be stored as ``doc._.note_id``.
+    `Doc`. If the example contains an id column (default: `"id"`) it will
+    be stored as `doc._.note_id`.
 
     Examples
     --------
@@ -1211,11 +1211,11 @@ class HfNerDict2DocConverter:
         Mapping/index-to-label for tag ids. If provided, it is used as-is.
         If not provided, you may pass `tag_order`, a sequence of labels
         (e.g. `['O','B-PER','I-PER', ...]`) to construct the mapping via
-        ``{i: label for i, label in enumerate(tag_order)}``. If neither is
+        `{i: label for i, label in enumerate(tag_order)}`. If neither is
         provided, labels are stringified.
     tag_order: Optional[Sequence[str]]
-        Optional sequence of labels used to build ``tag_map`` when
-        ``tag_map`` is not provided.
+        Optional sequence of labels used to build `tag_map` when
+        `tag_map` is not provided.
     span_setter: SpanSetterArg
         Span setter (defaults to `{"ents": True}`).
     """
@@ -1245,7 +1245,7 @@ class HfNerDict2DocConverter:
             # Map indices to labels: 0 -> tag_order[0], etc.
             self.tag_map = dict(enumerate(tag_order))
         else:
-            self.tag_map = IdentityStrDict()
+            self.tag_map = {}
         if span_setter is None:
             span_setter = {"ents": True}
         self.span_setter = span_setter
@@ -1259,10 +1259,10 @@ class HfNerDict2DocConverter:
         """
         # If tag_map behaves like a mapping (dict or list)
         try:
-            label = self.tag_map[tag]
-        except Exception:
-            # Fallback: if tag is already a string, use it
-            label = str(tag)
+            return self.tag_map[tag]
+        except KeyError:
+            # Fallback: return the same tag
+            return str(tag)
         return label
 
     def _tag_name(self, tag: Any) -> str:
@@ -1294,24 +1294,12 @@ class HfNerDict2DocConverter:
         Handles both hyphen (B-PER) and underscore (B_PER) separators.
         Returns (None, raw) if no separator is found.
         """
-        if "-" in raw and raw.split("-")[0] in [
-            "B",
-            "I",
-            "E",
-            "S",
-            "U",
-            "L",
-        ]:  # just to make sure tags follow a BIOES/BILOU schema
-            return tuple(raw.split("-", 1))
-        elif "_" in raw and raw.split("_")[0] in [
-            "B",
-            "I",
-            "E",
-            "S",
-            "U",
-            "L",
-        ]:  # just to make sure tags follow a BIOES/BILOU schema
-            return tuple(raw.split("_", 1))
+        prefix_tags = ["B", "I", "E", "S", "U", "L"]
+        # just to make sure tags follow a BIOES/BILOU schema
+        if "-" in raw and (parts := raw.split("-", n=1))[0] in prefix_tags:
+            return parts
+        elif "_" in raw and (parts := raw.split("_", n=1))[0] in prefix_tags:
+            return parts
         else:
             return (None, raw)
 
@@ -1428,29 +1416,56 @@ class HfNerDict2DocConverter:
         current_type: Optional[str] = None
         start_idx: Optional[int] = None
 
+        entities: Tuple[int, int, str] = []
+        prefix_tags = ["B", "I", "E", "S", "U", "L"]
+        
         for i in range(L):
-            raw = self._resolve_label(ner_tags[i])
-            if raw in ("O", "0"):
+            tag = ner_tags[i]
+            try:
+                tag = self.tag_map[tag]
+            except KeyError:
+                pass  # Keep the tag as is
+
+            # Split the tag (if we can)
+            if "-" in raw and (parts := raw.split("-", n=1))[0] in prefix_tags:
+                prefix, current_type = parts
+            elif "_" in raw and (parts := raw.split("_", n=1))[0] in prefix_tags:
+                prefix, current_type = parts
+            else:
+                prefix = "S"
+                current_type = raw
+                
+            # Close any currently open ent since we are now in an empty zone
+            if prefix in ("O", "0") and current_type is not None:
+                entities.append((start_idx, i, current_type))
+                continue
+            # From now on, we're only dealing with non empty tags, so etype is not None
+            
+            # Begin/Single token entity marker : we must start a new ent
+            if prefix in ("B", "S", "U"):
+                # Close any existing entity since we are starting a new one
                 if current_type is not None:
-                    current_type = self._close_entity(doc, entities, current_type, start_idx, i - 1)
-                    start_idx = None
-                continue
+                    entities.append((start_idx, i, current_type))
+                start_idx = i
+                current_type = etype
+            # Someone forgot to open the ent with a proper begin tag, let's open it now
+            elif current_type != etype:
+                # Close any existing entity since we are starting a new one
+                if current_type is not None:
+                    entities.append((start_idx, i, current_type))
+                start_idx = i
+                current_type = etype
+            elif prefix == "I":  # here we know that current_type == e_type, so noop
+                pass
+            
+            # End/single token entity marker : we must close the current entity (end = this token + 1)
+            if prefix in ("L", "E", "S", "U"):
+                entities.append((start_idx, i+1, current_type))
+                current_type = None
 
-            prefix, etype = self._split_tag(raw)
-
-            if prefix in ("B", "S") or current_type is None:
-                current_type, start_idx = self._handle_b_or_s(doc, entities, prefix, etype, current_type, start_idx, i)
-                continue
-
-            if prefix in ("I", "E"):
-                current_type, start_idx = self._handle_i_or_e(doc, entities, prefix, etype, current_type, start_idx, i)
-                continue
-
-            # No explicit prefix: group consecutive same-type tokens
-            current_type, start_idx = self._handle_no_prefix(doc, entities, etype, current_type, start_idx, i)
-
+        # Close any currently open ent since we are now at the end of the tag sequence
         if current_type is not None:
-            self._close_entity(doc, entities, current_type, start_idx, L - 1)
+            entities.append((start_idx, i, current_type))
 
         return entities
 
@@ -1483,21 +1498,8 @@ class HfNerDict2DocConverter:
 
         # Add entities to doc
         spans: List[Span] = []
-        for entity in entities:
-            span = doc.char_span(
-                entity["begin"],
-                entity["end"],
-                label=entity["label"],
-                alignment_mode="expand",
-            )
-
-            if span is not None:
-                spans.append(span)
-            else:
-                warnings.warn(
-                    f"Could not align entity '{entity['text']}' "
-                    f"at ({entity['begin']}, {entity['end']})"
-                )
+        for begin, end, label in entities:
+            spans.append(Span(doc, begin, end, label=label))
 
         # Set entities on the doc
         set_spans(doc, spans, span_setter=self.span_setter)

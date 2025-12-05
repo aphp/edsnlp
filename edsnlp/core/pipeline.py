@@ -336,7 +336,7 @@ class Pipeline(Validated):
         Dict[str, Any]
         """
         pipe = self.get_pipe(name)
-        return PIPE_META.get(pipe, {})
+        return PIPE_META.get(pipe, FactoryMeta([], [], False, {}))
 
     def make_doc(self, text: str) -> Doc:
         """

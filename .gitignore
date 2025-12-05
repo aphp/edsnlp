@@ -73,3 +73,6 @@ docs/reference
 docs/changelog.md
 docs/contributing.md
 .vercel
+
+# Work development
+dev/*

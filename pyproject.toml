@@ -174,6 +174,8 @@ where = ["."]
 "eds.hypothesis"                  = "edsnlp.pipes.qualifiers.hypothesis.factory:create_component"
 "eds.negation"                    = "edsnlp.pipes.qualifiers.negation.factory:create_component"
 "eds.reported_speech"             = "edsnlp.pipes.qualifiers.reported_speech.factory:create_component"
+"eds.contextual_qualifier"        = "edsnlp.pipes.qualifiers.contextual.factory:create_component"
+"eds.external_information_qualifier" = "edsnlp.pipes.qualifiers.external_information.factory:create_component"
 
 # Misc
 "eds.consultation_dates"          = "edsnlp.pipes.misc.consultation_dates.factory:create_component"

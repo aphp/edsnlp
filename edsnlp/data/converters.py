@@ -1089,8 +1089,8 @@ class HfTextDict2DocConverter:
 
     This converter expects the dataset examples to contain a single column with
     the document text (default: `"text"`). It tokenizes the text using the
-    provided tokenizer (or the current context tokenizer) and returns a spaCy
-    `Doc`. If the example contains an id column (default: `"id"`) it will
+    provided tokenizer (or the current context tokenizer) and returns a 
+    `Doc` object. If the example contains an id column (default: `"id"`) it will
     be stored as `doc._.note_id`.
 
     Examples
@@ -1195,7 +1195,7 @@ class HfNerDict2DocConverter:
     Parameters
     ----------
     tokenizer: Optional[Tokenizer]
-        Optional spaCy tokenizer.
+        Optional tokenizer.
     words_column: str
         Column with token words.
     ner_tags_column: str
@@ -1245,32 +1245,15 @@ class HfNerDict2DocConverter:
             span_setter = {"ents": True}
         self.span_setter = span_setter
 
-    def _resolve_label(self, tag: Any) -> str:
-        """
-        Resolve tag id or tag string to a label string.
-        Supports:
-         - integer ids with tag_map being list/dict
-         - tag strings like "B-PER", "I-PER", "B_PER", "I_PER", "O"
-        """
-        # If tag_map behaves like a mapping (dict or list)
-        try:
-            return self.tag_map[tag]
-        except KeyError:
-            # Fallback: return the same tag
-            return str(tag)
-        return label
-
     def _extract_entities(
         self,
         doc: Doc,
         ner_tags: Sequence[Any],
     ) -> List[Dict[str, Any]]:
-        """Extract entities from a spaCy `Doc` and token-level NER tags.
+        """Extract entities from a `Doc` and token-level NER tags.
 
-        Implements a forgiving BIO-like logic; logic branches are delegated
-        to small helper methods to keep cognitive complexity low.
-
-        Returns a list of dicts with keys: 'label', 'begin', 'end', 'text'.
+        Implements a forgiving BIO-like logic. Returns a list of (start, end, label)
+        tuples.
         """
         entities: List[Dict[str, Any]] = []
         n_tokens = len(doc)
@@ -1347,7 +1330,7 @@ class HfNerDict2DocConverter:
         words = obj[self.words_column]
         ner_tags = obj[self.ner_tags_column]
 
-        # Build a spaCy Doc directly from words to avoid tokenizer mismatches
+        # Build a Doc object directly from words to avoid tokenizer mismatches
         vocab = tok.vocab
         # assume single-space separation between tokens
         spaces = [True] * (len(words) - 1) + [False]

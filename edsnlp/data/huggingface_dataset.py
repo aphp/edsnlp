@@ -134,9 +134,9 @@ def _load_hf_dataset_with_config(
         ) from e
     return ds
 
-@registry.readers.register("huggingface_dataset ")
+@registry.readers.register("huggingface_dataset")
 @validate_arguments()
-def from_huggingface_dataset (
+def from_huggingface_dataset(
     dataset: Union[str, Any],
     split: Optional[str] = None,
     name: Optional[str] = None,  # Add config/subset name parameter
@@ -158,7 +158,7 @@ def from_huggingface_dataset (
 
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(...)
-    doc_iterator = edsnlp.data.from_huggingface_dataset (
+    doc_iterator = edsnlp.data.from_huggingface_dataset(
         "lhoestq/conll2003",
         split="train",
         tag_order=[
@@ -265,8 +265,8 @@ def _iter_from_stream(data_stream):
             yield item
 
 
-@registry.writers.register("huggingface_dataset ")
-def to_huggingface_dataset (
+@registry.writers.register("huggingface_dataset")
+def to_huggingface_dataset(
     data: Union[Any, Stream],
     *,
     converter: Optional[Union[str, Callable]] = None,
@@ -274,17 +274,17 @@ def to_huggingface_dataset (
     **kwargs,
 ) -> Any:
     """
-    Convert a collection/`Stream` of spaCy `Doc` objects (or already-converted
+    Convert a collection/`Stream` of `Doc` objects (or already-converted
     dicts) into a `datasets.IterableDataset`.
     Examples
     --------
-    1) Convert a `Stream` of HuggingFace NER examples into spaCy `Doc`s (reader),
+    1) Convert a `Stream` of HuggingFace NER examples into `Doc` objects (reader),
        process them and create an `IterableDataset` of dictionaries using the
        `hf_ner` writer converter::
 
            import edsnlp
 
-           stream = edsnlp.data.from_huggingface_dataset (
+           stream = edsnlp.data.from_huggingface_dataset(
                "lhoestq/conll2003",
                split="train",
                converter="hf_ner",
@@ -294,7 +294,7 @@ def to_huggingface_dataset (
            stream = stream.map_pipeline(nlp)
 
            # Export as HF IterableDataset of dicts (no push)
-           hf_iter = edsnlp.data.to_huggingface_dataset (
+           hf_iter = edsnlp.data.to_huggingface_dataset(
                stream,
                converter="hf_ner",
            )
@@ -303,7 +303,7 @@ def to_huggingface_dataset (
 
     2) Convert plain text Docs to HF text-format dicts::
 
-           edsnlp.data.to_huggingface_dataset (
+           edsnlp.data.to_huggingface_dataset(
                docs_stream,
                converter=("hf_text"),
                execute=True,
@@ -315,12 +315,12 @@ def to_huggingface_dataset (
     ----------
     data: Union[Any, Stream]
         Iterable of `Doc` objects or a `Stream`. If `converter` is provided the
-        stream items are expected to be spaCy `Doc`s. Otherwise items should
+        stream items are expected to be `Doc` objects. Otherwise items should
         already be mapping-like dicts.
     converter: Optional[Union[str, Callable]]
         Converter name or callable used to transform `Doc` -> dict before
-        creating the dataset. Typical values: ``"hf_ner_doc2dict"`` or
-        ``"hf_text_doc2dict"``. Converter kwargs may be passed via ``**kwargs``.
+        creating the dataset. Typical values: `"hf_ner_doc2dict"` or
+        `"hf_text_doc2dict"`. Converter kwargs may be passed via `**kwargs`.
     execute: bool
         If False, return a transformed `Stream` (not executed). If True (default)
         produce and return a `datasets.IterableDataset` (or pushed `Dataset`).
@@ -330,7 +330,7 @@ def to_huggingface_dataset (
     Returns
     -------
     Union[datasets.IterableDataset, datasets.Dataset]
-        An ``IterableDataset`` containing the converted data.
+        An `IterableDataset` containing the converted data.
     """
 
     data = Stream.ensure_stream(data)

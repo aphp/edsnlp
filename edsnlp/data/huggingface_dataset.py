@@ -1,7 +1,4 @@
-import ast
 import random
-import re
-import warnings
 from typing import Any, Callable, Dict, Iterable, Literal, Optional, Union
 
 from confit import validate_arguments
@@ -24,7 +21,7 @@ class HFDatasetReader(FileBasedReader):
         super().__init__()
         self.dataset = dataset
         self.shuffle = "dataset" if shuffle == "dataset" or shuffle is True else False
-        seed = seed if seed is not None else random.getrandbits(32) 
+        seed = seed if seed is not None else random.getrandbits(32)
         self.rng = random.Random(seed)
         self.loop = loop
         self.emitted_sentinels = {"dataset"}
@@ -43,7 +40,7 @@ class HFDatasetReader(FileBasedReader):
 
             for item in data:
                 yield item
-       
+
             yield DatasetEndSentinel()
             if not self.loop:
                 break
@@ -59,6 +56,7 @@ class HFDatasetReader(FileBasedReader):
 def _import_datasets():
     try:
         import datasets
+
         return datasets
     except Exception as e:  # pragma: no cover - dependency handling
         raise ImportError(
@@ -67,54 +65,61 @@ def _import_datasets():
             "`pip install 'edsnlp[ml]'`"
         ) from e
 
-def _validate_hf_ner_columns(col_names: Optional[Iterable[str]], kwargs: Dict[str, Any]):
-        words_col = kwargs.get("words_column", "tokens")
-        ner_col = kwargs.get("ner_tags_column", "ner_tags")
 
-        missing = []
-        if words_col not in col_names:
-            missing.append(f"words_column=\"{words_col}\"")
-        if ner_col not in col_names:
-            missing.append(f"ner_tags_column=\"{ner_col}\"")
-        if missing:
-            raise ValueError(
-                "Cannot find these columns in dataset: "
-                f"{missing}. "
-                + f"Dataset columns are: {col_names}."
-                + (
-                    " If you intended to process raw text, consider using the "
-                    "'hf_text' converter (pass `converter='hf_text'` and "
-                    "`text_column='<column>'`)."
-                )
+def _validate_hf_ner_columns(
+    col_names: Optional[Iterable[str]], kwargs: Dict[str, Any]
+):
+    words_col = kwargs.get("words_column", "tokens")
+    ner_col = kwargs.get("ner_tags_column", "ner_tags")
+
+    missing = []
+    if words_col not in col_names:
+        missing.append(f'words_column="{words_col}"')
+    if ner_col not in col_names:
+        missing.append(f'ner_tags_column="{ner_col}"')
+    if missing:
+        raise ValueError(
+            "Cannot find these columns in dataset: "
+            f"{missing}. "
+            + f"Dataset columns are: {col_names}."
+            + (
+                " If you intended to process raw text, consider using the "
+                "'hf_text' converter (pass `converter='hf_text'` and "
+                "`text_column='<column>'`)."
             )
+        )
 
-        kwargs["words_column"] = words_col
-        kwargs["ner_tags_column"] = ner_col
-        
-        if "id" in col_names and "id_column" not in kwargs:
-            kwargs["id_column"] = "id"
+    kwargs["words_column"] = words_col
+    kwargs["ner_tags_column"] = ner_col
 
-def _validate_hf_text_columns(col_names: Optional[Iterable[str]], kwargs: Dict[str, Any]):
-        text_col = kwargs.get("text_column", "text")
+    if "id" in col_names and "id_column" not in kwargs:
+        kwargs["id_column"] = "id"
 
-        missing = []
-        if text_col not in col_names:
-                missing.append(f"text_column=\"{text_col}\"")
-        if missing:
-            raise ValueError(
-                "Cannot find these columns in dataset: "
-                f"{missing}. "
-                + f"Dataset columns are: {col_names}."
-                + (
-                    " If you intended to process a NER dataset, consider using the "
-                    "'hf_ner' converter (pass `converter='hf_ner')."
-                )
+
+def _validate_hf_text_columns(
+    col_names: Optional[Iterable[str]], kwargs: Dict[str, Any]
+):
+    text_col = kwargs.get("text_column", "text")
+
+    missing = []
+    if text_col not in col_names:
+        missing.append(f'text_column="{text_col}"')
+    if missing:
+        raise ValueError(
+            "Cannot find these columns in dataset: "
+            f"{missing}. "
+            + f"Dataset columns are: {col_names}."
+            + (
+                " If you intended to process a NER dataset, consider using the "
+                "'hf_ner' converter (pass `converter='hf_ner')."
             )
+        )
 
-        kwargs["text_column"] = text_col
-        
-        if "id" in col_names and "id_column" not in kwargs:
-            kwargs["id_column"] = "id"
+    kwargs["text_column"] = text_col
+
+    if "id" in col_names and "id_column" not in kwargs:
+        kwargs["id_column"] = "id"
+
 
 def _load_hf_dataset_with_config(
     dataset: str,
@@ -133,6 +138,7 @@ def _load_hf_dataset_with_config(
             "configuration name and split are correct."
         ) from e
     return ds
+
 
 @registry.readers.register("huggingface_dataset")
 @validate_arguments()
@@ -228,7 +234,7 @@ def from_huggingface_dataset(
                 raise ValueError(
                     f"Cannot select split {split!r} from dataset {dataset!r}."
                 )
-    
+
     # If no split was provided and the loaded dataset exposes multiple splits
     # (e.g., a `DatasetDict`), pick the 'train' split by default and warn
     # the user to be explicit.
@@ -242,7 +248,7 @@ def from_huggingface_dataset(
         _validate_hf_ner_columns(list(ds.column_names), kwargs)
     if "hf_text" in converter:
         _validate_hf_text_columns(list(ds.column_names), kwargs)
-        
+
     reader = HFDatasetReader(ds, shuffle=shuffle, seed=seed, loop=loop)
     stream = Stream(reader=reader)
 
@@ -251,7 +257,6 @@ def from_huggingface_dataset(
         stream = stream.map(conv, kwargs=kwargs)
 
     return stream
-
 
 
 def _iter_from_stream(data_stream):
@@ -345,6 +350,7 @@ def to_huggingface_dataset(
     datasets = _import_datasets()
 
     # Pass a zero-arg callable that returns a generator function expected by HF
-    gen_callable = lambda: _iter_from_stream(data)
+    def gen_callable():
+        return _iter_from_stream(data)
 
     return datasets.IterableDataset.from_generator(gen_callable)

@@ -1089,14 +1089,16 @@ class HfTextDict2DocConverter:
 
     This converter expects the dataset examples to contain a single column with
     the document text (default: `"text"`). It tokenizes the text using the
-    provided tokenizer (or the current context tokenizer) and returns a 
+    provided tokenizer (or the current context tokenizer) and returns a
     `Doc` object. If the example contains an id column (default: `"id"`) it will
     be stored as `doc._.note_id`.
 
     Examples
     --------
     ```python
-    docs = from_huggingface_dataset (
+    import edsnlp
+
+    docs = edsnlp.data.from_huggingface_dataset(
         "wikimedia/wikipedia",
         name="20231101.ady",
         split="train",
@@ -1171,7 +1173,9 @@ class HfNerDict2DocConverter:
     Examples
     --------
     ```python
-    docs = from_huggingface_dataset (
+    import edsnlp
+
+    docs = edsnlp.data.from_huggingface_dataset(
         "lhoestq/conll2003",
         split="train",
         id_column="id",
@@ -1269,7 +1273,7 @@ class HfNerDict2DocConverter:
 
         entities: List[Tuple[int, int, str]] = []
         prefix_tags = ["B", "I", "E", "S", "U", "L"]
-        
+
         for i in range(L):
             raw = ner_tags[i]
 
@@ -1364,6 +1368,7 @@ class HfNerDoc2DictConverter:
     Produces a dict with token list in `words_column`, token tags in
     `ner_tags_column`, and an identifier in `id_column`.
     """
+
     def __init__(
         self,
         *,

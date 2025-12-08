@@ -1087,16 +1087,17 @@ class Stream(metaclass=MetaStream):
         )
 
     if TYPE_CHECKING:
+        from edsnlp.data import (
+            to_huggingface_dataset as to_huggingface_dataset,  # noqa: F401
+        )
         from edsnlp.data import to_iterable as to_iterable  # noqa: F401
         from edsnlp.data import to_pandas as to_pandas  # noqa: F401
         from edsnlp.data import to_polars as to_polars  # noqa: F401
         from edsnlp.data import to_spark as to_spark  # noqa: F401
-        from edsnlp.data import to_huggingface_dataset  as to_huggingface_dataset   # noqa: F401
         from edsnlp.data import write_brat as write_brat  # noqa: F401
         from edsnlp.data import write_json as write_json  # noqa: F401
         from edsnlp.data import write_parquet as write_parquet  # noqa: F401
         from edsnlp.data import write_standoff as write_standoff  # noqa: F401
-        
 
 
 # For backwards compatibility

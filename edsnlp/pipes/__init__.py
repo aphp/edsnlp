@@ -58,6 +58,7 @@ if TYPE_CHECKING:
     )
     from .ner.disorders.solid_tumor.factory import create_component as solid_tumor
     from .ner.drugs.factory import create_component as drugs
+    from .ner.frailty.autonomy.factory import create_component as autonomy
     from .ner.scores.charlson.factory import create_component as charlson
     from .ner.scores.elston_ellis.factory import create_component as elston_ellis
     from .ner.scores.emergency.ccmu.factory import create_component as emergency_ccmu

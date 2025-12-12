@@ -1,14 +1,15 @@
 # Changelog
 
-## Unreleased
+## v0.20.0 (2025-12-12)
 
 ### Added
 
 - Support passing multiple paths to `edsnlp.read_parquet`
+- New `eds.llm_span_qualifier` component to perform span classification tasks using LLMs
 
 ### Changed
 
-- :explosion: EDS-NLP now requires Python 3.10 or later.
+- :boom: EDS-NLP now requires Python 3.10 or later.
 - Dependencies (dev, docs and setup) are now listed in dependency groups and installable via `pip install -e . --group the_group`
 - .ipynb_checkpoints/* files are not longer included in packaged models
 

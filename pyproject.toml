@@ -13,11 +13,7 @@ dependencies = [
     "pytz",
     "pysimstring>=1.2.1",
     "regex",
-    # spacy doesn't provide binaries for python<3.9 from 3.8.2 so we need to cap it ourself
-    # at the moment, spacy >=3.8.7 requires cython 3 and messes up the registration of factories
     "spacy>=3.8.7,<4",
-    # thinc doesn't provide binaries for python<3.9 from 8.2.5 so we need to cap it ourself
-    # blis>1.2.0 (dependency of thinc) doesn't provide binaries for python<3.10 so we need to cap it ourself
     "confit>=0.9.0",
     "tqdm",
     "umls-downloader>=0.1.1",

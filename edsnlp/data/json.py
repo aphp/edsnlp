@@ -31,7 +31,7 @@ class JsonReader(FileBasedReader):
         path: Union[str, Path],
         *,
         keep_ipynb_checkpoints: bool,
-        filesystem: Optional[FileSystem] = None,
+        filesystem: Optional[Union[FileSystem, str]] = None,
         shuffle: Literal["dataset", False] = False,
         seed: Optional[int] = None,
         loop: bool = False,
@@ -74,9 +74,9 @@ class JsonReader(FileBasedReader):
             with self.fs.open(file, "r", encoding="utf8") as f:
                 is_jsonl = os.path.splitext(file)[1].startswith(".jsonl")
                 records = (
-                    [{**json.loads(line), FILENAME: file} for line in f]
+                    [{FILENAME: file, **json.loads(line)} for line in f]
                     if is_jsonl
-                    else [json.loads(f.read())]
+                    else [{FILENAME: file, **json.loads(f.read())}]
                 )
                 return records
         except Exception as e:
@@ -112,7 +112,7 @@ class JsonWriter(BaseWriter):
         *,
         lines: Optional[bool] = None,
         overwrite: bool = False,
-        filesystem: Optional[FileSystem] = None,
+        filesystem: Optional[Union[FileSystem, str]] = None,
     ):
         self.fs, self.path = normalize_fs_path(filesystem, path)
 
@@ -209,7 +209,7 @@ def read_json(
     converter: Optional[AsList[Union[str, Callable]]] = None,
     *,
     keep_ipynb_checkpoints: bool = False,
-    filesystem: Optional[FileSystem] = None,
+    filesystem: Optional[Union[FileSystem, str]] = None,
     shuffle: Literal["dataset", False] = False,
     loop: bool = False,
     seed: int = 42,
@@ -249,7 +249,7 @@ def read_json(
         files in subdirectories).
     keep_ipynb_checkpoints: bool
         Whether to keep the files have ".ipynb_checkpoints" in their path.
-    filesystem: Optional[FileSystem]
+    filesystem: Optional[Union[FileSystem, str]]
         The filesystem to use to write the files. If None, the filesystem will be
         inferred from the path (e.g. `s3://` will use S3).
     shuffle: Literal["dataset", False]
@@ -305,7 +305,7 @@ def write_json(
     overwrite: bool = False,
     execute: bool = True,
     converter: Optional[Union[str, Callable]] = None,
-    filesystem: Optional[FileSystem] = None,
+    filesystem: Optional[Union[FileSystem, str]] = None,
     **kwargs,
 ) -> None:
     """
@@ -359,7 +359,7 @@ def write_json(
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the documents to dictionary objects before writing
         them. These are documented on the [Converters](/data/converters) page.
-    filesystem: Optional[FileSystem]
+    filesystem: Optional[Union[FileSystem, str]]
         The filesystem to use to write the files. If None, the filesystem will be
         inferred from the path (e.g. `s3://` will use S3).
     kwargs:

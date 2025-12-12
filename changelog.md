@@ -2,11 +2,9 @@
 
 ## Unreleased
 
-### Fixed
+### Added
 
-- Don't pass seed to openai API calls (only as extra body)
-- Default to alignment threshold = 0 (better recall) for LLM annotated markup alignment with the original text
-- Fix `eds.llm_markup_extractor` context splitting to yield full docs and not parts of docs
+- Support passing multiple paths to `edsnlp.read_parquet`
 
 ### Changed
 
@@ -16,6 +14,10 @@
 ### Fixed
 
 - Move the model to the device (e.g., a GPU) before running the post_init step and only post_init with the data included of the current training phase
+- Correctly check the filesystem provided by the user against the given URI when loading data files
+- Don't pass seed to openai API calls (only as extra body)
+- Default to alignment threshold = 0 (better recall) for LLM annotated markup alignment with the original text
+- Fix `eds.llm_markup_extractor` context splitting to yield full docs and not parts of docs
 
 ## v0.19.0 (2025-10-04)
 

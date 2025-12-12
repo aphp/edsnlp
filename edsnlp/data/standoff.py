@@ -284,7 +284,7 @@ class StandoffReader(FileBasedReader):
         *,
         keep_ipynb_checkpoints: bool = False,
         keep_txt_only_docs: bool = False,
-        filesystem: Optional[FileSystem] = None,
+        filesystem: Optional[Union[FileSystem, str]] = None,
         loop: bool = False,
         shuffle: Literal["dataset", False] = False,
         seed: Optional[int] = None,
@@ -348,7 +348,7 @@ class StandoffWriter(BaseWriter):
         *,
         lines: bool = True,
         overwrite: bool = False,
-        filesystem: Optional[FileSystem] = None,
+        filesystem: Optional[Union[FileSystem, str]] = None,
     ):
         self.fs, self.path = normalize_fs_path(filesystem, path)
         self.lines = lines
@@ -397,7 +397,7 @@ def read_standoff(
     keep_ipynb_checkpoints: bool = False,
     keep_txt_only_docs: bool = False,
     converter: Optional[AsList[Union[str, Callable]]] = ["standoff"],
-    filesystem: Optional[FileSystem] = None,
+    filesystem: Optional[Union[FileSystem, str]] = None,
     shuffle: Literal["dataset", False] = False,
     seed: Optional[int] = None,
     loop: bool = False,
@@ -501,7 +501,7 @@ def read_standoff(
         Whether to keep the `.txt` files that do not have corresponding `.ann` files.
     converter : Optional[AsList[Union[str, Callable]]]
         Converter to use to convert the documents to dictionary objects.
-    filesystem: Optional[FileSystem] = None,
+    filesystem: Optional[Union[FileSystem, str]] = None
         The filesystem to use to write the files. If None, the filesystem will be
         inferred from the path (e.g. `s3://` will use S3).
 
@@ -532,7 +532,7 @@ def write_standoff(
     data: Union[Any, Stream],
     path: Union[str, Path],
     overwrite: bool = False,
-    filesystem: Optional[FileSystem] = None,
+    filesystem: Optional[Union[FileSystem, str]] = None,
     execute: bool = True,
     converter: Optional[Union[str, Callable]] = "standoff",
     **kwargs,
@@ -578,7 +578,7 @@ def write_standoff(
         be exported.
     overwrite: bool
         Whether to overwrite existing directories.
-    filesystem: Optional[FileSystem] = None,
+    filesystem: Optional[Union[FileSystem, str]] = None
         The filesystem to use to write the files. If None, the filesystem will be
         inferred from the path (e.g. `s3://` will use S3).
     execute: bool

@@ -3,46 +3,36 @@ name: Documentation
 on:
   workflow_dispatch:
   push:
-    branches: [master, dev]
+    branches: [ master, dev, main ]
 
 env:
+  UV_TORCH_BACKEND: "auto"
+  UV_SYSTEM_PYTHON: 1
   BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-  # UV_INDEX_STRATEGY: "unsafe-first-match"
-  # UV_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
-  PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
 
 jobs:
   Documentation:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - uses: actions/setup-python@v4
-      with:
-        python-version: "3.11"
-        cache: 'pip'
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
 
-    - run: echo WEEK=$(date +%V) >>$GITHUB_ENV
-      shell: bash
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v7
 
-#    - uses: hynek/setup-cached-uv@v1
-#      with:
-#        cache-suffix: -docs-${{ matrix.python-version }}-${{ env.WEEK }}
+      - name: Install dependencies
+        run: uv pip install . --group docs
 
-    - name: Install dependencies
-      run: |
-        pip install . --group docs
-#        uv venv
-#        uv pip install . --group docs
+      - name: Set up Git
+        run: |
+          git config user.name ${{ github.actor }}
+          git config user.email ${{ github.actor }}@users.noreply.github.com
 
-    - name: Set up Git
-      run: |
-        git config user.name ${{ github.actor }}
-        git config user.email ${{ github.actor }}@users.noreply.github.com
-
-    - name: Build documentation
-      run: |
-        git fetch origin gh-pages
-        mike delete $BRANCH_NAME
-        mike deploy --push $BRANCH_NAME
-#        source .venv/bin/activate
+      - name: Build documentation
+        run: |
+          git fetch origin gh-pages
+          mike delete $BRANCH_NAME
+          mike deploy --push $BRANCH_NAME

@@ -4,12 +4,10 @@ on:
   workflow_dispatch:
   pull_request:
   push:
-    branches: [master]
+    branches: [ master, main ]
 
 env:
-  UV_INDEX_STRATEGY: "unsafe-first-match"
-  UV_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
-  PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
+  UV_TORCH_BACKEND: "auto"
   UV_SYSTEM_PYTHON: 1
   BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
 
@@ -38,7 +36,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: [ "3.10", "3.11", "3.12", "3.13" ]
     steps:
       - uses: actions/checkout@v2
 
@@ -58,19 +56,21 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
+
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v7
 
       - name: Install dependencies
-        run: pip install -e . --group dev
+        run: uv pip install -e . --group dev
         if: matrix.python-version != '3.10' && matrix.python-version != '3.12' && matrix.python-version != '3.13' && matrix.python-version != '3.14'
 
       - name: Install dependencies
-        run: pip install -e . --group dev --group setup
+        run: uv pip install -e . --group dev --group setup
         if: matrix.python-version == '3.10'
 
       - name: Install dependencies
         # skip ML tests for 3.12 and 3.13
-        run: pip install -e . --group dev
+        run: uv pip install -e . --group dev
         if: matrix.python-version == '3.12' || matrix.python-version == '3.13' || matrix.python-version == '3.14'
 
       - name: Test with Pytest on Python ${{ matrix.python-version }}
@@ -110,74 +110,76 @@ jobs:
     # Main docs are built in another workflow, we don't have to test them outside of PR
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - uses: actions/setup-python@v5
-      with:
-        python-version: "3.11"
-        cache: 'pip'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-    - name: Install dependencies
-      run: pip install -e . --group docs
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v7
 
-    - name: Set up Git
-      run: |
-        git config user.name ${{ github.actor }}
-        git config user.email ${{ github.actor }}@users.noreply.github.com
-        echo Current branch: $BRANCH_NAME
+      - name: Install dependencies
+        run: uv pip install -e . --group docs
 
-    - name: Build documentation
-      run: |
-        mike deploy --alias-type=copy --update-aliases $BRANCH_NAME latest
-        mike set-default $BRANCH_NAME
+      - name: Set up Git
+        run: |
+          git config user.name ${{ github.actor }}
+          git config user.email ${{ github.actor }}@users.noreply.github.com
+          echo Current branch: $BRANCH_NAME
 
-    - name: Put content of gh-pages to public folder
-      run: rm -rf public && mkdir public && git archive gh-pages | tar -x -C ./public/
+      - name: Build documentation
+        run: |
+          mike deploy --alias-type=copy --update-aliases $BRANCH_NAME latest
+          mike set-default $BRANCH_NAME
 
-    - name: Set up Vercel
-      run: npm install --global vercel@latest
+      - name: Put content of gh-pages to public folder
+        run: rm -rf public && mkdir public && git archive gh-pages | tar -x -C ./public/
 
-    - name: Pull Vercel environment
-      run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Set up Vercel
+        run: npm install --global vercel@latest
 
-    - name: Create new vercel project linked to this branch
-      run: vercel project add edsnlp-$BRANCH_NAME --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
 
-    - name: Link public folder to the (maybe) new vercel project
-      run: vercel link --cwd public --project edsnlp-$BRANCH_NAME --yes --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Create new vercel project linked to this branch
+        run: vercel project add edsnlp-$BRANCH_NAME --token=${{ secrets.VERCEL_TOKEN }}
 
-    - name: Deploy to Vercel
-      run: vercel deploy public/ --yes --token=${{ secrets.VERCEL_TOKEN }} --archive=tgz --prod > deployment-url.txt
+      - name: Link public folder to the (maybe) new vercel project
+        run: vercel link --cwd public --project edsnlp-$BRANCH_NAME --yes --token=${{ secrets.VERCEL_TOKEN }}
 
-    - name: Post the documentation link
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        slugify () {
-            echo "$1" | iconv -c -t ascii//TRANSLIT | sed -E 's/[^a-zA-Z0-9-]+//g' | tr A-Z a-z
-        }
-        RAW_PROJECT_NAME="edsnlp-$BRANCH_NAME"
-        URL=https://$(slugify "$RAW_PROJECT_NAME").vercel.app/
-        COMMENT_BODY="## Docs preview URL\n\n$URL\n\n"
-        HEADER="Authorization: token $GITHUB_TOKEN"
-        PR_COMMENTS_URL="https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments"
+      - name: Deploy to Vercel
+        run: vercel deploy public/ --yes --token=${{ secrets.VERCEL_TOKEN }} --archive=tgz --prod > deployment-url.txt
 
-        # Fetch existing comments to find if one from this workflow already exists
-        COMMENTS=$(curl -s -H "$HEADER" "$PR_COMMENTS_URL")
-        COMMENT_ID=$(echo "$COMMENTS" | jq -r '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("## Docs preview URL"))) | .id')
+      - name: Post the documentation link
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          slugify () {
+              echo "$1" | iconv -c -t ascii//TRANSLIT | sed -E 's/[^a-zA-Z0-9-]+//g' | tr A-Z a-z
+          }
+          RAW_PROJECT_NAME="edsnlp-$BRANCH_NAME"
+          URL=https://$(slugify "$RAW_PROJECT_NAME").vercel.app/
+          COMMENT_BODY="## Docs preview URL\n\n$URL\n\n"
+          HEADER="Authorization: token $GITHUB_TOKEN"
+          PR_COMMENTS_URL="https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments"
 
-        # Check if we have a comment ID, if so, update it, otherwise create a new one
-        if [[ "$COMMENT_ID" ]]; then
-          # Update existing comment
-          curl -s -X PATCH -H "$HEADER" -H "Content-Type: application/json" -d "{\"body\": \"$COMMENT_BODY\"}" "https://api.github.com/repos/${{ github.repository }}/issues/comments/$COMMENT_ID"
-        else
-          # Post new comment
-          curl -s -X POST -H "$HEADER" -H "Content-Type: application/json" -d "{\"body\": \"$COMMENT_BODY\"}" "$PR_COMMENTS_URL"
-        fi
+          # Fetch existing comments to find if one from this workflow already exists
+          COMMENTS=$(curl -s -H "$HEADER" "$PR_COMMENTS_URL")
+          COMMENT_ID=$(echo "$COMMENTS" | jq -r '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("## Docs preview URL"))) | .id')
 
-        if [ $status -ne 0 ]; then
-          exit $status
-        fi
+          # Check if we have a comment ID, if so, update it, otherwise create a new one
+          if [[ "$COMMENT_ID" ]]; then
+            # Update existing comment
+            curl -s -X PATCH -H "$HEADER" -H "Content-Type: application/json" -d "{\"body\": \"$COMMENT_BODY\"}" "https://api.github.com/repos/${{ github.repository }}/issues/comments/$COMMENT_ID"
+          else
+            # Post new comment
+            curl -s -X POST -H "$HEADER" -H "Content-Type: application/json" -d "{\"body\": \"$COMMENT_BODY\"}" "$PR_COMMENTS_URL"
+          fi
+
+          if [ $status -ne 0 ]; then
+            exit $status
+          fi
 
   simple-installation:
     name: Simple installation
@@ -185,19 +187,18 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: [ "3.10", "3.11", "3.12", "3.13" ]
     steps:
       - uses: actions/checkout@v2
 
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
 
-      - run: echo WEEK=$(date +%V) >>$GITHUB_ENV
-        shell: bash
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v7
 
       - name: Install library
         run: |
-          pip install ".[ml]" pytest
+          uv pip install ".[ml]" pytest
           pytest tests/pipelines/test_pipelines.py

@@ -62,7 +62,7 @@ The supported loggers are listed below.
 
 ### RichLogger {: #edsnlp.training.loggers.RichLogger }
 
-::: edsnlp.training.loggers.RichLogger.__init__
+::: edsnlp.training.loggers.RichLogger
     options:
         sections: ["text", "parameters"]
         heading_level: 4
@@ -72,7 +72,7 @@ The supported loggers are listed below.
 
 ### CSVLogger {: #edsnlp.training.loggers.CSVLogger }
 
-::: edsnlp.training.loggers.CSVLogger.__init__
+::: edsnlp.training.loggers.CSVLogger
     options:
         sections: ["text", "parameters"]
         heading_level: 4
@@ -82,7 +82,7 @@ The supported loggers are listed below.
 
 ### JSONLogger {: #edsnlp.training.loggers.JSONLogger }
 
-::: edsnlp.training.loggers.JSONLogger.__init__
+::: edsnlp.training.loggers.JSONLogger
     options:
         sections: ["text", "parameters"]
         heading_level: 4

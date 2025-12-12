@@ -9,51 +9,34 @@ We welcome contributions ! There are many ways to help. For example, you can:
 
 ## Development installation
 
-To be able to run the test suite, run the example notebooks and develop your own pipeline component, you should clone the repo and install it locally.
+To be able to run the test suite, run the example notebooks and develop your own pipeline component, you should clone the repo and install it locally. We use `uv` to manage virtual environments, and think you should too.
 
-<div class="termy">
-
-```console
+```bash { data-md-color-scheme="slate" }
 # Clone the repository and change directory
-$ git clone https://github.com/aphp/edsnlp.git
----> 100%
-$ cd edsnlp
+git clone https://github.com/aphp/edsnlp.git
+cd edsnlp
 
 # Optional: create a virtual environment
-$ python -m venv venv
-$ source venv/bin/activate
+uv venv
+source .venv/bin/activate
 
-# Install the package with common, dev, setup dependencies in editable mode
-$ pip install -e . --group dev --group setup
-# And build resources
-$ python scripts/conjugate_verbs.py
+# Install the package with common, dev dependencies in editable mode
+uv pip install -e . --group dev
 ```
-
-</div>
 
 To make sure the pipeline will not fail because of formatting errors, we added pre-commit hooks using the `pre-commit` Python library. To use it, simply install it:
 
-<div class="termy">
-
-```console
-$ pre-commit install
+```bash { data-md-color-scheme="slate" }
+pre-commit install
 ```
-
-</div>
 
 The pre-commit hooks defined in the [configuration](https://github.com/aphp/edsnlp/blob/master/.pre-commit-config.yaml) will automatically run when you commit your changes, letting you know if something went wrong.
 
 The hooks only run on staged changes. To force-run it on all files, run:
 
-<div class="termy">
-
-```console
-$ pre-commit run --all-files
----> 100%
-color:green All good !
+```bash { data-md-color-scheme="slate" }
+pre-commit run --all-files
 ```
-
-</div>
 
 ## Proposing a merge request
 
@@ -70,7 +53,7 @@ We use the Pytest test suite.
 The following command will run the test suite. Writing your own tests is encouraged !
 
 ```shell
-python -m pytest
+pytest
 ```
 
 !!! warning "Testing Cython code"
@@ -93,11 +76,11 @@ edsnlp/pipes/<pipe>
 
 ### Style Guide
 
-We use [Black](https://github.com/psf/black) to reformat the code. While other formatter only enforce PEP8 compliance, Black also makes the code uniform. In short :
+We use [Ruff](https://github.com/astral-sh/ruff) to reformat the code. While other formatter only enforce PEP8 compliance, Ruff also makes the code uniform. In short :
 
-> Black reformats entire files in place. It is not configurable.
+> Ruff reformats entire files in place. It is not configurable.
 
-Moreover, the CI/CD pipeline enforces a number of checks on the "quality" of the code. To wit, non black-formatted code will make the test pipeline fail. We use `pre-commit` to keep our codebase clean.
+Moreover, the CI/CD pipeline enforces a number of checks on the "quality" of the code. To wit, non ruff-formatted code will make the test pipeline fail. We use `pre-commit` to keep our codebase clean.
 
 Refer to the [development install tutorial](#development-installation) for tips on how to format your files automatically.
 Most modern editors propose extensions that will format files on save.
@@ -109,19 +92,13 @@ as well as in the documentation itself if need be.
 
 We use `MkDocs` for EDS-NLP's documentation. You can check out the changes you make with:
 
-<div class="termy">
-
-```console
+```bash { data-md-color-scheme="slate" }
 # Install the requirements
-$ pip install -e . --group docs
----> 100%
-color:green Installation successful
+uv pip install -e . --group dev --group docs
 
 # Run the documentation
-$ mkdocs serve
+mkdocs serve
 ```
-
-</div>
 
 Go to [`localhost:8000`](http://localhost:8000) to see your changes. MkDocs watches for changes in the documentation folder
 and automatically reloads the page.

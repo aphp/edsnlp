@@ -77,10 +77,10 @@ dev = [
     "configobj>=5.0.9",
     "tensorboardx>=2.6.4",
 ]
-setup = [
-    "mlconjug3<3.9.0",  # bug https://github.com/Ars-Linguistica/mlconjug3/pull/506
-    "numpy<2",  # mlconjug has scikit-learn dep which doesn't support for numpy 2 yet
-]
+# setup = [
+#     "mlconjug3<3.9.0",  # bug https://github.com/Ars-Linguistica/mlconjug3/pull/506
+#     "numpy<2",  # mlconjug has scikit-learn dep which doesn't support for numpy 2 yet
+# ]
 ml = [
     "edsnlp[ml]"
 ]

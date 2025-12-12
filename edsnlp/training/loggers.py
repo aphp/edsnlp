@@ -26,8 +26,7 @@ def flatten_dict(d, path=""):
     }
 
 
-@edsnlp.registry.loggers.register("csv")
-class CSVLogger(accelerate.tracking.GeneralTracker):
+class CSVTracker(accelerate.tracking.GeneralTracker):
     name = "csv"
     requires_logging_directory = True
 
@@ -38,24 +37,6 @@ class CSVLogger(accelerate.tracking.GeneralTracker):
         file_name: str = "metrics.csv",
         **kwargs,
     ):
-        """
-        A simple CSV-based logger that writes logs to a CSV file. By default,
-        with `edsnlp.train` the CSV file is located under a local directory
-        `${CWD}/artifact/metrics.csv`.
-
-        !!! warning "Consistent Keys"
-
-            This logger expects that the `values` dictionary passed to `log` has
-            consistent keys across all calls. If a new key is encountered in a
-            subsequent call, it will be ignored and a warning will be issued.
-
-        Parameters
-        ----------
-        logging_dir : str or os.PathLike
-          Directory in which to store the CSV.
-        file_name : str, optional
-          Name of the CSV file. Defaults to "metrics.csv".
-        """
         super().__init__()
         self.logging_dir = logging_dir
 
@@ -66,11 +47,11 @@ class CSVLogger(accelerate.tracking.GeneralTracker):
         self._has_header = False
 
     @accelerate.tracking.on_main_process
-    def ensure_init(self):
+    def start(self):
         if self._file is not None:
             return
         os.makedirs(self.logging_dir, exist_ok=True)
-        self._file = open(self.file_path, mode="a", newline="")
+        self._file = open(self.file_path, mode="w", newline="")
         self._writer = csv.writer(self._file)
 
     @property
@@ -91,8 +72,6 @@ class CSVLogger(accelerate.tracking.GeneralTracker):
         - All subsequent calls must use the same columns. Any missing columns get
           written as empty, any new columns generate a warning.
         """
-        self.ensure_init()
-
         values = flatten_dict(values)
 
         if self._columns is None:
@@ -126,8 +105,7 @@ class CSVLogger(accelerate.tracking.GeneralTracker):
         self._file.close()
 
 
-@edsnlp.registry.loggers.register("json")
-class JSONLogger(accelerate.tracking.GeneralTracker):
+class JSONTracker(accelerate.tracking.GeneralTracker):
     name = "json"
     requires_logging_directory = True
 
@@ -137,23 +115,6 @@ class JSONLogger(accelerate.tracking.GeneralTracker):
         file_name: str = "metrics.json",
         **kwargs,
     ):
-        """
-        A simple JSON-based logger that writes logs to a JSON file as a
-        list of dictionaries. By default, with `edsnlp.train` the JSON file
-        is located under a local directory `${CWD}/artifact/metrics.json`.
-
-        This method is not recommended for large and frequent logging, as it
-        re-writes the entire JSON file on every call. Prefer
-        [`CSVLogger`][edsnlp.training.loggers.CSVLogger] for frequent
-        and heavy logging.
-
-        Parameters
-        ----------
-        logging_dir : str or os.PathLike
-            Directory in which to store the JSON file.
-        file_name : str, optional
-            Name of the JSON file. Defaults to "metrics.json".
-        """
         super().__init__()
         self.logging_dir = logging_dir
         self.initialized = False
@@ -190,8 +151,7 @@ class JSONLogger(accelerate.tracking.GeneralTracker):
         pass
 
 
-@edsnlp.registry.loggers.register("rich")
-class RichLogger(accelerate.tracking.GeneralTracker):
+class RichTracker(accelerate.tracking.GeneralTracker):
     DEFAULT_FIELDS = {
         "step": {},
         "per_pipe/(.*)/results/loss": {
@@ -231,47 +191,20 @@ class RichLogger(accelerate.tracking.GeneralTracker):
         hijack_tqdm: bool = True,
         **kwargs,
     ):
-        """
-        A logger that displays logs in a Rich-based table using
-        [rich-logger](https://github.com/percevalw/rich-logger).
-        This logger is also available via the loggers registry as `rich`.
-
-        !!! warning "No Disk Logging"
-
-            This logger doesn't save logs to disk. It's meant for displaying
-            logs in a pretty table during training. If you need to save logs
-            to disk, consider combining this logger with any other logger.
-
-        Parameters
-        ----------
-        fields: Dict[str, Union[Dict, bool]]
-            Field descriptors containing goal ("lower_is_better" or "higher_is_better"),
-             format and display name
-            The key is a regex that will be used to match the fields to log
-            Each entry of the dictionary should match the following scheme:
-
-            - key: a regex to match columns
-            - value: either a Dict or False to hide the column, the dict format is
-                - name: the name of the column
-                - goal: "lower_is_better" or "higher_is_better"
-
-            This defaults to a set of metrics and stats that are commonly
-            logged during EDS-NLP training.
-        key: Optional[str]
-            Key to group the logs
-        hijack_tqdm: bool
-            Whether to replace the tqdm progress bar with a rich progress bar.
-            Indeed, rich progress bars integrate better with the rich table.
-        """
         super().__init__()
 
         self.run_name = run_name
         fields = fields if fields is not None else self.DEFAULT_FIELDS
         self.fields = fields or {}
+        self.hijack_tqdm = hijack_tqdm
+        self.printer = None
+        self.key = key
 
-        self.printer = RichTablePrinter(key=key, fields=self.fields)
+    @accelerate.tracking.on_main_process
+    def start(self):
+        self.printer = RichTablePrinter(key=self.key, fields=self.fields)
 
-        if hijack_tqdm:
+        if self.hijack_tqdm:
             self.printer.hijack_tqdm()
 
     @property
@@ -299,29 +232,12 @@ class RichLogger(accelerate.tracking.GeneralTracker):
         self.printer.finalize()
 
 
-@edsnlp.registry.loggers.register("tensorboard")
-class TensorBoardLogger(accelerate.tracking.TensorBoardTracker):
+class TensorBoardTracker(accelerate.tracking.TensorBoardTracker):
     def __init__(
         self,
         project_name: str,
         logging_dir: Optional[Union[str, os.PathLike]] = None,
     ):
-        """
-        Logger for [TensorBoard](https://github.com/tensorflow/tensorboard).
-        This logger is also available via the loggers registry as `tensorboard`.
-
-        Parameters
-        ----------
-        project_name: str
-            Name of the project.
-        logging_dir: Union[str, os.PathLike]
-            Directory in which to store the TensorBoard logs. Logs of different runs
-            will be stored in `logging_dir/project_name`.
-            The environment variable `TENSORBOARD_LOGGING_DIR` takes precedence over
-            this argument.
-        kwargs: Dict
-            Additional keyword arguments to pass to `tensorboard.SummaryWriter`.
-        """
         env_logging_dir = os.environ.get("TENSORBOARD_LOGGING_DIR", None)
         if env_logging_dir is not None and logging_dir is not None:  # pragma: no cover
             warnings.warn(
@@ -343,30 +259,17 @@ class TensorBoardLogger(accelerate.tracking.TensorBoardTracker):
         return super().log(values, step, **kwargs)
 
 
-@edsnlp.registry.loggers.register("aim")
-class AimLogger(accelerate.tracking.AimTracker):
+class AimTracker(accelerate.tracking.AimTracker):
     main_process_only = True
 
     def __init__(
         self,
         project_name: str,
         logging_dir: Optional[Union[str, os.PathLike]] = None,
+        # We set it to None by default, as it's rarely useful
+        system_tracking_interval: Optional[int] = None,
         **kwargs,
     ):
-        """
-        Logger for [Aim](https://github.com/aimhubio/aim).
-
-        Parameters
-        ----------
-        project_name: str
-            Name of the project.
-        logging_dir: Optional[Union[str, os.PathLike]]
-            Directory in which to store the Aim logs.
-            The environment variable `AIM_LOGGING_DIR` takes precedence over this
-            argument.
-        kwargs: Dict
-            Additional keyword arguments to pass to the Aim init function.
-        """
         env_logging_dir = os.environ.get("AIM_LOGGING_DIR", None)
         if env_logging_dir is not None and logging_dir is not None:
             warnings.warn(
@@ -378,15 +281,11 @@ class AimLogger(accelerate.tracking.AimTracker):
             "Please provide a logging directory or set AIM_LOGGING_DIR"
         )
 
-        from aim import Run
-
-        self.writer = Run(
-            repo=logging_dir,
-            experiment=project_name,
+        super().__init__(
+            run_name=project_name,
+            logging_dir=logging_dir,
+            system_tracking_interval=system_tracking_interval,
             **kwargs,
-        )
-        accelerate.tracking.logger.debug(
-            f"Initialized Aim run {self.writer.hash} in project {project_name}"
         )
 
     def log(self, values: dict, step: Optional[int], **kwargs):
@@ -394,11 +293,173 @@ class AimLogger(accelerate.tracking.AimTracker):
         return super().log(values, step, **kwargs)
 
 
+@edsnlp.registry.loggers.register("json")
+def JSONLogger(
+    logging_dir: Union[str, os.PathLike],
+    file_name: str = "metrics.json",
+    **kwargs,
+) -> JSONTracker:  # pragma: no cover
+    """
+    A simple JSON-based logger that writes logs to a JSON file as a
+    list of dictionaries. By default, with `edsnlp.train` the JSON file
+    is located under a local directory `${CWD}/artifact/metrics.json`.
+
+    This method is not recommended for large and frequent logging, as it
+    re-writes the entire JSON file on every call. Prefer
+    [`CSVLogger`][edsnlp.training.loggers.CSVLogger] for frequent
+    and heavy logging.
+
+    Parameters
+    ----------
+    logging_dir : str or os.PathLike
+        Directory in which to store the JSON file.
+    file_name : str, optional
+        Name of the JSON file. Defaults to "metrics.json".
+    """
+    return JSONTracker(
+        logging_dir=logging_dir,
+        file_name=file_name,
+        **kwargs,
+    )
+
+
+@edsnlp.registry.loggers.register("csv")
+def CSVLogger(
+    logging_dir: Union[str, os.PathLike],
+    file_name: str = "metrics.csv",
+    **kwargs,
+) -> CSVTracker:  # pragma: no cover
+    """
+    A simple CSV-based logger that writes logs to a CSV file. By default,
+    with `edsnlp.train` the CSV file is located under a local directory
+    `${CWD}/artifact/metrics.csv`.
+
+    !!! warning "Consistent Keys"
+
+        This logger expects that the `values` dictionary passed to `log` has
+        consistent keys across all calls. If a new key is encountered in a
+        subsequent call, it will be ignored and a warning will be issued.
+
+    Parameters
+    ----------
+    logging_dir : str or os.PathLike
+      Directory in which to store the CSV.
+    file_name : str, optional
+      Name of the CSV file. Defaults to "metrics.csv".
+    """
+    return CSVTracker(
+        logging_dir=logging_dir,
+        file_name=file_name,
+        **kwargs,
+    )
+
+
+@edsnlp.registry.loggers.register("rich")
+def RichLogger(
+    run_name: Optional[str] = None,
+    fields: Dict[str, Union[Dict, bool]] = None,
+    key: Optional[str] = None,
+    hijack_tqdm: bool = True,
+    **kwargs,
+) -> RichTracker:  # pragma: no cover
+    """
+    A logger that displays logs in a Rich-based table using
+    [rich-logger](https://github.com/percevalw/rich-logger).
+    This logger is also available via the loggers registry as `rich`.
+
+    !!! warning "No Disk Logging"
+
+        This logger doesn't save logs to disk. It's meant for displaying
+        logs in a pretty table during training. If you need to save logs
+        to disk, consider combining this logger with any other logger.
+
+    Parameters
+    ----------
+    fields: Dict[str, Union[Dict, bool]]
+        Field descriptors containing goal ("lower_is_better" or "higher_is_better"),
+         format and display name
+        The key is a regex that will be used to match the fields to log
+        Each entry of the dictionary should match the following scheme:
+
+        - key: a regex to match columns
+        - value: either a Dict or False to hide the column, the dict format is
+            - name: the name of the column
+            - goal: "lower_is_better" or "higher_is_better"
+
+        This defaults to a set of metrics and stats that are commonly
+        logged during EDS-NLP training.
+    key: Optional[str]
+        Key to group the logs
+    hijack_tqdm: bool
+        Whether to replace the tqdm progress bar with a rich progress bar.
+        Indeed, rich progress bars integrate better with the rich table.
+    """
+    return RichTracker(
+        run_name=run_name,
+        fields=fields,
+        key=key,
+        hijack_tqdm=hijack_tqdm,
+        **kwargs,
+    )
+
+
+@edsnlp.registry.loggers.register("aim")
+def AimLogger(
+    project_name: str,
+    logging_dir: Optional[Union[str, os.PathLike]] = None,
+    **kwargs,
+) -> accelerate.tracking.AimTracker:  # pragma: no cover
+    """
+    Logger for [Aim](https://github.com/aimhubio/aim).
+
+    Parameters
+    ----------
+    project_name: str
+        Name of the project.
+    logging_dir: Optional[Union[str, os.PathLike]]
+        Directory in which to store the Aim logs.
+        The environment variable `AIM_LOGGING_DIR` takes precedence over this
+        argument.
+    kwargs: Dict
+        Additional keyword arguments to pass to the Aim init function.
+    """
+    return AimTracker(
+        project_name,
+        logging_dir=logging_dir,
+        **kwargs,
+    )
+
+
+@edsnlp.registry.loggers.register("tensorboard")
+def TensorBoardLogger(
+    project_name: str,
+    logging_dir: Optional[Union[str, os.PathLike]] = None,
+) -> accelerate.tracking.TensorBoardTracker:  # pragma: no cover
+    """
+    Logger for [TensorBoard](https://github.com/tensorflow/tensorboard).
+    This logger is also available via the loggers registry as `tensorboard`.
+
+    Parameters
+    ----------
+    project_name: str
+        Name of the project.
+    logging_dir: Union[str, os.PathLike]
+        Directory in which to store the TensorBoard logs. Logs of different runs
+        will be stored in `logging_dir/project_name`.
+        The environment variable `TENSORBOARD_LOGGING_DIR` takes precedence over
+        this argument.
+    """
+    return TensorBoardTracker(
+        project_name,
+        logging_dir=logging_dir,
+    )
+
+
 @edsnlp.registry.loggers.register("wandb")
 def WandBLogger(
     project_name: str,
     **kwargs,
-) -> "accelerate.tracking.WandBTracker":  # pragma: no cover
+) -> accelerate.tracking.WandBTracker:  # pragma: no cover
     """
     Logger for [Weights & Biases](https://docs.wandb.ai/quickstart/).
     This logger is also available via the loggers registry as `wandb`.
@@ -427,7 +488,7 @@ def MLflowLogger(
     nested_run: Optional[bool] = False,
     run_name: Optional[str] = None,
     description: Optional[str] = None,
-) -> "accelerate.tracking.MLflowTracker":  # pragma: no cover
+) -> accelerate.tracking.MLflowTracker:  # pragma: no cover
     """
     Logger for
     [MLflow](https://mlflow.org/docs/latest/getting-started/intro-quickstart/).
@@ -479,7 +540,7 @@ def MLflowLogger(
 def CometMLLogger(
     project_name: str,
     **kwargs,
-) -> "accelerate.tracking.CometMLTracker":  # pragma: no cover
+) -> accelerate.tracking.CometMLTracker:  # pragma: no cover
     """
     Logger for [CometML](https://www.comet.com/docs/).
     This logger is also available via the loggers registry as `cometml`.
@@ -506,7 +567,7 @@ try:
     def ClearMLLogger(
         project_name: str,
         **kwargs,
-    ) -> "accelerate.tracking.ClearMLTracker":  # pragma: no cover
+    ) -> accelerate.tracking.ClearMLTracker:  # pragma: no cover
         """
         Logger for
         [ClearML](https://clear.ml/docs/latest/docs/getting_started/ds/ds_first_steps/).
@@ -538,7 +599,7 @@ try:
     def DVCLiveLogger(
         live: Any = None,
         **kwargs,
-    ) -> "accelerate.tracking.DVCLiveTracker":  # pragma: no cover
+    ) -> accelerate.tracking.DVCLiveTracker:  # pragma: no cover
         """
         Logger for [DVC Live](https://dvc.org/doc/dvclive).
         This logger is also available via the loggers registry as `dvclive`.

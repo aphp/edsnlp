@@ -55,32 +55,27 @@ dev = [
     "pytest>=7.1.0",
     "pytest-cov>=3.0.0",
     "pytest-timeout",
-
     # Data libs
     "pyspark<4.0.0",  # TODO: uncap when we figure out the CI issue with pyspark 4.0.0
     "polars",
-
     "scikit-learn",
-
     # Packaging
     "poetry",
-
     # Docs
     "mkdocs-eds@git+https://github.com/aphp/mkdocs-eds.git@main#egg=mkdocs-eds",
     "mike",
     "markdown-grid-tables==0.4.0",
-
     # LLM
     "bm25s",
     "PyStemmer",
     "openai",
-
     "edsnlp[ml]",
     "tensorboard",
     "optuna>=4.0.0",
     "plotly>=5.18.0", # required by optuna viz
     "ruamel.yaml>=0.18.0",
     "configobj>=5.0.9",
+    "tensorboardx>=2.6.4",
 ]
 setup = [
     "mlconjug3<3.9.0",  # bug https://github.com/Ars-Linguistica/mlconjug3/pull/506

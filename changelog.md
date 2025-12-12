@@ -18,6 +18,7 @@
 - Don't pass seed to openai API calls (only as extra body)
 - Default to alignment threshold = 0 (better recall) for LLM annotated markup alignment with the original text
 - Fix `eds.llm_markup_extractor` context splitting to yield full docs and not parts of docs
+- Fix accelerate trackers integration for most loggers, in particular in multi GPU training
 
 ## v0.19.0 (2025-10-04)
 

@@ -20,15 +20,12 @@ cd edsnlp
 uv venv
 source .venv/bin/activate
 
-<<<<<<< HEAD
+
 # Install the package with common, dev dependencies in editable mode
 uv pip install -e . --group dev
 =======
-# Install the package with common, dev, setup dependencies in editable mode
-$ pip install -e . --group dev --group setup
-# And build resources
-$ python scripts/conjugate_verbs.py
->>>>>>> b87e1b241 (chore: move most of optional dependencies to dependency groups)
+# Install the package with common, dev dependencies in editable mode
+uv pip install -e . --group dev
 ```
 
 To make sure the pipeline will not fail because of formatting errors, we added pre-commit hooks using the `pre-commit` Python library. To use it, simply install it:

@@ -112,7 +112,7 @@ class ConllReader(FileBasedReader):
         path: Union[str, Path],
         *,
         columns: Optional[List[str]] = None,
-        filesystem: Optional[FileSystem] = None,
+        filesystem: Optional[Union[FileSystem, str]] = None,
         loop: bool = False,
         shuffle: Literal["dataset", False] = False,
         seed: Optional[int] = None,
@@ -162,7 +162,7 @@ def read_conll(
     *,
     columns: Optional[List[str]] = None,
     converter: Optional[AsList[Union[str, Callable]]] = ["conll"],
-    filesystem: Optional[FileSystem] = None,
+    filesystem: Optional[Union[FileSystem, str]] = None,
     shuffle: Literal["dataset", False] = False,
     seed: Optional[int] = None,
     loop: bool = False,
@@ -234,7 +234,7 @@ def read_conll(
         - or the `eds` tokenizer by default.
     converter : Optional[AsList[Union[str, Callable]]]
         Converter to use to convert the documents to dictionary objects.
-    filesystem: Optional[FileSystem] = None,
+    filesystem: Optional[Union[FileSystem, str]] = None
         The filesystem to use to write the files. If None, the filesystem will be
         inferred from the path (e.g. `s3://` will use S3).
     """

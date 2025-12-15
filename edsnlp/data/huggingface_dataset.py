@@ -1,0 +1,259 @@
+import random
+from typing import Any, Callable, Dict, Iterable, Literal, Optional, Union
+
+from confit import validate_arguments
+
+from edsnlp import registry
+from edsnlp.core.stream import Stream
+from edsnlp.data.base import FileBasedReader
+from edsnlp.data.converters import get_dict2doc_converter
+from edsnlp.utils.stream_sentinels import DatasetEndSentinel
+
+
+class HFDatasetReader(FileBasedReader):
+    def __init__(
+        self,
+        dataset: Any,
+        shuffle: Union[Literal["dataset"], bool] = False,
+        seed: Optional[int] = None,
+        loop: bool = False,
+    ):
+        super().__init__()
+        self.dataset = dataset
+        self.shuffle = "dataset" if shuffle == "dataset" or shuffle is True else False
+        seed = seed if seed is not None else random.getrandbits(32)
+        self.rng = random.Random(seed)
+        self.loop = loop
+        self.emitted_sentinels = {"dataset"}
+
+    def read_records(self) -> Iterable[Any]:
+        while True:
+            data = self.dataset
+            if self.shuffle == "dataset":
+                try:
+                    data = list(self.dataset)
+                except Exception:
+                    # fallback to non-shuffled iterator
+                    data = self.dataset
+                else:
+                    self.rng.shuffle(data)
+
+            for item in data:
+                yield item
+
+            yield DatasetEndSentinel()
+            if not self.loop:
+                break
+
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}(data={object.__repr__(self.dataset)}, "
+            f"shuffle={self.shuffle}, "
+            f"loop={self.loop})"
+        )
+
+
+def _import_datasets():
+    try:
+        import datasets
+
+        return datasets
+    except Exception as e:  # pragma: no cover - dependency handling
+        raise ImportError(
+            "The 'datasets' library is required to write huggingface datasets. "
+            "Install it with `pip install datasets` or with the edsnlp extras: "
+            "`pip install 'edsnlp[ml]'`"
+        ) from e
+
+
+def _validate_hf_ner_columns(
+    col_names: Optional[Iterable[str]], kwargs: Dict[str, Any]
+):
+    words_col = kwargs.get("words_column", "tokens")
+    ner_col = kwargs.get("ner_tags_column", "ner_tags")
+
+    missing = []
+    if words_col not in col_names:
+        missing.append(f'words_column="{words_col}"')
+    if ner_col not in col_names:
+        missing.append(f'ner_tags_column="{ner_col}"')
+    if missing:
+        raise ValueError(
+            "Cannot find these columns in dataset: "
+            f"{missing}. "
+            + f"Dataset columns are: {col_names}."
+            + (
+                " If you intended to process raw text, consider using the "
+                "'hf_text' converter (pass `converter='hf_text'` and "
+                "`text_column='<column>'`)."
+            )
+        )
+
+    kwargs["words_column"] = words_col
+    kwargs["ner_tags_column"] = ner_col
+
+    if "id" in col_names and "id_column" not in kwargs:
+        kwargs["id_column"] = "id"
+
+
+def _validate_hf_text_columns(
+    col_names: Optional[Iterable[str]], kwargs: Dict[str, Any]
+):
+    text_col = kwargs.get("text_column", "text")
+
+    missing = []
+    if text_col not in col_names:
+        missing.append(f'text_column="{text_col}"')
+    if missing:
+        raise ValueError(
+            "Cannot find these columns in dataset: "
+            f"{missing}. "
+            + f"Dataset columns are: {col_names}."
+            + (
+                " If you intended to process a NER dataset, consider using the "
+                "'hf_ner' converter (pass `converter='hf_ner')."
+            )
+        )
+
+    kwargs["text_column"] = text_col
+
+    if "id" in col_names and "id_column" not in kwargs:
+        kwargs["id_column"] = "id"
+
+
+def _load_hf_dataset_with_config(
+    dataset: str,
+    split: Optional[str] = None,
+    name: Optional[str] = None,
+    load_kwargs: Optional[Dict[str, Any]] = None,
+) -> Any:
+    datasets = _import_datasets()
+
+    try:
+        ds = datasets.load_dataset(dataset, name=name, split=split, **load_kwargs)
+    except ValueError as e:
+        raise ValueError(
+            f"Could not load dataset {dataset!r} with name={name!r} and "
+            f"split={split!r}. Please verify that the dataset identifier, "
+            "configuration name and split are correct."
+        ) from e
+    return ds
+
+
+@registry.readers.register("huggingface_dataset")
+@validate_arguments()
+def from_huggingface_dataset(
+    dataset: Union[str, Any],
+    split: Optional[str] = None,
+    name: Optional[str] = None,  # Add config/subset name parameter
+    shuffle: Union[Literal["dataset"], bool] = False,
+    seed: Optional[int] = None,
+    loop: bool = False,
+    converter: Optional[Union[str, Callable]] = None,
+    load_kwargs: Optional[Dict[str, Any]] = None,
+    **kwargs,
+) -> Stream:
+    """
+    Load a dataset from the HuggingFace Hub as a Stream.
+
+    Example
+    -------
+    ```{ .python .no-check }
+
+    import edsnlp
+
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(...)
+    doc_iterator = edsnlp.data.from_huggingface_dataset(
+        "lhoestq/conll2003",
+        split="train",
+        tag_order=[
+            'O',
+            'B-PER',
+            'I-PER',
+            'B-ORG',
+            'I-ORG',
+            'B-LOC',
+            'I-LOC',
+            'B-MISC',
+            'I-MISC',
+        ],
+        converter="hf_ner",
+    )
+    annotated_docs = nlp.pipe(doc_iterator)
+    ```
+
+    Parameters
+    ----------
+    dataset: Union[str, Any]
+        Either a dataset identifier (e.g. "conll2003") or an already loaded
+        `datasets.Dataset` / `datasets.IterableDataset` object.
+    split: Optional[str]
+        Which split to load (e.g. "train"). If None, the default dataset split
+        returned by `datasets.load_dataset` is used.
+    name: Optional[str]
+        Configuration name for datasets with multiple configs (e.g. "en" for
+        a multilingual dataset). Also known as the subset name.
+    converter: Optional[Union[str, Callable]]
+        Converter(s) to transform dataset dicts to Doc objects. Recommended
+        converters are `"hf_ner"` and `"hf_text"`. More information is available
+        in the [Converters](/data/converters) page.
+    shuffle: Literal['dataset', False] or bool
+        Whether to shuffle the dataset before yielding. If True or 'dataset', the
+        whole dataset will be materialized and shuffled (may be expensive).
+    seed: Optional[int]
+        Random seed for shuffling.
+    loop: bool
+        Whether to loop over the dataset indefinitely.
+    load_kwargs: dict
+        Dictionary of additional kwargs that will be passed to the
+        `datasets.load_dataset()` method.
+    kwargs: dict
+        Additional keyword arguments passed to the converter, these are
+        documented in the [Converters](/data/converters) page.
+
+    Returns
+    -------
+    Stream
+    """
+    load_kwargs = load_kwargs or {}
+
+    # If user passed a dataset identifier string, load it
+    ds = dataset
+    if isinstance(dataset, str):
+        ds = _load_hf_dataset_with_config(
+            dataset, split=split, name=name, load_kwargs=load_kwargs
+        )
+
+    else:
+        # If user passed a (split) name to select
+        if split is not None:
+            try:
+                ds = dataset[split]
+            except Exception:
+                raise ValueError(
+                    f"Cannot select split {split!r} from dataset {dataset!r}."
+                )
+
+    # If no split was provided and the loaded dataset exposes multiple splits
+    # (e.g., a `DatasetDict`), pick the 'train' split by default and warn
+    # the user to be explicit.
+    if split is None and hasattr(ds, "keys"):
+        raise ValueError(
+            f"Dataset {dataset!r} contains multiple splits; please provide "
+            f"a `split` argument to select one among: {list(ds.keys())}."
+        )
+
+    if "hf_ner" in converter:
+        _validate_hf_ner_columns(list(ds.column_names), kwargs)
+    if "hf_text" in converter:
+        _validate_hf_text_columns(list(ds.column_names), kwargs)
+
+    reader = HFDatasetReader(ds, shuffle=shuffle, seed=seed, loop=loop)
+    stream = Stream(reader=reader)
+
+    if converter:
+        conv, kwargs = get_dict2doc_converter(converter, kwargs)
+        stream = stream.map(conv, kwargs=kwargs)
+
+    return stream

@@ -13,6 +13,8 @@ from typing import (
     Any,
     Callable,
     Dict,
+    List,
+    Mapping,
     Optional,
     Sequence,
     Tuple,
@@ -1078,6 +1080,266 @@ class DocToMarkupConverter:
             out.append(text[last:])
 
         return "".join(out)
+
+
+@registry.factory.register("eds.hf_text_dict2doc", spacy_compatible=False)
+class HfTextDict2DocConverter:
+    """
+    Converter for HuggingFace datasets where each example is a single text field.
+
+    This converter expects the dataset examples to contain a single column with
+    the document text (default: `"text"`). It tokenizes the text using the
+    provided tokenizer (or the current context tokenizer) and returns a
+    `Doc` object. If the example contains an id column (default: `"id"`) it will
+    be stored as `doc._.note_id`.
+
+    Examples
+    --------
+    ```python
+    import edsnlp
+
+    docs = edsnlp.data.from_huggingface_dataset(
+        "wikimedia/wikipedia",
+        name="20231101.ady",
+        split="train",
+        converter="hf_text",
+        id_column="id",
+        text_column="text",
+    )
+    ```
+
+    Parameters
+    ----------
+    tokenizer: Optional[Tokenizer]
+        The tokenizer instance used to tokenize the documents. Likely not needed since
+        by default it uses the current context tokenizer :
+
+        - the tokenizer of the next pipeline run by `.map_pipeline` in a
+          [Stream][edsnlp.core.stream.Stream].
+        - or the `eds` tokenizer by default.
+    text_column: str
+        Column name containing the document text.
+    id_column: str
+        Column name containing the document id.
+    """
+
+    def __init__(
+        self,
+        *,
+        tokenizer: Optional[Tokenizer] = None,
+        text_column: str,
+        id_column: Optional[str] = None,
+    ) -> None:
+        self.tokenizer = tokenizer
+        self.text_column = text_column
+        self.id_column = id_column
+
+    def __call__(self, obj, tokenizer=None) -> Doc:
+        tok = tokenizer or self.tokenizer or get_current_tokenizer()
+        doc = tok(obj[self.text_column] or "")
+        # Set note_id from configured id column when provided, otherwise
+        # fall back to the file-name sentinel if present.
+        if self.id_column is not None:
+            doc._.note_id = obj.get(self.id_column, obj.get(FILENAME))
+        else:
+            doc._.note_id = obj.get(FILENAME)
+        return doc
+
+
+@registry.factory.register("eds.hf_ner_dict2doc", spacy_compatible=False)
+class HfNerDict2DocConverter:
+    """
+    Converter for HuggingFace NER datasets (e.g., WikiNER, CoNLL-2003).
+
+    Examples
+    --------
+    ```python
+    import edsnlp
+
+    docs = edsnlp.data.from_huggingface_dataset(
+        "lhoestq/conll2003",
+        split="train",
+        id_column="id",
+        words_column="tokens",
+        ner_tags_column="ner_tags",
+        tag_order=[
+            "O",
+            "B-PER",
+            "I-PER",
+            "B-ORG",
+            "I-ORG",
+            "B-LOC",
+            "I-LOC",
+            "B-MISC",
+            "I-MISC",
+        ],
+        converter="hf_ner",
+    )
+    ```
+
+    Parameters
+    ----------
+    tokenizer: Optional[Tokenizer]
+        Optional tokenizer.
+    words_column: str
+        Column with token words.
+    ner_tags_column: str
+        Column with token-level tags.
+    id_column: str
+        Column to use for doc id.
+    tag_map: Optional[Union[Mapping[int,str], Sequence[str], Mapping[str,str]]]
+        Mapping/index-to-label for tag ids. If provided, it is used as-is.
+        If not provided, you may pass `tag_order`, a sequence of labels
+        (e.g. `['O','B-PER','I-PER', ...]`) to construct the mapping via
+        `{i: label for i, label in enumerate(tag_order)}`. If neither is
+        provided, labels are stringified.
+    tag_order: Optional[Sequence[str]]
+        Optional sequence of labels used to build `tag_map` when
+        `tag_map` is not provided.
+    span_setter: SpanSetterArg
+        Span setter (defaults to `{"ents": True}`).
+    """
+
+    def __init__(
+        self,
+        *,
+        tokenizer: Optional[Tokenizer] = None,
+        words_column: str,
+        ner_tags_column: str,
+        id_column: Optional[str] = None,
+        tag_map: Optional[Mapping[Any, str]] = None,
+        tag_order: Optional[Sequence[str]] = None,
+        span_setter: Optional[SpanSetterArg] = None,
+    ) -> None:
+        self.tokenizer = tokenizer
+        self.words_column = words_column
+        self.ner_tags_column = ner_tags_column
+        self.id_column = id_column
+        # Build tag_map from tag_order if provided, otherwise use provided
+        # tag_map or fallback to an empty dict, converting tags into span labels.
+        if tag_map is not None and tag_order is not None:
+            raise ValueError("Provide only one of tag_map or tag_order, not both.")
+        elif tag_map is not None:
+            self.tag_map = tag_map  # type: ignore[arg-type]
+        elif tag_order is not None:
+            # Map indices to labels: 0 -> tag_order[0], etc.
+            self.tag_map = dict(enumerate(tag_order))
+        else:
+            self.tag_map = {}
+        if span_setter is None:
+            span_setter = {"ents": True}
+        self.span_setter = span_setter
+
+    def _extract_entities(
+        self,
+        doc: Doc,
+        ner_tags: Sequence[Any],
+    ) -> List[Dict[str, Any]]:
+        """Extract entities from a `Doc` and token-level NER tags.
+
+        Implements a forgiving BIO-like logic. Returns a list of (start, end, label)
+        tuples.
+        """
+        entities: List[Dict[str, Any]] = []
+        n_tokens = len(doc)
+        if len(ner_tags) != n_tokens:
+            warnings.warn(
+                f"Length mismatch between tokens ({n_tokens}) and ner_tags "
+                f"({len(ner_tags)}); using min length."
+            )
+
+        L = min(n_tokens, len(ner_tags))
+        current_type: Optional[str] = None
+        start_idx: Optional[int] = None
+
+        entities: List[Tuple[int, int, str]] = []
+        prefix_tags = ["B", "I", "E", "S", "U", "L"]
+
+        for i in range(L):
+            raw = ner_tags[i]
+
+            # Resolve tag mapping if needed
+            tag = self.tag_map.get(raw, str(raw))
+
+            # Parse prefix + etype
+            if "-" in tag and (parts := tag.split("-", 1))[0] in prefix_tags:
+                prefix, etype = parts
+            elif "_" in tag and (parts := tag.split("_", 1))[0] in prefix_tags:
+                prefix, etype = parts
+            elif tag in ("O", "0"):
+                prefix = "O"
+                etype = tag
+            else:
+                prefix = "S"
+                etype = tag
+
+            # Empty tag → close entity if one is open
+            if prefix in ("O", "0"):
+                if current_type is not None:
+                    entities.append((start_idx, i, current_type))
+                    current_type = None
+                    start_idx = None
+                continue
+
+            # Begin / Single → start new entity
+            start_new = (prefix in ("B", "S", "U")) or (current_type != etype)
+
+            if start_new:
+                if current_type is not None:
+                    entities.append((start_idx, i, current_type))
+                start_idx = i
+                current_type = etype
+
+            # I → continuation; nothing to do besides keeping entity open
+
+            # End markers → close entity
+            if prefix in ("L", "E", "S", "U"):
+                entities.append((start_idx, i + 1, current_type))
+                current_type = None
+                start_idx = None
+
+        # Close leftover entity
+        if current_type is not None:
+            entities.append((start_idx, L, current_type))
+
+        return entities
+
+    def __call__(
+        self,
+        obj: Mapping[str, Any],
+        tokenizer: Optional[Tokenizer] = None,
+    ) -> Doc:
+        tok = tokenizer or self.tokenizer or get_current_tokenizer()
+
+        # Get data from the example
+        words = obj[self.words_column]
+        ner_tags = obj[self.ner_tags_column]
+
+        # Build a Doc object directly from words to avoid tokenizer mismatches
+        vocab = tok.vocab
+        # assume single-space separation between tokens
+        spaces = [True] * (len(words) - 1) + [False]
+        doc = Doc(vocab, words=words, spaces=spaces)
+
+        # Set document ID: prefer configured id column, otherwise use
+        # the file-name sentinel if present.
+        if self.id_column is not None:
+            doc._.note_id = obj.get(self.id_column, obj.get(FILENAME))
+        else:
+            doc._.note_id = obj.get(FILENAME)
+
+        # Extract entities using the token-aligned Doc
+        entities = self._extract_entities(doc, ner_tags)
+
+        # Add entities to doc
+        spans: List[Span] = []
+        for begin, end, label in entities:
+            spans.append(Span(doc, begin, end, label=label))
+
+        # Set entities on the doc
+        set_spans(doc, spans, span_setter=self.span_setter)
+
+        return doc
 
 
 def get_dict2doc_converter(

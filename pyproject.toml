@@ -58,6 +58,7 @@ dev = [
     # Data libs
     "pyspark<4.0.0",  # TODO: uncap when we figure out the CI issue with pyspark 4.0.0
     "polars",
+    "datasets",
     "scikit-learn",
     # Packaging
     "poetry",
@@ -284,6 +285,7 @@ where = ["."]
 "brat"     = "edsnlp.data:read_brat"  # alias for standoff
 "conll"    = "edsnlp.data:read_conll"
 "polars"   = "edsnlp.data:from_polars"
+"huggingface_dataset"   = "edsnlp.data:from_huggingface_dataset"
 
 [project.entry-points."edsnlp_writers"]
 "spark" =    "edsnlp.data:to_spark"

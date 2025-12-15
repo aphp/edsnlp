@@ -10,6 +10,40 @@ from .patterns import default_patterns
 
 
 class AutonomyMatcher(FrailtyDomainMatcher):
+    """
+    The `eds.autonomy` pipeline component extracts mentions of the autonomy.
+
+    Extensions
+    ----------
+    On each span `span` that match, the following attribute is available:
+
+    `span._.autonomy`: set to None.
+    It will specify the severity of the mention regarding the autonomy
+    of the patient.
+    Possible values are:
+        - healthy : this span suggests the patient is well regarding that domain.
+        - altered_nondescript : this span suggests the patient is not well, but
+            it is not yet possible to ascertain the degree of alteration.
+        - altered_mild : this span suggests a light alteration regarding
+            this domain.
+        - altered_severe : this span suggests a severe alteration regarding
+            this domain.
+        - other : this span is not indicative of the level of  alteration
+            regarding this domain. Still, it hints that this domain has
+            been evaluated.
+
+    Examples
+    --------
+    ```python
+    import edsnlp, edsnlp.pipes as eds
+
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(eds.sentences())
+    nlp.add_pipe(eds.normalizer())
+    nlp.add_pipe(f"eds.autonomy")
+    ```
+    """
+
     def __init__(
         self,
         nlp: Optional[PipelineProtocol],

@@ -122,6 +122,8 @@ train:
   num_workers: 0
   optimizer: ${ optimizer }
   grad_dev_policy: "clip_threshold"
+  project_name: test
   logger:
     - '@loggers': tensorboard !draft
     - '@loggers': rich
+    - 'aim'

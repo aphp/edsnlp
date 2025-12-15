@@ -288,6 +288,17 @@ class AimTracker(accelerate.tracking.AimTracker):
             **kwargs,
         )
 
+    @accelerate.tracking.on_main_process
+    def start(self):
+        from aim import Run
+
+        self.writer = Run(
+            repo=self.aim_repo_path, experiment=self.run_name, **self.init_kwargs
+        )
+        accelerate.tracking.logger.debug(
+            f"Initialized Aim run {self.writer.hash} in project {self.run_name}"
+        )
+
     def log(self, values: dict, step: Optional[int], **kwargs):
         values = flatten_dict(values)
         return super().log(values, step, **kwargs)

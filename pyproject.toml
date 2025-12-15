@@ -164,6 +164,23 @@ include = ["edsnlp*"]
 "eds.solid_tumor"                 = "edsnlp.pipes.ner.disorders.solid_tumor.factory:create_component"
 "eds.tobacco"                     = "edsnlp.pipes.ner.behaviors.tobacco.factory:create_component"
 
+# NER/Frailty
+"eds.autonomy"                    = "edsnlp.pipes.ner.frailty.autonomy.factory:create_component"
+"eds.cognition"                   = "edsnlp.pipes.ner.frailty.cognition.factory:create_component"
+"eds.general_status"              = "edsnlp.pipes.ner.frailty.general_status.factory:create_component"
+"eds.frailty"                     = "edsnlp.pipes.ner.frailty.frailty.factory:create_component"
+"eds.geriatric_assessment"        = "edsnlp.pipes.ner.frailty.geriatric_assessment.factory:create_component"
+"eds.incontinence"                = "edsnlp.pipes.ner.frailty.incontinence.factory:create_component"
+"eds.mobility"                    = "edsnlp.pipes.ner.frailty.mobility.factory:create_component"
+"eds.nutrition"                   = "edsnlp.pipes.ner.frailty.nutrition.factory:create_component"
+"eds.pain"                        = "edsnlp.pipes.ner.frailty.pain.factory:create_component"
+"eds.polymed"                     = "edsnlp.pipes.ner.frailty.polymed.factory:create_component"
+"eds.sensory"                     = "edsnlp.pipes.ner.frailty.sensory.factory:create_component"
+"eds.social"                      = "edsnlp.pipes.ner.frailty.social.factory:create_component"
+"eds.thymic"                      = "edsnlp.pipes.ner.frailty.thymic.factory:create_component"
+
+
+
 # Span classifiers
 "eds.family"                      = "edsnlp.pipes.qualifiers.family.factory:create_component"
 "eds.history"                     = "edsnlp.pipes.qualifiers.history.factory:create_component"

@@ -1,12 +1,12 @@
 import copy
-from typing import Dict, List
+
+from edsnlp.pipes.core.contextual_matcher.models import FullConfig
 
 healthy_status_dict = dict(
     before=[
         "preservation",
     ],
     after=[
-        # r"\bstable",
         "conservee?",
         r"\bnormale?",
         "preservee?s?",
@@ -15,9 +15,6 @@ healthy_status_dict = dict(
     both=[
         r"\bbon(?:ne)?\b",
         r"\bcorrecte?",
-        # "amelioration",
-        # "stabiliser",
-        # "maintenir",
     ],
 )
 
@@ -28,7 +25,6 @@ altered_status_dict = dict(
     ],
     after=[
         "degradee?",
-        # "instable",
         "alteree?",
         r"\bmal\b",
         "anormale?",
@@ -56,6 +52,11 @@ ALTERED_STATUS_COMPLEMENTS = (
 
 
 def make_assign_regex(complement_list):
+    """Format a list of regex to make an 'assign' parameter.
+
+    This function merges multiple regex into one big 'OR' matching group,
+    that can be used as the 'assign' parameter of a contextual matcher's pattern.
+    """
     return rf"({'|'.join(complement for complement in complement_list)})"
 
 
@@ -65,7 +66,7 @@ def make_status_assign(
     priority: bool = True,
     altered_level: str = "altered",
 ):
-    """Function to create common assign dicts.
+    """Function to create common assign dictionnaries.
 
     The priority argument serves to indicate whether the assign dict should have
     priority on the initial regex regarding severity status."""
@@ -109,10 +110,17 @@ def make_status_assign(
 
 
 def make_include_dict_from_list(list_dict):
+    """Function to merge several dictionnaries into one suitable for an 'include'.
+
+    The typical use-case is when multiple 'assigns' are possible, and we want
+    to return a match only when at least one of these 'assigns' is matched, ie
+    we make the 'include' an OR statement.
+    If we were to have the 'include' be a list of dictionnaries similar to the
+    'assign' list, it would instead be an AND statement."""
     regex_list = []
     window = [0, 0]
     for include in list_dict:
-        current_regex = include["regex"][1:-2]
+        current_regex = include["regex"].lstrip("(").rstrip(")")
         current_window = include["window"]
         regex_list.append(current_regex)
         if isinstance(current_window, int):
@@ -126,19 +134,23 @@ def make_include_dict_from_list(list_dict):
             if current_window[1] > window[1]:
                 window[1] = current_window[1]
     new_regex = make_assign_regex(regex_list)
-    return dict(
-        regex=new_regex, window=tuple(window), regex_attr="NORM"
-    )  # TODO: handle regex attr better
+    return dict(regex=new_regex, window=tuple(window), regex_attr="NORM")
 
 
-def normalize_space_characters(patterns: List[Dict]):
+def normalize_space_characters(patterns: FullConfig):
+    """Function to normalize space characters in regex.
+
+    This function can be used to keep regex definitions human-readable,
+    while still processing correctly spaces.
+    This function is useful since during development, it was found out some
+    specific edge cases required the domain matchers to set the 'ignore_space_tokens'
+    argument of their ContextualMatcher to False."""
     normalized_patterns = []
-    for regex_dict in patterns:
+    for config in patterns:
         normalized_regex = [
-            r.replace(" ", r"\s{1,3}").replace("'", r"'\s?")
-            for r in regex_dict["regex"]
+            r.replace(" ", r"\s{1,3}").replace("'", r"'\s?") for r in config.regex
         ]
-        normalized_regex_dict = copy.deepcopy(regex_dict)
-        normalized_regex_dict["regex"] = normalized_regex
+        normalized_regex_dict = copy.deepcopy(config)
+        normalized_regex_dict.regex = normalized_regex
         normalized_patterns.append(normalized_regex_dict)
     return normalized_patterns

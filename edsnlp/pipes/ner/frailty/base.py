@@ -11,6 +11,34 @@ from .utils import normalize_space_characters
 
 
 class FrailtyDomainMatcher(DisorderMatcher):
+    r"""
+    Base class for matching frailty mentions in clinical texts.
+    Subclass of DisorderMatcher.
+
+    For each domain of frailty as defined by the geriatric assessment standard,
+    a dedicated subclass with corresponding regex has been developped. As a general
+    rule, those components try to ascertain if their corresponding domain has been
+    evaluated in the clinical test, and when possible give indications regarding
+    the severity of the alteration (or lack thereof) for this domain.
+    They try to avoid acute episodes, to focus more on the underlying frailty of the
+    patient.
+
+    Parameters
+    ----------
+    nlp : PipelineProtocol
+        spaCy `Language` object.
+    domain: str
+        The frailty domain to match. Will override the name and the label
+        if those are set to None.
+    name : str
+        The name of the pipe
+    patterns: FullConfig
+        The configuration dictionary
+    normalize_spaces: bool
+        Whether to normalize the spaces in the regex patterns, ie to
+        replace all " " by "\s". Allows for more readable regex files.
+    """
+
     def __init__(
         self,
         nlp: Optional[PipelineProtocol],
@@ -56,6 +84,19 @@ class FrailtyDomainMatcher(DisorderMatcher):
             Span.set_extension(self.domain, default=None)
 
     def process(self, doc: Doc) -> Iterator[Span]:
+        """
+        Sets the frailty status of the matched spans.
+
+        Parameters
+        ----------
+        doc : Doc
+            spaCy Doc object
+
+        Returns
+        -------
+        List[Span]
+            List of detected spans.
+        """
         for span in super().process(doc):
             status = 1
             # Assign keys

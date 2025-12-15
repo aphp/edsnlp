@@ -9,16 +9,21 @@ from ..utils import normalize_space_characters
 from .patterns import default_patterns
 
 
-class AutonomyMatcher(FrailtyDomainMatcher):
+class GAMatcher(FrailtyDomainMatcher):
     """
-    The `eds.autonomy` pipeline component extracts mentions of the autonomy.
+    This pipeline component extracts mentions of geriatric assessment.
+    Contrary to most of the other subclasses of FrailtyDomainMatcher, this one
+    does not really match a domain per se, but explicit mentions of geriatric
+    assessment itself.
+    The relative rarity of those mentions motivated the development of the matchers
+    for each domain, but it still can be relevant to look for them when trying to
+    categorize a patient's frailty.
 
     Extensions
     ----------
     On each span `span` that match, the following attribute is available:
-
-    `span._.autonomy`: set to None.
-    It will specify the severity of the mention regarding the autonomy
+    `span._.geriatric_assessment`: set to None.
+    It will specify the severity of the mention regarding the geriatric_assessment
     of the patient.
     Possible values are:
         - healthy : this span suggests the patient is well regarding that domain.
@@ -31,7 +36,6 @@ class AutonomyMatcher(FrailtyDomainMatcher):
         - other : this span is not indicative of the level of  alteration
             regarding this domain. Still, it hints that this domain has
             been evaluated.
-
     Examples
     --------
     ```python
@@ -40,7 +44,7 @@ class AutonomyMatcher(FrailtyDomainMatcher):
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(eds.sentences())
     nlp.add_pipe(eds.normalizer())
-    nlp.add_pipe(f"eds.autonomy")
+    nlp.add_pipe(f"eds.geriatric_assessment")
     ```
     """
 
@@ -48,17 +52,17 @@ class AutonomyMatcher(FrailtyDomainMatcher):
         self,
         nlp: Optional[PipelineProtocol],
         *,
-        name: str = "autonomy",
+        name: str = "geriatric_assessment",
         patterns: FullConfig = default_patterns,
-        label: str = "autonomy",
+        label: str = "geriatric_assessment",
         normalize_spaces: bool = True,
-        span_setter: SpanSetterArg = {"ents": True, "autonomy": True},
+        span_setter: SpanSetterArg = {"ents": True, "geriatric_assessment": True},
     ):
         if normalize_spaces:
             patterns = normalize_space_characters(patterns)
         super().__init__(
             nlp=nlp,
-            domain="autonomy",
+            domain="geriatric_assessment",
             patterns=patterns,
             name=name,
             label=label,

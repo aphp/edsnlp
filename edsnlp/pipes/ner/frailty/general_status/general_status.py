@@ -9,16 +9,16 @@ from ..utils import normalize_space_characters
 from .patterns import default_patterns
 
 
-class AutonomyMatcher(FrailtyDomainMatcher):
+class GeneralStatusMatcher(FrailtyDomainMatcher):
     """
-    The `eds.autonomy` pipeline component extracts mentions of the autonomy.
+    The `eds.general_status` pipeline component extracts mentions of general status.
 
     Extensions
     ----------
     On each span `span` that match, the following attribute is available:
 
-    `span._.autonomy`: set to None.
-    It will specify the severity of the mention regarding the autonomy
+    `span._.general_status`: set to None.
+    It will specify the severity of the mention regarding the general status
     of the patient.
     Possible values are:
         - healthy : this span suggests the patient is well regarding that domain.
@@ -31,7 +31,6 @@ class AutonomyMatcher(FrailtyDomainMatcher):
         - other : this span is not indicative of the level of  alteration
             regarding this domain. Still, it hints that this domain has
             been evaluated.
-
     Examples
     --------
     ```python
@@ -40,7 +39,7 @@ class AutonomyMatcher(FrailtyDomainMatcher):
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(eds.sentences())
     nlp.add_pipe(eds.normalizer())
-    nlp.add_pipe(f"eds.autonomy")
+    nlp.add_pipe(f"eds.general_status")
     ```
     """
 
@@ -48,17 +47,17 @@ class AutonomyMatcher(FrailtyDomainMatcher):
         self,
         nlp: Optional[PipelineProtocol],
         *,
-        name: str = "autonomy",
+        name: str = "general_status",
         patterns: FullConfig = default_patterns,
-        label: str = "autonomy",
+        label: str = "general_status",
         normalize_spaces: bool = True,
-        span_setter: SpanSetterArg = {"ents": True, "autonomy": True},
+        span_setter: SpanSetterArg = {"ents": True, "general_status": True},
     ):
         if normalize_spaces:
             patterns = normalize_space_characters(patterns)
         super().__init__(
             nlp=nlp,
-            domain="autonomy",
+            domain="general_status",
             patterns=patterns,
             name=name,
             label=label,

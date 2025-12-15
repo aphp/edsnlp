@@ -1,10 +1,5 @@
 from ..utils import make_assign_regex, make_status_assign
 
-healthy = dict(
-    source="healthy",
-    regex=[],
-    regex_attr="NORM",
-)
 severe = dict(
     source="severe",
     regex=[
@@ -13,15 +8,6 @@ severe = dict(
         "ehpad",
         r"\bmadd?\b",
         "mise au fauteuil",
-    ],
-    regex_attr="NORM",
-)
-altered = dict(
-    source="altered",
-    regex=[
-        # r"impotence fonctionnel(?:le)?",
-        # r"soins? infirmiers?",
-        # "dysautonomie",
     ],
     regex_attr="NORM",
 )
@@ -71,24 +57,6 @@ other = dict(
 )
 
 
-mild_orth = dict(
-    source="mild_orth",
-    regex=[
-        r"\bAS\b",
-    ],
-    regex_attr="ORTH",
-)
-
-altered_potential_fp = dict(
-    source="altered_fp",
-    regex=[
-        # r"infirmiere?s?",
-        # r"\bidel?\b",
-    ],
-    regex_attr="NORM",
-    exclude=dict(regex=["equipe"], window=(-2, 2)),
-)
-
 other_orth = dict(source="other_orth", regex=["SSR"], regex_attr="ORTH")
 severe_orth = dict(source="severe_orth", regex=[r"\bEPHAD\b"], regex_attr="ORTH")
 
@@ -115,7 +83,7 @@ ALTERED_COMPLEMENTS = [
 ]
 SEVERE_COMPLEMENTS = [
     "dependante?",
-    rf"(?:gere)? (?:par (?:la|les?|l' ?)?)?(?:{'|'.join(member for member in FAMILY_COMPLEMENTS)})",  # noqa E501
+    rf"(?:geres?)? (?:par (?:la|les?|l' ?)?)?(?:{'|'.join(member for member in FAMILY_COMPLEMENTS)})",  # noqa E501
 ]
 HEALTHY_COMPLEMENTS = [
     "autonome",
@@ -140,6 +108,11 @@ activities_of_daily_life = dict(
             regex=make_assign_regex(ALTERED_COMPLEMENTS),
             window=(-5, 3),
         ),
+        dict(
+            name="healthy_complements",
+            regex="(autonome)",
+            window=(-5, 3),
+        ),
     ],
 )
 
@@ -160,12 +133,12 @@ other_specific_qualifers = dict(
         dict(
             name="altered_complements",
             regex=make_assign_regex(ALTERED_COMPLEMENTS),
-            window=(-5, 3),
+            window=(-5, 5),
         ),
         dict(
             name="severe_complements",
             regex=make_assign_regex(SEVERE_COMPLEMENTS),
-            window=(-5, 3),
+            window=(-5, 5),
         ),
         dict(
             name="healthy_complements",
@@ -290,7 +263,6 @@ ambiguous_items = dict(
     ),
 )
 
-
 readaptation = dict(
     source="other_readaptation",
     regex=["readaptation"],
@@ -302,18 +274,15 @@ readaptation = dict(
 )
 
 default_patterns = [
-    healthy,
-    altered,
     other_orth,
     severe,
     other,
     other_specific_qualifers,
+    activities_of_daily_life,
     readaptation,
     house_stay,
     ambiguous_items,
     administrative,
-    altered_potential_fp,
     severe_orth,
     mild,
-    mild_orth,
 ]

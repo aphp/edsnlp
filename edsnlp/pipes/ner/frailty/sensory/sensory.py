@@ -9,16 +9,16 @@ from ..utils import normalize_space_characters
 from .patterns import default_patterns
 
 
-class AutonomyMatcher(FrailtyDomainMatcher):
+class SensoryMatcher(FrailtyDomainMatcher):
     """
-    The `eds.autonomy` pipeline component extracts mentions of the autonomy.
+    The `eds.sensory` pipeline component extracts mentions of sensory status.
 
     Extensions
     ----------
     On each span `span` that match, the following attribute is available:
 
-    `span._.autonomy`: set to None.
-    It will specify the severity of the mention regarding the autonomy
+    `span._.sensory`: set to None.
+    It will specify the severity of the mention regarding the sensory status
     of the patient.
     Possible values are:
         - healthy : this span suggests the patient is well regarding that domain.
@@ -40,7 +40,7 @@ class AutonomyMatcher(FrailtyDomainMatcher):
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(eds.sentences())
     nlp.add_pipe(eds.normalizer())
-    nlp.add_pipe(f"eds.autonomy")
+    nlp.add_pipe(f"eds.sensory")
     ```
     """
 
@@ -48,17 +48,17 @@ class AutonomyMatcher(FrailtyDomainMatcher):
         self,
         nlp: Optional[PipelineProtocol],
         *,
-        name: str = "autonomy",
+        name: str = "sensory",
         patterns: FullConfig = default_patterns,
-        label: str = "autonomy",
+        label: str = "sensory",
         normalize_spaces: bool = True,
-        span_setter: SpanSetterArg = {"ents": True, "autonomy": True},
+        span_setter: SpanSetterArg = {"ents": True, "sensory": True},
     ):
         if normalize_spaces:
             patterns = normalize_space_characters(patterns)
         super().__init__(
             nlp=nlp,
-            domain="autonomy",
+            domain="sensory",
             patterns=patterns,
             name=name,
             label=label,

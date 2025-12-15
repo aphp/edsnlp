@@ -6,7 +6,7 @@ from confit import validate_arguments
 from edsnlp import registry
 from edsnlp.core.stream import Stream
 from edsnlp.data.base import FileBasedReader
-from edsnlp.data.converters import get_dict2doc_converter
+from edsnlp.data.converters import get_dict2doc_converter, get_doc2dict_converter
 from edsnlp.utils.stream_sentinels import DatasetEndSentinel
 
 
@@ -257,3 +257,100 @@ def from_huggingface_dataset(
         stream = stream.map(conv, kwargs=kwargs)
 
     return stream
+
+
+def _iter_from_stream(data_stream):
+    for item in data_stream.execute():
+        if isinstance(item, DatasetEndSentinel):
+            continue
+        if isinstance(item, (list, tuple)):
+            for rec in item:
+                yield rec
+        else:
+            yield item
+
+
+@registry.writers.register("huggingface_dataset")
+def to_huggingface_dataset(
+    data: Union[Any, Stream],
+    *,
+    converter: Optional[Union[str, Callable]] = None,
+    execute: bool = True,
+    **kwargs,
+) -> Any:
+    """
+    Convert a collection/`Stream` of `Doc` objects (or already-converted
+    dicts) into a `datasets.IterableDataset`.
+    Examples
+    --------
+    1) Convert a `Stream` of HuggingFace NER examples into `Doc` objects (reader),
+       process them and create an `IterableDataset` of dictionaries using the
+       `hf_ner` writer converter::
+
+           import edsnlp
+
+           stream = edsnlp.data.from_huggingface_dataset(
+               "lhoestq/conll2003",
+               split="train",
+               converter="hf_ner",
+           )
+
+           # Apply a pipeline or other processing
+           stream = stream.map_pipeline(nlp)
+
+           # Export as HF IterableDataset of dicts (no push)
+           hf_iter = edsnlp.data.to_huggingface_dataset(
+               stream,
+               converter="hf_ner",
+           )
+
+           )
+
+    2) Convert plain text Docs to HF text-format dicts::
+
+           edsnlp.data.to_huggingface_dataset(
+               docs_stream,
+               converter=("hf_text"),
+               execute=True,
+               # converter kwargs are validated and forwarded by
+               # `get_doc2dict_converter` (e.g. `text_column`, `id_column`).
+           )
+
+    Parameters
+    ----------
+    data: Union[Any, Stream]
+        Iterable of `Doc` objects or a `Stream`. If `converter` is provided the
+        stream items are expected to be `Doc` objects. Otherwise items should
+        already be mapping-like dicts.
+    converter: Optional[Union[str, Callable]]
+        Converter name or callable used to transform `Doc` -> dict before
+        creating the dataset. Typical values: `"hf_ner_doc2dict"` or
+        `"hf_text_doc2dict"`. Converter kwargs may be passed via `**kwargs`.
+    execute: bool
+        If False, return a transformed `Stream` (not executed). If True (default)
+        produce and return a `datasets.IterableDataset` (or pushed `Dataset`).
+    **kwargs: dict
+        Extra kwargs forwarded to the converter factory.
+
+    Returns
+    -------
+    Union[datasets.IterableDataset, datasets.Dataset]
+        An `IterableDataset` containing the converted data.
+    """
+
+    data = Stream.ensure_stream(data)
+
+    if converter:
+        conv, kwargs = get_doc2dict_converter(converter, kwargs)
+        data = data.map(conv, kwargs=kwargs)
+
+    if not execute:
+        return data
+
+    datasets = _import_datasets()
+
+    # Pass a zero-arg callable that returns a generator function expected by HF
+    def gen_callable():
+        return _iter_from_stream(data)
+
+    return datasets.IterableDataset.from_generator(gen_callable)

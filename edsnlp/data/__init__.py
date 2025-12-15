@@ -13,5 +13,5 @@ if TYPE_CHECKING:
     from .spark import from_spark, to_spark
     from .pandas import from_pandas, to_pandas
     from .polars import from_polars, to_polars
-    from .huggingface_dataset  import from_huggingface_dataset
+    from .huggingface_dataset  import from_huggingface_dataset, to_huggingface_dataset
     from .converters import get_dict2doc_converter, get_doc2dict_converter

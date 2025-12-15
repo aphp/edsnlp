@@ -76,6 +76,7 @@ dev = [
     "ruamel.yaml>=0.18.0",
     "configobj>=5.0.9",
     "tensorboardx>=2.6.4",
+    "aim>=3.29.1; python_version<'3.13'",
 ]
 # setup = [
 #     "mlconjug3<3.9.0",  # bug https://github.com/Ars-Linguistica/mlconjug3/pull/506

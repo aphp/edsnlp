@@ -94,7 +94,7 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
 
         ```python { .no-check }
         from typing import Annotated, TypedDict
-        from pydantic import BeforeValidator, PlainSerializer, WithJsonSchema
+        from pydantic import BeforeValidator, PlainSerializer, BaseModel, Field
         import edsnlp, edsnlp.pipes as eds
 
         # Pydantic schema used to validate and parse the LLM response

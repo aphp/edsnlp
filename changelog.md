@@ -10,6 +10,7 @@
 
 - :explosion: EDS-NLP now requires Python 3.10 or later.
 - Dependencies (dev, docs and setup) are now listed in dependency groups and installable via `pip install -e . --group the_group`
+- .ipynb_checkpoints/* files are not longer included in packaged models
 
 ### Fixed
 

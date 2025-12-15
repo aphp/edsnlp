@@ -526,7 +526,11 @@ class StandardPackager(Packager):
         file_paths = []
         for package in packages:
             for path in (root_dir / package).rglob("*"):
-                if "__pycache__" in path.parts or path.is_dir():
+                if (
+                    "__pycache__" in path.parts
+                    or ".ipynb_checkpoints" in path.parts
+                    or path.is_dir()
+                ):
                     continue
                 file_paths.append(path)
 

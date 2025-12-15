@@ -1087,6 +1087,9 @@ class Stream(metaclass=MetaStream):
         )
 
     if TYPE_CHECKING:
+        from edsnlp.data import (
+            to_huggingface_dataset as to_huggingface_dataset,  # noqa: F401
+        )
         from edsnlp.data import to_iterable as to_iterable  # noqa: F401
         from edsnlp.data import to_pandas as to_pandas  # noqa: F401
         from edsnlp.data import to_polars as to_polars  # noqa: F401

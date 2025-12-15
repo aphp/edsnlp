@@ -295,6 +295,9 @@ where = ["."]
 "brat"     = "edsnlp.data:write_brat"  # alias for standoff
 "polars"   = "edsnlp.data:to_polars"
 "parquet"  = "edsnlp.data:write_parquet"
+"huggingface_dataset"   = "edsnlp.data:to_huggingface_dataset"
+
+
 
 [project.entry-points."edsnlp_loggers"]
 "csv" = "edsnlp.training.loggers:CSVLogger"

@@ -60,6 +60,45 @@ def test_from_huggingface_dataset_conll2003_requires_split_when_omitted():
         raise
 
 
+def test_from_huggingface_dataset_conll2003_from_dataset_wrong_split_name():
+    datasets = pytest.importorskip("datasets")
+    _skip_if_offline()
+
+    conll2003 = datasets.load_dataset(
+        "lhoestq/conll2003",
+    )
+    try:
+        with pytest.raises(ValueError, match=r"Cannot select split"):
+            # Use empty converter string to avoid triggering converter validation.
+            from_huggingface_dataset(
+                conll2003,
+                split="dev",
+                converter="",
+                load_kwargs={"streaming": True},
+            )
+    except Exception as e:
+        _maybe_skip_hf_hub_failure(e)
+        raise
+
+
+def test_from_huggingface_dataset_conll2003_from_dataset_name_wrong_split_name():
+    pytest.importorskip("datasets")
+    _skip_if_offline()
+
+    try:
+        with pytest.raises(ValueError, match=r"Could not load dataset"):
+            # Use empty converter string to avoid triggering converter validation.
+            from_huggingface_dataset(
+                "lhoestq/conll2003",
+                split="dev",
+                converter="",
+                load_kwargs={"streaming": True},
+            )
+    except Exception as e:
+        _maybe_skip_hf_hub_failure(e)
+        raise
+
+
 def test_from_huggingface_dataset_conll2003_yields_records_without_converter():
     datasets = pytest.importorskip("datasets")
     _skip_if_offline()
@@ -164,6 +203,7 @@ def test_from_huggingface_dataset_conll2003_hf_ner_converter_shuffle_reproducibi
         "B-MISC",
         "I-MISC",
     ]
+    tag_map = dict(enumerate(tag_order))
 
     try:
         nlp = edsnlp.blank("eds")
@@ -171,7 +211,7 @@ def test_from_huggingface_dataset_conll2003_hf_ner_converter_shuffle_reproducibi
             "lhoestq/conll2003",
             split="train",
             converter="hf_ner",
-            tag_order=tag_order,
+            tag_map=tag_map,
             nlp=nlp,
             load_kwargs={"streaming": True},
             shuffle="dataset",
@@ -182,7 +222,7 @@ def test_from_huggingface_dataset_conll2003_hf_ner_converter_shuffle_reproducibi
             "lhoestq/conll2003",
             split="train",
             converter="hf_ner",
-            tag_order=tag_order,
+            tag_map=tag_map,
             nlp=nlp,
             load_kwargs={"streaming": True},
             shuffle="dataset",
@@ -357,7 +397,7 @@ def test_from_huggingface_dataset_imdb_hf_text_converter_shuffle_reproducibility
         raise
 
 
-def test_to_huggingface_dataset_imdb_roundtrip():
+def test_huggingface_dataset_imdb_roundtrip():
     pytest.importorskip("datasets")
     edsnlp = pytest.importorskip("edsnlp")
     from datasets import IterableDataset
@@ -396,10 +436,10 @@ def test_to_huggingface_dataset_imdb_roundtrip():
         raise
 
 
-def test_to_huggingface_dataset_conll2003_roundtrip():
+def test_huggingface_dataset_conll2003_roundtrip():
     pytest.importorskip("datasets")
     edsnlp = pytest.importorskip("edsnlp")
-    from datasets import IterableDataset, load_dataset
+    from datasets import load_dataset
 
     _skip_if_offline()
 
@@ -433,14 +473,69 @@ def test_to_huggingface_dataset_conll2003_roundtrip():
             converter="hf_ner",
             words_column="tokens",
             ner_tags_column="ner_tags",
+            execute=False,
         )
-
-        assert isinstance(dataset, IterableDataset)
         list_dataset = list(dataset)
         assert len(list_dataset) == 5
         for item, original in zip(dataset, first_five):
             assert item["tokens"] == original["tokens"]
             assert item["ner_tags"] == [tag_order[i] for i in original["ner_tags"]]
+    except Exception as e:
+        _maybe_skip_hf_hub_failure(e)
+        raise
+
+
+def test_from_huggingface_dataset_looping():
+    pytest.importorskip("datasets")
+    edsnlp = pytest.importorskip("edsnlp")
+    datasets = pytest.importorskip("datasets")
+
+    _skip_if_offline()
+
+    tag_order = [
+        "O",
+        "B-PER",
+        "I-PER",
+        "B-ORG",
+        "I-ORG",
+        "B-LOC",
+        "I-LOC",
+        "B-MISC",
+        "I-MISC",
+    ]
+
+    try:
+        nlp = edsnlp.blank("eds")
+        dataset = datasets.load_dataset("lhoestq/conll2003", split="train[:10]")
+        stream = from_huggingface_dataset(
+            dataset,
+            converter="hf_ner",
+            tag_order=tag_order,
+            nlp=nlp,
+            load_kwargs={"streaming": True},
+        )
+        count = 0
+        for _ in stream:
+            count += 1
+            if count == 10:
+                break
+        assert count == 10
+
+        stream = from_huggingface_dataset(
+            dataset,
+            converter="hf_ner",
+            tag_order=tag_order,
+            nlp=nlp,
+            load_kwargs={"streaming": True},
+            loop=True,
+        )
+        count = 0
+        for _ in stream:
+            count += 1
+            if count == 50:
+                break
+        assert count == 50
+
     except Exception as e:
         _maybe_skip_hf_hub_failure(e)
         raise

@@ -1153,7 +1153,7 @@ class HfTextDoc2DictConverter:
     Outputs a dict with the configured `id_column` and `text_column`.
     """
 
-    def __init__(self, *, text_column: str, id_column: str):
+    def __init__(self, *, text_column: str = "text", id_column: str = "id"):
         self.text_column = text_column
         self.id_column = id_column
 

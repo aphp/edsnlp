@@ -30,13 +30,8 @@ class HFDatasetReader(FileBasedReader):
         while True:
             data = self.dataset
             if self.shuffle == "dataset":
-                try:
-                    data = list(self.dataset)
-                except Exception:
-                    # fallback to non-shuffled iterator
-                    data = self.dataset
-                else:
-                    self.rng.shuffle(data)
+                data = list(self.dataset)
+                self.rng.shuffle(data)
 
             for item in data:
                 yield item
@@ -328,7 +323,7 @@ def to_huggingface_dataset(
         `"hf_text_doc2dict"`. Converter kwargs may be passed via `**kwargs`.
     execute: bool
         If False, return a transformed `Stream` (not executed). If True (default)
-        produce and return a `datasets.IterableDataset` (or pushed `Dataset`).
+        produce and return a `datasets.IterableDataset`.
     **kwargs: dict
         Extra kwargs forwarded to the converter factory.
 

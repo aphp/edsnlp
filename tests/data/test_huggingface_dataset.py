@@ -185,6 +185,31 @@ def test_from_huggingface_dataset_conll2003_hf_ner_converter_produces_docs():
         raise
 
 
+def test_from_huggingface_dataset_bilou_schema():
+    pytest.importorskip("datasets")
+    edsnlp = pytest.importorskip("edsnlp")
+    datasets = pytest.importorskip("datasets")
+    from spacy.tokens import Doc
+
+    _skip_if_offline()
+
+    doc = {
+        "tokens": ["John", "Doe", "lives", "in", "Paris", "since", "2020", "."],
+        "ner_tags": ["B_PER", "E_PER", "O", "O", "LOC", "O", "B_DATE", "O"],
+    }
+    hf_dataset = datasets.Dataset.from_dict({k: [v] for k, v in doc.items()})
+    dataset = edsnlp.data.from_huggingface_dataset(
+        hf_dataset,
+        converter="hf_ner",
+    )
+
+    # assert docs only has 2 entities
+    docs = list(dataset.map_pipeline(edsnlp.blank("eds")))
+    assert len(docs) == 1
+    assert isinstance(docs[0], Doc)
+    assert len(docs[0].ents) == 3
+
+
 def test_from_huggingface_dataset_conll2003_hf_ner_converter_shuffle_reproducibility():
     pytest.importorskip("datasets")
     edsnlp = pytest.importorskip("edsnlp")

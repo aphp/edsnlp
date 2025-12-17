@@ -12,7 +12,7 @@ from edsnlp.utils.filter import filter_spans
 from edsnlp.utils.typing import cast
 
 from .model import TNM
-from .patterns import tnm_pattern
+from .patterns_new import tnm_pattern_new
 
 
 class TNMMatcher(BaseNERComponent):
@@ -75,7 +75,7 @@ class TNMMatcher(BaseNERComponent):
         nlp: Optional[PipelineProtocol],
         name: str = "tnm",
         *,
-        pattern: Optional[Union[List[str], str]] = tnm_pattern,
+        pattern: Optional[Union[List[str], str]] = tnm_pattern_new,
         attr: str = "TEXT",
         label: str = "tnm",
         span_setter: SpanSetterArg = {"ents": True, "tnm": True},

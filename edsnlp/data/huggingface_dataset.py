@@ -258,9 +258,6 @@ def _iter_from_stream(data_stream):
     for item in data_stream.execute():
         if isinstance(item, DatasetEndSentinel):
             continue
-        if isinstance(item, (list, tuple)):
-            for rec in item:
-                yield rec
         else:
             yield item
 

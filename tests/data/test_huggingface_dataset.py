@@ -422,6 +422,41 @@ def test_from_huggingface_dataset_imdb_hf_text_converter_shuffle_reproducibility
         raise
 
 
+def test_from_huggingface_dataset_wikipedia_hf_text_converter_without_id_column():
+    pytest.importorskip("datasets")
+    edsnlp = pytest.importorskip("edsnlp")
+    from spacy.tokens import Doc
+
+    _skip_if_offline()
+
+    try:
+        nlp = edsnlp.blank("eds")
+        stream = from_huggingface_dataset(
+            "wikimedia/wikipedia",
+            name="20231101.ady",
+            split="train",
+            converter="hf_text",
+            text_column="text",
+            nlp=nlp,
+            load_kwargs={"streaming": True},
+        )
+
+        docs = []
+        for x in stream.execute():
+            docs.append(x)
+            if len(docs) >= 2:
+                break
+
+        assert len(docs) == 2
+        for doc in docs:
+            assert isinstance(doc, Doc)
+            assert doc.text.strip()
+            assert len(doc) > 0
+    except Exception as e:
+        _maybe_skip_hf_hub_failure(e)
+        raise
+
+
 def test_huggingface_dataset_imdb_roundtrip():
     pytest.importorskip("datasets")
     edsnlp = pytest.importorskip("edsnlp")

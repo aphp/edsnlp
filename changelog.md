@@ -5,6 +5,7 @@
 ### Added
 
 - Support passing multiple paths to `edsnlp.read_parquet`
+- New `edsnlp.data.from_huggingface_dataset()` and `edsnlp.data.to_huggingface_dataset()` data connectors, with corresponding `hf_ner` and `hf_text` connectors adapted respectively for NER datasets and simple text datasets.
 
 ### Changed
 

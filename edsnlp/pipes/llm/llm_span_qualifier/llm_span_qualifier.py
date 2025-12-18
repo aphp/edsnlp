@@ -775,7 +775,7 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
                     exhausted = True
                     break
                 doc_states.append(make_state(doc))
-            schedule()
+                schedule()
 
             while next_yield < len(doc_states) and doc_done(
                 doc_states[next_yield]

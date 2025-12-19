@@ -104,6 +104,7 @@ version = { attr = "edsnlp.__version__" }
 
 [tool.setuptools.packages.find]
 where = ["."]
+include = ["edsnlp*"]
 
 [project.entry-points."edsnlp_core"]
 "pipeline"  = "edsnlp.core.pipeline:Pipeline"
@@ -423,9 +424,13 @@ skip = [
     "*-musllinux*", # Skip slow Linux
     "*-manylinux_ppc64le", # Skip slow Linux
     "*-manylinux_s390x", # Skip slow Linux
-    "*p314-*",
+    "*p314*",  # spacy uses confection which uses pydantic v1 which isn't supported on py314
 ]
 
 before-test = 'pip install pytest "urllib3<2"'
 test-extras = "ml"
+test-skip = [
+    "cp313-macosx_x86_64",
+    "cp314-macosx_x86_64",
+]
 test-command = "pytest {project}/tests/pipelines/test_pipelines.py"

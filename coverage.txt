@@ -84,7 +84,7 @@ edsnlp/pipes/llm/llm_markup_extractor/factory.py                                
 edsnlp/pipes/llm/llm_markup_extractor/llm_markup_extractor.py                             157      5  96.82%   310, 356, 468-469, 491
 edsnlp/pipes/llm/llm_span_qualifier/__init__.py                                             1      0 100.00%
 edsnlp/pipes/llm/llm_span_qualifier/factory.py                                              3      0 100.00%
-edsnlp/pipes/llm/llm_span_qualifier/llm_span_qualifier.py                                 249      2  99.20%   580, 658
+edsnlp/pipes/llm/llm_span_qualifier/llm_span_qualifier.py                                 249      3  98.80%   580, 658, 751
 edsnlp/pipes/misc/__init__.py                                                               0      0 100.00%
 edsnlp/pipes/misc/consultation_dates/__init__.py                                            0      0 100.00%
 edsnlp/pipes/misc/consultation_dates/consultation_dates.py                                 48      2  95.83%   132, 135
@@ -317,7 +317,7 @@ edsnlp/processing/simple.py                                                     
 edsnlp/processing/spark.py                                                                 47      1  97.87%   51
 edsnlp/reducers.py                                                                         68      2  97.06%   116, 118
 edsnlp/training/__init__.py                                                                 2      0 100.00%
-edsnlp/training/loggers.py                                                                147     10  93.20%   52, 89, 212, 273-284, 292-293
+edsnlp/training/loggers.py                                                                152      4  97.37%   52, 89, 212, 279
 edsnlp/training/optimizer.py                                                              183      0 100.00%
 edsnlp/training/trainer.py                                                                338     12  96.45%   58, 366-371, 898-904, 932-933, 941, 945
 edsnlp/tune.py                                                                            284      2  99.30%   166, 681
@@ -343,4 +343,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      81      9  88.89%   103, 119, 122-128, 144
 edsnlp/utils/typing.py                                                                     48      0 100.00%
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   12574    254  97.98%
+TOTAL                                                                                   12579    249  98.02%

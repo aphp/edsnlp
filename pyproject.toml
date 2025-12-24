@@ -34,15 +34,9 @@ ml = [
     "rich-logger>=0.3.1",
     "torch>=2",
     "foldedtensor>=0.4.0",
-    "safetensors>=0.3.0; python_version>='3.8'",
-    "safetensors>=0.3.0,<0.5.0; python_version<'3.8'",
-    "transformers>=4.0.0,<5.0.0",
-    "accelerate>=0.20.3,<1.0.0",
-]
-llm = [
-    "openai>=1.90.0; python_version>='3.8'",
-    "nest_asyncio",
-    "respx",
+    "safetensors>=0.3.0",
+    "transformers>=4.0.0",
+    "accelerate>=0.20.3",
 ]
 
 [dependency-groups]
@@ -51,7 +45,6 @@ docs = [
     "mike",
     "markdown-grid-tables==0.4.0",
     "edsnlp[ml]",
-    "edsnlp[llm]",
 ]
 dev = [
     "pre-commit>=2.21.0",
@@ -85,9 +78,6 @@ dev = [
 #     "mlconjug3<3.9.0",  # bug https://github.com/Ars-Linguistica/mlconjug3/pull/506
 #     "numpy<2",  # mlconjug has scikit-learn dep which doesn't support for numpy 2 yet
 # ]
-ml = [
-    "edsnlp[ml]"
-]
 ml = [
     "edsnlp[ml]"
 ]
@@ -179,7 +169,6 @@ include = ["edsnlp*"]
 "eds.reported_speech"             = "edsnlp.pipes.qualifiers.reported_speech.factory:create_component"
 "eds.contextual_qualifier"        = "edsnlp.pipes.qualifiers.contextual.factory:create_component"
 "eds.external_information_qualifier" = "edsnlp.pipes.qualifiers.external_information.factory:create_component"
-"eds.llm_span_qualifier"          = "edsnlp.pipes.qualifiers.llm.factory:create_component"
 
 # Misc
 "eds.consultation_dates"          = "edsnlp.pipes.misc.consultation_dates.factory:create_component"
@@ -264,9 +253,6 @@ include = ["edsnlp*"]
 "eds.span_classifier"     = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
 "eds.span_linker"         = "edsnlp.pipes.trainable.span_linker.factory:create_component"
 "eds.biaffine_dep_parser" = "edsnlp.pipes.trainable.biaffine_dep_parser.factory:create_component"
-
-# LLM (optional dependencies)
-"eds.llm_span_qualifier"          = "edsnlp.pipes.qualifiers.llm.factory:create_component"
 
 [project.entry-points."edsnlp_schedules"]
 "linear" = "edsnlp.training.optimizer:LinearSchedule"
@@ -398,7 +384,6 @@ omit-covered-files = false
 # Some tests may download large objects such as the UMLS
 # This timeout is mostly here to kill the CI in the case of deadlocks or infinite loops
 timeout = 600
-asyncio_mode = "auto"
 
 [tool.coverage.report]
 precision = 2

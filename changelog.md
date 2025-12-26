@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Use protocol-provided filesystem when writing parquet files, ie now only telling the program to write parquets to "hdfs:///users/x/y" should suffice.
+
 ## v0.20.0 (2025-12-12)
 
 ### Added

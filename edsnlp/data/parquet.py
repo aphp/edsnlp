@@ -148,7 +148,6 @@ class ParquetWriter(BatchWriter):
                 )
             for file in dataset.files:
                 self.fs.rm_file(file)
-        self.fs = filesystem
         batch_size, batch_by = Stream.validate_batching(batch_size, batch_by)
         if batch_by in ("docs", "doc", None, batchify) and batch_size is None:
             warnings.warn(

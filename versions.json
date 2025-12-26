@@ -1,5 +1,10 @@
 [
   {
+    "version": "master",
+    "title": "master",
+    "aliases": []
+  },
+  {
     "version": "fix-sdist",
     "title": "fix-sdist",
     "aliases": []

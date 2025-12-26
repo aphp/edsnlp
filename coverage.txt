@@ -17,7 +17,7 @@ edsnlp/data/conll.py                                                            
 edsnlp/data/converters.py                                                                 384      6  98.44%   426, 834, 896, 927, 997, 1114
 edsnlp/data/json.py                                                                       112      1  99.11%   82
 edsnlp/data/pandas.py                                                                      54      0 100.00%
-edsnlp/data/parquet.py                                                                    116      0 100.00%
+edsnlp/data/parquet.py                                                                    115      0 100.00%
 edsnlp/data/polars.py                                                                      55      1  98.18%   37
 edsnlp/data/spark.py                                                                       65      0 100.00%
 edsnlp/data/standoff.py                                                                   186      2  98.92%   39, 193
@@ -343,4 +343,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      81      9  88.89%   103, 119, 122-128, 144
 edsnlp/utils/typing.py                                                                     48      0 100.00%
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   12579    249  98.02%
+TOTAL                                                                                   12578    249  98.02%

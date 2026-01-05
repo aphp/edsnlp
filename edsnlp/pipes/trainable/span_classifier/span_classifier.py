@@ -694,8 +694,8 @@ class TrainableSpanClassifier(
             mask = batch["targets"][:, group_idx] != -100
         logits = binding_scores[mask, bindings_indexer]
         targets = batch["targets"][mask, group_idx]
-        scores = torch.softmax(logits.as_tensor().detach(), dim=1)
-        predictions = logits.argmax(dim=1).as_tensor()
+        scores = torch.softmax(logits.detach(), dim=1)
+        predictions = logits.argmax(dim=1)
 
         if "span_ids" in batch:
             span_ids = batch["span_ids"].squeeze(0)

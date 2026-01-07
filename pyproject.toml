@@ -178,7 +178,7 @@ include = ["edsnlp*"]
 "eds.sensory"                     = "edsnlp.pipes.ner.frailty.sensory.factory:create_component"
 "eds.social"                      = "edsnlp.pipes.ner.frailty.social.factory:create_component"
 "eds.thymic"                      = "edsnlp.pipes.ner.frailty.thymic.factory:create_component"
-
+"eds.adl"                         = "edsnlp.pipes.ner.frailty.scores.adl.factory:create_component"
 
 
 # Span classifiers

@@ -1,4 +1,9 @@
-from ..utils import make_assign_regex, make_include_dict_from_list, make_status_assign
+from ..utils import (
+    make_assign_regex,
+    make_include_dict_from_list,
+    make_status_assign,
+    normalize_space_characters,
+)
 
 healthy = dict(
     source="healthy",
@@ -287,20 +292,22 @@ ralentissement = dict(
 )
 
 
-default_patterns = [
-    healthy,
-    altered,
-    severe,
-    other,
-    desorientation,
-    orientation_healthy,
-    orientation_other,
-    ralentissement,
-    cognitive_status,
-    troubles,
-    bilan,
-    consultation,
-    memory,
-    recognition,
-    tnc,
-]
+default_patterns = normalize_space_characters(
+    [
+        healthy,
+        altered,
+        severe,
+        other,
+        desorientation,
+        orientation_healthy,
+        orientation_other,
+        ralentissement,
+        cognitive_status,
+        troubles,
+        bilan,
+        consultation,
+        memory,
+        recognition,
+        tnc,
+    ]
+)

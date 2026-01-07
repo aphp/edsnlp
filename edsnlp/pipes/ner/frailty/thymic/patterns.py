@@ -4,6 +4,7 @@ from ..utils import (
     make_assign_regex,
     make_include_dict_from_list,
     make_status_assign,
+    normalize_space_characters,
 )
 
 healthy = dict(
@@ -151,15 +152,17 @@ status = dict(
     assign=make_status_assign(),
 )
 
-default_patterns = [
-    healthy,
-    altered,
-    severe,
-    other,
-    ralentissement,
-    sleep,
-    troubles,
-    morale,
-    night,
-    status,
-]
+default_patterns = normalize_space_characters(
+    [
+        healthy,
+        altered,
+        severe,
+        other,
+        ralentissement,
+        sleep,
+        troubles,
+        morale,
+        night,
+        status,
+    ]
+)

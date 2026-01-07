@@ -1,3 +1,5 @@
+from ..utils import normalize_space_characters
+
 healthy = dict(
     source="healthy",
     regex=[
@@ -73,12 +75,14 @@ other = dict(
     regex_attr="NORM",
 )
 
-default_patterns = [
-    healthy,
-    altered,
-    severe,
-    other,
-    severe_lower,
-    protection,
-    lever_nocturne,
-]
+default_patterns = normalize_space_characters(
+    [
+        healthy,
+        altered,
+        severe,
+        other,
+        severe_lower,
+        protection,
+        lever_nocturne,
+    ]
+)

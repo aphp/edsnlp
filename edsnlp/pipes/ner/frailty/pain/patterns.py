@@ -1,4 +1,4 @@
-from ..utils import make_status_assign
+from ..utils import make_status_assign, normalize_space_characters
 
 other = dict(
     source="other",
@@ -43,4 +43,6 @@ status = dict(
     assign=make_status_assign(),
 )
 
-default_patterns = [other, healthy, altered, mild, severe, status]
+default_patterns = normalize_space_characters(
+    [other, healthy, altered, mild, severe, status]
+)

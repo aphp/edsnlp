@@ -1,4 +1,4 @@
-from ..utils import make_assign_regex
+from ..utils import make_assign_regex, normalize_space_characters
 
 other = dict(
     source="other",
@@ -22,4 +22,4 @@ onco_geriatry = dict(
     ],
 )
 
-default_patterns = [other, onco_geriatry]
+default_patterns = normalize_space_characters([other, onco_geriatry])

@@ -1,4 +1,4 @@
-from ..utils import make_assign_regex, make_status_assign
+from ..utils import make_assign_regex, make_status_assign, normalize_space_characters
 
 healthy = dict(
     source="healthy",
@@ -201,18 +201,20 @@ status = dict(
     assign=make_status_assign(),
 )
 
-default_patterns = [
-    healthy,
-    healthy_orth,
-    altered,
-    severe_orth,
-    isolation,
-    severe,
-    other,
-    family_members,
-    children,
-    ambiguous_family,
-    house_stay,
-    severe_potential_fp,
-    status,
-]
+default_patterns = normalize_space_characters(
+    [
+        healthy,
+        healthy_orth,
+        altered,
+        severe_orth,
+        isolation,
+        severe,
+        other,
+        family_members,
+        children,
+        ambiguous_family,
+        house_stay,
+        severe_potential_fp,
+        status,
+    ]
+)

@@ -1,6 +1,5 @@
 import copy
-
-from edsnlp.pipes.core.contextual_matcher.models import FullConfig
+from typing import Dict, List
 
 healthy_status_dict = dict(
     before=[
@@ -137,7 +136,7 @@ def make_include_dict_from_list(list_dict):
     return dict(regex=new_regex, window=tuple(window), regex_attr="NORM")
 
 
-def normalize_space_characters(patterns: FullConfig):
+def normalize_space_characters(patterns: List[Dict]):
     """Function to normalize space characters in regex.
 
     This function can be used to keep regex definitions human-readable,
@@ -147,10 +146,11 @@ def normalize_space_characters(patterns: FullConfig):
     argument of their ContextualMatcher to False."""
     normalized_patterns = []
     for config in patterns:
+        regex = config["regex"]
         normalized_regex = [
-            r.replace(" ", r"\s{1,3}").replace("'", r"'\s?") for r in config.regex
+            r.replace(" ", r"\s{1,3}").replace("'", r"'\s?") for r in regex
         ]
         normalized_regex_dict = copy.deepcopy(config)
-        normalized_regex_dict.regex = normalized_regex
+        normalized_regex_dict["regex"] = normalized_regex
         normalized_patterns.append(normalized_regex_dict)
     return normalized_patterns

@@ -5,7 +5,6 @@ from edsnlp.pipes.base import SpanSetterArg
 from edsnlp.pipes.core.contextual_matcher.models import FullConfig
 
 from ..base import FrailtyDomainMatcher
-from ..utils import normalize_space_characters
 from .patterns import default_patterns
 
 
@@ -51,11 +50,8 @@ class IncontinenceMatcher(FrailtyDomainMatcher):
         name: str = "incontinence",
         patterns: FullConfig = default_patterns,
         label: str = "incontinence",
-        normalize_spaces: bool = True,
         span_setter: SpanSetterArg = {"ents": True, "incontinence": True},
     ):
-        if normalize_spaces:
-            patterns = normalize_space_characters(patterns)
         super().__init__(
             nlp=nlp,
             domain="incontinence",

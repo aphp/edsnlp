@@ -1,4 +1,4 @@
-from ..utils import make_assign_regex, make_status_assign
+from ..utils import make_assign_regex, make_status_assign, normalize_space_characters
 
 healthy = dict(
     source="healthy",
@@ -199,17 +199,19 @@ sustentation = dict(
     assign=dict(name="altered_retreci", regex="(retreci)", window=3),
 )
 
-default_patterns = [
-    healthy,
-    altered,
-    severe,
-    other,
-    mild,
-    sarcopenia,
-    ralentissement,
-    walking,
-    reeducation,
-    sustentation,
-    walking_perimeter,
-    altered_equilibrium,
-]
+default_patterns = normalize_space_characters(
+    [
+        healthy,
+        altered,
+        severe,
+        other,
+        mild,
+        sarcopenia,
+        ralentissement,
+        walking,
+        reeducation,
+        sustentation,
+        walking_perimeter,
+        altered_equilibrium,
+    ]
+)

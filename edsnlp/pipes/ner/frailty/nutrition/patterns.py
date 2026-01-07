@@ -1,4 +1,9 @@
-from ..utils import make_assign_regex, make_include_dict_from_list, make_status_assign
+from ..utils import (
+    make_assign_regex,
+    make_include_dict_from_list,
+    make_status_assign,
+    normalize_space_characters,
+)
 
 healthy = dict(
     source="healthy",
@@ -227,19 +232,21 @@ alimentation = dict(
     ),
 )
 
-default_patterns = [
-    healthy,
-    altered,
-    severe,
-    other,
-    alimentation,
-    troubles,
-    vitamin,
-    ca,
-    weight,
-    kilograms,
-    altered_orth,
-    consumption,
-    status,
-    mild,
-]
+default_patterns = normalize_space_characters(
+    [
+        healthy,
+        altered,
+        severe,
+        other,
+        alimentation,
+        troubles,
+        vitamin,
+        ca,
+        weight,
+        kilograms,
+        altered_orth,
+        consumption,
+        status,
+        mild,
+    ]
+)

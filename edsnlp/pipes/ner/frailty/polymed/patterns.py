@@ -1,3 +1,5 @@
+from ..utils import normalize_space_characters
+
 altered = dict(
     source="altered",
     regex=[
@@ -15,4 +17,4 @@ other = dict(
     regex_attr="NORM",
 )
 
-default_patterns = [altered, other]
+default_patterns = normalize_space_characters([altered, other])

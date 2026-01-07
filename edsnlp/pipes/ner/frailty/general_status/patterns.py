@@ -1,4 +1,9 @@
-from ..utils import HEALTHY_STATUS_COMPLEMENTS, make_assign_regex, make_status_assign
+from ..utils import (
+    HEALTHY_STATUS_COMPLEMENTS,
+    make_assign_regex,
+    make_status_assign,
+    normalize_space_characters,
+)
 
 severe = dict(
     source="severe",
@@ -61,4 +66,4 @@ general_status = dict(
     ],
 )
 
-default_patterns = [altered, severe, other]
+default_patterns = normalize_space_characters([altered, severe, other])

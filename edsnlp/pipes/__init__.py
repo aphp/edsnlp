@@ -59,6 +59,21 @@ if TYPE_CHECKING:
     from .ner.disorders.solid_tumor.factory import create_component as solid_tumor
     from .ner.drugs.factory import create_component as drugs
     from .ner.frailty.autonomy.factory import create_component as autonomy
+    from .ner.frailty.cognition.factory import create_component as cognition
+    from .ner.frailty.frailty.factory import create_component as frailty
+    from .ner.frailty.general_status.factory import create_component as general_status
+    from .ner.frailty.geriatric_assessment.factory import (
+        create_component as geriatric_assessment,
+    )
+    from .ner.frailty.incontinence.factory import create_component as incontinence
+    from .ner.frailty.mobility.factory import create_component as mobility
+    from .ner.frailty.nutrition.factory import create_component as nutrition
+    from .ner.frailty.pain.factory import create_component as pain
+    from .ner.frailty.polymed.factory import create_component as polymed
+    from .ner.frailty.scores.adl.factory import create_component as adl
+    from .ner.frailty.scores.base import create_component as frailty_score
+    from .ner.frailty.sensory.factory import create_component as sensory
+    from .ner.frailty.thymic.factory import create_component as thymic
     from .ner.scores.charlson.factory import create_component as charlson
     from .ner.scores.elston_ellis.factory import create_component as elston_ellis
     from .ner.scores.emergency.ccmu.factory import create_component as emergency_ccmu

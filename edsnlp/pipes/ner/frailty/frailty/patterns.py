@@ -2,6 +2,7 @@ from ..utils import (
     ALTERED_STATUS_COMPLEMENTS,
     HEALTHY_STATUS_COMPLEMENTS,
     make_assign_regex,
+    normalize_space_characters,
 )
 
 frail = dict(
@@ -46,4 +47,4 @@ frailty = dict(
 )
 
 
-default_patterns = [frail, frailty, severe]
+default_patterns = normalize_space_characters([frail, frailty, severe])

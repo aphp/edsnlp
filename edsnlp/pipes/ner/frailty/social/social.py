@@ -5,7 +5,6 @@ from edsnlp.pipes.base import SpanSetterArg
 from edsnlp.pipes.core.contextual_matcher.models import FullConfig
 
 from ..base import FrailtyDomainMatcher
-from ..utils import normalize_space_characters
 from .patterns import default_patterns
 
 
@@ -51,11 +50,8 @@ class SocialMatcher(FrailtyDomainMatcher):
         name: str = "social",
         patterns: FullConfig = default_patterns,
         label: str = "social",
-        normalize_spaces: bool = True,
         span_setter: SpanSetterArg = {"ents": True, "social": True},
     ):
-        if normalize_spaces:
-            patterns = normalize_space_characters(patterns)
         super().__init__(
             nlp=nlp,
             domain="social",

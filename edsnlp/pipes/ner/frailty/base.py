@@ -7,8 +7,6 @@ from edsnlp.pipes.base import SpanSetterArg
 from edsnlp.pipes.core.contextual_matcher.models import FullConfig
 from edsnlp.pipes.ner.disorders.base import DisorderMatcher
 
-from .utils import normalize_space_characters
-
 
 class FrailtyDomainMatcher(DisorderMatcher):
     r"""
@@ -47,15 +45,12 @@ class FrailtyDomainMatcher(DisorderMatcher):
         *,
         name: str = None,
         label: str = None,
-        normalize_spaces: bool = True,
         span_setter: SpanSetterArg = None,
     ):
         if name is None:
             name = domain
         if label is None:
             label = domain
-        if normalize_spaces:
-            patterns = normalize_space_characters(patterns)
         self.domain = domain
 
         super().__init__(

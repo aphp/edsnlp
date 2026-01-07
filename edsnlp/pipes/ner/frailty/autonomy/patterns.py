@@ -1,4 +1,4 @@
-from ..utils import make_assign_regex, make_status_assign
+from ..utils import make_assign_regex, make_status_assign, normalize_space_characters
 
 severe = dict(
     source="severe",
@@ -273,16 +273,18 @@ readaptation = dict(
     ],
 )
 
-default_patterns = [
-    other_orth,
-    severe,
-    other,
-    other_specific_qualifers,
-    activities_of_daily_life,
-    readaptation,
-    house_stay,
-    ambiguous_items,
-    administrative,
-    severe_orth,
-    mild,
-]
+default_patterns = normalize_space_characters(
+    [
+        other_orth,
+        severe,
+        other,
+        other_specific_qualifers,
+        activities_of_daily_life,
+        readaptation,
+        house_stay,
+        ambiguous_items,
+        administrative,
+        severe_orth,
+        mild,
+    ]
+)

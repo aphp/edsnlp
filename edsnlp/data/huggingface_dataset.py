@@ -277,36 +277,36 @@ def to_huggingface_dataset(
     --------
     1) Convert a `Stream` of HuggingFace NER examples into `Doc` objects (reader),
        process them and create an `IterableDataset` of dictionaries using the
-       `hf_ner` writer converter::
+       `hf_ner` writer converter:
+        ```{ .python .no-check }
+        import edsnlp
 
-           import edsnlp
+        stream = edsnlp.data.from_huggingface_dataset(
+            "lhoestq/conll2003",
+            split="train",
+            converter="hf_ner",
+        )
 
-           stream = edsnlp.data.from_huggingface_dataset(
-               "lhoestq/conll2003",
-               split="train",
-               converter="hf_ner",
-           )
+        # Apply a pipeline or other processing
+        stream = stream.map_pipeline(nlp)
 
-           # Apply a pipeline or other processing
-           stream = stream.map_pipeline(nlp)
+        # Export as HF IterableDataset of dicts (no push)
+        hf_iter = edsnlp.data.to_huggingface_dataset(
+            stream,
+            converter="hf_ner",
+        )
+        ```
 
-           # Export as HF IterableDataset of dicts (no push)
-           hf_iter = edsnlp.data.to_huggingface_dataset(
-               stream,
-               converter="hf_ner",
-           )
-
-           )
-
-    2) Convert plain text Docs to HF text-format dicts::
-
-           edsnlp.data.to_huggingface_dataset(
-               docs_stream,
-               converter=("hf_text"),
-               execute=True,
-               # converter kwargs are validated and forwarded by
-               # `get_doc2dict_converter` (e.g. `text_column`, `id_column`).
-           )
+    2) Convert plain text Docs to HF text-format dicts:
+        ```{ .python .no-check }
+        edsnlp.data.to_huggingface_dataset(
+            docs_stream,
+            converter=("hf_text"),
+            execute=True,
+            # converter kwargs are validated and forwarded by
+            # `get_doc2dict_converter` (e.g. `text_column`, `id_column`).
+        )
+        ```
 
     Parameters
     ----------

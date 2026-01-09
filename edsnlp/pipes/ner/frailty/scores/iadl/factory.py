@@ -30,6 +30,9 @@ def create_component(
     include_assigned: bool = True,
     severity_assigner: Callable[[Span], Any] = severity_assigner_equals_reference,
 ):
+    """The 'eds.iadl' component extracts the IADL score.
+    Nowadays, the IADL score is mostly evaluated on 4 items, but it also exists
+    with 5, 8 or 11 items."""
     return FrailtyScoreMatcher(
         nlp,
         name=name,

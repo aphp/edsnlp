@@ -20,7 +20,16 @@ from edsnlp.utils.span_getters import (
 
 class FrailtyScoreMatcher(ContextualMatcher):
     """
-    Matcher component to extract scores related to frailty evaluation."""
+    Matcher component to extract scores related to frailty evaluation.
+
+    Works similarly to eds.scores, with a few differences :
+    - its patterns argument allows for 'limit' assigns, which help
+    restrain the context windows for the other 'regular' assigns. This
+    is mainly useful when two scores are often put close to one another,
+    and we don't want the context window of one to overlap on the other.
+    - it has a domain argument, which is used to store the severity of the span,
+    given the value found for this score. As an example, ADL 3/4 would set
+    span._.autonomy to 'altered_nondescript'."""
 
     def __init__(
         self,

@@ -28,6 +28,9 @@ def create_component(
     include_assigned: bool = True,
     severity_assigner: Callable[[Span], Any] = severity_assigner_equals_reference,
 ):
+    """The 'eds.adl' component extracts the
+    [ADL score](https://www.msdmanuals.com/fr/professional/multimedia/table/%C3%A9chelle-modifi%C3%A9e-des-activit%C3%A9s-quotidiennes-de-katz)
+    """  # noqa E501
     return FrailtyScoreMatcher(
         nlp,
         name=name,

@@ -60,7 +60,9 @@ def severity_assigner_equals_reference(ent: Span):
 
 
 def make_severity_assigner_threshold(
-    threshold: Union[int, Dict[int, int]], healthy="high"
+    threshold: Union[int, Dict[int, int]],
+    healthy: str = "high",
+    comparison: str = "lax",
 ):
     # preprocessing threshold here because of weird referencing error
     if isinstance(threshold, dict):
@@ -83,11 +85,18 @@ def make_severity_assigner_threshold(
 
         value = ent._.assigned.get("value", None)
         assert value is not None, "ent should have a value not None set in _.assigned"
-        threshold_comparison = (
-            value >= current_threshold
-            if healthy == "high"
-            else value <= current_threshold
-        )
+        if comparison == "lax":
+            threshold_comparison = (
+                value >= current_threshold
+                if healthy == "high"
+                else value <= current_threshold
+            )
+        else:
+            threshold_comparison = (
+                value > current_threshold
+                if healthy == "high"
+                else value < current_threshold
+            )
         if threshold_comparison:
             return "healthy"
         else:

@@ -179,6 +179,15 @@ include = ["edsnlp*"]
 "eds.social"                      = "edsnlp.pipes.ner.frailty.social.factory:create_component"
 "eds.thymic"                      = "edsnlp.pipes.ner.frailty.thymic.factory:create_component"
 "eds.adl"                         = "edsnlp.pipes.ner.frailty.scores.adl.factory:create_component"
+"eds.iadl"                        = "edsnlp.pipes.ner.frailty.scores.iadl.factory:create_component"
+"eds.mms"                         = "edsnlp.pipes.ner.frailty.scores.mms.factory:create_component"
+"eds.moca"                        = "edsnlp.pipes.ner.frailty.scores.moca.factory:create_component"
+"eds.tug"                         = "edsnlp.pipes.ner.frailty.scores.tug.factory:create_component"
+"eds.walk_speed"                  = "edsnlp.pipes.ner.frailty.scores.walk_speed.factory:create_component"
+"eds.gds"                         = "edsnlp.pipes.ner.frailty.scores.gds.factory:create_component"
+"eds.g8"                          = "edsnlp.pipes.ner.frailty.scores.g8.factory:create_component"
+"eds.ps"                          = "edsnlp.pipes.ner.frailty.scores.ps.factory:create_component"
+"eds.rockwood"                    = "edsnlp.pipes.ner.frailty.scores.rockwood.factory:create_component"
 
 
 # Span classifiers

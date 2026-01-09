@@ -276,8 +276,3 @@ class FrailtyScoreMatcher(ContextualMatcher):
                 ent._.set(self.label, normalized_value)
                 ent._.set(self.domain, self.severity_assigner(ent))
                 yield ent
-
-
-create_component = registry.factory.register(
-    "eds.frailty_score",
-)(FrailtyScoreMatcher)

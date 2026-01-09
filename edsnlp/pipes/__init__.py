@@ -71,7 +71,15 @@ if TYPE_CHECKING:
     from .ner.frailty.pain.factory import create_component as pain
     from .ner.frailty.polymed.factory import create_component as polymed
     from .ner.frailty.scores.adl.factory import create_component as adl
-    from .ner.frailty.scores.base import create_component as frailty_score
+    from .ner.frailty.scores.g8.factory import create_component as g8
+    from .ner.frailty.scores.gds.factory import create_component as gds
+    from .ner.frailty.scores.iadl.factory import create_component as iadl
+    from .ner.frailty.scores.mms.factory import create_component as mms
+    from .ner.frailty.scores.moca.factory import create_component as moca
+    from .ner.frailty.scores.ps.factory import create_component as ps
+    from .ner.frailty.scores.rockwood.factory import create_component as rockwood
+    from .ner.frailty.scores.tug.factory import create_component as tug
+    from .ner.frailty.scores.walk_speed.factory import create_component as walk_speed
     from .ner.frailty.sensory.factory import create_component as sensory
     from .ner.frailty.thymic.factory import create_component as thymic
     from .ner.scores.charlson.factory import create_component as charlson

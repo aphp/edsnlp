@@ -2,8 +2,8 @@ from ..utils import float_regex, int_regex
 
 default_patterns = [
     dict(
-        source="adl",
-        regex=r"\badl\b",
+        source="moca",
+        regex=r"\bmoca\b",
         assign=[
             dict(
                 name="value",
@@ -12,7 +12,7 @@ default_patterns = [
                 replace_entity=False,
                 reduce_mode="keep_last",
             ),
-            dict(name="limit_iadl", regex=r"(\biadl\b)", window=(0, 35)),
+            dict(name="limit_mms", regex=r"(\bmmse?\b)", window=(0, 35)),
         ],
     )
 ]

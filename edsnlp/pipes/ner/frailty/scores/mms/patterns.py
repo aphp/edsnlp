@@ -3,7 +3,7 @@ from ..utils import float_regex, int_regex
 default_patterns = [
     dict(
         source="adl",
-        regex=r"\badl\b",
+        regex=r"\bmmse?\b",
         assign=[
             dict(
                 name="value",
@@ -13,6 +13,8 @@ default_patterns = [
                 reduce_mode="keep_last",
             ),
             dict(name="limit_iadl", regex=r"(\biadl\b)", window=(0, 35)),
+            dict(name="limit_adl", regex=r"(\badl\b)", window=(0, 35)),
+            dict(name="limit_moca", regex=r"(\bmoca\b)", window=(0, 35)),
         ],
     )
 ]

@@ -12,7 +12,7 @@ default_patterns = [
                 replace_entity=False,
                 reduce_mode="keep_last",
             ),
-            dict(name="limit_iadl", regex="(iadl)", window=(0, 35)),
+            dict(name="limit_iadl", regex=r"(\biadl\b)", window=(0, 35)),
         ],
     )
 ]

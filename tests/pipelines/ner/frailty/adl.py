@@ -7,4 +7,5 @@ results_adl = [
         "ADL (hygiène corporelle 0.5, habillage 0.5, aller aux toilettes 1, locomotion 1, continence 1, repas 1): 5/6 IADL 4/4",  # noqa E501
         (5.0, "altered_nondescript"),
     ),
+    ("ADL 0", (0.0, "altered_severe")),
 ]

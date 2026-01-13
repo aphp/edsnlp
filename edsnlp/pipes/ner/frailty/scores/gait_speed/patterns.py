@@ -4,7 +4,7 @@ from ..utils import float_regex
 default_patterns = normalize_space_characters(
     [
         dict(
-            source="walk_speed",
+            source="gait_speed",
             regex=[
                 "vitesse de marche",
             ],

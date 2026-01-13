@@ -6,12 +6,20 @@ from edsnlp.core import PipelineProtocol, registry
 from edsnlp.pipes.base import SpanSetterArg
 
 from ..base import FrailtyScoreMatcher
-from ..utils import make_find_value_and_reference, make_severity_assigner_threshold
+from ..utils import make_find_value_and_reference
 from .patterns import default_patterns
 
-severity_assigner = make_severity_assigner_threshold(
-    threshold=23, healthy="high", comparison="strict"
-)
+
+def mms_severity_assigner(ent: Span):
+    value = ent._.assigned.get("value", None)
+    assert value is not None, "ent should have a value not None set in _.assigned"
+
+    if value >= 24:
+        return "healthy"
+    elif value < 10:
+        return "altered_severe"
+    else:
+        return "altered_mild"
 
 
 @registry.factory.register(
@@ -30,7 +38,7 @@ def create_component(
     label: str = "mms",
     span_setter: SpanSetterArg = {"ents": True, "mms": True, "cognition": True},
     include_assigned: bool = True,
-    severity_assigner: Callable[[Span], Any] = severity_assigner,
+    severity_assigner: Callable[[Span], Any] = mms_severity_assigner,
 ):
     return FrailtyScoreMatcher(
         nlp,

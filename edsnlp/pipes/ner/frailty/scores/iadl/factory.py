@@ -6,8 +6,26 @@ from edsnlp.core import PipelineProtocol, registry
 from edsnlp.pipes.base import SpanSetterArg
 
 from ..base import FrailtyScoreMatcher
-from ..utils import make_find_value_and_reference, severity_assigner_equals_reference
+from ..utils import make_find_value_and_reference
 from .patterns import default_patterns
+
+
+def iadl_severity_assigner(ent: Span):
+    """We know that 0 is severe, and a perfect score is normal.
+    Beyond that, we know it is altered, but there is no validated severity gradation."""
+
+    value = ent._.assigned.get("value", None)
+    assert value is not None, "ent should have a value not None set in _.assigned"
+    reference = ent._.assigned.get("reference", None)
+    assert reference is not None, (
+        "ent should have a reference not None set in _.assigned"
+    )
+    if value == reference:
+        return "healthy"
+    elif value == 0:
+        return "altered_severe"
+    else:
+        return "altered_nondescript"
 
 
 @registry.factory.register(
@@ -28,7 +46,7 @@ def create_component(
     label: str = "iadl",
     span_setter: SpanSetterArg = {"ents": True, "iadl": True, "autonomy": True},
     include_assigned: bool = True,
-    severity_assigner: Callable[[Span], Any] = severity_assigner_equals_reference,
+    severity_assigner: Callable[[Span], Any] = iadl_severity_assigner,
 ):
     """The 'eds.iadl' component extracts the IADL score.
     Nowadays, the IADL score is mostly evaluated on 4 items, but it also exists

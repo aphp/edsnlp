@@ -4,12 +4,14 @@ from adl import results_adl
 from g8 import results_g8
 from gds import results_gds
 from iadl import results_iadl
+from mini_gds import results_mini_gds
 from mms import results_mms
 from moca import results_moca
 from ps import results_ps
 from rockwood import results_rockwood
 from tug import results_tug
-from walk_speed import results_walk_speed
+
+from tests.pipelines.ner.frailty.gait_speed import results_gait_speed
 
 results = dict(
     adl={"results": results_adl, "domain": "autonomy"},
@@ -17,8 +19,9 @@ results = dict(
     mms={"results": results_mms, "domain": "cognition"},
     moca={"results": results_moca, "domain": "cognition"},
     tug={"results": results_tug, "domain": "mobility"},
-    walk_speed={"results": results_walk_speed, "domain": "mobility"},
+    gait_speed={"results": results_gait_speed, "domain": "mobility"},
     gds={"results": results_gds, "domain": "thymic"},
+    mini_gds={"results": results_mini_gds, "domain": "thymic"},
     g8={"results": results_g8, "domain": "g8"},
     ps={"results": results_ps, "domain": "general_status"},
     rockwood={"results": results_rockwood, "domain": "general_status"},

@@ -6,23 +6,29 @@ from edsnlp.core import PipelineProtocol, registry
 from edsnlp.pipes.base import SpanSetterArg
 
 from ..base import FrailtyScoreMatcher
-from ..utils import make_find_value_and_reference, make_severity_assigner_threshold
+from ..utils import make_find_value_and_reference
 from .patterns import default_patterns
 
-severity_assigner = make_severity_assigner_threshold(
-    threshold=1,
-    healthy="high",
-    comparison="strict",
-)
+
+def gait_speed_severity_assigner(ent: Span):
+    value = ent._.assigned.get("value", None)
+    assert value is not None, "ent should have a value not None set in _.assigned"
+
+    if value > 1.0:
+        return "healthy"
+    elif value <= 0.6:
+        return "altered_severe"
+    else:
+        return "altered_mild"
 
 
 @registry.factory.register(
-    "eds.walk_speed",
+    "eds.gait_speed",
     assigns=["doc.ents", "doc.spans"],
 )
 def create_component(
     nlp: PipelineProtocol,
-    name: Optional[str] = "walk_speed",
+    name: Optional[str] = "gait_speed",
     *,
     patterns: List[Dict] = default_patterns,
     score_normalization: Union[
@@ -31,10 +37,10 @@ def create_component(
         admissible_references=[200], default_reference=200
     ),  # TODO : better when no ref
     attr: str = "NORM",
-    label: str = "walk_speed",
-    span_setter: SpanSetterArg = {"ents": True, "walk_speed": True, "mobility": True},
+    label: str = "gait_speed",
+    span_setter: SpanSetterArg = {"ents": True, "gait_speed": True, "mobility": True},
     include_assigned: bool = True,
-    severity_assigner: Callable[[Span], Any] = severity_assigner,
+    severity_assigner: Callable[[Span], Any] = gait_speed_severity_assigner,
 ):
     return FrailtyScoreMatcher(
         nlp,

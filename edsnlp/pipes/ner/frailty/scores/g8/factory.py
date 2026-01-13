@@ -8,7 +8,7 @@ from edsnlp.matchers.utils import get_text
 from edsnlp.pipes.base import SpanSetterArg
 
 from ..base import FrailtyScoreMatcher
-from ..utils import float_regex, int_regex, make_severity_assigner_threshold
+from ..utils import float_regex, int_regex
 from .patterns import default_patterns
 
 
@@ -50,9 +50,13 @@ def score_normalization(span):
         return span
 
 
-severity_assigner = make_severity_assigner_threshold(
-    threshold=14, healthy="high", comparison="strict"
-)
+def g8_severity_assigner(ent: Span):
+    value = ent._.assigned.get("value", None)
+    assert value is not None, "ent should have a value not None set in _.assigned"
+    if value <= 14:
+        return "altered_nondescript"
+    else:
+        return "healthy"
 
 
 @registry.factory.register(
@@ -69,7 +73,7 @@ def create_component(
     label: str = "g8_score",
     span_setter: SpanSetterArg = {"ents": True, "g8": True, "g8_score": True},
     include_assigned: bool = True,
-    severity_assigner: Callable[[Span], Any] = severity_assigner,
+    severity_assigner: Callable[[Span], Any] = g8_severity_assigner,
 ):
     return FrailtyScoreMatcher(
         nlp,

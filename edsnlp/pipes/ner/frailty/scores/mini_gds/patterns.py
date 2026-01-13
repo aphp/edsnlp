@@ -2,8 +2,8 @@ from ..utils import float_regex, int_regex
 
 default_patterns = [
     dict(
-        source="gds",
-        regex=r"(?<!-)\bgds\b",
+        source="mini_gds",
+        regex=r"\bmini[\s-]+gds\b",
         assign=[
             dict(
                 name="value",
@@ -14,15 +14,7 @@ default_patterns = [
             ),
         ],
         exclude=dict(
-            regex=[
-                "arteriel",
-                "artere",
-                r"\bph\b",
-                r"\bps\b",
-                "sang",
-                "gaz",
-                r"mini[\s-]*",
-            ],
+            regex=["arteriel", "artere", r"\bph\b", r"\bps\b", "sang", "gaz"],
             window=(-4, 4),
         ),
     )

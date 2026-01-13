@@ -6,15 +6,31 @@ from edsnlp.core import PipelineProtocol, registry
 from edsnlp.pipes.base import SpanSetterArg
 
 from ..base import FrailtyScoreMatcher
-from ..utils import make_find_value_and_reference, make_severity_assigner_threshold
+from ..utils import make_find_value_and_reference
 from .patterns import default_patterns
 
 score_normalization = make_find_value_and_reference(
-    admissible_references=[30, 15, 5], default_reference=30
+    admissible_references=[30, 15, 5, 4], default_reference=30
 )
-severity_assigner = make_severity_assigner_threshold(
-    threshold={5: 2, 15: 5, 30: 13}, healthy="low", comparison="strict"
-)
+
+
+def gds_severity_assigner(ent: Span):
+    value = ent._.assigned.get("value", None)
+    assert value is not None, "ent should have a value not None set in _.assigned"
+    reference = ent._.assigned.get("reference", None)
+    assert reference is not None, (
+        "ent should have a reference not None set in _.assigned"
+    )
+    if reference == 30:
+        return "altered_nondescript" if value >= 13 else "healthy"
+    elif reference == 15:
+        return "altered_nondescript" if value >= 5 else "healthy"
+    elif reference == 5:
+        return "altered_nondescript" if value >= 2 else "healthy"
+    elif reference == 4:
+        return "altered_nondescript" if value >= 1 else "healthy"
+    else:
+        raise ValueError(f"Unkown reference for GDS : {reference}")
 
 
 @registry.factory.register(
@@ -31,7 +47,7 @@ def create_component(
     label: str = "gds",
     span_setter: SpanSetterArg = {"ents": True, "gds": True, "thymic": True},
     include_assigned: bool = True,
-    severity_assigner: Callable[[Span], Any] = severity_assigner,
+    severity_assigner: Callable[[Span], Any] = gds_severity_assigner,
 ):
     return FrailtyScoreMatcher(
         nlp,

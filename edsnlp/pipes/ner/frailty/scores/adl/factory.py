@@ -6,8 +6,22 @@ from edsnlp.core import PipelineProtocol, registry
 from edsnlp.pipes.base import SpanSetterArg
 
 from ..base import FrailtyScoreMatcher
-from ..utils import make_find_value_and_reference, severity_assigner_equals_reference
+from ..utils import make_find_value_and_reference
 from .patterns import default_patterns
+
+
+def adl_severity_assigner(ent: Span):
+    """We know that 0 is severe, and 6 is normal.
+    Beyond that, we know it is altered, but there is no validated severity gradation."""
+
+    value = ent._.assigned.get("value", None)
+    assert value is not None, "ent should have a value not None set in _.assigned"
+    if value == 6:
+        return "healthy"
+    elif value == 0:
+        return "altered_severe"
+    else:
+        return "altered_nondescript"
 
 
 @registry.factory.register(
@@ -26,7 +40,7 @@ def create_component(
     label: str = "adl",
     span_setter: SpanSetterArg = {"ents": True, "adl": True, "autonomy": True},
     include_assigned: bool = True,
-    severity_assigner: Callable[[Span], Any] = severity_assigner_equals_reference,
+    severity_assigner: Callable[[Span], Any] = adl_severity_assigner,
 ):
     """The 'eds.adl' component extracts the
     [ADL score](https://www.msdmanuals.com/fr/professional/multimedia/table/%C3%A9chelle-modifi%C3%A9e-des-activit%C3%A9s-quotidiennes-de-katz)

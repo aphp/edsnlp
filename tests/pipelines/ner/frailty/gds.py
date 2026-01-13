@@ -6,4 +6,6 @@ results_gds = [
     ("GDS 5/15", (5.0, "altered_nondescript")),
     ("GDS 1/5", (1.0, "healthy")),
     ("GDS 2/5", (2.0, "altered_nondescript")),
+    ("mini-GDS 1", None),
+    ("GDS 1/4", (1.0, "altered_nondescript")),
 ]

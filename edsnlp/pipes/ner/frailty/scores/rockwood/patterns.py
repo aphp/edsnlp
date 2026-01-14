@@ -3,7 +3,7 @@ from ..utils import float_regex, int_regex
 default_patterns = [
     dict(
         source="ps",
-        regex=r"\brockwood\b",
+        regex=[r"\brockwood\b", "clinical frailty scale"],
         assign=[
             dict(
                 name="value",

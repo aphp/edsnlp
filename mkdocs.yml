@@ -113,6 +113,10 @@ nav:
             - pipes/ner/disorders/peripheral-vascular-disease.md
             - pipes/ner/disorders/solid-tumor.md
             - pipes/ner/covid.md
+          - Frailty:
+            - pipes/ner/frailty/index.md
+            - pipes/ner/frailty/autonomy.md
+            - pipes/ner/frailty/cognition.md
           - Behaviors:
             - pipes/ner/behaviors/index.md
             - pipes/ner/behaviors/alcohol.md

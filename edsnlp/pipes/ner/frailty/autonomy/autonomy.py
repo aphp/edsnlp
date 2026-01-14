@@ -1,3 +1,5 @@
+"""`eds.autonomy` pipeline"""
+
 from typing import Optional
 
 from edsnlp.core import PipelineProtocol

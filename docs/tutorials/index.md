@@ -4,6 +4,7 @@ We provide step-by-step guides to get you started. We cover the following use-ca
 
 ### Base tutorials
 
+<!-- --8<-- [start:tutorials] -->
 <!-- --8<-- [start:classic-tutorials] -->
 
 === card {: href=/tutorials/spacy101 }
@@ -133,8 +134,5 @@ We also provide tutorials on how to train deep-learning models with EDS-NLP. The
     ---
     Learn how to tune hyperparameters of a model with `edsnlp.tune`.
 
-
 <!-- --8<-- [end:deep-learning-tutorials] -->
-
-
 <!-- --8<-- [end:tutorials] -->

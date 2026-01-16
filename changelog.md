@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+
+- New `attention` pooling mode in `eds.span_pooler`
+- New `word_pooling_mode=False` in `eds.transformer` to allow returning the worpiece embeddings directly, instead of the mean-pooled word embeddings. At the moment, this only works with `eds.span_pooler` which can pool over wordpieces or words seamlessly.
 - New parameter `pruning_params` to `edsnlp.tune` in order to control pruning during tuning.
 
 ## v0.19.0 (2025-10-04)
@@ -33,6 +36,7 @@
 - New `eds.explode` pipe that splits one document into multiple documents, one per span yielded by its `span_getter` parameter, each new document containing exactly that single span.
 - New `Training a span classifier` tutorial, and reorganized deep-learning docs
 - `ScheduledOptimizer` now warns when a parameter selector does not match any parameter.
+- New `attention` pooling mode in `eds.span_pooler`
 
 ### Fixed
 

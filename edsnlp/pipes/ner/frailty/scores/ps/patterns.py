@@ -1,3 +1,4 @@
+from ...utils import make_assign_regex
 from ..utils import float_regex, int_regex
 
 default_patterns = [
@@ -13,5 +14,6 @@ default_patterns = [
                 reduce_mode="keep_first",
             ),
         ],
+        exclude=dict(regex=make_assign_regex([r"\btel\b", "telephone"])),
     )
 ]

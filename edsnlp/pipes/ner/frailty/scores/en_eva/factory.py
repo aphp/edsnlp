@@ -37,7 +37,7 @@ def create_component(
     score_normalization: Union[
         str, Callable[[Span], Any]
     ] = make_find_value_and_reference(
-        admissible_references=[100, 10], default_reference=100
+        admissible_references=[100, 10], default_reference=10
     ),
     attr: str = "ORTH",
     label: str = "en_eva",

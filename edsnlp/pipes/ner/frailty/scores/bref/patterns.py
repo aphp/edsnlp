@@ -11,7 +11,13 @@ default_patterns = [
                 window=(0, 7),
                 replace_entity=False,
                 reduce_mode="keep_first",
-            )
+            ),
+            dict(name="limit_iadl", regex=r"(\biadl\b)", window=(1, 35)),
+            dict(name="limit_adl", regex=r"(\badl\b)", window=(1, 35)),
+            dict(name="limit_moca", regex=r"(\bmoca\b)", window=(1, 35)),
+            dict(name="limit_mms", regex=r"(\bmmse?\b)", window=(1, 35)),
+            dict(name="limit_bref", regex=r"(\bbref\b)", window=(1, 35)),
+            dict(name="limit_gds", regex=r"(\bgds\b)", window=(1, 35)),
         ],
     )
 ]

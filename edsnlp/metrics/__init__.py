@@ -22,9 +22,11 @@ def average_precision(pred: Dict[Any, float], gold: Iterable[Any]):
     precisions = cum_correct / np.arange(1, len(correct) + 1)
     recalls = cum_correct / num_gold if num_gold > 0 else np.zeros(len(correct))
     ap = 0.0
-    for i in range(1, len(precisions)):
-        if recalls[i] > recalls[i - 1]:
-            ap += (recalls[i] - recalls[i - 1]) * precisions[i]
+    prev_recall = 0.0
+    for i in range(len(precisions)):
+        if recalls[i] > prev_recall:
+            ap += (recalls[i] - prev_recall) * precisions[i]
+            prev_recall = recalls[i]
     return float(ap)
 
 

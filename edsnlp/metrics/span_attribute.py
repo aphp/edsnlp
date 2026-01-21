@@ -41,7 +41,7 @@ ref = conv(
 
 import warnings
 from collections import defaultdict
-from typing import Any, Dict, Optional, Sequence, Union
+from typing import Any, Dict, Sequence
 
 from edsnlp import registry
 from edsnlp.metrics import Examples, average_precision, make_examples, prf
@@ -56,8 +56,8 @@ def span_attribute_metric(
     include_falsy: bool = False,
     default_values: Dict = {},
     micro_key: str = "micro",
-    filter_expr: Optional[str] = None,
-    split_by_values: Union[str, Sequence[str]] = None,
+    filter_expr: str | None = None,
+    split_by_values: str | Sequence[str] = None,
     **kwargs: Any,
 ):
     if "qualifiers" in kwargs:
@@ -240,7 +240,7 @@ class SpanAttributeMetric:
     ----------
     span_getter : SpanGetterArg
         The span getter to extract spans from each `Doc`.
-    attributes : Mapping[str, Union[bool, Sequence[str]]]
+    attributes : Mapping[str, bool | Sequence[str]]
         Map each attribute name to `True` (evaluate on all spans) or a sequence of
         labels restricting which spans to test.
     default_values : Dict[str, Any]
@@ -251,9 +251,9 @@ class SpanAttributeMetric:
         or gold when computing metrics; if `True`, count them.
     micro_key : str
         Key under which to store the micro‐averaged results across all attributes.
-    filter_expr : Optional[str]
+    filter_expr : str | None
         A Python expression (using `doc`) to filter which examples are scored.
-    split_by_values : Union[str, Sequence[str]] = None
+    split_by_values : str | Sequence[str] = None
         One or more attributes for which metrics should reported separately for each
         attribute value. If `None` (default), metrics are computed on the global attribute-level.
         Useful when attributes are multiclass.
@@ -283,8 +283,8 @@ class SpanAttributeMetric:
         default_values: Dict = {},
         include_falsy: bool = False,
         micro_key: str = "micro",
-        filter_expr: Optional[str] = None,
-        split_by_values: Union[str, Sequence[str]] = None,
+        filter_expr: str | None = None,
+        split_by_values: str | Sequence[str] = None,
     ):
         if qualifiers is not None:
             warnings.warn(

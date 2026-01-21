@@ -1,39 +1,24 @@
 import pytest
 from spacy.tokens import Span
 
-import edsnlp
-from edsnlp.scorers.ner import NerExactScorer, NerOverlapScorer, NerTokenScorer
-from edsnlp.scorers.span_attributes import SpanAttributeScorer
+from edsnlp.data.converters import MarkupToDocConverter
+from edsnlp.metrics import average_precision
+from edsnlp.metrics.ner import NerExactScorer, NerOverlapScorer, NerTokenScorer
+from edsnlp.metrics.span_attribute import SpanAttributeScorer
 
 
 @pytest.fixture(scope="session")
 def gold_and_pred():
-    nlp = edsnlp.blank("eds")
-
-    gold_doc1 = nlp.make_doc("Le patient a le covid 19.")
-    gold_doc1.ents = [
-        Span(gold_doc1, 4, 6, label="covid"),  # le covid
-    ]
-    pred_doc1 = nlp.make_doc("Le patient a le covid 19.")
-    pred_doc1.ents = [
-        Span(pred_doc1, 4, 6, label="covid"),  # le covid
-    ]
-    gold_doc2 = nlp.make_doc(
-        "Corona: positif. Le cvid est une maladie très très grave."
+    conv = MarkupToDocConverter(preset="md")
+    gold_doc1 = conv("Le patient a [le covid](covid) 19.")
+    pred_doc1 = conv("Le patient a [le covid](covid) 19.")
+    gold_doc2 = conv(
+        "[Corona](covid): positif. Le [cvid](covid) est "
+        "une [maladie très très grave](disease)."
     )
-    gold_doc2.ents = [
-        Span(gold_doc2, 0, 1, label="covid"),  # Corona
-        Span(gold_doc2, 5, 6, label="covid"),  # cvid
-        Span(gold_doc2, 8, 12, label="disease"),  # maladie très très grave
-    ]
-
-    pred_doc2 = nlp.make_doc(
-        "Corona: positif. Le cvid est une maladie très très grave."
+    pred_doc2 = conv(
+        "[Corona:](covid) positif. Le cvid est une [maladie](disease) très très grave."
     )
-    pred_doc2.ents = [
-        Span(pred_doc2, 0, 2, label="covid"),  # Corona:
-        Span(pred_doc2, 8, 9, label="disease"),  # maladie
-    ]
 
     return [gold_doc1, gold_doc2], [pred_doc1, pred_doc2]
 
@@ -125,26 +110,22 @@ def test_overlap_ner_scorer_full(gold_and_pred):
 def test_span_attributes_scorer():
     if not Span.has_extension("negation"):
         Span.set_extension("negation", default=False)
-    pred = edsnlp.blank("eds")("Le patient n'a pas le covid 19.")
-    gold = edsnlp.blank("eds")("Le patient n'a pas le covid 19.")
+    conv = MarkupToDocConverter(preset="md", span_setter="entities")
+    pred = conv(
+        "Le patient n'a pas [le covid](ENT negation=true) "
+        "[aujourd'hui](ENT negation=true)."
+    )
+    gold = conv(
+        "Le patient n'a pas [le covid](ENT negation=false) "
+        "[aujourd'hui](ENT negation=true)."
+    )
     scorer = SpanAttributeScorer(
         "entities",
         "negation",
         default_values={"negation": False},
         filter_expr="'vid' in doc.text",
+        split_by_values="negation",
     )
-    pred.spans["entities"] = [
-        pred[1:2],
-        pred[3:4],
-    ]
-    pred.spans["entities"][0]._.negation = True
-    pred.spans["entities"][1]._.negation = True
-    gold.spans["entities"] = [
-        gold[1:2],
-        gold[3:4],
-    ]
-    gold.spans["entities"][0]._.negation = False
-    gold.spans["entities"][1]._.negation = True
     result = scorer([gold], [pred])
     assert result["micro"] == {
         "ap": 0.5,
@@ -155,3 +136,30 @@ def test_span_attributes_scorer():
         "positives": 2,
         "tp": 1,
     }
+    assert result["negation"]["micro"] == {
+        "ap": 0.5,
+        "p": 0.5,
+        "r": 1,
+        "f": 2 / 3,
+        "support": 1,
+        "positives": 2,
+        "tp": 1,
+    }
+    assert result["negation"]["True"] == {
+        "ap": 0.5,
+        "p": 0.5,
+        "r": 1,
+        "f": 2 / 3,
+        "support": 1,
+        "positives": 2,
+        "tp": 1,
+    }
+
+
+def test_average_precision():
+    assert average_precision({"tp": 1.0}, {"tp"}) == 1.0
+    assert average_precision({"tp": 1.0, "fp": 0.0}, {"tp"}) == 1.0
+    assert average_precision({"fp": 1.0, "tp": 0.0}, {"tp"}) == 0.5
+    assert average_precision(
+        {"tp1": 1.0, "fp": 0.5, "tp2": 0.0}, {"tp1", "tp2"}
+    ) == pytest.approx(5 / 6)

@@ -2,10 +2,15 @@
 
 ## Unreleased
 
+### Added
+
+- Add `split_by_values` to span attribute metrics to report per-value scores for multiclass attributes.
+
 ### Fixed
 
 - Use protocol-provided filesystem when writing parquet files, ie now only telling the program to write parquets to "hdfs:///users/x/y" should suffice.
 - Optimized CRF implementation
+- Fix average precision computation to account for the first recall step.
 
 ## v0.20.0 (2025-12-12)
 

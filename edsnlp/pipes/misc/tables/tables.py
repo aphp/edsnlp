@@ -77,8 +77,6 @@ class TablesMatcher(BaseComponent):
         header=False,  # set True to use the first row as header
         index=False,  # set True to use the first column as index
     )
-    type(df)
-    # Out: <class 'pandas.core.frame.DataFrame'>
     ```
     The pandas DataFrame:
 

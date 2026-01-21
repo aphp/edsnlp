@@ -4,7 +4,6 @@ from typing import Any, Dict, Iterable
 import numpy as np
 import pandas as pd
 from pandas.api.types import CategoricalDtype
-from pandas.core.groupby import DataFrameGroupBy
 from spacy.strings import StringStore
 from spacy.tokens import Doc
 
@@ -79,7 +78,14 @@ class EndLinesModel:
         )
 
         # Assign a sentence id to each token
-        df = df.groupby("DOC_ID", as_index=False).apply(self._retrieve_lines)
+        df = df.groupby("DOC_ID", group_keys=True, sort=False).apply(
+            self._retrieve_lines
+        )
+        if "DOC_ID" not in df.columns:
+            df = df.reset_index(level=0)
+        else:
+            df = df.reset_index(drop=True)
+
         df["SENTENCE_ID"] = df["SENTENCE_ID"].astype("int")
 
         # Compute B1 and B2
@@ -575,21 +581,21 @@ class EndLinesModel:
         return S_enc
 
     @classmethod
-    def _retrieve_lines(cls, dfg: DataFrameGroupBy) -> DataFrameGroupBy:
+    def _retrieve_lines(cls, dfg: pd.DataFrame) -> pd.DataFrame:
         """Function to give a sentence_id to each token.
 
         Parameters
         ----------
-        dfg : DataFrameGroupBy
+        dfg : pd.DataFrame
 
         Returns
         -------
-        DataFrameGroupBy
-            Same DataFrameGroupBy with the column `SENTENCE_ID`
+        pd.DataFrame
+            Same dataframe with the column `SENTENCE_ID`
         """
         sentences_ids = np.arange(dfg.END_LINE.sum())
         dfg.loc[dfg.END_LINE, "SENTENCE_ID"] = sentences_ids
-        dfg["SENTENCE_ID"] = dfg["SENTENCE_ID"].fillna(method="bfill")
+        dfg["SENTENCE_ID"] = dfg["SENTENCE_ID"].bfill()
         return dfg
 
     @classmethod

@@ -14,7 +14,37 @@ def masked_flip(x, mask, dim_x=-2):
     return flipped_x
 
 
-@torch.jit.script
+def try_torch_compile(fn):
+    """Call torch.compile(fn) when possible or fall back to fn if compiler errors occur.
+
+    We only fall back on torch compiler stack exceptions (Dynamo/Inductor/Functorch).
+    All other exceptions are re-raised (they may indicate a real bug).
+    """
+    disabled = False
+    compiled_fn = None
+
+    def wrapped(*args, **kwargs):
+        nonlocal disabled, compiled_fn
+        if disabled:
+            return fn(*args, **kwargs)
+        try:
+            compiled_fn = torch.compile(fn, fullgraph=True)
+            return compiled_fn(*args, **kwargs)
+        except Exception as e:
+            mod = getattr(e.__class__, "__module__", "")
+            if (
+                mod.startswith("torch._dynamo")
+                or mod.startswith("torch._inductor")
+                or mod.startswith("torch._functorch")
+            ):
+                disabled = True
+                return fn(*args, **kwargs)
+            raise
+
+    return wrapped
+
+
+@try_torch_compile
 def logsumexp_reduce(log_A, log_B):
     # log_A: 2 * N * M
     # log_B: 2 *     M * O
@@ -22,28 +52,12 @@ def logsumexp_reduce(log_A, log_B):
     return (log_A.unsqueeze(-1) + log_B.unsqueeze(-3)).logsumexp(-2)
 
 
-@torch.jit.script
+@try_torch_compile
 def max_reduce(log_A, log_B):
     # log_A: 2 * N * M
     # log_B: 2 *     M * O
-    # out: 2 * N * O
+    # out: 2 * N * O (values, indices)
     return (log_A.unsqueeze(-1) + log_B.unsqueeze(-3)).max(-2)
-
-
-def index_dim(X, Y, dim):
-    ndims = X.dim()
-    if dim < 0:
-        dim += ndims
-    assert (
-        0 <= dim < ndims
-    ), f"Index out of range: {dim} for tensor of {ndims} dimensions"
-    index_dims = list(
-        torch.meshgrid(
-            *(torch.arange(size) for i, size in enumerate(X.shape) if i != dim),
-            indexing="ij",
-        )
-    )
-    return X[(*index_dims[:dim], Y, *index_dims[dim:])]
 
 
 # noinspection PyTypeChecker
@@ -130,7 +144,7 @@ class LinearChainCRF(torch.nn.Module):
         Parameters
         ----------
         emissions: torch.FloatTensor
-            Shape: ... * n_tokens * n_tags
+            Shape: ... * n_tokens * ... * n_tags
         mask: torch.BoolTensor
             Shape: ... * n_tokens
 
@@ -153,7 +167,13 @@ class LinearChainCRF(torch.nn.Module):
         path = torch.zeros(*emissions.shape[:-1], dtype=torch.long)
 
         if 0 not in emissions.shape:
-            emissions[..., 1:][~mask] = IMPOSSIBLE
+            emissions = emissions.clone()
+            unsqueezed_mask = mask.view(
+                *mask.shape, *([1] * (emissions.ndim - mask.ndim))
+            )
+            emissions[..., 1:] = emissions[..., 1:].masked_fill(
+                ~unsqueezed_mask, IMPOSSIBLE
+            )
             emissions = emissions.unbind(1)  # 1 is axis for words
 
             # emissions: n_tokens * n_samples * n_tags
@@ -173,7 +193,9 @@ class LinearChainCRF(torch.nn.Module):
             if len(backtrack) > 1:
                 # Backward max path following
                 for k, b in enumerate(backtrack[::-1]):
-                    path[:, -k - 2] = index_dim(b, path[:, -k - 1], dim=-1)
+                    path[:, -k - 2] = b.gather(
+                        -1, path[:, -k - 1].unsqueeze(-1)
+                    ).squeeze(-1)
 
         return path.to(transitions.device)
 
@@ -303,16 +325,13 @@ class LinearChainCRF(torch.nn.Module):
             res = logsumexp_reduce(out[-1], transitions)
             out.append(res + word_bi_emissions)
 
-        last_out = (
-            torch.stack(
-                [
-                    out[length - 1][:, i]
-                    for i, length in enumerate(mask.long().sum(1).tolist())
-                ],
-                dim=1,
-            )
-            + end_transitions
-        )
+        lengths = mask.long().sum(1)  # (n_samples,)
+        last_idx = lengths - 1
+
+        # out: list[n_tokens] of tensors shaped (2, n_samples, ..., n_tags)
+        out_stacked = torch.stack(out, dim=2)  # (2, n_samples, n_tokens, ..., n_tags)
+        batch = torch.arange(mask.shape[0], device=mask.device)
+        last_out = out_stacked[:, batch, last_idx] + end_transitions
 
         supervised_z, unsupervised_z = last_out.logsumexp(-1)
 

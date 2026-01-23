@@ -445,6 +445,8 @@ class Worker:
         except BaseException as e:
             if self.stop:  # pragma: no cover
                 return
+            self.stop = True
+            self.on_stop()
             print(f"Error in {self.uid}/{stage}:\n{traceback.format_exc()}", flush=True)
             self.main_control_queue.put(e)
         finally:
@@ -552,6 +554,8 @@ class CPUWorker(Worker):
             self.send_results(items)
 
     def iter_tasks(self, stage, stop_mode=False):
+        if stop_mode and self.stop:
+            return
         if self.stream.reader.read_in_worker and stage == 0:
             local_rank = int(os.environ.get("LOCAL_RANK", 0))
             world_size = int(os.environ.get("WORLD_SIZE", 1))
@@ -813,6 +817,8 @@ class GPUWorker(Worker):
                 del batch, item
 
     def iter_tasks(self, stage, stop_mode=False):
+        if stop_mode and self.stop:
+            return
         queues = [
             key
             for key, q in self.data_queues.items()

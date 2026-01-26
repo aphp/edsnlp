@@ -1,4 +1,6 @@
 from ..utils import (
+    ALTERED_STATUS_COMPLEMENTS,
+    HEALTHY_STATUS_COMPLEMENTS,
     make_assign_regex,
     make_include_dict_from_list,
     make_status_assign,
@@ -112,6 +114,7 @@ TROUBLE_COMPLEMENTS_ALTERED = [
     "fonctions? executives?",
     "denomination",
     "flexibilite mentale",
+    "sommeil paradoxal",
 ]
 TROUBLE_COMPLEMENTS_SEVERE = [
     "jugement",
@@ -292,6 +295,33 @@ ralentissement = dict(
 )
 
 
+sleep = dict(
+    source="other_sleep",
+    regex=["sommeil", "endormissement", r"\bdort\b"],
+    regex_attr="NORM",
+    exclude=[
+        dict(name="apnee", regex=["apnee"], window=-4),
+        dict(
+            name="medecine",
+            regex=["gelule", "cachet", "comprime", "souhaite"],
+            window=(-6, 6),
+        ),
+    ],
+    assign=[
+        dict(
+            name="sleep_healthy",
+            regex=make_assign_regex(HEALTHY_STATUS_COMPLEMENTS),
+            window=(-4, 4),
+        ),
+        dict(
+            name="sleep_bad",
+            regex=make_assign_regex(ALTERED_STATUS_COMPLEMENTS),
+            window=(-4, 4),
+        ),
+    ],
+)
+
+
 default_patterns = normalize_space_characters(
     [
         healthy,
@@ -308,6 +338,7 @@ default_patterns = normalize_space_characters(
         consultation,
         memory,
         recognition,
+        sleep,
         tnc,
     ]
 )

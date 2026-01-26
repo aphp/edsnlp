@@ -17,7 +17,7 @@ default_patterns = [
             dict(name="limit_moca", regex=r"(\bmoca\b)", window=(1, 35)),
             dict(name="limit_mms", regex=r"(\bmmse?\b)", window=(1, 35)),
             dict(name="limit_bref", regex=r"(\bbref\b)", window=(1, 35)),
-            dict(name="limit_gds", regex=r"(\bgds\b)", window=(1, 35)),
+            dict(name="limit_gds", regex=r"(\bgds\b)", window=(3, 35)),
         ],
         exclude=dict(
             regex=["arteriel", "artere", r"\bph\b", r"\bps\b", "sang", "gaz"],

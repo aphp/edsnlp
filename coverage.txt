@@ -317,7 +317,7 @@ edsnlp/processing/simple.py                                                     
 edsnlp/processing/spark.py                                                                 47      1  97.87%   51
 edsnlp/reducers.py                                                                         68      2  97.06%   116, 118
 edsnlp/training/__init__.py                                                                 2      0 100.00%
-edsnlp/training/loggers.py                                                                152      4  97.37%   52, 89, 212, 279
+edsnlp/training/loggers.py                                                                160      4  97.50%   66, 103, 226, 294
 edsnlp/training/optimizer.py                                                              183      0 100.00%
 edsnlp/training/trainer.py                                                                338     12  96.45%   58, 366-371, 898-904, 932-933, 941, 945
 edsnlp/tune.py                                                                            284      2  99.30%   166, 681
@@ -343,4 +343,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      81      9  88.89%   103, 119, 122-128, 144
 edsnlp/utils/typing.py                                                                     48      0 100.00%
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   12603    250  98.02%
+TOTAL                                                                                   12611    250  98.02%

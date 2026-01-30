@@ -21,6 +21,7 @@ altered_status_dict = dict(
     before=[
         "degradation",
         "alteration",
+        "troubles?",
     ],
     after=[
         "degradee?",
@@ -30,7 +31,6 @@ altered_status_dict = dict(
     ],
     both=[
         "mauvaise?",
-        "troubles?",
         "diminution",
         "deficit",
     ],

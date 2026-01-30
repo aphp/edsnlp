@@ -21,7 +21,7 @@ severe = dict(
     regex=[
         r"soins? de nursing",
         r"tut(elles?|eur|rice)",
-        "curatelle",
+        r"curat(?:elle|eur|rice)",
         "mandataire professionnel",
         "usld",
         "sauvegarde de justice",
@@ -209,6 +209,7 @@ default_patterns = normalize_space_characters(
         severe_orth,
         isolation,
         severe,
+        mild,
         other,
         family_members,
         children,

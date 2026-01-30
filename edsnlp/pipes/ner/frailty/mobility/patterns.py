@@ -33,7 +33,6 @@ altered = dict(
         r"syndromes? extra(?:[\s-])?pyramida(?:l|ux)",
         r"signes? extra(?:[\s-])?pyramida(?:l|ux)",
         r"syndromes? parkinsonn?iens?",
-        "maladie de parkinson",
         "fonte musculaire",
         "sarcopenie",
     ],
@@ -120,7 +119,7 @@ ralentissement = dict(
 )
 
 WALKING_ALTERED_COMPLEMENTS = [
-    "peu",
+    r"(?<!un )\bpeu\b",
     "a petits? pas",
     "troubles?",
     "renforcer",

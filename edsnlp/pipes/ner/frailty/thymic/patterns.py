@@ -49,6 +49,7 @@ altered = dict(
         r"dysthymi(?:e|que)",
         "desesperee?",
         "desespoir",
+        "perte d'envie",
     ],
     regex_attr="NORM",
 )

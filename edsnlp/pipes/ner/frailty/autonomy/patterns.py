@@ -233,6 +233,7 @@ ambiguous_items = dict(
         "continence",
         "conduite",
         "hygiene",
+        "habillage",
     ],
     regex_attr="NORM",
     assign=[

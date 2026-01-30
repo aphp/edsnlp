@@ -192,7 +192,7 @@ include = ["edsnlp*"]
 "eds.bref"                        = "edsnlp.pipes.ner.frailty.scores.bref.factory:create_component"
 "eds.chair_stand"                 = "edsnlp.pipes.ner.frailty.scores.chair_stand.factory:create_component"
 "eds.en_eva"                      = "edsnlp.pipes.ner.frailty.scores.en_eva.factory:create_component"
-"eds.mini_cog"                     = "edsnlp.pipes.ner.frailty.scores.mini_cog.factory:create_component"
+"eds.mini_cog"                    = "edsnlp.pipes.ner.frailty.scores.mini_cog.factory:create_component"
 "eds.sppb"                        = "edsnlp.pipes.ner.frailty.scores.sppb.factory:create_component"
 
 

@@ -256,10 +256,13 @@ other = dict(
         "remediation cognitive",
         r"test de l'horloge (?:(?!sans)\w+\s){0,5}succes",
         r"rappel des (?:trois|3) mots",
+        "test des (?:cinq|5) mots",
+        r"\bdubois \d{1,2}(?:/10)?",
         "suivi memoire",
         "orthophonie",
         r"contention (chimique|physique)",
         "stimulations? cognitives?",
+        "nuits? difficiles?",
     ],
     regex_attr="NORM",
 )
@@ -269,6 +272,7 @@ BILAN_COMPLEMENTS = [
     "memoire",
     r"troubles? (?:neuro[\s-]?)?cognitifs?",
     r"neuro[\s-]?psychologique",
+    "cognitif",
 ]
 bilan = dict(
     source="other_bilan",
@@ -321,6 +325,13 @@ sleep = dict(
     ],
 )
 
+night = dict(
+    source="other_night",
+    regex=["nuits?"],
+    regex_attr="NORM",
+    assign=make_status_assign(-4, 4, priority=False),
+    include=make_include_dict_from_list(make_status_assign(-4, 4)),
+)
 
 default_patterns = normalize_space_characters(
     [
@@ -339,6 +350,7 @@ default_patterns = normalize_space_characters(
         memory,
         recognition,
         sleep,
+        night,
         tnc,
     ]
 )

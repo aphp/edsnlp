@@ -1,4 +1,4 @@
-from ..utils import make_status_assign, normalize_space_characters
+from ..utils import make_assign_regex, make_status_assign, normalize_space_characters
 
 other = dict(
     source="other",
@@ -11,6 +11,7 @@ healthy = dict(
     source="healthy",
     regex=[r"indolores?"],
     regex_attr="NORM",
+    exclude=dict(regex=make_assign_regex(["abdominale?s?", "abdomen"]), window=2),
 )
 
 altered = dict(

@@ -1,0 +1,18 @@
+Looking in indexes: https://pypi.org/simple, https://jupyter-read:****@gitlab.eds.aphp.fr/api/v4/groups/497/-/packages/pypi/simple, https://jupyter-read:****@gitlab.eds.aphp.fr/api/v4/projects/1962/packages/pypi/simple
+Collecting pytest
+  Downloading pytest-9.0.2-py3-none-any.whl.metadata (7.6 kB)
+Requirement already satisfied: exceptiongroup>=1 in /export/home/cse240008/.user_conda/miniconda/envs/env_theo/lib/python3.10/site-packages (from pytest) (1.3.0)
+Collecting iniconfig>=1.0.1 (from pytest)
+  Downloading iniconfig-2.3.0-py3-none-any.whl.metadata (2.5 kB)
+Requirement already satisfied: packaging>=22 in /export/home/cse240008/.user_conda/miniconda/envs/env_theo/lib/python3.10/site-packages (from pytest) (25.0)
+Collecting pluggy<2,>=1.5 (from pytest)
+  Using cached pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+Requirement already satisfied: pygments>=2.7.2 in /export/home/cse240008/.user_conda/miniconda/envs/env_theo/lib/python3.10/site-packages (from pytest) (2.19.2)
+Requirement already satisfied: tomli>=1 in /export/home/cse240008/.user_conda/miniconda/envs/env_theo/lib/python3.10/site-packages (from pytest) (2.3.0)
+Requirement already satisfied: typing-extensions>=4.6.0 in /export/home/cse240008/.user_conda/miniconda/envs/env_theo/lib/python3.10/site-packages (from exceptiongroup>=1->pytest) (4.15.0)
+Downloading pytest-9.0.2-py3-none-any.whl (374 kB)
+Using cached pluggy-1.6.0-py3-none-any.whl (20 kB)
+Downloading iniconfig-2.3.0-py3-none-any.whl (7.5 kB)
+Installing collected packages: pluggy, iniconfig, pytest
+
+Successfully installed iniconfig-2.3.0 pluggy-1.6.0 pytest-9.0.2

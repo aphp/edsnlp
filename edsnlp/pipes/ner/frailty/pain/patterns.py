@@ -11,7 +11,7 @@ healthy = dict(
     source="healthy",
     regex=[r"indolores?"],
     regex_attr="NORM",
-    exclude=dict(regex=make_assign_regex(["abdominale?s?", "abdomen"]), window=2),
+    exclude=dict(regex=make_assign_regex(["abdominale?s?", "abdomen"]), window=(-4, 2)),
 )
 
 altered = dict(
@@ -27,7 +27,9 @@ altered = dict(
         "antalgie",
     ],
     regex_attr="NORM",
-    exclude=dict(regex="abdominale?s?", window=2),
+    exclude=dict(
+        regex=make_assign_regex(["abdominale?s?", "aigue?s?"]), window=(-4, 2)
+    ),
 )
 mild = dict(source="mild", regex=[r"pall?iers? (?:1|2|i(?:i)?)"], regex_attr="NORM")
 

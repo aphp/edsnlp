@@ -40,6 +40,18 @@ altered = dict(
     regex_attr="NORM",
 )
 
+frailty = dict(
+    source="altered_frailty",
+    regex=["fragilite", "fragile"],
+    regex_attr="NORM",
+    assign=dict(
+        name="frailty_complement",
+        regex=make_assign_regex(["nutritionnelle"]),
+        window=6,
+        required=True,
+    ),
+)
+
 mild = dict(
     source="mild",
     regex=[
@@ -203,7 +215,7 @@ troubles = dict(
     assign=dict(
         name="trouble_complement",
         regex=make_assign_regex(TROUBLE_COMPLEMENTS),
-        window=6,
+        window=8,
         required=True,
     ),
 )
@@ -248,5 +260,6 @@ default_patterns = normalize_space_characters(
         consumption,
         status,
         mild,
+        frailty,
     ]
 )

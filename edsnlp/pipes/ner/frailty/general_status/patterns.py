@@ -34,6 +34,7 @@ other = dict(
     regex=[
         "etat general",
         r"amelioration de l'etat general",
+        "karnofsky",
     ],
     regex_attr="NORM",
     assign=make_status_assign(),

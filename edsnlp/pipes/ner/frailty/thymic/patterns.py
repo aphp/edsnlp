@@ -102,8 +102,8 @@ night = dict(
     source="other_night",
     regex=["nuits?"],
     regex_attr="NORM",
-    assign=make_status_assign(-4, 4, priority=False),
-    include=make_include_dict_from_list(make_status_assign(-4, 4)),
+    assign=make_status_assign(-2, 2, priority=False),
+    include=make_include_dict_from_list(make_status_assign(-2, 2)),
 )
 
 troubles = dict(
@@ -113,21 +113,37 @@ troubles = dict(
     assign=dict(
         name="trouble_complement",
         regex=make_assign_regex(["sommeil"]),
-        window=6,
+        window=8,
         required=True,
     ),
     exclude=dict(
         name="paradoxal",
         regex=["paradoxal"],
-        window=7,
+        window=9,
+    ),
+)
+
+frailty = dict(
+    source="altered_frailty",
+    regex=["fragilite", "fragile"],
+    regex_attr="NORM",
+    assign=dict(
+        name="frailty_complement",
+        regex=make_assign_regex(["thymique"]),
+        window=6,
+        required=True,
     ),
 )
 
 ralentissement = dict(
     source="other_ralentissement",
     regex=["ralentissement"],
-    exclude=dict(regex=["transit"], window=(-2, 2)),
-    assign=dict(name="complement", regex=make_assign_regex(["ideatoire"]), window=3),
+    assign=dict(
+        name="complement",
+        regex=make_assign_regex(["ideatoire"]),
+        window=3,
+        required=True,
+    ),
 )
 
 morale = dict(
@@ -186,5 +202,6 @@ default_patterns = normalize_space_characters(
         morale,
         night,
         status,
+        frailty,
     ]
 )

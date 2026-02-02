@@ -82,9 +82,9 @@ isolation = dict(
         r"isole(e?|ment)",
     ],
     exclude=[
-        dict(regex=["progression"], window=-5),
-        dict(regex=[r"\besa\b", "nodule", "hepatomegalie"], window=-2),
-        dict(regex=["contact", "bmr"], window=4),
+        dict(regex=["progression"], window=(-5, 5)),
+        dict(regex=[r"\besa\b", "nodule", "hepatomegalie"], window=(-5, 5)),
+        dict(regex=["contact", "bmr"], window=(-5, 5)),
     ],
     regex_attr="NORM",
 )
@@ -97,6 +97,7 @@ other = dict(
         r"aux(iliaires?)? de vie",
         r"\badv\b",
         "bilan social",
+        "evaluation sociale",
         "(?:sur le )?plan social",
         r"vit seule?",
         r"vivait seule?",
@@ -144,7 +145,8 @@ family_members = dict(
         window=(-3, 4),
     ),
     exclude=dict(
-        regex=["resorbables?", "ablation", r"chirurgi(?:e|cal|caux)"], window=(-4, 4)
+        regex=["resorbables?", "ablation", r"chirurgi(?:e|cal|caux)", "admission"],
+        window=(-4, 4),
     ),
 )
 children = dict(
@@ -160,6 +162,10 @@ children = dict(
         regex=make_assign_regex(HEALTHY_FAMILY_COMPLEMENTS),
         window=(-3, 4),
         required=True,
+    ),
+    exclude=dict(
+        regex=["resorbables?", "ablation", r"chirurgi(?:e|cal|caux)", "admission"],
+        window=(-4, 4),
     ),
 )
 
@@ -184,7 +190,8 @@ ambiguous_family = dict(
         ),
     ],
     exclude=dict(
-        regex=["resorbables?", "ablation", r"chirurgi(?:e|cal|caux)"], window=(-4, 4)
+        regex=["resorbables?", "ablation", r"chirurgi(?:e|cal|caux)", "admission"],
+        window=(-4, 4),
     ),
     include=dict(
         regex=make_assign_regex(

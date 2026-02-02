@@ -51,6 +51,8 @@ other = dict(
         r"utilise le telephone(?: portable)?",
         r"re[\s-]?autonomisation",
         r"ergotherap(?:ie|eute|eutique)",
+        r"\bgir\b",
+        r"soins? de suites? et (?:de )?readaptations?",
     ],
     regex_attr="NORM",
     assign=make_status_assign(-4, 4),
@@ -126,7 +128,7 @@ other_specific_qualifers = dict(
         "impots",
         r"transports? en commun",
         r"prise (?:des|du) repas",
-        r"prise (?:des|du) traitements?",
+        # r"prise (?:des|du) traitements?",
     ],
     regex_attr="NORM",
     assign=[
@@ -172,6 +174,12 @@ administrative = dict(
             window=(-4, 3),
         ),
     ],
+    include=dict(
+        regex=make_assign_regex(
+            ALTERED_COMPLEMENTS + SEVERE_COMPLEMENTS + HEALTHY_COMPLEMENTS
+        ),
+        window=(-4, 3),
+    ),
     exclude=[
         dict(
             regex=["votre", "vos", "vous", r"\bdonnees", r"medico[\s-]?", "cadre"],

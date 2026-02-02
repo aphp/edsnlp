@@ -115,6 +115,7 @@ TROUBLE_COMPLEMENTS_ALTERED = [
     "denomination",
     "flexibilite mentale",
     "sommeil paradoxal",
+    r"cogniti(?:f|ve)s?",
 ]
 TROUBLE_COMPLEMENTS_SEVERE = [
     "jugement",
@@ -133,12 +134,12 @@ troubles = dict(
         dict(
             name="trouble_complement",
             regex=make_assign_regex(TROUBLE_COMPLEMENTS_ALTERED),
-            window=6,
+            window=8,
         ),
         dict(
             name="severe_trouble_complement",
             regex=make_assign_regex(TROUBLE_COMPLEMENTS_SEVERE),
-            window=6,
+            window=8,
         ),
     ],
     include=dict(
@@ -146,6 +147,18 @@ troubles = dict(
             TROUBLE_COMPLEMENTS_ALTERED + TROUBLE_COMPLEMENTS_SEVERE
         ),
         window=6,
+    ),
+)
+
+frailty = dict(
+    source="altered_frailty",
+    regex=["fragilite", "fragile"],
+    regex_attr="NORM",
+    assign=dict(
+        name="frailty_complement",
+        regex=make_assign_regex(["cognitive"]),
+        window=6,
+        required=True,
     ),
 )
 
@@ -225,8 +238,8 @@ cognitive_status = dict(
     regex=[
         "etat cognitif",
         "statut cognitif",
-        r"etat neuro(?:[\s-]?psycho)?logique",
-        r"statut neuro(?:[\s-]?psycho)?logique",
+        r"etat neuro(?:[\s-]?psycho)?logi(?:e|que)",
+        r"statut neuro(?:[\s-]?psycho)?logi(?:e|que)",
     ],
     regex_attr="NORM",
     assign=make_status_assign(),
@@ -236,6 +249,7 @@ other = dict(
     source="other",
     regex=[
         r"evaluation neuro[\s-]?psychique",
+        r"examen neurologi(?:e|que)",
         "tests? de memoire",
         "epreuves? de praxie",
         r"neuro[\s-]?cognitif",
@@ -243,8 +257,8 @@ other = dict(
         "(?:sur le )?plan cognitif",
         "(?:sur le )?plan attentionnel",
         "(?:sur le )?plan du comportement",
-        "(?:sur le )?plan neurologique",
-        r"(?:sur le )plan neuro[\s-]?psychologique",
+        r"(?:sur le )?plan neurologi(?:e|que)",
+        r"(?:sur le )plan neuro[\s-]?psychologi(?:e|que)",
         "praxies? gestuelles?",
         "praxies? constructives?",
         "profil cognitif",
@@ -271,7 +285,7 @@ other = dict(
 BILAN_COMPLEMENTS = [
     "memoire",
     r"troubles? (?:neuro[\s-]?)?cognitifs?",
-    r"neuro[\s-]?psychologique",
+    r"neuro[\s-]?psychologi(?:e|que)",
     "cognitif",
 ]
 bilan = dict(
@@ -329,8 +343,8 @@ night = dict(
     source="other_night",
     regex=["nuits?"],
     regex_attr="NORM",
-    assign=make_status_assign(-4, 4, priority=False),
-    include=make_include_dict_from_list(make_status_assign(-4, 4)),
+    assign=make_status_assign(-2, 2, priority=False),
+    include=make_include_dict_from_list(make_status_assign(-2, 2)),
 )
 
 default_patterns = normalize_space_characters(
@@ -344,6 +358,7 @@ default_patterns = normalize_space_characters(
         orientation_other,
         ralentissement,
         cognitive_status,
+        frailty,
         troubles,
         bilan,
         consultation,

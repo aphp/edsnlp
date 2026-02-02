@@ -10,7 +10,7 @@ other = dict(
 
 onco_geriatry = dict(
     source="other_oncogeriatry",
-    regex=[r"(?:onco(?:[\s-]+)?)?geriatr(?:ique|e)"],
+    regex=[r"(?:onco(?:[\s-]+)?)?geriatr(?:ique|i?e)"],
     regex_attr="NORM",
     assign=[
         dict(

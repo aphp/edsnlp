@@ -60,7 +60,11 @@ bav = dict(
 )
 other = dict(
     source="other",
-    regex=[r"bilan ophtalmo(?:logique)?", "avis ophtalmologique"],
+    regex=[
+        r"bilan ophtalmo(?:logique)?",
+        "avis ophtalmologique",
+        "examen ophtalmologique",
+    ],
     regex_attr="NORM",
 )
 

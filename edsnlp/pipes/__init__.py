@@ -74,7 +74,7 @@ if TYPE_CHECKING:
     from .ner.frailty.scores.bref.factory import create_component as bref
     from .ner.frailty.scores.chair_stand.factory import create_component as chair_stand
     from .ner.frailty.scores.en_eva.factory import create_component as en_eva
-    from .ner.frailty.scores.g8.factory import create_component as g8
+    from .ner.frailty.scores.g8.factory import create_component as g8_score
     from .ner.frailty.scores.gait_speed.factory import create_component as gait_speed
     from .ner.frailty.scores.gds.factory import create_component as gds
     from .ner.frailty.scores.iadl.factory import create_component as iadl

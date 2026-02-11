@@ -60,12 +60,12 @@ def g8_severity_assigner(ent: Span):
 
 
 @registry.factory.register(
-    "eds.g8",
+    "eds.g8_score",
     assigns=["doc.ents", "doc.spans"],
 )
 def create_component(
     nlp: PipelineProtocol,
-    name: Optional[str] = "g8",
+    name: Optional[str] = "g8_score",
     *,
     patterns: List[Dict] = default_patterns,
     score_normalization: Union[str, Callable[[Span], Any]] = score_normalization,

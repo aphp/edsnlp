@@ -31,7 +31,7 @@ pleura_pattern = (
 
 resection_pattern = (
     r"R\s?"
-    r"(?P<resection>[Xx012]|[Oo])"  # Resection completeness
+    r"(?P<resection>[Xx012])"  # Resection completeness
     r"(?:\s?(?P<resection_specification>is|cy\+|\(is\)|\(cy\+\)))?"  # Optional spec
     r"(?:\s?(?P<resection_loc>(\((?P<r_loc>[a-z]+)\)[,;\s]*)*))?"  # Optional loc
 )

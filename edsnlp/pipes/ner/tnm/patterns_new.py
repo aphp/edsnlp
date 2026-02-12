@@ -31,7 +31,7 @@ pleura_pattern = (
 
 resection_pattern = (
     r"R\s?"
-    r"(?P<resection>[Xx012]|[Oo])?"  # Optional resection completeness
+    r"(?P<resection>[Xx012]|[Oo])"  # Resection completeness
     r"(?:\s?(?P<resection_specification>is|cy\+|\(is\)|\(cy\+\)))?"  # Optional spec
     r"(?:\s?(?P<resection_loc>(\((?P<r_loc>[a-z]+)\)[,;\s]*)*))?"  # Optional loc
 )
@@ -46,17 +46,6 @@ TNM_space = r"(\s*[,\/]?\s*|\n)"  # Allow space, comma, or slash as delimiters
 
 # We need te exclude pattern like 'T1', 'T2' if they are not followed by node or
 # metastasis sections.
-
-exclude_pattern = (
-    r"(?!T\s*[0-4]\s*[.,\/](?!\s*"
-    + node_pattern
-    + "?"
-    + TNM_space
-    + "?"
-    + metastasis_pattern
-    + "?"
-    + "))"
-)
 
 exclude_pattern = (
     r"(?!"

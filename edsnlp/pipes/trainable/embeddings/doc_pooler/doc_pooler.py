@@ -13,7 +13,6 @@ DocPoolerBatchInput = TypedDict(
     "DocPoolerBatchInput",
     {
         "embedding": BatchInput,
-        "mask": torch.Tensor,
         "stats": Dict[str, Any],
     },
 )

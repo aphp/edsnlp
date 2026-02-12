@@ -49,7 +49,10 @@ def gold():
 
 
 @pytest.mark.parametrize("with_constraints_and_not_none", [True, False])
-def test_span_qualifier(gold, with_constraints_and_not_none, tmp_path):
+@pytest.mark.parametrize("word_pooling_mode", ["mean", False])
+def test_span_qualifier(
+    gold, with_constraints_and_not_none, word_pooling_mode, tmp_path
+):
     import torch
 
     nlp = edsnlp.blank("eds")
@@ -60,6 +63,7 @@ def test_span_qualifier(gold, with_constraints_and_not_none, tmp_path):
             model="prajjwal1/bert-tiny",
             window=128,
             stride=96,
+            word_pooling_mode=word_pooling_mode,
         ),
     )
     nlp.add_pipe(
@@ -69,6 +73,8 @@ def test_span_qualifier(gold, with_constraints_and_not_none, tmp_path):
             "embedding": {
                 "@factory": "eds.span_pooler",
                 "embedding": nlp.get_pipe("transformer"),
+                "norm": "layernorm",
+                "activation": "relu",
             },
             "span_getter": ["ents", "sc"],
             "qualifiers": {"_.test_negated": True, "_.event_type": ("event",)}

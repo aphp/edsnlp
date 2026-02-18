@@ -35,13 +35,47 @@ def create_component(
         str, Callable[[Span], Any]
     ] = make_find_value_and_reference(
         admissible_references=[200], default_reference=200
-    ),  # TODO : better when no ref
+    ),  # not a real reference for this test, just a high upper bound
     attr: str = "NORM",
     label: str = "tug",
     span_setter: SpanSetterArg = {"ents": True, "tug": True, "mobility": True},
     include_assigned: bool = True,
     severity_assigner: Callable[[Span], Any] = tug_severity_assigner,
 ):
+    """
+    The `eds.tug` component extracts mentions of
+    the TUG (Timed Up and Go) score.
+
+    Parameters
+    ----------
+    nlp : PipelineProtocol
+        The pipeline object
+    name : Optional[str]
+        Name of the component
+    patterns : List[str]
+        A list of regexes to identify the score
+    attr : str
+        Whether to match on the text ('TEXT') or on the normalized text ('NORM')
+    score_normalization : Union[str, Callable[[Union[str,None]], Any]]
+        Function that takes the "raw" value extracted from the `value_extract`
+        regex and should return:
+
+        - None if no score could be extracted
+        - The desired score value else
+    label : str
+        Label name to use for the `Span` object and the extension
+    span_setter: SpanSetterArg
+        How to set matches on the doc
+    domain : str
+        The frailty domain the score is related to
+    severity_assigner: Callable[[Union[str, Tuple[float, int], Tuple[int, int]]], Any]
+        Function that takes the score value and assigns the corresponding severity
+        for the domain.
+
+    Returns
+    -------
+    SimpleScoreMatcher
+    """
     return FrailtyScoreMatcher(
         nlp,
         name=name,

@@ -117,6 +117,34 @@ nav:
             - pipes/ner/frailty/index.md
             - pipes/ner/frailty/autonomy.md
             - pipes/ner/frailty/cognition.md
+            - pipes/ner/frailty/frailty.md
+            - pipes/ner/frailty/general_status.md
+            - pipes/ner/frailty/geraiatric_assessment.md
+            - pipes/ner/frailty/incontinence.md
+            - pipes/ner/frailty/mobility.md
+            - pipes/ner/frailty/nutrition.md
+            - pipes/ner/frailty/pain.md
+            - pipes/ner/frailty/polymed.md
+            - pipes/ner/frailty/sensory.md
+            - pipes/ner/frailty/social.md
+            - pipes/ner/frailty/thymic.md
+            - Frailty scores:
+              - pipes/ner/frailty/scores/adl.md
+              - pipes/ner/frailty/scores/iadl.md
+              - pipes/ner/frailty/scores/gds.md
+              - pipes/ner/frailty/scores/mini_gds.md
+              - pipes/ner/frailty/scores/mini_cog.md
+              - pipes/ner/frailty/scores/bref.md
+              - pipes/ner/frailty/scores/chair_stand.md
+              - pipes/ner/frailty/scores/en_eva.md
+              - pipes/ner/frailty/scores/g8.md
+              - pipes/ner/frailty/scores/gait_speed.md
+              - pipes/ner/frailty/scores/mms.md
+              - pipes/ner/frailty/scores/moca.md
+              - pipes/ner/frailty/scores/ps.md
+              - pipes/ner/frailty/scores/rockwood.md
+              - pipes/ner/frailty/scores/sppb.md
+              - pipes/ner/frailty/scores/tug.md
           - Behaviors:
             - pipes/ner/behaviors/index.md
             - pipes/ner/behaviors/alcohol.md

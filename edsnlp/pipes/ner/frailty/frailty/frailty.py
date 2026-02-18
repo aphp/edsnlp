@@ -17,25 +17,32 @@ class FrailtyMatcher(FrailtyDomainMatcher):
     for each domain, but it still can be relevant to look for them when trying to
     categorize a patient's frailty.
 
+    ??? info "Details of the used patterns"
+        ```{ .python .no-check }
+        # fmt: off
+        --8<-- "edsnlp/pipes/ner/frailty/frailty/patterns.py"
+        # fmt: on
+        ```
 
     Extensions
     ----------
     On each span `span` that match, the following attribute is available:
 
-    `span._.frailty`: set to None.
+    - `span._.frailty`: set to None.\n
     It will specify the severity of the mention regarding the frailty
-    of the patient.
+    of the patient.\n
     Possible values are:
-        - healthy : this span suggests the patient is well regarding that domain.
-        - altered_nondescript : this span suggests the patient is not well, but
-            it is not yet possible to ascertain the degree of alteration.
-        - altered_mild : this span suggests a light alteration regarding
-            this domain.
-        - altered_severe : this span suggests a severe alteration regarding
-            this domain.
-        - other : this span is not indicative of the level of  alteration
-            regarding this domain. Still, it hints that this domain has
-            been evaluated.
+
+    - `healthy` : this span suggests the patient is well regarding that domain.
+    - `altered_nondescript` : this span suggests the patient is not well, but
+        it is not yet possible to ascertain the degree of alteration.
+    - `altered_mild` : this span suggests a light alteration regarding
+        this domain.
+    - `altered_severe` : this span suggests a severe alteration regarding
+        this domain.
+    - `other` : this span is not indicative of the level of  alteration
+        regarding this domain. Still, it hints that this domain has
+        been evaluated.
 
     Examples
     --------
@@ -47,6 +54,23 @@ class FrailtyMatcher(FrailtyDomainMatcher):
     nlp.add_pipe(eds.normalizer())
     nlp.add_pipe(f"eds.frailty")
     ```
+
+    Below are a few examples:
+
+    --8<-- "docs/assets/fragments/frailty-examples.md"
+
+    Parameters
+    ----------
+    nlp : Optional[PipelineProtocol]
+        The pipeline
+    name : Optional[str]
+        The name of the component
+    patterns: FullConfig
+        The patterns to use for matching
+    label : str
+        The label to use for the `Span` object and the extension
+    span_setter : SpanSetterArg
+        How to set matches on the doc
     """
 
     def __init__(

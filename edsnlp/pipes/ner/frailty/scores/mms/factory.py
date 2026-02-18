@@ -40,6 +40,40 @@ def create_component(
     include_assigned: bool = True,
     severity_assigner: Callable[[Span], Any] = mms_severity_assigner,
 ):
+    """
+    The `eds.mms` component extracts mentions of
+    the MMS (Mini Mental State) score.
+
+    Parameters
+    ----------
+    nlp : PipelineProtocol
+        The pipeline object
+    name : Optional[str]
+        Name of the component
+    patterns : List[str]
+        A list of regexes to identify the score
+    attr : str
+        Whether to match on the text ('TEXT') or on the normalized text ('NORM')
+    score_normalization : Union[str, Callable[[Union[str,None]], Any]]
+        Function that takes the "raw" value extracted from the `value_extract`
+        regex and should return:
+
+        - None if no score could be extracted
+        - The desired score value else
+    label : str
+        Label name to use for the `Span` object and the extension
+    span_setter: SpanSetterArg
+        How to set matches on the doc
+    domain : str
+        The frailty domain the score is related to
+    severity_assigner: Callable[[Union[str, Tuple[float, int], Tuple[int, int]]], Any]
+        Function that takes the score value and assigns the corresponding severity
+        for the domain.
+
+    Returns
+    -------
+    SimpleScoreMatcher
+    """
     return FrailtyScoreMatcher(
         nlp,
         name=name,

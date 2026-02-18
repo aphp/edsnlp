@@ -85,10 +85,10 @@ consumption = dict(
 
 altered_orth = dict(
     source="altered_orth",
-    regex=[r"\bFR\b"],  # TODO : attention à "fréquence respiratoire"
+    regex=[r"\bFR\b"],  # False positive : "fréquence respiratoire"
     regex_attr="ORTH",
     exclude=dict(
-        regex=r"\d+",
+        regex=[r"\d+", "frequence", r"respirat(?:ion|oire)", "poumon"],
         window=2,
     ),
 )

@@ -42,9 +42,75 @@ def create_component(
     include_assigned: bool = True,
     severity_assigner: Callable[[Span], Any] = adl_severity_assigner,
 ):
-    """The 'eds.adl' component extracts the
-    [ADL score](https://www.msdmanuals.com/fr/professional/multimedia/table/%C3%A9chelle-modifi%C3%A9e-des-activit%C3%A9s-quotidiennes-de-katz)
-    """  # noqa E501
+    '''
+    The `eds.adl` component extracts the
+    [ADL](https://www.msdmanuals.com/fr/professional/multimedia/table/%C3%A9chelle-modifi%C3%A9e-des-activit%C3%A9s-quotidiennes-de-katz)
+    (Activities of Daily Life) score.
+
+    Examples
+    --------
+    ```python
+    import edsnlp, edsnlp.pipes as eds
+
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(eds.sentences())
+    nlp.add_pipe(eds.normalizer())
+    nlp.add_pipe(eds.adl())
+
+    text = """
+    ADL 6/6.
+    """
+
+    doc = nlp(text)
+    doc.ents
+    # Out: (ADL 6/6,)
+    ```
+
+    Extensions
+    ----------
+    Each extraction exposes 2 extensions:
+
+    ```python
+    ent = doc.ents[0]
+
+    ent._.adl
+    # Out: 6.0
+
+    ent._.autonomy
+    # Out: 'healthy'
+    ```
+
+    Parameters
+    ----------
+    nlp : PipelineProtocol
+        The pipeline object
+    name : Optional[str]
+        Name of the component
+    patterns : List[str]
+        A list of regexes to identify the score
+    attr : str
+        Whether to match on the text ('TEXT') or on the normalized text ('NORM')
+    score_normalization : Union[str, Callable[[Union[str,None]], Any]]
+        Function that takes the "raw" value extracted from the `value_extract`
+        regex and should return:
+
+        - None if no score could be extracted
+        - The desired score value else
+    label : str
+        Label name to use for the `Span` object and the extension
+    span_setter: SpanSetterArg
+        How to set matches on the doc
+    domain : str
+        The frailty domain the score is related to
+    severity_assigner: Callable[[Union[str, Tuple[float, int], Tuple[int, int]]], Any]
+        Function that takes the score value and assigns the corresponding severity
+        for the domain.
+
+    Returns
+    -------
+    SimpleScoreMatcher
+    '''
+    # noqa E501
     return FrailtyScoreMatcher(
         nlp,
         name=name,

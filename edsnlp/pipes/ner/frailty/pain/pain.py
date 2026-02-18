@@ -10,26 +10,34 @@ from .patterns import default_patterns
 
 class PainMatcher(FrailtyDomainMatcher):
     """
-    The `eds.pain` pipeline component extracts mentions of pain.
+    The `eds.pain` pipeline component extracts mentions of the pain.
+
+    ??? info "Details of the used patterns"
+        ```{ .python .no-check }
+        # fmt: off
+        --8<-- "edsnlp/pipes/ner/frailty/pain/patterns.py"
+        # fmt: on
+        ```
 
     Extensions
     ----------
     On each span `span` that match, the following attribute is available:
 
-    `span._.pain`: set to None.
+    - `span._.pain`: set to None.\n
     It will specify the severity of the mention regarding the pain
-    of the patient.
+    of the patient.\n
     Possible values are:
-        - healthy : this span suggests the patient is well regarding that domain.
-        - altered_nondescript : this span suggests the patient is not well, but
-            it is not yet possible to ascertain the degree of alteration.
-        - altered_mild : this span suggests a light alteration regarding
-            this domain.
-        - altered_severe : this span suggests a severe alteration regarding
-            this domain.
-        - other : this span is not indicative of the level of  alteration
-            regarding this domain. Still, it hints that this domain has
-            been evaluated.
+
+    - `healthy` : this span suggests the patient is well regarding that domain.
+    - `altered_nondescript` : this span suggests the patient is not well, but
+        it is not yet possible to ascertain the degree of alteration.
+    - `altered_mild` : this span suggests a light alteration regarding
+        this domain.
+    - `altered_severe` : this span suggests a severe alteration regarding
+        this domain.
+    - `other` : this span is not indicative of the level of  alteration
+        regarding this domain. Still, it hints that this domain has
+        been evaluated.
 
     Examples
     --------
@@ -41,6 +49,23 @@ class PainMatcher(FrailtyDomainMatcher):
     nlp.add_pipe(eds.normalizer())
     nlp.add_pipe(f"eds.pain")
     ```
+
+    Below are a few examples:
+
+    --8<-- "docs/assets/fragments/pain-examples.md"
+
+    Parameters
+    ----------
+    nlp : Optional[PipelineProtocol]
+        The pipeline
+    name : Optional[str]
+        The name of the component
+    patterns: FullConfig
+        The patterns to use for matching
+    label : str
+        The label to use for the `Span` object and the extension
+    span_setter : SpanSetterArg
+        How to set matches on the doc
     """
 
     def __init__(

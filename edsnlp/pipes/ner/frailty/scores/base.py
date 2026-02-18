@@ -88,7 +88,18 @@ class FrailtyScoreMatcher(ContextualMatcher):
 
     def assign_one(self, span: Span, pattern) -> Iterable[Span]:
         """
-        Overload # TODO doc
+        Functions similarly to ContextualMatcher assign_one, but with added
+        feature of "limit" assigns. Assigns with the keyword "limit" in their
+        name will function as "limit" assigns : they they reduce the context
+        window of all other assigns if they match something. This is mainly
+        useful for the frailty scores, which can have the whole detail of their
+        sub-items listed with the overall score at the end, thus needing a large
+        context window to capture the score, but are also often right next to
+        another frailty score, meaning a "naive" large window risks confusing
+        the scores of several different clinical scores.
+        Limit assigns help to alleviate that issue, by giving a large context
+        window to find the overall score while allowing to restrain this window
+        if another score name is found in this window.
 
         Get additional information in the context
         of each entity. This function will populate two custom attributes:
@@ -270,17 +281,12 @@ class FrailtyScoreMatcher(ContextualMatcher):
 
         return new_spans
 
-    # TODO : add score normalization and post processing etc
     def process(self, doc: Doc) -> Iterable[Span]:
         for ent in super().process(doc):
             ent = self.score_normalization(ent)
             if ent is None:
                 continue
             normalized_value = ent._.assigned.get("value", None)
-            # value = ent._.assigned.get("value", None)
-            # if value is None:
-            #     continue
-            # normalized_value = self.score_normalization(value)
             if normalized_value is not None:
                 ent._.set(self.label, normalized_value)
                 ent._.set(self.domain, self.severity_assigner(ent))

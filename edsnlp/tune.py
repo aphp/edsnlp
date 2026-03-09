@@ -288,7 +288,11 @@ def objective_with_param(config, tuned_parameters, trial, metric):
         raise
     scorer = GenericScorer(**kwargs["scorer"])
     val_data = kwargs["val_data"]
-    score = scorer(nlp, val_data)
+    print(val_data)
+    # val_docs = list(chain.from_iterable(val_data))
+    val_docs = list(val_data)
+    print(val_docs)
+    score = scorer(nlp, val_docs)
     for key in metric:
         score = score[key]
     return score

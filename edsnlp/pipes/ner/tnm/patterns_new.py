@@ -1,3 +1,4 @@
+'''
 tumour_pattern = (
     r"(?P<tumour_prefix>[cpyramP]{1,2}\s?)?"  # Optional tumour prefix
     r"T\s?"  # 'T' followed by optional space
@@ -101,4 +102,84 @@ tnm_pattern_new = (
     + r")"
     + r"(?=[\s\(\)\.,;:/]|$)"
     # + r"(?:\b|$|\n)"
+)
+'''
+
+
+
+
+tumour_pattern = (
+    r"(?P<tumour_prefix>[cpyramP]{1,2}\s?)?"  # Optional tumour prefix
+    r"T\s?"  # 'T' followed by optional space
+    r"(?P<tumour>([0-4]|is|[Xx]|[Oo]))"  # Tumour size (required if 'T' is present)
+    r"(?:\s?(?P<tumour_specification>[abcdx]|mi))?"  # Optional tumour specification
+    r"(?:\s?\((?P<tumour_suffix>[^()]{1,20})\))?"  # Optional tumour suffix
+)
+
+node_pattern = (
+    r"(?P<node_prefix>[cpyraP]{1,2}\s?)?"  # Optional node prefix
+    r"N\s?"  # 'N' followed by optional space
+    r"(?P<node>[Xx01234\+]|[Oo])"  # Node size/status (required if 'N' is present)
+    r"(?:\s?(?P<node_specification>"
+    r"[abcdx]|mi|sn|i[-,+]|mol[-,+]|\(mi\)|\(sn\)|"
+    r"\(i[-,+]\)|\(mol[-,+]\)|\(\d+\s*/\s*\d+\)))?"  # Optional specification
+    r"(?:\s?\((?P<node_suffix>[^()]{1,20})\))?"  # Optional suffix
+)
+
+metastasis_pattern = (
+    r"(?P<metastasis_prefix>[cpyraP]{1,2}\s?)?"  # Optional metastasis prefix
+    r"M\s?"  # 'M' followed by optional space
+    r"(?P<metastasis>[Xx0123\+]|[Oo])"  # Metastasis status (required if 'M' is present)
+    r"(?:\s?(?P<metastasis_specification>"
+    r"[abcd]|i\+|mol\+|cy\+|\(i\+\)|\(mol\+\)|"
+    r"\(cy\+\)|PUL|OSS|HEP|BRA|LYM|OTH|MAR|PLE|PER|ADR|SKI))?"  # Optional specification
+    r"(?:\s?\((?P<metastasis_suffix>[^()]{1,20})\))?"  # Optional suffix
+)
+
+pleura_pattern = (
+    r"PL\s?(?P<pleura>([0123]|x))?"  # Optional pleura status (for lung cancer)
+)
+
+resection_pattern = (
+    r"(?P<resection_prefix>[cpyraP]{1,2}\s?)?"  # Optional metastasis prefix
+    r"R\s?"
+    r"(?P<resection>[Xx012])"  # Resection completeness
+    r"(?:\s?(?P<resection_specification>is|cy\+|\(is\)|\(cy\+\)))?"  # Optional spec
+    r"(?:\s?(?P<resection_loc>(\((?P<r_loc>[a-z]+)\)[,;\s]*)*))?"  # Optional loc
+    r"(?:\s?\((?P<resection_suffix>[^()]{1,20})\))?"  # Optional suffix
+)
+
+TNM_space = r"(\s*[,\/]?\s*|\n)"  # Allow space, comma, or slash as delimiters
+
+logic_filter = (
+    r"(?="
+    # Condition 1: Contains an N component
+    + r".*?" + node_pattern + r"|"
+    # Condition 2: Contains an M component
+    + r".*?" + metastasis_pattern + r"|"
+    # Condition 3: Contains an R component
+    + r".*?" + resection_pattern + r"|"
+    # Condition 4: T has BOTH prefix and specification
+    # We look for T, but ensure prefix and spec are not None/Empty
+    + r"(?=[^T]*?[cpyramP]{1,2})" # Must find a prefix before or at T
+    + r".*?T.*?" 
+    + r"([abcdx]|mi)"              # Must find a spec after T
+    + r")"
+)
+
+
+tnm_pattern_new = (
+    r"(?i)"             # Global Case-Insensitive
+    r"(?:\b|^)"         # Boundary
+    + logic_filter      # The "Gatekeeper"
+    + r"(?P<T_component>" + tumour_pattern + r")"
+    + TNM_space + "?"
+    + r"(?P<N_component>" + node_pattern + r")?"
+    + TNM_space + "?"
+    + r"(?P<M_component>" + metastasis_pattern + r")?"
+    + TNM_space + "?"
+    + r"(?P<PL_component>" + pleura_pattern + r")?"
+    + TNM_space + "?"
+    + r"(?P<R_component>" + resection_pattern + r")?"
+    + r"(?=[\s\(\)\.,;:/]|$)"
 )

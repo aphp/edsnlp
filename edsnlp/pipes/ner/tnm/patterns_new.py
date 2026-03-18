@@ -160,11 +160,10 @@ logic_filter = (
     + r".*?" + metastasis_pattern + r"|"
     # Condition 3: Contains an R component
     + r".*?" + resection_pattern + r"|"
-    # Condition 4: T has BOTH prefix and specification
-    # We look for T, but ensure prefix and spec are not None/Empty
-    + r"(?=[^T]*?[cpyramP]{1,2})" # Must find a prefix before or at T
-    + r".*?T.*?" 
-    + r"([abcdx]|mi)"              # Must find a spec after T
+    # Condition 4: T has BOTH prefix AND specification
+    # We ensure a prefix exists, and that T is followed by a Value AND a Spec
+    + r"(?=[^T]*?[cpyramP]{1,2})"                        # Must find prefix before T
+    + r".*?T\s*(?:[0-4]|is|[Xx]|[Oo])\s*([abcd]|mi)"     # Value THEN Spec (removed 'x' from spec)
     + r")"
 )
 

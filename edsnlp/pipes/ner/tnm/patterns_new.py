@@ -154,16 +154,15 @@ TNM_space = r"(?:\s*[,\/]?\s*|\n)"
 
 logic_filter = (
     r"(?="
-    # Condition 1: Contains an N component
-    + r".*?" + node_pattern + r"|"
-    # Condition 2: Contains an M component
-    + r".*?" + metastasis_pattern + r"|"
-    # Condition 3: Contains an R component
-    + r".*?" + resection_pattern + r"|"
+    # Condition 1, 2, 3: Standard components
+    + r".*?\b" + node_pattern + r"|"
+    + r".*?\b" + metastasis_pattern + r"|"
+    + r".*?\b" + resection_pattern + r"|"
+    
     # Condition 4: T has BOTH prefix AND specification
-    # We ensure a prefix exists, and that T is followed by a Value AND a Spec
-    + r"(?=[^T]*?[cpyramP]{1,2})"                        # Must find prefix before T
-    + r".*?T\s*(?:[0-4]|is|[Xx]|[Oo])\s*([abcd]|mi)"     # Value THEN Spec (removed 'x' from spec)
+    # We allow \s* between every element to handle doctor "space mistakes"
+    # But we use (?![a-z]) to ensure the spec isn't the start of a word like 'BOBIGNY'
+    + r".*?\b[cpyramP]{1,2}\s*T\s*(?:[0-4]|is|[Xx]|[Oo])\s*(?:[abcd]|mi)(?![a-z])"
     + r")"
 )
 

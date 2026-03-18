@@ -102,7 +102,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
     nlp.add_pipe(
         eds.ner_crf(
             embedding=eds.transformer(
-                model="prajjwal1/bert-tiny",
+                model="hf-internal-testing/tiny-random-bert",
                 window=128,
                 stride=96,
             ),

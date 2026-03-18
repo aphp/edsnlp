@@ -57,7 +57,7 @@ def test_span_qualifier(gold, with_constraints_and_not_none, tmp_path):
         "eds.transformer",
         name="transformer",
         config=dict(
-            model="prajjwal1/bert-tiny",
+            model="hf-internal-testing/tiny-random-bert",
             window=128,
             stride=96,
         ),

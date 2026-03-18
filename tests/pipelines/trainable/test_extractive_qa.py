@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from spacy.tokens import Span
 
@@ -7,14 +9,18 @@ import edsnlp.pipes as eds
 pytest.importorskip("torch.nn")
 
 
+def normalize_decoded_trf_input(text: str) -> str:
+    return re.sub(r"\s*'\s*", "'", text)
+
+
 def test_ner():
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(
         eds.extractive_qa(
             embedding=eds.transformer(
-                model="prajjwal1/bert-tiny",
-                window=20,
-                stride=10,
+                model="hf-internal-testing/tiny-random-bert",
+                window=40,
+                stride=20,
             ),
             # During training, where do we get the gold entities from ?
             target_span_getter=["ner-gold"],
@@ -54,19 +60,19 @@ def test_ner():
 
     assert results["loss"] is not None
     trf_inputs = [
-        seq.replace(" [PAD]", "")
+        normalize_decoded_trf_input(seq.replace(" [PAD]", ""))
         for seq in ner.embedding.tokenizer.batch_decode(batch["embedding"]["input_ids"])
     ]
     assert trf_inputs == [
-        "[CLS] quels sont les cadeaux? [SEP] l'aine eut le moulin, le second eut l'ane, et [SEP]",  # noqa: E501
-        "[CLS] quels sont les cadeaux? [SEP] le second eut l'ane, et le plus jeune n'eut que le [SEP]",  # noqa: E501
-        "[CLS] quels sont les cadeaux? [SEP] le plus jeune n'eut que le chat. [SEP]",  # noqa: E501
-        "[CLS] quels sont les personnages? [SEP] l'aine eut le moulin, le second eut l'ane, et [SEP]",  # noqa: E501
-        "[CLS] quels sont les personnages? [SEP] le second eut l'ane, et le plus jeune n'eut que le [SEP]",  # noqa: E501
-        "[CLS] quels sont les personnages? [SEP] le plus jeune n'eut que le chat. [SEP]",  # noqa: E501
-        "[CLS] qui a eu de l'argent? [SEP] l'aine eut le moulin, le second eut l'ane, et [SEP]",  # noqa: E501
-        "[CLS] qui a eu de l'argent? [SEP] le second eut l'ane, et le plus jeune n'eut que le [SEP]",  # noqa: E501
-        "[CLS] qui a eu de l'argent? [SEP] le plus jeune n'eut que le chat. [SEP]",  # noqa: E501
+        "[CLS] quels sont les cadeaux? [SEP] l'aine eut le moulin, le second eut l'ane, et le p [SEP]",  # noqa: E501
+        "[CLS] quels sont les cadeaux? [SEP] second eut l'ane, et le plus jeune n'eut que le ch [SEP]",  # noqa: E501
+        "[CLS] quels sont les cadeaux? [SEP]lus jeune n'eut que le chat. [SEP]",
+        "[CLS] quels sont les personnages? [SEP] l'aine eut le moulin, le second eut l'ane, et le p [SEP]",  # noqa: E501
+        "[CLS] quels sont les personnages? [SEP] second eut l'ane, et le plus jeune n'eut que le ch [SEP]",  # noqa: E501
+        "[CLS] quels sont les personnages? [SEP]lus jeune n'eut que le chat. [SEP]",
+        "[CLS] qui a eu de l'argent? [SEP] l'aine eut le moulin, le second eut l'ane, et le p [SEP]",  # noqa: E501
+        "[CLS] qui a eu de l'argent? [SEP] second eut l'ane, et le plus jeune n'eut que le ch [SEP]",  # noqa: E501
+        "[CLS] qui a eu de l'argent? [SEP]lus jeune n'eut que le chat. [SEP]",
     ]
     assert batch["targets"].squeeze(2).tolist() == [
         [0, 0, 0, 0, 4, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0],
@@ -86,9 +92,9 @@ def test_ner():
         "        '@factory': eds.extractive_qa\n"
         "        embedding:\n"
         "            '@factory': eds.transformer\n"
-        "            model: prajjwal1/bert-tiny\n"
-        "            window: 20\n"
-        "            stride: 10\n"
+        "            model: hf-internal-testing/tiny-random-bert\n"
+        "            window: 40\n"
+        "            stride: 20\n"
         "        questions:\n"
         "            PERSON: Quels sont les personnages ?\n"
         "            GIFT: Quels sont les cadeaux ?\n"

@@ -62,7 +62,7 @@ def test_span_linker(
             embedding=eds.span_pooler(
                 hidden_size=128,
                 embedding=eds.transformer(
-                    model="prajjwal1/bert-tiny",
+                    model="hf-internal-testing/tiny-random-bert",
                     window=128,
                     stride=96,
                 ),

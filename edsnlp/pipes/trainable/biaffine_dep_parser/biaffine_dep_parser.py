@@ -325,7 +325,7 @@ class TrainableBiaffineDependencyParser(
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(
         eds.biaffine_dep_parser(
-            embedding=eds.transformer(model="prajjwal1/bert-tiny"),
+            embedding=eds.transformer(model="hf-internal-testing/tiny-random-bert"),
             hidden_size=128,
             dropout_p=0.1,
             # labels unset, will be inferred from the data in `post_init`

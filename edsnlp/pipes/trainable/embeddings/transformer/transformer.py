@@ -96,7 +96,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(
         eds.transformer(
-            model="prajjwal1/bert-tiny",
+            model="hf-internal-testing/tiny-random-bert",
             window=128,
             stride=96,
         ),

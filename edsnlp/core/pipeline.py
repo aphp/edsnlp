@@ -31,7 +31,6 @@ from typing import (
     Union,
 )
 
-import requests
 import spacy
 import srsly
 from confit import Config
@@ -1219,6 +1218,21 @@ def load(
             and model.split("/")[0] not in FORBIDDEN_AUTO_HF_OWNERS
         ):
             try:
+                from huggingface_hub.errors import HfHubHTTPError
+            except ImportError:  # pragma: no cover
+                huggingface_load_errors = (
+                    ImportError,
+                    ValueError,
+                    FileNotFoundError,
+                )
+            else:  # pragma: no cover
+                huggingface_load_errors = (
+                    ImportError,
+                    ValueError,
+                    FileNotFoundError,
+                    HfHubHTTPError,
+                )
+            try:
                 return load_from_huggingface(
                     model,
                     overrides=overrides,
@@ -1227,12 +1241,7 @@ def load(
                     **kwargs,
                     **pipe_selection,
                 )
-            except (
-                ImportError,
-                requests.RequestException,
-                ValueError,
-                FileNotFoundError,
-            ) as e:
+            except huggingface_load_errors as e:
                 base_exc = e
 
     if not isinstance(model, Config):

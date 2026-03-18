@@ -40,8 +40,8 @@ def gold():
 
 def test_span_getter(gold):
     from edsnlp.pipes.trainable.embeddings.transformer.transformer import Transformer
-    from edsnlp.pipes.trainable.span_qualifier.span_qualifier import (
-        TrainableSpanQualifier,
+    from edsnlp.pipes.trainable.span_classifier.span_classifier import (
+        TrainableSpanClassifier,
     )
 
     nlp = edsnlp.blank("eds")
@@ -49,7 +49,7 @@ def test_span_getter(gold):
         "eds.transformer",
         name="transformer",
         config=dict(
-            model="prajjwal1/bert-tiny",
+            model="hf-internal-testing/tiny-random-bert",
             window=128,
             stride=96,
             quantization=None,
@@ -69,7 +69,7 @@ def test_span_getter(gold):
         },
     )
     trf: Transformer = nlp.get_pipe("transformer")
-    qlf: TrainableSpanQualifier = nlp.get_pipe("qualifier")
+    qlf: TrainableSpanClassifier = nlp.get_pipe("qualifier")
     qlf.post_init(gold, set())
     batch = qlf.prepare_batch([doc.copy() for doc in gold], supervision=True)
     input_ids = batch["embedding"]["embedding"]["input_ids"]
@@ -89,4 +89,4 @@ def test_span_getter(gold):
     batch = trf.collate(batch)
     batch = trf.batch_to_device(batch, device=trf.device)
     res = trf(batch)
-    assert res["embeddings"].shape == (2, 5, 128)
+    assert res["embeddings"].shape == (2, 5, 32)

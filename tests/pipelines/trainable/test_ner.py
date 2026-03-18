@@ -22,7 +22,7 @@ def test_ner(ner_mode, window):
         "eds.transformer",
         name="transformer",
         config=dict(
-            model="prajjwal1/bert-tiny",
+            model="hf-internal-testing/tiny-random-bert",
             window=128,
             stride=96,
         ),

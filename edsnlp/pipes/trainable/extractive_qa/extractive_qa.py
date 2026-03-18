@@ -48,7 +48,7 @@ class TrainableExtractiveQA(TrainableNerCrf):
     nlp.add_pipe(
         eds.extractive_qa(
             embedding=eds.transformer(
-                model="prajjwal1/bert-tiny",
+                model="hf-internal-testing/tiny-random-bert",
                 window=128,
                 stride=96,
             ),

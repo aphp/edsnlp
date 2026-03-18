@@ -35,7 +35,7 @@ nlp.add_pipe(
         embedding=eds.text_cnn(  # (4)!
             kernel_sizes=[3],
             embedding=eds.transformer(  # (5)!
-                model="prajjwal1/bert-tiny",  # (6)!
+                model="hf-internal-testing/tiny-random-bert",  # (6)!
                 window=128,
                 stride=96,
             ),
@@ -50,7 +50,7 @@ nlp.add_pipe(
 3. The `target_span_getter` parameter defines the name of the span group used to train the NER model. In this case, the model will look for the entities to train on in `doc.spans["gold-ner"]`. This is important because we might store entities in other span groups with a different purpose (e.g. `doc.spans["sections"]` contain the sections Spans, but we don't want to train on these). We will need to make sure the entities from the training dataset are assigned to this span group (next section).
 4. The word embeddings used by the CRF are computed by a CNN, which builds on top of another embedding layer.
 5. The base embedding layer is a pretrained transformer, which computes contextualized word embeddings.
-6. We chose the `prajjwal1/bert-tiny` model in this tutorial for testing purposes, but we recommend using a larger model like `bert-base-cased` or `camembert-base` (French) for real-world applications.
+6. We chose the `hf-internal-testing/tiny-random-bert` model in this tutorial for testing purposes, but we recommend using a larger model like `bert-base-cased` or `camembert-base` (French) for real-world applications.
 
 ### 2. Loading the raw dataset and convert it into Doc objects
 
@@ -354,7 +354,7 @@ Let's wrap the training code in a function, and make it callable from the comman
                 embedding=eds.text_cnn(
                     kernel_sizes=[3],
                     embedding=eds.transformer(
-                        model="prajjwal1/bert-tiny",
+                        model="hf-internal-testing/tiny-random-bert",
                         window=128,
                         stride=96,
                     ),
@@ -410,7 +410,7 @@ nlp:
 
         embedding:
           "@factory": "eds.transformer"
-          model: "prajjwal1/bert-tiny"
+          model: "hf-internal-testing/tiny-random-bert"
           window: 128
           stride: 96
 

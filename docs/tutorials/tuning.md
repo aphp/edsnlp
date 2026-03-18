@@ -170,7 +170,7 @@ nlp:
         kernel_sizes: [ 3 ]
         embedding:
           '@factory': eds.transformer
-          model: prajjwal1/bert-tiny
+          model: hf-internal-testing/tiny-random-bert
           ignore_mismatched_sizes: True
           window: 128
           stride: 96

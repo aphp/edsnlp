@@ -125,7 +125,7 @@ class TrainableSpanClassifier(
                 pooling_mode="mean",  # mean pooling
                 # that will use a transformer to embed the doc words
                 embedding=eds.transformer(
-                    model="prajjwal1/bert-tiny",
+                    model="hf-internal-testing/tiny-random-bert",
                     window=128,
                     stride=96,
                 ),

@@ -100,7 +100,7 @@ def test_disk_serialization(tmp_path, ml_nlp):
 
     assert (tmp_path / "model" / "config.cfg").read_text() == (
         config_str.replace("components = ${components}\n", "").replace(
-            "prajjwal1/bert-tiny", "./transformer"
+            "hf-internal-testing/tiny-random-bert", "./transformer"
         )
     )
 
@@ -128,7 +128,7 @@ components = ${components}
 
 [components.transformer]
 @factory = "eds.transformer"
-model = "prajjwal1/bert-tiny"
+model = "hf-internal-testing/tiny-random-bert"
 window = 128
 stride = 96
 
@@ -241,7 +241,7 @@ pipeline = ["transformer", "ner"]
 
 [components.transformer]
 @factory = "eds.transformer"
-model = "prajjwal1/bert-tiny"
+model = "hf-internal-testing/tiny-random-bert"
 window = 128
 stride = 96
 
@@ -352,7 +352,7 @@ def test_torch_save(ml_nlp):
 
 
 def test_parameters(frozen_ml_nlp):
-    assert len(list(frozen_ml_nlp.parameters())) == 42
+    assert len(list(frozen_ml_nlp.parameters())) == 90
 
 
 def test_missing_factory(nlp):

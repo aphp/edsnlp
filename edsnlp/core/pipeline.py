@@ -64,6 +64,9 @@ from .stream import Stream
 if TYPE_CHECKING:
     import torch
 
+    from ..pipes.base import BaseComponent
+
+
 EMPTY_LIST = FrozenList()
 FORBIDDEN_AUTO_HF_OWNERS = {
     "models",
@@ -248,7 +251,7 @@ class Pipeline(Validated):
 
     def add_pipe(
         self,
-        factory: Union[str, Pipe],
+        factory: Union[str, Pipe, "BaseComponent"],
         first: bool = False,
         before: Optional[str] = None,
         after: Optional[str] = None,

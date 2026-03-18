@@ -154,15 +154,17 @@ TNM_space = r"(?:\s*[,\/]?\s*|\n)"
 
 logic_filter = (
     r"(?="
-    # Condition 1, 2, 3: Standard components
+    # Conditions 1, 2, 3: If N, M, or R are present, the gatekeeper opens.
+    # We use \b at the start to ensure we don't match the middle of a word.
     + r".*?\b" + node_pattern + r"|"
     + r".*?\b" + metastasis_pattern + r"|"
     + r".*?\b" + resection_pattern + r"|"
     
-    # Condition 4: T has BOTH prefix AND specification
-    # We allow \s* between every element to handle doctor "space mistakes"
-    # But we use (?![a-z]) to ensure the spec isn't the start of a word like 'BOBIGNY'
-    + r".*?\b[cpyramP]{1,2}\s*T\s*(?:[0-4]|is|[Xx]|[Oo])\s*(?:[abcd]|mi)(?![a-z])"
+    # Condition 4: Standalone T (must have prefix AND spec)
+    # We allow the spec to be followed by:
+    # 1. A word boundary \b (space, punctuation, end of string)
+    # 2. OR the start of the next component (N, M, R) to allow "glued" text.
+    + r".*?\b[cpyramP]{1,2}\s*T\s*(?:[0-4]|is|[Xx]|[Oo])\s*(?:[abcd]|mi)(?=\b|[NMRP])"
     + r")"
 )
 

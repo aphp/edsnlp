@@ -150,8 +150,9 @@ def test_ner_qualif_train_same_bert(run_in_test_dir, tmp_path):
     assert last_scores["qual"]["micro"]["f"] > 0.4
 
 
-def test_qualif_train(run_in_test_dir, tmp_path):
+def test_qualif_train(run_in_test_dir, tmp_path, monkeypatch):
     set_seed(42)
+    monkeypatch.setenv("DVC_EXP_NAME", "test-qualif-train")
     config = Config.from_disk("qlf_config.yml")
     shutil.rmtree(tmp_path, ignore_errors=True)
     kwargs = Config.resolve(config["train"], registry=registry, root=config)

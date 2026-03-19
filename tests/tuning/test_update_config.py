@@ -122,3 +122,28 @@ def test_update_config_raises_error_on_wrong_path(
 ):
     with pytest.raises(KeyError, match="Path 'model' not found in config."):
         update_config(minimal_config, hyperparameters_with_invalid_path, trial=trial)
+
+
+def test_update_config_with_list_index():
+    config = {
+        "train": {
+            "layers": [1, 2, 3],
+        },
+    }
+    hyperparameters = {
+        "train.layers.1": {
+            "type": "int",
+            "low": 4,
+            "high": 8,
+            "step": 2,
+        }
+    }
+
+    updated_config = update_config(
+        config,
+        hyperparameters,
+        values={"train.layers.1": 6},
+        resolve=False,
+    )
+
+    assert updated_config["train"]["layers"] == [1, 6, 3]

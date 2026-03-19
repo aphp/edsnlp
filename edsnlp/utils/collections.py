@@ -65,8 +65,13 @@ def flatten(root):
 
 def _discover_scheme(obj):
     keys = defaultdict(lambda: [])
+    # for value for which we should not try to dedup based on id()
+    base_type_keys = []
 
     def rec(current, path):
+        if isinstance(current, (int, str, bool, float, bytes)):
+            base_type_keys.append([path])
+            return
         if not isinstance(current, dict):
             keys[id(current)].append(path)
             return
@@ -83,7 +88,7 @@ def _discover_scheme(obj):
                 repr("|".join(map("/".join, key_list))),
                 "".join(f"[{repr(k)}]" for k in key_list[0]),
             )
-            for key_list in keys.values()
+            for key_list in (*keys.values(), *base_type_keys)
         )
         + "}"
     )

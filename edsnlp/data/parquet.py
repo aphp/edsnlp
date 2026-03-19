@@ -122,7 +122,7 @@ class ParquetWriter(BatchWriter):
         batch_size: Optional[Union[int, str]] = None,
         batch_by: BatchBy = None,
         write_in_worker: bool = False,
-        overwrite: bool,
+        overwrite: Union[bool, Literal["replace", "append"]] = False,
         filesystem: Optional[Union[FileSystem, str]] = None,
         pyarrow_write_kwargs: Optional[Dict[str, Any]] = None,
     ):
@@ -146,8 +146,9 @@ class ParquetWriter(BatchWriter):
                     f"Directory {self.path} already exists and is not empty. "
                     "Use overwrite=True to overwrite."
                 )
-            for file in dataset.files:
-                self.fs.rm_file(file)
+            if overwrite != "append":
+                for file in dataset.files:
+                    self.fs.rm_file(file)
         batch_size, batch_by = Stream.validate_batching(batch_size, batch_by)
         if batch_by in ("docs", "doc", None, batchify) and batch_size is None:
             warnings.warn(
@@ -300,7 +301,7 @@ def write_parquet(
     batch_size: Optional[Union[int, str]] = None,
     batch_by: BatchBy = None,
     write_in_worker: bool = True,
-    overwrite: bool = False,
+    overwrite: Union[bool, Literal["replace", "append"]] = False,
     filesystem: Optional[Union[FileSystem, str]] = None,
     execute: bool = True,
     converter: Optional[Union[str, Callable]] = None,

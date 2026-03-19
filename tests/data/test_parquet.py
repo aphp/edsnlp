@@ -329,6 +329,41 @@ def test_read_to_parquet_ents(blank_nlp, tmpdir):
         )
 
 
+def test_write_parquet_append_and_replace(tmpdir):
+    output_dir = Path(tmpdir)
+
+    edsnlp.data.write_parquet(
+        [{"note_id": "doc-1"}],
+        output_dir,
+        batch_size=1,
+    )
+    edsnlp.data.write_parquet(
+        [{"note_id": "doc-2"}],
+        output_dir,
+        batch_size=1,
+        overwrite="append",
+    )
+
+    assert sorted(
+        dl_to_ld(pyarrow.dataset.dataset(output_dir).to_table().to_pydict()),
+        key=lambda row: row["note_id"],
+    ) == [
+        {"note_id": "doc-1"},
+        {"note_id": "doc-2"},
+    ]
+
+    edsnlp.data.write_parquet(
+        [{"note_id": "doc-3"}],
+        output_dir,
+        batch_size=1,
+        overwrite="replace",
+    )
+
+    assert list(
+        dl_to_ld(pyarrow.dataset.dataset(output_dir).to_table().to_pydict())
+    ) == [{"note_id": "doc-3"}]
+
+
 @pytest.mark.parametrize("num_cpu_workers", [0, 2])
 @pytest.mark.parametrize("shuffle", ["dataset", "fragment"])
 @pytest.mark.parametrize("shuffle_reader", [False, None])

@@ -2,9 +2,11 @@ import json
 import math
 import os
 import time
+import urllib.parse
 import warnings
 from collections import defaultdict
 from contextlib import nullcontext
+from importlib.metadata import distributions
 from itertools import chain
 from pathlib import Path
 from typing import (
@@ -112,6 +114,18 @@ class GenericScorer:
         self.metrics = metrics
         self.speed = speed
         self.batch_size = batch_size
+        if isinstance(autocast, str):
+            # fmt: off
+            autocast = {
+               "fp16": torch.float16, "float16": torch.float16,
+               "f16": torch.float16, "half": torch.float16,
+               "bf16": torch.bfloat16, "bfloat16": torch.bfloat16,
+               "fp32": torch.float32, "float32": torch.float32,
+               "f32": torch.float32, "float": torch.float32,
+               "fp64": torch.float64, "float64": torch.float64,
+               "f64": torch.float64, "double": torch.float64,
+            }[autocast]
+            # fmt: on
         self.autocast = autocast
 
     def __call__(self, nlp: Pipeline, docs: Iterable[Any]):
@@ -611,6 +625,31 @@ def train(
     )
     # accelerator.register_for_checkpointing(dataset)
     is_main_process = accelerator.is_main_process
+
+    if is_main_process:
+        if dvc_xp_name := os.environ.get("DVC_EXP_NAME"):
+            print("DVC experiment name:", dvc_xp_name)
+
+        print("Installed packages:")
+        for d in distributions():
+            n, v = d.metadata["Name"], d.version
+            if not d.files:  # pragma: no cover
+                print(n, end=" ")
+                continue
+            j = next(
+                (f.read_text() for f in d.files if str(f).endswith("direct_url.json")),
+                None,
+            )
+            if j:
+                url = json.loads(j).get("url", "")
+                url = (
+                    urllib.parse.unquote(url[7:]) if url.startswith("file://") else url
+                )
+                print(f"{n}=={v}@{url}", end=" ")
+            else:
+                print(f"{n}=={v}", end=" ")
+        print()
+
     device = accelerator.device
 
     if "max_grad_norm" in kwargs:
@@ -820,6 +859,8 @@ def train(
                             "validation": val_metrics,
                         }
                         accelerator.log(metrics, step=step)
+                        with open(output_dir / "val_metrics_last.json", "w") as f:
+                            json.dump(val_metrics, f)
                     count = 0
                     spikes = 0
                     flat_cum_stats = defaultdict(float)

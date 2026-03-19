@@ -9,6 +9,7 @@
 - Add `edsnlp.load_pipe` to load a specific component or nested subcomponent from a saved pipeline
 - Add support for `overwrite="append"` in `edsnlp.data.write_parquet`
 - Add confidence scores to spans predicted by `eds.extractive_qa`
+- Add DVC-backed tuning support with timeout and parallel trial handling
 
 ### Fixed
 

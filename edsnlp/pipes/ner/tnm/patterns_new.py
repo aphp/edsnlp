@@ -143,7 +143,7 @@ pleura_pattern = (
 resection_pattern = (
     r"(?P<resection_prefix>[cpyraP]{1,2}\s*)?"  # Optional metastasis prefix
     r"R\s*"
-    r"(?P<resection>[Xx012])"  # Resection completeness
+    r"(?P<resection>[Xx012\+])"  # Resection completeness
     r"(?:\s*(?P<resection_specification>is|cy\+|\(is\)|\(cy\+\)))?"  # Optional spec
     r"(?:\s*(?P<resection_loc>(\((?P<r_loc>[a-z]+)\)[,;\s]*)*))?"  # Optional loc
     r"(?:\s*\((?P<resection_suffix>[^()]{1,20})\))?"  # Optional suffix

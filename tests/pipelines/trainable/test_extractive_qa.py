@@ -1,6 +1,7 @@
 import re
 
 import pytest
+from confit.utils.random import set_seed
 from spacy.tokens import Span
 
 import edsnlp
@@ -108,3 +109,27 @@ def test_ner():
         "        window: 40\n"
         "        stride: 20\n"
     )
+
+
+def test_confidence_score():
+    set_seed(0)
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(
+        eds.extractive_qa(
+            embedding=eds.transformer(
+                model="hf-internal-testing/tiny-random-bert",
+                window=40,
+                stride=20,
+            ),
+            questions={"GIFT": "Quels sont les cadeaux ?"},
+            target_span_getter=["ents"],
+            span_setter="ents",
+        ),
+    )
+    nlp.pipes.extractive_qa.compute_confidence_score = True
+
+    nlp.train(False)
+    doc = nlp("Le Chat dort.")
+
+    assert doc.ents
+    assert all(0 < ent._.ner_confidence_score < 1 for ent in doc.ents)

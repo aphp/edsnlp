@@ -164,7 +164,8 @@ class LinearChainCRF(torch.nn.Module):
             end_transitions = self.end_transitions.masked_fill(
                 self.end_forbidden_transitions, IMPOSSIBLE
             )
-        path = torch.zeros(*emissions.shape[:-1], dtype=torch.long)
+        dev = emissions.device
+        path = torch.zeros(*emissions.shape[:-1], dtype=torch.long, device=dev)
 
         if 0 not in emissions.shape:
             emissions = emissions.clone()

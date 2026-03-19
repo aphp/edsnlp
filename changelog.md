@@ -16,6 +16,7 @@
 - Optimized CRF implementation
 - Fix average precision computation to account for the first recall step.
 - In docs and test, we now use `hf-internal-testing/tiny-random-bert` instead of the outdated `prajjwal1/bert-tiny`
+- Infer `LinearSchedule.max_value` from the current parameter value when omitted
 
 ## v0.20.0 (2025-12-12)
 

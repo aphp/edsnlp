@@ -129,8 +129,9 @@ class LinearSchedule(Schedule):
     def step(self, group, closure=None):
         self.idx += 1
         if self.max_value is None:
-            if isinstance(get_deep_attr(group, self.paths[0]), (int, float)):
-                self.max_value = get_deep_attr(group, self.paths[0])
+            value = get_deep_attr(group, self.paths[0])
+            if isinstance(value, (int, float)):
+                self.max_value = value
             else:
                 raise Exception(
                     "The max_value parameter of the linear schedule "

@@ -8,6 +8,7 @@
 - New `edsnlp.data.from_huggingface_dataset()` and `edsnlp.data.to_huggingface_dataset()` data connectors, with corresponding `hf_ner` and `hf_text` connectors adapted respectively for NER datasets and simple text datasets.
 - Add `edsnlp.load_pipe` to load a specific component or nested subcomponent from a saved pipeline
 - Add support for `overwrite="append"` in `edsnlp.data.write_parquet`
+- Add confidence scores to spans predicted by `eds.extractive_qa`
 
 ### Fixed
 

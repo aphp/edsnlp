@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Optional, Set
 
+import torch
 from spacy.tokens import Doc, Span
 from typing_extensions import Literal
 
@@ -276,10 +277,18 @@ class TrainableExtractiveQA(TrainableNerCrf):
         contexts = [ctx for sample in inputs for ctx in sample["$contexts"]]
         labels = [label for sample in inputs for label in sample["$labels"]]
         tags = results["tags"].cpu()
-        for context_idx, _, start, end in self.crf.tags_to_spans(tags).tolist():
+        if self.compute_confidence_score:
+            probs = results["probs"].cpu()
+        for context_idx, label_idx, start, end in self.crf.tags_to_spans(tags).tolist():
             span = contexts[context_idx][start:end]
             label = labels[context_idx]
             span.label_ = label
+            if self.compute_confidence_score:
+                span_probs = probs[context_idx, start:end, label_idx, :]
+                average_entity_confidence_score = torch.mean(
+                    1 - span_probs[:, 0]
+                ).item()
+                span._.ner_confidence_score = average_entity_confidence_score
             spans[span.doc].append(span)
         for doc in docs:
             self.set_spans(doc, spans.get(doc, []))

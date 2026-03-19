@@ -150,6 +150,7 @@ nav:
       - data/polars.md
       - data/spark.md
       - data/converters.md
+      - data/huggingface.md
   - Training:
       - training/training-api.md
       - training/loggers.md

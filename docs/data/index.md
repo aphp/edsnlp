@@ -43,6 +43,7 @@ At the moment, we support the following data sources:
 | [Pandas](./pandas)            | Pandas DataFrame objects   |
 | [Polars](./polars)            | Polars DataFrame objects   |
 | [Spark](./spark)              | Spark DataFrame objects    |
+| [Hugging Face datasets](./huggingface) | Datasets from the Hugging Face Hub |
 
 and the following schemas:
 
@@ -51,5 +52,7 @@ and the following schemas:
 | [Custom](./converters/#custom)                                      | `converter=custom_fn`  |
 | [OMOP](./converters/#omop)                                          | `converter="omop"`     |
 | [Standoff](./converters/#standoff)                                  | `converter="standoff"` |
+| [HF Text](./converters/#hf_text)                                    | `converter="hf_text"`  |
+| [HF NER](./converters/#hf_ner)                                      | `converter="hf_ner"`   |
 | [Ents](./converters/#edsnlp.data.converters.EntsDoc2DictConverter)  | `converter="ents"`     |
 | [Markup](./converters/#edsnlp.data.converters.MarkupToDocConverter) | `converter="markup"`   |

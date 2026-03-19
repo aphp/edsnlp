@@ -219,6 +219,42 @@ one per entity, that can be used to write to a dataframe. The schema of each pro
         heading_level: 4
         show_source: false
 
+## Hugging Face Text (`converter="hf_text"`) {: #hf_text }
+
+The `hf_text` converter is designed for simple text datasets from the Hugging Face Hub, where each example contains a single text field (e.g., IMDB, Wikipedia). It tokenizes the raw text and optionally extracts a document ID.
+
+### Converting HF Text data to Doc objects {: #edsnlp.data.converters.HfTextDict2DocConverter }
+
+::: edsnlp.data.converters.HfTextDict2DocConverter
+    options:
+        heading_level: 4
+        show_source: false
+
+### Converting Doc objects to HF Text data {: #edsnlp.data.converters.HfTextDoc2DictConverter }
+
+::: edsnlp.data.converters.HfTextDoc2DictConverter
+    options:
+        heading_level: 4
+        show_source: false
+
+## Hugging Face NER (`converter="hf_ner"`) {: #hf_ner }
+
+The `hf_ner` converter is designed for token-level named entity recognition (NER) datasets from the Hugging Face Hub (e.g., CoNLL-2003, WikiNER). It expects datasets with token lists and corresponding NER tags, and converts them to `Doc` objects with entities extracted using a flexible tagging scheme that supports BIO, BILOU, and other common NER formats.
+
+### Converting HF NER data to Doc objects {: #edsnlp.data.converters.HfNerDict2DocConverter }
+
+::: edsnlp.data.converters.HfNerDict2DocConverter
+    options:
+        heading_level: 4
+        show_source: false
+
+### Converting Doc objects to HF NER data {: #edsnlp.data.converters.HfNerDoc2DictConverter }
+
+::: edsnlp.data.converters.HfNerDoc2DictConverter
+    options:
+        heading_level: 4
+        show_source: false
+
 ## Markup (`converter="markup"`) {: #edsnlp.data.converters.MarkupToDocConverter }
 
 This converter is used to convert markup data, such as Markdown or XML into documents.

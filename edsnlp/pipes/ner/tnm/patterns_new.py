@@ -168,6 +168,20 @@ logic_filter = (
     + r")"
 )
 
+logic_filter = (
+    r"(?="
+        # --- BRANCH 1: The "Qualified Solo" ---
+        # Matches if T has a prefix AND a specification immediately.
+        r"(?:[cpyramP]{1,2}\s*T\s*(?:[0-4]|is|[xo])\s*(?:[abcdx]|mi))"
+        r"|"
+        # --- BRANCH 2: The "T + NMR" ---
+        # Matches any T (bare or prefixed) as long as it's followed by N, M, or R.
+        r"(?:(?:[cpyramP]{0,2}\s*)?T\s*(?:[0-4]|is|[xo])" # T part
+        r"(?:\s*[,\/]?\s*|\n)"                           # TNM_space
+        r"(?:[cpyraP]{0,2}\s*[NMR][x0-4\+o]))"           # Start of N, M, or R
+    r")"
+)
+
 
 tnm_pattern_new = (
     r"(?i)"             # Global Case-Insensitive

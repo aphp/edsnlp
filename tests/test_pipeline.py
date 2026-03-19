@@ -12,6 +12,7 @@ from spacy.tokens import Doc
 import edsnlp
 import edsnlp.pipes as eds
 from edsnlp import Pipeline, registry
+from edsnlp.core.pipeline import load_pipe
 from edsnlp.core.registries import DraftPipe
 from edsnlp.pipes.base import BaseComponent
 
@@ -110,6 +111,18 @@ def test_disk_serialization(tmp_path, ml_nlp):
     )
     assert nlp.get_pipe("ner").labels == ["PERSON", "GIFT"]
     assert nlp.get_pipe("transformer").stride == 64
+
+
+def test_load_pipe_success(tmp_path, ml_nlp):
+    model_dir = tmp_path / "model"
+    model_dir.mkdir()
+    ml_nlp.to_disk(model_dir, exclude=set())
+
+    embedding = load_pipe(model_dir, "ner.embedding")
+
+    assert embedding.__class__ is ml_nlp.get_pipe("transformer").__class__
+    assert embedding.window == 128
+    assert embedding.stride == 96
 
 
 config_str = """\

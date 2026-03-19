@@ -1250,6 +1250,55 @@ def load(
     return Pipeline.from_config(model, **pipe_selection)
 
 
+@registry.core.register("load_pipe")
+def load_pipe(
+    model: Union[str, Path, Config],
+    pipe: str,
+    overrides: Optional[Dict[str, Any]] = None,
+    *,
+    auto_update: bool = False,
+    install_dependencies: bool = False,
+    **kwargs,
+):
+    """
+    Load a pipeline and return a specific pipe by its deep path.
+
+    Parameters
+    ----------
+    model: Union[str, Path, Config]
+        The config to use for the pipeline, or the path to a config file or a directory.
+    pipe: str
+        Deep path to the pipe under nlp.pipes (e.g. "sentencizer" or "ner.model").
+    overrides: Optional[Dict[str, Any]]
+        Overrides to apply to the config when loading the pipeline.
+    auto_update: bool
+        When installing a pipeline from the Hugging Face Hub, whether to automatically
+        try to update the model, even if a local version is found.
+    install_dependencies: bool
+        When installing a pipeline from the Hugging Face Hub, whether to install the
+        dependencies of the model if they are not already installed.
+
+    Returns
+    -------
+    Any
+        The requested pipe object.
+    """
+    nlp = load(
+        model,
+        overrides=overrides,
+        auto_update=auto_update,
+        install_dependencies=install_dependencies,
+        **kwargs,
+    )
+    current = nlp.pipes
+    for key in pipe.split("."):
+        try:
+            current = getattr(current, key)
+        except AttributeError as e:  # pragma: no cover
+            raise ValueError(f"Pipe path {pipe!r} not found in pipeline.") from e
+    return current
+
+
 def load_from_huggingface(
     repo_id: str,
     auto_update: bool = False,

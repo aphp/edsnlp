@@ -15,5 +15,7 @@ cdef class FastSentenceSegmenter(object):
     cdef set[attr_t] capitalized_shapes_hash
     cdef bool check_capitalized
     cdef int min_newline_count
+    cdef bool use_bullet_start
+    cdef set[attr_t] bullet_starter_hash
 
     cdef void process(self, Doc doc) nogil

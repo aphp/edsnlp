@@ -7,8 +7,8 @@ from libcpp cimport bool as cbool
 from spacy.attrs cimport IS_ALPHA, IS_ASCII, IS_DIGIT, IS_LOWER, IS_PUNCT, IS_SPACE
 from spacy.lexeme cimport Lexeme
 from spacy.tokens.token cimport TokenC
-
 from .terms import punctuation
+
 
 cdef class FastSentenceSegmenter(object):
     """
@@ -38,6 +38,8 @@ cdef class FastSentenceSegmenter(object):
             ignore_excluded = True,
             check_capitalized = True,
             min_newline_count = 1,
+            use_bullet_start = False,
+            bullet_starters = (),
     ):
         if punct_chars is None:
             punct_chars = punctuation
@@ -60,6 +62,9 @@ cdef class FastSentenceSegmenter(object):
             for shape in (("X'", "Xx", "Xxx", "Xxxx", "Xxxxx") if check_capitalized else ())
         }
 
+        self.use_bullet_start = use_bullet_start
+        self.bullet_starter_hash = {vocab.strings[c] for c in bullet_starters}
+
     def __call__(self, doc: spacy.tokens.Doc):
         self.process(doc)
         return doc
@@ -75,7 +80,6 @@ cdef class FastSentenceSegmenter(object):
         """
         cdef TokenC token
         cdef cbool seen_period
-        cdef cbool seen_newline
         cdef cbool is_in_punct_chars
         cdef cbool is_newline
         cdef int newline_count
@@ -89,7 +93,6 @@ cdef class FastSentenceSegmenter(object):
         for i in range(doc.length):
             # To set the attributes at False by default for the other tokens
             doc.c[i].sent_start = 1 if i == 0 else -1
-
             token = doc.c[i]
 
             if self.ignore_excluded and token.tag == self.excluded_hash:
@@ -99,6 +102,7 @@ cdef class FastSentenceSegmenter(object):
                     self.punct_chars_hash.const_find(token.lex.orth)
                     != self.punct_chars_hash.const_end()
             )
+
             is_newline = (
                     Lexeme.c_check_flag(token.lex, IS_SPACE)
                     and token.lex.orth == self.newline_hash
@@ -110,7 +114,12 @@ cdef class FastSentenceSegmenter(object):
                 if not (
                         is_in_punct_chars
                         or is_newline
-                        or Lexeme.c_check_flag(token.lex, IS_PUNCT)
+                        or (
+                            Lexeme.c_check_flag(token.lex, IS_PUNCT) and (
+                                self.bullet_starter_hash.const_find(token.lex.orth)
+                                == self.bullet_starter_hash.const_end()
+                            )
+                        )
                 ):
                     if seen_period:
                         doc.c[i].sent_start = 1
@@ -118,9 +127,16 @@ cdef class FastSentenceSegmenter(object):
                         seen_period = False
                     else:
                         doc.c[i].sent_start = (
-                            1 if not self.check_capitalized or (
+                            1 if (
+                                not self.check_capitalized or (
                                     self.capitalized_shapes_hash.const_find(token.lex.shape)
                                     != self.capitalized_shapes_hash.const_end()
+                                ) or (
+                                    self.use_bullet_start and (
+                                        self.bullet_starter_hash.const_find(token.lex.orth)
+                                        != self.bullet_starter_hash.const_end()
+                                    )
+                                )
                             ) else -1
                         )
                         newline_count = 0

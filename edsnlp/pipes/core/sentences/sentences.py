@@ -1,5 +1,5 @@
 import warnings
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from spacy.tokens import Doc
 
@@ -18,6 +18,45 @@ DEFAULT_BULLET_STARTERS = [
 # fmt: on
 
 
+def generate_capitalized_shapes(
+    upper_min: int = 2,
+    upper_max: int = 13,
+    x_min: int = 2,
+    x_max: int = 12,
+    include_all_caps: bool = True,
+    include_titlecase: bool = True,
+    include_apostrophe: bool = True,
+) -> Tuple[str, ...]:
+    """
+    Generate spaCy `token.shape_` patterns used to detect capitalized line starts.
+    """
+    shapes: List[str] = []
+
+    if include_all_caps:
+        for i in range(upper_min, upper_max + 1):
+            shapes.append("X" * i)
+
+    if include_titlecase:
+        for i in range(x_min, x_max + 1):
+            shapes.append("X" + "x" * (i - 1))
+
+    if include_apostrophe:
+        shapes.append("X'")
+
+    return tuple(shapes)
+
+
+DEFAULT_CAPITALIZED_SHAPES: Tuple[str, ...] = generate_capitalized_shapes(
+    upper_min=2,
+    upper_max=13,
+    x_min=2,
+    x_max=12,
+    include_apostrophe=True,
+)
+
+LEGACY_CAPITALIZED_SHAPES: Tuple[str, ...] = ("X'", "Xx", "Xxx", "Xxxx", "Xxxxx")
+
+
 class SentenceSegmenter(BaseComponent):
     r'''
     The `eds.sentences` matcher provides an alternative to spaCy's default
@@ -27,8 +66,8 @@ class SentenceSegmenter(BaseComponent):
     sentence, a strategy that often fails in a clinical note settings. Our
     `eds.sentences` component also classifies end-of-lines as sentence boundaries if
     the subsequent token begins with an uppercase character, leading to slightly better
-    performances. It can additionally leverage bullet-like list starters, which are
-    frequent in structured medical documents.
+    performances. It can additionally leverage expanded capitalization patterns and
+    bullet-like list starters, which are frequent in structured medical documents.
 
     Moreover, the `eds.sentences` component use the output of the `eds.normalizer`
     and `eds.endlines` output by default when these components are added to the
@@ -94,6 +133,11 @@ class SentenceSegmenter(BaseComponent):
         Whether to ignore excluded tokens.
     check_capitalized: bool
         Whether to check for capitalized words after newlines or full stops.
+    capitalized_mode : Optional[str], {"legacy", "expanded"}, default "expanded"
+        Selects the preset of capitalized shapes used when `check_capitalized=True`
+        and no explicit `capitalized_shapes` are provided.
+    capitalized_shapes: Optional[List[str]]
+        Capitalized shapes.
     min_newline_count: int
         The minimum number of newlines to consider a newline-triggered sentence.
     use_bullet_start: bool
@@ -114,6 +158,8 @@ class SentenceSegmenter(BaseComponent):
         use_endlines: Optional[bool] = None,
         ignore_excluded: bool = True,
         check_capitalized: bool = True,
+        capitalized_mode: Optional[str] = "expanded",
+        capitalized_shapes: Optional[List[str]] = None,
         min_newline_count: int = 1,
         use_bullet_start: bool = False,
         bullet_starters: Optional[List[str]] = None,
@@ -128,6 +174,14 @@ class SentenceSegmenter(BaseComponent):
         if punct_chars is None:
             punct_chars = punctuation
 
+        if check_capitalized and capitalized_shapes is None:
+            capitalized_shapes = (
+                LEGACY_CAPITALIZED_SHAPES
+                if capitalized_mode == "legacy"
+                else DEFAULT_CAPITALIZED_SHAPES
+            )
+        capitalized_shapes = tuple(capitalized_shapes or ())
+
         if bullet_starters is None:
             bullet_starters = DEFAULT_BULLET_STARTERS
 
@@ -137,6 +191,7 @@ class SentenceSegmenter(BaseComponent):
             use_endlines=use_endlines,
             ignore_excluded=ignore_excluded,
             check_capitalized=check_capitalized,
+            capitalized_shapes=capitalized_shapes,
             min_newline_count=min_newline_count,
             use_bullet_start=use_bullet_start,
             bullet_starters=bullet_starters,

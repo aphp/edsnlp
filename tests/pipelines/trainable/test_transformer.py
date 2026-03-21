@@ -90,3 +90,29 @@ def test_span_getter(gold):
     batch = trf.batch_to_device(batch, device=trf.device)
     res = trf(batch)
     assert res["embeddings"].shape == (2, 5, 32)
+
+
+def test_preprocess_suppresses_transformers_sequence_length_warning(caplog):
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(
+        "eds.transformer",
+        name="transformer",
+        config=dict(
+            model="hf-internal-testing/tiny-random-bert",
+            window=128,
+            stride=96,
+            quantization=None,
+        ),
+    )
+    trf = nlp.pipes.transformer
+    trf.tokenizer.model_max_length = 5
+
+    doc = nlp.make_doc("Michael Scott is a man of few words.")
+    with caplog.at_level("WARNING", logger="transformers.tokenization_utils_base"):
+        trf.preprocess(doc, prompts=["Extract entities"])
+
+    assert not any(
+        "Token indices sequence length is longer than the specified maximum"
+        in record.message
+        for record in caplog.records
+    )

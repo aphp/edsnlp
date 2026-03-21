@@ -6,6 +6,7 @@ from libcpp cimport bool as cbool
 
 from spacy.attrs cimport IS_ALPHA, IS_ASCII, IS_DIGIT, IS_LOWER, IS_PUNCT, IS_SPACE
 from spacy.lexeme cimport Lexeme
+from spacy.tokens.doc cimport Doc
 from spacy.tokens.token cimport TokenC
 from .terms import punctuation
 
@@ -37,6 +38,7 @@ cdef class FastSentenceSegmenter(object):
             use_endlines = None,
             ignore_excluded = True,
             check_capitalized = True,
+            capitalized_shapes = None,
             min_newline_count = 1,
             use_bullet_start = False,
             bullet_starters = (),
@@ -57,10 +59,12 @@ cdef class FastSentenceSegmenter(object):
         self.punct_chars_hash = {vocab.strings[c] for c in punct_chars}
         self.check_capitalized = check_capitalized
         self.min_newline_count = min_newline_count
-        self.capitalized_shapes_hash = {
-            vocab.strings[shape]
-            for shape in (("X'", "Xx", "Xxx", "Xxxx", "Xxxxx") if check_capitalized else ())
-        }
+
+        if self.check_capitalized and capitalized_shapes is not None:
+            shapes = tuple(capitalized_shapes)
+        else:
+            shapes = ()
+        self.capitalized_shapes_hash = {vocab.strings[shape] for shape in shapes}
 
         self.use_bullet_start = use_bullet_start
         self.bullet_starter_hash = {vocab.strings[c] for c in bullet_starters}
@@ -102,11 +106,11 @@ cdef class FastSentenceSegmenter(object):
                     self.punct_chars_hash.const_find(token.lex.orth)
                     != self.punct_chars_hash.const_end()
             )
-
-            is_newline = (
-                    Lexeme.c_check_flag(token.lex, IS_SPACE)
-                    and token.lex.orth == self.newline_hash
-            )
+            is_newline = (token.lex.orth == self.newline_hash)
+            if not is_newline:
+                with gil:
+                    ctext = (<object>doc)[i].text
+                    is_newline = ('\n' in ctext) or ('\r' in ctext)
 
             if seen_period or newline_count >= self.min_newline_count:
                 if seen_period and Lexeme.c_check_flag(token.lex, IS_DIGIT):

@@ -1,6 +1,12 @@
+import pytest
 from pytest import mark
 
 import edsnlp
+from edsnlp.pipes.core.sentences.sentences import (
+    DEFAULT_CAPITALIZED_SHAPES,
+    LEGACY_CAPITALIZED_SHAPES,
+    generate_capitalized_shapes,
+)
 
 text = (
     "Le patient est admis pour des douleurs dans le bras droit. "
@@ -178,3 +184,141 @@ def test_sentences_multiple_bullet_types():
     text = "Liste mixte:\n- Point A\n* Point B\n• Point C\n· Point D"
     doc = nlp(text)
     assert len(list(doc.sents)) == 5  # header + 4 bullets
+
+
+def make_nlp(
+    cap_shapes=None,
+    mode: str | None = None,
+    check_capitalized: bool = True,
+    use_bullet_start: bool = True,
+):
+    nlp = edsnlp.blank("eds")
+    config = {
+        "use_bullet_start": use_bullet_start,
+        "bullet_starters": ["-"],
+        "check_capitalized": check_capitalized,
+        "capitalized_shapes": cap_shapes,
+    }
+    if mode is not None:
+        config["capitalized_mode"] = mode
+    nlp.add_pipe("eds.sentences", config=config)
+    return nlp
+
+
+def test_all_caps_sections_expanded_mode():
+    nlp = make_nlp(mode="expanded")
+    doc = nlp("CONCLUSION\nSuite\n")
+    assert [s.text for s in doc.sents] == ["CONCLUSION\n", "Suite\n"]
+
+
+def test_all_caps_with_bullets_expanded_mode():
+    nlp = make_nlp(mode="expanded")
+    text = "EVOLUTION\n- Fièvre\n- Toux\n"
+    assert [s.text for s in nlp(text).sents] == [
+        "EVOLUTION\n",
+        "- Fièvre\n",
+        "- Toux\n",
+    ]
+
+
+def test_custom_shapes_override_titlecase_only():
+    nlp = make_nlp(cap_shapes=["Xxxxx"])
+    doc = nlp("Titre\nSuite\n")
+    assert [s.text for s in doc.sents] == ["Titre\n", "Suite\n"]
+
+
+def test_disable_capitalized_rule_keeps_bullets_only():
+    nlp = make_nlp(check_capitalized=False)
+    text = "CONCLUSION\n- Fièvre\n- Toux\n"
+    sents = [s.text for s in nlp(text).sents]
+    assert "- Fièvre\n" in sents and "- Toux\n" in sents
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("ÉTAT CIVIL  \nSuite\n", ["ÉTAT CIVIL  \n", "Suite\n"]),
+        ("CONCLUSION\r\n- Fièvre\r\n", ["CONCLUSION\r\n", "- Fièvre\r\n"]),
+    ],
+)
+def test_newline_robustness_with_expanded_mode(text, expected):
+    nlp = make_nlp(mode="expanded")
+    doc = nlp(text)
+    assert [s.text for s in doc.sents] == expected
+
+
+def test_legacy_mode_behavior_non_regression():
+    nlp = make_nlp(mode="legacy")
+    doc = nlp("hémoculture\n\nCONCLUSION\nSuite\n")
+    assert [s.text for s in doc.sents] == ["hémoculture\n\nCONCLUSION\n", "Suite\n"]
+
+
+def test_generate_returns_tuple_of_strings_and_no_duplicates():
+    shapes = generate_capitalized_shapes()
+    assert isinstance(shapes, tuple)
+    assert all(isinstance(s, str) for s in shapes)
+    assert len(shapes) == len(set(shapes))
+
+
+def test_toggles_all_caps_titlecase_apostrophe():
+    s_all = generate_capitalized_shapes(
+        include_all_caps=True,
+        include_titlecase=True,
+        include_apostrophe=True,
+    )
+    assert "XX" in s_all and "Xx" in s_all and "X'" in s_all
+
+    s_no_caps = generate_capitalized_shapes(
+        include_all_caps=False,
+        include_titlecase=True,
+        include_apostrophe=True,
+    )
+    assert "XX" not in s_no_caps and "Xx" in s_no_caps and "X'" in s_no_caps
+
+    s_no_title = generate_capitalized_shapes(
+        include_all_caps=True,
+        include_titlecase=False,
+        include_apostrophe=True,
+    )
+    assert "XX" in s_no_title and "Xx" not in s_no_title and "X'" in s_no_title
+
+    s_no_apo = generate_capitalized_shapes(
+        include_all_caps=True,
+        include_titlecase=True,
+        include_apostrophe=False,
+    )
+    assert "XX" in s_no_apo and "Xx" in s_no_apo and "X'" not in s_no_apo
+
+    s_none = generate_capitalized_shapes(
+        include_all_caps=False,
+        include_titlecase=False,
+        include_apostrophe=False,
+    )
+    assert s_none == tuple()
+
+
+def test_defaults_match_default_constant():
+    expected = generate_capitalized_shapes(
+        upper_min=2,
+        upper_max=13,
+        x_min=2,
+        x_max=12,
+        include_apostrophe=True,
+    )
+    assert DEFAULT_CAPITALIZED_SHAPES == expected
+
+
+def test_legacy_exact_values():
+    assert LEGACY_CAPITALIZED_SHAPES == ("X'", "Xx", "Xxx", "Xxxx", "Xxxxx")
+
+
+def test_bounds_min_max_presence():
+    shapes = generate_capitalized_shapes(
+        upper_min=2,
+        upper_max=4,
+        x_min=2,
+        x_max=3,
+        include_apostrophe=False,
+    )
+    assert "XX" in shapes and "XXXX" in shapes
+    assert "Xx" in shapes and "Xxx" in shapes

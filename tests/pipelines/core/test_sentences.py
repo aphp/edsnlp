@@ -109,3 +109,72 @@ Le patient est admis. Des douleurs dans le bras droit
 jeudi."""
     )
     assert len(list(doc.sents)) == 1
+
+
+def test_sentences_bullet_starters():
+    """
+    FR language doesn't split punctuations so '--' is a full token
+    and not treated as a bullet starter
+    """
+    nlp = edsnlp.blank("fr")
+    nlp.add_pipe(
+        edsnlp.pipes.sentences(
+            use_bullet_start=True,
+            bullet_starters=["-"],
+        )
+    )
+
+    text = (
+        "Symptômes observés:\n"
+        "- Douleur thoracique\n"
+        "-- forte toux\n"
+        "- Fièvre élevée\n"
+        "- Toux sèche\n"
+        "Le patient semble stable - pas d'évolution\n"
+    )
+
+    doc = nlp(text)
+    sents_text = [sent.text for sent in doc.sents]
+
+    assert sents_text == [
+        "Symptômes observés:\n",
+        "- Douleur thoracique\n-- forte toux\n",
+        "- Fièvre élevée\n",
+        "- Toux sèche\n",
+        "Le patient semble stable - pas d'évolution\n",
+    ]
+
+
+def test_sentences_bullet_edge_cases():
+    """Test edge cases for bullet starters"""
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(
+        edsnlp.pipes.sentences(
+            use_bullet_start=True,
+            bullet_starters=["-"],
+        )
+    )
+
+    text1 = "Le patient - âgé de 45 ans - présente des symptômes."
+    doc1 = nlp(text1)
+    assert len(list(doc1.sents)) == 1
+
+    text2 = "Symptômes:   \n- Fièvre\t\n- Toux"
+    doc2 = nlp(text2)
+    sents2 = [sent.text for sent in doc2.sents]
+    assert sents2 == ["Symptômes:   \n", "- Fièvre\t\n", "- Toux"]
+
+    text3 = "Item:\n_ Premier point\n_ Deuxième point"
+    doc3 = nlp(text3)
+    sents3 = [sent.text for sent in doc3.sents]
+    assert len(sents3) == 1
+
+
+def test_sentences_multiple_bullet_types():
+    """Test multiple bullet starter types"""
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(edsnlp.pipes.sentences(use_bullet_start=True))
+
+    text = "Liste mixte:\n- Point A\n* Point B\n• Point C\n· Point D"
+    doc = nlp(text)
+    assert len(list(doc.sents)) == 5  # header + 4 bullets

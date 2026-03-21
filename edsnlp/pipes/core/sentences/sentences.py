@@ -9,6 +9,14 @@ from ...base import BaseComponent
 from .fast_sentences import FastSentenceSegmenter
 from .terms import punctuation
 
+# Default punctuation defined for the sentencizer : https://spacy.io/api/sentencizer
+# fmt: off
+DEFAULT_BULLET_STARTERS = [
+    "-", "_", "*", "•", "·", "", "⁃", "‣", "⁎", "⁑", "+",
+    "→", "⇒", "⇨", "➔", "➜", "➝", "➞", "➟", "➠", "➡", "➡️",
+]
+# fmt: on
+
 
 class SentenceSegmenter(BaseComponent):
     r'''
@@ -19,7 +27,8 @@ class SentenceSegmenter(BaseComponent):
     sentence, a strategy that often fails in a clinical note settings. Our
     `eds.sentences` component also classifies end-of-lines as sentence boundaries if
     the subsequent token begins with an uppercase character, leading to slightly better
-    performances.
+    performances. It can additionally leverage bullet-like list starters, which are
+    frequent in structured medical documents.
 
     Moreover, the `eds.sentences` component use the output of the `eds.normalizer`
     and `eds.endlines` output by default when these components are added to the
@@ -87,6 +96,10 @@ class SentenceSegmenter(BaseComponent):
         Whether to check for capitalized words after newlines or full stops.
     min_newline_count: int
         The minimum number of newlines to consider a newline-triggered sentence.
+    use_bullet_start: bool
+        Whether to check for bullet starters after newlines or full stops.
+    bullet_starters: Optional[List[str]]
+        Bullet starters characters.
 
     Authors and citation
     --------------------
@@ -102,6 +115,8 @@ class SentenceSegmenter(BaseComponent):
         ignore_excluded: bool = True,
         check_capitalized: bool = True,
         min_newline_count: int = 1,
+        use_bullet_start: bool = False,
+        bullet_starters: Optional[List[str]] = None,
     ):
         super().__init__(nlp, name)
         if min_newline_count > 1 and nlp.lang != "eds":
@@ -113,6 +128,9 @@ class SentenceSegmenter(BaseComponent):
         if punct_chars is None:
             punct_chars = punctuation
 
+        if bullet_starters is None:
+            bullet_starters = DEFAULT_BULLET_STARTERS
+
         self.fast_segmenter = FastSentenceSegmenter(
             vocab=nlp.vocab,
             punct_chars=punct_chars,
@@ -120,6 +138,8 @@ class SentenceSegmenter(BaseComponent):
             ignore_excluded=ignore_excluded,
             check_capitalized=check_capitalized,
             min_newline_count=min_newline_count,
+            use_bullet_start=use_bullet_start,
+            bullet_starters=bullet_starters,
         )
 
     def __call__(self, doc: Doc):

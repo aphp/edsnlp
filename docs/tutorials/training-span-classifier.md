@@ -92,6 +92,9 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
         normalizer:
           '@factory': eds.normalizer
 
+        sentences:
+          '@factory': eds.sentences
+
         # When we encounter a new document, first we extract the dates from the text
         dates:
           '@factory': eds.dates
@@ -101,9 +104,14 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
         biopsy_classifier:
           '@factory': eds.span_classifier
           attributes: [ "is_biopsy_date" ]
+          # The qualifier will run on spans in both `doc.ents` and
+          # `doc.spans['gold_spans']` but `gold_spans` will be empty at
+          # inference (unless spans are added explicitely by an upstream
+          # component) and `ents` will be empty during training since others
+          # components don't automatically feed into trainable components.
           span_getter: [ "ents", "gold_spans" ]
-          # ...using a context of 20 words before and after the date
-          context_getter: words[-20:20]
+          # For context we'll use the current sent limited to +/- 10 words window
+          context_getter: sents[0:0] & words[-10:10]
           # ...embedded by pooling the embeddings
           embedding:
             '@factory': eds.span_pooler
@@ -153,6 +161,9 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
               span_setter: 'gold_spans'
               span_attributes: [ 'is_biopsy_date' ]
               bool_attributes: [ 'is_biopsy_date' ]
+            # Add sentences explicitly for context_getter during training
+            - '@factory': eds.sentences
+              nlp: ${nlp}
             # Split each doc into replicas, each with exactly one
             # span from the `gold_spans` group to improve mixing
             - '@factory': eds.explode
@@ -165,10 +176,10 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
       '@readers': standoff
       path: ${vars.dev}
       converter:
-        - '@factory': eds.standoff_dict2doc
-          span_setter: 'gold_spans'
-          span_attributes: [ 'is_biopsy_date' ]
-          bool_attributes: [ 'is_biopsy_date' ]
+        '@factory': eds.standoff_dict2doc
+        span_setter: 'gold_spans'
+        span_attributes: [ 'is_biopsy_date' ]
+        bool_attributes: [ 'is_biopsy_date' ]
 
     # 🚀 TRAIN SCRIPT OPTIONS
     train:
@@ -211,6 +222,7 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
     # 🤖 PIPELINE DEFINITION
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(eds.normalizer())
+    nlp.add_pipe(eds.sentences())
     # When we encounter a new document, first we extract the dates from the text
     nlp.add_pipe(eds.dates(span_setter="ents"))  # (1)!
     # Then for each data, we classify the dates as biopsy dates or not
@@ -221,8 +233,8 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
                 "ents",  # used at inference time
                 "gold_spans",  # used at training time
             ],
-            # ...using a context of 20 words before and after the date
-            context_getter="words[-20:20]",
+            # ...using the current sentence intersected with a +/- 5 words window
+            context_getter="sents[0:0] & words[-5:5]",
             # ...embedded by pooling the embeddings
             embedding=eds.span_pooler(
                 # ...of a transformer model
@@ -255,6 +267,8 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
         # Split each doc into replicas, each with exactly one
         # span from the `gold_spans` group to improve mixing
         .map(eds.explode(span_getter="gold_spans"))
+        # Add sentences explicitly for context_getter during training
+        .map(nlp.pipes.sentences)
     )
     val_docs = edsnlp.data.read_standoff(
         "./dataset/dev",
@@ -320,23 +334,28 @@ Visit the [`edsnlp.train` documentation][edsnlp.training.trainer.train] for a li
     parameters are set.
 
 
-!!! note "Upstream annotations at training vs inference time"
+!!! note "Training data vs inference pipeline"
 
-    In this example, the pipeline contains the `eds.dates` component
-    but this component is *not* applied to documents *during the training*.
+    Trainable components are trained independently, except for shared weights. During
+    training, a component reads the annotations it needs from the `Doc` objects
+    present in the training stream. It does not automatically reuse the outputs of
+    upstream components in `nlp`, whether these components are trainable or not.
 
-    Actually, this is not specific to this example: in EDS-NLP, the
-    documents used in a training are never modified by the
-    pipeline components, and are instead kept intact, as yielded by the
-    `training_data` parameter object of train(...).
+    In other words, the pipeline defines how annotations will be produced at
+    inference time, but training docs are not automatically modified by upstream
+    pipeline components.
 
-    This is intended: only the spans in `gold_spans` were
-    actually annotated with the `is_biopsy_date` attribute. If instead `eds.dates`
-    had modified the documents, the predicted dates would not necessarily had
-    contained the annotated attribute.
+    In this tutorial, `eds.dates` is part of the pipeline because it defines how
+    candidate spans will be produced at inference time. During training, however, the
+    span classifier still needs explicit input spans in the training docs, here
+    provided under `gold_spans`. This is important because only these spans were
+    annotated with the `is_biopsy_date` attribute.
 
-    In general, there is no need to apply upstream pipe
-    to the documents when training a given trainable pipe.
+    The same rule applies to auxiliary annotations used only to compute features. In
+    the example below, the classifier uses `context_getter="sents[0:0] & words[-5:5]"`,
+    so sentence boundaries are needed to build the context. They are produced by
+    `eds.sentences` at inference time, but they must still be added explicitly to
+    the training docs.
 
 ## Use the model
 

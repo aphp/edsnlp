@@ -33,6 +33,7 @@ nlp:
       '@factory': eds.span_classifier
       attributes: { "_.negation": [ "sosy" ], "_.unit": [ "measure" ] }
       span_getter: ["ents", "gold_spans"]
+      context_getter: "sents[0:0] & words[-5:5]"
 
       embedding:
         '@factory': eds.span_pooler

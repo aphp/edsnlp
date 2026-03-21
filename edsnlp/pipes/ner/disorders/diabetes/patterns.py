@@ -51,7 +51,10 @@ main_pattern = dict(
         ),
         dict(
             name="insulin",
-            regex=r"insulino.?(dep|req)",
+            regex=(
+                r"((?:(?:non(?:\s+|-)?)|(?:sans\s+(?:etre\s+)?)|"
+                r"(?:pas(?:\s+de\s+|\s+d['’]?|\s+)))?insulino.?(?:dep|req))"
+            ),
             window=6,
         ),
         dict(

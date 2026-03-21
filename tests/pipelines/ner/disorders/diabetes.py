@@ -7,6 +7,8 @@ results_diabetes = dict(
         True,
         True,
         True,
+        True,
+        True,
     ],
     detailled_status=[
         "WITHOUT_COMPLICATION",
@@ -16,8 +18,14 @@ results_diabetes = dict(
         "WITH_COMPLICATION",
         "WITH_COMPLICATION",
         "WITH_COMPLICATION",
+        "WITHOUT_COMPLICATION",
+        "WITHOUT_COMPLICATION",
     ],
-    assign=None,
+    assign=7 * [None]
+    + [
+        {"insulin": ["non insulino-dépendant"]},
+        {"insulin": ["sans insulino dépendance"]},
+    ],
     texts=[
         "Présence d'un DT2",
         "Présence d'un DNID",
@@ -26,5 +34,7 @@ results_diabetes = dict(
         "Atteinte neurologique d'origine diabétique",
         "Une rétinopathie diabétique",
         "Il y a un mal perforant plantaire",
+        "Le patient a un diabète non insulino-dépendant",
+        "Il est diabétique sans insulino dépendance",
     ],
 )

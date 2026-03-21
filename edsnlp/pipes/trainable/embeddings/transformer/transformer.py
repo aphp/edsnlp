@@ -24,6 +24,7 @@ except ImportError:  # pragma: no cover
     BitsAndBytesConfig = None
 
 INITIAL_MAX_TOKENS_PER_DEVICE = 32 * 128
+SEQUENCE_LENGTH_WARNING_KEY = "sequence-length-is-longer-than-the-specified-maximum"
 TransformerBatchInput = TypedDict(
     "TransformerBatchInput",
     {
@@ -171,6 +172,8 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
             self.tokenizer = AutoTokenizer.from_pretrained(model)
         except (HTTPException, ConnectionError):  # pragma: no cover
             self.tokenizer = AutoTokenizer.from_pretrained(model, local_files_only=True)
+        # We handle long docs by splitting into windows, so warning can be suppressed
+        self.tokenizer.deprecation_warnings[SEQUENCE_LENGTH_WARNING_KEY] = True
         self.window = window
         self.stride = stride
         self.training_stride = training_stride

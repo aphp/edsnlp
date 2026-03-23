@@ -103,23 +103,17 @@ def span_attribute_metric(
                     continue
                 getter_key = attr if attr.startswith("_.") else f"_.{attr}"
                 value = BINDING_GETTERS[getter_key](span)
-                top_val, top_p = max(
-                    getattr(span._, "prob", {}).get(attr, {}).items(),
-                    key=lambda x: x[1],
-                    default=(value, 1.0),
-                )
-                if (top_val or include_falsy) and default_values[attr] != top_val:
-                    labels[attr][2][(eg_idx, beg, end, attr, top_val)] = top_p
-                    labels[micro_key][2][(eg_idx, beg, end, attr, top_val)] = top_p
-                    if split_by_values and attr in split_by_values:
-                        key = f"{attr}:{top_val}"
-                        labels[key][2][(eg_idx, beg, end, attr, top_val)] = top_p
+                prob = getattr(span._, "prob", {}).get(attr, {}).get(value, 1.0)
                 if (value or include_falsy) and default_values[attr] != value:
-                    labels[micro_key][0].add((eg_idx, beg, end, attr, value))
-                    labels[attr][0].add((eg_idx, beg, end, attr, value))
+                    item = (eg_idx, beg, end, attr, value)
+                    labels[micro_key][0].add(item)
+                    labels[attr][0].add(item)
+                    labels[attr][2][item] = prob
+                    labels[micro_key][2][item] = prob
                     if split_by_values and attr in split_by_values:
                         key = f"{attr}:{value}"
-                        labels[key][0].add((eg_idx, beg, end, attr, value))
+                        labels[key][0].add(item)
+                        labels[key][2][item] = prob
 
         doc_spans = get_spans(eg.reference, span_getter)
         for span in doc_spans:

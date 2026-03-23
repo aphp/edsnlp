@@ -235,6 +235,37 @@ def test_disable_capitalized_rule_keeps_bullets_only():
 
 
 @pytest.mark.parametrize(
+    "mode, expected",
+    [
+        (
+            "legacy",
+            [
+                "Une première phrase.",
+                "Une deuxième\n",
+                "Peut-être un autre\nET encore une.",
+            ],
+        ),
+        (
+            "expanded",
+            [
+                "Une première phrase.",
+                "Une deuxième\n",
+                "Peut-être un autre\n",
+                "ET encore une.",
+            ],
+        ),
+    ],
+)
+def test_old_newline_split_behavior_mapped_to_current_modes(mode, expected):
+    # Adapted from the old split_on_newlines test:
+    # - with_capitalized -> capitalized_mode="legacy"
+    # - with_uppercase -> capitalized_mode="expanded"
+    nlp = make_nlp(mode=mode, use_bullet_start=False)
+    doc = nlp("Une première phrase. Une deuxième\nPeut-être un autre\nET encore une.")
+    assert [s.text for s in doc.sents] == expected
+
+
+@pytest.mark.parametrize(
     "text, expected",
     [
         ("ÉTAT CIVIL  \nSuite\n", ["ÉTAT CIVIL  \n", "Suite\n"]),

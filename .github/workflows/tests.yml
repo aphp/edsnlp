@@ -2,6 +2,22 @@ name: Tests and Linting
 
 on:
   workflow_dispatch:
+    inputs:
+      trusted_pr_number:
+        description: Pull request number for a trusted fork rerun
+        required: false
+        type: string
+        default: ""
+      trusted_head_repository:
+        description: Full repository name of the PR head to test
+        required: false
+        type: string
+        default: ""
+      trusted_head_sha:
+        description: Head SHA of the PR to test
+        required: false
+        type: string
+        default: ""
   pull_request:
   push:
     branches: [ master, main ]
@@ -12,42 +28,85 @@ env:
   BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
 
 jobs:
+  trusted-status-start:
+    name: Trusted status start
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+    steps:
+      - uses: actions/github-script@v7
+        if: github.event_name == 'workflow_dispatch' && inputs.trusted_head_sha != ''
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: "${{ inputs.trusted_head_sha }}",
+              state: "pending",
+              context: "trusted-ci",
+              description: "Trusted CI is running",
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+
   linting:
     name: Linting
-    if: github.event_name == 'pull_request'
+    needs: trusted-status-start
+    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.trusted_head_sha != '')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        if: github.event_name != 'workflow_dispatch' || inputs.trusted_head_sha == ''
         with:
           # requites to grab the history of the PR
           fetch-depth: 0
+
+      - uses: actions/checkout@v4
+        if: github.event_name == 'workflow_dispatch' && inputs.trusted_head_sha != ''
+        with:
+          repository: ${{ inputs.trusted_head_repository }}
+          ref: ${{ inputs.trusted_head_sha }}
 
       - uses: actions/setup-python@v5
         with:
           cache: 'pip'
 
       - uses: pre-commit/action@v3.0.0
+        if: github.event_name == 'pull_request'
         with:
           extra_args: --color=always --from-ref ${{ github.event.pull_request.base.sha }} --to-ref ${{ github.event.pull_request.head.sha }}
 
+      - uses: pre-commit/action@v3.0.0
+        if: github.event_name == 'workflow_dispatch' && inputs.trusted_head_sha != ''
+        with:
+          extra_args: --color=always --all-files
+
   pytest:
     name: Pytest
+    needs: trusted-status-start
+    if: github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
       matrix:
         python-version: [ "3.10", "3.11", "3.12", "3.13" ]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+        if: github.event_name != 'workflow_dispatch' || inputs.trusted_head_sha == ''
+
+      - uses: actions/checkout@v4
+        if: github.event_name == 'workflow_dispatch' && inputs.trusted_head_sha != ''
+        with:
+          repository: ${{ inputs.trusted_head_repository }}
+          ref: ${{ inputs.trusted_head_sha }}
 
       - name: Cache downloaded resources
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.data/
           key: resources
 
       - name: Set up Java
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v4
         with:
           distribution: "temurin" # See 'Supported distributions' for available options
           java-version: "8"
@@ -67,7 +126,11 @@ jobs:
         env:
           UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
         run: coverage run -m pytest
-        if: matrix.python-version == '3.11'
+        if: matrix.python-version == '3.11' && !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork)
+
+      - name: Test with Pytest on Python ${{ matrix.python-version }} without secret-only checks
+        run: coverage run -m pytest --ignore tests/test_docs.py
+        if: matrix.python-version == '3.11' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork
 
       - name: Test with Pytest on Python ${{ matrix.python-version }}
         env:
@@ -85,6 +148,7 @@ jobs:
 
   coverage:
     name: Coverage
+    if: github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork
     needs: pytest
     uses: aphp/foldedtensor/.github/workflows/coverage.yml@main
     with:
@@ -96,13 +160,39 @@ jobs:
 
   documentation:
     name: Documentation
+    needs: trusted-status-start
     runs-on: ubuntu-latest
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
     # Main docs are built in another workflow, we don't have to test them outside of PR
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork)
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+
+      - name: Checkout trusted fork revision for docs preview
+        if: github.event_name == 'workflow_dispatch' && inputs.trusted_head_sha != ''
+        env:
+          TRUSTED_HEAD_REPOSITORY: ${{ inputs.trusted_head_repository }}
+          TRUSTED_HEAD_SHA: ${{ inputs.trusted_head_sha }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$TRUSTED_HEAD_REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+            echo "Invalid trusted_head_repository: $TRUSTED_HEAD_REPOSITORY" >&2
+            exit 1
+          fi
+
+          if [[ ! "$TRUSTED_HEAD_SHA" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "Invalid trusted_head_sha: $TRUSTED_HEAD_SHA" >&2
+            exit 1
+          fi
+
+          git fetch --no-tags --depth=1 "https://github.com/${TRUSTED_HEAD_REPOSITORY}.git" "$TRUSTED_HEAD_SHA"
+          git checkout --detach FETCH_HEAD
 
       - uses: actions/setup-python@v5
         with:
@@ -114,16 +204,30 @@ jobs:
       - name: Install dependencies
         run: uv pip install -e . --group docs
 
+      - name: Compute docs preview metadata
+        id: docs_meta
+        env:
+          TRUSTED_PR_NUMBER: ${{ inputs.trusted_pr_number }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -n "$TRUSTED_PR_NUMBER" ]; then
+            echo "preview_name=pr-$TRUSTED_PR_NUMBER" >> "$GITHUB_OUTPUT"
+            echo "pr_number=$TRUSTED_PR_NUMBER" >> "$GITHUB_OUTPUT"
+          else
+            echo "preview_name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
+            echo "pr_number=${PR_NUMBER:-}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Set up Git
         run: |
           git config user.name ${{ github.actor }}
           git config user.email ${{ github.actor }}@users.noreply.github.com
-          echo Current branch: $BRANCH_NAME
+          echo Current docs preview name: ${{ steps.docs_meta.outputs.preview_name }}
 
       - name: Build documentation
         run: |
-          mike deploy --alias-type=copy --update-aliases $BRANCH_NAME latest
-          mike set-default $BRANCH_NAME
+          mike deploy --alias-type=copy --update-aliases ${{ steps.docs_meta.outputs.preview_name }} latest
+          mike set-default ${{ steps.docs_meta.outputs.preview_name }}
 
       - name: Put content of gh-pages to public folder
         run: rm -rf public && mkdir public && git archive gh-pages | tar -x -C ./public/
@@ -135,10 +239,10 @@ jobs:
         run: vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
 
       - name: Create new vercel project linked to this branch
-        run: vercel project add edsnlp-$BRANCH_NAME --token=$VERCEL_TOKEN
+        run: vercel project add edsnlp-${{ steps.docs_meta.outputs.preview_name }} --token=$VERCEL_TOKEN
 
       - name: Link public folder to the (maybe) new vercel project
-        run: vercel link --cwd public --project edsnlp-$BRANCH_NAME --yes --token=$VERCEL_TOKEN
+        run: vercel link --cwd public --project edsnlp-${{ steps.docs_meta.outputs.preview_name }} --yes --token=$VERCEL_TOKEN
 
       - name: Deploy to Vercel
         run: |
@@ -158,6 +262,7 @@ jobs:
           echo "DOCS_PREVIEW_URL=$URL" >> "$GITHUB_ENV"
 
       - name: Post the documentation link
+        if: steps.docs_meta.outputs.pr_number != ''
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -171,7 +276,7 @@ jobs:
           )
           PAYLOAD=$(jq -n --arg body "$COMMENT_BODY" '{body: $body}')
           HEADER="Authorization: token $GITHUB_TOKEN"
-          PR_COMMENTS_URL="https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments"
+          PR_COMMENTS_URL="https://api.github.com/repos/${{ github.repository }}/issues/${{ steps.docs_meta.outputs.pr_number }}/comments"
 
           # Fetch existing comments to find if one from this workflow already exists
           COMMENTS=$(curl -fsS -H "$HEADER" "$PR_COMMENTS_URL")
@@ -188,13 +293,22 @@ jobs:
 
   simple-installation:
     name: Simple installation
+    needs: trusted-status-start
+    if: github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
       matrix:
         python-version: [ "3.10", "3.11", "3.12", "3.13" ]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+        if: github.event_name != 'workflow_dispatch' || inputs.trusted_head_sha == ''
+
+      - uses: actions/checkout@v4
+        if: github.event_name == 'workflow_dispatch' && inputs.trusted_head_sha != ''
+        with:
+          repository: ${{ inputs.trusted_head_repository }}
+          ref: ${{ inputs.trusted_head_sha }}
 
       - uses: actions/setup-python@v5
         with:
@@ -207,3 +321,49 @@ jobs:
         run: |
           uv pip install ".[ml]" pytest
           pytest tests/pipelines/test_pipelines.py
+
+  trusted-status-finish:
+    name: Trusted status finish
+    if: always() && github.event_name == 'workflow_dispatch' && inputs.trusted_head_sha != ''
+    needs:
+      - trusted-status-start
+      - linting
+      - pytest
+      - coverage
+      - documentation
+      - simple-installation
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          LINTING_RESULT: ${{ needs.linting.result }}
+          PYTEST_RESULT: ${{ needs.pytest.result }}
+          COVERAGE_RESULT: ${{ needs.coverage.result }}
+          DOCUMENTATION_RESULT: ${{ needs.documentation.result }}
+          SIMPLE_INSTALLATION_RESULT: ${{ needs.simple-installation.result }}
+        with:
+          script: |
+            const results = [
+              process.env.LINTING_RESULT,
+              process.env.PYTEST_RESULT,
+              process.env.COVERAGE_RESULT,
+              process.env.DOCUMENTATION_RESULT,
+              process.env.SIMPLE_INSTALLATION_RESULT,
+            ];
+            const hasFailure = results.some((result) => ["failure", "cancelled", "timed_out", "action_required"].includes(result));
+            const state = hasFailure ? "failure" : "success";
+            const description = hasFailure
+              ? "Trusted CI failed"
+              : "Trusted CI passed";
+
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: "${{ inputs.trusted_head_sha }}",
+              state,
+              context: "trusted-ci",
+              description,
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });

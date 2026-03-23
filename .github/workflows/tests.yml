@@ -97,6 +97,8 @@ jobs:
   documentation:
     name: Documentation
     runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     # Main docs are built in another workflow, we don't have to test them outside of PR
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     steps:
@@ -130,45 +132,58 @@ jobs:
         run: npm install --global vercel@latest
 
       - name: Pull Vercel environment
-        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
 
       - name: Create new vercel project linked to this branch
-        run: vercel project add edsnlp-$BRANCH_NAME --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel project add edsnlp-$BRANCH_NAME --token=$VERCEL_TOKEN
 
       - name: Link public folder to the (maybe) new vercel project
-        run: vercel link --cwd public --project edsnlp-$BRANCH_NAME --yes --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel link --cwd public --project edsnlp-$BRANCH_NAME --yes --token=$VERCEL_TOKEN
 
       - name: Deploy to Vercel
-        run: vercel deploy public/ --yes --token=${{ secrets.VERCEL_TOKEN }} --archive=tgz --prod > deployment-url.txt
+        run: |
+          set -euo pipefail
+          vercel deploy public/ --yes --token=$VERCEL_TOKEN --archive=tgz --prod 2>&1 | tee vercel-deploy.log
+
+          URL=$(sed -nE 's/^Aliased: (https:\/\/[^ ]+).*/\1/p' vercel-deploy.log | tail -n 1)
+          if [[ -z "$URL" ]]; then
+            URL=$(sed -nE 's/^Production: (https:\/\/[^ ]+).*/\1/p' vercel-deploy.log | tail -n 1)
+          fi
+
+          if [[ -z "$URL" ]]; then
+            echo "Could not extract the Vercel deployment URL from the deploy output." >&2
+            exit 1
+          fi
+
+          echo "DOCS_PREVIEW_URL=$URL" >> "$GITHUB_ENV"
 
       - name: Post the documentation link
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          slugify () {
-              echo "$1" | iconv -c -t ascii//TRANSLIT | sed -E 's/[^a-zA-Z0-9-]+//g' | tr A-Z a-z
-          }
-          RAW_PROJECT_NAME="edsnlp-$BRANCH_NAME"
-          URL=https://$(slugify "$RAW_PROJECT_NAME").vercel.app/
-          COMMENT_BODY="## Docs preview URL\n\n$URL\n\n"
+          set -euo pipefail
+
+          COMMENT_BODY=$(cat <<EOF
+          ## Docs preview URL
+
+          <a href="${DOCS_PREVIEW_URL}" target="_blank" rel="noopener noreferrer">${DOCS_PREVIEW_URL}</a>
+          EOF
+          )
+          PAYLOAD=$(jq -n --arg body "$COMMENT_BODY" '{body: $body}')
           HEADER="Authorization: token $GITHUB_TOKEN"
           PR_COMMENTS_URL="https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments"
 
           # Fetch existing comments to find if one from this workflow already exists
-          COMMENTS=$(curl -s -H "$HEADER" "$PR_COMMENTS_URL")
+          COMMENTS=$(curl -fsS -H "$HEADER" "$PR_COMMENTS_URL")
           COMMENT_ID=$(echo "$COMMENTS" | jq -r '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("## Docs preview URL"))) | .id')
 
           # Check if we have a comment ID, if so, update it, otherwise create a new one
           if [[ "$COMMENT_ID" ]]; then
             # Update existing comment
-            curl -s -X PATCH -H "$HEADER" -H "Content-Type: application/json" -d "{\"body\": \"$COMMENT_BODY\"}" "https://api.github.com/repos/${{ github.repository }}/issues/comments/$COMMENT_ID"
+            curl -fsS -X PATCH -H "$HEADER" -H "Content-Type: application/json" -d "$PAYLOAD" "https://api.github.com/repos/${{ github.repository }}/issues/comments/$COMMENT_ID"
           else
             # Post new comment
-            curl -s -X POST -H "$HEADER" -H "Content-Type: application/json" -d "{\"body\": \"$COMMENT_BODY\"}" "$PR_COMMENTS_URL"
-          fi
-
-          if [ $status -ne 0 ]; then
-            exit $status
+            curl -fsS -X POST -H "$HEADER" -H "Content-Type: application/json" -d "$PAYLOAD" "$PR_COMMENTS_URL"
           fi
 
   simple-installation:

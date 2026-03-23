@@ -14,6 +14,8 @@ from typing import (
     Sequence,
     TypeVar,
     Union,
+    get_args,
+    get_origin,
 )
 from weakref import WeakKeyDictionary
 
@@ -21,11 +23,12 @@ import catalogue
 import confit
 import spacy
 import spacy.registrations
-from confit import Config, RegistryCollection, set_default_registry
+from confit import Config, RegistryCollection, Validatable, set_default_registry
 from confit.errors import ConfitValidationError, patch_errors
 from confit.registry import Draft
 from spacy.pipe_analysis import validate_attrs
 from spacy.pipeline.factories import register_factories
+from typing_extensions import is_typeddict
 
 import edsnlp
 from edsnlp.utils.collections import FrozenDict, FrozenList
@@ -238,6 +241,64 @@ class DraftPipe(Draft[T]):
 glob = []
 
 
+def _make_spacy_factory(factory: Callable) -> Callable:
+    """
+    Wrap a validated factory for spaCy's registry.
+
+    spaCy/confection perform a first round of config validation based on the
+    callable signature, and in recent versions their checking system became
+    both stricter and more brittle, especially with custom types, so we
+    wrap these types to ensure they do not make spacy fail.
+    """
+
+    signature = inspect.signature(factory)
+    sanitized_parameters = []
+    annotations = {}
+
+    def will_likely_fail_with_spacy(ann: Any) -> bool:
+        origin = get_origin(ann)
+        if origin is None:
+            return (
+                is_typeddict(ann)
+                or (
+                    isinstance(ann, type)
+                    and hasattr(ann, "__get_pydantic_core_schema__")
+                    and getattr(ann, "__module__", "").startswith("edsnlp.")
+                )
+                or (isinstance(ann, type) and issubclass(ann, Validatable))
+            )
+        return any(will_likely_fail_with_spacy(arg) for arg in get_args(ann))
+
+    for parameter in signature.parameters.values():
+        annotation = (
+            Any
+            if will_likely_fail_with_spacy(parameter.annotation)
+            else parameter.annotation
+        )
+        sanitized_parameters.append(parameter.replace(annotation=annotation))
+        if annotation is not inspect.Signature.empty:
+            annotations[parameter.name] = annotation
+
+    return_annotation = (
+        Any
+        if will_likely_fail_with_spacy(signature.return_annotation)
+        else signature.return_annotation
+    )
+    if return_annotation is not inspect.Signature.empty:
+        annotations["return"] = return_annotation
+
+    @wraps(factory)
+    def wrapped_factory(*args, **kwargs):
+        return factory(*args, **kwargs)
+
+    wrapped_factory.__signature__ = signature.replace(
+        parameters=sanitized_parameters,
+        return_annotation=return_annotation,
+    )
+    wrapped_factory.__annotations__ = annotations
+    return wrapped_factory
+
+
 def get_all_available_factories(namespaces):
     result = set()
     for ns in namespaces:
@@ -447,6 +508,7 @@ class FactoryRegistry(Registry):
                 annotations["nlp"] = old_annotation
 
             if spacy_compatible:
+                spacy_factory = _make_spacy_factory(registered_fn)
                 for spacy_pipe_name in (name, *deprecated):
                     spacy.Language.factory(
                         name=spacy_pipe_name,
@@ -455,7 +517,7 @@ class FactoryRegistry(Registry):
                         requires=requires,
                         default_score_weights=default_score_weights,
                         retokenizes=retokenizes,
-                        func=registered_fn,
+                        func=spacy_factory,
                     )
 
             @wraps(fn)

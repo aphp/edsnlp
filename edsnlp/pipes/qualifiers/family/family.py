@@ -115,8 +115,6 @@ class FamilyContextQualifier(RuleBasedQualifier):
     span_getter : SpanGetterArg
         Which entities should be classified. By default, `doc.ents`
     on_ents_only : Union[bool, str, List[str], Set[str]]
-        Deprecated, use `span_getter` instead.
-
         Whether to look for matches around detected entities only.
         Useful for faster inference in downstream tasks.
 
@@ -145,7 +143,7 @@ class FamilyContextQualifier(RuleBasedQualifier):
         termination: Optional[List[str]] = None,
         use_sections: bool = True,
         span_getter: Optional[SpanGetterArg] = None,
-        on_ents_only: Optional[Union[bool, str, List[str], Set[str]]] = None,
+        on_ents_only: Union[bool, str, List[str], Set[str]] = True,
         explain: bool = False,
     ):
         terms = dict(

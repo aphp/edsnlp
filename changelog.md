@@ -26,6 +26,7 @@
   - base computation : the initial recall gain from 0 to the first true positive was ignored, but is now accounted for
   - and instead of being computed from the highest-probability label in `span._.prob`, which could make AP disagree with p/r/f and drop below 1 even on perfect gold to gold comparisons, we now use the actually assigned span attribute value.
 - Expand the capitalized shape patterns used by `eds.sentences` to better detect sentence starts after newline tokens, including CRLF-separated lines
+- Qualifier pipes now correctly take `span_getter` into account when it is passed, including when `on_ents_only=False`, instead of silently falling back to `doc.ents`
 
 ## v0.20.0 (2025-12-12)
 

@@ -14,6 +14,7 @@ permissions:
   contents: read
   issues: write
   pull-requests: write
+  statuses: write
 
 jobs:
   dispatch-trusted-tests:
@@ -49,12 +50,28 @@ jobs:
             }
 
             if (!shouldDispatch) {
+              await github.rest.repos.createCommitStatus({
+                owner,
+                repo,
+                sha: pr.head.sha,
+                state: "pending",
+                context: "trusted-ci",
+                description: "Waiting for trusted-pr-once or trusted-pr-forever",
+              });
               core.info(
                 `No trusted run requested for action=${action} label=${eventLabel ?? "none"}.`,
               );
               return;
             }
 
+            await github.rest.repos.createCommitStatus({
+              owner,
+              repo,
+              sha: pr.head.sha,
+              state: "pending",
+              context: "trusted-ci",
+              description: "Trusted CI has been requested",
+            });
             core.info(`Dispatching trusted tests for ${pr.head.repo.full_name}@${pr.head.sha}`);
             await github.rest.actions.createWorkflowDispatch({
               owner,

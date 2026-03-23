@@ -54,8 +54,8 @@ number_regex = r"""(?x)
     \ +[,.]\ +\d+
     # floating point w/o space
     | [,.]\d+
-    # fractions
-    | (?:\ /\ |/)[1-9][0-9]*(?:\ \d{3})*
+    # fractions or slash groups
+    | (?:(?:\ /\ |/)[1-9][0-9]*(?:\ \d{3})*)+
 )?"""
 
 

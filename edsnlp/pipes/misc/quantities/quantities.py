@@ -1,7 +1,7 @@
 import abc
 import re
 import unicodedata
-from collections import defaultdict
+from collections import defaultdict, deque
 from functools import lru_cache
 from itertools import repeat
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
@@ -952,6 +952,110 @@ class QuantitiesMatcher(BaseNERComponent):
 
         return matches_and_is_sentence_end, unit_label_hashes
 
+    def prepare_unitless_matches(
+        self,
+        matches: List[Tuple[Span, bool]],
+    ) -> Tuple[List[Tuple[Span, bool]], Dict[int, int], Set[int]]:
+        """
+        Resolve grouped unitless header/value sequences before the main loop
+        """
+        prepared_matches = []
+        mapping = {}
+        grouped_numbers = set()
+        pending_unitless = deque()
+        prev = None
+        grouped_value_chain = False
+
+        def add_match(span: Span, is_sent_end: bool) -> int:
+            prepared_matches.append((span, is_sent_end))
+            return len(prepared_matches) - 1
+
+        def add_to_group(span: Span, is_sent_end: bool) -> None:
+            grouped_numbers.add(add_match(span, is_sent_end))
+
+        for match, is_sent_end in matches:
+            gap_text = match.doc[prev.end:match.start].text if prev is not None else ""
+            has_word_gap = bool(re.search(r"\w", gap_text))
+            ignore_unitless_header = (
+                bool(pending_unitless)
+                and match.label in self.unitless_label_hashes
+                and "/" in gap_text
+                and has_word_gap
+            )
+            if has_word_gap:
+                pending_unitless.clear()
+                grouped_value_chain = ignore_unitless_header
+
+            if is_sent_end:
+                pending_unitless.clear()
+                grouped_value_chain = False
+                add_match(match, is_sent_end)
+                prev = match
+                continue
+
+            if match.label in self.unitless_label_hashes:
+                match_idx = add_match(match, is_sent_end)
+                prev = match
+                if ignore_unitless_header:
+                    continue
+
+                grouped_value_chain = False
+                current_name = self.unitless_patterns[match.label_]["name"]
+                last_name = (
+                    self.unitless_patterns[prepared_matches[pending_unitless[-1]][0].label_]["name"]
+                    if pending_unitless
+                    else None
+                )
+                if current_name != last_name:
+                    pending_unitless.append(match_idx)
+                continue
+
+            if match.label in self.number_label_hashes:
+                prev = match
+                if grouped_value_chain:
+                    add_to_group(match, is_sent_end)
+                    continue
+
+                # split slash-separated values like `57/22/150` into multiple matches
+                split_numbers = []
+                tokens = list(match)
+                if len(tokens) >= 3 and len(tokens) % 2 == 1:
+                    for i, token in enumerate(tokens):
+                        if i % 2 == 0:
+                            split_numbers.append(
+                                Span(match.doc, token.i, token.i + 1, label="number")
+                            )
+                        elif token.norm_ != "/":
+                            split_numbers = None
+                            break
+                else:
+                    split_numbers = None
+
+                if split_numbers and len(split_numbers) > 1:
+                    if pending_unitless and len(split_numbers) == len(pending_unitless):
+                        for i, part in enumerate(split_numbers):
+                            mapping[add_match(part, False)] = pending_unitless.popleft()
+                            if i < len(split_numbers) - 1:
+                                slash = part.doc[part.end: split_numbers[i + 1].start]
+                                add_match(Span(part.doc, slash.start, slash.end, label="stopword"), False)  # noqa: E501
+                        continue
+
+                    if pending_unitless:
+                        grouped_value_chain = True
+                        pending_unitless.clear()
+                        add_to_group(match, is_sent_end)
+                        continue
+
+                number_idx = add_match(match, is_sent_end)
+                if pending_unitless:
+                    mapping[number_idx] = pending_unitless.popleft()
+                continue
+
+            add_match(match, is_sent_end)
+            prev = match
+
+        return prepared_matches, mapping, grouped_numbers
+
     def extract_quantities(self, doclike: Doc):
         """
         Extracts measure entities from the document
@@ -971,6 +1075,7 @@ class QuantitiesMatcher(BaseNERComponent):
             table_matches = list(doc.spans["tables"])
 
         matches, unit_label_hashes = self.get_matches(doclike)
+        matches, unitless_map, grouped_numbers = self.prepare_unitless_matches(matches)
 
         # Make match slice function to query them
         def get_matches_after(i):
@@ -1009,6 +1114,8 @@ class QuantitiesMatcher(BaseNERComponent):
         # Iterate through the number matches
         for number_idx, (number, is_sent_split) in enumerate(matches):
             if not is_sent_split and number.label not in self.number_label_hashes:
+                continue
+            if number_idx in grouped_numbers:
                 continue
 
             # Detect the measure value
@@ -1104,17 +1211,28 @@ class QuantitiesMatcher(BaseNERComponent):
             # If no unit was matched, try to detect unitless patterns before
             # the number to handle cases like ("Weight: 63, Height: 170")
             if unit_norm is None:
+                unitless_idx = unitless_map.get(number_idx)
                 try:
-                    (unitless_idx, unitless_text) = next(
-                        (j, e)
-                        for j, e in get_matches_before(number_idx)
-                        if e.label in self.unitless_label_hashes
-                    )
-                    unit_norm = None
-                    if re.fullmatch(
+                    if unitless_idx is None:
+                        (unitless_idx, unitless_text) = next(
+                            (j, e)
+                            for j, e in get_matches_before(number_idx)
+                            if e.label in self.unitless_label_hashes
+                        )
+                        unit_norm = None
+                        if re.fullmatch(
                             r"[,:n]*",
                             pseudo[offsets[unitless_idx] + 1: offsets[number_idx]],
-                    ):
+                        ):
+                            unitless_pattern = self.unitless_patterns[unitless_text.label_]  # noqa: E501
+                            unit_norm = next(
+                                scope["unit"]
+                                for scope in unitless_pattern["ranges"]
+                                if ("min" not in scope or value >= scope["min"])
+                                and ("max" not in scope or value < scope["max"])
+                            )
+                    else:
+                        unitless_text = matches[unitless_idx][0]
                         unitless_pattern = self.unitless_patterns[unitless_text.label_]
                         unit_norm = next(
                             scope["unit"]

@@ -1,10 +1,11 @@
 import pytest
 from spacy.tokens import Span
 
+import edsnlp
 from edsnlp.data.converters import MarkupToDocConverter
 from edsnlp.metrics import average_precision
 from edsnlp.metrics.ner import NerExactScorer, NerOverlapScorer, NerTokenScorer
-from edsnlp.metrics.span_attribute import SpanAttributeScorer
+from edsnlp.metrics.span_attribute import SpanAttributeMetric, SpanAttributeScorer
 
 
 @pytest.fixture(scope="session")
@@ -163,3 +164,88 @@ def test_average_precision():
     assert average_precision(
         {"tp1": 1.0, "fp": 0.5, "tp2": 0.0}, {"tp1", "tp2"}
     ) == pytest.approx(5 / 6)
+
+
+def test_span_attribute_metric_split_by_values():
+    Span.set_extension("status", default=None, force=True)
+
+    pred = edsnlp.blank("eds")("a b c")
+    gold = edsnlp.blank("eds")("a b c")
+
+    pred.spans["entities"] = [pred[0:1], pred[1:2], pred[2:3]]
+    gold.spans["entities"] = [gold[0:1], gold[1:2], gold[2:3]]
+
+    pred.spans["entities"][0]._.status = "present"
+    pred.spans["entities"][1]._.status = "absent"
+    pred.spans["entities"][2]._.status = "present"
+
+    gold.spans["entities"][0]._.status = "present"
+    gold.spans["entities"][1]._.status = "absent"
+    gold.spans["entities"][2]._.status = "absent"
+
+    metric = SpanAttributeMetric(
+        span_getter="entities",
+        attributes=["status"],
+        split_by_values="status",
+    )
+    result = metric([gold], [pred])
+
+    assert set(result) == {"micro", "status"}
+    assert set(result["status"]) == {"micro", "absent", "present"}
+
+    assert result["micro"]["tp"] == 2
+    assert result["micro"]["positives"] == 3
+    assert result["micro"]["support"] == 3
+    assert result["micro"]["p"] == pytest.approx(2 / 3)
+    assert result["micro"]["r"] == pytest.approx(2 / 3)
+    assert result["micro"]["f"] == pytest.approx(2 / 3)
+
+    assert result["status"]["micro"]["tp"] == 2
+    assert result["status"]["micro"]["positives"] == 3
+    assert result["status"]["micro"]["support"] == 3
+    assert result["status"]["micro"]["p"] == pytest.approx(2 / 3)
+    assert result["status"]["micro"]["r"] == pytest.approx(2 / 3)
+    assert result["status"]["micro"]["f"] == pytest.approx(2 / 3)
+
+    assert result["status"]["present"]["tp"] == 1
+    assert result["status"]["present"]["positives"] == 2
+    assert result["status"]["present"]["support"] == 1
+    assert result["status"]["present"]["p"] == pytest.approx(0.5)
+    assert result["status"]["present"]["r"] == pytest.approx(1.0)
+    assert result["status"]["present"]["f"] == pytest.approx(2 / 3)
+
+    assert result["status"]["absent"]["tp"] == 1
+    assert result["status"]["absent"]["positives"] == 1
+    assert result["status"]["absent"]["support"] == 2
+    assert result["status"]["absent"]["p"] == pytest.approx(1.0)
+    assert result["status"]["absent"]["r"] == pytest.approx(0.5)
+    assert result["status"]["absent"]["f"] == pytest.approx(2 / 3)
+
+
+def test_span_attribute_metric_self_comparison_uses_assigned_value_prob():
+    """
+    See: https://github.com/aphp/edsnlp/issues/428
+    And regardless of the argmax val, we use the prob of the assigned value
+    for the AP computation
+    """
+    Span.set_extension("status", default=None, force=True)
+    Span.set_extension("prob", default={}, force=True)
+
+    conv = MarkupToDocConverter(preset="md", span_setter="entities")
+    doc = conv("[a](ENT status=present prob={'status':{'absent':0.9,'present':0.1}}) b")
+
+    metric = SpanAttributeMetric(
+        span_getter="entities",
+        attributes=["status"],
+    )
+    result = metric([doc], [doc])
+
+    assert result["micro"]["p"] == 1.0
+    assert result["micro"]["r"] == 1.0
+    assert result["micro"]["f"] == 1.0
+    assert result["micro"]["ap"] == 1.0
+
+    assert result["status"]["p"] == 1.0
+    assert result["status"]["r"] == 1.0
+    assert result["status"]["f"] == 1.0
+    assert result["status"]["ap"] == 1.0

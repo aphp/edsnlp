@@ -20,6 +20,10 @@
 - Infer `LinearSchedule.max_value` from the current parameter value when omitted
 - Warning messages about max tokenizer size are now suppressed, as we already handle windowing in such cases
 - `eds.diabetes` now checks for surrounding negation when checking insulin dependancy
+- Fixed average precision computation:
+
+  - base computation : the initial recall gain from 0 to the first true positive was ignored, but is now accounted for
+  - and instead of being computed from the highest-probability label in `span._.prob`, which could make AP disagree with p/r/f and drop below 1 even on perfect gold to gold comparisons, we now use the actually assigned span attribute value.
 
 ## v0.20.0 (2025-12-12)
 

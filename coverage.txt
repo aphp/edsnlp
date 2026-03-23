@@ -73,7 +73,7 @@ edsnlp/pipes/core/normalizer/spaces/factory.py                                  
 edsnlp/pipes/core/normalizer/spaces/spaces.py                                              14      0 100.00%
 edsnlp/pipes/core/sentences/__init__.py                                                     1      0 100.00%
 edsnlp/pipes/core/sentences/factory.py                                                      3      0 100.00%
-edsnlp/pipes/core/sentences/sentences.py                                                   16      9  43.75%   13-126
+edsnlp/pipes/core/sentences/sentences.py                                                   16      0 100.00%
 edsnlp/pipes/core/sentences/terms.py                                                        1      0 100.00%
 edsnlp/pipes/core/terminology/__init__.py                                                   0      0 100.00%
 edsnlp/pipes/core/terminology/factory.py                                                    4      0 100.00%
@@ -344,4 +344,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      81      9  88.89%   103, 119, 122-128, 144
 edsnlp/utils/typing.py                                                                     48      0 100.00%
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   13212    270  97.96%
+TOTAL                                                                                   13212    261  98.02%

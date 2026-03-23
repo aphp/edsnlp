@@ -254,6 +254,87 @@ def test_unitless(
         assert str(doc.spans["quantities"][0]._.value) == res
 
 
+def test_unitless_sequences(
+    blank_nlp: PipelineProtocol,
+    matcher: QuantitiesMatcher,
+):
+    for text, expected in [
+        (
+            "Poids (Kg) Taille (m) IMC\n57,0 1,70 22",
+            [("weight", "57.0 kg"), ("size", "1.7 m"), ("bmi", "22 kg_per_m2")],
+        ),
+        (
+            "poids / IMC : 57imc22 taille : 170",
+            [("weight", "57 kg"), ("bmi", "22 kg_per_m2"), ("size", "170 cm")],
+        ),
+        (
+            "poids / IMC : 57/22 taille : 170",
+            [("weight", "57 kg"), ("bmi", "22 kg_per_m2"), ("size", "170 cm")],
+        ),
+        (
+            "poids / IMC / taille : 57/22/150",
+            [("weight", "57 kg"), ("bmi", "22 kg_per_m2"), ("size", "150 cm")],
+        ),
+        (
+            "poids / IMC / taille : 57 / 22 / 150",
+            [("weight", "57 kg"), ("bmi", "22 kg_per_m2"), ("size", "150 cm")],
+        ),
+        (
+            "poids, taille, IMC : 57 et 170 et 22",
+            [("weight", "57 kg"), ("size", "170 cm"), ("bmi", "22 kg_per_m2")],
+        ),
+        (
+            "poids et IMC : 57 et 22 taille : 170",
+            [("weight", "57 kg"), ("bmi", "22 kg_per_m2"), ("size", "170 cm")],
+        ),
+        (
+            "poids - IMC : 57 - 22 taille : 170",
+            [("weight", "57 kg"), ("bmi", "22 kg_per_m2"), ("size", "170 cm")],
+        ),
+        (
+            "poids / IMC : 57 22 taille : 170",
+            [("weight", "57 kg"), ("bmi", "22 kg_per_m2"), ("size", "170 cm")],
+        ),
+        (
+            "poids / IMC :\t57\t22\n taille :\t170",
+            [("weight", "57 kg"), ("bmi", "22 kg_per_m2"), ("size", "170 cm")],
+        ),
+        # ambiguous groups -> no match
+        (
+            "poids / truc / IMC : 57/3/22",
+            [],
+        ),
+        (
+            "poids / IMC / truc : 57/3/22",
+            [],
+        ),
+        (
+            "poids : 57/3/22",
+            [],
+        ),
+    ]:
+        doc = blank_nlp(text)
+        doc = matcher(doc)
+
+        assert [
+            (span.label_, str(span._.value)) for span in doc.spans["quantities"]
+        ] == expected
+
+
+def test_unitless_sequences_are_dropped_when_ambiguous(
+    blank_nlp: PipelineProtocol,
+    matcher: QuantitiesMatcher,
+):
+    for text in [
+        "poids / truc / IMC : 57/3/22",
+        "poids / IMC / truc : 57/3/22",
+    ]:
+        doc = blank_nlp(text)
+        doc = matcher(doc)
+
+        assert len(doc.spans["quantities"]) == 0
+
+
 def test_non_matches(
     blank_nlp: PipelineProtocol,
     matcher: QuantitiesMatcher,
@@ -338,6 +419,7 @@ def test_quantity_snippets(blank_nlp, matcher: QuantitiesMatcher):
         ("1 m 50", ["1.5 m"]),
         ("1.50 m", ["1.5 m"]),
         ("1,50m", ["1.5 m"]),
+        ("57/22 kg", ["2.590909090909091 kg"]),
         ("2.0cm x 3cm", ["2.0 cm", "3 cm"]),
         ("2 par 1mm", ["2 mm", "1 mm"]),
         ("8, 13 et 15dm", ["8 dm", "13 dm", "15 dm"]),

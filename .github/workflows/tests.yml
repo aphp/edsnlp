@@ -66,6 +66,22 @@ jobs:
           repository: ${{ inputs.trusted_head_repository }}
           ref: ${{ inputs.trusted_head_sha }}
 
+      - name: Fetch trusted base branch for lint diff
+        if: github.event_name == 'workflow_dispatch' && inputs.trusted_head_sha != ''
+        env:
+          TRUSTED_BASE_REPOSITORY: ${{ github.repository }}
+          TRUSTED_BASE_REF: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$TRUSTED_BASE_REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+            echo "Invalid trusted base repository: $TRUSTED_BASE_REPOSITORY" >&2
+            exit 1
+          fi
+
+          git check-ref-format --branch "$TRUSTED_BASE_REF" >/dev/null
+          git fetch --no-tags --depth=1 "https://github.com/${TRUSTED_BASE_REPOSITORY}.git" "refs/heads/${TRUSTED_BASE_REF}:refs/remotes/trusted-base"
+
       - uses: actions/setup-python@v5
         with:
           cache: 'pip'
@@ -78,7 +94,7 @@ jobs:
       - uses: pre-commit/action@v3.0.0
         if: github.event_name == 'workflow_dispatch' && inputs.trusted_head_sha != ''
         with:
-          extra_args: --color=always --all-files
+          extra_args: --color=always --from-ref refs/remotes/trusted-base --to-ref HEAD
 
   pytest:
     name: Pytest

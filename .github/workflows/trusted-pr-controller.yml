@@ -60,7 +60,7 @@ jobs:
               owner,
               repo,
               workflow_id: "tests.yml",
-              ref: pr.base.repo.default_branch,
+              ref: pr.base.ref,
               inputs: {
                 trusted_pr_number: String(pr.number),
                 trusted_head_repository: pr.head.repo.full_name,

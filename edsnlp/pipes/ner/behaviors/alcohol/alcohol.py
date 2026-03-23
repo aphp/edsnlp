@@ -109,7 +109,7 @@ class AlcoholMatcher(DisorderMatcher):
             include_assigned=True,
         )
         self.nlp = nlp
-        self.negation = NegationQualifier(nlp)
+        self.negation = NegationQualifier(nlp, on_ents_only=False)
 
     def process(self, doc: Doc) -> List[Span]:
         for span in super().process(doc):

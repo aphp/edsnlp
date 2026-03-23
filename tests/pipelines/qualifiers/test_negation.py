@@ -3,6 +3,7 @@ from typing import List
 from pytest import fixture, mark
 from spacy.tokens import Span
 
+from edsnlp.data.converters import MarkupToDocConverter
 from edsnlp.pipes.qualifiers.negation import Negation
 from edsnlp.utils.examples import parse_example
 
@@ -137,3 +138,43 @@ def test_on_span(blank_nlp, negation_factory):
         ("secondaire", True),
         ("associée", True),
     ]
+
+
+def test_span_getter_targets_custom_spans(blank_nlp):
+    converter = MarkupToDocConverter(preset="xml", span_setter={"custom": ["ent"]})
+    blank_nlp.add_pipe(
+        "eds.negation",
+        name="negation",
+        config={"span_getter": "custom", "explain": True},
+    )
+
+    doc = converter("Pas de <ent>cancer</ent>.", tokenizer=blank_nlp.tokenizer)
+    assert not doc.ents
+
+    doc = blank_nlp(doc)
+
+    assert blank_nlp.get_pipe("negation").on_ents_only is True
+    assert blank_nlp.get_pipe("negation").span_getter == {"custom": True}
+    assert len(doc.spans["custom"]) == 1
+    assert doc.spans["custom"][0].text == "cancer"
+    assert doc.spans["custom"][0]._.negation is True
+
+
+def test_span_getter_is_preserved_when_on_ents_only_is_false(blank_nlp):
+    converter = MarkupToDocConverter(preset="xml", span_setter={"custom": ["ent"]})
+    blank_nlp.add_pipe(
+        "eds.negation",
+        name="negation",
+        config={"span_getter": "custom", "on_ents_only": False, "explain": True},
+    )
+
+    doc = converter("Pas de <ent>cancer</ent>.", tokenizer=blank_nlp.tokenizer)
+    assert not doc.ents
+
+    doc = blank_nlp(doc)
+
+    assert blank_nlp.get_pipe("negation").on_ents_only is False
+    assert blank_nlp.get_pipe("negation").span_getter == {"custom": True}
+    assert len(doc.spans["custom"]) == 1
+    assert doc.spans["custom"][0].text == "cancer"
+    assert doc.spans["custom"][0]._.negation is True

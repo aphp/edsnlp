@@ -148,7 +148,7 @@ class ReportedSpeechQualifier(RuleBasedQualifier):
         verbs: Optional[List[str]] = None,
         attr: str = "NORM",
         span_getter: Optional[SpanGetterArg] = None,
-        on_ents_only: Optional[Union[bool, str, List[str], Set[str]]] = None,
+        on_ents_only: Union[bool, str, List[str], Set[str]] = True,
         within_ents: bool = False,
         explain: bool = False,
     ):

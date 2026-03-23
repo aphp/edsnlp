@@ -113,23 +113,22 @@ class RuleBasedQualifier(BaseSpanAttributeClassifierComponent):
         self.regex_matcher.build_patterns(regex=regex)
         self.attributes = attributes
 
-        self.on_ents_only = on_ents_only
-
-        if span_getter is None and on_ents_only is None:
-            on_ents_only = True
-
         if on_ents_only:
-            assert span_getter is None or on_ents_only is True, (
-                "Cannot use both `span_getter` and `on_ents_only` as a span selection "
-                "argument."
-            )
             assert isinstance(on_ents_only, (list, str, set, bool)), (
                 "The `on_ents_only` argument should be a "
                 "string, a bool, a list or a set of string"
             )
-            span_getter = "ents" if on_ents_only is True else on_ents_only
-        else:
+            if span_getter is None:
+                span_getter = "ents" if on_ents_only is True else on_ents_only
+            elif on_ents_only is not True:
+                assert span_getter is None, (
+                    "Cannot use both `span_getter` and `on_ents_only` as a span "
+                    "selection argument."
+                )
+        elif span_getter is None:
             span_getter = "ents"
+
+        self.on_ents_only = bool(on_ents_only)
         self.explain = explain
         super().__init__(
             nlp=nlp,

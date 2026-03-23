@@ -117,7 +117,7 @@ class TobaccoMatcher(DisorderMatcher):
             span_setter=span_setter,
             include_assigned=True,
         )
-        self.negation = NegationQualifier(nlp)
+        self.negation = NegationQualifier(nlp, on_ents_only=False)
 
     def process(self, doc: Doc) -> Iterable[Span]:
         for span in super().process(doc):

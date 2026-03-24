@@ -9,11 +9,16 @@ jobs:
     name: Delete Vercel Project
     if: github.event.ref_type == 'branch'
     runs-on: ubuntu-latest
+    env:
+      BRANCH_NAME: ${{ github.event.ref }}
     steps:
     - run: |
+        set -euo pipefail
+        preview_name="${BRANCH_NAME:0:80}"
+
         # Set up Vercel
         npm install --global vercel@latest
         # Pull Vercel environment
         vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
         # Delete vercel project linked to this branch
-        vercel remove edsnlp-${{ github.event.ref }} --yes --token=${{ secrets.VERCEL_TOKEN }}
+        vercel remove edsnlp-${preview_name} --yes --token=${{ secrets.VERCEL_TOKEN }}

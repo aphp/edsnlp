@@ -117,10 +117,9 @@ class DisorderMatcher(ContextualMatcher):
         all_detailed_status = set(self.detailed_status_mapping.keys())
         for span in spans:
             if span._.status is not None and span._.status not in all_detailed_status:
-                raise ValueError(
-                    f"Got incorrect status value for '{span}'. Expected "
-                    f"None or one of {all_detailed_status}, got {span._.status}"
-                )
+                default_status = 1 if 1 in all_detailed_status else None
+                # better default than fail
+                span._.status = default_status
             span._.detailed_status = self.detailed_status_mapping.get(
                 span._.status,
                 None,

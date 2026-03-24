@@ -40,9 +40,9 @@ edsnlp/pipes/__init__.py                                                        
 edsnlp/pipes/base.py                                                                       68      0 100.00%
 edsnlp/pipes/core/__init__.py                                                               0      0 100.00%
 edsnlp/pipes/core/contextual_matcher/__init__.py                                            1      0 100.00%
-edsnlp/pipes/core/contextual_matcher/contextual_matcher.py                                130      2  98.46%   242-243
+edsnlp/pipes/core/contextual_matcher/contextual_matcher.py                                130      2  98.46%   243-244
 edsnlp/pipes/core/contextual_matcher/factory.py                                             4      0 100.00%
-edsnlp/pipes/core/contextual_matcher/models.py                                            100      0 100.00%
+edsnlp/pipes/core/contextual_matcher/models.py                                            101      0 100.00%
 edsnlp/pipes/core/endlines/__init__.py                                                      0      0 100.00%
 edsnlp/pipes/core/endlines/endlines.py                                                     89      7  92.13%   161-164, 168-169, 201, 288
 edsnlp/pipes/core/endlines/factory.py                                                       4      0 100.00%
@@ -344,4 +344,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      81      9  88.89%   103, 119, 122-128, 144
 edsnlp/utils/typing.py                                                                     48      1  97.92%   45
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   13257    262  98.02%
+TOTAL                                                                                   13258    262  98.02%

@@ -12,6 +12,7 @@
 - Add DVC-backed tuning support with timeout and parallel trial handling
 - Add `use_bullet_start` and `bullet_starters` options to `eds.sentences` to treat bullet points as sentence starters after a newline
 - New `span_from_group` parameter in `eds.matcher` and `eds.contextual_matcher` to use the first capturing group in the regex instead of the full match
+- `eds.sentences` can now split on double (or more newlines), with a `hard_newline_count` parameter (e.g. 2 for two newlines), disabled by default
 
 ### Fixed
 

@@ -11,6 +11,7 @@
 - Add confidence scores to spans predicted by `eds.extractive_qa`
 - Add DVC-backed tuning support with timeout and parallel trial handling
 - Add `use_bullet_start` and `bullet_starters` options to `eds.sentences` to treat bullet points as sentence starters after a newline
+- New `span_from_group` parameter in `eds.matcher` and `eds.contextual_matcher` to use the first capturing group in the regex instead of the full match
 
 ### Fixed
 

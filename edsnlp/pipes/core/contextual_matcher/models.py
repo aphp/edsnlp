@@ -248,6 +248,9 @@ class SingleConfig(BaseModel, extra="forbid"):
         An attributes to overwrite the given `attr` when matching with Regexes.
     regex_flags: re.RegexFlag
         Regex flags
+    span_from_group : bool
+        Whether the anchor regex span should use the first matching capturing
+        group instead of the full regex match.
     terms : Union[re.RegexFlag, int]
         A single term or a list of terms (for exact matches)
     exclude : AsList[SingleExcludeModel]
@@ -280,6 +283,7 @@ class SingleConfig(BaseModel, extra="forbid"):
     regex: ListOrStr = []
     regex_attr: Optional[str] = None
     regex_flags: Union[re.RegexFlag, int] = None
+    span_from_group: bool = False
 
     exclude: ExcludeModel = []
     include: IncludeModel = []

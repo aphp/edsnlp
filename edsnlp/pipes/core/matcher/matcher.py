@@ -84,6 +84,9 @@ class GenericMatcher(BaseNERComponent):
         Parameters of the matcher class
     span_setter : SpanSetterArg
         How to set the spans in the doc.
+    span_from_group : bool
+        Whether regex spans should use the first matching capturing group instead
+        of the full regex match.
 
     Authors and citation
     --------------------
@@ -103,6 +106,7 @@ class GenericMatcher(BaseNERComponent):
         term_matcher: Literal["exact", "simstring"] = "exact",
         term_matcher_config: Dict[str, Any] = {},
         span_setter: SpanSetterArg = {"ents": True},
+        span_from_group: bool = False,
         context_getter: Optional[SpanGetterArg] = None,
     ):
         super().__init__(nlp=nlp, name=name, span_setter=span_setter)
@@ -144,6 +148,7 @@ class GenericMatcher(BaseNERComponent):
             attr=attr,
             ignore_excluded=ignore_excluded,
             ignore_space_tokens=ignore_space_tokens,
+            span_from_group=span_from_group,
         )
 
         self.phrase_matcher.build_patterns(nlp=nlp, terms=terms)

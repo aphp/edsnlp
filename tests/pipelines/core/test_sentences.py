@@ -2,6 +2,7 @@ import pytest
 from pytest import mark
 
 import edsnlp
+import edsnlp.pipes as eds
 from edsnlp.pipes.core.sentences.sentences import (
     DEFAULT_CAPITALIZED_SHAPES,
     LEGACY_CAPITALIZED_SHAPES,
@@ -80,6 +81,7 @@ def test_newlines_double():
             "ignore_excluded": False,
             "check_capitalized": False,
             "min_newline_count": 2,
+            "hard_newline_count": None,
         },
     )
 
@@ -102,6 +104,7 @@ jeudi."""
             "ignore_excluded": False,
             "check_capitalized": True,
             "min_newline_count": 2,
+            "hard_newline_count": None,
         },
     )
 
@@ -115,6 +118,26 @@ Le patient est admis. Des douleurs dans le bras droit
 jeudi."""
     )
     assert len(list(doc.sents)) == 1
+
+
+def test_hard_newlines_force_split_before_date():
+    # https://github.com/aphp/edsnlp/issues/277
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(eds.sentences(hard_newline_count=2))
+
+    doc = nlp(
+        """\
+ANTECEDANT
+
+15/03/2020 Antécédant 1
+v antecedant numero 2
+"""
+    )
+
+    assert [sent.text for sent in doc.sents] == [
+        "ANTECEDANT\n\n",
+        "15/03/2020 Antécédant 1\nv antecedant numero 2\n",
+    ]
 
 
 def test_sentences_bullet_starters():
@@ -191,6 +214,7 @@ def make_nlp(
     mode: str | None = None,
     check_capitalized: bool = True,
     use_bullet_start: bool = True,
+    hard_newline_count: int | None = 2,
 ):
     nlp = edsnlp.blank("eds")
     config = {
@@ -198,6 +222,7 @@ def make_nlp(
         "bullet_starters": ["-"],
         "check_capitalized": check_capitalized,
         "capitalized_shapes": cap_shapes,
+        "hard_newline_count": hard_newline_count,
     }
     if mode is not None:
         config["capitalized_mode"] = mode
@@ -279,7 +304,7 @@ def test_newline_robustness_with_expanded_mode(text, expected):
 
 
 def test_legacy_mode_behavior_non_regression():
-    nlp = make_nlp(mode="legacy")
+    nlp = make_nlp(mode="legacy", hard_newline_count=None)
     doc = nlp("hémoculture\n\nCONCLUSION\nSuite\n")
     assert [s.text for s in doc.sents] == ["hémoculture\n\nCONCLUSION\n", "Suite\n"]
 

@@ -140,6 +140,9 @@ class SentenceSegmenter(BaseComponent):
         Capitalized shapes.
     min_newline_count: int
         The minimum number of newlines to consider a newline-triggered sentence.
+    hard_newline_count: int | None
+        The minimum number of consecutive newlines to force a sentence boundary,
+        independently of capitalization. Use `None` to disable this rule.
     use_bullet_start: bool
         Whether to check for bullet starters after newlines or full stops.
     bullet_starters: Optional[List[str]]
@@ -161,14 +164,18 @@ class SentenceSegmenter(BaseComponent):
         capitalized_mode: Optional[str] = "expanded",
         capitalized_shapes: Optional[List[str]] = None,
         min_newline_count: int = 1,
+        hard_newline_count: Optional[int] = None,
         use_bullet_start: bool = False,
         bullet_starters: Optional[List[str]] = None,
     ):
         super().__init__(nlp, name)
-        if min_newline_count > 1 and nlp.lang != "eds":
+        if (
+            min_newline_count > 1
+            or (hard_newline_count is not None and hard_newline_count > 1)
+        ) and nlp.lang != "eds":
             warnings.warn(
-                "To use min_newline_count > 1, you need to use the 'eds' language "
-                "in order to split newlines into separate and countable tokens."
+                "To use newline thresholds > 1, you need to use the 'eds' language "
+                "to split newlines into single tokens (e.g. `edsnlp.blank('eds')`)."
             )
 
         if punct_chars is None:
@@ -193,6 +200,9 @@ class SentenceSegmenter(BaseComponent):
             check_capitalized=check_capitalized,
             capitalized_shapes=capitalized_shapes,
             min_newline_count=min_newline_count,
+            hard_newline_count=(
+                -1 if hard_newline_count is None else hard_newline_count
+            ),
             use_bullet_start=use_bullet_start,
             bullet_starters=bullet_starters,
         )

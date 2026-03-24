@@ -176,7 +176,7 @@ hypertension = dict(
         r"hyper.?tension.?arte",
         r"hyper.?tendu",
         r"hyper.?tension.?essenti",
-        r"hypertensi",
+        r"hypertensi(?!\w{,10}(?:pulmo|porta))",
     ],
     exclude=dict(
         regex="(pulmo|porta)",

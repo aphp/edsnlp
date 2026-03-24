@@ -129,3 +129,28 @@ def test_disorder(normalized_nlp, disorder):
     )
 
     expect.check()
+
+
+def test_disorder_exclude_handles_merged_token_issue():
+    # https://github.com/aphp/edsnlp/issues/481
+    nlp = spacy.blank("eds")
+    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe("eds.normalizer")
+    nlp.add_pipe("eds.liver_disease")
+
+    doc = nlp("hypertensionnportale")
+
+    assert [ent.label_ for ent in doc.ents] == ["liver_disease"]
+    assert doc.spans["liver_disease"][0]._.status == 2
+
+    nlp = spacy.blank("eds")
+    nlp.add_pipe("eds.sentences")
+    nlp.add_pipe("eds.normalizer")
+    nlp.add_pipe("eds.liver_disease")
+    nlp.add_pipe("eds.peripheral_vascular_disease")
+
+    doc = nlp("hypertensionnportale")
+
+    assert [ent.label_ for ent in doc.ents] == ["liver_disease"]
+    assert list(doc.spans["peripheral_vascular_disease"]) == []
+    assert doc.spans["liver_disease"][0]._.status == 2

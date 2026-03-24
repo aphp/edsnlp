@@ -226,12 +226,14 @@ jobs:
           TRUSTED_PR_NUMBER: ${{ inputs.trusted_pr_number }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
+          set -euo pipefail
+          preview_name="${BRANCH_NAME:0:80}"
+          echo "preview_name=$preview_name" >> "$GITHUB_OUTPUT"
+
           if [ -n "$TRUSTED_PR_NUMBER" ]; then
-            echo "preview_name=pr-$TRUSTED_PR_NUMBER" >> "$GITHUB_OUTPUT"
             echo "pr_number=$TRUSTED_PR_NUMBER" >> "$GITHUB_OUTPUT"
           else
-            echo "preview_name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
-            echo "pr_number=${PR_NUMBER:-}" >> "$GITHUB_OUTPUT"
+            echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Set up Git

@@ -87,6 +87,10 @@ tuning:
   two_phase_tuning: True
   # Metric used to evaluate trials.
   metric: "ner.micro.f"
+  # Pruning strategy for unpromising trials
+  pruner:
+    type: "median"
+    n_warmup_steps: 5
   # Hyperparameters to tune.
   hyperparameters:
 ```
@@ -99,6 +103,7 @@ Let's detail the new parameters:
 - `n_trials`: Number of training trials for tuning. If provided, it will override `gpu_hours` and tune the model for exactly `n_trial` trials.
 - `two_phase_tuning`: If True, performs a two-phase tuning. In the first phase, all hyperparameters are tuned, and in the second phase, the top half (based on importance) are fine-tuned while freezing others. By default, `two_phase_tuning` is False.
 - `metric`: Metric used to evaluate trials. It corresponds to a path in the scorer results (depending on the scorer used in the config). By default `metric` is set to "ner.micro.f".
+- `pruner` : Optuna pruner configuration to stop unpromising trials early. You can pass a string or a dictionary (e.g., `{"type": "percentile", "percentile": 25.0}`). Supported types are `"median"`, `"percentile"`, `"threshold"`, `"successive_halving"`, `"hyperband"`, and `"nop"` (to disable). By default, it uses `"median"`. Visit the [Optuna docs](https://optuna.readthedocs.io/en/stable/reference/pruners.html) for more information on each pruner's parameters.
 - `hyperparameters`: The list of hyperparameters to tune and details about their tunings. We will discuss how it work in the following section.
 
 ### 2.2. Add hyperparameters to tune
@@ -259,6 +264,7 @@ tuning:
   gpu_hours: 40.0
   two_phase_tuning: True
   metric: "ner.micro.f"
+  pruner: "median"
   hyperparameters:
     "nlp.components.ner.embedding.embedding.hidden_dropout_prob":
       alias: "hidden_dropout"

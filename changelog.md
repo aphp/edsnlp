@@ -10,6 +10,7 @@
 - Add support for `overwrite="append"` in `edsnlp.data.write_parquet`
 - Add confidence scores to spans predicted by `eds.extractive_qa`
 - Add DVC-backed tuning support with timeout and parallel trial handling
+- Expose Optuna pruner configuration in `edsnlp.tune` via `pruner={"type": "median"/"percentile", ...}`
 - Add `use_bullet_start` and `bullet_starters` options to `eds.sentences` to treat bullet points as sentence starters after a newline
 - New `span_from_group` parameter in `eds.matcher` and `eds.contextual_matcher` to use the first capturing group in the regex instead of the full match
 - `eds.sentences` can now split on double (or more newlines), with a `hard_newline_count` parameter (e.g. 2 for two newlines), disabled by default

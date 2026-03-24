@@ -30,6 +30,15 @@ from confit import Cli, Config
 from confit.utils.collections import split_path
 from confit.utils.random import set_seed
 from optuna.importance import FanovaImportanceEvaluator, get_param_importances
+from optuna.pruners import (
+    BasePruner,
+    HyperbandPruner,
+    MedianPruner,
+    NopPruner,
+    PercentilePruner,
+    SuccessiveHalvingPruner,
+    ThresholdPruner,
+)
 from optuna.samplers import TPESampler
 from pydantic import BaseModel, confloat, conint
 from ruamel.yaml import YAML
@@ -75,6 +84,39 @@ class HyperparameterConfig(BaseModel, extra="forbid"):
             dict: A dictionary representation of the hyperparameter configuration.
         """
         return self.model_dump(exclude_unset=True, exclude_defaults=True)
+
+
+PRUNER_TYPES = {
+    "median": MedianPruner,
+    "nop": NopPruner,
+    "percentile": PercentilePruner,
+    "threshold": ThresholdPruner,
+    "successive_halving": SuccessiveHalvingPruner,
+    "hyperband": HyperbandPruner,
+}
+
+
+def _build_pruner(
+    pruner_config: Optional[Dict[str, object]],
+) -> BasePruner:
+    if pruner_config is None:
+        return NopPruner()
+    if isinstance(pruner_config, str):
+        pruner_config = {"type": pruner_config}
+    if not isinstance(pruner_config, dict):
+        raise TypeError("pruner must be a dict or None")
+    pruner_type = pruner_config.get("type")
+    if not isinstance(pruner_type, str):
+        raise ValueError("pruner must include a string 'type' field")
+    try:
+        pruner_cls = PRUNER_TYPES[pruner_type]
+    except KeyError as exc:  # pragma: no cover
+        available = ", ".join(sorted(PRUNER_TYPES))
+        raise ValueError(
+            f"Unsupported pruner type {pruner_type!r}. Available types: {available}."
+        ) from exc
+    kwargs = {key: value for key, value in pruner_config.items() if key != "type"}
+    return pruner_cls(**kwargs)
 
 
 def _setup_logging():
@@ -636,16 +678,15 @@ def _monitor_metrics_file(
                     )
                 except Exception:
                     continue
-                print("Reporting", score, "at", step)
                 trial.report(score, step)
-                # if trial.should_prune():
-                #     pruned_event.set()
-                #     try:
-                #         queue.kill([entry.stash_rev])
-                #     except Exception as exc:  # pragma: no cover - best effort
-                #         logger.warning("Failed to kill pruned trial: %s", exc)
-                #     stop_event.set()
-                #     return
+                if trial.should_prune():
+                    pruned_event.set()
+                    try:
+                        queue.kill([entry.stash_rev])
+                    except Exception as exc:  # pragma: no cover - best effort
+                        logger.warning("Failed to kill pruned trial: %s", exc)
+                    stop_event.set()
+                    return
             last_len = len(entries)
         stop_event.wait(poll_interval)
 
@@ -848,6 +889,7 @@ def _optimize(
     checkpoint_dir,
     study=None,
     *,
+    pruner: Optional[Union[str, Dict[str, object]]] = "median",
     execution: Literal["inprocess", "dvc"] = "inprocess",
     phase: int = 1,
     seed: int = 42,
@@ -856,14 +898,16 @@ def _optimize(
     num_parallel_trials: int = 1,
     timeout: Optional[float] = None,
 ):
+    study_pruner = _build_pruner(pruner)
     if not study:
-        # pruner = PercentilePruner(n_startup_trials=5, n_warmup_steps=2)
         study = optuna.create_study(
             direction="maximize",
-            # pruner=pruner,
+            pruner=study_pruner,
             sampler=TPESampler(seed=random.randint(0, 2**32 - 1)),
             study_name=f"optuna-{uuid.uuid4().hex[:8]}",
         )
+    else:
+        study.pruner = study_pruner
     study_name = study.study_name
 
     def objective(trial):
@@ -1064,6 +1108,7 @@ def tune_two_phase(
     study: Optional[optuna.study.Study] = None,
     skip_phase_1: bool = False,
     timeout: Optional[float] = None,
+    pruner: Optional[Union[str, Dict[str, object]]] = "median",
     execution: Literal["inprocess", "dvc"] = "inprocess",
     seed: int = 42,
     seed_path: str = DEFAULT_TRAIN_SEED_PATH,
@@ -1110,6 +1155,18 @@ def tune_two_phase(
         Default is False.
     timeout : float, optional
         Timeout in seconds for each phase. If provided, it is applied to each phase.
+    pruner : dict, optional
+        Optuna pruner configuration. Pass None to disable pruning. The default uses
+        Optuna's MedianPruner. Visit Optuna docs for more information:
+        https://optuna.readthedocs.io/en/stable/reference/pruners.html.
+        Allowed pruner types (in `{"type": TYPE, "some_arg": ...}`) are:
+
+        - "median": MedianPruner
+        - "nop": NopPruner
+        - "percentile": PercentilePruner
+        - "threshold": ThresholdPruner
+        - "successive_halving": SuccessiveHalvingPruner
+        - "hyperband": HyperbandPruner
     execution : {"inprocess", "dvc"}, optional
         Execution backend for trials. Default is "inprocess".
     seed : int, optional
@@ -1161,6 +1218,7 @@ def tune_two_phase(
             metric_paths,
             checkpoint_dir,
             study,
+            pruner=pruner,
             execution=execution,
             phase=1,
             seed=seed,
@@ -1232,6 +1290,7 @@ def tune_two_phase(
         metric_paths,
         checkpoint_dir,
         study,
+        pruner=pruner,
         execution=execution,
         phase=2,
         seed=seed,
@@ -1269,6 +1328,7 @@ def tune(
     seed: int = 42,
     metric: Union[str, List[str]] = "ner.micro.f",
     keep_checkpoint: bool = False,
+    pruner: Optional[Union[str, Dict[str, object]]] = "median",
     execution: Literal["inprocess", "dvc"] = "inprocess",
     seed_path: str = DEFAULT_TRAIN_SEED_PATH,
     training_seeds: Optional[List[int]] = None,
@@ -1322,6 +1382,10 @@ def tune(
         Default is "ner.micro.f".
     keep_checkpoint : bool, optional
         If True, keeps the checkpoint file after tuning. Default is False.
+    pruner : dict, optional
+        Optuna pruner configuration. Pass None to disable pruning. Supported types
+        are "median", "nop", "percentile", "threshold", "successive_halving" and
+        "hyperband". The default uses Optuna's MedianPruner.
     execution : {"inprocess", "dvc"}, optional
         Execution backend for trials. Default is "inprocess".
     seed_path : str, optional
@@ -1414,6 +1478,7 @@ def tune(
                 study=study,
                 skip_phase_1=skip_phase_1,
                 timeout=phase_timeout,
+                pruner=pruner,
                 execution=execution,
                 seed=seed,
                 seed_path=seed_path,
@@ -1434,6 +1499,7 @@ def tune(
                 metric_paths,
                 checkpoint_dir,
                 study,
+                pruner=pruner,
                 execution=execution,
                 phase=1,
                 seed=seed,

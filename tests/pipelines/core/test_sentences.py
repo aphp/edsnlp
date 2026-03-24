@@ -72,6 +72,20 @@ def test_false_positives(blank_nlp):
         assert len(list(doc.sents)) == 1
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        "10.10.2010:RCP",
+        "10.10.2010 : RCP",
+        "02.04.2018 : RCP",
+        "10/10/2010 : RCP",
+    ],
+)
+def test_false_positives_dotted_dates_with_labels(blank_nlp, text):
+    doc = blank_nlp(text)
+    assert [sent.text for sent in doc.sents] == [text]
+
+
 def test_newlines_double():
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(

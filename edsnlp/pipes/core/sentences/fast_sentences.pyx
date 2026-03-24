@@ -13,23 +13,8 @@ from .terms import punctuation
 
 cdef class FastSentenceSegmenter(object):
     """
-    Segments the Doc into sentences using a rule-based strategy,
-    specific to AP-HP documents.
-
-    Applies the same rule-based pipeline as spaCy's sentencizer,
-    and adds a simple rule on the new lines : if a new line is followed by a
-    capitalised word, then it is also an end of sentence.
-
-    DOCS: https://spacy.io/api/sentencizer
-
-    Arguments
-    ---------
-    punct_chars : Optional[List[str]]
-        Punctuation characters.
-    use_endlines : bool
-        Whether to use endlines prediction.
+    Fast implementation of sentence segmenter.
     """
-
     def __init__(
             self,
             vocab,
@@ -40,6 +25,7 @@ cdef class FastSentenceSegmenter(object):
             check_capitalized = True,
             capitalized_shapes = None,
             min_newline_count = 1,
+            hard_newline_count = -1,
             use_bullet_start = False,
             bullet_starters = (),
     ):
@@ -59,6 +45,7 @@ cdef class FastSentenceSegmenter(object):
         self.punct_chars_hash = {vocab.strings[c] for c in punct_chars}
         self.check_capitalized = check_capitalized
         self.min_newline_count = min_newline_count
+        self.hard_newline_count = hard_newline_count
 
         if self.check_capitalized and capitalized_shapes is not None:
             shapes = tuple(capitalized_shapes)
@@ -86,6 +73,7 @@ cdef class FastSentenceSegmenter(object):
         cdef cbool seen_period
         cdef cbool is_in_punct_chars
         cdef cbool is_newline
+        cdef cbool hard_newline_reached
         cdef int newline_count
 
         seen_period = False
@@ -112,6 +100,10 @@ cdef class FastSentenceSegmenter(object):
                     ctext = (<object>doc)[i].text
                     is_newline = ('\n' in ctext) or ('\r' in ctext)
 
+            hard_newline_reached = (
+                self.hard_newline_count >= 0
+                and newline_count >= self.hard_newline_count
+            )
             if seen_period or newline_count >= self.min_newline_count:
                 if seen_period and Lexeme.c_check_flag(token.lex, IS_DIGIT):
                     continue
@@ -132,6 +124,7 @@ cdef class FastSentenceSegmenter(object):
                     else:
                         doc.c[i].sent_start = (
                             1 if (
+                                hard_newline_reached or
                                 not self.check_capitalized or (
                                     self.capitalized_shapes_hash.const_find(token.lex.shape)
                                     != self.capitalized_shapes_hash.const_end()

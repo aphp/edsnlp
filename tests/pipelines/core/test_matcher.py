@@ -90,6 +90,17 @@ def test_regex(doc, matcher_factory):
     assert len(doc.ents) == 3, "There should be two entities."
 
 
+def test_regex_span_from_group(blank_nlp, matcher_factory):
+    doc = blank_nlp("ASA 3")
+    matcher = matcher_factory(
+        regex=dict(asa=r"\basa\b ?:? ?([1-5]|[a-z]{1,3})"),
+        attr="LOWER",
+        span_from_group=True,
+    )
+    doc = matcher(doc)
+    assert [ent.text for ent in doc.ents] == ["3"]
+
+
 def test_space(doc, matcher_factory):
     matcher = matcher_factory(
         terms=dict(holidays=r"vacances d'été"),

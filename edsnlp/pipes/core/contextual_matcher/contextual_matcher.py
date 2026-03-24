@@ -119,6 +119,7 @@ class ContextualMatcher(BaseNERComponent):
                 ignore_excluded=ignore_excluded,
                 ignore_space_tokens=ignore_space_tokens,
                 alignment_mode=alignment_mode,
+                span_from_group=pattern.span_from_group,
             )
             regex_matcher.build_patterns(
                 regex={

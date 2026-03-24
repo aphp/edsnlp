@@ -11,6 +11,7 @@ DEFAULT_CONFIG = dict(
     term_matcher="exact",
     term_matcher_config={},
     span_setter={"ents": True},
+    span_from_group=False,
 )
 
 create_component = registry.factory.register(

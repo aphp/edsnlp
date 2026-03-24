@@ -106,6 +106,7 @@ cdef class FastSentenceSegmenter(object):
             )
             if seen_period or newline_count >= self.min_newline_count:
                 if seen_period and Lexeme.c_check_flag(token.lex, IS_DIGIT):
+                    seen_period = False
                     continue
                 if not (
                         is_in_punct_chars

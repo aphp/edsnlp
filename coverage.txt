@@ -157,7 +157,7 @@ edsnlp/pipes/ner/disorders/aids/__init__.py                                     
 edsnlp/pipes/ner/disorders/aids/aids.py                                                    29      0 100.00%
 edsnlp/pipes/ner/disorders/aids/factory.py                                                  5      0 100.00%
 edsnlp/pipes/ner/disorders/aids/patterns.py                                                 3      0 100.00%
-edsnlp/pipes/ner/disorders/base.py                                                         29      0 100.00%
+edsnlp/pipes/ner/disorders/base.py                                                         31      2  93.55%   120-122
 edsnlp/pipes/ner/disorders/cerebrovascular_accident/__init__.py                             0      0 100.00%
 edsnlp/pipes/ner/disorders/cerebrovascular_accident/cerebrovascular_accident.py            18      2  88.89%   113-114
 edsnlp/pipes/ner/disorders/cerebrovascular_accident/factory.py                              5      0 100.00%
@@ -313,7 +313,7 @@ edsnlp/pipes/trainable/span_linker/factory.py                                   
 edsnlp/pipes/trainable/span_linker/span_linker.py                                         175      2  98.86%   403-404
 edsnlp/processing/__init__.py                                                               3      0 100.00%
 edsnlp/processing/deprecated_pipe.py                                                       53      2  96.23%   208-209
-edsnlp/processing/multiprocessing.py                                                      671     23  96.57%   223-230, 234-235, 255, 259-264, 455-457, 673-674, 1203-1208
+edsnlp/processing/multiprocessing.py                                                      671     24  96.42%   223-230, 234-235, 255, 259-264, 455-457, 673-674, 1145, 1203-1208
 edsnlp/processing/simple.py                                                                61      0 100.00%
 edsnlp/processing/spark.py                                                                 47      1  97.87%   51
 edsnlp/reducers.py                                                                         68      2  97.06%   116, 118
@@ -344,4 +344,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      81      9  88.89%   103, 119, 122-128, 144
 edsnlp/utils/typing.py                                                                     48      1  97.92%   45
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   13337    262  98.04%
+TOTAL                                                                                   13339    265  98.01%

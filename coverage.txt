@@ -116,7 +116,7 @@ edsnlp/pipes/misc/explode/explode.py                                            
 edsnlp/pipes/misc/quantities/__init__.py                                                    3      0 100.00%
 edsnlp/pipes/misc/quantities/factory.py                                                     5      0 100.00%
 edsnlp/pipes/misc/quantities/patterns.py                                                    7      0 100.00%
-edsnlp/pipes/misc/quantities/quantities.py                                                442     20  95.48%   148-149, 161-163, 167, 194, 199, 265, 276, 290, 889, 1070, 1101-1102, 1146, 1153-1154, 1261-1262
+edsnlp/pipes/misc/quantities/quantities.py                                                521     20  96.16%   148-149, 161-163, 167, 194, 199, 265, 276, 290, 889, 1177, 1208-1209, 1227-1228, 1264, 1271-1272
 edsnlp/pipes/misc/reason/__init__.py                                                        2      0 100.00%
 edsnlp/pipes/misc/reason/factory.py                                                         4      0 100.00%
 edsnlp/pipes/misc/reason/patterns.py                                                        3      0 100.00%
@@ -344,4 +344,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      81      9  88.89%   103, 119, 122-128, 144
 edsnlp/utils/typing.py                                                                     48      1  97.92%   45
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   13258    262  98.02%
+TOTAL                                                                                   13337    262  98.04%

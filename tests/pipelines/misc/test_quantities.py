@@ -1,12 +1,12 @@
 from itertools import chain
 
 import pytest
-import spacy
-from pytest import fixture, raises
+from pytest import fixture
 from spacy.tokens.span import Span
 
+import edsnlp
+import edsnlp.pipes as eds
 from edsnlp.core import PipelineProtocol
-from edsnlp.pipelines.misc.quantities import QuantitiesMatcher
 
 text = (
     "Le patient fait 1 m 50 kg. La tumeur fait 2.0cm x 3cm. \n"
@@ -22,7 +22,7 @@ text = (
 
 @fixture
 def blank_nlp():
-    model = spacy.blank("eds")
+    model = edsnlp.blank("eds")
     model.add_pipe("eds.normalizer")
     model.add_pipe("eds.sentences")
     model.add_pipe("eds.tables")
@@ -30,22 +30,13 @@ def blank_nlp():
     return model
 
 
-@fixture
-def matcher(blank_nlp):
-    matcher = QuantitiesMatcher(blank_nlp, extract_ranges=True, use_tables=True)
-    return matcher
-
-
 def test_deprecated_pipe(blank_nlp: PipelineProtocol):
     blank_nlp.add_pipe("matcher", config=dict(terms={"patient": "patient"}))
-    blank_nlp.add_pipe(
-        "eds.measurements",
-    )
+    blank_nlp.add_pipe("eds.measurements")
 
     doc = blank_nlp(text)
 
     assert len(doc.ents) == 1
-
     assert len(doc.spans["quantities"]) == 15
     assert len(doc.spans["measurements"]) == 15
 
@@ -59,7 +50,6 @@ def test_deprecated_arg(blank_nlp: PipelineProtocol):
     doc = blank_nlp(text)
 
     assert len(doc.ents) == 1
-
     assert len(doc.spans["quantities"]) == 15
     assert len(doc.spans["measurements"]) == 15
 
@@ -67,8 +57,7 @@ def test_deprecated_arg(blank_nlp: PipelineProtocol):
 def test_default_factory(blank_nlp: PipelineProtocol):
     blank_nlp.add_pipe("matcher", config=dict(terms={"patient": "patient"}))
     blank_nlp.add_pipe(
-        "eds.quantities",
-        config={"quantities": ["size", "weight", "bmi"], "use_tables": True},
+        eds.quantities(quantities=["size", "weight", "bmi"], use_tables=True),
     )
 
     doc = blank_nlp(text)
@@ -78,16 +67,9 @@ def test_default_factory(blank_nlp: PipelineProtocol):
     assert len(doc.spans["quantities"]) == 15
 
 
-def test_quantities_component(
-    blank_nlp: PipelineProtocol,
-    matcher: QuantitiesMatcher,
-):
+def test_quantities_component(blank_nlp: PipelineProtocol):
+    blank_nlp.add_pipe(eds.quantities(extract_ranges=True, use_tables=True))
     doc = blank_nlp(text)
-
-    with raises(KeyError):
-        doc.spans["quantities"]
-
-    doc = matcher(doc)
 
     for span_key in ["quantities", "measurements"]:
         m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13 = doc.spans[span_key]
@@ -107,16 +89,9 @@ def test_quantities_component(
         assert str(m13._.value) == "13-14 g"
 
 
-def test_quantities_component_scaling(
-    blank_nlp: PipelineProtocol,
-    matcher: QuantitiesMatcher,
-):
+def test_quantities_component_scaling(blank_nlp: PipelineProtocol):
+    blank_nlp.add_pipe(eds.quantities(extract_ranges=True, use_tables=True))
     doc = blank_nlp(text)
-
-    with raises(KeyError):
-        doc.spans["quantities"]
-
-    doc = matcher(doc)
 
     m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13 = doc.spans["quantities"]
 
@@ -137,12 +112,9 @@ def test_quantities_component_scaling(
     assert abs(m13._.value.g[1] - 14.0) < 1e-6
 
 
-def test_measure_label(
-    blank_nlp: PipelineProtocol,
-    matcher: QuantitiesMatcher,
-):
+def test_measure_label(blank_nlp: PipelineProtocol):
+    blank_nlp.add_pipe(eds.quantities(extract_ranges=True, use_tables=True))
     doc = blank_nlp(text)
-    doc = matcher(doc)
 
     m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13 = doc.spans["quantities"]
 
@@ -161,15 +133,9 @@ def test_measure_label(
     assert m13.label_ == "weight"
 
 
-def test_quantities_all_input(
-    blank_nlp: PipelineProtocol,
-    matcher: QuantitiesMatcher,
-):
+def test_quantities_all_input(blank_nlp: PipelineProtocol):
     all_text = "On mesure 13 mol/ml de ...On compte 16x10*9 ..."
-    blank_nlp.add_pipe(
-        "eds.quantities",
-        config={"quantities": "all", "extract_ranges": True},
-    )
+    blank_nlp.add_pipe(eds.quantities(quantities="all", extract_ranges=True))
 
     doc = blank_nlp(all_text)
 
@@ -179,24 +145,19 @@ def test_quantities_all_input(
     assert str(m2._.value) == "16 x10*9"
 
 
-def test_measure_str(
-    blank_nlp: PipelineProtocol,
-    matcher: QuantitiesMatcher,
-):
+def test_measure_str(blank_nlp: PipelineProtocol):
+    blank_nlp.add_pipe(eds.quantities(extract_ranges=True, use_tables=True))
     for text, res in [
         ("1m50", "1.5 m"),
         ("1,50cm", "1.5 cm"),
     ]:
         doc = blank_nlp(text)
-        doc = matcher(doc)
 
         assert str(doc.spans["quantities"][0]._.value) == res
 
 
-def test_measure_repr(
-    blank_nlp: PipelineProtocol,
-    matcher: QuantitiesMatcher,
-):
+def test_measure_repr(blank_nlp: PipelineProtocol):
+    blank_nlp.add_pipe(eds.quantities(extract_ranges=True, use_tables=True))
     for text, res in [
         (
             "1m50",
@@ -208,25 +169,22 @@ def test_measure_repr(
         ),
     ]:
         doc = blank_nlp(text)
-        doc = matcher(doc)
 
         assert repr(doc.spans["quantities"][0]._.value) == res
 
 
-def test_compare(
-    blank_nlp: PipelineProtocol,
-    matcher: QuantitiesMatcher,
-):
+def test_compare(blank_nlp: PipelineProtocol):
+    blank_nlp.add_pipe(eds.quantities(extract_ranges=True, use_tables=True))
     m1, m2 = "1m0", "120cm"
-    m1 = matcher(blank_nlp(m1)).spans["quantities"][0]
-    m2 = matcher(blank_nlp(m2)).spans["quantities"][0]
+    m1 = blank_nlp(m1).spans["quantities"][0]
+    m2 = blank_nlp(m2).spans["quantities"][0]
     assert m1._.value <= m2._.value
     assert m2._.value > m1._.value
 
     m3 = "Entre deux et trois metres"
     m4 = "De 2 à 3 metres"
-    m3 = matcher(blank_nlp(m3)).spans["quantities"][0]
-    m4 = matcher(blank_nlp(m4)).spans["quantities"][0]
+    m3 = blank_nlp(m3).spans["quantities"][0]
+    m4 = blank_nlp(m4).spans["quantities"][0]
     assert str(m3._.value) == "2-3 m"
     assert str(m4._.value) == "2-3 m"
     assert m4._.value.cm == (200.0, 300.0)
@@ -238,10 +196,8 @@ def test_compare(
     assert max(list(chain(m1._.value, m2._.value, m3._.value, m4._.value))).cm == 300
 
 
-def test_unitless(
-    blank_nlp: PipelineProtocol,
-    matcher: QuantitiesMatcher,
-):
+def test_unitless(blank_nlp: PipelineProtocol):
+    blank_nlp.add_pipe(eds.quantities(extract_ranges=True, use_tables=True))
     for text, res in [
         ("BMI: 24 .", "24 kg_per_m2"),
         ("Le patient mesure 1.5 ", "1.5 m"),
@@ -249,15 +205,12 @@ def test_unitless(
         ("Le patient pèse 34 ", "34 kg"),
     ]:
         doc = blank_nlp(text)
-        doc = matcher(doc)
 
         assert str(doc.spans["quantities"][0]._.value) == res
 
 
-def test_unitless_sequences(
-    blank_nlp: PipelineProtocol,
-    matcher: QuantitiesMatcher,
-):
+def test_unitless_sequences(blank_nlp: PipelineProtocol):
+    blank_nlp.add_pipe(eds.quantities(extract_ranges=True, use_tables=True))
     for text, expected in [
         (
             "Poids (Kg) Taille (m) IMC\n57,0 1,70 22",
@@ -314,31 +267,25 @@ def test_unitless_sequences(
         ),
     ]:
         doc = blank_nlp(text)
-        doc = matcher(doc)
 
         assert [
             (span.label_, str(span._.value)) for span in doc.spans["quantities"]
         ] == expected
 
 
-def test_unitless_sequences_are_dropped_when_ambiguous(
-    blank_nlp: PipelineProtocol,
-    matcher: QuantitiesMatcher,
-):
+def test_unitless_sequences_are_dropped_when_ambiguous(blank_nlp: PipelineProtocol):
+    blank_nlp.add_pipe(eds.quantities(extract_ranges=True, use_tables=True))
     for text in [
         "poids / truc / IMC : 57/3/22",
         "poids / IMC / truc : 57/3/22",
     ]:
         doc = blank_nlp(text)
-        doc = matcher(doc)
 
         assert len(doc.spans["quantities"]) == 0
 
 
-def test_non_matches(
-    blank_nlp: PipelineProtocol,
-    matcher: QuantitiesMatcher,
-):
+def test_non_matches(blank_nlp: PipelineProtocol):
+    blank_nlp.add_pipe(eds.quantities(extract_ranges=True, use_tables=True))
     for text in [
         "On délivre à 10 g / h.",
         "Le patient grandit de 10 cm par jour ",
@@ -346,15 +293,12 @@ def test_non_matches(
         "01.42.43.56.78 m",
     ]:
         doc = blank_nlp(text)
-        doc = matcher(doc)
 
         assert len(doc.spans["quantities"]) == 0
 
 
-def test_numbers(
-    blank_nlp: PipelineProtocol,
-    matcher: QuantitiesMatcher,
-):
+def test_numbers(blank_nlp: PipelineProtocol):
+    blank_nlp.add_pipe(eds.quantities(extract_ranges=True, use_tables=True))
     for text, res in [
         ("deux m", "2 m"),
         ("2 m", "2 m"),
@@ -363,48 +307,139 @@ def test_numbers(
         ("55 @ 77777 cm", "77777 cm"),
     ]:
         doc = blank_nlp(text)
-        doc = matcher(doc)
 
         assert str(doc.spans["quantities"][0]._.value) == res
 
 
-def test_ranges(
-    blank_nlp: PipelineProtocol,
-    matcher: QuantitiesMatcher,
-):
+def test_ranges(blank_nlp: PipelineProtocol):
+    blank_nlp.add_pipe(eds.quantities(extract_ranges=True, use_tables=True))
     for text, res, snippet in [
         ("Le patient fait entre 1 et 2m", "1-2 m", "entre 1 et 2m"),
         ("On mesure de 2 à 2.5 dl d'eau", "2-2.5 dl", "de 2 à 2.5 dl"),
     ]:
         doc = blank_nlp(text)
-        doc = matcher(doc)
 
         quantity = doc.spans["quantities"][0]
         assert str(quantity._.value) == res
         assert quantity.text == snippet
 
 
-def test_merge_align(blank_nlp, matcher):
-    matcher.merge_mode = "align"
-    matcher.span_getter = {"candidates": True}
-    matcher.span_setter = {"ents": True}
+def test_operator(blank_nlp: PipelineProtocol):
+    blank_nlp.add_pipe(eds.quantities(quantities="all"))
+
+    doc = blank_nlp("< 5 µl et supérieur à 8 ui")
+    quantities = doc.spans["quantities"]
+
+    assert [(s.label_, str(s._.value), s._.value.operator) for s in quantities] == [
+        ("µl", "<5 µl", "<"),
+        ("ui", ">8 ui", ">"),
+    ]
+
+
+def test_valueless_patterns(blank_nlp: PipelineProtocol):
+    blank_nlp.add_pipe(
+        eds.quantities(
+            quantities={
+                "status": {
+                    "unit": "bool",
+                    "valueless_patterns": [
+                        {
+                            "terms": ["positif", "positive"],
+                            "quantity": {"value": 1, "unit": "bool"},
+                        },
+                        {
+                            "regex": [r"n[eé]gati(?:f|ve)s?"],
+                            "quantity": {"value": 0, "unit": "bool"},
+                        },
+                    ],
+                }
+            }
+        ),
+    )
+
+    doc = blank_nlp("Résultat positif puis négatif")
+
+    assert [(span.text, str(span._.value)) for span in doc.spans["quantities"]] == [
+        ("positif", "1 bool"),
+        ("négatif", "0 bool"),
+    ]
+
+
+def test_table_unit_linking(blank_nlp: PipelineProtocol):
+    blank_nlp.add_pipe(
+        eds.quantities(
+            quantities={"mass_col": {"unit": "mg"}, "vol_col": {"unit": "ml"}},
+            use_tables=True,
+        )
+    )
+
+    doc = blank_nlp("mg | 5 | mL | 0.3\nmg | 7 | mL | 0.4\n")
+
+    assert [str(span._.value) for span in doc.spans["quantities"]] == [
+        "5 mg",
+        "0.3 ml",
+        "7 mg",
+        "0.4 ml",
+    ]
+
+
+def test_table_unit_linking_tie_breaker(blank_nlp: PipelineProtocol):
+    text = "mg | 5 | mL\nmg | 7 | mL\n"
+
+    blank_nlp.add_pipe(
+        eds.quantities(
+            quantities={"mass_col": {"unit": "mg"}, "vol_col": {"unit": "ml"}},
+            use_tables=True,
+            prefer_measure_before_unit=True,
+        )
+    )
     doc = blank_nlp(text)
+    assert [str(span._.value) for span in doc.spans["quantities"]] == ["5 mg", "7 mg"]
+
+    blank_nlp_2 = edsnlp.blank("eds")
+    blank_nlp_2.add_pipe(eds.normalizer())
+    blank_nlp_2.add_pipe(eds.sentences())
+    blank_nlp_2.add_pipe(eds.tables())
+    blank_nlp_2.add_pipe(
+        eds.quantities(
+            quantities={"mass_col": {"unit": "mg"}, "vol_col": {"unit": "ml"}},
+            use_tables=True,
+            prefer_measure_before_unit=False,
+        ),
+    )
+    doc = blank_nlp_2(text)
+    assert [str(span._.value) for span in doc.spans["quantities"]] == ["5 ml", "7 ml"]
+
+
+def test_merge_align(blank_nlp):
+    blank_nlp.add_pipe(
+        eds.quantities(
+            extract_ranges=True,
+            use_tables=True,
+            merge_mode="align",
+            span_getter={"candidates": True},
+            span_setter={"ents": True},
+        )
+    )
+    doc = blank_nlp.make_doc(text)
     ent = Span(doc, 10, 15, label="size")
     doc.spans["candidates"] = [ent]
-    doc = matcher(doc)
+    doc = blank_nlp(doc)
 
     assert len(doc.ents) == 1
     assert str(ent._.value) == "2.0 cm"
 
 
-def test_merge_intersect(blank_nlp, matcher: QuantitiesMatcher):
-    matcher.merge_mode = "intersect"
-    matcher.span_setter = {**matcher.span_setter, "ents": True}
-    matcher.span_getter = {"lookup_zones": True}
-    doc = blank_nlp(text)
+def test_merge_intersect(blank_nlp):
+    blank_nlp.add_pipe(eds.quantities(extract_ranges=True, use_tables=True))
+    pipe = blank_nlp.pipes.quantities
+    pipe.merge_mode = "intersect"
+    pipe.span_setter = {**pipe.span_setter, "ents": True}
+    pipe.span_getter = {"lookup_zones": True}
+    doc = blank_nlp.make_doc(text)
     ent = Span(doc, 10, 16, label="size")
     doc.spans["lookup_zones"] = [ent]
-    doc = matcher(doc)
+    doc = blank_nlp(doc)
 
     assert len(doc.ents) == 2
     assert len(doc.spans["quantities"]) == 2
@@ -412,7 +447,8 @@ def test_merge_intersect(blank_nlp, matcher: QuantitiesMatcher):
     assert [doc.ents[0]._.value.cm, doc.ents[1]._.value.cm] == [2.0, 3]
 
 
-def test_quantity_snippets(blank_nlp, matcher: QuantitiesMatcher):
+def test_quantity_snippets(blank_nlp):
+    blank_nlp.add_pipe(eds.quantities(extract_ranges=True, use_tables=True))
     for text, result in [
         ("0.50g", ["0.5 g"]),
         ("0.050g", ["0.05 g"]),
@@ -426,23 +462,23 @@ def test_quantity_snippets(blank_nlp, matcher: QuantitiesMatcher):
         ("1 / 50  kg", ["0.02 kg"]),
     ]:
         doc = blank_nlp(text)
-        doc = matcher(doc)
 
         assert [str(span._.value) for span in doc.spans["quantities"]] == result
 
 
-def test_error_management(blank_nlp, matcher: QuantitiesMatcher):
-    text = """
-        Leucocytes ¦ ¦ ¦4.2 ¦ ¦4.0-10.0
-        Hémoglobine ¦ ¦9.0 - ¦ ¦13-14
-        """
+def test_error_management(blank_nlp):
+    blank_nlp.add_pipe(eds.quantities(extract_ranges=True, use_tables=True))
+    text = (
+        "Leucocytes ¦ ¦ ¦4.2 ¦ ¦4.0-10.0\n"
+        "Hémoglobine ¦ ¦9.0 - ¦ ¦13-14\n"
+    )  # fmt: skip
     doc = blank_nlp(text)
-    doc = matcher(doc)
 
     assert len(doc.spans["quantities"]) == 0
 
 
-def test_conversions(blank_nlp, matcher: QuantitiesMatcher):
+def test_conversions(blank_nlp):
+    blank_nlp.add_pipe(eds.quantities(extract_ranges=True, use_tables=True))
     tests = [
         ("20 dm3", "l", 20),
         ("20 dm3", "m3", 0.02),
@@ -455,7 +491,6 @@ def test_conversions(blank_nlp, matcher: QuantitiesMatcher):
 
     for text, unit, expected in tests:
         doc = blank_nlp(text)
-        doc = matcher(doc)
         result = getattr(doc.spans["quantities"][0]._.value, unit)
         assert result == pytest.approx(expected, 1e-6), (
             f"{result} != {expected} for {text} in {unit}"
@@ -464,14 +499,10 @@ def test_conversions(blank_nlp, matcher: QuantitiesMatcher):
 
 def test_time_quantities(blank_nlp: PipelineProtocol):
     blank_nlp.add_pipe(
-        "eds.quantities",
-        config={"quantities": {"duration": {"unit": "second"}}},
+        eds.quantities(quantities={"duration": {"unit": "second"}}),
     )
     tests = [
-        (
-            "Le test a duré entre 5'14'' et 6'05.",
-            (5 * 60 + 14, 6 * 60 + 5),
-        ),
+        ("Le test a duré entre 5'14'' et 6'05.", (5 * 60 + 14, 6 * 60 + 5)),  # noqa: E501  # fmt: skip
         ("La perfusion a duré 2 heures.", (2 * 3600,)),
         ("L'examen a pris 45 min.", (45 * 60,)),
         ("La procédure a duré 1h30.", (1 * 3600 + 30 * 60,)),
@@ -485,3 +516,131 @@ def test_time_quantities(blank_nlp: PipelineProtocol):
             value = quantities[i]._.value
             seconds = value.second
             assert seconds == pytest.approx(expected, 1e-6)
+
+
+def test_complex_table_quantities_parsing(blank_nlp: PipelineProtocol):
+    blank_nlp.add_pipe(
+        eds.quantities(
+            quantities={
+                "mass_concentration": {"unit": "mg_per_l"},
+                "urine_volume": {"unit": "ml"},
+                "weight": {"unit": "kg"},
+                "size": {"unit": "m"},
+                "status": {
+                    "unit": "bool",
+                    "valueless_patterns": [
+                        {
+                            "terms": ["positif"],
+                            "quantity": {"value": 1, "unit": "bool"},
+                        },
+                        {
+                            "terms": ["negatif"],
+                            "quantity": {"value": 0, "unit": "bool"},
+                        },
+                    ],
+                },
+            },
+            use_tables=True,
+        ),
+    )
+
+    text = (
+        "Analyse | Statut | Valeur | Unite | Commentaire\n"
+        "CRP | positif | > 5 | mg/L | controle demain\n"
+        "Volume urine | negatif | 0.3 | mL | a surveiller\n"
+        "Poids | stable | 67 | kg | ok\n"
+        "Taille | notee | 1.68 | m | mesure manuelle\n"
+        "Commentaire | en hausse | controle | - | non quantitatif\n"
+    )  # fmt: skip
+
+    doc = blank_nlp(text)
+
+    assert [
+        (span.text, span.label_, str(span._.value), span._.value.operator)
+        for span in doc.spans["quantities"]
+    ] == [
+        ("positif", "status", "1 bool", "="),
+        ("negatif", "status", "0 bool", "="),
+        ("> 5", "mass_concentration", ">5 mg_per_l", ">"),
+        ("0.3", "urine_volume", "0.3 ml", "="),
+        ("67", "weight", "67 kg", "="),
+        ("1.68", "size", "1.68 m", "="),
+    ]
+
+
+def test_multiple_tables_and_multi_quantities_per_row(blank_nlp: PipelineProtocol):
+    blank_nlp.add_pipe(
+        eds.quantities(
+            quantities={
+                "mass_concentration": {"unit": "mg_per_l"},
+                "urine_volume": {"unit": "ml"},
+                "weight": {"unit": "kg"},
+                "size": {"unit": "m"},
+            },
+            use_tables=True,
+        ),
+    )
+
+    text = (
+        "Analyse | Valeur | Unite | Valeur2 | Unite2\n"
+        "CRP | 5 | mg/L | 0.3 | mL\n"
+        "\n"
+        "Analyse | Resultats\n"
+        "Bilan | 7 mg/L ; 0.4 mL\n"
+        "\n"
+        "Mesure | Valeur\n"
+        "Poids | 67 kg\n"
+        "Taille | 1.68 m\n"
+    )  # fmt: skip
+
+    doc = blank_nlp(text)
+
+    assert len(doc.spans["tables"]) == 3
+    assert [
+        (span.text, span.label_, str(span._.value)) for span in doc.spans["quantities"]
+    ] == [
+        ("5", "mass_concentration", "5 mg_per_l"),
+        ("0.3", "urine_volume", "0.3 ml"),
+        ("7 mg/L", "mass_concentration", "7 mg_per_l"),
+        ("0.4 mL", "urine_volume", "0.4 ml"),
+        ("67 kg", "weight", "67 kg"),
+        ("1.68 m", "size", "1.68 m"),
+    ]
+
+
+def test_table_header_units(blank_nlp: PipelineProtocol):
+    blank_nlp.add_pipe(
+        eds.quantities(
+            quantities={
+                "weight": {"unit": "kg"},
+                "size": {"unit": "m"},
+                "bmi": {"unit": "kg_per_m2"},
+                "duration": {"unit": "second"},
+            },
+            use_tables=True,
+        ),
+    )
+
+    text = (
+        "Patient | Poids (kg) | Taille (m) | IMC (kg/m2)\n"
+        "A | 67 | 1.68 | 23.7\n"
+        "\n"
+        "Quantity | Unit | Measurement duration (s)\n"
+        "150 | cm | 5\n"
+        "55 | kg | 10\n"
+    )  # fmt: skip
+
+    doc = blank_nlp(text)
+
+    assert len(doc.spans["tables"]) == 2
+    assert [
+        (span.text, span.label_, str(span._.value)) for span in doc.spans["quantities"]
+    ] == [
+        ("67", "weight", "67 kg"),
+        ("1.68", "size", "1.68 m"),
+        ("23.7", "bmi", "23.7 kg_per_m2"),
+        ("150", "size", "150 cm"),
+        ("5", "duration", "5 second"),
+        ("55", "weight", "55 kg"),
+        ("10", "duration", "10 second"),
+    ]

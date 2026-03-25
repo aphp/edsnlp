@@ -107,6 +107,11 @@ unit_divisors = ["/", "par"]
 
 stopwords = ["par", "sur", "de", "a", ",", "et", "-", "à"]
 
+operator_terms = {
+    "<": ["<", "<=", "inferieur a", "inferieure a", "inf a", "inf"],
+    ">": [">", ">=", "superieur a", "superieure a", "sup a", "sup"],
+}
+
 # Should we only make accented patterns and expect the user to use
 # `eds.normalizer` component first ?
 range_patterns = [
@@ -289,6 +294,9 @@ units_config = {
 
     # Percent (special unit)
     "%": {"dim": "%", "degree": 1, "scale": 1, "terms": ["%"], "followed_by": None},
+
+    # Boolean-like synthetic quantities
+    "bool": {"dim": "bool", "degree": 1, "scale": 1, "terms": ["bool"], "followed_by": None},
 
     # Logarithm (special unit)
     "log": {"dim": "log", "degree": 1, "scale": 1, "terms": ["log"], "followed_by": None},

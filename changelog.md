@@ -14,6 +14,9 @@
 - New `span_from_group` parameter in `eds.matcher` and `eds.contextual_matcher` to use the first capturing group in the regex instead of the full match
 - `eds.sentences` can now split on double (or more newlines), with a `hard_newline_count` parameter (e.g. 2 for two newlines), disabled by default
 - We now detect quantities and their unit in cases like "Poids / IMC: 58 / 22"
+- `eds.quantities` now supports prefixed inequalities such as `< 5 mg/L`
+- `eds.quantities` now supports `valueless_patterns` for synthetic quantities such as `positif` / `negatif`
+- `eds.quantities` table integration is more robust, including mixed value/unit layouts and units inferred from table headers
 
 ### Fixed
 

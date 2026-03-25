@@ -21,7 +21,7 @@
 ### Fixed
 
 - Use protocol-provided filesystem when writing parquet files, ie now only telling the program to write parquets to "hdfs:///users/x/y" should suffice.
-- Optimized CRF implementation
+- Optimized CRF implementation (up to twice as fast end to end NER :rocket:)
 - Fix average precision computation to account for the first recall step.
 - In docs and test, we now use `hf-internal-testing/tiny-random-bert` instead of the outdated `prajjwal1/bert-tiny`
 - Infer `LinearSchedule.max_value` from the current parameter value when omitted

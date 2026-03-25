@@ -14,37 +14,6 @@ def masked_flip(x, mask, dim_x=-2):
     return flipped_x
 
 
-def try_torch_compile(fn):
-    """Call torch.compile(fn) when possible or fall back to fn if compiler errors occur.
-
-    We only fall back on torch compiler stack exceptions (Dynamo/Inductor/Functorch).
-    All other exceptions are re-raised (they may indicate a real bug).
-    """
-    disabled = False
-    compiled_fn = None
-
-    def wrapped(*args, **kwargs):
-        nonlocal disabled, compiled_fn
-        if disabled:
-            return fn(*args, **kwargs)
-        try:
-            compiled_fn = torch.compile(fn, fullgraph=True)
-            return compiled_fn(*args, **kwargs)
-        except Exception as e:
-            mod = getattr(e.__class__, "__module__", "")
-            if (
-                mod.startswith("torch._dynamo")
-                or mod.startswith("torch._inductor")
-                or mod.startswith("torch._functorch")
-            ):
-                disabled = True
-                return fn(*args, **kwargs)
-            raise
-
-    return wrapped
-
-
-@try_torch_compile
 def logsumexp_reduce(log_A, log_B):
     # log_A: 2 * N * M
     # log_B: 2 *     M * O
@@ -52,7 +21,6 @@ def logsumexp_reduce(log_A, log_B):
     return (log_A.unsqueeze(-1) + log_B.unsqueeze(-3)).logsumexp(-2)
 
 
-@try_torch_compile
 def max_reduce(log_A, log_B):
     # log_A: 2 * N * M
     # log_B: 2 *     M * O

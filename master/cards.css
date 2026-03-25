@@ -1,0 +1,46 @@
+.md-typeset .card-set {
+    grid-gap: .4rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(16rem,1fr));
+    margin: 1em 0
+}
+
+.md-typeset .card-set>a.card-content {
+    color: initial;
+}
+
+.md-typeset .card-set>.card-content,.md-typeset .card-set>.card-content,.md-typeset .grid>.card {
+    border: .05rem solid var(--md-default-fg-color--lightest);
+    border-radius: .1rem;
+    display: block;
+    margin: 0;
+    padding: .8rem;
+    transition: border .25s,box-shadow .25s
+}
+
+.md-typeset .card-set>.card-content:focus-within,.md-typeset .card-set>.card-content:hover,.md-typeset .card-set>.card-content:focus-within,.md-typeset .card-set>.card-content:hover,.md-typeset .grid>.card:focus-within,.md-typeset .grid>.card:hover {
+    border-color: #0000;
+    box-shadow: var(--md-shadow-z2)
+}
+
+.md-typeset .card-set>.card-content>hr,.md-typeset .card-set>.card-content>hr,.md-typeset .grid>.card>hr {
+    margin-bottom: 1em;
+    margin-top: 1em
+}
+
+.md-typeset .card-set>.card-content>:first-child,.md-typeset .card-set>.card-content>:first-child,.md-typeset .grid>.card>:first-child {
+    margin-top: 0
+}
+
+.md-typeset .card-set>.card-content>:last-child,.md-typeset .card-set>.card-content>:last-child,.md-typeset .grid>.card>:last-child {
+    margin-bottom: 0
+}
+
+.md-typeset .card-set>*,.md-typeset .card-set>.admonition,.md-typeset .card-set>.highlight>*,.md-typeset .card-set>.highlighttable,.md-typeset .card-set>.md-typeset details,.md-typeset .card-set>details,.md-typeset .card-set>pre {
+    margin-bottom: 0;
+    margin-top: 0
+}
+
+.md-typeset .card-set>.highlight>pre:only-child,.md-typeset .card-set>.highlight>pre>code,.md-typeset .card-set>.highlighttable,.md-typeset .card-set>.highlighttable>tbody,.md-typeset .card-set>.highlighttable>tbody>tr,.md-typeset .card-set>.highlighttable>tbody>tr>.code,.md-typeset .card-set>.highlighttable>tbody>tr>.code>.highlight,.md-typeset .card-set>.highlighttable>tbody>tr>.code>.highlight>pre,.md-typeset .card-set>.highlighttable>tbody>tr>.code>.highlight>pre>code {
+    height: 100%
+}

@@ -3,10 +3,10 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-BASE_VERSION = "0.20.0"
+__version__ = "0.20.0"
 
 
-def get_version(base_version: str = BASE_VERSION) -> str:
+def get_version(base_version: str = __version__) -> str:
     repo_root = next(
         (
             current

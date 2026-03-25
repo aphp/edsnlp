@@ -1,5 +1,7 @@
+import pickle
 from itertools import chain
 
+import dill
 import pytest
 from pytest import fixture
 from spacy.tokens.span import Span
@@ -553,6 +555,29 @@ def test_time_quantities(blank_nlp: PipelineProtocol):
             value = quantities[i]._.value
             seconds = value.second
             assert seconds == pytest.approx(expected, 1e-6)
+
+
+@pytest.mark.parametrize("pickler_module", ["pickle", "dill"])
+def test_quantities_pickle_dump_and_load(
+    blank_nlp: PipelineProtocol,
+    pickler_module: str,
+):
+    pickler = pickle if pickler_module == "pickle" else dill
+
+    blank_nlp.add_pipe(
+        eds.quantities(quantities={"duration": {"unit": "second"}}, use_tables=False),
+    )
+
+    doc = blank_nlp("La procédure a duré 1h30.")
+    value = doc.spans["quantities"][0]._.value
+
+    reloaded_value = pickler.loads(pickler.dumps(value))
+    assert reloaded_value.minute == pytest.approx(90.0, 1e-6)
+
+    reloaded_doc = pickler.loads(pickler.dumps(doc))
+    assert reloaded_doc.spans["quantities"][0]._.value.minute == pytest.approx(
+        90.0, 1e-6
+    )
 
 
 def test_complex_table_quantities_parsing(blank_nlp: PipelineProtocol):

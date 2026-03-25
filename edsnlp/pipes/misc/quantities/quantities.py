@@ -249,9 +249,23 @@ class SimpleQuantity(Quantity):
         return self.value
 
     def __getattr__(self, other_unit: str):
+        if other_unit.startswith("__") or other_unit in {
+            "registry",
+            "unit",
+            "value",
+            "operator",
+        }:
+            raise AttributeError(other_unit)
+
         try:
+            registry = object.__getattribute__(self, "registry")
+        except AttributeError as exc:  # pragma: no cover
+            raise AttributeError(other_unit) from exc
+
+        try:
+            registry.parse_unit(other_unit)
             return self.convert_to(other_unit)
-        except KeyError:
+        except KeyError:  # pragma: no cover
             raise AttributeError(f"Unit {other_unit} not found")
 
     @classmethod
@@ -328,7 +342,19 @@ class RangeQuantity(Quantity):
         return max(self.convert_to(other.unit)) <= max((part.value for part in other))
 
     def __getattr__(self, other_unit):
-        return self.convert_to(other_unit)
+        if other_unit.startswith("__") or other_unit in {"registry", "unit", "value"}:
+            raise AttributeError(other_unit)
+
+        try:
+            registry = object.__getattribute__(self, "registry")
+        except AttributeError as exc:  # pragma: no cover
+            raise AttributeError(other_unit) from exc
+
+        try:
+            registry.parse_unit(other_unit)
+            return self.convert_to(other_unit)
+        except KeyError:  # pragma: no cover
+            raise AttributeError(f"Unit {other_unit} not found")
 
     def __eq__(self, other: Any):
         if isinstance(other, RangeQuantity):

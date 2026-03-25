@@ -36,6 +36,7 @@
 - Qualifier pipes now correctly take `span_getter` into account when it is passed, including when `on_ents_only=False`, instead of silently falling back to `doc.ents`
 - Disorder components (e.g. `eds.peripheral_vascular_disease`) no longer raise an error in case of ill-assigned statuses
 - Fixed a pattern in `eds.peripheral_vascular_disease`
+- Unpickling quantities should not cause recursion error anymore
 
 ## v0.20.0 (2025-12-12)
 

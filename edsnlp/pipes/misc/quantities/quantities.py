@@ -1,3 +1,31 @@
+# Notes for a newcomer
+#
+# `eds.quantities` is built in layers. The low-level pieces are the unit registry
+# and the quantity objects (`SimpleQuantity` / `RangeQuantity`), which define how
+# units are normalized, converted and exposed on spans. The matcher itself then
+# does three things:
+# 1. collect raw matches for numbers, unit parts, stopwords and custom patterns,
+# 2. assemble higher-level units and quantities from those matches,
+# 3. attach normalized quantity objects to the returned spans.
+#
+# The main function is `extract_quantities`. If you are new to the file, start
+# there and read the function as you encounter them:
+# - `get_matches` builds the raw ingredients (number, units, separators, ...) used
+#    everywhere else,
+# - `extract_units` composes unit atoms such as `mg`, `per`, `L` into normalized
+#    unit labels such as `mg_per_l`,
+# - `prepare_unitless_matches` and the range/operator helpers adjust how numeric
+#    matches should be interpreted before the final quantity is created,
+# - `make_quantity` is the last step that validates the unit, picks the label and
+#   stores the `SimpleQuantity` on the span.
+#
+# Table support is an extra inference layer on top of the normal text matching.
+# - `eds.tables` provides table spans and cell boundaries, and is expected upstream
+#    in the pipeline
+# - `prep_table` summarizes each table (which columns mostly look like values, units
+#    or powers, and how they relate to each other),
+# - `infer_unit_from_table` uses that info to assign a unit to a numeric cell.
+
 import abc
 import re
 import unicodedata
@@ -56,9 +84,22 @@ class UnitlessPatternConfigWithName(TypedDict):
     name: str
 
 
+class SimpleQuantityConfig(TypedDict):
+    value: Union[float, int]
+    unit: str
+    operator: NotRequired[Literal["=", "<", ">"]]
+
+
+class ValuelessPatternConfig(TypedDict):
+    quantity: SimpleQuantityConfig
+    terms: NotRequired[List[str]]
+    regex: NotRequired[List[str]]
+
+
 class MsrConfig(TypedDict):
     unit: str
     unitless_patterns: NotRequired[List[UnitlessPatternConfig]]
+    valueless_patterns: NotRequired[List[ValuelessPatternConfig]]
     name: NotRequired[str]
 
 
@@ -126,7 +167,13 @@ class UnitRegistry:
 
 
 class SimpleQuantity(Quantity):
-    def __init__(self, value: float, unit: str, registry):
+    def __init__(
+        self,
+        value: float,
+        unit: str,
+        registry,
+        operator: Literal["=", "<", ">"] = "=",
+    ):
         """
         The SimpleQuantity class contains the value and unit
         for a single non-composite measure
@@ -140,6 +187,7 @@ class SimpleQuantity(Quantity):
         self.value = value
         self.unit = unit
         self.registry = registry
+        self.operator = operator
 
     def __iter__(self):
         return iter((self,))
@@ -149,7 +197,8 @@ class SimpleQuantity(Quantity):
         return [self][item]
 
     def __str__(self):
-        return f"{self.value} {self.unit}"
+        prefix = "" if self.operator == "=" else self.operator
+        return f"{prefix}{self.value} {self.unit}"
 
     def __len__(self):
         return 1
@@ -159,14 +208,25 @@ class SimpleQuantity(Quantity):
 
     def __eq__(self, other: Any):
         if isinstance(other, SimpleQuantity):
-            return self.convert_to(other.unit) == other.value
+            return (
+                self.convert_to(other.unit) == other.value
+                and self.operator == other.operator
+            )
         return False
 
     def __add__(self, other: "SimpleQuantity"):
         if other.unit == self.unit:
-            return SimpleQuantity(self.value + other.value, self.unit, self.registry)
+            return SimpleQuantity(
+                self.value + other.value,
+                self.unit,
+                self.registry,
+                operator=self.operator,
+            )
         return SimpleQuantity(
-            self.value + other.convert_to(self.unit), self.unit, self.registry
+            self.value + other.convert_to(self.unit),
+            self.unit,
+            self.registry,
+            operator=self.operator,
         )
 
     def __lt__(self, other: Union["SimpleQuantity", "RangeQuantity"]):
@@ -294,12 +354,6 @@ class QuantitiesMatcher(BaseNERComponent):
     r'''
     The `eds.quantities` matcher detects and normalizes numerical quantities
     within a medical document.
-
-    !!! warning
-
-        The ``quantities`` pipeline is still in active development and has not
-        been rigorously validated. If you come across a quantity expression that
-        goes undetected, please file an issue !
 
     Pipe definition
     ---------------
@@ -462,6 +516,51 @@ class QuantitiesMatcher(BaseNERComponent):
     # Out: [178.0, 0.12, 0.24, 1.25]
     ```
 
+    Quantities in tables
+    --------------------
+
+    When `eds.tables` is added upstream in the pipeline, quantities can also
+    be inferred from table structure, including explicit unit columns and
+    units stored in headers:
+
+    ```python
+    import edsnlp, edsnlp.pipes as eds
+
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(eds.sentences())
+    nlp.add_pipe(eds.tables())
+    nlp.add_pipe(
+        eds.quantities(
+            # or set to "all" to match everything (but you might
+            # catch false positives)
+            quantities={
+                "size": {"unit": "m"},
+                "weight": {"unit": "kg"},
+                "duration": {"unit": "second"},
+            },
+            use_tables=True,
+        )
+    )
+
+    text = """
+    Patient | Poids (kg) | Taille (m) | Measurement duration (s)
+    A | 67 | 1.68 | 5
+    B | 55 | 1.72 | 10
+    """
+
+    doc = nlp(text)
+
+    [(span.text, span.label_, str(span._.value)) for span in doc.spans["quantities"]]
+    # Out: [
+    #   ('67', 'weight', '67 kg'),
+    #   ('1.68', 'size', '1.68 m'),
+    #   ('5', 'duration', '5 second'),
+    #   ('55', 'weight', '55 kg'),
+    #   ('1.72', 'size', '1.72 m'),
+    #   ('10', 'duration', '10 second'),
+    # ]
+    ```
+
     To extract the quantities from many texts, you can use the following snippet:
 
     ```python
@@ -615,33 +714,39 @@ class QuantitiesMatcher(BaseNERComponent):
     The `eds.quantities` pipeline was developed by AP-HP's Data Science team.
     '''  # noqa: E501
 
-    # fmt: off
     def __init__(
-            self,
-            nlp: PipelineProtocol,
-            name: str = "quantities",
-            *,
-            quantities: Union[str, List[Union[str, MsrConfig]], Dict[str, MsrConfig]] = list(patterns.common_quantities.keys()),  # noqa: E501
-            units_config: Dict[str, UnitConfig] = patterns.units_config,
-            number_terms: Dict[str, List[str]] = patterns.number_terms,
-            number_regex: str = patterns.number_regex,
-            stopwords: List[str] = patterns.stopwords,
-            unit_divisors: List[str] = patterns.unit_divisors,
-            ignore_excluded: bool = True,
-            compose_units: bool = True,
-            attr: str = "NORM",
-            extract_ranges: bool = False,
-            range_patterns: List[Tuple[Optional[str], Optional[str]]] = patterns.range_patterns,  # noqa: E501
-            after_snippet_limit: int = 6,
-            before_snippet_limit: int = 10,
-            span_getter: Optional[SpanGetterArg] = None,
-            merge_mode: Literal["intersect", "align"] = "intersect",
-            as_ents: bool = False,
-            span_setter: Optional[SpanSetterArg] = None,
-            use_tables: bool = True,
-            measurements: Optional[Union[str, List[Union[str, MsrConfig]], Dict[str, MsrConfig]]] = None,  # deprecated # noqa: E501
+        self,
+        nlp: PipelineProtocol,
+        name: str = "quantities",
+        *,
+        quantities: Union[
+            str, List[Union[str, MsrConfig]], Dict[str, MsrConfig]
+        ] = list(patterns.common_quantities.keys()),  # noqa: E501
+        units_config: Dict[str, UnitConfig] = patterns.units_config,
+        number_terms: Dict[str, List[str]] = patterns.number_terms,
+        number_regex: str = patterns.number_regex,
+        stopwords: List[str] = patterns.stopwords,
+        operator_terms: Dict[Literal["<", ">"], List[str]] = patterns.operator_terms,
+        unit_divisors: List[str] = patterns.unit_divisors,
+        ignore_excluded: bool = True,
+        compose_units: bool = True,
+        attr: str = "NORM",
+        extract_ranges: bool = False,
+        range_patterns: List[
+            Tuple[Optional[str], Optional[str]]
+        ] = patterns.range_patterns,  # noqa: E501
+        after_snippet_limit: int = 6,
+        before_snippet_limit: int = 10,
+        span_getter: Optional[SpanGetterArg] = None,
+        merge_mode: Literal["intersect", "align"] = "intersect",
+        as_ents: bool = False,
+        span_setter: Optional[SpanSetterArg] = None,
+        use_tables: bool = True,
+        prefer_measure_before_unit: bool = False,
+        measurements: Optional[
+            Union[str, List[Union[str, MsrConfig]], Dict[str, MsrConfig]]
+        ] = None,  # deprecated # noqa: E501
     ):
-
         if measurements:
             quantities = measurements
             logger.warning(
@@ -650,7 +755,7 @@ class QuantitiesMatcher(BaseNERComponent):
             )
 
         self.use_tables = use_tables and (
-                "eds.tables" in nlp.pipe_names or "tables" in nlp.pipe_names
+            "eds.tables" in nlp.pipe_names or "tables" in nlp.pipe_names
         )
         if use_tables and not self.use_tables:
             logger.warning(
@@ -663,7 +768,6 @@ class QuantitiesMatcher(BaseNERComponent):
         if self.all_quantities:
             quantities = []
 
-        # fmt: on
         if isinstance(quantities, str):
             quantities = [quantities]
         if isinstance(quantities, (list, tuple)):
@@ -678,12 +782,16 @@ class QuantitiesMatcher(BaseNERComponent):
 
         self.unit_registry = UnitRegistry(units_config)
         self.unitless_patterns: Dict[str, UnitlessPatternConfigWithName] = {}
+        self.valueless_patterns: Dict[str, SimpleQuantityConfig] = {}
         self.unit_part_label_hashes: Set[int] = set()
         self.unitless_label_hashes: Set[int] = set()
+        self.valueless_label_hashes: Set[int] = set()
+        self.operator_label_hashes: Set[int] = set()
         self.unit_followers: Dict[str, str] = {}
         self.measure_names: Dict[str, str] = {}
         self.compose_units = compose_units
         self.extract_ranges = extract_ranges
+        self.prefer_measure_before_unit = prefer_measure_before_unit
         self.range_patterns = range_patterns
         self.span_getter = (
             validate_span_getter(span_getter) if span_getter is not None else None
@@ -743,6 +851,18 @@ class QuantitiesMatcher(BaseNERComponent):
                     )
                     self.unitless_label_hashes.add(nlp.vocab.strings[pattern_name])
                     self.unitless_patterns[pattern_name] = {"name": name, **pattern}
+            if "valueless_patterns" in measure_config:
+                for pattern in measure_config["valueless_patterns"]:
+                    pattern_name = f"valueless_{len(self.valueless_patterns)}"
+                    if "terms" in pattern:
+                        self.term_matcher.build_patterns(
+                            nlp,
+                            terms={pattern_name: pattern["terms"]},
+                        )
+                    if "regex" in pattern:
+                        self.regex_matcher.add(pattern_name, pattern["regex"])
+                    self.valueless_label_hashes.add(nlp.vocab.strings[pattern_name])
+                    self.valueless_patterns[pattern_name] = pattern["quantity"]
 
         # NUMBER PATTERNS
         self.regex_matcher.add(
@@ -755,6 +875,10 @@ class QuantitiesMatcher(BaseNERComponent):
         for number, terms in number_terms.items():
             self.term_matcher.build_patterns(nlp, {number: terms})
             self.number_label_hashes.add(nlp.vocab.strings[number])
+
+        for operator, terms in operator_terms.items():
+            self.term_matcher.build_patterns(nlp, {operator: terms})
+            self.operator_label_hashes.add(nlp.vocab.strings[operator])
 
         # UNIT PATTERNS
         for unit_name, unit_config in units_config.items():
@@ -772,6 +896,344 @@ class QuantitiesMatcher(BaseNERComponent):
                 "unitless_stopword": [":"],
             },
         )
+
+    def get_span_operator(
+        self,
+        matches: List[Tuple[Span, bool]],
+        match_idx: int,
+    ) -> Tuple[Literal["=", "<", ">"], Optional[Span]]:
+        operator = "="
+        operator_span = None
+        for prev_idx in range(match_idx - 1, -1, -1):
+            ent, is_sent_end = matches[prev_idx]
+            if is_sent_end:
+                break
+            if ent.label in self.operator_label_hashes:
+                if (
+                    matches[match_idx][0]
+                    .doc[ent.end : matches[match_idx][0].start]
+                    .text.strip()
+                    == ""
+                ):
+                    operator = ent.label_
+                    operator_span = ent
+                break
+            if (
+                ent.label in self.number_label_hashes
+                or ent.label in self.unit_part_label_hashes
+            ):
+                break
+            if (
+                matches[match_idx][0]
+                .doc[ent.end : matches[match_idx][0].start]
+                .text.strip()
+                != ""
+            ):
+                break
+        return operator, operator_span
+
+    @staticmethod
+    def _pick_linked_column(
+        value_col: int,
+        target_cols: List[int],
+        prefer_before: bool,
+    ) -> Optional[int]:
+        # Here we
+        if not target_cols:
+            return None
+        stats = []
+        for col in target_cols:
+            delta = col - value_col
+            stats.append((abs(delta), delta >= 0, col))
+        side_matches = [col for _, is_after, col in stats if prefer_before != is_after]
+        if side_matches:
+            return min(side_matches, key=lambda col: abs(col - value_col))
+        return min(
+            target_cols,
+            key=lambda c: (abs(c - value_col), prefer_before != (c < value_col)),
+        )
+
+    def prep_table(
+        self,
+        table: Span,
+        matches: List[Tuple[Span, bool]],
+        unit_label_hashes: Set[int],
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Build the required info for a given table to enable matching values
+        to their power/units from it.
+
+        Parameters
+        ----------
+        table: Span
+        matches: List[Tuple[Span, bool]]
+        unit_label_hashes: Set[int]
+
+        Returns
+        -------
+        Optional[Dict[str, Any]]
+
+        - table: Span, the base table
+        - rows: Span[][], the spans of the cells of the table
+        - cell_matches: (int, int) -> List[Span] the matched quantities per cell
+        - header_rows: Set(int), rows likely to be headers (no vals, but many units)
+        - links: {col_idx -> {"unit": int, "power": int}, links between cols
+        """
+
+        table_pd = table._.to_pd_table(as_spans=True)
+        rows = [[cell for cell in row] for _, row in table_pd.iterrows()]
+        if not rows:
+            return None
+
+        # map table cells to matches (1 to many)
+        all_cell_matches = {}
+        header_rows = set()
+        for row_idx, row in enumerate(rows):
+            row_has_values = False
+            for col_idx, cell in enumerate(row):
+                if cell is None:
+                    continue
+                matches_in_cell = [
+                    match
+                    for match, is_sent_end in matches
+                    if not is_sent_end
+                    and match.start >= cell.start
+                    and match.end <= cell.end
+                ]
+                all_cell_matches[(row_idx, col_idx)] = matches_in_cell
+                row_has_values = row_has_values or any(
+                    match.label in self.number_label_hashes
+                    or match.label in self.valueless_label_hashes
+                    for match in matches_in_cell
+                )
+            if not row_has_values:
+                header_rows.add(row_idx)
+
+        # count how many matches of each type (value/unit/power/default) are in each col
+        n_cols = max(len(row) for row in rows)
+        non_empty_counts = [0] * n_cols
+        value_counts = [0] * n_cols
+        unit_counts = [0] * n_cols
+        power_counts = [0] * n_cols
+
+        number_hashes = self.number_label_hashes
+        valueless_hashes = self.valueless_label_hashes
+
+        for row_idx, row in enumerate(rows):
+            for col_idx, cell in enumerate(row):
+                if cell is None:
+                    continue
+                cell_text = str(cell).strip()
+                if not cell_text:
+                    continue
+                non_empty_counts[col_idx] += 1
+                cell_matches = all_cell_matches.get((row_idx, col_idx), [])
+                has_number = any(m.label in number_hashes for m in cell_matches)
+                has_valueless = any(m.label in valueless_hashes for m in cell_matches)
+                units = [m for m in cell_matches if m.label in unit_label_hashes]
+                powers = [m for m in units if m.label_.startswith("x10*")]
+                non_powers = [m for m in units if not m.label_.startswith("x10*")]
+                if (has_number or has_valueless) and not units:
+                    value_counts[col_idx] += 1
+                elif powers and not has_number and not non_powers:
+                    power_counts[col_idx] += 1
+                elif non_powers and not has_number:
+                    unit_counts[col_idx] += 1
+
+        thresholds = [max(1, cnt // 2) for cnt in non_empty_counts]
+        value_cols = [i for i, c in enumerate(value_counts) if c >= thresholds[i]]
+        unit_cols = [i for i, c in enumerate(unit_counts) if c >= thresholds[i]]
+        power_cols = [i for i, c in enumerate(power_counts) if c >= thresholds[i]]
+
+        def choose_before_or_after(a: List[int], b: List[int], default: bool) -> bool:
+            if not a or not b:
+                return default
+            before_score = sum(any(t < col for t in b) for col in a)
+            after_score = sum(any(t > col for t in b) for col in a)
+            if before_score == after_score:
+                return default
+            return before_score > after_score
+
+        # choose overall if target columns are after of before value columns
+        prefer_unit_before = choose_before_or_after(
+            value_cols, unit_cols, self.prefer_measure_before_unit
+        )
+        prefer_power_before = choose_before_or_after(
+            value_cols, power_cols, self.prefer_measure_before_unit
+        )
+
+        # For each value column, pick the closest unit and power columns on the
+        # preferred side, or closest on the other side
+        def pick_closest_col(base_col: int, others: List[int], prefer_before: bool):
+            if not others:
+                return None
+            return min(
+                others,
+                key=lambda col: (
+                    (col >= base_col) if prefer_before else (col < base_col),
+                    abs(col - base_col),
+                ),
+            )
+
+        links = {
+            value_col: {
+                "unit": pick_closest_col(value_col, unit_cols, prefer_unit_before),
+                "power": pick_closest_col(value_col, power_cols, prefer_power_before),
+            }
+            for value_col in value_cols
+        }
+        return {
+            "table": table,
+            "rows": rows,
+            "cell_matches": all_cell_matches,
+            "header_rows": header_rows,
+            "links": links,
+        }
+
+    def infer_unit_from_table(
+        self,
+        number: Span,
+        table_infos: List[Dict[str, Any]],
+        unit_label_hashes: Set[int],
+    ) -> Tuple[Optional[Span], Optional[str]]:
+        """
+        For a given number, try to find its unit using the tables' info.
+
+        Parameters
+        ----------
+        number: Span
+        table_infos: List[Dict[str, Any]]
+        unit_label_hashes: Set[int]
+
+        Returns
+        -------
+        Tuple[Optional[Span], Optional[str]]
+            The inferred unit span and its normalized label, or (None, None) if no
+            unit could be inferred.
+        """
+        for table_info in table_infos:
+            table = table_info["table"]
+            if number.start < table.start or number.end > table.end:
+                continue
+            for row_idx, row in enumerate(table_info["rows"]):
+                for col_idx, cell in enumerate(row):
+                    if cell is None:
+                        continue
+                    if number.start < cell.start or number.end > cell.end:
+                        continue
+                    link = table_info["links"].get(col_idx)
+                    if not link:
+                        return None, None
+                    unit_label = None
+                    unit_span = None
+                    unit_col = link["unit"]
+                    if unit_col is not None and unit_col < len(row):
+                        unit_span, unit_label = self.infer_unit_from_cell(
+                            row[unit_col],
+                            table_info["cell_matches"].get((row_idx, unit_col), []),
+                            unit_label_hashes,
+                        )
+                    if unit_label is None:
+                        header_candidate_cols = []
+                        if unit_col is not None:
+                            header_candidate_cols.append(unit_col)
+                        if col_idx not in header_candidate_cols:
+                            header_candidate_cols.append(col_idx)
+                        unit_span, unit_label = self.infer_header_unit(
+                            row_idx,
+                            header_candidate_cols,
+                            table_info,
+                            unit_label_hashes,
+                        )
+                    power_col = link["power"]
+                    if power_col is not None and power_col < len(row):
+                        power_matches = [
+                            match
+                            for match in table_info["cell_matches"].get(
+                                (row_idx, power_col), []
+                            )
+                            if match.label in unit_label_hashes
+                            and match.label_.startswith("x10*")
+                        ]
+                        if power_matches:
+                            power_label = power_matches[0].label_
+                            unit_label = (
+                                power_label
+                                if unit_label is None
+                                else f"{power_label}_{unit_label}"
+                            )
+                    return unit_span, unit_label
+        return None, None
+
+    def infer_unit_from_cell(
+        self,
+        cell: Span,
+        cell_matches: List[Span],
+        unit_label_hashes: Set[int],
+    ) -> Tuple[Optional[Span], Optional[str]]:
+        # TODO: maybe we should use unfiltered, non de-overlapped unit matches here
+        #       as fallback.
+        return next(
+            (
+                (m, m.label_)
+                for m in cell_matches
+                if m.label in unit_label_hashes and not m.label_.startswith("x10*")
+            ),
+            (None, None),
+        )
+
+    def infer_header_unit(
+        self,
+        row_idx: int,
+        candidate_cols: List[int],
+        table_info: Dict[str, Any],
+        unit_label_hashes: Set[int],
+    ) -> Tuple[Optional[Span], Optional[str]]:
+        for candidate_col in candidate_cols:
+            for header_row_idx in range(row_idx - 1, -1, -1):
+                if header_row_idx not in table_info["header_rows"]:
+                    continue
+                row = table_info["rows"][header_row_idx]
+                if candidate_col >= len(row):
+                    continue
+                header_cell = row[candidate_col]
+                if header_cell is None:
+                    continue
+                unit_span, unit_label = self.infer_unit_from_cell(
+                    header_cell,
+                    table_info["cell_matches"].get((header_row_idx, candidate_col), []),
+                    unit_label_hashes,
+                )
+                if unit_label is not None:
+                    return unit_span, unit_label
+        return None, None
+
+    def make_quantity(
+        self,
+        ent: Span,
+        unit_norm: str,
+        value: Union[int, float],
+        operator: Literal["=", "<", ">"] = "=",
+    ) -> Optional[Span]:
+        try:
+            dims = self.unit_registry.parse_unit(unit_norm)[0]
+        except KeyError:
+            return None
+
+        if (dims not in self.measure_names) and not self.all_quantities:
+            return None
+
+        if self.all_quantities:
+            if not Span.has_extension(unit_norm):
+                Span.set_extension(unit_norm, default=None)
+            ent.label_ = unit_norm
+        else:
+            ent.label_ = self.measure_names[dims]
+        ent._.set(
+            ent.label_,
+            SimpleQuantity(value, unit_norm, self.unit_registry, operator=operator),
+        )
+        return ent
 
     def set_extensions(self) -> None:
         """
@@ -807,16 +1269,18 @@ class QuantitiesMatcher(BaseNERComponent):
         for unit_part in filter_spans(term_matches):
             if unit_part.label not in self.unit_part_label_hashes:
                 continue
+            gap_text = (
+                unit_part.doc[last.end : unit_part.start].text
+                if last is not None
+                else ""
+            )
             if last is not None and (
-                    (
-                            unit_part.doc[last.end: unit_part.start].text.strip() != ""
-                            and len(current)
-                    )
-                    or (
-                            not self.compose_units
-                            and len(current)
-                            and current[-1].label_ != "per"
-                    )
+                ((gap_text.strip() != "" or "\n" in gap_text) and len(current))
+                or (
+                    not self.compose_units
+                    and len(current)
+                    and current[-1].label_ != "per"
+                )
             ):
                 doc = current[0].doc
                 # Last non "per" match: we don't want our units to be like `g_per`
@@ -846,10 +1310,10 @@ class QuantitiesMatcher(BaseNERComponent):
 
     @classmethod
     def make_pseudo_sentence(
-            cls,
-            doclike: Union[Doc, Span],
-            matches: List[Tuple[Span, bool]],
-            pseudo_mapping: Dict[int, str],
+        cls,
+        doclike: Union[Doc, Span],
+        matches: List[Tuple[Span, bool]],
+        pseudo_mapping: Dict[int, str],
     ) -> Tuple[str, List[int]]:
         """
         Creates a pseudo sentence (one letter per entity)
@@ -878,14 +1342,14 @@ class QuantitiesMatcher(BaseNERComponent):
         offsets = []
         for ent, is_sent_split in matches:
             if (
-                    ent.start != last
-                    and not doclike.doc[last: ent.start].text.strip() == ""
+                ent.start != last
+                and not doclike.doc[last : ent.start].text.strip() == ""
             ):
                 pseudo.append("w")
             offsets.append(len(pseudo))
             pseudo.append(pseudo_mapping.get(ent.label, "." if is_sent_split else "w"))
             last = ent.end
-        if snippet.end != last and doclike.doc[last: snippet.end].text.strip() == "":
+        if snippet.end != last and doclike.doc[last : snippet.end].text.strip() == "":
             pseudo.append("w")
         pseudo = "".join(pseudo)
 
@@ -907,7 +1371,7 @@ class QuantitiesMatcher(BaseNERComponent):
             - List of tuples of spans and whether the spans represents a sentence end
             - List of hash label to distinguish unit from other matches
         """
-        sent_ends = [doc[i: i + 1] for i in range(len(doc)) if doc[i].is_sent_end]
+        sent_ends = [doc[i : i + 1] for i in range(len(doc)) if doc[i].is_sent_end]
 
         regex_matches = list(self.regex_matcher(doc, as_spans=True))
         term_matches = list(self.term_matcher(doc, as_spans=True))
@@ -974,7 +1438,9 @@ class QuantitiesMatcher(BaseNERComponent):
             grouped_numbers.add(add_match(span, is_sent_end))
 
         for match, is_sent_end in matches:
-            gap_text = match.doc[prev.end:match.start].text if prev is not None else ""
+            gap_text = (
+                match.doc[prev.end : match.start].text if prev is not None else ""
+            )
             has_word_gap = bool(re.search(r"\w", gap_text))
             ignore_unitless_header = (
                 bool(pending_unitless)
@@ -1002,7 +1468,9 @@ class QuantitiesMatcher(BaseNERComponent):
                 grouped_value_chain = False
                 current_name = self.unitless_patterns[match.label_]["name"]
                 last_name = (
-                    self.unitless_patterns[prepared_matches[pending_unitless[-1]][0].label_]["name"]
+                    self.unitless_patterns[
+                        prepared_matches[pending_unitless[-1]][0].label_
+                    ]["name"]
                     if pending_unitless
                     else None
                 )
@@ -1036,8 +1504,16 @@ class QuantitiesMatcher(BaseNERComponent):
                         for i, part in enumerate(split_numbers):
                             mapping[add_match(part, False)] = pending_unitless.popleft()
                             if i < len(split_numbers) - 1:
-                                slash = part.doc[part.end: split_numbers[i + 1].start]
-                                add_match(Span(part.doc, slash.start, slash.end, label="stopword"), False)  # noqa: E501
+                                slash = part.doc[part.end : split_numbers[i + 1].start]
+                                add_match(
+                                    Span(
+                                        part.doc,
+                                        slash.start,
+                                        slash.end,
+                                        label="stopword",
+                                    ),
+                                    False,
+                                )  # noqa: E501
                         continue
 
                     if pending_unitless:
@@ -1076,11 +1552,16 @@ class QuantitiesMatcher(BaseNERComponent):
 
         matches, unit_label_hashes = self.get_matches(doclike)
         matches, unitless_map, grouped_numbers = self.prepare_unitless_matches(matches)
+        table_infos = [
+            info
+            for tbl in table_matches
+            if (info := self.prep_table(tbl, matches, unit_label_hashes)) is not None
+        ]
 
         # Make match slice function to query them
         def get_matches_after(i):
             anchor = matches[i][0]
-            for j, (ent, is_sent_end) in enumerate(matches[i + 1:]):
+            for j, (ent, is_sent_end) in enumerate(matches[i + 1 :]):
                 if not is_sent_end and ent.start > anchor.end + AFTER_SNIPPET_LIMIT:
                     return
                 yield j + i + 1, ent
@@ -1111,6 +1592,26 @@ class QuantitiesMatcher(BaseNERComponent):
         matched_unit_indices = set()
         matched_number_indices = set()
 
+        # Value-less matches
+        for match_idx, (match, is_sent_split) in enumerate(matches):
+            if is_sent_split or match.label not in self.valueless_label_hashes:
+                continue
+            operator, operator_span = self.get_span_operator(matches, match_idx)
+            quantity_config = self.valueless_patterns[match.label_]
+            ent = match.doc[
+                operator_span.start
+                if operator_span is not None
+                else match.start : match.end
+            ]
+            quantity = self.make_quantity(
+                ent,
+                quantity_config["unit"],
+                quantity_config["value"],
+                operator=quantity_config.get("operator", operator),
+            )
+            if quantity is not None:
+                quantities.append(quantity)
+
         # Iterate through the number matches
         for number_idx, (number, is_sent_split) in enumerate(matches):
             if not is_sent_split and number.label not in self.number_label_hashes:
@@ -1133,6 +1634,7 @@ class QuantitiesMatcher(BaseNERComponent):
             except (ValueError, SyntaxError):
                 continue
 
+            operator, operator_span = self.get_span_operator(matches, number_idx)
             unit_idx = unit_text = unit_norm = None
 
             # Find the closest unit after the number
@@ -1149,54 +1651,59 @@ class QuantitiesMatcher(BaseNERComponent):
             # Try to pair the number with this next unit if the two are only separated
             # by numbers and separators alternatively (as in [1][,] [2] [and] [3] cm)
             try:
-                pseudo_sent = pseudo[offsets[number_idx] + 1: offsets[unit_idx]]
+                pseudo_sent = pseudo[offsets[number_idx] + 1 : offsets[unit_idx]]
                 if not re.fullmatch(r"(,n)*", pseudo_sent):
                     unit_norm = None
             except TypeError:
                 pass
 
-            # Check if number is in table with a unit in the same row
+            table_unit_text, table_unit_norm = self.infer_unit_from_table(
+                number,
+                table_infos,
+                unit_label_hashes,
+            )
+            if table_unit_norm is not None:
+                unit_text = table_unit_text
+                unit_norm = table_unit_norm
+
+            # Fall back to same-row heuristic when the table does not
+            # expose a clear value/unit column structure.
             if unit_norm is None:
-                for table in table_matches:
-                    if (number.start >= table.start) and (number.end <= table.end):
-                        table_pd = table._.to_pd_table(as_spans=True)
-                        # Find out the number's row
-                        for _, row in table_pd.iterrows():
-                            start_line = next(
-                                (item.start for item in row if item is not None), None
-                            )
-                            end_line = next(
-                                (
-                                    item.end
-                                    for item in reversed(row)
-                                    if item is not None
-                                ),
-                                None,
-                            )
-                            if start_line is None:
-                                continue
+                for table_info in table_infos:
+                    table = table_info["table"]
+                    if (number.start < table.start) or (number.end > table.end):
+                        continue
+                    for row in table_info["rows"]:
+                        try:
+                            line_beg = next((c.start for c in row if c is not None))
+                            line_end = next((c.end for c in row[::-1] if c is not None))
+                        except StopIteration:
+                            continue
 
-                            def is_within_row(x):
-                                return (x.start >= start_line) and (x.end <= end_line)
+                        def is_within_row(x):
+                            return (x.start >= line_beg) and (x.end <= line_end)
 
-                            if is_within_row(number):
-                                # Check if any unit in the same row
-                                if unit_text and is_within_row(unit_text):
-                                    unit_norm = unit_text.label_
-                                    continue
-                                try:
-                                    b_unit_idx, b_unit_text = next(
-                                        (j, ent)
-                                        for j, ent in get_matches_before(number_idx)
-                                        if ent.label in unit_label_hashes
-                                    )
-                                    b_unit_norm = b_unit_text.label_
-                                    if is_within_row(b_unit_text):
-                                        unit_text = b_unit_text
-                                        unit_norm = b_unit_norm
-                                        unit_idx = b_unit_idx
-                                except (AttributeError, StopIteration):
-                                    pass
+                        if not is_within_row(number):
+                            continue
+                        if unit_text and is_within_row(unit_text):
+                            unit_norm = unit_text.label_
+                            break
+                        try:
+                            b_unit_idx, b_unit_text = next(
+                                (j, ent)
+                                for j, ent in get_matches_before(number_idx)
+                                if ent.label in unit_label_hashes
+                            )
+                            b_unit_norm = b_unit_text.label_
+                            if is_within_row(b_unit_text):
+                                unit_text = b_unit_text
+                                unit_norm = b_unit_norm
+                                unit_idx = b_unit_idx
+                        except (AttributeError, StopIteration):
+                            pass
+                        break
+                    if unit_norm is not None:
+                        break
 
             # Otherwise, try to infer the unit from the preceding unit to handle cases
             # like (1 meter 50)
@@ -1222,9 +1729,11 @@ class QuantitiesMatcher(BaseNERComponent):
                         unit_norm = None
                         if re.fullmatch(
                             r"[,:n]*",
-                            pseudo[offsets[unitless_idx] + 1: offsets[number_idx]],
+                            pseudo[offsets[unitless_idx] + 1 : offsets[number_idx]],
                         ):
-                            unitless_pattern = self.unitless_patterns[unitless_text.label_]  # noqa: E501
+                            unitless_pattern = self.unitless_patterns[
+                                unitless_text.label_
+                            ]  # noqa: E501
                             unit_norm = next(
                                 scope["unit"]
                                 for scope in unitless_pattern["ranges"]
@@ -1250,42 +1759,32 @@ class QuantitiesMatcher(BaseNERComponent):
             # Compute the final entity
             # TODO: handle this part better without .text.strip(), with cases for
             #  stopwords, etc
+            ent_start = (
+                operator_span.start
+                if operator_span is not None
+                and doc[operator_span.end : number.start].text.strip() == ""
+                else number.start
+            )
             if (
-                    unit_text
-                    and number.start <= unit_text.end
-                    and doc[number.end: unit_text.start].text.strip() == ""
+                unit_text
+                and number.start <= unit_text.end
+                and doc[number.end : unit_text.start].text.strip() == ""
             ):
-                ent = doc[number.start: unit_text.end]
+                ent = doc[ent_start : unit_text.end]
             elif (
-                    unit_text
-                    and unit_text.start <= number.end
-                    and doc[unit_text.end: number.start].text.strip() == ""
+                unit_text
+                and unit_text.start <= number.end
+                and doc[unit_text.end : number.start].text.strip() == ""
             ):
-                ent = doc[unit_text.start: number.end]
+                ent = doc[min(ent_start, unit_text.start) : number.end]
             else:
-                ent = number
+                ent = doc[ent_start : number.end]
 
-            # Compute the dimensionality of the parsed unit
-            try:
-                dims = self.unit_registry.parse_unit(unit_norm)[0]
-            except KeyError:
+            quantity = self.make_quantity(ent, unit_norm, value, operator=operator)
+            if quantity is None:
                 continue
 
-            # If the measure was not requested, dismiss it
-            # Otherwise, relabel the entity and create the value attribute
-            if (dims not in self.measure_names) and not self.all_quantities:
-                continue
-
-            if self.all_quantities:
-                if not Span.has_extension(unit_norm):
-                    Span.set_extension(unit_norm, default=None)
-                ent.label_ = unit_norm
-
-            else:
-                ent.label_ = self.measure_names[dims]
-            ent._.set(ent.label_, SimpleQuantity(value, unit_norm, self.unit_registry))
-
-            quantities.append(ent)
+            quantities.append(quantity)
 
             if unit_idx is not None:
                 matched_unit_indices.add(unit_idx)
@@ -1295,10 +1794,10 @@ class QuantitiesMatcher(BaseNERComponent):
         unmatched = []
         for idx, (match, _) in enumerate(matches):
             if (
-                    match.label in unit_label_hashes
-                    and idx not in matched_unit_indices
-                    or match.label in self.number_label_hashes
-                    and idx not in matched_number_indices
+                match.label in unit_label_hashes
+                and idx not in matched_unit_indices
+                or match.label in self.number_label_hashes
+                and idx not in matched_number_indices
             ):
                 unmatched.append(match)
 
@@ -1327,7 +1826,7 @@ class QuantitiesMatcher(BaseNERComponent):
             if last.end == ent.start and last._.value.unit != ent._.value.unit:
                 try:
                     new_value = last._.value + ent._.value
-                    merged[-1] = last = last.doc[last.start: ent.end]
+                    merged[-1] = last = last.doc[last.start : ent.end]
                     last.label_ = ent.label_
                     last._.set(last.label_, new_value)
                 except (AttributeError, TypeError):
@@ -1360,7 +1859,7 @@ class QuantitiesMatcher(BaseNERComponent):
             last = merged[-1]
 
             from_text = last.doc[last.start - 1].norm_ if last.start > 0 else None
-            to_text = get_text(last.doc[last.end: ent.start], "NORM", True)
+            to_text = get_text(last.doc[last.end : ent.start], "NORM", True)
             matching_patterns = [
                 (a, b)
                 for a, b in self.range_patterns
@@ -1370,10 +1869,10 @@ class QuantitiesMatcher(BaseNERComponent):
                 try:
                     new_value = RangeQuantity.from_quantities(last._.value, ent._.value)
                     merged[-1] = last = last.doc[
-                                        last.start
-                                        if matching_patterns[0][0] is None
-                                        else last.start - 1: ent.end
-                                        ]
+                        last.start
+                        if matching_patterns[0][0] is None
+                        else last.start - 1 : ent.end
+                    ]
                     last.label_ = ent.label_
                     last._.set(last.label_, new_value)
                 except (AttributeError, TypeError):
@@ -1384,9 +1883,9 @@ class QuantitiesMatcher(BaseNERComponent):
         return merged
 
     def merge_with_existing(
-            self,
-            extracted: List[Span],
-            existing: List[Span],
+        self,
+        extracted: List[Span],
+        existing: List[Span],
     ) -> List[Span]:
         """
         Merges the extracted quantities with the existing quantities in the

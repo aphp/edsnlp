@@ -9,6 +9,7 @@ DEFAULT_CONFIG = dict(
     number_terms=patterns.number_terms,
     number_regex=patterns.number_regex,
     stopwords=patterns.stopwords,
+    operator_terms=patterns.operator_terms,
     unit_divisors=patterns.unit_divisors,
     ignore_excluded=True,
     compose_units=True,
@@ -21,6 +22,7 @@ DEFAULT_CONFIG = dict(
     merge_mode="intersect",
     as_ents=False,
     span_setter=None,
+    measure_before_unit=False,
 )
 
 create_component = registry.factory.register(

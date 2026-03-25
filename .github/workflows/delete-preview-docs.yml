@@ -14,7 +14,9 @@ jobs:
     steps:
     - run: |
         set -euo pipefail
-        preview_name="${BRANCH_NAME:0:80}"
+        # ie, normalize the branch name to have no /, no upper, < 80 chars and only - as separator
+        preview_name=$(printf '%s' "$BRANCH_NAME" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//; s/-+/-/g' | cut -c1-80)
+        preview_name="${preview_name:-preview}"
 
         # Set up Vercel
         npm install --global vercel@latest

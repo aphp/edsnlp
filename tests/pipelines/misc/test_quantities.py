@@ -330,10 +330,23 @@ def test_operator(blank_nlp: PipelineProtocol):
     doc = blank_nlp("< 5 µl et supérieur à 8 ui")
     quantities = doc.spans["quantities"]
 
-    assert [(s.label_, str(s._.value), s._.value.operator) for s in quantities] == [
+    assert [
+        (span.label_, str(span._.value), span._.value.operator) for span in quantities
+    ] == [
         ("µl", "<5 µl", "<"),
         ("ui", ">8 ui", ">"),
     ]
+
+
+def test_quantities_string_config_without_tables_pipe():
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(eds.normalizer())
+    nlp.add_pipe(eds.sentences())
+    nlp.add_pipe(eds.quantities(quantities="weight", use_tables=True))
+
+    doc = nlp("Poids : 65")
+
+    assert [str(span._.value) for span in doc.spans["quantities"]] == ["65 kg"]
 
 
 def test_valueless_patterns(blank_nlp: PipelineProtocol):
@@ -373,13 +386,37 @@ def test_table_unit_linking(blank_nlp: PipelineProtocol):
         )
     )
 
-    doc = blank_nlp("mg | 5 | mL | 0.3\nmg | 7 | mL | 0.4\n")
+    doc = blank_nlp(
+        "mg | 5 | mL | 0.3\n"
+        "mg | 7 | mL | 0.4\n"
+    )  # fmt: skip
 
     assert [str(span._.value) for span in doc.spans["quantities"]] == [
         "5 mg",
         "0.3 ml",
         "7 mg",
         "0.4 ml",
+    ]
+
+
+def test_table_unit_and_power_linking(blank_nlp: PipelineProtocol):
+    blank_nlp.add_pipe(
+        eds.quantities(
+            quantities="all",
+            use_tables=True,
+        )
+    )
+
+    doc = blank_nlp(
+        "Value | Power | Unit\n"
+        "4.2 | x10*3 | g/L\n"
+    )  # fmt: skip
+
+    assert [
+        (span.text, span.label_, str(span._.value), span._.value.g_per_l)
+        for span in doc.spans["quantities"]
+    ] == [
+        ("4.2", "x10*3_g_per_l", "4.2 x10*3_g_per_l", 4200.0),
     ]
 
 

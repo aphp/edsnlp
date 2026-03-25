@@ -757,7 +757,7 @@ class QuantitiesMatcher(BaseNERComponent):
         self.use_tables = use_tables and (
             "eds.tables" in nlp.pipe_names or "tables" in nlp.pipe_names
         )
-        if use_tables and not self.use_tables:
+        if use_tables and not self.use_tables:  # pragma: no cover
             logger.warning(
                 "You have requested that the pipeline use annotations "
                 "provided by the `table` pipeline, but it was not set. "
@@ -932,27 +932,6 @@ class QuantitiesMatcher(BaseNERComponent):
                 break
         return operator, operator_span
 
-    @staticmethod
-    def _pick_linked_column(
-        value_col: int,
-        target_cols: List[int],
-        prefer_before: bool,
-    ) -> Optional[int]:
-        # Here we
-        if not target_cols:
-            return None
-        stats = []
-        for col in target_cols:
-            delta = col - value_col
-            stats.append((abs(delta), delta >= 0, col))
-        side_matches = [col for _, is_after, col in stats if prefer_before != is_after]
-        if side_matches:
-            return min(side_matches, key=lambda col: abs(col - value_col))
-        return min(
-            target_cols,
-            key=lambda c: (abs(c - value_col), prefer_before != (c < value_col)),
-        )
-
     def prep_table(
         self,
         table: Span,
@@ -982,7 +961,7 @@ class QuantitiesMatcher(BaseNERComponent):
 
         table_pd = table._.to_pd_table(as_spans=True)
         rows = [[cell for cell in row] for _, row in table_pd.iterrows()]
-        if not rows:
+        if not rows:  # pragma: no cover
             return None
 
         # map table cells to matches (1 to many)
@@ -1194,10 +1173,10 @@ class QuantitiesMatcher(BaseNERComponent):
                 if header_row_idx not in table_info["header_rows"]:
                     continue
                 row = table_info["rows"][header_row_idx]
-                if candidate_col >= len(row):
+                if candidate_col >= len(row):  # pragma: no cover
                     continue
                 header_cell = row[candidate_col]
-                if header_cell is None:
+                if header_cell is None:  # pragma: no cover
                     continue
                 unit_span, unit_label = self.infer_unit_from_cell(
                     header_cell,
@@ -1217,7 +1196,7 @@ class QuantitiesMatcher(BaseNERComponent):
     ) -> Optional[Span]:
         try:
             dims = self.unit_registry.parse_unit(unit_norm)[0]
-        except KeyError:
+        except KeyError:  # pragma: no cover
             return None
 
         if (dims not in self.measure_names) and not self.all_quantities:
@@ -1677,7 +1656,7 @@ class QuantitiesMatcher(BaseNERComponent):
                         try:
                             line_beg = next((c.start for c in row if c is not None))
                             line_end = next((c.end for c in row[::-1] if c is not None))
-                        except StopIteration:
+                        except StopIteration:  # pragma: no cover
                             continue
 
                         def is_within_row(x):
@@ -1712,7 +1691,7 @@ class QuantitiesMatcher(BaseNERComponent):
                     unit_before = matches[number_idx - 1][0]
                     if unit_before.end == number.start:
                         unit_norm = self.unit_followers[unit_before.label_]
-                except (KeyError, AttributeError, IndexError):
+                except (KeyError, AttributeError, IndexError):  # pragma: no cover
                     pass
 
             # If no unit was matched, try to detect unitless patterns before

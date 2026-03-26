@@ -1,15 +1,9 @@
+import optuna
 import pytest
 
-try:
-    import optuna
-except ImportError:
-    optuna = None
-
-if optuna is None:
-    pytest.skip("optuna not installed", allow_module_level=True)
-
-
 from edsnlp.tune import update_config
+
+pytestmark = pytest.mark.ml
 
 
 @pytest.fixture

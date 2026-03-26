@@ -6,7 +6,7 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-pytestmark = pytest.mark.spark
+pytestmark = pytest.mark.processing
 
 mytype = namedtuple("mytype", ["a", "b", "c", "z"])
 

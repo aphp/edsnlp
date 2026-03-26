@@ -6,6 +6,8 @@ import pandas as pd
 import pytest
 from spacy.tokens import Doc
 
+pytestmark = pytest.mark.processing
+
 text = """
 Motif :
 Le patient est admis le 29 août 2020 pour des difficultés respiratoires.
@@ -99,7 +101,7 @@ params = [
     dict(module="pandas", n_jobs=-2),
     pytest.param(
         dict(module="pyspark", n_jobs=None),
-        marks=pytest.mark.spark,
+        marks=pytest.mark.processing,
         id="pyspark",
     ),
 ]
@@ -110,7 +112,7 @@ try:
     params.append(
         pytest.param(
             dict(module="koalas", n_jobs=None),
-            marks=pytest.mark.spark,
+            marks=pytest.mark.processing,
             id="koalas",
         )
     )
@@ -178,7 +180,7 @@ def test_pipelines(param, model):
     )
 
 
-@pytest.mark.spark
+@pytest.mark.processing
 def test_spark_missing_types(model):
     from edsnlp.processing import pipe
 

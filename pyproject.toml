@@ -392,7 +392,7 @@ timeout = 600
 markers = [
     "docs: tests that run the docs snippets",
     "ml: tests for everything around ML",
-    "spark: tests that require pyspark",
+    "processing: tests for processing and stream backends",
 ]
 
 [tool.coverage.report]

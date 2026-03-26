@@ -101,13 +101,75 @@ jobs:
           extra_args: --color=always --from-ref refs/remotes/trusted-base --to-ref HEAD
 
   pytest:
-    name: Pytest
+    name: Pytest (py${{ matrix.python-version }}, ${{ matrix.name }})
     needs: trusted-status-start
     if: github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
-      matrix: ${{ fromJSON(github.event_name == 'push' && '{"include":[{"python-version":"3.10","full_tests":false},{"python-version":"3.11","full_tests":true},{"python-version":"3.12","full_tests":false},{"python-version":"3.14","full_tests":false}]}' || '{"include":[{"python-version":"3.13","full_tests":true}]}') }}
+      # noinspection YAMLSchemaValidation
+      matrix: >-
+        ${{
+          fromJSON(
+            github.event_name == 'push' &&
+            '{
+              "include": [
+                {
+                  "python-version": "3.10",
+                  "name": "fast",
+                  "pytest_markers": "not docs and not ml and not processing",
+                  "test_docs": false
+                },
+                {
+                  "python-version": "3.11",
+                  "name": "full",
+                  "pytest_markers": "",
+                  "test_docs": null
+                },
+                {
+                  "python-version": "3.12",
+                  "name": "fast",
+                  "pytest_markers": "not docs and not ml and not processing",
+                  "test_docs": false
+                },
+                {
+                  "python-version": "3.14",
+                  "name": "fast",
+                  "pytest_markers": "not docs and not ml and not processing",
+                  "test_docs": false
+                }
+              ]
+            }' ||
+            '{
+              "include": [
+                {
+                  "python-version": "3.12",
+                  "name": "base",
+                  "pytest_markers": "not docs and not ml and not processing",
+                  "test_docs": false
+                },
+                {
+                  "python-version": "3.12",
+                  "name": "docs",
+                  "pytest_markers": "docs",
+                  "test_docs": true
+                },
+                {
+                  "python-version": "3.12",
+                  "name": "ml",
+                  "pytest_markers": "ml and not docs and not processing",
+                  "test_docs": false
+                },
+                {
+                  "python-version": "3.12",
+                  "name": "processing",
+                  "pytest_markers": "processing",
+                  "test_docs": false
+                }
+              ]
+            }'
+          )
+        }}
     steps:
       - uses: actions/checkout@v4
         if: github.event_name != 'workflow_dispatch' || inputs.trusted_head_sha == ''
@@ -141,23 +203,31 @@ jobs:
       - name: Install dependencies
         run: uv pip install -e . --group dev
 
-      - name: Test full suite with Pytest on Python ${{ matrix.python-version }}
+      - name: Run Pytest on Python ${{ matrix.python-version }} (${{ matrix.name }})
         env:
           UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
-        run: coverage run -m pytest
-        if: ${{ matrix.full_tests }}
+          PYTEST_MARKERS: ${{ matrix.pytest_markers }}
+          TEST_DOCS: ${{ toJSON(matrix.test_docs) }}
+        run: |
+          args=(-v)
 
-      - name: Test reduced suite with Pytest on Python ${{ matrix.python-version }}
-        env:
-          UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
-        run: coverage run -m pytest -m "not (docs or ml or spark)"
-        if: ${{ !matrix.full_tests }}
+          if [[ -n "$PYTEST_MARKERS" ]]; then
+            args+=(-m "$PYTEST_MARKERS")
+          fi
+
+          if [[ "$TEST_DOCS" == "true" ]]; then
+            args+=(tests/test_docs.py)
+          elif [[ "$TEST_DOCS" == "false" ]]; then
+            args+=(--ignore=tests/test_docs.py)
+          fi
+
+          coverage run -m pytest "${args[@]}"
 
       - name: Upload coverage data
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-data-${{ matrix.python-version }}
-          path: .coverage.*
+          name: coverage-data-${{ matrix.python-version }}-${{ matrix.name }}
+          path: .coverage*
           if-no-files-found: ignore
           include-hidden-files: true
 

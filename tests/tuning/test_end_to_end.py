@@ -1,20 +1,11 @@
 import os
+import shutil
 
 import pytest
 
-try:
-    import optuna
-except ImportError:
-    optuna = None
+from edsnlp.tune import tune
 
-if optuna is None:
-    pytest.skip("optuna not installed", allow_module_level=True)
-
-import shutil
-
-from edsnlp.tune import (
-    tune,
-)
+pytestmark = pytest.mark.ml
 
 
 def assert_results(output_dir):

@@ -30,7 +30,6 @@
 - `eds.diabetes` now checks for surrounding negation when checking insulin dependancy
 - `eds.sentences` no longer delays sentence splitting after `.{DIGIT}` patterns, preventing false splits in inputs such as `10.10.2010 : RCP`
 - Fixed average precision computation:
-
   - base computation : the initial recall gain from 0 to the first true positive was ignored, but is now accounted for
   - and instead of being computed from the highest-probability label in `span._.prob`, which could make AP disagree with p/r/f and drop below 1 even on perfect gold to gold comparisons, we now use the actually assigned span attribute value.
 - Expand the capitalized shape patterns used by `eds.sentences` to better detect sentence starts after newline tokens, including CRLF-separated lines

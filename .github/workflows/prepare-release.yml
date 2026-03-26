@@ -1,0 +1,118 @@
+name: Prepare Release PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Explicit version to release, e.g. 0.22.0"
+        required: false
+        type: string
+      bump:
+        description: "Compute the version from the current one (patch / minor / major)"
+        required: false
+        type: string
+      base:
+        description: "Base branch to branch from and target with the PR"
+        required: false
+        default: "master"
+        type: string
+      release_date:
+        description: "Release date for the changelog heading (YYYY-MM-DD)"
+        required: false
+        type: string
+      force_push:
+        description: "Force-push the release branch if it already exists"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: prepare-release-${{ github.event.inputs.base || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BASE_BRANCH: ${{ github.event.inputs.base || github.ref_name }}
+      RELEASE_DATE: ${{ github.event.inputs.release_date }}
+      RELEASE_VERSION: ${{ github.event.inputs.version }}
+      RELEASE_BUMP: ${{ github.event.inputs.bump }}
+      FORCE_PUSH: ${{ github.event.inputs.force_push }}
+    steps:
+      - name: Validate inputs
+        run: |
+          if [ -n "$RELEASE_VERSION" ] && [ -n "$RELEASE_BUMP" ]; then
+            echo "Provide either 'version' or 'bump', not both." >&2
+            exit 1
+          fi
+
+          if [ -z "$RELEASE_VERSION" ] && [ -z "$RELEASE_BUMP" ]; then
+            echo "Provide either 'version' or 'bump'." >&2
+            exit 1
+          fi
+
+          if [ -n "$RELEASE_BUMP" ] && ! [[ "$RELEASE_BUMP" =~ ^(patch|minor|major)$ ]]; then
+            echo "bump must be one of: patch, minor, major." >&2
+            exit 1
+          fi
+
+          if [ -n "$RELEASE_DATE" ] && ! [[ "$RELEASE_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+            echo "release_date must match YYYY-MM-DD." >&2
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.base || github.ref_name }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Prepare release branch and PR
+        run: |
+          args=(scripts/prepare_release.py --base "$BASE_BRANCH" --commit --push --pr)
+
+          if [ -n "$RELEASE_VERSION" ]; then
+            args+=("$RELEASE_VERSION")
+          else
+            args+=(--bump "$RELEASE_BUMP")
+          fi
+
+          if [ -n "$RELEASE_DATE" ]; then
+            args+=(--release-date "$RELEASE_DATE")
+          fi
+
+          if [ "$FORCE_PUSH" = "true" ]; then
+            args+=(--force)
+          fi
+
+          python "${args[@]}"
+
+      - name: Write workflow summary
+        run: |
+          {
+            echo "## Release PR prepared"
+            echo
+            echo "- Base branch: \`$BASE_BRANCH\`"
+            if [ -n "$RELEASE_VERSION" ]; then
+              echo "- Requested version: \`$RELEASE_VERSION\`"
+            else
+              echo "- Version bump: \`$RELEASE_BUMP\`"
+            fi
+            if [ -n "$RELEASE_DATE" ]; then
+              echo "- Release date: \`$RELEASE_DATE\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

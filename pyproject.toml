@@ -92,7 +92,7 @@ ml = [
 "Bug Tracker" = "https://github.com/aphp/edsnlp/issues"
 
 [tool.setuptools.dynamic]
-version = { attr = "edsnlp.__version__" }
+version = { attr = "edsnlp._version.__version__" }
 
 [tool.setuptools.package-data]
 "edsnlp" = [

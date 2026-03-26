@@ -430,6 +430,7 @@ torch-backend = "auto"
 [tool.cibuildwheel]
 skip = [
     "pp*", # Skip PyPy
+    "cp3??t-*", # Skip free-threaded CPython: spaCy/thinc/blis don't publish cp314t wheels yet
     "*-win32", # Skip 32-bit Windows
     "*-manylinux_i686", # Skip 32-bit Linux
     "*-win_arm64", # Skip experimental Windows on ARM
@@ -441,6 +442,8 @@ skip = [
 before-test = 'pip install pytest "urllib3<2"'
 test-extras = "ml"
 test-skip = [
+    # PyTorch no longer publishes macOS x86_64 wheels for recent CPython versions.
     "cp313-macosx_x86_64",
+    "cp314-macosx_x86_64",
 ]
 test-command = "pytest {project}/tests/pipelines/test_pipelines.py"

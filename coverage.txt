@@ -1,6 +1,7 @@
 Name                                                                                    Stmts   Miss   Cover   Missing
 ----------------------------------------------------------------------------------------------------------------------
 edsnlp/__init__.py                                                                         25      0 100.00%
+edsnlp/_version.py                                                                         15      2  86.67%   22, 40
 edsnlp/connectors/__init__.py                                                               2      0 100.00%
 edsnlp/connectors/brat.py                                                                  22      0 100.00%
 edsnlp/connectors/labeltool.py                                                             19      0 100.00%
@@ -344,4 +345,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      81      9  88.89%   103, 119, 122-128, 144
 edsnlp/utils/typing.py                                                                     48      1  97.92%   45
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   13503    257  98.10%
+TOTAL                                                                                   13518    259  98.08%

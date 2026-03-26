@@ -83,7 +83,7 @@ class EndLinesModel:
         )
         if "DOC_ID" not in df.columns:
             df = df.reset_index(level=0)
-        else:
+        else:  # pragma: no cover
             df = df.reset_index(drop=True)
 
         df["SENTENCE_ID"] = df["SENTENCE_ID"].astype("int")

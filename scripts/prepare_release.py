@@ -287,14 +287,19 @@ def create_or_update_pr(
     body_file = write_release_message_file(body)
     try:
         existing = subprocess.run(
-            ["gh", "pr", "view", branch, "--json", "number"],
+            ["gh", "pr", "view", branch, "--json", "number,state"],
             cwd=ROOT,
             check=False,
             text=True,
             capture_output=True,
         )
         if existing.returncode == 0:
-            pr_number = json.loads(existing.stdout)["number"]
+            existing_pr = json.loads(existing.stdout)
+        else:
+            existing_pr = None
+
+        if existing_pr is not None and existing_pr.get("state") == "OPEN":
+            pr_number = existing_pr["number"]
             run(
                 "gh",
                 "pr",

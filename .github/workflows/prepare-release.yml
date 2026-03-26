@@ -38,7 +38,7 @@ jobs:
   prepare-release:
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ secrets.RELEASE_PAT }}
       BASE_BRANCH: ${{ github.event.inputs.base || github.ref_name }}
       RELEASE_DATE: ${{ github.event.inputs.release_date }}
       RELEASE_VERSION: ${{ github.event.inputs.version }}
@@ -71,6 +71,7 @@ jobs:
         with:
           ref: ${{ github.event.inputs.base || github.ref_name }}
           fetch-depth: 0
+          token: ${{ secrets.RELEASE_PAT }}
 
       - uses: actions/setup-python@v5
         with:

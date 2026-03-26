@@ -4,15 +4,8 @@ import warnings
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+import optuna
 import pytest
-
-try:
-    import optuna
-except ImportError:
-    optuna = None
-
-if optuna is None:
-    pytest.skip("optuna not installed", allow_module_level=True)
 
 from edsnlp.tune import (
     _build_overrides,
@@ -41,6 +34,8 @@ from edsnlp.tune import (
     is_plotly_installed,
     tune,
 )
+
+pytestmark = pytest.mark.ml
 
 
 def build_trial(number, value, params):

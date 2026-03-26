@@ -3,6 +3,8 @@ import pytest
 import edsnlp
 from edsnlp.utils.collections import ld_to_dl
 
+pytestmark = pytest.mark.processing
+
 try:
     import torch.nn
 except ImportError:

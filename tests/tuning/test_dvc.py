@@ -4,7 +4,11 @@ import subprocess
 import textwrap
 from pathlib import Path
 
+import pytest
+
 from edsnlp.tune import tune
+
+pytestmark = pytest.mark.ml
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -28,23 +32,7 @@ def run(cmd, cwd: Path, env=None):
     return result
 
 
-def get_local_tiny_bert_path() -> Path:
-    snapshots = sorted(
-        (
-            Path.home()
-            / ".cache"
-            / "huggingface"
-            / "hub"
-            / "models--hf-internal-testing--tiny-bert"
-            / "snapshots"
-        ).glob("*/config.json")
-    )
-    if not snapshots:
-        raise AssertionError("No local hf-internal-testing/tiny-bert snapshot found.")
-    return snapshots[-1].parent
-
-
-def write_repo_files(repo: Path, model_path: Path):
+def write_repo_files(repo: Path):
     (repo / "data").mkdir()
     (repo / "checkpoint").mkdir()
     (repo / "data" / "doc1.txt").write_text("Covid positif.\n", encoding="utf-8")
@@ -69,7 +57,7 @@ def write_repo_files(repo: Path, model_path: Path):
                   '@factory': eds.ner_crf
                   embedding:
                     '@factory': eds.transformer
-                    model: __MODEL_PATH__
+                    model: hf-internal-testing/tiny-bert
                     window: 16
                     stride: 8
                   target_span_getter: gold_spans
@@ -127,9 +115,7 @@ def write_repo_files(repo: Path, model_path: Path):
               num_workers: 0
               cpu: true
             """
-        )
-        .replace("__MODEL_PATH__", model_path.as_posix())
-        .strip()
+        ).strip()
         + "\n",
         encoding="utf-8",
     )
@@ -193,7 +179,7 @@ def test_tune_dvc_in_temp_repo(tmp_path, monkeypatch):
     env["DVC_NO_ANALYTICS"] = "1"
     env["TOKENIZERS_PARALLELISM"] = "false"
 
-    write_repo_files(repo, get_local_tiny_bert_path())
+    write_repo_files(repo)
     init_repo(repo, env)
 
     monkeypatch.chdir(repo)

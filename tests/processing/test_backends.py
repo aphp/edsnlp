@@ -14,6 +14,8 @@ import edsnlp.processing
 from edsnlp.data.converters import get_current_tokenizer
 from edsnlp.processing.multiprocessing import get_dispatch_schedule
 
+pytestmark = pytest.mark.processing
+
 try:
     import torch.nn
 except ImportError:
@@ -62,7 +64,7 @@ docs = [
             "pandas",
             "omop",
             False,
-            marks=pytest.mark.spark,
+            marks=pytest.mark.processing,
             id="pandas-spark-pandas",
         ),
         ("parquet", "omop", "simple", "parquet", "omop", False),
@@ -74,7 +76,7 @@ docs = [
             "parquet",
             "omop",
             False,
-            marks=pytest.mark.spark,
+            marks=pytest.mark.processing,
             id="parquet-spark-parquet",
         ),
         ("parquet", "omop", "multiprocessing", "parquet", "omop", True),
@@ -85,7 +87,7 @@ docs = [
             "parquet",
             "omop",
             True,
-            marks=pytest.mark.spark,
+            marks=pytest.mark.processing,
             id="parquet-spark-parquet-worker-io",
         ),
         ("parquet", "omop", "multiprocessing", "iterable", None, False),
@@ -357,7 +359,7 @@ def test_multiprocessing_ml_error(ml_nlp):
     [
         "simple",
         "multiprocessing",
-        pytest.param("spark", marks=pytest.mark.spark, id="spark"),
+        pytest.param("spark", marks=pytest.mark.processing, id="spark"),
     ],
 )
 def test_generator(backend):

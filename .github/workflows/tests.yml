@@ -209,7 +209,7 @@ jobs:
           PYTEST_MARKERS: ${{ matrix.pytest_markers }}
           TEST_DOCS: ${{ toJSON(matrix.test_docs) }}
         run: |
-          args=(-v)
+          args=(-v --inline-durations)
 
           if [[ -n "$PYTEST_MARKERS" ]]; then
             args+=(-m "$PYTEST_MARKERS")

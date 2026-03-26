@@ -26,6 +26,15 @@ except ImportError:
     torch = None
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--inline-durations",
+        action="store_true",
+        default=False,
+        help="Append test call durations to verbose test status lines.",
+    )
+
+
 def pytest_collection_modifyitems(items):
     """Run test_docs* at the end"""
     first_tests = []
@@ -36,6 +45,40 @@ def pytest_collection_modifyitems(items):
         else:
             first_tests.append(item)
     items[:] = first_tests + last_tests
+
+
+def format_test_duration(duration):
+    if duration >= 60:
+        minutes, seconds = divmod(duration, 60)
+        return f"{int(minutes)}m{seconds:05.2f}s"
+    if duration >= 1:
+        return f"{duration:.2f}s"
+    if duration >= 0.01:
+        return f"{duration:.3f}s"
+    return f"{duration * 1000:.1f}ms"
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_report_teststatus(report, config):
+    result = yield
+
+    if (
+        not config.getoption("--inline-durations")
+        or report.when != "call"
+        or result is None
+    ):
+        return result
+
+    category, letter, word = result
+    duration_suffix = f" ({format_test_duration(report.duration)})"
+
+    if isinstance(word, tuple):
+        text, markup = word
+        word = (f"{text}{duration_suffix}", markup)
+    else:
+        word = f"{word}{duration_suffix}"
+
+    return category, letter, word
 
 
 @fixture(scope="session", params=["eds", "fr"])

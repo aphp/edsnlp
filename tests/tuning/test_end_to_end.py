@@ -1,6 +1,9 @@
 import os
 import shutil
+from pathlib import Path
 
+import joblib
+import optuna
 import pytest
 
 from edsnlp.tune import tune
@@ -105,6 +108,69 @@ def test_tune(tmpdir, two_phase_tuning, n_trials, start_from_checkpoint):
             assert_results(phase_2_dir)
         else:
             assert_results(output_dir)
+    finally:
+        shutil.rmtree(output_dir, ignore_errors=True)
+        shutil.rmtree(checkpoint_dir, ignore_errors=True)
+        shutil.rmtree("./artifacts", ignore_errors=True)
+
+
+def test_tune_updates_pruner_on_resume_end_to_end():
+    config_meta = {"config_path": ["tests/tuning/config.yml"]}
+    hyperparameters = {
+        "optimizer.groups.'.*'.lr.start_value": {
+            "alias": "start_value",
+            "type": "float",
+            "low": 1e-4,
+            "high": 1e-3,
+            "log": True,
+        },
+        "optimizer.groups.'.*'.lr.warmup_rate": {
+            "alias": "warmup_rate",
+            "type": "float",
+            "low": 0.0,
+            "high": 0.3,
+            "step": 0.05,
+        },
+    }
+    output_dir = "./results"
+    checkpoint_dir = "./tests/tuning/test_checkpoints"
+    checkpoint_file = os.path.join(checkpoint_dir, "study.pkl")
+    try:
+        os.makedirs(checkpoint_dir, exist_ok=True)
+
+        tune(
+            config_meta=config_meta,
+            hyperparameters=hyperparameters,
+            output_dir=output_dir,
+            checkpoint_dir=checkpoint_dir,
+            n_trials=1,
+            seed=42,
+            metric="ner.micro.f",
+            keep_checkpoint=True,
+            pruner={"type": "median", "n_min_trials": 3},
+        )
+
+        study = joblib.load(checkpoint_file)
+        assert isinstance(study.pruner, optuna.pruners.MedianPruner)
+        assert study.pruner._n_min_trials == 3
+
+        tune(
+            config_meta=config_meta,
+            hyperparameters=hyperparameters,
+            output_dir=output_dir,
+            checkpoint_dir=checkpoint_dir,
+            n_trials=2,
+            seed=42,
+            metric="ner.micro.f",
+            pruner=None,
+        )
+
+        archived = sorted(Path(checkpoint_dir).glob("study-*.pkl"))
+        assert archived, "Expected an archived study checkpoint after tuning"
+
+        resumed_study = joblib.load(archived[-1])
+        assert isinstance(resumed_study.pruner, optuna.pruners.NopPruner)
+        assert_results(output_dir)
     finally:
         shutil.rmtree(output_dir, ignore_errors=True)
         shutil.rmtree(checkpoint_dir, ignore_errors=True)

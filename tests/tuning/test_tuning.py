@@ -9,6 +9,7 @@ import pytest
 
 from edsnlp.tune import (
     _build_overrides,
+    _build_pruner,
     _build_worker_argv,
     _build_xp_name,
     _collect_dvc_result,
@@ -384,6 +385,7 @@ def test_monitor_metrics_file_resets_and_skips_invalid_entries():
             self.calls += 1
 
     trial = Mock()
+    trial.should_prune.return_value = False
     stop_event = FakeStopEvent()
 
     with patch(
@@ -408,6 +410,42 @@ def test_monitor_metrics_file_resets_and_skips_invalid_entries():
         )
 
     assert trial.report.call_args_list == [((0.1, 1),), ((0.2, 2),)]
+
+
+def test_monitor_metrics_file_prunes_and_kills_entry():
+    # mock test with two steps: no pruning at first, then pruning (should prune True)
+    trial = Mock()
+    trial.should_prune.side_effect = [False, True]
+    stop_event = Mock()
+    stop_event.is_set.side_effect = [False, False]
+    pruned_event = Mock()
+    queue = Mock()
+    entry = SimpleNamespace(stash_rev="rev-1")
+
+    # a bit dangerous here, if all goes well the test will stop
+    # because of pruning, other wise if an infinite loop
+    with patch(
+        "edsnlp.tune._load_metrics_entries",
+        return_value=[
+            {"step": 1, "validation": {"ner": {"micro": {"f": 0.1}}}},
+            {"step": 2, "validation": {"ner": {"micro": {"f": 0.2}}}},
+        ],
+    ):
+        _monitor_metrics_file(
+            trial=trial,
+            metric_paths=[("ner", "micro", "f")],
+            metrics_path="unused.json",
+            stop_event=stop_event,
+            pruned_event=pruned_event,
+            queue=queue,
+            entry=entry,
+            poll_interval=0.5,
+        )
+
+    assert trial.report.call_args_list == [((0.1, 1),), ((0.2, 2),)]
+    pruned_event.set.assert_called_once()
+    queue.kill.assert_called_once_with(["rev-1"])
+    stop_event.set.assert_called_once()
 
 
 def test_stop_worker_pool_handles_none_list_and_pool():
@@ -560,6 +598,25 @@ def test_handle_pruned_dvc_runs_kills_other_entries():
         _handle_pruned_dvc_runs(queue, entries, entries[1])
 
     queue.kill.assert_called_once_with(["rev-1", "rev-3"])
+
+
+# mostly for coverage
+def test_build_pruner_supports_dict_config():
+    pruner = _build_pruner(
+        {
+            "type": "median",
+            "n_startup_trials": 7,
+            "n_warmup_steps": 3,
+            "interval_steps": 2,
+            "n_min_trials": 4,
+        }
+    )
+
+    assert isinstance(pruner, optuna.pruners.MedianPruner)
+    assert pruner._n_startup_trials == 7
+    assert pruner._n_warmup_steps == 3
+    assert pruner._interval_steps == 2
+    assert pruner._n_min_trials == 4
 
 
 def test_worker_process_skips_spawn_when_worker_is_already_running(monkeypatch):

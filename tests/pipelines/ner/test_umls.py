@@ -1,5 +1,7 @@
 import pytest
 
+pytestmark = pytest.mark.ml
+
 pytest.importorskip("umls_downloader", reason="umls_downloader package not found")
 
 import os  # noqa: E402

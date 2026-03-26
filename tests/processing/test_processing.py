@@ -97,13 +97,23 @@ def model(blank_nlp):
 params = [
     dict(module="pandas", n_jobs=1),
     dict(module="pandas", n_jobs=-2),
-    dict(module="pyspark", n_jobs=None),
+    pytest.param(
+        dict(module="pyspark", n_jobs=None),
+        marks=pytest.mark.spark,
+        id="pyspark",
+    ),
 ]
 
 try:
     import databricks.koalas  # noqa F401
 
-    params.append(dict(module="koalas", n_jobs=None))
+    params.append(
+        pytest.param(
+            dict(module="koalas", n_jobs=None),
+            marks=pytest.mark.spark,
+            id="koalas",
+        )
+    )
 except ImportError:
     pass
 
@@ -168,6 +178,7 @@ def test_pipelines(param, model):
     )
 
 
+@pytest.mark.spark
 def test_spark_missing_types(model):
     from edsnlp.processing import pipe
 

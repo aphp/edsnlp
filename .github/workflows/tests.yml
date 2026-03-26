@@ -22,6 +22,10 @@ on:
   push:
     branches: [ master, main ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || inputs.trusted_pr_number || github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'push' }}
+
 env:
   UV_TORCH_BACKEND: "auto"
   UV_SYSTEM_PYTHON: 1
@@ -103,8 +107,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
-      matrix:
-        python-version: [ "3.10", "3.11", "3.12", "3.13" ]
+      matrix: ${{ fromJSON(github.event_name == 'push' && '{"include":[{"python-version":"3.10","full_tests":false},{"python-version":"3.11","full_tests":true},{"python-version":"3.12","full_tests":false},{"python-version":"3.14","full_tests":false}]}' || '{"include":[{"python-version":"3.13","full_tests":true}]}') }}
     steps:
       - uses: actions/checkout@v4
         if: github.event_name != 'workflow_dispatch' || inputs.trusted_head_sha == ''
@@ -138,21 +141,17 @@ jobs:
       - name: Install dependencies
         run: uv pip install -e . --group dev
 
-      - name: Test (ML) with Pytest on Python ${{ matrix.python-version }}
+      - name: Test full suite with Pytest on Python ${{ matrix.python-version }}
         env:
           UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
         run: coverage run -m pytest
-        if: matrix.python-version == '3.11' && !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork)
+        if: ${{ matrix.full_tests }}
 
-      - name: Test with Pytest on Python ${{ matrix.python-version }} without secret-only checks
-        run: coverage run -m pytest --ignore tests/test_docs.py
-        if: matrix.python-version == '3.11' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork
-
-      - name: Test with Pytest on Python ${{ matrix.python-version }}
+      - name: Test reduced suite with Pytest on Python ${{ matrix.python-version }}
         env:
           UMLS_API_KEY: ${{ secrets.UMLS_API_KEY }}
-        run: coverage run -m pytest --ignore tests/test_docs.py --ignore tests/pipelines/trainable --ignore tests/training
-        if: matrix.python-version != '3.11'
+        run: coverage run -m pytest -m "not (docs or ml or spark)"
+        if: ${{ !matrix.full_tests }}
 
       - name: Upload coverage data
         uses: actions/upload-artifact@v4
@@ -317,7 +316,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: [ "3.10", "3.11", "3.12", "3.13" ]
+        python-version: [ "3.10", "3.11", "3.12", "3.13", "3.14" ]
     steps:
       - uses: actions/checkout@v4
         if: github.event_name != 'workflow_dispatch' || inputs.trusted_head_sha == ''

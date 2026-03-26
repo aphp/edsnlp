@@ -1,6 +1,8 @@
 # ruff:noqa:E402
 import pytest
 
+pytestmark = pytest.mark.ml
+
 try:
     import torch.nn
 except ImportError:

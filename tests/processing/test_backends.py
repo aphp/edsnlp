@@ -55,12 +55,39 @@ docs = [
     [
         ("pandas", "omop", "simple", "pandas", "omop", False),
         ("pandas", "omop", "multiprocessing", "pandas", "omop", False),
-        ("pandas", "omop", "spark", "pandas", "omop", False),
+        pytest.param(
+            "pandas",
+            "omop",
+            "spark",
+            "pandas",
+            "omop",
+            False,
+            marks=pytest.mark.spark,
+            id="pandas-spark-pandas",
+        ),
         ("parquet", "omop", "simple", "parquet", "omop", False),
         ("parquet", "omop", "multiprocessing", "parquet", "omop", False),
-        ("parquet", "omop", "spark", "parquet", "omop", False),
+        pytest.param(
+            "parquet",
+            "omop",
+            "spark",
+            "parquet",
+            "omop",
+            False,
+            marks=pytest.mark.spark,
+            id="parquet-spark-parquet",
+        ),
         ("parquet", "omop", "multiprocessing", "parquet", "omop", True),
-        ("parquet", "omop", "spark", "parquet", "omop", True),
+        pytest.param(
+            "parquet",
+            "omop",
+            "spark",
+            "parquet",
+            "omop",
+            True,
+            marks=pytest.mark.spark,
+            id="parquet-spark-parquet-worker-io",
+        ),
         ("parquet", "omop", "multiprocessing", "iterable", None, False),
     ],
 )
@@ -115,6 +142,7 @@ def test_end_to_end(
         raise ValueError(writer_format)
 
 
+@pytest.mark.ml
 def test_multiprocessing_backend(frozen_ml_nlp):
     texts = ["Ceci est un exemple", "Ceci est un autre exemple"]
     docs = list(
@@ -139,6 +167,7 @@ def error_pipe(doc: Doc):
     return doc
 
 
+@pytest.mark.ml
 @pytest.mark.parametrize(
     "backend,deterministic",
     [
@@ -175,6 +204,7 @@ def test_multiprocessing_gpu_stub_backend(frozen_ml_nlp, backend, deterministic)
     list(stream)
 
 
+@pytest.mark.ml
 def test_multiprocessing_gpu_stub_multi_cpu_deterministic_backend(frozen_ml_nlp):
     text1 = "Exemple"
     text2 = "Ceci est un autre exemple"
@@ -195,6 +225,7 @@ def test_multiprocessing_gpu_stub_multi_cpu_deterministic_backend(frozen_ml_nlp)
 
 
 @pytest.mark.parametrize("wait", [True, False])
+@pytest.mark.ml
 def test_multiprocessing_gpu_stub_wait(frozen_ml_nlp, wait):
     text1 = "Ceci est un exemple"
     text2 = "Ceci est un autre exemple"
@@ -242,6 +273,7 @@ def test_iterable_error():
         )
 
 
+@pytest.mark.ml
 def test_multiprocessing_rb_error(ml_nlp):
     text1 = "Ceci est un exemple"
     text2 = "Ceci est un autre exemple"
@@ -288,6 +320,7 @@ if torch is not None:
 
 
 @pytest.mark.skipif(torch is None, reason="torch not installed")
+@pytest.mark.ml
 def test_multiprocessing_ml_error(ml_nlp):
     text1 = "Ceci est un exemple"
     text2 = "Ceci est un autre exemple"
@@ -321,7 +354,11 @@ def test_multiprocessing_ml_error(ml_nlp):
 
 @pytest.mark.parametrize(
     "backend",
-    ["simple", "multiprocessing", "spark"],
+    [
+        "simple",
+        "multiprocessing",
+        pytest.param("spark", marks=pytest.mark.spark, id="spark"),
+    ],
 )
 def test_generator(backend):
     items = ["abc", "def", "ghij"]
@@ -383,6 +420,7 @@ def test_deterministic_skip(num_cpu_workers):
     ["simple", "multiprocesing"],
 )
 @pytest.mark.skipif(torch is None, reason="torch not installed")
+@pytest.mark.ml
 def test_backend_cache(backend):
     import torch
 

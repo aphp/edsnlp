@@ -43,11 +43,10 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "dvc>=2.37.0; python_version >= '3.8'",
-    "pandas>=1.1.0,<2.0.0; python_version < '3.8'",
-    "pandas>=1.4.0,<2.0.0; python_version >= '3.8'",
+    "dvc>=2.37.0",
+    "pandas>=1.4.0,<2.0.0",
     "pre-commit>=2.18.1",
-    "accelerate>=0.21.0; python_version >= '3.8'",
+    "accelerate>=0.21.0",
     "rich-logger>=0.3.0"
 ]
 ```

@@ -299,7 +299,7 @@ edsnlp/pipes/trainable/extractive_qa/__init__.py                                
 edsnlp/pipes/trainable/extractive_qa/extractive_qa.py                                      77      0 100.00%
 edsnlp/pipes/trainable/extractive_qa/factory.py                                             4      0 100.00%
 edsnlp/pipes/trainable/layers/__init__.py                                                   0      0 100.00%
-edsnlp/pipes/trainable/layers/crf.py                                                      156      5  96.79%   42, 52, 113, 123, 132
+edsnlp/pipes/trainable/layers/crf.py                                                      138      3  97.83%   81, 91, 100
 edsnlp/pipes/trainable/layers/metric.py                                                    42      0 100.00%
 edsnlp/pipes/trainable/layers/text_cnn.py                                                  56      0 100.00%
 edsnlp/pipes/trainable/ner_crf/__init__.py                                                  1      0 100.00%
@@ -313,7 +313,7 @@ edsnlp/pipes/trainable/span_linker/factory.py                                   
 edsnlp/pipes/trainable/span_linker/span_linker.py                                         175      2  98.86%   403-404
 edsnlp/processing/__init__.py                                                               3      0 100.00%
 edsnlp/processing/deprecated_pipe.py                                                       53      2  96.23%   208-209
-edsnlp/processing/multiprocessing.py                                                      671     23  96.57%   223-230, 234-235, 255, 259-264, 455-457, 673-674, 1203-1208
+edsnlp/processing/multiprocessing.py                                                      671     24  96.42%   223-230, 234-235, 255, 259-264, 455-457, 673-674, 1145, 1203-1208
 edsnlp/processing/simple.py                                                                61      0 100.00%
 edsnlp/processing/spark.py                                                                 47      1  97.87%   51
 edsnlp/reducers.py                                                                         68      2  97.06%   116, 118
@@ -344,4 +344,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      81      9  88.89%   103, 119, 122-128, 144
 edsnlp/utils/typing.py                                                                     48      1  97.92%   45
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   13521    258  98.09%
+TOTAL                                                                                   13503    257  98.10%

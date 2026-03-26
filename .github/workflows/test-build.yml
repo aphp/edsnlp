@@ -12,6 +12,10 @@ on:
     - v*.*.*
     - build-*
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build_wheels:
     name: Build wheels on ${{ matrix.os }}

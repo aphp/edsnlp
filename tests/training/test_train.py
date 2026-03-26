@@ -3,6 +3,8 @@ import os.path
 
 import pytest
 
+pytestmark = pytest.mark.ml
+
 try:
     import torch.nn
 except ImportError:

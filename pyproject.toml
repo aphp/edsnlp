@@ -389,6 +389,11 @@ omit-covered-files = false
 # Some tests may download large objects such as the UMLS
 # This timeout is mostly here to kill the CI in the case of deadlocks or infinite loops
 timeout = 600
+markers = [
+    "docs: tests that run the docs snippets",
+    "ml: tests for everything around ML",
+    "spark: tests that require pyspark",
+]
 
 [tool.coverage.report]
 precision = 2
@@ -431,13 +436,11 @@ skip = [
     "*-musllinux*", # Skip slow Linux
     "*-manylinux_ppc64le", # Skip slow Linux
     "*-manylinux_s390x", # Skip slow Linux
-    "*p314*",  # spacy uses confection which uses pydantic v1 which isn't supported on py314
 ]
 
 before-test = 'pip install pytest "urllib3<2"'
 test-extras = "ml"
 test-skip = [
     "cp313-macosx_x86_64",
-    "cp314-macosx_x86_64",
 ]
 test-command = "pytest {project}/tests/pipelines/test_pipelines.py"

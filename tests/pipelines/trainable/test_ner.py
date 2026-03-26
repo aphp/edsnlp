@@ -4,6 +4,8 @@ from spacy.tokens import Span
 
 import edsnlp
 
+pytestmark = pytest.mark.ml
+
 pytest.importorskip("torch.nn")
 
 

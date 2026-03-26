@@ -70,7 +70,7 @@ authors = ["Test Author <test.author@mail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.7"
+python = ">=3.10"
 build = "*"  # sample light package to install
 """
         )
@@ -89,7 +89,7 @@ authors = [
     {name = "Test Author", email = "test.author@mail.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 
 dependencies = [
     "build"

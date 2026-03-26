@@ -65,6 +65,7 @@ def test_add_pipe_component():
         model.add_pipe(CustomClass())
 
 
+@pytest.mark.ml
 def test_sequence(frozen_ml_nlp: Pipeline):
     assert len(frozen_ml_nlp.pipeline) == 3
     assert list(frozen_ml_nlp.pipeline) == [
@@ -78,6 +79,7 @@ def test_sequence(frozen_ml_nlp: Pipeline):
     ]
 
 
+@pytest.mark.ml
 def test_disk_serialization(tmp_path, ml_nlp):
     nlp = ml_nlp
 
@@ -113,6 +115,7 @@ def test_disk_serialization(tmp_path, ml_nlp):
     assert nlp.get_pipe("transformer").stride == 64
 
 
+@pytest.mark.ml
 def test_load_pipe_success(tmp_path, ml_nlp):
     model_dir = tmp_path / "model"
     model_dir.mkdir()
@@ -162,6 +165,7 @@ ents = true
 
 
 @pytest.mark.skipif(torch is None, reason="torch not installed")
+@pytest.mark.ml
 def test_validate_config():
     @validate_arguments
     def function(model: Pipeline):
@@ -170,6 +174,7 @@ def test_validate_config():
     function(Config.from_str(config_str).resolve(registry=registry)["nlp"])
 
 
+@pytest.mark.ml
 def test_torch_module(frozen_ml_nlp: Pipeline):
     with frozen_ml_nlp.train(True):
         for name, component in frozen_ml_nlp.torch_components():
@@ -182,6 +187,7 @@ def test_torch_module(frozen_ml_nlp: Pipeline):
     frozen_ml_nlp.to("cpu")
 
 
+@pytest.mark.ml
 def test_cache(frozen_ml_nlp: Pipeline):
     from edsnlp.core.torch_component import _caches
 
@@ -208,6 +214,7 @@ def test_cache(frozen_ml_nlp: Pipeline):
     assert len(_caches) == 0
 
 
+@pytest.mark.ml
 def test_select_pipes(frozen_ml_nlp: Pipeline):
     text = "Ceci est un exemple"
     with frozen_ml_nlp.select_pipes(enable=["transformer", "ner"]):
@@ -232,6 +239,7 @@ def test_different_names():
 
 
 @pytest.mark.skipif(torch is None, reason="torch not installed")
+@pytest.mark.ml
 def test_load_config(run_in_test_dir):
     nlp = edsnlp.load("training/qlf_config.yml")
     assert nlp.pipe_names == [
@@ -267,6 +275,7 @@ span_setter = "ents"
 
 
 @pytest.mark.skipif(torch is None, reason="torch not installed")
+@pytest.mark.ml
 def test_config_validation_error():
     with pytest.raises(ConfitValidationError) as e:
         Pipeline.from_config(Config.from_str(fail_config))
@@ -352,6 +361,7 @@ def test_rule_based_pipeline():
     assert nlp.get_pipe_meta("covid").assigns == ["doc.ents", "doc.spans"]
 
 
+@pytest.mark.ml
 def test_torch_save(ml_nlp):
     import torch
 
@@ -364,6 +374,7 @@ def test_torch_save(ml_nlp):
     assert len(list(nlp("Une phrase. Deux phrases.").sents)) == 2
 
 
+@pytest.mark.ml
 def test_parameters(frozen_ml_nlp):
     assert len(list(frozen_ml_nlp.parameters())) == 90
 
@@ -419,6 +430,7 @@ def test_curried_nlp_pipe():
     reason="Can't run on GH CI with Python 3.7",
 )
 @pytest.mark.skipif(torch is None, reason="torch not installed")
+@pytest.mark.ml
 def test_huggingface():
     nlp = edsnlp.load(
         "AP-HP/dummy-ner",
@@ -439,10 +451,7 @@ def test_huggingface():
     subprocess.run(["pip", "uninstall", "dummy-pip-package", "-y"], check=True)
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 8),
-    reason="Can't run on GH CI with Python 3.7",
-)
+@pytest.mark.ml
 def test_missing_huggingface():
     with pytest.raises(ValueError) as exc_info:
         edsnlp.load(
@@ -453,6 +462,7 @@ def test_missing_huggingface():
     assert "The load function expects either :" in str(exc_info.value)
 
 
+@pytest.mark.ml
 def test_repr(frozen_ml_nlp):
     with frozen_ml_nlp.select_pipes(disable=["sentences"]):
         assert (

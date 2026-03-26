@@ -36,6 +36,7 @@ def test_flat_iterable(num_cpu_workers):
 
 @pytest.mark.parametrize("num_gpu_workers", [0, 1, 2])
 @pytest.mark.skipif(torch is None, reason="torch not installed")
+@pytest.mark.ml
 def test_map_gpu(num_gpu_workers):
     import torch
 
@@ -111,6 +112,7 @@ def test_map_with_batching(sort, num_cpu_workers, batch_kwargs, expected):
     assert list(stream) == expected
 
 
+@pytest.mark.ml
 def test_repr(frozen_ml_nlp, tmp_path):
     items = ["ceci est un test", "ceci est un autre test"]
     stream = (
@@ -157,6 +159,7 @@ def test_shuffle_after_generator():
     assert res == [1, 2, 4, 3, 1, 3, 5, 5, 4, 2]
 
 
+@pytest.mark.ml
 def test_shuffle_frozen_ml_pipeline(run_in_test_dir, frozen_ml_nlp):
     stream = edsnlp.data.read_parquet("../resources/docs.parquet", converter="omop")
     stream = stream.map_pipeline(frozen_ml_nlp, batch_size=2)
@@ -182,6 +185,7 @@ def test_int_shuffle():
     assert list(stream) == [2, 1, 4, 3, 5, 6, 8, 7, 10, 9]
 
 
+@pytest.mark.ml
 def test_parallel_preprocess_stop(run_in_test_dir, frozen_ml_nlp):
     nlp = frozen_ml_nlp
     stream = edsnlp.data.read_parquet(

@@ -1,4 +1,8 @@
+import pytest
+
 import edsnlp
+
+pytestmark = pytest.mark.spark
 
 
 def test_read_write(blank_nlp, text, df_notes_pyspark):

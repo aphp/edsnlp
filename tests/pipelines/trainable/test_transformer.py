@@ -5,6 +5,8 @@ from spacy.tokens import Span
 import edsnlp
 from edsnlp.utils.collections import batch_compress_dict, decompress_dict
 
+pytestmark = pytest.mark.ml
+
 if not Span.has_extension("label"):
     Span.set_extension("label", default=None)
 

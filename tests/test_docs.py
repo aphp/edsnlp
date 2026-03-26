@@ -10,6 +10,8 @@ import catalogue
 import pytest
 from spacy.tokens.underscore import Underscore
 
+pytestmark = pytest.mark.docs
+
 pytest.importorskip("mkdocs")
 try:
     import torch.nn

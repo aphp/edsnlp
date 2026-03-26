@@ -7,6 +7,8 @@ from spacy.tokens import Span
 import edsnlp
 import edsnlp.pipes as eds
 
+pytestmark = pytest.mark.ml
+
 pytest.importorskip("torch.nn")
 
 

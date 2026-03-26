@@ -48,7 +48,7 @@ edsnlp/pipes/core/endlines/__init__.py                                          
 edsnlp/pipes/core/endlines/endlines.py                                                     89      7  92.13%   161-164, 168-169, 201, 288
 edsnlp/pipes/core/endlines/factory.py                                                       4      0 100.00%
 edsnlp/pipes/core/endlines/functional.py                                                   13      0 100.00%
-edsnlp/pipes/core/endlines/model.py                                                       257      0 100.00%
+edsnlp/pipes/core/endlines/model.py                                                       256      0 100.00%
 edsnlp/pipes/core/matcher/__init__.py                                                       1      0 100.00%
 edsnlp/pipes/core/matcher/factory.py                                                        4      0 100.00%
 edsnlp/pipes/core/matcher/matcher.py                                                       38      0 100.00%
@@ -322,7 +322,7 @@ edsnlp/training/__init__.py                                                     
 edsnlp/training/loggers.py                                                                160      4  97.50%   66, 103, 226, 294
 edsnlp/training/optimizer.py                                                              184      0 100.00%
 edsnlp/training/trainer.py                                                                357     13  96.36%   60, 119, 380-385, 939-945, 973-974, 982, 986
-edsnlp/tune.py                                                                            626      8  98.72%   222, 292, 400, 651-652, 835, 1063, 1198
+edsnlp/tune.py                                                                            626     10  98.40%   222, 292, 389, 400, 651-652, 835, 999, 1063, 1198
 edsnlp/utils/__init__.py                                                                    0      0 100.00%
 edsnlp/utils/batching.py                                                                  190      0 100.00%
 edsnlp/utils/bindings.py                                                                   70      0 100.00%
@@ -345,4 +345,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      81      9  88.89%   103, 119, 122-128, 144
 edsnlp/utils/typing.py                                                                     48      1  97.92%   45
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   13539    259  98.09%
+TOTAL                                                                                   13538    261  98.07%

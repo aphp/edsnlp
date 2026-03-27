@@ -5,11 +5,11 @@
     spans = doc.spans["general_status"]
 
     spans
-    # Out: ['trop fragile']
+    # Out: [trop fragile]
 
     span = spans[0]
     span._.general_status
-    # Out: 'trop fragile'
+    # Out: 'altered_severe'
     ```
 
 
@@ -33,7 +33,7 @@
     spans = doc.spans["general_status"]
 
     spans
-    # Out: ['Amélioration de l'état général']
+    # Out: [Amélioration de l'état général]
 
     span = spans[0]
     span._.general_status

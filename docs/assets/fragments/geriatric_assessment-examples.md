@@ -5,7 +5,7 @@
     spans = doc.spans["geriatric_assessment"]
 
     spans
-    # Out: ['évaluation gériatrique']
+    # Out: [évaluation gériatrique]
 
     span = spans[0]
     span._.geriatric_assessment

@@ -5,7 +5,7 @@
     spans = doc.spans["mobility"]
 
     spans
-    # Out: ['sort tous les jours']
+    # Out: [sort tous les jours]
 
     span = spans[0]
     span._.mobility
@@ -19,7 +19,7 @@
     spans = doc.spans["mobility"]
 
     spans
-    # Out: ['grabataire']
+    # Out: [grabataire]
 
     span = spans[0]
     span._.mobility
@@ -33,7 +33,7 @@
     spans = doc.spans["mobility"]
 
     spans
-    # Out: ['Syndrome post-chute']
+    # Out: [Syndrome post-chute]
 
     span = spans[0]
     span._.mobility

@@ -5,7 +5,7 @@
     spans = doc.spans["autonomy"]
 
     spans
-    # Out: ['autonome pour les activités da la vie quotidienne']
+    # Out: [autonome pour les activités de la vie quotidienne]
 
     span = spans[0]
     span._.autonomy
@@ -21,7 +21,7 @@
     spans = doc.spans["autonomy"]
 
     spans
-    # Out: ['sort de moins en moins']
+    # Out: [sort de moins en moins]
 
     span = spans[0]
     span._.autonomy

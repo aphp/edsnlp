@@ -5,6 +5,7 @@ from bref import results_bref
 from chair_stand import results_chair_stand
 from en_eva import results_en_eva
 from g8 import results_g8
+from gait_speed import results_gait_speed
 from gds import results_gds
 from iadl import results_iadl
 from mini_cog import results_mini_cog
@@ -15,8 +16,6 @@ from ps import results_ps
 from rockwood import results_rockwood
 from sppb import results_sppb
 from tug import results_tug
-
-from tests.pipelines.ner.frailty.gait_speed import results_gait_speed
 
 results = dict(
     adl={"results": results_adl, "domain": "autonomy"},

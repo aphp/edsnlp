@@ -5,7 +5,7 @@
     spans = doc.spans["thymic"]
 
     spans
-    # Out: ['anxieux']
+    # Out: [anxieux]
 
     span = spans[0]
     span._.thymic
@@ -19,7 +19,7 @@
     spans = doc.spans["thymic"]
 
     spans
-    # Out: ['moral est bon']
+    # Out: [moral est bon]
 
     span = spans[0]
     span._.thymic

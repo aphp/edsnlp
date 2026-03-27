@@ -5,7 +5,7 @@
     spans = doc.spans["pain"]
 
     spans
-    # Out: ['Sur le plan antalgique']
+    # Out: [Sur le plan antalgique]
 
     span = spans[0]
     span._.pain
@@ -19,7 +19,7 @@
     spans = doc.spans["pain"]
 
     spans
-    # Out: ['palier 1']
+    # Out: [palier 1]
 
     span = spans[0]
     span._.pain

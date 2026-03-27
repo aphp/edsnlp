@@ -5,7 +5,7 @@
     spans = doc.spans["frailty"]
 
     spans
-    # Out: ['trop fragile']
+    # Out: [trop fragile]
 
     span = spans[0]
     span._.frailty

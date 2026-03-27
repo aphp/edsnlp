@@ -5,7 +5,7 @@
     spans = doc.spans["cognition"]
 
     spans
-    # Out: ['langage fluent et cohérent']
+    # Out: [langage fluent]
 
     span = spans[0]
     span._.cognition
@@ -33,7 +33,7 @@
     spans = doc.spans["cognition"]
 
     spans
-    # Out: ['démence']
+    # Out: [démence]
 
     span = spans[0]
     span._.cognition

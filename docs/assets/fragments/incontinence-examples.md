@@ -5,7 +5,7 @@
     spans = doc.spans["incontinence"]
 
     spans
-    # Out: ['continent']
+    # Out: [continent]
 
     span = spans[0]
     span._.incontinence
@@ -19,7 +19,7 @@
     spans = doc.spans["incontinence"]
 
     spans
-    # Out: ['sonde à deumeure']
+    # Out: [sonde à demeure]
 
     span = spans[0]
     span._.incontinence

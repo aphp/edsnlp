@@ -5,7 +5,7 @@
     spans = doc.spans["sensory"]
 
     spans
-    # Out: ['sourde']
+    # Out: [sourde]
 
     span = spans[0]
     span._.sensory

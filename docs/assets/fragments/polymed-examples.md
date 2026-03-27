@@ -5,7 +5,7 @@
     spans = doc.spans["polymed"]
 
     spans
-    # Out: ['iatrogénie']
+    # Out: [iatrogénie]
 
     span = spans[0]
     span._.pain

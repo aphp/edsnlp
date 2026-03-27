@@ -5,7 +5,7 @@
     spans = doc.spans["nutrition"]
 
     spans
-    # Out: ['Carence en vitamines B9']
+    # Out: [Carence en vitamines B9]
 
     span = spans[0]
     span._.nutrition

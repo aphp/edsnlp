@@ -5,7 +5,7 @@
     spans = doc.spans["social"]
 
     spans
-    # Out: ['peu entourée']
+    # Out: [peu entourée]
 
     span = spans[0]
     span._.social
@@ -19,7 +19,7 @@
     spans = doc.spans["social"]
 
     spans
-    # Out: ['vit avec son épouse']
+    # Out: [vit avec son épouse]
 
     span = spans[0]
     span._.social

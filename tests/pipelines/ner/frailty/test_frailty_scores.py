@@ -17,6 +17,12 @@ from rockwood import results_rockwood
 from sppb import results_sppb
 from tug import results_tug
 
+from edsnlp.pipes.ner.frailty.scores.base import FrailtyScoreMatcher
+from edsnlp.pipes.ner.frailty.scores.utils import (
+    float_regex,
+    make_find_value_and_reference,
+)
+
 results = dict(
     adl={"results": results_adl, "domain": "autonomy"},
     iadl={"results": results_iadl, "domain": "autonomy"},
@@ -90,3 +96,105 @@ def test_frailty_scores(normalized_nlp, score):
         score_results,
     )
     tester.check()
+
+
+# Various tests on base class for edge cases
+
+default_score_normalization = make_find_value_and_reference([10], 10)
+
+test_base_class = dict(
+    span_getter_none=dict(
+        patterns=dict(
+            source="test_score",
+            regex=[r"test score"],
+            assign=[
+                dict(
+                    name="value",
+                    regex=rf"({float_regex})",
+                    window=(0, 7),
+                    reduce_mode="keep_last",
+                ),
+            ],
+        ),
+        span_setter=None,
+        score_normalization=default_score_normalization,
+        examples=[
+            {"text": "test score 7", "results": ["test score 7"]},
+        ],
+    ),
+    assigned_required=dict(
+        patterns=dict(
+            source="test_score",
+            regex=[r"test score"],
+            assign=[
+                dict(
+                    name="value",
+                    regex=rf"({float_regex})",
+                    window=(0, 7),
+                    reduce_mode="keep_last",
+                    required=True,
+                ),
+            ],
+        ),
+        span_setter={"ents": True, "test": True},
+        score_normalization=default_score_normalization,
+        examples=[
+            {"text": "test score", "results": []},
+        ],
+    ),
+    mutliple_limits=dict(
+        patterns=dict(
+            source="test_score",
+            regex=[r"test score"],
+            assign=[
+                dict(
+                    name="value",
+                    regex=rf"({float_regex})",
+                    window=(0, 35),
+                    reduce_mode="keep_last",
+                ),
+                dict(
+                    name="limit_1",
+                    regex="(limit)",
+                    window=(0, 35),
+                ),
+                dict(name="limit_2", regex="(border)", window=(0, 35)),
+            ],
+        ),
+        span_setter={"ents": True, "test": True},
+        score_normalization=default_score_normalization,
+        examples=[
+            {"text": "test score 5 7/10", "results": ["test score 5 7/10"]},
+            {"text": "test score 5 border limit 7/10", "results": ["test score 5"]},
+        ],
+    ),
+)
+
+
+@pytest.mark.parametrize(
+    "test_case",
+    list(test_base_class.keys()),
+)
+def test_frailty_score_base(normalized_nlp, test_case):
+    test_params = test_base_class[test_case]
+    patterns = test_params["patterns"]
+    span_setter = test_params["span_setter"]
+    score_normalization = test_params["score_normalization"]
+    examples = test_params["examples"]
+    test_score = FrailtyScoreMatcher(
+        normalized_nlp,
+        name="test_score",
+        domain="test",
+        patterns=patterns,
+        span_setter=span_setter,
+        score_normalization=score_normalization,
+        severity_assigner=lambda x: "other",
+        label="test",
+        include_assigned=True,
+    )
+    for example in examples:
+        doc = normalized_nlp(example["text"])
+        doc = test_score(doc)
+        assert len(doc.ents) == len(example["results"])
+        for ent, result in zip(doc.ents, example["results"]):
+            assert ent.text == result

@@ -117,7 +117,6 @@ class FrailtyScoreMatcher(ContextualMatcher):
         List[Span]
             Spans with additional information
         """
-        replace_key = None
 
         # Assigned matches is a list of tuples, each containing:
         # - the span matched by the "assign" regex (or returned by the span getter)
@@ -196,25 +195,12 @@ class FrailtyScoreMatcher(ContextualMatcher):
             if len(assigned) == 0:
                 continue
 
-            if assign.replace_entity:
-                replace_key = assign.name
             if assign.reduce_mode == "keep_first":  # closest
                 assigned = [min(assigned, key=lambda e: abs(e[0].start - span.start))]
             elif assign.reduce_mode == "keep_last":
                 assigned = [max(assigned, key=lambda e: abs(e[0].start - span.start))]
 
             assigned_dict[assign.name] = assigned
-
-        # Several cases:
-        # 1. should_have_replacement and include_assigned is True
-        #    -> pick closest assigned span where replace = True
-        #    ->
-        if replace_key is not None:
-            replacements = sorted(
-                assigned_dict[replace_key],
-                key=lambda e: abs(e[0].start - span.start),
-            )
-            assigned_dict[replace_key] = replacements
 
         ext = {
             n: (
@@ -237,47 +223,18 @@ class FrailtyScoreMatcher(ContextualMatcher):
             for n, g in assigned_dict.items()
         }
 
-        if replace_key is None:
-            if self.include_assigned:
-                merged = [span, *(x[1] for name, g in assigned_dict.items() for x in g)]
-                span = Span(
-                    span.doc,
-                    min(s.start for s in merged),
-                    max(s.end for s in merged),
-                    span.label_,
-                )
-            span._.source = pattern.source
-            span.label_ = self.label
-            span._.assigned = ext
-            new_spans = [span]
-        else:
-            if self.include_assigned:
-                # we will merge spans from other assign groups + the main span
-                # to the closest "most central" assign span.
-                [closest_replacement, *rest_replacements] = assigned_dict[replace_key]
-                other_spans = [
-                    x[1]
-                    for name, g in assigned_dict.items()
-                    if name != replace_key
-                    for x in g
-                ]
-                merged = [closest_replacement[1], span, *other_spans]
-                span = Span(
-                    span.doc,
-                    min(s.start for s in merged),
-                    max(s.end for s in merged),
-                    span.label_,
-                )
-                new_spans = [span, *(s[1] for s in rest_replacements)]
-            else:
-                new_spans = [x[1] for x in assigned_dict[replace_key]]
-            for idx, span in enumerate(new_spans):
-                span._.source = pattern.source
-                span.label_ = self.label
-                span._.assigned = {
-                    k: v[idx] if ((k == replace_key) and reduce_modes[k] is None) else v
-                    for k, v in ext.items()
-                }
+        if self.include_assigned:
+            merged = [span, *(x[1] for name, g in assigned_dict.items() for x in g)]
+            span = Span(
+                span.doc,
+                min(s.start for s in merged),
+                max(s.end for s in merged),
+                span.label_,
+            )
+        span._.source = pattern.source
+        span.label_ = self.label
+        span._.assigned = ext
+        new_spans = [span]
 
         return new_spans
 

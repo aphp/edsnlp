@@ -1,8 +1,8 @@
 import pytest
 import spacy
-from autonomy import results_autonomy
 from cognition import results_cognition
 from frailty import results_frailty
+from functional_status import results_functional_status
 from general_status import results_general_status
 from geriatric_assessment import results_ga
 from incontinence import results_incontinence
@@ -10,24 +10,24 @@ from mobility import results_mobility
 from nutrition import results_nutrition
 from pain import results_pain
 from polymed import results_polymed
+from psychological_status import results_psychological_status
 from sensory import results_sensory
 from social import results_social
-from thymic import results_thymic
 
 results = dict(
-    autonomy=results_autonomy,
-    cognition=results_cognition,
-    frailty=results_frailty,
-    general_status=results_general_status,
+    functional_status=results_functional_status,
+    cognitive_status=results_cognition,
+    frailty_mentions=results_frailty,
+    global_health_status=results_general_status,
     geriatric_assessment=results_ga,
-    incontinence=results_incontinence,
-    mobility=results_mobility,
-    nutrition=results_nutrition,
-    pain=results_pain,
-    polymed=results_polymed,
-    sensory=results_sensory,
-    social=results_social,
-    thymic=results_thymic,
+    incontinence_status=results_incontinence,
+    mobility_status=results_mobility,
+    nutritional_status=results_nutrition,
+    pain_status=results_pain,
+    polypharmacy_status=results_polymed,
+    sensory_status=results_sensory,
+    social_status=results_social,
+    psychological_status=results_psychological_status,
 )
 
 

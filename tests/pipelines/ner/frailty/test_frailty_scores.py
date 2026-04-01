@@ -13,7 +13,7 @@ from mini_gds import results_mini_gds
 from mms import results_mms
 from moca import results_moca
 from ps import results_ps
-from rockwood import results_rockwood
+from rockwood import results_clinical_frailty_scale
 from sppb import results_sppb
 from tug import results_tug
 
@@ -24,22 +24,31 @@ from edsnlp.pipes.ner.frailty.scores.utils import (
 )
 
 results = dict(
-    adl={"results": results_adl, "domain": "autonomy"},
-    iadl={"results": results_iadl, "domain": "autonomy"},
-    mms={"results": results_mms, "domain": "cognition"},
-    moca={"results": results_moca, "domain": "cognition"},
-    tug={"results": results_tug, "domain": "mobility"},
-    gait_speed={"results": results_gait_speed, "domain": "mobility"},
-    gds={"results": results_gds, "domain": "thymic"},
-    mini_gds={"results": results_mini_gds, "domain": "thymic"},
+    adl_score={"results": results_adl, "domain": "functional_status"},
+    iadl_score={"results": results_iadl, "domain": "functional_status"},
+    mini_mental_state_score={"results": results_mms, "domain": "cognitive_status"},
+    moca_score={"results": results_moca, "domain": "cognitive_status"},
+    timed_up_and_go_score={"results": results_tug, "domain": "mobility_status"},
+    gait_speed_score={"results": results_gait_speed, "domain": "mobility_status"},
+    geriatric_depression_scale_score={
+        "results": results_gds,
+        "domain": "psychological_status",
+    },
+    mini_gds_score={"results": results_mini_gds, "domain": "psychological_status"},
     g8_score={"results": results_g8, "domain": "g8"},
-    ps={"results": results_ps, "domain": "general_status"},
-    rockwood={"results": results_rockwood, "domain": "general_status"},
-    bref={"results": results_bref, "domain": "cognition"},
-    chair_stand={"results": results_chair_stand, "domain": "mobility"},
-    en_eva={"results": results_en_eva, "domain": "pain"},
-    mini_cog={"results": results_mini_cog, "domain": "cognition"},
-    sppb={"results": results_sppb, "domain": "mobility"},
+    ecog_performance_status_score={
+        "results": results_ps,
+        "domain": "global_health_status",
+    },
+    clinical_frailty_scale_score={
+        "results": results_clinical_frailty_scale,
+        "domain": "global_health_status",
+    },
+    bref_score={"results": results_bref, "domain": "cognitive_status"},
+    chair_stand_score={"results": results_chair_stand, "domain": "mobility_status"},
+    pain_rating_score={"results": results_en_eva, "domain": "pain_status"},
+    mini_cog_score={"results": results_mini_cog, "domain": "cognitive_status"},
+    sppb_score={"results": results_sppb, "domain": "mobility_status"},
 )
 
 

@@ -28,8 +28,8 @@ class FrailtyScoreMatcher(ContextualMatcher):
     is mainly useful when two scores are often put close to one another,
     and we don't want the context window of one to overlap on the other.
     - it has a domain argument, which is used to store the severity of the span,
-    given the value found for this score. As an example, ADL 3/4 would set
-    span._.autonomy to 'altered_nondescript'."""
+    given the value found for this score. As an example, adl_score 3/4 would set
+    span._.functional_status to 'altered_nondescript'."""
 
     def __init__(
         self,

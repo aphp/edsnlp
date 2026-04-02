@@ -52,7 +52,7 @@ class FrailtyMentionsMatcher(FrailtyDomainMatcher):
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(eds.sentences())
     nlp.add_pipe(eds.normalizer())
-    nlp.add_pipe(f"eds.frailty")
+    nlp.add_pipe(f"eds.frailty_mentions")
     ```
 
     Below are a few examples:

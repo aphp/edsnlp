@@ -119,7 +119,7 @@ nav:
             - pipes/ner/frailty/cognitive_status.md
             - pipes/ner/frailty/frailty_mentions.md
             - pipes/ner/frailty/global_health_status.md
-            - pipes/ner/frailty/geraiatric_assessment.md
+            - pipes/ner/frailty/geriatric_assessment.md
             - pipes/ner/frailty/incontinence_status.md
             - pipes/ner/frailty/mobility_status.md
             - pipes/ner/frailty/nutritional_status.md

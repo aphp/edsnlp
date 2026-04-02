@@ -62,12 +62,12 @@ def create_component(
     nlp.add_pipe(eds.adl_score())
 
     text = """
-    adl_score 6/6.
+    ADL 6/6.
     """
 
     doc = nlp(text)
     doc.ents
-    # Out: (adl_score 6/6,)
+    # Out: (ADL 6/6,)
     ```
 
     Extensions

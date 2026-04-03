@@ -177,8 +177,10 @@ logic_filter = (
         # --- BRANCH 2: The "T + NMR" ---
         # Matches any T (bare or prefixed) as long as it's followed by N, M, or R.
         r"(?:(?:[cpyramP]{0,2}\s*)?T\s*(?:[0-4]|is|[xo])" # T part
-        r"(?:\s*[,\/]?\s*|\n)"                           # TNM_space
-        r"(?:[cpyraP]{0,2}\s*[NMR][x0-4\+o]))"           # Start of N, M, or R
+        r"(?:\s*(?:[abcdx]|mi))?"                         # MISSING: Optional specification
+        r"(?:\s*\([^()]{1,20}\))?"                        # MISSING: Optional suffix, e.g., (m)
+        r"(?:\s*[,\/]?\s*|\n)"                            # TNM_space
+        r"(?:[cpyraP]{0,2}\s*[NMR][x0-4\+o]))"            # Start of N, M, or R
     r")"
 )
 

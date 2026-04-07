@@ -109,7 +109,7 @@ tnm_pattern_new = (
 
 
 tumour_pattern = (
-    r"(?P<tumour_prefix>[cpyraumP]{1,2}\s*)?"  # Optional tumour prefix
+    r"(?P<tumour_prefix>[cpyraumsP]{1,2}\s*)?"  # Optional tumour prefix
     r"T\s*"  # 'T' followed by optional space
     r"(?P<tumour>([0-4]|is|[Xx]|[Oo]))"  # Tumour size (required if 'T' is present)
     r"(?:\s*(?P<tumour_specification>[abcdx]|mi))?"  # Optional tumour specification
@@ -117,7 +117,7 @@ tumour_pattern = (
 )
 
 node_pattern = (
-    r"(?P<node_prefix>[cpyrauP]{1,2}\s*)?"  # Optional node prefix
+    r"(?P<node_prefix>[cpyrausP]{1,2}\s*)?"  # Optional node prefix
     r"N\s*"  # 'N' followed by optional space
     r"(?P<node>[Xx01234\+]|[Oo])"  # Node size/status (required if 'N' is present)
     r"(?:\s*(?P<node_specification>"
@@ -127,7 +127,7 @@ node_pattern = (
 )
 
 metastasis_pattern = (
-    r"(?P<metastasis_prefix>[cpyrauP]{1,2}\s*)?"  # Optional metastasis prefix
+    r"(?P<metastasis_prefix>[cpyrausP]{1,2}\s*)?"  # Optional metastasis prefix
     r"M\s*"  # 'M' followed by optional space
     r"(?P<metastasis>[Xx0123\+]|[Oo])"  # Metastasis status (required if 'M' is present)
     r"(?:\s*(?P<metastasis_specification>"
@@ -141,7 +141,7 @@ pleura_pattern = (
 )
 
 resection_pattern = (
-    r"(?P<resection_prefix>[cpyrauP]{1,2}\s*)?"  # Optional metastasis prefix
+    r"(?P<resection_prefix>[cpyrausP]{1,2}\s*)?"  # Optional metastasis prefix
     r"R\s*"
     r"(?P<resection>[Xx012\+])"  # Resection completeness
     r"(?:\s*(?P<resection_specification>is|cy\+|\(is\)|\(cy\+\)))?"  # Optional spec
@@ -164,7 +164,7 @@ logic_filter = (
     # We allow the spec to be followed by:
     # 1. A word boundary \b (space, punctuation, end of string)
     # 2. OR the start of the next component (N, M, R) to allow "glued" text.
-    + r".*?\b[cpyramP]{1,2}\s*T\s*(?:[0-4]|is|[Xx]|[Oo])\s*(?:[abcd]|mi)(?=\b|[NMRP])"
+    + r".*?\b[cpyraumsP]{1,2}\s*T\s*(?:[0-4]|is|[Xx]|[Oo])\s*(?:[abcd]|mi)(?=\b|[NMRP])"
     + r")"
 )
 
@@ -172,11 +172,11 @@ logic_filter = (
     r"(?="
         # --- BRANCH 1: The "Qualified Solo" ---
         # Matches if T has a prefix AND a specification immediately.
-        r"(?:[cpyraumP]{1,2}\s*T\s*(?:[0-4]|is|[xo])\s*(?:[abcdx]|mi))"
+        r"(?:[cpyraumsP]{1,2}\s*T\s*(?:[0-4]|is|[xo])\s*(?:[abcdx]|mi))"
         r"|"
         # --- BRANCH 2: The "T + NMR" ---
         # Matches any T (bare or prefixed) as long as it's followed by N, M, or R.
-        r"(?:(?:[cpyraumP]{0,2}\s*)?T\s*(?:[0-4]|is|[xo])" # T part
+        r"(?:(?:[cpyraumsP]{0,2}\s*)?T\s*(?:[0-4]|is|[xo])" # T part
         r"(?:\s*(?:[abcdx]|mi))?"                         # MISSING: Optional specification
         r"(?:\s*\([^()]{1,20}\))?"                        # MISSING: Optional suffix, e.g., (m)
         r"(?:\s*[,\/]?\s*|\n)"                            # TNM_space

@@ -214,6 +214,7 @@ class TrainableSpanClassifier(
         keep_none: bool = False,
         loss_fn: Optional[Callable] = None,
         deduplicate: bool = False,
+        dropout_prob: float = 0.0,
     ):
         attributes: Attributes
         if attributes is None and qualifiers is None:
@@ -275,6 +276,7 @@ class TrainableSpanClassifier(
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)
             self.classifier = torch.nn.Linear(embedding.output_size, 0)
+            self.dropout = torch.nn.Dropout(dropout_prob)
 
         self.loss_fn = loss_fn
         self.deduplicate = deduplicate
@@ -678,6 +680,7 @@ class TrainableSpanClassifier(
         embedding = self.embedding(batch["embedding"])
         span_embeds = embedding["embeddings"]
 
+        span_embeds = self.dropout(span_embeds)
         binding_scores = self.classifier(span_embeds)
         return binding_scores
 

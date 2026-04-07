@@ -184,13 +184,13 @@ logic_filter = (
     r")"
 )
 
-banned_words = ["auto", "mtx"]
-ban_filter = r"(?!(?:" + "|".join(banned_words) + r")\b)"
+#banned_words = ["auto", "mtx"]
+#ban_filter = r"(?!(?:" + "|".join(banned_words) + r")\b)"
 
 tnm_pattern_new = (
     r"(?i)"             # Global Case-Insensitive
     r"(?:\b|^)"         # Boundary
-    + ban_filter
+    #+ ban_filter
     + logic_filter      # The "Gatekeeper"
     + r"(?P<T_component>" + tumour_pattern + r")"
     + TNM_space + "?"

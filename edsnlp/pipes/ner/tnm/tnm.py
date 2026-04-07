@@ -126,13 +126,14 @@ class TNMMatcher(BaseNERComponent):
         for span, gd in spans:
             text = span.text
             clean = text.replace(" ", "").replace("\n", "").replace(",", "")
+            if clean.strip().lower() in banned_words:
+                continue
             if (
                 # we keep it if it's longer than 2 chars
                 len(clean) > 2
                 # or shorter but there is no space, and it starts w/ a lowercase letter
                 # to avoid cases like "a  T" or "PT"
                 or (not text[1:2].isspace() and text[0:1].islower())
-                and (clean.strip().lower() not in banned_words)
             ):
                 filtered_spans.append((span, gd))
 

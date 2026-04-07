@@ -172,7 +172,7 @@ logic_filter = (
     r"(?="
         # --- BRANCH 1: The "Qualified Solo" ---
         # Matches if T has a prefix AND a specification immediately.
-        r"(?:[cpyraumsP]{1,2}\s*T\s*(?:[0-4]|is|[xo])\s*(?:[abcdxm]|mi))"
+        r"(?:[cpyraumsP]{1,2}\s*T\s*(?:[0-4]|is|[xo])\s*(?:[abcdxm]|mi)\b)"
         r"|"
         # --- BRANCH 2: The "T + NMR" ---
         # Matches any T (bare or prefixed) as long as it's followed by N, M, or R.

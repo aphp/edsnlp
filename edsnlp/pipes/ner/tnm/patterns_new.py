@@ -3,7 +3,7 @@ tumour_pattern = (
     r"(?P<tumour_prefix>[cpyramP]{1,2}\s?)?"  # Optional tumour prefix
     r"T\s?"  # 'T' followed by optional space
     r"(?P<tumour>([0-4]|is|[Xx]|[Oo]))"  # Tumour size (required if 'T' is present)
-    r"(?:\s?(?P<tumour_specification>[abcdx]|mi))?"  # Optional tumour specification
+    r"(?:\s?(?P<tumour_specification>[abcdxm]|mi))?"  # Optional tumour specification
     r"(?:\s?\((?P<tumour_suffix>[^()]{1,10})\))?"  # Optional tumour suffix
 )
 
@@ -12,7 +12,7 @@ node_pattern = (
     r"N\s?"  # 'N' followed by optional space
     r"(?P<node>[Xx01234\+]|[Oo])"  # Node size/status (required if 'N' is present)
     r"(?:\s?(?P<node_specification>"
-    r"[abcdx]|mi|sn|i[-,+]|mol[-,+]|\(mi\)|\(sn\)|"
+    r"[abcdxm]|mi|sn|i[-,+]|mol[-,+]|\(mi\)|\(sn\)|"
     r"\(i[-,+]\)|\(mol[-,+]\)|\(\d+\s*/\s*\d+\)))?"  # Optional specification
     r"(?:\s?\((?P<node_suffix>[^()]{1,10})\))?"  # Optional suffix
 )
@@ -22,7 +22,7 @@ metastasis_pattern = (
     r"M\s?"  # 'M' followed by optional space
     r"(?P<metastasis>[Xx0123\+]|[Oo])"  # Metastasis status (required if 'M' is present)
     r"(?:\s?(?P<metastasis_specification>"
-    r"[abcd]|i\+|mol\+|cy\+|\(i\+\)|\(mol\+\)|"
+    r"[abcdm]|i\+|mol\+|cy\+|\(i\+\)|\(mol\+\)|"
     r"\(cy\+\)|PUL|OSS|HEP|BRA|LYM|OTH|MAR|PLE|PER|ADR|SKI))?"  # Optional specification
 )
 
@@ -112,7 +112,7 @@ tumour_pattern = (
     r"(?P<tumour_prefix>[cpyraumsP]{1,2}\s*)?"  # Optional tumour prefix
     r"T\s*"  # 'T' followed by optional space
     r"(?P<tumour>([0-4]|is|[Xx]|[Oo]))"  # Tumour size (required if 'T' is present)
-    r"(?:\s*(?P<tumour_specification>[abcdx]|mi))?"  # Optional tumour specification
+    r"(?:\s*(?P<tumour_specification>[abcdxm]|mi))?"  # Optional tumour specification
     r"(?:\s*\((?P<tumour_suffix>[^()]{1,20})\))?"  # Optional tumour suffix
 )
 
@@ -121,7 +121,7 @@ node_pattern = (
     r"N\s*"  # 'N' followed by optional space
     r"(?P<node>[Xx01234\+]|[Oo])"  # Node size/status (required if 'N' is present)
     r"(?:\s*(?P<node_specification>"
-    r"[abcdx]|mi|sn|i[-,+]|mol[-,+]|\(mi\)|\(sn\)|"
+    r"[abcdxm]|mi|sn|i[-,+]|mol[-,+]|\(mi\)|\(sn\)|"
     r"\(i[-,+]\)|\(mol[-,+]\)|\(\d+\s*/\s*\d+\)))?"  # Optional specification
     r"(?:\s*\((?P<node_suffix>[^()]{1,20})\))?"  # Optional suffix
 )
@@ -131,7 +131,7 @@ metastasis_pattern = (
     r"M\s*"  # 'M' followed by optional space
     r"(?P<metastasis>[Xx0123\+]|[Oo])"  # Metastasis status (required if 'M' is present)
     r"(?:\s*(?P<metastasis_specification>"
-    r"[abcd]|i\+|mol\+|cy\+|\(i\+\)|\(mol\+\)|"
+    r"[abcdm]|i\+|mol\+|cy\+|\(i\+\)|\(mol\+\)|"
     r"\(cy\+\)|PUL|OSS|HEP|BRA|LYM|OTH|MAR|PLE|PER|ADR|SKI))?"  # Optional specification
     r"(?:\s*\((?P<metastasis_suffix>[^()]{1,20})\))?"  # Optional suffix
 )
@@ -172,15 +172,15 @@ logic_filter = (
     r"(?="
         # --- BRANCH 1: The "Qualified Solo" ---
         # Matches if T has a prefix AND a specification immediately.
-        r"(?:[cpyraumsP]{1,2}\s*T\s*(?:[0-4]|is|[xo])\s*(?:[abcdx]|mi))"
+        r"(?:[cpyraumsP]{1,2}\s*T\s*(?:[0-4]|is|[xo])\s*(?:[abcdxm]|mi))"
         r"|"
         # --- BRANCH 2: The "T + NMR" ---
         # Matches any T (bare or prefixed) as long as it's followed by N, M, or R.
         r"(?:(?:[cpyraumsP]{0,2}\s*)?T\s*(?:[0-4]|is|[xo])" # T part
-        r"(?:\s*(?:[abcdx]|mi))?"                         # MISSING: Optional specification
+        r"(?:\s*(?:[abcdxm]|mi))?"                         # MISSING: Optional specification
         r"(?:\s*\([^()]{1,20}\))?"                        # MISSING: Optional suffix, e.g., (m)
         r"(?:\s*[,\/]?\s*|\n)"                            # TNM_space
-        r"(?:[cpyraP]{0,2}\s*[NMR][x0-4\+o]))"            # Start of N, M, or R
+        r"(?:[cpyraumsP]{0,2}\s*[NMR][x0-4\+o]))"            # Start of N, M, or R
     r")"
 )
 

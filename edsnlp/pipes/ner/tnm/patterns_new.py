@@ -180,7 +180,7 @@ logic_filter = (
         r"(?:\s*(?:[abcdxm]|mi))?"                         # MISSING: Optional specification
         r"(?:\s*\([^()]{1,20}\))?"                        # MISSING: Optional suffix, e.g., (m)
         r"(?:\s*[,\/]?\s*|\n)"                            # TNM_space
-        r"(?:[cpyraumsP]{0,2}\s*[NMR][x0-4\+o]))"            # Start of N, M, or R
+        r"(?:[cpyraumsP]{0,2}\s*[NMR]\s*[x0-4\+o]))"            # Start of N, M, or R
     r")"
 )
 

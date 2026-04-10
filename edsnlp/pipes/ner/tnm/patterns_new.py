@@ -117,7 +117,7 @@ tumour_pattern = (
 )
 
 node_pattern = (
-    r"(?P<node_prefix>[cpyrausP]{1,2}\s*)?"  # Optional node prefix
+    r"(?P<node_prefix>[cpyraumsP]{1,2}\s*)?"  # Optional node prefix
     r"N\s*"  # 'N' followed by optional space
     r"(?P<node>[Xx01234\+]|[Oo])"  # Node size/status (required if 'N' is present)
     r"(?:\s*(?P<node_specification>"
@@ -127,7 +127,7 @@ node_pattern = (
 )
 
 metastasis_pattern = (
-    r"(?P<metastasis_prefix>[cpyrausP]{1,2}\s*)?"  # Optional metastasis prefix
+    r"(?P<metastasis_prefix>[cpyraumsP]{1,2}\s*)?"  # Optional metastasis prefix
     r"M\s*"  # 'M' followed by optional space
     r"(?P<metastasis>[Xx0123\+]|[Oo])"  # Metastasis status (required if 'M' is present)
     r"(?:\s*(?P<metastasis_specification>"
@@ -141,7 +141,7 @@ pleura_pattern = (
 )
 
 resection_pattern = (
-    r"(?P<resection_prefix>[cpyrausP]{1,2}\s*)?"  # Optional metastasis prefix
+    r"(?P<resection_prefix>[cpyraumsP]{1,2}\s*)?"  # Optional metastasis prefix
     r"R\s*"
     r"(?P<resection>[Xx012\+])"  # Resection completeness
     r"(?:\s*(?P<resection_specification>is|cy\+|\(is\)|\(cy\+\)))?"  # Optional spec

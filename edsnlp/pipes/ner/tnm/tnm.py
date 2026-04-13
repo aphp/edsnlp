@@ -120,7 +120,7 @@ class TNMMatcher(BaseNERComponent):
             return_groupdict=True,
         )
 
-        banned_words = {"auto", "ato", "autoa", "mtx", "mtxx", "mtxd", "t0", "t1", "t2", "t3", "t4", "tissunom"}
+        banned_words = {"auto", "ato", "autoa", "mtx", "mtxx", "mtxd", "t0", "t1", "t2", "t3", "t4", "tissunom","cyto", "autonom"}
 
         filtered_spans = []
         for span, gd in spans:

@@ -12,7 +12,7 @@ from edsnlp.utils.filter import filter_spans
 from edsnlp.utils.typing import cast
 
 from .model import TNM
-from .patterns import tnm_pattern
+from .patterns_new import tnm_pattern_new
 
 
 class TNMMatcher(BaseNERComponent):
@@ -75,7 +75,7 @@ class TNMMatcher(BaseNERComponent):
         nlp: Optional[PipelineProtocol],
         name: str = "tnm",
         *,
-        pattern: Optional[Union[List[str], str]] = tnm_pattern,
+        pattern: Optional[Union[List[str], str]] = tnm_pattern_new,
         attr: str = "TEXT",
         label: str = "tnm",
         span_setter: SpanSetterArg = {"ents": True, "tnm": True},
@@ -120,10 +120,14 @@ class TNMMatcher(BaseNERComponent):
             return_groupdict=True,
         )
 
+        banned_words = {"auto", "ato", "autoa", "mtx", "mtxx", "mtxd", "t0", "t1", "t2", "t3", "t4", "tissunom","cyto", "autonom", 'tox',"mto","rtx","to", "atom","ctx"}
+
         filtered_spans = []
         for span, gd in spans:
             text = span.text
-            clean = text.replace(" ", "").replace("\n", "")
+            clean = text.replace(" ", "").replace("\n", "").replace(",", "")
+            if clean.strip().lower() in banned_words:
+                continue
             if (
                 # we keep it if it's longer than 2 chars
                 len(clean) > 2

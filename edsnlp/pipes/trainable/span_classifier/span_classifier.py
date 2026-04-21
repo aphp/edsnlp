@@ -207,7 +207,7 @@ class TrainableSpanClassifier(
         embedding: SpanEmbeddingComponent,
         attributes: AttributesArg = None,
         qualifiers: AttributesArg = None,
-        label_weights: Dict[str, Dict[Any, float]] = None,
+        label_weights: Optional[Dict[str, Dict[Any, float]]] = None,
         span_getter: SpanGetterArg = None,
         context_getter: Optional[Union[ContextWindow, SpanGetterArg]] = None,
         values: Optional[Dict[str, List[Any]]] = None,

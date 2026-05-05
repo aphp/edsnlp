@@ -702,6 +702,8 @@ class TrainableSpanClassifier(
 
         if "span_ids" in batch:
             span_ids = batch["span_ids"].squeeze(0)
+        else:
+            span_ids = None
         return logits, mask, targets, scores, predictions, span_ids
 
     def _compute_loss(

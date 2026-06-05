@@ -68,6 +68,7 @@ SpanClassifierBatchOutput = TypedDict(
     {
         "loss": Optional[torch.Tensor],
         "labels": Optional[List[torch.Tensor]],
+        "scores": Optional[List[torch.Tensor]],
     },
 )
 """
@@ -354,6 +355,8 @@ class TrainableSpanClassifier(
                 qlf = qlf[2:]
             if not Span.has_extension(qlf):
                 Span.set_extension(qlf, default=None)
+        if not Span.has_extension("prob"):
+            Span.set_extension("prob", default={})
 
     def post_init(
         self,
@@ -755,7 +758,7 @@ class TrainableSpanClassifier(
         else:
             predictions = []
             losses = None
-            scores = None
+            scores = []
             span_ids = None
             targets = None
 
@@ -796,7 +799,9 @@ class TrainableSpanClassifier(
                     )
                     losses.append(loss)
             else:
-                predictions.append(binding_scores[:, bindings_indexer].argmax(dim=1))
+                logits = binding_scores[:, bindings_indexer]
+                scores.append(torch.softmax(logits.detach(), dim=1))
+                predictions.append(logits.argmax(dim=1))
 
         return {
             "loss": sum(losses) if losses is not None else None,
@@ -815,14 +820,29 @@ class TrainableSpanClassifier(
         # Preprocessed docs should still be in the cache
         spans = [span for sample in inputs for span in sample["$spans"]]
         all_labels = results["labels"]
+        all_scores = results.get("scores")
         # For each prediction group (exclusive bindings)...
-        for val_indices, (qlf, labels, values) in zip(all_labels, self.bindings):
+        for group_idx, (val_indices, (qlf, labels, values)) in enumerate(
+            zip(all_labels, self.bindings)
+        ):
+            group_scores = (
+                all_scores[group_idx]
+                if all_scores is not None and group_idx < len(all_scores)
+                else None
+            )
+            scores_ready = group_scores is not None and group_scores.shape[0] == len(
+                spans
+            )
             # For each span...
-            for span, idx in zip(spans, val_indices.tolist()):
+            for span_idx, (span, idx) in enumerate(zip(spans, val_indices.tolist())):
                 # If the span is not filtered out...
                 if labels is True or span.label_ in labels:
                     # ...assign the predicted value to the span
                     BINDING_SETTERS[qlf](span, values[idx])
+                    if scores_ready:
+                        span._.prob[qlf] = {
+                            values[idx]: float(group_scores[span_idx, idx].item())
+                        }
         return docs
 
 

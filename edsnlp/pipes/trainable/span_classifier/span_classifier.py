@@ -841,7 +841,10 @@ class TrainableSpanClassifier(
                     BINDING_SETTERS[qlf](span, values[idx])
                     if scores_ready:
                         span._.prob[qlf] = {
-                            values[idx]: float(group_scores[span_idx, idx].item())
+                            value: float(score)
+                            for value, score in zip(
+                                values, group_scores[span_idx].tolist()
+                            )
                         }
         return docs
 

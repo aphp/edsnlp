@@ -17,7 +17,7 @@ examples = [
     "TNM: <ent norm=pT2cN0R0>pT2c N0 R0</ent>",
     "TNM: <ent norm=pT2N0R0>pT2N0R0</ent>",
     "TNM: <ent norm=pT2N1M0R0>pT2N1M0R0</ent>",
-    # Space between M and its value (regression test for the m-spec/M-component conflict)
+    # Space inside M value — regression for the m-spec/M-component conflict
     "TNM: <ent norm=pTxN1M0>p Tx N1M 0</ent>",
     # node_specification with parenthesised forms — parens stripped in norm
     "TNM: <ent norm=pT1bN0sn>pT1bN0(sn)</ent>",
@@ -27,22 +27,22 @@ examples = [
     "TNM: <ent norm=pT2b>pT2b</ent>",
     "TNM: <ent norm=yT1a>yT1a</ent>",
     # Case variants — (?i) flag must handle all combos
-    "TNM: <ent norm=pT2N1M0>pt2n1m0</ent>",       # all lowercase
-    "TNM: <ent norm=PT2N1M0>PT2N1M0</ent>",        # uppercase prefix P
-    "TNM: <ent norm=pT2N1M0>pT2N1m0</ent>",        # lowercase m for metastasis letter
-    "TNM: <ent norm=aTXN1M0>aTXN1M0</ent>",        # uppercase X tumour value
+    "TNM: <ent norm=pT2N1M0>pt2n1m0</ent>",  # all lowercase
+    "TNM: <ent norm=PT2N1M0>PT2N1M0</ent>",  # uppercase prefix P
+    "TNM: <ent norm=pT2N1M0>pT2N1m0</ent>",  # lowercase m for metastasis letter
+    "TNM: <ent norm=aTXN1M0>aTXN1M0</ent>",  # uppercase X tumour value
     # Delimiter variants between components
     "TNM: <ent norm=pT2N1M0>pT2,N1,M0</ent>",
     "TNM: <ent norm=pT2N1M0>pT2/N1/M0</ent>",
     "TNM: <ent norm=pT2N1M0>pT2, N1, M0</ent>",
     # Logic filter — positive: T alone without prefix+spec must have N, M, or R
-    "TNM: <ent norm=T2N1>T2N1</ent>",         # no prefix, N present
-    "TNM: <ent norm=pT2M0>pT2M0</ent>",       # no N, M present
-    "TNM: <ent norm=T2aN1M0>T2aN1M0</ent>",   # no prefix, spec+NMR present
-    "TNM: <ent norm=T2R0>T2R0</ent>",         # no prefix, R present
+    "TNM: <ent norm=T2N1>T2N1</ent>",  # no prefix, N present
+    "TNM: <ent norm=pT2M0>pT2M0</ent>",  # no N, M present
+    "TNM: <ent norm=T2aN1M0>T2aN1M0</ent>",  # no prefix, spec+NMR present
+    "TNM: <ent norm=T2R0>T2R0</ent>",  # no prefix, R present
     # Logic filter — negative
-    "TNM: T2a",    # spec present but no prefix and no NMR
-    # Should NOT match — logic_filter rejects bare T without N/M/R and without prefix+spec
+    "TNM: T2a",  # spec present but no prefix and no NMR
+    # Should NOT match — logic_filter rejects bare T without N/M/R or prefix+spec
     "TNM: PT",
     "TNM: p    T \n",
     "TNM: a T \n",
@@ -66,12 +66,14 @@ def test_tnm(blank_nlp):
 
         for entity, ent in zip(entities, doc.ents):
             norm = entity.modifiers[0].value
-            assert ent.text == text[entity.start_char : entity.end_char], (
-                f"Span mismatch in {text!r}: expected {text[entity.start_char:entity.end_char]!r}, "
-                f"got {ent.text!r}"
+            expected_span = text[entity.start_char : entity.end_char]
+            assert ent.text == expected_span, (
+                f"Span mismatch in {text!r}: "
+                f"expected {expected_span!r}, got {ent.text!r}"
             )
             assert norm == ent._.value.norm(), (
-                f"Norm mismatch in {text!r}: expected {norm!r}, got {ent._.value.norm()!r}"
+                f"Norm mismatch in {text!r}: "
+                f"expected {norm!r}, got {ent._.value.norm()!r}"
             )
 
 
@@ -394,10 +396,10 @@ decomposition_cases = [
 
 # Logic filter — inputs that must produce NO match
 no_match_cases = [
-    ("T2a",  "spec only, no prefix, no NMR"),
-    ("T2",   "bare T, no prefix, no spec, no NMR"),
-    ("pT2",  "prefix but no spec and no NMR"),
-    ("PT",   "prefix + T but no tumour value"),
+    ("T2a", "spec only, no prefix, no NMR"),
+    ("T2", "bare T, no prefix, no spec, no NMR"),
+    ("pT2", "prefix but no spec and no NMR"),
+    ("PT", "prefix + T but no tumour value"),
 ]
 
 
@@ -414,7 +416,8 @@ def test_tnm_decomposition():
         for field, expected_value in expected_fields.items():
             actual = getattr(tnm, field)
             assert actual == expected_value, (
-                f"[{text!r}] field {field!r}: expected {expected_value!r}, got {actual!r}"
+                f"[{text!r}] field {field!r}: "
+                f"expected {expected_value!r}, got {actual!r}"
             )
 
         assert tnm.norm() == expected_norm, (

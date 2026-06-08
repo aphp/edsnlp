@@ -28,9 +28,7 @@ metastasis_pattern = (
     r"(?:\s*\((?P<metastasis_suffix>[^()]{1,20})\))?"
 )
 
-pleura_pattern = (
-    r"PL\s*(?P<pleura>([0123]|x))?"
-)
+pleura_pattern = r"PL\s*(?P<pleura>([0123]|x))?"
 
 resection_pattern = (
     r"(?P<resection_prefix>[cpyraumsP]{1,2}\s*)?"
@@ -45,15 +43,15 @@ TNM_space = r"(?:\s*[,\/]?\s*|\n)"
 
 logic_filter = (
     r"(?="
-        # --- BRANCH 1: Standalone T with prefix AND specification ---
-        r"(?:[cpyraumsP]{1,2}\s*T\s*(?:[0-4]|is|[xo])\s*(?:[abcdxm]|mi)\b)"
-        r"|"
-        # --- BRANCH 2: T followed by N, M, or R ---
-        r"(?:(?:[cpyraumsP]{0,2}\s*)?T\s*(?:[0-4]|is|[xo])"
-        r"(?:\s*(?:[abcdxm]|mi))?"
-        r"(?:\s*\([^()]{1,20}\))?"
-        r"(?:\s*[,\/]?\s*|\n)"
-        r"(?:[cpyraumsP]{0,2}\s*[NMR]\s*[x0-4\+o]))"
+    # --- BRANCH 1: Standalone T with prefix AND specification ---
+    r"(?:[cpyraumsP]{1,2}\s*T\s*(?:[0-4]|is|[xo])\s*(?:[abcdxm]|mi)\b)"
+    r"|"
+    # --- BRANCH 2: T followed by N, M, or R ---
+    r"(?:(?:[cpyraumsP]{0,2}\s*)?T\s*(?:[0-4]|is|[xo])"
+    r"(?:\s*(?:[abcdxm]|mi))?"
+    r"(?:\s*\([^()]{1,20}\))?"
+    r"(?:\s*[,\/]?\s*|\n)"
+    r"(?:[cpyraumsP]{0,2}\s*[NMR]\s*[x0-4\+o]))"
     r")"
 )
 
@@ -61,12 +59,30 @@ tnm_pattern_new = (
     r"(?i)"
     r"(?:\b|^)"
     + logic_filter
-    + r"(?P<T_component>" + tumour_pattern + r")"
+    + r"(?P<T_component>"
+    + tumour_pattern
+    + r")"
     # Each optional component is grouped with its preceding TNM_space so that
     # trailing whitespace is not greedily consumed when the component is absent.
-    + r"(?:" + TNM_space + r"(?P<N_component>" + node_pattern + r"))?"
-    + r"(?:" + TNM_space + r"(?P<M_component>" + metastasis_pattern + r"))?"
-    + r"(?:" + TNM_space + r"(?P<PL_component>" + pleura_pattern + r"))?"
-    + r"(?:" + TNM_space + r"(?P<R_component>" + resection_pattern + r"))?"
+    + r"(?:"
+    + TNM_space
+    + r"(?P<N_component>"
+    + node_pattern
+    + r"))?"
+    + r"(?:"
+    + TNM_space
+    + r"(?P<M_component>"
+    + metastasis_pattern
+    + r"))?"
+    + r"(?:"
+    + TNM_space
+    + r"(?P<PL_component>"
+    + pleura_pattern
+    + r"))?"
+    + r"(?:"
+    + TNM_space
+    + r"(?P<R_component>"
+    + resection_pattern
+    + r"))?"
     + r"(?=[\s\(\)\.,;:/]|$)"
 )

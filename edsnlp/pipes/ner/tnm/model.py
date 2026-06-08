@@ -75,6 +75,15 @@ class Metastasis(TnmEnum):
 
 
 class TNM(pydantic.BaseModel):
+    """Structured representation of a parsed TNM staging mention.
+
+    All fields store the raw text captured by the regex (case-preserved).
+    Parenthesised specifications such as `(sn)` are kept with their
+    parentheses in the field value; `norm()` strips them for the canonical
+    form.  The letter `o` is normalised to `0` in all fields on
+    instantiation.
+    """
+
     tumour_prefix: Optional[str] = None
     tumour: Optional[str] = None
     tumour_specification: Optional[str] = None

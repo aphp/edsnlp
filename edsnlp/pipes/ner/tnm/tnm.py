@@ -17,35 +17,111 @@ from .patterns_new import tnm_pattern_new
 
 class TNMMatcher(BaseNERComponent):
     """
-    The `eds.tnm` component extracts [TNM](https://enwp.org/wiki/TNM_staging_system)
-    mentions from clinical documents.
+    The `eds.tnm` component extracts
+    [TNM](https://enwp.org/wiki/TNM_staging_system) staging mentions from
+    clinical documents and decomposes them into structured attributes.
+
+    ## Extraction logic
+
+    A span is extracted when **at least one** of the following conditions holds:
+
+    - **T + N/M/R present**: the T component is followed by at least one of
+      N (node), M (metastasis), or R (resection), with any delimiter
+      (space, comma, slash, newline) between them.
+    - **Standalone qualified T**: the T component carries both a prefix
+      (e.g. `p`, `c`, `yp`) *and* a specification (e.g. `a`, `b`, `mi`),
+      even without an N/M/R component.
+
+    The pattern is **case-insensitive** (`pT2N1M0`, `pt2n1m0` and `PT2N1M0`
+    are all matched). Delimiters between components can be spaces, commas,
+    slashes, or newlines (e.g. `pT2 / N1 / M0`, `pT2,N1,M0`).
+
+    ## Decomposition
+
+    Each matched span is parsed into a `TNM` Pydantic model stored on
+    `span._.tnm`. The following fields are extracted:
+
+    | Field                      | Description                              |
+    |----------------------------|------------------------------------------|
+    | `tumour_prefix`            | Modifier prefix for T (c/p/y/r/a/u/m/s) |
+    | `tumour`                   | T stage: 0–4, `is`, `x`                 |
+    | `tumour_specification`     | T sub-spec: a/b/c/d/mi/x                |
+    | `tumour_suffix`            | Parenthesised qualifier, e.g. `(m)`→`m` |
+    | `node_prefix`              | Modifier prefix for N                    |
+    | `node`                     | N stage: 0–4, `x`                       |
+    | `node_specification`       | N sub-spec: mi/sn/i±/mol±/…             |
+    | `node_suffix`              | Parenthesised qualifier for N            |
+    | `metastasis_prefix`        | Modifier prefix for M                    |
+    | `metastasis`               | M stage: 0–3, `x`                       |
+    | `metastasis_specification` | Metastasis site: PUL/OSS/HEP/…          |
+    | `metastasis_suffix`        | Parenthesised qualifier for M            |
+    | `pleura`                   | PL stage 0–3 (lung cancer)               |
+    | `resection_prefix`         | Modifier prefix for R                    |
+    | `resection`                | Resection completeness: 0–2, `x`        |
+    | `resection_specification`  | R sub-spec: is/cy+                       |
+    | `resection_loc`            | Resection location qualifier             |
+    | `resection_suffix`         | Parenthesised qualifier for R            |
+
+    !!! note "Specification normalisation"
+        Parenthesised specifications such as `(sn)` or `(mi)` are stored
+        with their parentheses in the raw field but are stripped in `norm()`,
+        so `N0(sn)` normalises to `N0sn`.
+
+    ## Normalised form
+
+    `span._.tnm.norm()` returns a compact canonical string that concatenates
+    all non-`None` components, stripping delimiters and surrounding whitespace:
+
+    ```
+    {tumour_prefix}T{tumour}{tumour_specification}{tumour_suffix}
+    {node_prefix}N{node}{node_specification}{node_suffix}
+    {metastasis_prefix}M{metastasis}{metastasis_specification}
+    PL{pleura}
+    {resection_prefix}R{resection}{resection_specification}{resection_loc}
+    ```
+
+    This value is also stored on `span.kb_id_` for downstream filtering.
 
     Examples
     --------
-    ```python
+    ```{ .python .no-check }
     import edsnlp, edsnlp.pipes as eds
 
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(eds.sentences())
     nlp.add_pipe(eds.tnm())
 
-    text = "TNM: pTx N1 M1"
+    text = "Conclusion : pT2c N1mi M0 R0"
 
     doc = nlp(text)
     doc.ents
-    # Out: (pTx N1 M1,)
+    # Out: (pT2c N1mi M0 R0,)
 
     ent = doc.ents[0]
+    ent._.tnm.norm()
+    # Out: 'pT2cN1miM0R0'
+
     ent._.tnm.dict()
-    # {'modifier': 'p',
-    #  'tumour': None,
-    #  'tumour_specification': 'x',
-    #  'node': '1',
-    #  'node_specification': None,
-    #  'metastasis': '1',
-    #  'resection_completeness': None,
-    #  'version': None,
-    #  'version_year': None}
+    # Out: {
+    #   'tumour_prefix': 'p',
+    #   'tumour': '2',
+    #   'tumour_specification': 'c',
+    #   'tumour_suffix': None,
+    #   'node_prefix': None,
+    #   'node': '1',
+    #   'node_specification': 'mi',
+    #   'node_suffix': None,
+    #   'metastasis_prefix': None,
+    #   'metastasis': '0',
+    #   'metastasis_specification': None,
+    #   'metastasis_suffix': None,
+    #   'pleura': None,
+    #   'resection_prefix': None,
+    #   'resection': '0',
+    #   'resection_specification': None,
+    #   'resection_loc': None,
+    #   'resection_suffix': None,
+    # }
     ```
 
     Parameters
@@ -55,17 +131,21 @@ class TNMMatcher(BaseNERComponent):
     name : str
         The name of the pipe
     pattern : Optional[Union[List[str], str]]
-        The regex pattern to use for matching ADICAP codes
+        The regex pattern used to match TNM spans. Defaults to
+        `tnm_pattern_new`, which handles case-insensitive matching,
+        multiple delimiter styles, and a logic filter that rejects
+        false positives.
     attr : str
-        Attribute to match on, eg `TEXT`, `NORM`, etc.
+        Attribute to match on, e.g. `TEXT`, `NORM`.
     label : str
-        Label name to use for the `Span` object and the extension
+        Label name used for the `Span` object and the `span._.<label>`
+        extension.
     span_setter : SpanSetterArg
-        How to set matches on the doc
+        How to set matches on the doc.
 
     Authors and citation
     --------------------
-    The TNM score is based on the development of S. Priou, B. Rance and
+    The TNM pipe was originally developed by S. Priou, B. Rance and
     E. Kempf ([@kempf:hal-03519085]).
     """
 

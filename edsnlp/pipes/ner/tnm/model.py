@@ -86,12 +86,13 @@ class TNM(pydantic.BaseModel):
     metastasis_prefix: Optional[str] = None
     metastasis: Optional[str] = None
     metastasis_specification: Optional[str] = None
+    metastasis_suffix: Optional[str] = None
     pleura: Optional[str] = None
+    resection_prefix: Optional[str] = None
     resection: Optional[str] = None
     resection_specification: Optional[str] = None
     resection_loc: Optional[str] = None
-    version: Optional[str] = None
-    version_year: Optional[int] = None
+    resection_suffix: Optional[str] = None
 
     @validator("*", pre=True)
     def coerce_o(cls, v):
@@ -99,61 +100,59 @@ class TNM(pydantic.BaseModel):
             v = v.replace("o", "0")
         return v
 
-    @validator("version_year")
-    def validate_year(cls, v):
-        if v is None:
-            return v
-
-        if v < 40:
-            v += 2000
-        elif v < 100:
-            v += 1900
-
+    @staticmethod
+    def _norm_str(v: Optional[str]) -> str:
+        """Strip surrounding whitespace and parentheses from captured values."""
+        if not v:
+            return ""
+        v = v.strip()
+        if v.startswith("(") and v.endswith(")"):
+            v = v[1:-1]
         return v
 
     def norm(self) -> str:
         norm = []
 
         if self.tumour_prefix:
-            norm.append(f"{self.tumour_prefix or ''}")
+            norm.append(self._norm_str(self.tumour_prefix))
 
         if self.tumour:
             norm.append(f"T{self.tumour}")
             if self.tumour_specification:
-                norm.append(f"{self.tumour_specification or ''}")
+                norm.append(self._norm_str(self.tumour_specification))
             if self.tumour_suffix:
-                norm.append(f"{self.tumour_suffix or ''}")
+                norm.append(self._norm_str(self.tumour_suffix))
 
         if self.node_prefix:
-            norm.append(f"{self.node_prefix or ''}")
+            norm.append(self._norm_str(self.node_prefix))
 
         if self.node:
             norm.append(f"N{self.node}")
             if self.node_specification:
-                norm.append(f"{self.node_specification or ''}")
+                norm.append(self._norm_str(self.node_specification))
             if self.node_suffix:
-                norm.append(f"{self.node_suffix or ''}")
+                norm.append(self._norm_str(self.node_suffix))
 
         if self.metastasis_prefix:
-            norm.append(f"{self.metastasis_prefix or ''}")
+            norm.append(self._norm_str(self.metastasis_prefix))
 
         if self.metastasis:
             norm.append(f"M{self.metastasis}")
             if self.metastasis_specification:
-                norm.append(f"{self.metastasis_specification or ''}")
+                norm.append(self._norm_str(self.metastasis_specification))
 
         if self.pleura:
             norm.append(f"PL{self.pleura}")
 
+        if self.resection_prefix:
+            norm.append(self._norm_str(self.resection_prefix))
+
         if self.resection:
             norm.append(f"R{self.resection}")
             if self.resection_specification:
-                norm.append(f"{self.resection_specification or ''}")
+                norm.append(self._norm_str(self.resection_specification))
             if self.resection_loc:
-                norm.append(f"{self.resection_loc or ''}")
-
-        if self.version is not None and self.version_year is not None:
-            norm.append(f" ({self.version.upper()} {self.version_year})")
+                norm.append(self._norm_str(self.resection_loc))
 
         return "".join(norm)
 

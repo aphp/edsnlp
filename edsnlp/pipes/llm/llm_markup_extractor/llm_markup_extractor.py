@@ -299,8 +299,16 @@ class LlmMarkupExtractor(BaseNERComponent):
         # Double check just in case, but confit should have caught this
         assert api_url is not None, "api_url must be provided"
         api_key = os.getenv("OPENAI_API_KEY", "")
-        self.client = openai.OpenAI(base_url=self.api_url, api_key=api_key)
-        self.async_client = openai.AsyncOpenAI(base_url=self.api_url, api_key=api_key)
+        self.client = openai.OpenAI(
+            base_url=self.api_url,
+            api_key=api_key or None,
+            _enforce_credentials=bool(api_key),
+        )
+        self.async_client = openai.AsyncOpenAI(
+            base_url=self.api_url,
+            api_key=api_key or None,
+            _enforce_credentials=bool(api_key),
+        )
         self.prompt = prompt
         self.api_kwargs = api_kwargs or {}
         self.max_concurrent_requests = max_concurrent_requests

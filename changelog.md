@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+## Fixed
+
+- Fix LLM Markup Extractor to always pass an api (dummy if unset) key to its LLM backend
+
 ## v0.21.0 (2026-03-26)
 
 ### Added

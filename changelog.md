@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## Changed
+
+- CoNLL infered columns warning will be a custom warning from now on
+
 ## Fixed
 
 - Fix LLM Markup Extractor to always pass an api (dummy if unset) key to its LLM backend

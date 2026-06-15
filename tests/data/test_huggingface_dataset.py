@@ -13,14 +13,36 @@ T = TypeVar("T")
 IMDB_DATASET = "stanfordnlp/imdb"
 
 
-def test_from_huggingface_dataset_conll2003_requires_split_when_omitted():
+def test_from_huggingface_dataset_requires_split_when_omitted():
+    ds_dict = datasets.DatasetDict(
+        {
+            "train": datasets.Dataset.from_dict({"text": ["train"]}),
+            "test": datasets.Dataset.from_dict({"text": ["test"]}),
+        }
+    )
+
     with pytest.raises(ValueError, match=r"contains multiple splits"):
         # Use empty converter string to avoid triggering converter validation.
         from_huggingface_dataset(
-            "lhoestq/conll2003",
+            ds_dict,
             converter="",
-            load_kwargs={"streaming": True},
         )
+
+
+def test_from_huggingface_dataset_allows_omitted_split_for_single_dataset(
+    monkeypatch,
+):
+    hf_dataset = datasets.Dataset.from_dict({"text": ["hello"]})
+
+    monkeypatch.setattr(
+        datasets,
+        "load_dataset",
+        lambda *args, **kwargs: hf_dataset,
+    )
+
+    stream = from_huggingface_dataset("single-split-dataset", converter="")
+
+    assert next(iter(stream)) == {"text": "hello"}
 
 
 def test_from_huggingface_dataset_conll2003_from_dataset_wrong_split_name():
@@ -191,16 +213,6 @@ def test_from_huggingface_dataset_conll2003_hf_ner_converter_shuffle_reproducibi
         assert isinstance(doc2, Doc)
         assert doc1.text == doc2.text
         assert [ent.label_ for ent in doc1.ents] == [ent.label_ for ent in doc2.ents]
-
-
-def test_from_huggingface_dataset_imdb_requires_split_when_omitted():
-    with pytest.raises(ValueError, match=r"contains multiple splits"):
-        # Use empty converter string to avoid triggering converter validation.
-        from_huggingface_dataset(
-            IMDB_DATASET,
-            converter="",
-            load_kwargs={"streaming": True},
-        )
 
 
 def test_from_huggingface_dataset_imdb_yields_records_without_converter():

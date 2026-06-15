@@ -10,6 +10,7 @@ from edsnlp.data.huggingface_dataset import (
 )
 
 T = TypeVar("T")
+IMDB_DATASET = "stanfordnlp/imdb"
 
 
 def test_from_huggingface_dataset_conll2003_requires_split_when_omitted():
@@ -196,14 +197,14 @@ def test_from_huggingface_dataset_imdb_requires_split_when_omitted():
     with pytest.raises(ValueError, match=r"contains multiple splits"):
         # Use empty converter string to avoid triggering converter validation.
         from_huggingface_dataset(
-            "imdb",
+            IMDB_DATASET,
             converter="",
             load_kwargs={"streaming": True},
         )
 
 
 def test_from_huggingface_dataset_imdb_yields_records_without_converter():
-    ds_dict = datasets.load_dataset("imdb", streaming=True)
+    ds_dict = datasets.load_dataset(IMDB_DATASET, streaming=True)
     stream = from_huggingface_dataset(ds_dict, split="train", converter="")
     it: Iterator[dict] = iter(stream)
 
@@ -217,7 +218,7 @@ def test_from_huggingface_dataset_imdb_yields_records_without_converter():
 def test_from_huggingface_dataset_imdb_hf_ner_converter_validation_raises():
     with pytest.raises(ValueError, match=r"Cannot find these columns.*words_column"):
         from_huggingface_dataset(
-            "imdb",
+            IMDB_DATASET,
             split="train",
             converter="hf_ner",
             load_kwargs={"streaming": True},
@@ -229,7 +230,7 @@ def test_from_huggingface_dataset_imdb_hf_text_converter_produces_docs():
 
     nlp = edsnlp.blank("eds")
     stream = from_huggingface_dataset(
-        "imdb",
+        IMDB_DATASET,
         split="train",
         converter="hf_text",
         nlp=nlp,
@@ -254,7 +255,7 @@ def test_from_huggingface_dataset_imdb_hf_text_converter_shuffle_reproducibility
 
     nlp = edsnlp.blank("eds")
     stream1 = from_huggingface_dataset(
-        "imdb",
+        IMDB_DATASET,
         split="train",
         converter="hf_text",
         nlp=nlp,
@@ -264,7 +265,7 @@ def test_from_huggingface_dataset_imdb_hf_text_converter_shuffle_reproducibility
     )
 
     stream2 = from_huggingface_dataset(
-        "imdb",
+        IMDB_DATASET,
         split="train",
         converter="hf_text",
         nlp=nlp,
@@ -326,7 +327,7 @@ def test_huggingface_dataset_imdb_roundtrip():
 
     nlp = edsnlp.blank("eds")
     stream = from_huggingface_dataset(
-        "imdb",
+        IMDB_DATASET,
         split="train",
         converter="hf_text",
         nlp=nlp,

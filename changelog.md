@@ -2,11 +2,15 @@
 
 ## Unreleased
 
-## Changed
+### Added
+
+- `eds.biaffine_dep_parser` now support multiple root decoding, which is mostly useful when processing sequences that contain multiple sentences
+
+### Changed
 
 - CoNLL infered columns warning will be a custom warning from now on
 
-## Fixed
+### Fixed
 
 - Fix LLM Markup Extractor to always pass an api (dummy if unset) key to its LLM backend
 

@@ -33,6 +33,13 @@ DEFAULT_COLUMNS = [
 ]
 
 
+class CoNLLWarning(UserWarning):
+    pass
+
+
+warnings.filterwarnings("once", category=CoNLLWarning)
+
+
 def parse_conll(
     path: str,
     cols: Optional[List[str]] = None,
@@ -82,8 +89,9 @@ def parse_conll(
         except StopIteration:
             cols = DEFAULT_COLUMNS
             warnings.warn(
-                f"No #global.columns comment found in the CoNLL file. "
-                f"Using default {cols}"
+                f"No #global.columns comment found in the CoNLL file {path}. "
+                f"Using default {cols}",
+                CoNLLWarning,
             )
 
     doc = {"words": []}

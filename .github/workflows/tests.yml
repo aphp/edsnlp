@@ -338,9 +338,9 @@ jobs:
           set -euo pipefail
           vercel deploy public/ --yes --token=$VERCEL_TOKEN --archive=tgz --prod 2>&1 | tee vercel-deploy.log
 
-          URL=$(sed -nE 's/^Aliased: (https:\/\/[^ ]+).*/\1/p' vercel-deploy.log | tail -n 1)
+          URL=$(sed -nE 's/^.*Aliased[[:space:]:]+(https:\/\/[^[:space:]]+).*/\1/p' vercel-deploy.log | tail -n 1)
           if [[ -z "$URL" ]]; then
-            URL=$(sed -nE 's/^Production: (https:\/\/[^ ]+).*/\1/p' vercel-deploy.log | tail -n 1)
+            URL=$(sed -nE 's/^.*Production[[:space:]:]+(https:\/\/[^[:space:]]+).*/\1/p' vercel-deploy.log | tail -n 1)
           fi
 
           if [[ -z "$URL" ]]; then

@@ -9,7 +9,7 @@ _BASE_VERSION = "0.21.0"
 
 def get_version(base_version: str = _BASE_VERSION) -> str:
     repo_root = Path(__file__).resolve().parent.parent
-    if not (repo_root / ".git").exists():  # pragma: nocover
+    if not (repo_root / ".git").exists():  # pragma: no cover
         try:
             return metadata.version("edsnlp")
         except metadata.PackageNotFoundError:
@@ -23,7 +23,7 @@ def get_version(base_version: str = _BASE_VERSION) -> str:
             stderr=subprocess.DEVNULL,
             text=True,
         ).strip()
-    except (OSError, subprocess.CalledProcessError):  # pragma: nocover
+    except (OSError, subprocess.CalledProcessError):  # pragma: no cover
         return base_version
 
     try:

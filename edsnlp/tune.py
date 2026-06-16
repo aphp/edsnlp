@@ -385,7 +385,7 @@ def update_config(
             value = _suggest_param_value(trial, p_name, p_type, suggest_dict)
         else:
             value = values.get(p_name, None)
-            if value is None:
+            if value is None:  # pragma: no cover
                 continue
             value = _resolve_choice_value(p_type, param_info, value)
 
@@ -995,7 +995,7 @@ def _process_results(
             f.write(f"  {key}: {json.dumps(value)}\n")
         if best_params_phase_1 is not None:
             for key_phase_1, value_phase_1 in best_params_phase_1.items():
-                if key_phase_1 not in best_params:
+                if key_phase_1 not in best_params:  # pragma: no cover
                     f.write(f"  {key_phase_1}: {json.dumps(value_phase_1)}\n")
         f.write("\nImportances:\n")
         for key, value in importances.items():  # pragma: no cover

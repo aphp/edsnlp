@@ -3,8 +3,7 @@
 [![PyPI](https://img.shields.io/pypi/v/edsnlp?color=blue&style=flat-square)](https://pypi.org/project/edsnlp/)
 [![Demo](https://img.shields.io/badge/demo%20%F0%9F%9A%80-streamit-grean?style=flat-square)](https://aphp.github.io/edsnlp/demo/)
 [![Coverage](https://raw.githubusercontent.com/aphp/edsnlp/coverage/coverage.svg)](https://raw.githubusercontent.com/aphp/edsnlp/coverage/coverage.txt)
-[![DOI](https://zenodo.org/badge/467585436.svg)](https://zenodo.org/badge/latestdoi/467585436)
-
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19242784.svg)](https://doi.org/10.5281/zenodo.19242784)
 
 EDS-NLP
 =======

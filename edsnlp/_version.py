@@ -1,24 +1,19 @@
 from __future__ import annotations
 
 import subprocess
+from importlib import metadata
 from pathlib import Path
 
-__version__ = "0.21.0"
+_BASE_VERSION = "0.21.0"
 
 
-def get_version(base_version: str = __version__) -> str:
-    repo_root = next(
-        (
-            current
-            for current in (
-                Path(__file__).resolve().parent,
-                *Path(__file__).resolve().parent.parents,
-            )
-            if (current / ".git").exists()
-        ),
-        None,
-    )
-    if repo_root is None:
+def get_version(base_version: str = _BASE_VERSION) -> str:
+    repo_root = Path(__file__).resolve().parent.parent
+    if not (repo_root / ".git").exists():  # pragma: nocover
+        try:
+            return metadata.version("edsnlp")
+        except metadata.PackageNotFoundError:
+            pass
         return base_version
 
     try:
@@ -28,6 +23,10 @@ def get_version(base_version: str = __version__) -> str:
             stderr=subprocess.DEVNULL,
             text=True,
         ).strip()
+    except (OSError, subprocess.CalledProcessError):  # pragma: nocover
+        return base_version
+
+    try:
         tag = subprocess.check_output(
             ["git", "describe", "--tags", "--exact-match", "HEAD"],
             cwd=repo_root,
@@ -35,7 +34,7 @@ def get_version(base_version: str = __version__) -> str:
             text=True,
         ).strip()
     except (OSError, subprocess.CalledProcessError):
-        return base_version
+        tag = None
 
     return (
         base_version

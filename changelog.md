@@ -13,6 +13,7 @@
 ### Fixed
 
 - Fix LLM Markup Extractor to always pass an api (dummy if unset) key to its LLM backend
+- Installing EDS-NLP from a repo clone will now automatically add a `dev.<hash>` suffix to the installed package version
 
 ## v0.21.0 (2026-03-26)
 

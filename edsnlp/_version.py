@@ -4,7 +4,7 @@ import subprocess
 from importlib import metadata
 from pathlib import Path
 
-_BASE_VERSION = "0.21.0"
+_BASE_VERSION = "0.22.0"
 
 
 def get_version(base_version: str = _BASE_VERSION) -> str:

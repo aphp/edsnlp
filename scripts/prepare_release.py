@@ -15,6 +15,12 @@ from typing import Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION_FILE = ROOT / "edsnlp" / "_version.py"
+VERSION_MENTION_FILES = (
+    ROOT / "README.md",
+    ROOT / "docs" / "index.md",
+    VERSION_FILE,
+    Path(__file__).resolve(),
+)
 RELEASE_MESSAGE_START = "<!-- release-message:start -->"
 RELEASE_MESSAGE_END = "<!-- release-message:end -->"
 VERSION_RE = re.compile(r'^_BASE_VERSION\s*=\s*"([^"]+)"\s*$', re.MULTILINE)
@@ -184,16 +190,10 @@ def ensure_release_branch(branch: str) -> None:
 
 
 def files_with_version(version: str) -> list[Path]:
-    proc = run("git", "grep", "-l", "-F", version, "--", ".", check=False)
-    if proc.returncode not in (0, 1):
-        raise ReleaseError(proc.stderr.strip() or proc.stdout.strip())
-
     files = []
-    for line in proc.stdout.splitlines():
-        path = ROOT / line
-        if path.name.lower() == "changelog.md":
-            continue
-        files.append(path)
+    for path in VERSION_MENTION_FILES:
+        if path.exists() and version in path.read_text():
+            files.append(path)
     return sorted(set(files))
 
 

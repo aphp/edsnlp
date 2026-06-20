@@ -519,7 +519,7 @@ class TrainableSpanLinker(
         all_concepts = [c for batch in results["concepts"] for c in batch]
         all_labels = [c for batch in results["labels"] for c in batch]
         if not len(all_concepts):
-            warnings.warn("Did not find any concept when scanning the gold data.")
+            warnings.warn("Did not find any concept when scanning the gold data.", stacklevel=2)
 
         return all_concepts, all_labels, all_embeds
 

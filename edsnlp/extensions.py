@@ -26,7 +26,7 @@ def set_note_datetime(doc, dt):
     except Exception:
         pass
 
-    warnings.warn(f"Cannot cast {dt} as a note datetime", UserWarning)
+    warnings.warn(f"Cannot cast {dt} as a note datetime", UserWarning, stacklevel=2)
 
 
 def get_note_datetime(doc):

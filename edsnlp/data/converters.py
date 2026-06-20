@@ -437,7 +437,7 @@ class ConllDict2DocConverter:
                 elif key == "DEPREL":
                     word.dep_ = value
                 else:
-                    warnings.warn(f"Unused key {key} in CoNLL dict, ignoring it.")
+                    warnings.warn(f"Unused key {key} in CoNLL dict, ignoring it.", stacklevel=2)
 
         return doc
 
@@ -1264,7 +1264,8 @@ class HfNerDict2DocConverter:
         if len(ner_tags) != n_tokens:
             warnings.warn(
                 f"Length mismatch between tokens ({n_tokens}) and ner_tags "
-                f"({len(ner_tags)}); using min length."
+                f"({len(ner_tags)}); using min length.",
+                stacklevel=2,
             )
 
         L = min(n_tokens, len(ner_tags))

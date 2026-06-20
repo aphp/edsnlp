@@ -220,7 +220,8 @@ class TrainableSpanClassifier(
 
         if qualifiers is not None:
             warnings.warn(
-                "The `qualifiers` parameter is deprecated. Use `attributes` instead."
+                "The `qualifiers` parameter is deprecated. Use `attributes` instead.",
+                stacklevel=2,
             )
             assert attributes is None
             attributes = qualifiers
@@ -258,7 +259,8 @@ class TrainableSpanClassifier(
         if unknown:
             warnings.warn(
                 f"Attributes ({unknown}) are present in label_weights "
-                f"but not in attributes: Those weights will be ignored"
+                f"but not in attributes: Those weights will be ignored",
+                stacklevel=2,
             )
 
         self.bindings: List[Tuple[str, List[str], List[Any]]] = [
@@ -366,7 +368,8 @@ class TrainableSpanClassifier(
             if len(values) < 2:
                 warnings.warn(
                     f"Attribute {attr} for labels {labels} should have at "
-                    f"least 2 values but found {len(values)}: {values}."
+                    f"least 2 values but found {len(values)}: {values}.",
+                    stacklevel=2,
                 )
 
         self.update_bindings(bindings)
@@ -410,7 +413,8 @@ class TrainableSpanClassifier(
         if missing_bindings and len(old_bindings) > 0:
             warnings.warn(
                 f"Added {len(missing_bindings)} new bindings. Consider retraining "
-                f"the model to learn these new bindings."
+                f"the model to learn these new bindings.",
+                stacklevel=2,
             )
 
         if hasattr(self.classifier, "bias"):

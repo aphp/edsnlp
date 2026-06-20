@@ -94,7 +94,8 @@ class BaseComponent(abc.ABC, metaclass=BaseComponentMeta):
                 warnings.warn(
                     "A Span extension 'value' already exists with a different getter. "
                     "Keeping the existing extension, but some components of edsnlp may "
-                    "not work as expected."
+                    "not work as expected.",
+                    stacklevel=2,
                 )
             return
         Span.set_extension(

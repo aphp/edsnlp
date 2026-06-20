@@ -267,7 +267,8 @@ def _compute_num_parallel_trials(
     if jobs < 1:
         warnings.warn(
             "Not enough GPUs to run seeded trials in parallel; falling back to a "
-            "single parallel Optuna job."
+            "single parallel Optuna job.",
+            stacklevel=2,
         )
         return 1
     return jobs
@@ -287,7 +288,7 @@ def _compute_importances(study, n=10):
             if "zero total variance" in str(e) or "only a single trial" in str(
                 e
             ):  # pragma: no cover
-                warnings.warn("Zero total variance : skipping importance computation.")
+                warnings.warn("Zero total variance : skipping importance computation.", stacklevel=2)
                 continue
             raise
         for feature, importance in importance_scores.items():

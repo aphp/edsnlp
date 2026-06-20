@@ -53,6 +53,7 @@ class BratConnector(object):
             "This connector is deprecated and will be removed in a future version.\n"
             "Use `edsnlp.data.read_standoff` and `edsnlp.data.write_standoff` instead.",
             DeprecationWarning,
+            stacklevel=2,
         )
         self.directory: Path = Path(directory)
         self.attr_map = attributes

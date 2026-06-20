@@ -84,6 +84,7 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
                 "deprecated. Please use the `span_getter` parameter of the "
                 "`eds.span_classifier` or `eds.span_linker` components instead.",
                 VisibleDeprecationWarning,
+                stacklevel=2,
             )
         sub_span_getter = getattr(embedding, "span_getter", None)
         if sub_span_getter is not None and span_getter is None:  # pragma: no cover

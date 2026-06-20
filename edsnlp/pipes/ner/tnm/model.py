@@ -164,6 +164,7 @@ class TNM(pydantic.BaseModel):
                 f"""{self.__class__.__name__}.dict(): "skip_defaults"
                 is deprecated and replaced by "exclude_unset" """,
                 DeprecationWarning,
+                stacklevel=2,
             )
             exclude_unset = skip_defaults
 

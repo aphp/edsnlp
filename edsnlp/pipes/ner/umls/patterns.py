@@ -112,7 +112,8 @@ def download_and_agg_umls(config) -> Dict[str, List[str]]:
         warnings.warn(
             "You need to define UMLS_API_KEY to download the UMLS. "
             "Get a key by creating an account at "
-            "https://uts.nlm.nih.gov/uts/signup-login"
+            "https://uts.nlm.nih.gov/uts/signup-login",
+            stacklevel=2,
         )
 
     path = download_umls(version=UMLS_VERSION, api_key=api_key)

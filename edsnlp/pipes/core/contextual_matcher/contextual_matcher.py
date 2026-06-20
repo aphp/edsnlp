@@ -80,6 +80,7 @@ class ContextualMatcher(BaseNERComponent):
             warnings.warn(
                 "`label_name` is deprecated, use `label` instead.",
                 VisibleDeprecationWarning,
+                stacklevel=2,
             )
             label = label_name
         if label is None:

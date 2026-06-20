@@ -24,7 +24,8 @@ def check_normalizer(nlp: PipelineProtocol) -> None:
             "You have chosen the NORM attribute, but disabled lowercasing "
             "in your normalisation pipeline. "
             "This WILL hurt performance : you might want to use the "
-            "LOWER attribute instead."
+            "LOWER attribute instead.",
+            stacklevel=2,
         )
 
 

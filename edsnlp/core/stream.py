@@ -460,10 +460,12 @@ class Stream(metaclass=MetaStream):
                 "chunk_size and sort_chunks are deprecated, use "
                 "map_batched(sort_fn, batch_size=chunk_size) instead.",
                 VisibleDeprecationWarning,
+                stacklevel=2,
             )
         if kwargs.pop("split_into_batches_after", None) is not None:
             warnings.warn(
-                "split_into_batches_after is deprecated.", VisibleDeprecationWarning
+                "split_into_batches_after is deprecated.", VisibleDeprecationWarning,
+                stacklevel=2,
             )
         return Stream(
             reader=self.reader,

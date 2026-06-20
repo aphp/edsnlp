@@ -250,7 +250,8 @@ def get_multiprocessing_context(has_torch_pipes, process_start_method):
     if has_torch_pipes and method == "fork":
         warnings.warn(
             "Using fork start method with GPU workers may lead to deadlocks. "
-            "Consider using process_start_method='spawn' instead."
+            "Consider using process_start_method='spawn' instead.",
+            stacklevel=2,
         )
         method = "spawn"
 
@@ -259,7 +260,8 @@ def get_multiprocessing_context(has_torch_pipes, process_start_method):
         safe = "forkserver" if "forkserver" in methods else "spawn"
         warnings.warn(
             "Using fork start method with HDFS may lead to deadlocks. "
-            f"Consider using process_start_method='{safe}' instead."
+            f"Consider using process_start_method='{safe}' instead.",
+            stacklevel=2,
         )
         method = safe
 
@@ -1292,11 +1294,13 @@ class MultiprocessingStreamExecutor:
         if self.error:
             warnings.warn(
                 "An error occurred. Cleaning up resources, please hang tight...",
+                stacklevel=2,
             )
         elif garbage_collected:
             warnings.warn(
                 "Multiprocessing executor was garbage collected while still running. "
                 "Cleaning up resources, please hang tight...",
+                stacklevel=2,
             )
 
         self.send_stop_signals()

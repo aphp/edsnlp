@@ -160,7 +160,8 @@ class JsonWriter(BaseWriter):
                 f"looks like a {'file' if might_be_file else 'directory'}. "
                 f"To save your documents as a single jsonl file, the path must be a "
                 f"file and lines must be True. To save as a directory of json files, "
-                f"the path must be a directory and lines must be False. "
+                f"the path must be a directory and lines must be False. ",
+                stacklevel=2,
             )
 
         super().__init__()
@@ -276,6 +277,7 @@ def read_json(
             "edsnlp.data.read_parquet is deprecated and set "
             "to True by default.",
             FutureWarning,
+            stacklevel=2,
         )
 
     data = Stream(

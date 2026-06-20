@@ -65,6 +65,7 @@ def span_attribute_metric(
             "The `qualifiers` argument of span_attribute_metric() is "
             "deprecated. Use `attributes` instead.",
             DeprecationWarning,
+            stacklevel=2,
         )
         assert attributes is None
         attributes = kwargs.pop("qualifiers")
@@ -284,6 +285,7 @@ class SpanAttributeMetric:
             warnings.warn(
                 "The `qualifiers` argument is deprecated. Use `attributes` instead.",
                 DeprecationWarning,
+                stacklevel=2,
             )
         self.span_getter = span_getter
         self.attributes = attributes or qualifiers

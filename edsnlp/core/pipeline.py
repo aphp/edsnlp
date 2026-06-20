@@ -132,6 +132,7 @@ class Pipeline(Validated):
                 "The 'batch_size' argument is deprecated. Use the 'batch_size' "
                 "argument in `stream.map_pipeline` instead.",
                 DeprecationWarning,
+                stacklevel=2,
             )
         self.batch_size = batch_size
         if (vocab is not True) and (vocab_config is not None):
@@ -1184,7 +1185,8 @@ def load(
             warnings.warn(
                 "The path provided is both a directory and a package : edsnlp will "
                 "load the package. To load from the directory instead, please pass the "
-                f'path as "./{path}" instead.'
+                f'path as "./{path}" instead.',
+                stacklevel=2,
             )
         if is_dir:
             path = (Path(path) if isinstance(path, str) else path).absolute()
@@ -1414,12 +1416,14 @@ def load_from_huggingface(
                 f"  nlp = edsnlp.load('{repo_id}', install_dependencies=True)\n"
                 f"You may need to restart your Python session after the installation.",
                 UserWarning,
+                stacklevel=2,
             )
         else:
             warnings.warn(
                 "Installing missing dependencies:\n"
                 f"pip install {' '.join((repr(str(dep)) for dep in missing_deps))}",
                 UserWarning,
+                stacklevel=2,
             )
             if pip is None:
                 raise RuntimeError(f"Couldn't find pip amongst {', '.join(pip_paths)}")

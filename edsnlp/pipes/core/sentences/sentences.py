@@ -175,7 +175,8 @@ class SentenceSegmenter(BaseComponent):
         ) and nlp.lang != "eds":
             warnings.warn(
                 "To use newline thresholds > 1, you need to use the 'eds' language "
-                "to split newlines into single tokens (e.g. `edsnlp.blank('eds')`)."
+                "to split newlines into single tokens (e.g. `edsnlp.blank('eds')`).",
+                stacklevel=2,
             )
 
         if punct_chars is None:

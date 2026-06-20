@@ -70,6 +70,7 @@ class SimpleScoreMatcher(ContextualMatcher):
             warnings.warn(
                 "`score_name` is deprecated, use `label` instead.",
                 DeprecationWarning,
+                stacklevel=2,
             )
             label = score_name
 

@@ -128,7 +128,7 @@ def pipe(
     if dtypes:
         s += f"    dtypes={PySparkPrettyPrinter().pformat(dtypes)},\n"
     s += ")"
-    warnings.warn(s, VisibleDeprecationWarning)
+    warnings.warn(s, VisibleDeprecationWarning, stacklevel=2)
 
     write_span_getter = validate_span_setter(
         "ents" if additional_spans is None else [*additional_spans, "ents"],

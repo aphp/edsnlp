@@ -229,6 +229,7 @@ class DatesMatcher(BaseNERComponent):
                     else " Use the `span_setter` argument instead."
                 ),
                 VisibleDeprecationWarning,
+                stacklevel=2,
             )
             span_setter = dict(span_setter)
             span_setter["ents"] = True
@@ -271,6 +272,7 @@ class DatesMatcher(BaseNERComponent):
                 "The `on_ents_only` argument is deprecated."
                 " Use the `span_getter` argument instead.",
                 VisibleDeprecationWarning,
+                stacklevel=2,
             )
         self.span_getter = validate_span_getter(span_getter, optional=True)
         self.merge_mode = merge_mode

@@ -602,7 +602,7 @@ def package(
             )
 
     if check_dependencies:
-        warnings.warn("check_dependencies is deprecated", DeprecationWarning)
+        warnings.warn("check_dependencies is deprecated", DeprecationWarning, stacklevel=2)
 
     root_dir = root_dir.resolve()
 

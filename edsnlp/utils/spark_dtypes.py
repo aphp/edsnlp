@@ -69,6 +69,7 @@ def schema_warning(schema):
         "import pyspark.sql.types as T\n"
         "dtypes = " + PySparkPrettyPrinter().pformat(schema),
         Warning,
+        stacklevel=2,
     )
 
 

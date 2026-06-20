@@ -540,7 +540,7 @@ class LlmSpanQualifier(BaseSpanAttributeClassifierComponent):
         if self.on_error == "raise":
             raise RuntimeError(msg)
         else:
-            warnings.warn(msg)
+            warnings.warn(msg, stacklevel=2)
 
     def set_extensions(self) -> None:
         super().set_extensions()

@@ -153,7 +153,8 @@ class ParquetWriter(BatchWriter):
         if batch_by in ("docs", "doc", None, batchify) and batch_size is None:
             warnings.warn(
                 "You should specify a batch size when using record-wise batch writing. "
-                "Setting batch size to 1024."
+                "Setting batch size to 1024.",
+                stacklevel=2,
             )
             batch_size = 1024
         batch_by = batch_by or "docs"
@@ -273,6 +274,7 @@ def read_parquet(
             "The `read_in_worker` parameter of edsnlp.data.read_parquet is deprecated "
             "and set to True by default.",
             FutureWarning,
+            stacklevel=2,
         )
         kwargs.pop("read_in_worker")
 
@@ -385,7 +387,8 @@ def write_parquet(
         ), "Cannot use 'num_rows_per_file' with 'batch_by'."
     if "accumulate" in kwargs:
         warnings.warn(
-            "The 'accumulate' parameter is deprecated.", VisibleDeprecationWarning
+            "The 'accumulate' parameter is deprecated.", VisibleDeprecationWarning,
+            stacklevel=2,
         )
     if converter:
         converter, kw = get_doc2dict_converter(converter, kwargs)

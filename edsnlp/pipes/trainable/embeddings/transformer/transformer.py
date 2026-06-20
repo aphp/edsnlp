@@ -160,6 +160,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                 "deprecated. Please use the `context_getter` parameter of the "
                 "other higher level task components instead.",
                 VisibleDeprecationWarning,
+                stacklevel=2,
             )
 
         kwargs = dict(kwargs)

@@ -299,11 +299,13 @@ class ScheduledOptimizer(torch.optim.Optimizer):
 
             if empty_selectors:
                 warnings.warn(
-                    f"Selectors {list(empty_selectors)} did not match any parameters."
+                    f"Selectors {list(empty_selectors)} did not match any parameters.",
+                    stacklevel=2,
                 )
                 warnings.warn(
                     "For reference, here are the parameters of the module:\n"
-                    + "\n".join("- " + name for name, _ in named_parameters)
+                    + "\n".join("- " + name for name, _ in named_parameters),
+                    stacklevel=2,
                 )
 
             cliques = []

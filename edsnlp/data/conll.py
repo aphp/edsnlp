@@ -92,6 +92,7 @@ def parse_conll(
                 f"No #global.columns comment found in the CoNLL file {path}. "
                 f"Using default {cols}",
                 CoNLLWarning,
+                stacklevel=2,
             )
 
     doc = {"words": []}

@@ -108,7 +108,8 @@ class CSVTracker(accelerate.tracking.GeneralTracker):
             if extra_key not in self._columns:
                 warnings.warn(
                     f"CSVTracker: encountered a new field '{extra_key}' that was not in"
-                    f"the field keys of the first logged step. It will not be logged."
+                    f"the field keys of the first logged step. It will not be logged.",
+                    stacklevel=2,
                 )
 
         self._writer.writerow(row)
@@ -256,7 +257,8 @@ class TensorBoardTracker(accelerate.tracking.TensorBoardTracker):
         if env_logging_dir is not None and logging_dir is not None:  # pragma: no cover
             warnings.warn(
                 f"Using the env TENSORBOARD_LOGGING_DIR={env_logging_dir} as the "
-                f"logging directory for TensorBoard, instead of ${logging_dir}."
+                f"logging directory for TensorBoard, instead of ${logging_dir}.",
+                stacklevel=2,
             )
             logging_dir = env_logging_dir
         assert logging_dir is not None, (
@@ -289,7 +291,8 @@ class AimTracker(accelerate.tracking.AimTracker):
         if env_logging_dir is not None and logging_dir is not None:
             warnings.warn(
                 f"Using the env AIM_LOGGING_DIR={env_logging_dir} as the logging "
-                f"directory for Aim, instead of ${logging_dir}."
+                f"directory for Aim, instead of ${logging_dir}.",
+                stacklevel=2,
             )
             logging_dir = env_logging_dir
         assert logging_dir is not None, (

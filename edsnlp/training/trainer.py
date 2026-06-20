@@ -654,7 +654,8 @@ def train(
 
     if "max_grad_norm" in kwargs:
         warnings.warn(
-            "The 'max_grad_norm' argument is deprecated. Use 'grad_max_norm' instead."
+            "The 'max_grad_norm' argument is deprecated. Use 'grad_max_norm' instead.",
+            stacklevel=2,
         )
         grad_max_norm = kwargs.pop("max_grad_norm")
 
@@ -712,7 +713,8 @@ def train(
     optim = Draft.instantiate(optim, module=nlp, total_steps=max_steps)
     if optim is None:
         warnings.warn(
-            "No optimizer provided, using default optimizer with default parameters"
+            "No optimizer provided, using default optimizer with default parameters",
+            stacklevel=2,
         )
         optim = default_optim(
             [nlp.get_pipe(name) for name in trainable_pipe_names],

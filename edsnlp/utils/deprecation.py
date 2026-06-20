@@ -12,7 +12,7 @@ def deprecated_extension(name: str, new_name: str) -> None:
         f'Please use "{new_name}" instead.'
     )
 
-    warnings.warn(msg, VisibleDeprecationWarning)
+    warnings.warn(msg, VisibleDeprecationWarning, stacklevel=3)
 
 
 class deprecated_getter_factory:

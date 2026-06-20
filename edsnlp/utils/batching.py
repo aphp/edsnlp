@@ -438,7 +438,8 @@ def stat_batchify(key):
                 if len(candidates) != 1:
                     warnings.warn(
                         f"Batching key {key!r} should match one "
-                        f"candidate in {[k for k in item if '/stats/' in k]}"
+                        f"candidate in {[k for k in item if '/stats/' in k]}",
+                        stacklevel=2,
                     )
                 if len(candidates) == 0:
                     stat_keys = [k for k in item if "/stats/"]

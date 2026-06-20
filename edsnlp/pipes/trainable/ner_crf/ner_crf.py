@@ -264,7 +264,8 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
             warnings.warn(
                 "The TrainableNerCrf module will be using a window size equals to 1"
                 "(i.e. assumes tags are independent) while trained in non "
-                "`independent` mode. This may lead to degraded performance."
+                "`independent` mode. This may lead to degraded performance.",
+                stacklevel=2,
             )
         self.window: int = window
         self.stride: int = stride
@@ -321,6 +322,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
                     "labels passed to the component. Differing labels are "
                     f"{sorted(set(self.labels) ^ inferred_labels)}",
                     UserWarning,
+                    stacklevel=2,
                 )
         else:
             self.update_labels(sorted(inferred_labels))
@@ -443,7 +445,8 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
         if discarded and not self._has_warned:
             warnings.warn(
                 "Some spans were discarded in the training data because they "
-                "were overlapping with other spans with the same label."
+                "were overlapping with other spans with the same label.",
+                stacklevel=2,
             )
             self._has_warned = True
 
@@ -549,7 +552,7 @@ class TrainableNerCrf(TorchComponent[NERBatchOutput, NERBatchInput], BaseNERComp
 
             # tags = scores.argmax(-1).masked_fill(~mask.unsqueeze(-1), 0)
         if loss is not None and loss.item() > 100000:
-            warnings.warn("The loss is very high, this is likely a tag encoding issue.")
+            warnings.warn("The loss is very high, this is likely a tag encoding issue.", stacklevel=2)
         return {
             "loss": loss,
             "tags": tags,

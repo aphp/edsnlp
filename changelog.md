@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.22.1 (unreleased)
+
+### Fixed
+
+- Add missing `stacklevel=2` to 58 `warnings.warn()` calls across 34 files so warnings correctly point to user code instead of edsnlp internals. Use `stacklevel=3` for `deprecated_extension()` since it is called through the `deprecated_getter_factory` wrapper.
+
 ## v0.22.0 (2026-06-17)
 
 ### Added

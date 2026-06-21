@@ -33,8 +33,12 @@ class ParquetReader(FileBasedReader):
         seed: Optional[int] = None,
         loop: bool = False,
         work_unit: Literal["record", "fragment"] = "record",
+        read_in_worker: Optional[bool] = None,
     ):
         super().__init__()
+        self.read_in_worker = (
+            work_unit == "fragment" if read_in_worker is None else read_in_worker
+        )
         self.shuffle = shuffle
         self.emitted_sentinels = {"dataset"} | (
             set() if shuffle == "dataset" else {"fragment"}
@@ -193,6 +197,7 @@ def read_parquet(
     seed: Optional[int] = None,
     loop: bool = False,
     work_unit: Literal["record", "fragment"] = "record",
+    read_in_worker: Optional[bool] = None,
     **kwargs,
 ) -> Stream:
     """
@@ -256,6 +261,10 @@ def read_parquet(
         first worker will every record of the 1st parquet file, the second worker will
         read every record of the 2nd parquet file, and so on. This way, no record is
         "wasted" and every record loaded in memory is yielded.
+    read_in_worker: bool
+        Whether parquet fragments are read directly by multiprocessing workers. By
+        default, this is inferred from `work_unit`: `False` for `"record"` to avoid
+        redundant input scans, `True` for `"fragment"` to parallelize file reads.
 
     converter: Optional[AsList[Union[str, Callable]]]
         Converters to use to convert the parquet rows of the data source to Doc objects
@@ -268,13 +277,13 @@ def read_parquet(
     -------
     Stream
     """
-    if "read_in_worker" in kwargs:
+    if "read_in_worker" in kwargs:  # pragma: no cover
         warnings.warn(
             "The `read_in_worker` parameter of edsnlp.data.read_parquet is deprecated "
             "and set to True by default.",
             FutureWarning,
         )
-        kwargs.pop("read_in_worker")
+        read_in_worker = kwargs.pop("read_in_worker")
 
     data = Stream(
         reader=ParquetReader(
@@ -284,6 +293,7 @@ def read_parquet(
             seed=seed,
             loop=loop,
             work_unit=work_unit,
+            read_in_worker=read_in_worker,
         )
     )
     if converter:

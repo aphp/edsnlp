@@ -35,6 +35,7 @@ from tqdm import tqdm
 from edsnlp.core.stream import Stage, Stream, StreamSentinel
 from edsnlp.data.base import BatchWriter
 from edsnlp.reducers import pickler_dont_save_module_dict
+from edsnlp.utils.batching import BatchTimeoutSentinel
 from edsnlp.utils.collections import (
     batch_compress_dict,
     decompress_dict,
@@ -720,6 +721,7 @@ class CPUWorker(Worker):
 
     def send_results(self, items):
         writer = self.stream.writer
+        items = (item for item in items if not isinstance(item, BatchTimeoutSentinel))
         if writer is not None:
             items = (
                 writer.handle_record(rec)
@@ -1113,6 +1115,7 @@ class MultiprocessingStreamExecutor:
                 writer.handle_batch(b)[0]
                 for b in items
                 if not isinstance(b, StreamSentinel)
+                and not isinstance(b, BatchTimeoutSentinel)
             )
 
         # If we are garbage collected, stop the execution
@@ -1244,6 +1247,10 @@ class MultiprocessingStreamExecutor:
             for item in items:
                 if self.stopped:
                     break
+                if isinstance(item, BatchTimeoutSentinel):
+                    for queue in queues:
+                        queue.put(item)
+                    continue
                 if isinstance(item, StreamSentinel):
                     queue.put(item)
                     continue

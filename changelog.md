@@ -5,6 +5,7 @@
 ### Added
 
 - New stream executor to asynchronously submit document to a stream and get an awaitable output
+- Async executors can now flush partial batches after `batch_wait_timeout`, preventing requests from waiting forever for a batch to fill up
 
 ## v0.22.0 (2026-06-17)
 

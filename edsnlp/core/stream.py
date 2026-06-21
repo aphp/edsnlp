@@ -31,9 +31,9 @@ from edsnlp.utils.batching import (
     BatchBy,
     BatchFn,
     BatchSizeArg,
+    BatchTimeoutSentinel,
     batchify,
     batchify_fns,
-    is_batch_timeout_sentinel,
 )
 from edsnlp.utils.collections import flatten, flatten_once, shuffle
 from edsnlp.utils.stream_sentinels import StreamSentinel
@@ -132,7 +132,7 @@ class FlattenOp(Op):
 
     def __call__(self, items):
         for item in items:
-            if is_batch_timeout_sentinel(item):
+            if isinstance(item, BatchTimeoutSentinel):
                 yield item
                 continue
             yield from flatten(item)
@@ -146,7 +146,7 @@ class UnbatchifyOp(Op):
 
     def __call__(self, items):
         for item in items:
-            if is_batch_timeout_sentinel(item):
+            if isinstance(item, BatchTimeoutSentinel):
                 yield item
                 continue
             yield from flatten_once((item,))
@@ -224,7 +224,7 @@ class MapOp(Op):
                 yield res
             return
         for item in items:
-            if is_batch_timeout_sentinel(item):
+            if isinstance(item, BatchTimeoutSentinel):
                 yield item
                 continue
             if isinstance(item, StreamSentinel):
@@ -274,7 +274,7 @@ class MapBatchesOp(Op):
     def __call__(self, batches):
         if hasattr(self.pipe, "batch_process"):
             for batch in batches:
-                if is_batch_timeout_sentinel(batch):
+                if isinstance(batch, BatchTimeoutSentinel):
                     yield batch
                     continue
                 if isinstance(batch, StreamSentinel):
@@ -321,7 +321,7 @@ class MapBatchesOp(Op):
                     ]
         else:
             for batch in batches:
-                if is_batch_timeout_sentinel(batch):
+                if isinstance(batch, BatchTimeoutSentinel):
                     yield batch
                     continue
                 if isinstance(batch, StreamSentinel):

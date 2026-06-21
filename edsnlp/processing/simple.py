@@ -115,7 +115,7 @@ def execute_simple_backend(stream: Stream):
                 for task in (
                     (item,)
                     if isinstance(item, StreamSentinel)
-                    or is_batch_timeout_sentinel(item)
+                    or isinstance(item, BatchTimeoutSentinel)
                     else reader.extract_task(item)
                 )
             )
@@ -132,7 +132,7 @@ def execute_simple_backend(stream: Stream):
                 items = (
                     item
                     if isinstance(item, StreamSentinel)
-                    or is_batch_timeout_sentinel(item)
+                    or isinstance(item, BatchTimeoutSentinel)
                     else writer.handle_record(item)
                     for item in items
                 )
@@ -141,14 +141,14 @@ def execute_simple_backend(stream: Stream):
                 items = writer.batch_fn(items, writer.batch_size, sentinel_mode="drop")
                 # get the 1st element (2nd is the count)
                 for b in items:
-                    if isinstance(b, StreamSentinel) or is_batch_timeout_sentinel(b):
+                    if isinstance(b, (StreamSentinel, BatchTimeoutSentinel)):
                         continue
                     item, count = writer.handle_batch(b)
                     bar.update(count)
                     yield item
             else:
                 for item in items:
-                    if is_batch_timeout_sentinel(item):
+                    if isinstance(item, BatchTimeoutSentinel):
                         continue
                     if not isinstance(item, StreamSentinel):
                         bar.update(1)

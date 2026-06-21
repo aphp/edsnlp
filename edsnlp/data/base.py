@@ -281,8 +281,9 @@ def from_queue(
     """
     Build a live stream from a queue.
 
-    Items submitted to the queue are read once and processed in arrival order. The
-    stream stops when its reader is closed.
+    Items submitted to the queue are read once and processed in the order they arrive.
+    The stream stops when its reader is closed. You should mostly use this when
+    you wrap a stream in an executor (via `.executor(...)` or `.deploy_ray_serve(...)`)
     """
     data = Stream(
         QueueReader(

@@ -6,6 +6,7 @@
 
 - New stream executor to asynchronously submit document to a stream and get an awaitable output
 - Async executors can now flush partial batches after `batch_wait_timeout`, preventing requests from waiting forever for a batch to fill up
+- Streams can now be deployed with Ray Serve through a simple `deploy_ray_serve`, enabling API deployment and horizontal scaling, and even gRPC
 
 ### Changed
 

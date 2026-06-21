@@ -87,7 +87,7 @@ class StreamRecord:
 
     id: Any
     value: Any
-    error: Optional[BaseException] = None
+    error: BaseException | None = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def __len__(self):
@@ -529,23 +529,23 @@ class Stream(metaclass=MetaStream):
     @with_non_default_args
     def set_processing(
         self,
-        batch_size: Optional[Union[int, float, str]] = None,
+        batch_size: int | float | str | None = None,
         batch_by: BatchBy = None,
         split_into_batches_after: str = None,
-        num_cpu_workers: Optional[int] = None,
-        num_gpu_workers: Optional[int] = None,
+        num_cpu_workers: int | None = None,
+        num_gpu_workers: int | None = None,
         disable_implicit_parallelism: bool = True,
-        backend: Optional[Literal["simple", "multiprocessing", "mp", "spark"]] = None,
+        backend: Literal["simple", "multiprocessing", "mp", "spark"] | None = None,
         autocast: Union[bool, Any] = None,
         device: Any = "auto",
         show_progress: bool = False,
-        gpu_pipe_names: Optional[List[str]] = None,
-        process_start_method: Optional[Literal["fork", "forkserver", "spawn"]] = None,
-        gpu_worker_devices: Optional[List[str]] = None,
-        cpu_worker_devices: Optional[List[str]] = None,
+        gpu_pipe_names: List[str] | None = None,
+        process_start_method: Literal["fork", "forkserver", "spawn"] | None = None,
+        gpu_worker_devices: List[str] | None = None,
+        cpu_worker_devices: List[str] | None = None,
         deterministic: bool = True,
-        gpu_prefetch: Optional[int] = None,
-        cpu_output_queue_size: Optional[int] = None,
+        gpu_prefetch: int | None = None,
+        cpu_output_queue_size: int | None = None,
         chunk_size: int = None,
         sort_chunks: bool = False,
         _non_default_args: Iterable[str] = (),
@@ -553,7 +553,7 @@ class Stream(metaclass=MetaStream):
         """
         Parameters
         ----------
-        batch_size: Optional[Union[int, float, str]]
+        batch_size: int | float | str | None
             The batch size. Can also be a batching expression like
             "32 docs", "1024 words", "dataset", "fragment", etc.
         batch_by: BatchBy
@@ -566,13 +566,13 @@ class Stream(metaclass=MetaStream):
             and the preprocessing, collating and postprocessing of deep-learning
             components. If no GPU workers are used, the CPU workers also handle the
             forward call of the deep-learning components.
-        num_gpu_workers: Optional[int]
+        num_gpu_workers: int | None
             Number of GPU workers. A GPU worker handles the forward call of the
             deep-learning components. Only used with "multiprocessing" backend.
         disable_implicit_parallelism: bool
             Whether to disable OpenMP and Huggingface tokenizers implicit parallelism in
             multiprocessing mode. Defaults to True.
-        backend: Optional[Literal["simple", "multiprocessing", "spark"]]
+        backend: Literal["simple", "multiprocessing", "spark"] | None
             The backend to use for parallel processing. If not set, the backend is
             automatically selected based on the input data and the number of workers.
 
@@ -582,7 +582,7 @@ class Stream(metaclass=MetaStream):
                 `num_gpu_workers` is greater than 0.
             - "spark" is used when the input data is a Spark dataframe and the output
                 writer is a Spark writer.
-        autocast: Union[bool, Any]
+        autocast: bool | Any
             Whether to use
             [automatic mixed precision (AMP)](https://pytorch.org/docs/stable/amp.html)
             for the forward pass of the deep-learning components. If True (by default),
@@ -594,14 +594,14 @@ class Stream(metaclass=MetaStream):
             available in the current execution context, otherwise CPU. Set to "cpu" or
             a CUDA device to force a device. Set to "preserve" to keep the current
             component placement in simple backend.
-        show_progress: Optional[bool]
+        show_progress: bool | None
             Whether to show progress bars (only applicable with "simple" and
             "multiprocessing" backends).
-        gpu_pipe_names: Optional[List[str]]
+        gpu_pipe_names: List[str] | None
             List of pipe names to accelerate on a GPUWorker, defaults to all pipes
             that inherit from TorchComponent. Only used with "multiprocessing" backend.
             Inferred from the pipeline if not set.
-        process_start_method: Optional[Literal["fork", "forkserver", "spawn"]]
+        process_start_method: Literal["fork", "forkserver", "spawn"] | None
             Whether to use "fork", "forkserver" or "spawn" as the start method for the
             multiprocessing backend. The default is "fork" on Unix systems and "spawn"
             on Windows.
@@ -612,10 +612,10 @@ class Stream(metaclass=MetaStream):
             - "spawn" is the default start method on Windows and is the safest start
                 method, but it is not available on Unix systems and is slower than
                 "fork".
-        gpu_worker_devices: Optional[List[str]]
+        gpu_worker_devices: List[str] | None
             List of GPU devices to use for the GPU workers. Defaults to all available
             devices, one worker per device. Only used with "multiprocessing" backend.
-        cpu_worker_devices: Optional[List[str]]
+        cpu_worker_devices: List[str] | None
             List of GPU devices to use for the CPU workers. Used for debugging purposes.
         deterministic: bool
             Whether to try and preserve the order of the documents in "multiprocessing"
@@ -623,11 +623,11 @@ class Stream(metaclass=MetaStream):
             available in a dynamic fashion, which may result in out-of-order but usually
             faster processing. If set to true, tasks will be distributed in a
             static, round-robin fashion to workers. Defaults to `True`.
-        gpu_prefetch: Optional[int]
+        gpu_prefetch: int | None
             Number of prepared batches each CPU worker may keep in flight for each GPU.
             Higher values can improve GPU utilization when CPU preprocessing is bursty,
             at the cost of extra memory. Defaults to an inferred value.
-        cpu_output_queue_size: Optional[int]
+        cpu_output_queue_size: int | None
             Maximum number of output batches each CPU worker may buffer before the main
             process drains them. Higher values can reduce writer/consolidation
             backpressure. Defaults to an inferred value.
@@ -716,7 +716,7 @@ class Stream(metaclass=MetaStream):
         pipe,
         name: Optional[str] = None,
         kwargs={},
-        batch_size: Optional[Union[int, float, str]] = None,
+        batch_size: int | float | str | None = None,
         batch_by: BatchBy = None,
     ) -> "Stream":
         """
@@ -731,7 +731,7 @@ class Stream(metaclass=MetaStream):
             The callable to map to the documents.
         kwargs: Dict
             The keyword arguments to pass to the callable.
-        batch_size: Optional[Union[int, float, str]]
+        batch_size: int | float | str | None
             The batch size. Can also be a batching expression like
             "32 docs", "1024 words", "dataset", "fragment", etc.
         batch_by: BatchBy
@@ -765,7 +765,7 @@ class Stream(metaclass=MetaStream):
 
     def batchify(
         self,
-        batch_size: Optional[Union[int, float, str]] = None,
+        batch_size: int | float | str | None = None,
         batch_by: BatchBy = None,
     ) -> "Stream":
         """
@@ -773,7 +773,7 @@ class Stream(metaclass=MetaStream):
 
         Parameters
         ----------
-        batch_size: Optional[Union[int, float, str]]
+        batch_size: int | float | str | None
             The batch size. Can also be a batching expression like
             "32 docs", "1024 words", "dataset", "fragment", etc.
         batch_by: BatchBy
@@ -805,7 +805,7 @@ class Stream(metaclass=MetaStream):
         forward: Callable[[Any], Any],
         postprocess: Optional[Callable[[List, Any], Any]] = None,
         name: Optional[str] = None,
-        batch_size: Optional[Union[int, float, str]] = None,
+        batch_size: int | float | str | None = None,
         batch_by: BatchBy = None,
     ) -> "Stream":
         """
@@ -824,7 +824,7 @@ class Stream(metaclass=MetaStream):
             An optional callable that takes the list of documents and the output of the
             deep learning operation, and returns the final output. This will be called
             on the same CPU-bound worker that called the `prepare_batch` function.
-        batch_size: Optional[Union[int, float, str]]
+        batch_size: int | float | str | None
             The batch size. Can also be a batching expression like
             "32 docs", "1024 words", "dataset", "fragment", etc.
         batch_by: BatchBy
@@ -860,7 +860,7 @@ class Stream(metaclass=MetaStream):
     def map_pipeline(
         self,
         model: Pipeline,
-        batch_size: Optional[Union[int, float, str]] = None,
+        batch_size: int | float | str | None = None,
         batch_by: BatchBy = None,
     ) -> "Stream":
         """
@@ -871,7 +871,7 @@ class Stream(metaclass=MetaStream):
         ----------
         model: Pipeline
             The pipeline to map to the documents.
-        batch_size: Optional[Union[int, float, str]]
+        batch_size: int | float | str | None
             The batch size. Can also be a batching expression like
             "32 docs", "1024 words", "dataset", "fragment", etc.
         batch_by: BatchBy
@@ -949,7 +949,7 @@ class Stream(metaclass=MetaStream):
 
     def shuffle(
         self,
-        batch_size: Optional[Union[int, float, str]] = None,
+        batch_size: int | float | str | None = None,
         batch_by: Optional[str, BatchFn] = None,
         seed: Optional[int] = None,
         shuffle_reader: Optional[Union[bool, str]] = None,
@@ -971,7 +971,7 @@ class Stream(metaclass=MetaStream):
 
         Parameters
         ----------
-        batch_size: Optional[Union[int, float, str]]
+        batch_size: int | float | str | None
             The batch size. Can also be a batching expression like
             "32 docs", "1024 words", "dataset", "fragment", etc.
         batch_by: BatchBy
@@ -1108,21 +1108,91 @@ class Stream(metaclass=MetaStream):
     def executor(
         self,
         *,
-        batch_wait_timeout: Optional[NonNegativeFloat] = None,
+        batch_wait_timeout: NonNegativeFloat | None = None,
     ):
         """
         Create an asynchronous executor for submitting individual items to this stream.
 
         Parameters
         ----------
-        batch_wait_timeout: Optional[NonNegativeFloat]
+        batch_wait_timeout: NonNegativeFloat | None
             Maximum time, in seconds, that an open streaming batch may wait before
             flushing a partial batch. The timer starts when the first item of a
             partial batch is received by the executor. Defaults to no timeout.
+
+        Notes
+        -----
+        Executors require streams created with `edsnlp.data.from_queue`.
         """
         from edsnlp.core.executor import StreamExecutor
 
         return StreamExecutor(self, batch_wait_timeout=batch_wait_timeout)
+
+    def deploy_ray_serve(
+        self,
+        *,
+        name="default",
+        route_prefix="/",
+        batch_wait_timeout: NonNegativeFloat | None = None,
+        deployment_options=None,
+        infer_processing: bool = True,
+        run: bool = True,
+        start: bool = True,
+        proxy_location=None,
+        http_options=None,
+        grpc_options=None,
+        logging_config=None,
+    ):
+        """
+        Deploy this stream as a Ray Serve application.
+
+        Parameters
+        ----------
+        name: str
+            Ray Serve application name.
+        route_prefix: str | None
+            HTTP route prefix for the deployment. Use `None` to disable HTTP routing.
+        batch_wait_timeout: NonNegativeFloat | None
+            Maximum time, in seconds, that an open executor batch may wait before
+            flushing a partial batch.
+        deployment_options: dict | None
+            Options passed to `ray.serve.deployment`.
+        infer_processing: bool
+            Whether to infer stream multiprocessing settings from Ray actor resources.
+        run: bool
+            Whether to call `ray.serve.run` and return a deployment handle.
+        start: bool
+            Whether to start Ray Serve before running the deployment.
+        proxy_location, http_options, grpc_options, logging_config
+            Options forwarded to `ray.serve.start` / `ray.serve.run`.
+
+        Returns
+        -------
+        Any
+            A Ray Serve deployment handle when `run=True`, otherwise the deployment
+            class.
+
+        Notes
+        -----
+        Ray Serve streams must be created with `edsnlp.data.from_queue`. Add input and
+        output converters directly to the stream before calling this method.
+        """
+        from edsnlp.processing.ray import deploy_ray_serve
+
+        return deploy_ray_serve(
+            self,
+            name=name,
+            route_prefix=route_prefix,
+            batch_wait_timeout=batch_wait_timeout,
+            deployment_options=deployment_options,
+            infer_processing=infer_processing,
+            run=run,
+            start=start,
+            proxy_location=proxy_location,
+            http_options=http_options,
+            grpc_options=grpc_options,
+            logging_config=logging_config,
+        )
 
     def __iter__(self):
         return iter(self.execute())

@@ -10,6 +10,7 @@
 ### Changed
 
 - Multiprocessing now uses byte payloads to exchange batches between CPU and GPU workers : no more per-worker GPU overhead, preserved tensor dtypes, and improved throughput by bypassing torch IPC
+- Improved default multiprocessing performance by increasing queue sizes and worker counts and better handling input feeder threads and queue cleanup
 
 ## v0.22.0 (2026-06-17)
 

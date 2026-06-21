@@ -1582,6 +1582,12 @@ class MultiprocessingStreamExecutor:
 
     @staticmethod
     def adjust_num_workers(stream: Stream):
+        device = stream.device
+        if device == "preserve":
+            raise ValueError(
+                "device='preserve' is only supported by the simple backend, "
+                "multiprocessing workers reload the stream on explicit devices."
+            )
         num_gpu_workers = (
             stream.num_gpu_workers
             if stream.num_gpu_workers is not None or stream.gpu_worker_devices is None
@@ -1589,13 +1595,37 @@ class MultiprocessingStreamExecutor:
         )
         torch_components = list(stream.torch_components())
         has_torch_pipes = bool(torch_components)
-        requires_gpu_workers = has_torch_pipes and (
-            num_gpu_workers is None
-            or num_gpu_workers is not None
-            and num_gpu_workers > 0
+        if device == "cpu":
+            if num_gpu_workers is not None and num_gpu_workers > 0:
+                raise ValueError(
+                    "device='cpu' cannot be used with num_gpu_workers > 0."
+                )
+            num_gpu_workers = 0
+        requires_gpu_workers = (
+            has_torch_pipes
+            and (
+                num_gpu_workers is None
+                or num_gpu_workers is not None
+                and num_gpu_workers > 0
+            )
+            and device != "cpu"
         )
         num_cpus = int(os.environ.get("EDSNLP_MAX_CPU_WORKERS") or cpu_count())
         num_devices = 0
+        device = str(device)
+        explicit_cuda_device = (
+            device.startswith("cuda:")
+            and stream.gpu_worker_devices is None
+            and requires_gpu_workers
+        )
+        if explicit_cuda_device:
+            if num_gpu_workers is None:
+                num_gpu_workers = 1
+            elif num_gpu_workers != 1:
+                raise ValueError(
+                    "Set gpu_worker_devices to use multiple GPU workers with "
+                    "an explicit CUDA device."
+                )
         if requires_gpu_workers:
             import torch
 
@@ -1604,6 +1634,11 @@ class MultiprocessingStreamExecutor:
 
             if num_gpu_workers is None:
                 num_gpu_workers = min(num_devices, num_cpus // 2)
+            if device.startswith("cuda") and num_devices == 0:
+                raise ValueError(
+                    f"Stream device {device!r} requires CUDA, "
+                    "but CUDA is not available."
+                )
         else:
             num_gpu_workers = 0
 
@@ -1628,7 +1663,9 @@ class MultiprocessingStreamExecutor:
 
         gpu_worker_devices = (
             (
-                [
+                [device]
+                if explicit_cuda_device
+                else [
                     f"cuda:{gpu_idx * num_devices // num_gpu_workers}"
                     for gpu_idx in range(num_gpu_workers)
                 ]

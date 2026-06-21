@@ -373,13 +373,18 @@ class QuickTorchPipe:
         self.forward = forward
         self.postprocess = postprocess
         self.elementwise = elementwise
+        self.device = None
 
     def __call__(self, *args, **kwargs):
         return self.forward(*args, **kwargs)
 
     def batch_process(self, batch):
-        res = self.forward(self.prepare_batch(batch, None))
-        return self.postprocess(batch, res) if self.postprocess is not None else res
+        docs = batch
+        batch = self.prepare_batch(docs, self.device)
+        if self.device is not None:
+            batch = self.batch_to_device(batch, self.device)
+        res = self.forward(batch)
+        return self.postprocess(docs, res) if self.postprocess is not None else res
 
     def batch_to_device(self, batch, device):
         def rec(x):
@@ -492,6 +497,10 @@ class Stream(metaclass=MetaStream):
         return self.config.get("autocast", True)
 
     @property
+    def device(self):
+        return self.config.get("device", "auto")
+
+    @property
     def backend(self):
         backend = self.config.get("backend")
         return {"mp": "multiprocessing"}.get(backend, backend)
@@ -528,6 +537,7 @@ class Stream(metaclass=MetaStream):
         disable_implicit_parallelism: bool = True,
         backend: Optional[Literal["simple", "multiprocessing", "mp", "spark"]] = None,
         autocast: Union[bool, Any] = None,
+        device: Any = "auto",
         show_progress: bool = False,
         gpu_pipe_names: Optional[List[str]] = None,
         process_start_method: Optional[Literal["fork", "forkserver", "spawn"]] = None,
@@ -579,6 +589,11 @@ class Stream(metaclass=MetaStream):
             AMP will be used with the default settings. If False, AMP will not be used.
             If a dtype is provided, it will be passed to the `torch.autocast` context
             manager.
+        device: Any
+            Device used for torch components. Defaults to "auto", which uses CUDA when
+            available in the current execution context, otherwise CPU. Set to "cpu" or
+            a CUDA device to force a device. Set to "preserve" to keep the current
+            component placement in simple backend.
         show_progress: Optional[bool]
             Whether to show progress bars (only applicable with "simple" and
             "multiprocessing" backends).

@@ -1,6 +1,15 @@
 import pytest
 
 import edsnlp
+from edsnlp.core.stream import (
+    Batchable,
+    FlattenOp,
+    MapBatchesOp,
+    MapOp,
+    StreamRecord,
+    UnbatchifyOp,
+)
+from edsnlp.utils.batching import BATCH_TIMEOUT_SENTINEL, DATASET_END_SENTINEL
 from edsnlp.utils.collections import ld_to_dl
 
 pytestmark = pytest.mark.processing

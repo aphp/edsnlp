@@ -11,9 +11,11 @@ from spacy.tokens import Doc
 
 import edsnlp.data
 import edsnlp.processing
+from edsnlp.core.stream import Stream
 from edsnlp.data.converters import get_current_tokenizer
 from edsnlp.processing.multiprocessing import (
     BytesTensor,
+    MultiprocessingStreamExecutor,
     batch_from_bytes,
     batch_to_bytes,
     get_dispatch_schedule,
@@ -140,6 +142,110 @@ def test_batch_bytes_preserves_folded_tensor():
     assert restored.data_dims == tensor.data_dims
     assert restored.full_names == tensor.full_names
     assert torch.equal(restored, tensor)
+
+
+@pytest.mark.skipif(torch is None, reason="torch is not installed")
+def test_default_cpu_workers_are_stage_agnostic(monkeypatch):
+    monkeypatch.setenv("EDSNLP_MAX_CPU_WORKERS", "16")
+
+    single_stage = (
+        Stream()
+        .map_gpu(
+            prepare_batch=lambda docs, device: docs,
+            forward=lambda batch: batch,
+            postprocess=lambda docs, result, inputs=None: docs,
+        )
+        .set_processing(num_gpu_workers=1)
+    )
+    multi_stage = single_stage.map_gpu(
+        prepare_batch=lambda docs, device: docs,
+        forward=lambda batch: batch,
+        postprocess=lambda docs, result, inputs=None: docs,
+    )
+
+    assert MultiprocessingStreamExecutor.adjust_num_workers(single_stage)[0] == 12
+    assert MultiprocessingStreamExecutor.adjust_num_workers(multi_stage)[0] == 12
+
+
+@pytest.mark.skipif(torch is None, reason="torch is not installed")
+def test_multiprocessing_device_cpu_disables_gpu_workers(monkeypatch):
+    monkeypatch.setenv("EDSNLP_MAX_CPU_WORKERS", "4")
+
+    stream = (
+        Stream()
+        .map_gpu(
+            prepare_batch=lambda docs, device: docs,
+            forward=lambda batch: batch,
+            postprocess=lambda docs, result, inputs=None: docs,
+        )
+        .set_processing(
+            backend="multiprocessing",
+            num_cpu_workers=1,
+            device="cpu",
+        )
+    )
+
+    assert MultiprocessingStreamExecutor.adjust_num_workers(stream)[:4] == (
+        1,
+        0,
+        ["cpu"],
+        [],
+    )
+
+
+@pytest.mark.skipif(torch is None, reason="torch is not installed")
+def test_multiprocessing_rejects_preserve_device():
+    stream = (
+        Stream()
+        .map_gpu(
+            prepare_batch=lambda docs, device: docs,
+            forward=lambda batch: batch,
+            postprocess=lambda docs, result, inputs=None: docs,
+        )
+        .set_processing(backend="multiprocessing", device="preserve")
+    )
+
+    with pytest.raises(ValueError, match="preserve"):
+        MultiprocessingStreamExecutor.adjust_num_workers(stream)
+
+
+@pytest.mark.skipif(torch is None, reason="torch is not installed")
+def test_multiprocessing_explicit_cuda_device(monkeypatch):
+    monkeypatch.setenv("EDSNLP_MAX_CPU_WORKERS", "4")
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 1)
+
+    stream = (
+        Stream()
+        .map_gpu(
+            prepare_batch=lambda docs, device: docs,
+            forward=lambda batch: batch,
+            postprocess=lambda docs, result, inputs=None: docs,
+        )
+        .set_processing(backend="multiprocessing", device="cuda:0")
+    )
+
+    assert MultiprocessingStreamExecutor.adjust_num_workers(stream)[1:4] == (
+        1,
+        ["cpu", "cpu"],
+        ["cuda:0"],
+    )
+
+    stream = (
+        Stream()
+        .map_gpu(
+            prepare_batch=lambda docs, device: docs,
+            forward=lambda batch: batch,
+            postprocess=lambda docs, result, inputs=None: docs,
+        )
+        .set_processing(
+            backend="multiprocessing",
+            device="cuda:0",
+            num_gpu_workers=2,
+        )
+    )
+
+    with pytest.raises(ValueError, match="explicit CUDA device"):
+        MultiprocessingStreamExecutor.adjust_num_workers(stream)
 
 
 @pytest.mark.parametrize(

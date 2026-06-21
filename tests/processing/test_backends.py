@@ -12,7 +12,12 @@ from spacy.tokens import Doc
 import edsnlp.data
 import edsnlp.processing
 from edsnlp.data.converters import get_current_tokenizer
-from edsnlp.processing.multiprocessing import get_dispatch_schedule
+from edsnlp.processing.multiprocessing import (
+    BytesTensor,
+    batch_from_bytes,
+    batch_to_bytes,
+    get_dispatch_schedule,
+)
 
 pytestmark = pytest.mark.processing
 
@@ -50,6 +55,91 @@ docs = [
         "entities": None,
     },
 ]
+
+
+def tensor_storage_nbytes(tensor):
+    if tensor.numel() == 0:
+        return 0
+    min_offset = max_offset = tensor.storage_offset()
+    for size, stride in zip(tensor.shape, tensor.stride()):
+        extent = (size - 1) * stride
+        if extent >= 0:
+            max_offset += extent
+        else:
+            min_offset += extent
+    return (max_offset - min_offset + 1) * tensor.element_size()
+
+
+@pytest.mark.skipif(torch is None, reason="torch is not installed")
+def test_batch_bytes_preserves_bfloat16_without_widening():
+    tensor = torch.arange(12, dtype=torch.float32).reshape(3, 4).to(torch.bfloat16)
+    tensor = tensor[:, ::2]
+
+    payload = batch_to_bytes(tensor)
+    restored = batch_from_bytes(payload)
+
+    assert isinstance(payload, BytesTensor)
+    assert payload.dtype is torch.bfloat16
+    assert payload.data.nbytes == tensor_storage_nbytes(tensor)
+    assert restored.dtype is torch.bfloat16
+    assert restored.shape == tensor.shape
+    assert restored.stride() == tensor.stride()
+    assert torch.equal(restored, tensor)
+
+
+@pytest.mark.skipif(torch is None, reason="torch is not installed")
+def test_batch_bytes_preserves_nested_tensors():
+    batch = {
+        "empty": torch.empty((0, 3), dtype=torch.float32),
+        "ids": torch.arange(6, dtype=torch.int64).reshape(2, 3),
+        "scores": [torch.arange(4, dtype=torch.float32)],
+    }
+
+    restored = batch_from_bytes(batch_to_bytes(batch))
+
+    assert restored["empty"].shape == (0, 3)
+    assert restored["empty"].stride() == batch["empty"].stride()
+    assert restored["empty"].dtype is torch.float32
+    assert restored["ids"].dtype is torch.int64
+    assert restored["ids"].stride() == batch["ids"].stride()
+    assert torch.equal(restored["ids"], batch["ids"])
+    assert restored["scores"][0].dtype is torch.float32
+    assert restored["scores"][0].stride() == batch["scores"][0].stride()
+    assert torch.equal(restored["scores"][0], batch["scores"][0])
+
+
+@pytest.mark.skipif(torch is None, reason="torch is not installed")
+def test_batch_bytes_preserves_scalar_and_broadcast_tensors():
+    batch = {
+        "scalar": torch.tensor(3, dtype=torch.int64),
+        "broadcast": torch.tensor([1], dtype=torch.int64).expand(4, 1),
+    }
+
+    restored = batch_from_bytes(batch_to_bytes(batch))
+
+    assert restored["scalar"].shape == batch["scalar"].shape
+    assert restored["scalar"].stride() == batch["scalar"].stride()
+    assert restored["scalar"].dtype is torch.int64
+    assert torch.equal(restored["scalar"], batch["scalar"])
+    assert restored["broadcast"].shape == batch["broadcast"].shape
+    assert restored["broadcast"].stride() == batch["broadcast"].stride()
+    assert restored["broadcast"].dtype is torch.int64
+    assert torch.equal(restored["broadcast"], batch["broadcast"])
+
+
+@pytest.mark.skipif(torch is None, reason="torch is not installed")
+def test_batch_bytes_preserves_folded_tensor():
+    ft = pytest.importorskip("foldedtensor")
+    tensor = ft.as_folded_tensor([[1.0, 2.0], [3.0]]).to(torch.bfloat16)
+
+    restored = batch_from_bytes(batch_to_bytes(tensor))
+
+    assert restored.__class__.__name__ == "FoldedTensor"
+    assert restored.dtype is torch.bfloat16
+    assert restored.lengths == tensor.lengths
+    assert restored.data_dims == tensor.data_dims
+    assert restored.full_names == tensor.full_names
+    assert torch.equal(restored, tensor)
 
 
 @pytest.mark.parametrize(

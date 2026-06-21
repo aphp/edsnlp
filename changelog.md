@@ -7,6 +7,10 @@
 - New stream executor to asynchronously submit document to a stream and get an awaitable output
 - Async executors can now flush partial batches after `batch_wait_timeout`, preventing requests from waiting forever for a batch to fill up
 
+### Changed
+
+- Multiprocessing now uses byte payloads to exchange batches between CPU and GPU workers : no more per-worker GPU overhead, preserved tensor dtypes, and improved throughput by bypassing torch IPC
+
 ## v0.22.0 (2026-06-17)
 
 ### Added

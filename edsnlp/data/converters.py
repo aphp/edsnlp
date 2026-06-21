@@ -356,7 +356,7 @@ class StandoffDoc2DictConverter:
         self.span_attributes = span_attributes
 
     def __call__(self, doc):
-        spans = get_spans(doc, self.span_getter)
+        spans = get_spans(doc, self.span_getter, deduplicate=False)
         span_binding_getters = {
             obj_name: BINDING_GETTERS[
                 ("_." + ext_name)
@@ -608,7 +608,7 @@ class OmopDoc2DictConverter:
         self.span_attributes = span_attributes
 
     def __call__(self, doc):
-        spans = get_spans(doc, self.span_getter)
+        spans = get_spans(doc, self.span_getter, deduplicate=False)
         span_binding_getters = {
             obj_name: BINDING_GETTERS[
                 ("_." + ext_name)
@@ -1015,7 +1015,7 @@ class DocToMarkupConverter:
         }
 
         # Collect and dedupe spans
-        spans = list(sorted(dict.fromkeys(get_spans(doc, self.span_getter))))
+        spans = list(sorted(dict.fromkeys(get_spans(doc, self.span_getter, deduplicate=False))))
 
         text = doc.text
         starts: Dict[int, list[Span]] = {}
@@ -1392,7 +1392,7 @@ class HfNerDoc2DictConverter:
         tags = ["O"] * len(tokens)
 
         # Get spans to export
-        spans = list(dict.fromkeys(get_spans(doc, self.span_getter)))
+        spans = list(dict.fromkeys(get_spans(doc, self.span_getter, deduplicate=False)))
         # Mark tags using simple BIO scheme
         for sp in spans:
             start = sp.start

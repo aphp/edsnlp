@@ -5,7 +5,15 @@ from contextlib import nullcontext
 
 from tqdm import tqdm
 
-from edsnlp.core.stream import Stream, StreamSentinel
+from edsnlp.core.stream import (
+    Stream,
+    StreamRecord,
+    StreamSentinel,
+    unwrap_stream_record,
+    wrap_stream_record,
+    wrap_stream_record_batch,
+)
+from edsnlp.utils.batching import BatchTimeoutSentinel
 
 doc_size_fns = {
     "words": len,
@@ -51,12 +59,47 @@ def execute_simple_backend(stream: Stream):
     def make_torch_pipe(torch_pipe, disable_after):
         def wrapped(batches):
             for batch in batches:
+                if isinstance(batch, BatchTimeoutSentinel):  # pragma: no cover
+                    yield batch
+                    continue
+                if isinstance(batch, StreamSentinel):  # pragma: no cover
+                    yield batch
+                    continue
+                if batch and isinstance(batch[0], StreamRecord):
+                    pending = [item for item in batch if item.error is None]
+                    if not pending:  # pragma: no cover
+                        yield batch
+                        continue
+                else:
+                    pending = batch
                 with autocast_ctx, inference_mode_ctx, no_grad_ctx:
-                    batch_id = hash(tuple(id(x) for x in batch))
+                    batch_id = hash(tuple(id(x) for x in pending))
                     torch_pipe.enable_cache(batch_id)
-                    batch = torch_pipe.batch_process(batch)
-                    if disable_after:
-                        torch_pipe.disable_cache(batch_id)
+                    try:
+                        res = torch_pipe.batch_process(
+                            [unwrap_stream_record(item) for item in pending]
+                        )
+                    except BaseException as exc:  # noqa: BLE001
+                        if batch and isinstance(batch[0], StreamRecord):
+                            yield [
+                                item
+                                if item.error is not None
+                                else wrap_stream_record(item, item.value, error=exc)
+                                for item in batch
+                            ]
+                            continue
+                        raise  # pragma: no cover
+                    finally:
+                        if disable_after:
+                            torch_pipe.disable_cache(batch_id)
+                    if pending is batch:
+                        batch = wrap_stream_record_batch(batch, res)
+                    else:  # pragma: no cover
+                        processed = iter(wrap_stream_record_batch(pending, res))
+                        batch = [
+                            item if item.error is not None else next(processed)
+                            for item in batch
+                        ]
                 yield batch
 
         return wrapped
@@ -72,6 +115,7 @@ def execute_simple_backend(stream: Stream):
                 for task in (
                     (item,)
                     if isinstance(item, StreamSentinel)
+                    or is_batch_timeout_sentinel(item)
                     else reader.extract_task(item)
                 )
             )
@@ -88,6 +132,7 @@ def execute_simple_backend(stream: Stream):
                 items = (
                     item
                     if isinstance(item, StreamSentinel)
+                    or is_batch_timeout_sentinel(item)
                     else writer.handle_record(item)
                     for item in items
                 )
@@ -96,12 +141,15 @@ def execute_simple_backend(stream: Stream):
                 items = writer.batch_fn(items, writer.batch_size, sentinel_mode="drop")
                 # get the 1st element (2nd is the count)
                 for b in items:
-                    if not isinstance(b, StreamSentinel):
-                        item, count = writer.handle_batch(b)
-                        bar.update(count)
+                    if isinstance(b, StreamSentinel) or is_batch_timeout_sentinel(b):
+                        continue
+                    item, count = writer.handle_batch(b)
+                    bar.update(count)
                     yield item
             else:
                 for item in items:
+                    if is_batch_timeout_sentinel(item):
+                        continue
                     if not isinstance(item, StreamSentinel):
                         bar.update(1)
                         yield item

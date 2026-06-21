@@ -7,6 +7,7 @@ import textwrap
 import warnings
 from collections import namedtuple
 from copy import copy
+from dataclasses import dataclass, field
 from functools import wraps
 from inspect import isgeneratorfunction, signature
 from typing import (
@@ -22,10 +23,18 @@ from typing import (
 )
 
 from confit import VisibleDeprecationWarning
+from pydantic import NonNegativeFloat
 from typing_extensions import Literal
 
 import edsnlp.data
-from edsnlp.utils.batching import BatchBy, BatchFn, BatchSizeArg, batchify, batchify_fns
+from edsnlp.utils.batching import (
+    BatchBy,
+    BatchFn,
+    BatchSizeArg,
+    batchify,
+    batchify_fns,
+    is_batch_timeout_sentinel,
+)
 from edsnlp.utils.collections import flatten, flatten_once, shuffle
 from edsnlp.utils.stream_sentinels import StreamSentinel
 
@@ -68,6 +77,49 @@ def make_kwargs_str(kwargs, first=True):
     return join_sep.join(pre_sep + f"{k}={v!r}" for k, v in kwargs.items())
 
 
+@dataclass
+class StreamRecord:
+    """
+    Optional wrapper for preserving inputs identity through elementwise streams.
+    Normal streams pass plain values and do not require records. Executors use
+    records to match outputs with the submitted inputs that produced them.
+    """
+
+    id: Any
+    value: Any
+    error: Optional[BaseException] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def __len__(self):
+        return len(self.value)
+
+
+def unwrap_stream_record(item):
+    return item.value if isinstance(item, StreamRecord) else item
+
+
+def wrap_stream_record(item, value, error=None):
+    if not isinstance(item, StreamRecord):
+        return value
+
+    item.value = value
+    item.error = error
+    return item
+
+
+def wrap_stream_record_batch(batch, values):
+    if not batch or not isinstance(batch[0], StreamRecord):
+        return values
+    values = list(values)
+    if len(batch) != len(values):
+        raise ValueError("Elementwise batch operation changed the batch size")
+
+    for item, value in zip(batch, values):
+        item.value = value
+        item.error = None
+    return batch
+
+
 class Op(abc.ABC):
     elementwise: bool
 
@@ -79,7 +131,11 @@ class FlattenOp(Op):
     elementwise = False
 
     def __call__(self, items):
-        return flatten(items)
+        for item in items:
+            if is_batch_timeout_sentinel(item):
+                yield item
+                continue
+            yield from flatten(item)
 
     def __repr__(self):
         return "flatten()"
@@ -89,7 +145,11 @@ class UnbatchifyOp(Op):
     elementwise = True
 
     def __call__(self, items):
-        return flatten_once(items)
+        for item in items:
+            if is_batch_timeout_sentinel(item):
+                yield item
+                continue
+            yield from flatten_once((item,))
 
     def __repr__(self):
         return "unbatchify()"
@@ -144,11 +204,19 @@ class MapOp(Op):
 
     def __call__(self, items):
         if self.has_pipe_method:
+
+            def iter_items():
+                for x in items:
+                    if isinstance(x, (StreamSentinel, BatchTimeoutSentinel)):
+                        continue
+                    if isinstance(x, StreamRecord):
+                        raise ValueError(
+                            "Stream records require elementwise operations"
+                        )
+                    yield x
+
             CONTEXT[0], old = self.context, CONTEXT[0]
-            res = self.pipe.pipe(
-                (x for x in items if not isinstance(x, StreamSentinel)),
-                **self.kwargs,
-            )
+            res = self.pipe.pipe(iter_items(), **self.kwargs)
             CONTEXT[0] = old
             if self.is_generator:
                 yield from res
@@ -156,18 +224,34 @@ class MapOp(Op):
                 yield res
             return
         for item in items:
+            if is_batch_timeout_sentinel(item):
+                yield item
+                continue
             if isinstance(item, StreamSentinel):
                 yield item
                 continue
+            if isinstance(item, StreamRecord) and item.error is not None:
+                yield item
+                continue
+            if self.is_generator and isinstance(item, StreamRecord):
+                raise ValueError("Stream records require elementwise operations")
 
             CONTEXT[0], old = self.context, CONTEXT[0]
-            res = self.pipe(item, **self.kwargs)
-            CONTEXT[0] = old
+            try:
+                res = self.pipe(unwrap_stream_record(item), **self.kwargs)
+            except BaseException as exc:  # noqa: BLE001
+                CONTEXT[0] = old
+                if isinstance(item, StreamRecord):
+                    yield wrap_stream_record(item, item.value, error=exc)
+                    continue
+                raise
+            else:
+                CONTEXT[0] = old
 
             if self.is_generator:
                 yield from res
             else:
-                yield res
+                yield wrap_stream_record(item, res)
 
     def __repr__(self):
         if hasattr(self.pipe, "__self__"):
@@ -190,30 +274,85 @@ class MapBatchesOp(Op):
     def __call__(self, batches):
         if hasattr(self.pipe, "batch_process"):
             for batch in batches:
+                if is_batch_timeout_sentinel(batch):
+                    yield batch
+                    continue
                 if isinstance(batch, StreamSentinel):
                     yield batch
                     continue
+                if batch and isinstance(batch[0], StreamRecord):
+                    if self.is_generator:
+                        raise ValueError(
+                            "Stream records require elementwise operations"
+                        )
+                    pending = [item for item in batch if item.error is None]
+                    if not pending:
+                        yield batch
+                        continue
+                else:
+                    pending = batch
                 CONTEXT[0], old = self.context, CONTEXT[0]
-                res = self.pipe.batch_process(batch, **self.kwargs)
-                CONTEXT[0] = old
-                res = list(res) if self.is_generator else (res,)
-                yield from res
+                try:
+                    res = self.pipe.batch_process(
+                        [unwrap_stream_record(item) for item in pending],
+                        **self.kwargs,
+                    )
+                except BaseException as exc:  # noqa: BLE001
+                    CONTEXT[0] = old
+                    if batch and isinstance(batch[0], StreamRecord):
+                        yield [
+                            item
+                            if item.error is not None
+                            else wrap_stream_record(item, item.value, error=exc)
+                            for item in batch
+                        ]
+                        continue
+                    raise
+                else:
+                    CONTEXT[0] = old
+                res = list(res) if self.is_generator else res
+                if pending is batch:
+                    yield wrap_stream_record_batch(batch, res)
+                else:
+                    processed = iter(wrap_stream_record_batch(pending, res))
+                    yield [
+                        item if item.error is not None else next(processed)
+                        for item in batch
+                    ]
         else:
             for batch in batches:
+                if is_batch_timeout_sentinel(batch):
+                    yield batch
+                    continue
                 if isinstance(batch, StreamSentinel):
                     yield batch
                     continue
                 results = []
                 for item in batch:
+                    if isinstance(item, StreamRecord) and item.error is not None:
+                        results.append(item)
+                        continue
+                    if self.is_generator and isinstance(item, StreamRecord):
+                        raise ValueError(
+                            "Stream records require elementwise operations"
+                        )
                     CONTEXT[0], old = self.context, CONTEXT[0]
-                    res = (
-                        item
-                        if isinstance(item, StreamSentinel)
-                        else self.pipe(item, **self.kwargs)
-                    )
-                    CONTEXT[0] = old
-                    res = list(res) if self.is_generator else (res,)
-                    results.extend(res)
+                    try:
+                        res = self.pipe(unwrap_stream_record(item), **self.kwargs)
+                    except BaseException as exc:  # noqa: BLE001
+                        CONTEXT[0] = old
+                        if isinstance(item, StreamRecord):
+                            results.append(
+                                wrap_stream_record(item, item.value, error=exc)
+                            )
+                            continue
+                        raise
+                    else:
+                        CONTEXT[0] = old
+                    if self.is_generator:
+                        results.extend(res)
+                    else:
+                        results.append(wrap_stream_record(item, res))
                 yield results
 
     def __repr__(self):
@@ -241,6 +380,18 @@ class QuickTorchPipe:
     def batch_process(self, batch):
         res = self.forward(self.prepare_batch(batch, None))
         return self.postprocess(batch, res) if self.postprocess is not None else res
+
+    def batch_to_device(self, batch, device):
+        def rec(x):
+            if hasattr(x, "to"):
+                return x.to(device)
+            if isinstance(x, dict):
+                return {name: rec(value) for name, value in x.items()}
+            if isinstance(x, (list, tuple, set)):
+                return type(x)(rec(value) for value in x)
+            return x
+
+        return rec(batch)
 
     def enable_cache(self, cache_id=None):
         pass
@@ -357,6 +508,14 @@ class Stream(metaclass=MetaStream):
     def deterministic(self):
         return self.config.get("deterministic", True)
 
+    @property
+    def gpu_prefetch(self):
+        return self.config.get("gpu_prefetch")
+
+    @property
+    def cpu_output_queue_size(self):
+        return self.config.get("cpu_output_queue_size")
+
     # noinspection PyIncorrectDocstring
     @with_non_default_args
     def set_processing(
@@ -371,10 +530,12 @@ class Stream(metaclass=MetaStream):
         autocast: Union[bool, Any] = None,
         show_progress: bool = False,
         gpu_pipe_names: Optional[List[str]] = None,
-        process_start_method: Optional[Literal["fork", "spawn"]] = None,
+        process_start_method: Optional[Literal["fork", "forkserver", "spawn"]] = None,
         gpu_worker_devices: Optional[List[str]] = None,
         cpu_worker_devices: Optional[List[str]] = None,
         deterministic: bool = True,
+        gpu_prefetch: Optional[int] = None,
+        cpu_output_queue_size: Optional[int] = None,
         chunk_size: int = None,
         sort_chunks: bool = False,
         _non_default_args: Iterable[str] = (),
@@ -425,9 +586,10 @@ class Stream(metaclass=MetaStream):
             List of pipe names to accelerate on a GPUWorker, defaults to all pipes
             that inherit from TorchComponent. Only used with "multiprocessing" backend.
             Inferred from the pipeline if not set.
-        process_start_method: Optional[Literal["fork", "spawn"]]
-            Whether to use "fork" or "spawn" as the start method for the multiprocessing
-            backend. The default is "fork" on Unix systems and "spawn" on Windows.
+        process_start_method: Optional[Literal["fork", "forkserver", "spawn"]]
+            Whether to use "fork", "forkserver" or "spawn" as the start method for the
+            multiprocessing backend. The default is "fork" on Unix systems and "spawn"
+            on Windows.
 
             - "fork" is the default start method on Unix systems and is the fastest
                 start method, but it is not available on Windows, can cause issues
@@ -446,6 +608,14 @@ class Stream(metaclass=MetaStream):
             available in a dynamic fashion, which may result in out-of-order but usually
             faster processing. If set to true, tasks will be distributed in a
             static, round-robin fashion to workers. Defaults to `True`.
+        gpu_prefetch: Optional[int]
+            Number of prepared batches each CPU worker may keep in flight for each GPU.
+            Higher values can improve GPU utilization when CPU preprocessing is bursty,
+            at the cost of extra memory. Defaults to an inferred value.
+        cpu_output_queue_size: Optional[int]
+            Maximum number of output batches each CPU worker may buffer before the main
+            process drains them. Higher values can reduce writer/consolidation
+            backpressure. Defaults to an inferred value.
 
         Returns
         -------
@@ -920,6 +1090,25 @@ class Stream(metaclass=MetaStream):
         execute = getattr(edsnlp.processing, f"execute_{backend}_backend")
         return execute(self)
 
+    def executor(
+        self,
+        *,
+        batch_wait_timeout: Optional[NonNegativeFloat] = None,
+    ):
+        """
+        Create an asynchronous executor for submitting individual items to this stream.
+
+        Parameters
+        ----------
+        batch_wait_timeout: Optional[NonNegativeFloat]
+            Maximum time, in seconds, that an open streaming batch may wait before
+            flushing a partial batch. The timer starts when the first item of a
+            partial batch is received by the executor. Defaults to no timeout.
+        """
+        from edsnlp.core.executor import StreamExecutor
+
+        return StreamExecutor(self, batch_wait_timeout=batch_wait_timeout)
+
     def __iter__(self):
         return iter(self.execute())
 
@@ -985,6 +1174,7 @@ class Stream(metaclass=MetaStream):
         stages = []
 
         ops = [copy(op) for op in self.ops]
+        self.validate_ops(ops=ops, update=True)
 
         for op in ops:
             if (
@@ -1000,13 +1190,12 @@ class Stream(metaclass=MetaStream):
         if len(current_ops) or len(stages) == 0:
             stages.append(Stage(current_ops, None))
 
-        self.validate_ops(ops=ops, update=True)
-
         return stages
 
     def validate_ops(self, ops, update: bool = False):
         # Check batchify requirements
         requires_sentinels = set()
+        preserves_sentinels = set()
 
         self_batch_size, self_batch_by = self.validate_batching(
             self.batch_size, self.batch_by
@@ -1049,6 +1238,8 @@ class Stream(metaclass=MetaStream):
                         f"Ensure that you do not set `sentinel_mode='drop'` on "
                         f"any upstream batching operation."
                     )
+                if sentinel_mode in ("keep", "split"):
+                    preserves_sentinels.add("stream")
                 if update:
                     op.size = batch_size
                     op.batch_fn = batch_fn
@@ -1068,7 +1259,14 @@ class Stream(metaclass=MetaStream):
                 f"Some operations require sentinel values ({sentinel_str}), "
                 f"but these are not supported in when `deterministic=False`."
             )
-        if not (requires_sentinels <= self.reader.emitted_sentinels):
+        if preserves_sentinels and not self.deterministic:
+            raise ValueError(
+                "Stream sentinel preservation is not supported when "
+                "`deterministic=False`."
+            )
+        if self.reader is not None and not (
+            requires_sentinels <= self.reader.emitted_sentinels
+        ):
             raise ValueError(
                 f"Some operations require sentinel values ({sentinel_str}), "
                 f"but the reader does not emit these values "

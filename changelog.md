@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- New stream executor to asynchronously submit document to a stream and get an awaitable output
+
 ## v0.22.0 (2026-06-17)
 
 ### Added

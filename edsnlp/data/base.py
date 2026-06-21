@@ -1,4 +1,6 @@
 import random
+import time
+from queue import Empty, Queue
 from typing import (
     Any,
     Callable,
@@ -11,13 +13,17 @@ from typing import (
 )
 
 from confit import validate_arguments
+from pydantic import NonNegativeFloat
 from typing_extensions import Literal
 
 from ..core.stream import Stream
+from ..utils.batching import BATCH_TIMEOUT_SENTINEL
 from ..utils.collections import flatten
 from ..utils.stream_sentinels import DatasetEndSentinel
 from ..utils.typing import AsList
 from .converters import FILENAME, get_dict2doc_converter, get_doc2dict_converter
+
+QUEUE_STOP = object()
 
 
 class BaseReader:
@@ -115,6 +121,75 @@ class IterableReader(MemoryBasedReader):
                 break
 
 
+class QueueReader(MemoryBasedReader):
+    DATA_FIELDS = ("queue",)
+
+    def __init__(
+        self,
+        queue: Optional[Queue] = None,
+        batch_wait_timeout: Optional[NonNegativeFloat] = None,
+    ):
+        super().__init__()
+        self.queue = queue if queue is not None else Queue()
+        self.batch_wait_timeout = batch_wait_timeout
+        self.read_in_worker = False
+        self.emitted_sentinels = set()
+        self.shuffle = False
+
+    def read_records(self) -> Iterable[Any]:
+        batch_wait = self.batch_wait_timeout
+        deadline = None
+
+        while True:
+            timeout = None
+            if batch_wait is not None and deadline is not None:
+                timeout = deadline - time.monotonic()
+                if timeout <= 0:
+                    yield BATCH_TIMEOUT_SENTINEL
+                    deadline = None
+                    continue
+
+            try:
+                item = (
+                    self.queue.get()
+                    if timeout is None
+                    else self.queue.get(timeout=timeout)
+                )
+            except Empty:
+                yield BATCH_TIMEOUT_SENTINEL
+                deadline = None
+                continue
+
+            if item is QUEUE_STOP:
+                break
+            if batch_wait is not None and deadline is None:
+                deadline = time.monotonic() + batch_wait
+            yield item
+
+    def put(self, item) -> None:
+        self.queue.put(item)
+
+    def close(self) -> None:
+        self.queue.put(QUEUE_STOP)
+
+    def __getstate__(self):
+        state = dict(self.__dict__)
+        state["queue"] = None
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.queue = Queue()
+
+    def __copy__(self):
+        reader = self.__class__.__new__(self.__class__)
+        reader.__dict__ = dict(self.__dict__)
+        return reader
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(queue={object.__repr__(self.queue)})"
+
+
 @validate_arguments
 def from_iterable(
     data: Any,
@@ -194,6 +269,37 @@ def from_iterable(
         for conv in converter:
             conv, kwargs = get_dict2doc_converter(conv, kwargs)
             data = data.map(conv, kwargs=kwargs)
+    return data
+
+
+def from_queue(
+    queue: Optional[Queue] = None,
+    converter: Optional[AsList[Union[str, Callable]]] = None,
+    batch_wait_timeout: Optional[NonNegativeFloat] = None,
+    **kwargs,
+) -> Stream:
+    """
+    Build a live stream from a queue.
+
+    Items submitted to the queue are read once and processed in arrival order. The
+    stream stops when its reader is closed.
+    """
+    data = Stream(
+        QueueReader(
+            queue=queue,
+            batch_wait_timeout=batch_wait_timeout,
+        )
+    )
+    converters = (
+        []
+        if converter is None
+        else list(converter)
+        if isinstance(converter, (list, tuple))
+        else [converter]
+    )
+    for conv in converters:
+        conv, kw = get_dict2doc_converter(conv, kwargs)
+        data = data.map(conv, kwargs=kw)
     return data
 
 

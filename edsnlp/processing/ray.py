@@ -38,22 +38,23 @@ def infer_stream_processing(stream: Stream, deployment_options: dict) -> Stream:
     if has_gpu_resources and not has_torch_components:
         warnings.warn(
             "Ray actor reserves GPU resources, but this stream has no "
-            "EDS-NLP torch/GPU components. EDS-NLP will not use the GPU; "
+            "EDS-NLP torch/GPU components, so EDS-NLP will not use the GPU which"
             "the GPU remains reserved by Ray and visible to the replica process.",
             stacklevel=2,
         )
     if has_gpu_resources and has_torch_components and device == "cpu":
         warnings.warn(
             "Ray actor reserves GPU resources, but stream processing is forced "
-            "to device='cpu'. The GPU remains reserved by Ray and visible to the "
+            "to device='cpu': the GPU remains reserved by Ray and visible to the "
             "replica process.",
             stacklevel=2,
         )
     if has_gpu_resources and has_torch_components and device != "cpu":
         if not num_gpus_value.is_integer():
             warnings.warn(
-                "Ray actor reserves a fractional GPU. EDS-NLP will use one "
-                "visible GPU device; fractional sharing is controlled by Ray.",
+                "Ray actor reserves a fractional GPU: EDS-NLP will use one "
+                "visible GPU device, but some OOM errror may occur since the GPU might"
+                "be shared.",
                 stacklevel=2,
             )
     if has_gpu_resources and has_torch_components and device == "auto":

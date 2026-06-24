@@ -23,6 +23,24 @@ from .typing import Validated
 T = TypeVar("T")
 
 
+class BatchTimeoutSentinel:
+    instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls.instance is None:
+            cls.instance = super().__new__(cls)
+        return cls.instance
+
+    def __repr__(self):  # pragma: no cover
+        return "BATCH_TIMEOUT_SENTINEL"
+
+    def __reduce__(self):
+        return (BatchTimeoutSentinel, ())
+
+
+BATCH_TIMEOUT_SENTINEL = BatchTimeoutSentinel()
+
+
 class BatchSizeArg(Validated):
     """
     Batch size argument validator / caster for confit/pydantic
@@ -98,6 +116,12 @@ def batchify(
     batch = []
     num_items = 0
     for item in iterable:
+        if isinstance(item, BatchTimeoutSentinel):
+            if num_items > 0 and not drop_last:
+                yield batch
+            batch = []
+            num_items = 0
+            continue
         if isinstance(item, StreamSentinel):
             if sentinel_mode == "split":
                 if num_items > 0:
@@ -108,12 +132,16 @@ def batchify(
             elif sentinel_mode == "keep":
                 batch.append(item)
             continue
-        if num_items >= batch_size:
+        if num_items >= batch_size and (drop_last or sentinel_mode == "keep"):
             yield batch
             batch = []
             num_items = 0
         batch.append(item)
         num_items += 1
+        if num_items >= batch_size and not drop_last and sentinel_mode != "keep":
+            yield batch
+            batch = []
+            num_items = 0
     if num_items > 0 and not drop_last:
         yield batch
 
@@ -154,6 +182,13 @@ def batchify_by_length_sum(
     total = 0
     num_items = 0
     for item in iterable:
+        if isinstance(item, BatchTimeoutSentinel):
+            if num_items > 0 and not drop_last:
+                yield batch
+            batch = []
+            total = 0
+            num_items = 0
+            continue
         if isinstance(item, StreamSentinel):
             if sentinel_mode == "split":
                 if len(batch) > 0:
@@ -174,6 +209,11 @@ def batchify_by_length_sum(
         batch.append(item)
         num_items += 1
         total += count
+        if total >= batch_size and not drop_last:
+            yield batch
+            batch = []
+            total = 0
+            num_items = 0
     if num_items > 0 and not drop_last:
         yield batch
 
@@ -213,6 +253,13 @@ def batchify_by_padded(
     num_items = 0
     max_words = 0
     for item in iterable:
+        if isinstance(item, BatchTimeoutSentinel):
+            if num_items > 0 and not drop_last:
+                yield batch
+            batch = []
+            num_items = 0
+            max_words = 0
+            continue
         if isinstance(item, StreamSentinel):
             if sentinel_mode == "split":
                 if len(batch) > 0:
@@ -234,6 +281,11 @@ def batchify_by_padded(
         batch.append(item)
         num_items += 1
         max_words = next_count
+        if num_items * max_words >= batch_size and not drop_last:
+            yield batch
+            batch = []
+            num_items = 0
+            max_words = 0
     if num_items > 0 and not drop_last:
         yield batch
 
@@ -274,6 +326,8 @@ def batchify_by_dataset(
     batch = []
     num_items = 0
     for item in iterable:
+        if isinstance(item, BatchTimeoutSentinel):
+            continue
         is_end_dataset = item is DATASET_END_SENTINEL
         if isinstance(item, StreamSentinel):
             if sentinel_mode == "split" or is_end_dataset:
@@ -333,6 +387,8 @@ def batchify_by_fragment(
     batch = []
     num_items = 0
     for item in iterable:
+        if isinstance(item, BatchTimeoutSentinel):
+            continue
         is_end_fragment = isinstance(item, (FragmentEndSentinel, DatasetEndSentinel))
         if isinstance(item, StreamSentinel):
             if sentinel_mode == "split" or is_end_fragment:
@@ -422,6 +478,13 @@ def stat_batchify(key):
         total = 0
         exact_key = None
         for item in iterable:
+            if isinstance(item, BatchTimeoutSentinel):
+                if num_items > 0 and not drop_last:
+                    yield batch
+                batch = []
+                num_items = 0
+                total = 0
+                continue
             if isinstance(item, StreamSentinel):
                 if sentinel_mode == "split":
                     if num_items > 0:
@@ -456,6 +519,11 @@ def stat_batchify(key):
             total += value
             batch.append(item)
             num_items += 1
+            if total >= batch_size and not drop_last:
+                yield batch
+                batch = []
+                num_items = 0
+                total = 0
         if num_items > 0 and not drop_last:
             yield batch
 

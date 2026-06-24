@@ -1,6 +1,7 @@
 import pytest
 
 from edsnlp.utils.batching import (
+    BATCH_TIMEOUT_SENTINEL,
     DATASET_END_SENTINEL,
     BatchSizeArg,
     FragmentEndSentinel,
@@ -69,6 +70,16 @@ def test_batchify_sentinel_split():
     batches = list(batchify(data, batch_size=2, sentinel_mode="split"))
     assert batches == [[1, 2], sentinel, [3, 4]]
 
+    data = [1, sentinel, 2]
+    batches = list(batchify(data, batch_size=2, sentinel_mode="split"))
+    assert batches == [[1], sentinel, [2]]
+
+
+def test_batchify_timeout_flushes_partial_batch():
+    data = [1, 2, BATCH_TIMEOUT_SENTINEL, 3, 4]
+    batches = list(batchify(data, batch_size=3))
+    assert batches == [[1, 2], [3, 4]]
+
 
 # Tests for batchify_by_length_sum
 def test_batchify_by_length_sum_simple():
@@ -99,6 +110,12 @@ def test_batchify_by_length_sum_keep():
     assert batches == [["aa", "bb", sentinel, "ccc"], ["dddd"], ["eeeee"]]
 
 
+def test_batchify_by_length_sum_timeout_flushes_partial_batch():
+    data = ["aa", "bb", BATCH_TIMEOUT_SENTINEL, "ccc", "dddd"]
+    batches = list(batchify_by_length_sum(data, batch_size=10))
+    assert batches == [["aa", "bb"], ["ccc", "dddd"]]
+
+
 # Tests for batchify_by_padded
 def test_batchify_by_padded_simple():
     data = ["a", "bb", "ccc", "dddd"]
@@ -125,6 +142,10 @@ def test_batchify_by_padded_sentinel_split():
     batches = list(batchify_by_padded(data, batch_size=5, sentinel_mode="split"))
     assert batches == [["a"], sentinel, ["bb"], ["ccc"]]
 
+    data = ["a", "bb", BATCH_TIMEOUT_SENTINEL, "ccc", "d"]
+    batches = list(batchify_by_padded(data, batch_size=12))
+    assert batches == [["a", "bb"], ["ccc", "d"]]
+
 
 # Tests for batchify_by_dataset
 def test_batchify_by_dataset_simple():
@@ -145,6 +166,12 @@ def test_batchify_by_dataset_simple():
         DATASET_END_SENTINEL,
         ["item4", "item5"],
     ]
+
+
+def test_batchify_by_dataset_ignores_batch_timeout():
+    data = ["item1", BATCH_TIMEOUT_SENTINEL, "item2", DATASET_END_SENTINEL]
+    batches = list(batchify_by_dataset(data))
+    assert batches == [["item1", "item2"], DATASET_END_SENTINEL]
 
 
 def test_batchify_by_dataset_sentinel_split():
@@ -258,6 +285,14 @@ def test_stat_batchify_sentinel_split():
         sentinel,
         [data[2]],
     ]
+
+    data = [
+        {"/stats/length": 2, "text": "aa"},
+        BATCH_TIMEOUT_SENTINEL,
+        {"/stats/length": 3, "text": "bbb"},
+    ]
+    batches = list(batch_fn(data, batch_size=5))
+    assert batches == [[data[0]], [data[2]]]
 
 
 def test_stat_batchify_sentinel_keep():

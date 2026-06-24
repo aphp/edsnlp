@@ -53,6 +53,7 @@ nav:
       - tutorials/multiple-texts.md
       - tutorials/hpc.md
       - advanced-tutorials/fastapi.md
+      - advanced-tutorials/ray-serve.md
       - tutorials/make-a-training-script.md
       - tutorials/training-ner.md
       - tutorials/training-span-classifier.md

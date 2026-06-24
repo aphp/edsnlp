@@ -80,6 +80,8 @@ dev = [
     "aim>=3.29.1; python_version<'3.13'",
     "dvc>=3.67.0",
     "pip>=26.0.1",
+    "ray[serve]>=2.55.1",
+    "protobuf<7",
 ]
 # setup = [
 #     "mlconjug3<3.9.0",  # bug https://github.com/Ars-Linguistica/mlconjug3/pull/506
@@ -383,7 +385,7 @@ exclude = ["setup.py", "docs", "build", "tests", "edsnlp/pipes/core/contextual_m
 verbose = 0
 quiet = false
 whitelist-regex = []
-ignore-regex = ['__(?!init).*__']
+ignore-regex = ['__(?!init).*__', ".*Reader", ".*Writer"]
 color = true
 omit-covered-files = false
 # generate-badge = "."

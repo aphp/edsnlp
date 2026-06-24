@@ -4,7 +4,7 @@ from edsnlp.utils.lazy_module import lazify
 lazify()
 
 if TYPE_CHECKING:
-    from .base import from_iterable, to_iterable
+    from .base import from_iterable, from_queue, to_iterable
     from .standoff import read_standoff, write_standoff
     from .brat import read_brat, write_brat
     from .conll import read_conll

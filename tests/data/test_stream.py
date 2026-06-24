@@ -1,6 +1,15 @@
 import pytest
 
 import edsnlp
+from edsnlp.core.stream import (
+    Batchable,
+    FlattenOp,
+    MapBatchesOp,
+    MapOp,
+    StreamRecord,
+    UnbatchifyOp,
+)
+from edsnlp.utils.batching import BATCH_TIMEOUT_SENTINEL, DATASET_END_SENTINEL
 from edsnlp.utils.collections import ld_to_dl
 
 pytestmark = pytest.mark.processing
@@ -65,6 +74,135 @@ def test_map_gpu(num_gpu_workers):
     res = ld_to_dl(stream)
     res = torch.cat(res["outputs"])
     assert set(res.tolist()) == {i * 2 for i in range(15)}
+
+
+@pytest.mark.skipif(torch is None, reason="torch not installed")
+@pytest.mark.parametrize(
+    "device,cuda_available,expected_devices,raises",
+    [
+        ("auto", True, ["cuda"], None),
+        ("preserve", True, [None], None),
+        ("cuda:0", False, [], ValueError),
+    ],
+)
+def test_simple_backend_device(
+    monkeypatch,
+    device,
+    cuda_available,
+    expected_devices,
+    raises,
+):
+    import torch
+
+    seen_devices = []
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: cuda_available)
+
+    def prepare_batch(batch, device):
+        seen_devices.append(device)
+        return batch
+
+    stream = (
+        edsnlp.data.from_iterable([1, 2])
+        .map_gpu(prepare_batch, lambda batch: batch, batch_size=2)
+        .set_processing(backend="simple", device=device)
+    )
+
+    if raises is None:
+        assert list(stream) == [1, 2]
+    else:
+        with pytest.raises(raises, match="requires CUDA"):
+            list(stream)
+    assert seen_devices == expected_devices
+
+
+def test_queue_timeout_and_converter_with_simple_backend():
+    stream = edsnlp.data.from_queue(
+        converter=lambda row: row["value"] + 1,
+        batch_wait_timeout=0,
+    )
+    stream.reader.put({"value": 1})
+    stream.reader.close()
+
+    assert list(stream.set_processing(backend="simple")) == [2]
+
+
+def test_stream_ops_preserve_timeout_sentinel_and_record_errors():
+    assert list(FlattenOp()([[1], BATCH_TIMEOUT_SENTINEL, [2]])) == [
+        1,
+        BATCH_TIMEOUT_SENTINEL,
+        2,
+    ]
+    assert list(UnbatchifyOp()([[1, 2], BATCH_TIMEOUT_SENTINEL])) == [
+        1,
+        2,
+        BATCH_TIMEOUT_SENTINEL,
+    ]
+
+    existing_error = ValueError("previous")
+    errored = StreamRecord(2, "bad", error=existing_error)
+    assert list(
+        MapOp(lambda x: x.upper(), {})(
+            [BATCH_TIMEOUT_SENTINEL, DATASET_END_SENTINEL, errored]
+        )
+    ) == [BATCH_TIMEOUT_SENTINEL, DATASET_END_SENTINEL, errored]
+
+    def expand(value):
+        yield value
+        yield value
+
+    with pytest.raises(ValueError, match="elementwise"):
+        list(MapOp(expand, {})([StreamRecord(1, "a")]))
+
+    with pytest.raises(ValueError, match="elementwise"):
+        list(MapBatchesOp(expand, {})([[StreamRecord(1, "a")]]))
+
+    [batch] = list(
+        MapBatchesOp(Batchable(lambda batch: [x.upper() for x in batch]), {})(
+            [[StreamRecord(1, "a"), errored, StreamRecord(3, "c")]]
+        )
+    )
+    assert [(item.id, item.value, item.error) for item in batch] == [
+        (1, "A", None),
+        (2, "bad", existing_error),
+        (3, "C", None),
+    ]
+
+    batch_op = MapBatchesOp(Batchable(lambda batch: [x.upper() for x in batch]), {})
+    assert list(
+        batch_op([BATCH_TIMEOUT_SENTINEL, DATASET_END_SENTINEL, [errored]])
+    ) == [
+        BATCH_TIMEOUT_SENTINEL,
+        DATASET_END_SENTINEL,
+        [errored],
+    ]
+
+    failing_batch_op = MapBatchesOp(
+        Batchable(lambda batch: (_ for _ in ()).throw(ValueError("bad batch"))),
+        {},
+    )
+    with pytest.raises(ValueError, match="bad batch"):
+        list(failing_batch_op([["plain"]]))
+
+    def fail(value):
+        if value == "fail":
+            raise ValueError("bad item")
+        return value.upper()
+
+    assert list(
+        MapBatchesOp(fail, {})([BATCH_TIMEOUT_SENTINEL, DATASET_END_SENTINEL])
+    ) == [BATCH_TIMEOUT_SENTINEL, DATASET_END_SENTINEL]
+
+    [batch] = list(
+        MapBatchesOp(fail, {})(
+            [[StreamRecord(1, "a"), errored, StreamRecord(3, "fail")]]
+        )
+    )
+    assert batch[0].value == "A"
+    assert batch[1] is errored
+    assert isinstance(batch[2].error, ValueError)
+
+    with pytest.raises(ValueError, match="bad item"):
+        list(MapOp(fail, {})(["fail"]))
 
 
 # fmt: off

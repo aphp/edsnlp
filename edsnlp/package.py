@@ -1,11 +1,16 @@
+import json
 import os
 import re
 import shutil
 import sys
 import tempfile
 import warnings
+import zipfile
+from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Sequence, Union
+from urllib.parse import unquote, urljoin, urlparse
+from urllib.request import urlopen
 
 import build
 import confit
@@ -14,6 +19,8 @@ import toml
 from build.__main__ import build_package, build_package_via_sdist
 from confit import Cli
 from loguru import logger
+from packaging.requirements import Requirement
+from packaging.utils import canonicalize_name, parse_wheel_filename
 from typing_extensions import Literal
 
 import edsnlp
@@ -80,6 +87,7 @@ def load(
 """
 
 AUTHOR_REGEX = re.compile(r"(?P<name>.*) <(?P<email>.*)>")
+HREF_REGEX = re.compile(r"""href=["']([^"']+)["']""", flags=re.IGNORECASE)
 
 
 def parse_authors(authors):
@@ -100,6 +108,129 @@ def replace_with_dict(content: str, replacements: dict):
     return content
 
 
+def build_minor_range_dependency(name: str, version: str):
+    """
+    Build the default project code dependency used by dependency mode.
+    The returned requirement is written to the model package metadata.
+    """
+    release = version.split("+", 1)[0].split("-", 1)[0].split(".")
+    try:
+        major = int(release[0])
+        minor = int(release[1])
+    except (IndexError, ValueError) as e:  # pragma: no cover
+        raise ValueError(
+            f"Cannot infer a minor dependency range from version {version!r}."
+        ) from e
+    return f"{name}>={major}.{minor},<{major}.{minor + 1}"
+
+
+def resolve_simple_index_wheel(index_url: str, requirement: Requirement):
+    """
+    Find the newest wheel from a simple index that satisfies the code dependency.
+    The package command uses the returned URL to compare registry and local code.
+    """
+    if requirement.url:  # pragma: no cover
+        return requirement.url
+    package_url = urljoin(
+        index_url.rstrip("/") + "/",
+        canonicalize_name(requirement.name) + "/",
+    )
+    try:
+        parsed = urlparse(package_url)
+        if parsed.scheme == "file":
+            path = Path(unquote(parsed.path))
+            content = (
+                (path / "index.html").read_text() if path.is_dir() else path.read_text()
+            )
+        else:  # pragma: no cover
+            with urlopen(package_url) as response:
+                content = response.read().decode()
+    except Exception:  # pragma: no cover
+        return None
+    candidates = []
+    for href in HREF_REGEX.findall(content):
+        filename = Path(unquote(urlparse(href).path)).name
+        try:
+            wheel_name, wheel_version, _, _ = parse_wheel_filename(filename)
+        except Exception:
+            continue
+        if wheel_name != canonicalize_name(requirement.name):
+            continue
+        if requirement.specifier and wheel_version not in requirement.specifier:
+            continue
+        candidates.append((wheel_version, urljoin(package_url, href)))
+    if not candidates:
+        return None
+    return max(candidates, key=lambda item: item[0])[1]
+
+
+def compare_registry_wheel_with_local_code(
+    wheel_url: str,
+    root_dir: Path,
+    pyproject: Dict[str, Any],
+):
+    """
+    Compare project package files from the registry wheel and local checkout.
+    The package command uses returned differences to warn about unreleased code.
+    """
+    parsed = urlparse(wheel_url)
+    if parsed.scheme == "file":
+        data = Path(unquote(parsed.path)).read_bytes()
+    else:  # pragma: no cover
+        with urlopen(wheel_url) as response:
+            data = response.read()
+
+    find = dict(
+        pyproject.get("tool", {})
+        .get("setuptools", {})
+        .get("packages", {})
+        .get("find", {})
+    )
+    where = find.pop("where", ["."])
+    where = [where] if not isinstance(where, list) else where
+    package_roots = {}
+    for w in where:
+        source_root = root_dir / w
+        for package in setuptools.find_packages(source_root, **find):
+            package_roots[package] = source_root / Path(package.replace(".", "/"))
+
+    local_files = {}
+    for package, package_dir in package_roots.items():
+        for path in package_dir.rglob("*"):
+            if (
+                "__pycache__" in path.parts
+                or ".ipynb_checkpoints" in path.parts
+                or path.is_dir()
+                or path.suffix in {".pyc", ".pyo"}
+            ):
+                continue
+            wheel_path = Path(package.replace(".", "/")) / path.relative_to(package_dir)
+            local_files[str(wheel_path)] = path.read_bytes()
+
+    differences = []
+    with zipfile.ZipFile(BytesIO(data)) as zf:
+        names = set(zf.namelist())
+        for path, content in sorted(local_files.items()):
+            if path not in names:
+                differences.append(f"{path} is missing from the registry wheel")
+                continue
+            if zf.read(path) != content:
+                differences.append(f"{path} differs from the registry wheel")
+    return differences
+
+
+def handle_code_check(message: str, code_check: str):
+    """
+    Apply the selected code check policy to a packaging problem.
+    The package command uses this to turn checks into warnings or errors.
+    """
+    if code_check == "off":  # pragma: no cover
+        return
+    if code_check == "error":
+        raise RuntimeError(message)
+    warnings.warn(message, UserWarning)
+
+
 class Packager:
     def __init__(
         self,
@@ -115,6 +246,11 @@ class Packager:
         exclude: AsList[str],
         readme_replacements: Dict[str, str] = {},
         file_paths: Sequence[Path],
+        code: Literal["embed", "dependency", "none"],
+        code_dependency: Optional[str] = None,
+        code_check: Literal["off", "warn", "error"] = "warn",
+        publish_index: Optional[str] = None,
+        code_metadata: Optional[Dict[str, Any]] = None,
     ):
         self.name = name
         self.version = version
@@ -131,6 +267,11 @@ class Packager:
         self.exclude = exclude
         self.file_paths = file_paths
         self.pyproject = pyproject
+        self.code = code
+        self.code_dependency = code_dependency
+        self.code_check = code_check
+        self.publish_index = publish_index
+        self.code_metadata = code_metadata or {}
 
         logger.info(f"root_dir: {root_dir}")
         logger.info(f"artifacts_name: {artifacts_name}")
@@ -193,6 +334,12 @@ class Packager:
         else:
             self.pipeline.to_disk(build_artifacts_dir, exclude=set())
 
+        if self.code_metadata:
+            meta_path = build_artifacts_dir / "meta.json"
+            meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
+            meta.setdefault("packaging", {})["code"] = self.code_metadata
+            meta_path.write_text(json.dumps(meta, indent=2))
+
         # After building wheel, artifacts will be placed inside the
         # package dir, not next to it as in source distribution so
         # we let the load script test both locations
@@ -231,12 +378,31 @@ class SetuptoolsPackager(Packager):
         metadata: Optional[Dict[str, Any]] = {},
         exclude: AsList[str],
         readme_replacements: Dict[str, str] = {},
+        code: Literal["embed", "dependency", "none"] = "embed",
+        code_dependency: Optional[str] = None,
+        code_check: Literal["off", "warn", "error"] = "warn",
+        publish_index: Optional[str] = None,
     ):
         try:
             version = version or pyproject["project"]["version"]
         except (KeyError, TypeError):
             version = "0.1.0"
         name = name or pyproject["project"]["name"]
+        code_project_name = (
+            pyproject["project"]["name"] if pyproject is not None else None
+        )
+        code_project_version = (
+            pyproject["project"].get("version") if pyproject is not None else None
+        )
+        if (
+            code != "embed"
+            and code_project_name is not None
+            and canonicalize_name(name) == canonicalize_name(code_project_name)
+        ):
+            raise ValueError(
+                "The model package name must differ from the project code package "
+                "name when code is not embedded."
+            )
         if pyproject is not None:
             main_package = snake_case(pyproject["project"]["name"].lower())
         else:
@@ -272,29 +438,38 @@ class SetuptoolsPackager(Packager):
             }
         )
 
-        try:
-            find = dict(pyproject["tool"].pop("setuptools", {})["packages"]["find"])
-        except Exception:
-            find = {}
-        where = find.pop("where", ["."])
-        where = [where] if not isinstance(where, list) else where
         packages = {main_package, model_package}
-        for w in where:
-            # TODO Should we handle namespaces ?
-            # if find.pop("namespace", None) is not None:
-            #     packages.extend(setuptools.find_namespace_packages(**find))
-            packages.update(setuptools.find_packages(w, **find))
+        if code != "embed":
+            packages = {model_package}
+        else:
+            try:
+                find = dict(
+                    pyproject.get("tool", {})
+                    .get("setuptools", {})
+                    .get("packages", {})
+                    .get("find", {})
+                )
+            except Exception:
+                find = {}
+            where = find.pop("where", ["."])
+            where = [where] if not isinstance(where, list) else where
+            for w in where:
+                # TODO Should we handle namespaces ?
+                # if find.pop("namespace", None) is not None:
+                #     packages.extend(setuptools.find_namespace_packages(**find))
+                packages.update(setuptools.find_packages(w, **find))
         packages = sorted([p for p in packages if p])
         file_paths = []
-        for package in packages:
-            for path in (root_dir / package).rglob("*"):
-                if (
-                    "__pycache__" in path.parts
-                    or ".ipynb_checkpoints" in path.parts
-                    or path.is_dir()
-                ):
-                    continue
-                file_paths.append(path)
+        if code == "embed":
+            for package in packages:
+                for path in (root_dir / package).rglob("*"):
+                    if (
+                        "__pycache__" in path.parts
+                        or ".ipynb_checkpoints" in path.parts
+                        or path.is_dir()
+                    ):
+                        continue
+                    file_paths.append(path)
 
         new_pyproject["tool"]["hatch"]["build"] = {
             "packages": [*packages, artifacts_name],
@@ -314,6 +489,46 @@ class SetuptoolsPackager(Packager):
         metadata["name"] = model_package
         metadata["version"] = version
 
+        code_metadata = {}
+        if code == "dependency":
+            if code_dependency is None:
+                if code_project_name is None:
+                    raise ValueError(
+                        "Could not infer a code dependency from pyproject.toml."
+                    )
+                if code_project_version is None:  # pragma: no cover
+                    try:
+                        import importlib.metadata as importlib_metadata
+
+                        code_project_version = importlib_metadata.version(
+                            code_project_name
+                        )
+                    except Exception as e:
+                        raise ValueError(
+                            "Could not infer a code dependency version from "
+                            "pyproject.toml or installed package metadata."
+                        ) from e
+                code_dependency = build_minor_range_dependency(
+                    code_project_name,
+                    code_project_version,
+                )
+            dependencies = list(new_pyproject["project"].get("dependencies", []))
+            dep_req = Requirement(code_dependency)
+            dependencies = [
+                dep
+                for dep in dependencies
+                if canonicalize_name(Requirement(dep).name)
+                != canonicalize_name(dep_req.name)
+            ]
+            dependencies.append(code_dependency)
+            new_pyproject["project"]["dependencies"] = dependencies
+            code_metadata = {
+                "mode": "dependency",
+                "dependency": code_dependency,
+                "project": code_project_name,
+                "version": code_project_version,
+            }
+
         new_pyproject = new_pyproject.merge({"project": metadata})
 
         super().__init__(
@@ -328,6 +543,11 @@ class SetuptoolsPackager(Packager):
             exclude=exclude,
             readme_replacements=readme_replacements,
             file_paths=file_paths,
+            code=code,
+            code_dependency=code_dependency,
+            code_check=code_check,
+            publish_index=publish_index,
+            code_metadata=code_metadata,
         )
 
 
@@ -350,8 +570,11 @@ def package(
     skip_build_dependency_check: bool = False,
     exclude: Optional[AsList[str]] = None,
     readme_replacements: Dict[str, str] = {},
+    code: Literal["embed", "dependency", "none"] = "embed",
+    code_dependency: Optional[str] = None,
+    code_check: Literal["off", "warn", "error"] = "warn",
+    publish_index: Optional[str] = None,
 ):
-    # root_dir = Path(".").resolve()
     exclude = exclude or ["artifacts/vocab/*"]
     pyproject_path = root_dir / "pyproject.toml"
 
@@ -361,6 +584,10 @@ def package(
             raise ValueError(
                 f"No pyproject.toml could be found in the root directory {root_dir}, "
                 f"you need to create one, or fill the name parameter."
+            )
+        if code == "dependency" and code_dependency is None:
+            raise ValueError(
+                "A pyproject.toml file is required to infer the code dependency."
             )
 
     if check_dependencies:
@@ -376,7 +603,6 @@ def package(
         if project_type is None:
             project_type = "setuptools"
         packager_cls = {
-            # for backward compatibility
             "standard": SetuptoolsPackager,
             "setuptools": SetuptoolsPackager,
         }[project_type]
@@ -397,7 +623,98 @@ def package(
         metadata=metadata,
         exclude=exclude,
         readme_replacements=readme_replacements,
+        code=code,
+        code_dependency=code_dependency,
+        code_check=code_check,
+        publish_index=publish_index,
     )
+
+    selected_index = None
+    selected_index_url = None
+    if pyproject is not None:
+        indexes = pyproject.get("tool", {}).get("uv", {}).get("index", [])
+        indexes = [indexes] if isinstance(indexes, dict) else indexes
+        publishable = [idx for idx in indexes if idx.get("publish-url")]
+        if publish_index is not None:
+            if publish_index == "pypi":  # pragma: no cover
+                selected_index = "pypi"
+                selected_index_url = "https://pypi.org/simple"
+            else:
+                for idx in indexes:
+                    if idx.get("name") == publish_index:
+                        selected_index = publish_index
+                        selected_index_url = idx.get("url")
+                        break
+                if selected_index_url is None:
+                    handle_code_check(
+                        f"Could not find uv index {publish_index!r} in pyproject.toml.",
+                        code_check,
+                    )
+        elif len(publishable) == 1:
+            selected_index = publishable[0].get("name")
+            selected_index_url = publishable[0].get("url")
+        elif len(publishable) > 1 and code != "embed" and code_check != "off":
+            warnings.warn(
+                "Multiple publishable uv indexes were found, pass publish_index to "
+                "select one for registry checks.",
+                UserWarning,
+            )
+
+    if code == "dependency":
+        req = Requirement(packager.code_dependency)
+        registry_wheel_url = None
+        if selected_index_url is not None:
+            registry_wheel_url = resolve_simple_index_wheel(selected_index_url, req)
+            if registry_wheel_url is None:
+                handle_code_check(
+                    f"Code dependency {packager.code_dependency!r} was not found in "
+                    f"uv index {selected_index!r}.",
+                    code_check,
+                )
+            else:
+                differences = compare_registry_wheel_with_local_code(
+                    registry_wheel_url,
+                    root_dir,
+                    pyproject,
+                )
+                if differences:
+                    handle_code_check(
+                        "Local project code differs from the registry package "
+                        f"selected for {packager.code_dependency!r}:\n"
+                        + "\n".join(f"- {diff}" for diff in differences[:10]),
+                        code_check,
+                    )
+        elif code_check != "off":  # pragma: no cover
+            warnings.warn(
+                f"No publish index was selected for {packager.code_dependency!r}, "
+                "registry installability and code contents were not verified.",
+                UserWarning,
+            )
+        try:  # pragma: no cover
+            import importlib.metadata as importlib_metadata
+
+            dist = importlib_metadata.distribution(req.name)
+            direct_url = dist.read_text("direct_url.json")
+            direct_url = json.loads(direct_url) if direct_url else {}
+            is_editable = direct_url.get("dir_info", {}).get("editable", False)
+        except Exception:  # pragma: no cover
+            is_editable = False
+        if is_editable and code_check != "off":  # pragma: no cover
+            message = (
+                f"Code dependency {req.name!r} is installed in editable mode, the "
+                "local source may differ from the released package."
+            )
+            if registry_wheel_url is not None:
+                warnings.warn(message, UserWarning)
+            else:
+                handle_code_check(message, code_check)
+    elif code == "none" and code_check != "off":
+        warnings.warn(
+            "Packaging with code='none' does not include project code or add a code "
+            "dependency, custom factories must already be importable.",
+            UserWarning,
+        )
+
     packager.make_src_dir()
     packager.build(
         distributions=distributions,

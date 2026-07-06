@@ -187,3 +187,193 @@ def load(
         )
     module.load()
     edsnlp.load(module_name)
+
+
+def test_package_dependency_mode_with_code_wheel_and_local_index(tmp_path):
+    (tmp_path / "project_code").mkdir()
+    (tmp_path / "project_code" / "__init__.py").write_text("")
+    (tmp_path / "project_code" / "pipes.py").write_text(
+        """\
+from edsnlp.core.registries import registry
+
+
+@registry.factories.register("project_code.dummy")
+def create_component(nlp, name):
+    def pipe(doc):
+        return doc
+
+    return pipe
+"""
+    )
+    (tmp_path / "pyproject.toml").write_text(
+        f"""\
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "project-code"
+version = "1.4.0"
+description = "A test code package"
+authors = [
+    {{name = "Test Author", email = "test.author@mail.com"}}
+]
+requires-python = ">=3.10"
+
+[project.entry-points."edsnlp_factories"]
+"project_code.dummy" = "project_code.pipes:create_component"
+
+[[tool.uv.index]]
+name = "local"
+url = "{(tmp_path / "simple").as_uri()}"
+publish-url = "{(tmp_path / "upload").as_uri()}"
+explicit = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["project_code*"]
+"""
+    )
+    subprocess.check_call(
+        [
+            sys.executable,
+            "-m",
+            "build",
+            "--wheel",
+            "--no-isolation",
+            "--outdir",
+            str(tmp_path / "dist"),
+        ],
+        cwd=tmp_path,
+    )
+    code_wheel = next((tmp_path / "dist").glob("project_code-1.4.0-*.whl"))
+    simple_package = tmp_path / "simple" / "project-code"
+    simple_package.mkdir(parents=True)
+    (simple_package / "index.html").write_text(
+        "\n".join(
+            [
+                '<a href="not-a-wheel.txt">not-a-wheel.txt</a>',
+                '<a href="other_package-1.4.0-py3-none-any.whl">'
+                "other_package-1.4.0-py3-none-any.whl</a>",
+                f'<a href="../../dist/{code_wheel.name}">{code_wheel.name}</a>',
+            ]
+        )
+    )
+
+    sys.path.insert(0, str(tmp_path))
+    try:
+        import project_code.pipes  # noqa: F401
+
+        nlp = edsnlp.blank("eds")
+        nlp.add_pipe("project_code.dummy")
+        nlp.to_disk(tmp_path / "model", exclude=set())
+    finally:
+        sys.path.remove(str(tmp_path))
+
+    package(
+        name="project-code-model",
+        pipeline=tmp_path / "model",
+        root_dir=tmp_path,
+        version="2026.7.4",
+        distributions=["wheel"],
+        code="dependency",
+        code_check="error",
+    )
+
+    model_wheel = tmp_path / "dist" / "project_code_model-2026.7.4-py3-none-any.whl"
+    assert model_wheel.is_file()
+    with zipfile.ZipFile(model_wheel) as zf:
+        names = set(zf.namelist())
+        assert "project_code/__init__.py" not in names
+        assert "project_code/pipes.py" not in names
+        assert "project_code_model/artifacts/config.cfg" in names
+        metadata = zf.read("project_code_model-2026.7.4.dist-info/METADATA").decode()
+        assert "Requires-Dist: project-code<1.5,>=1.4" in metadata
+        meta = zf.read("project_code_model/artifacts/meta.json").decode()
+        assert '"dependency": "project-code>=1.4,<1.5"' in meta
+
+    with pytest.raises(RuntimeError, match="Could not find uv index"):
+        package(
+            name="project-code-model-missing-index",
+            pipeline=tmp_path / "model",
+            root_dir=tmp_path,
+            version="2026.7.5",
+            distributions=["wheel"],
+            code="dependency",
+            code_check="error",
+            publish_index="missing",
+        )
+
+    with pytest.raises(RuntimeError, match="Code dependency"):
+        package(
+            name="project-code-model-missing-dep",
+            pipeline=tmp_path / "model",
+            root_dir=tmp_path,
+            version="2026.7.5",
+            distributions=["wheel"],
+            code="dependency",
+            code_dependency="project-code>=2,<3",
+            code_check="error",
+            publish_index="local",
+        )
+
+    (tmp_path / "project_code" / "pipes.py").write_text(
+        (tmp_path / "project_code" / "pipes.py").read_text() + "\nVALUE = 1\n"
+    )
+    (tmp_path / "project_code" / "extra.py").write_text("VALUE = 2\n")
+    with pytest.raises(RuntimeError, match="Local project code differs"):
+        package(
+            name="project-code-model-drift",
+            pipeline=tmp_path / "model",
+            root_dir=tmp_path,
+            version="2026.7.5",
+            distributions=["wheel"],
+            code="dependency",
+            code_check="error",
+            publish_index="local",
+        )
+
+
+def test_package_none_mode_excludes_project_code(nlp, tmp_path):
+    if not isinstance(nlp, edsnlp.Pipeline):
+        pytest.skip("Only running for edsnlp.Pipeline")
+
+    nlp.to_disk(tmp_path / "model", exclude=set())
+    (tmp_path / "project_code").mkdir()
+    (tmp_path / "project_code" / "__init__.py").write_text('VALUE = "unused"\n')
+    (tmp_path / "pyproject.toml").write_text(
+        """\
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "project-code"
+version = "1.4.0"
+description = "A test code package"
+authors = [
+    {name = "Test Author", email = "test.author@mail.com"}
+]
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["project_code*"]
+"""
+    )
+
+    with pytest.warns(UserWarning, match="code='none'"):
+        package(
+            name="artifact-only-model",
+            pipeline=tmp_path / "model",
+            root_dir=tmp_path,
+            version="2026.7.4",
+            distributions=["wheel"],
+            code="none",
+        )
+
+    model_wheel = tmp_path / "dist" / "artifact_only_model-2026.7.4-py3-none-any.whl"
+    with zipfile.ZipFile(model_wheel) as zf:
+        names = set(zf.namelist())
+        assert "project_code/__init__.py" not in names
+        assert "artifact_only_model/artifacts/config.cfg" in names

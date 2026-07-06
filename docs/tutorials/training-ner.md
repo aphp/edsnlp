@@ -378,7 +378,7 @@ for ent in doc.ents:
 To package the model and share it with friends or family (if the model does not contain sensitive data), you can use the following command:
 
 ```{ .bash data-md-color-scheme="slate" }
-python -m edsnlp.package --pipeline artifacts/model-last/ --name my_ner_model --distributions sdist
+python -m edsnlp.package --pipeline artifacts/model-last/ --name my_ner_model
 ```
 
 *Parametrize either via the CLI or in `config.yml` under `[package]`.*
@@ -386,5 +386,12 @@ python -m edsnlp.package --pipeline artifacts/model-last/ --name my_ner_model --
 The model saved at the train script output path (`artifacts/model-last`) will be named `my_ner_model` and will be saved in the `dist` folder. You can upload it to a package registry or install it directly with
 
 ```{ .bash data-md-color-scheme="slate" }
-pip install dist/my_ner_model-0.1.0.tar.gz
+pip install dist/my_ner_model-0.1.0-py3-none-any.whl
 ```
+
+!!! note "Custom code"
+
+    If your model uses custom project code, for instance a new torch component,
+    release that project code first and package the model with `--code dependency`.
+    See [Sharing a pipeline](../concepts/pipeline.md#sharing-a-pipeline) for the
+    recommended release layout.

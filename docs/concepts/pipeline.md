@@ -157,19 +157,96 @@ nlp = edsnlp.load("path/to/your/model")
 
 ## Sharing a pipeline
 
-To share the pipeline and turn it into a pip installable package, you can use the `package` method, which will use or create a PEP 621 pyproject.toml file, fill it accordingly, and create a wheel file.
+To share a pipeline, save the model artifacts and turn them into a pip installable
+model package.
 
-```{ .python .no-check }
-nlp.package(
-    name="your-package-name",  # leave None to reuse name in pyproject.toml
-    version="0.0.1",
-    root_dir="path/to/project/root",  # optional, to retrieve an existing pyproject.toml file
-    # if you don't have a pyproject.toml, you can provide the metadata here instead
-    metadata=dict(
-        authors="Firstname Lastname <your.email@domain.fr>",
-        description="A short description of your package",
-    ),
-)
+=== "Python"
+
+    ```{ .python .no-check }
+    nlp.package(
+        name="your-package-name",  # leave None to reuse name in pyproject.toml
+        version="0.0.1",
+        root_dir="path/to/project/root",  # optional, to retrieve an existing pyproject.toml file
+        # if you don't have a pyproject.toml, you can provide the metadata here instead
+        metadata=dict(
+            authors="Firstname Lastname <your.email@domain.fr>",
+            description="A short description of your package",
+        ),
+    )
+    ```
+
+=== "CLI"
+
+    ```{ .bash data-md-color-scheme="slate" }
+    python -m edsnlp.package path/to/your/model \
+      --name your-package-name \
+      --version 0.0.1
+    ```
+
+This creates a wheel file in the `dist` folder.
+
+### Models with custom code
+
+If your model uses custom project code, for instance a new torch component, the
+recommended release layout is to keep project code and model weights in separate
+packages.
+
+- the project package contains custom pipes and factories
+- the model package contains the saved artifacts and a generated `load` function
+- the model package depends on the project package
+
+Release the code package through your normal project release process before
+publishing the model package. Then package the model with dependency mode.
+
+=== "Python"
+
+    ```{ .python .no-check }
+    nlp.package(
+        name="eds-coding-aphp",
+        version="2026.7.4",
+        root_dir="path/to/project/root",
+        code="dependency",
+        code_check="error",
+        publish_index="gitlab",
+    )
+    ```
+
+=== "CLI"
+
+    ```{ .bash data-md-color-scheme="slate" }
+    python -m edsnlp.package artifacts/model-last \
+      --name eds-coding-aphp \
+      --version 2026.7.4 \
+      --code dependency \
+      --code-check error \
+      --publish-index gitlab
+    ```
+
+EDS-NLP infers the project dependency from `pyproject.toml`, for example
+`eds-coding>=1.4,<1.5` for `eds-coding` version `1.4.0`. You can override this
+with `code_dependency` if needed. With uv, a private index can be declared in
+`pyproject.toml`.
+
+
+```toml
+[[tool.uv.index]]
+name = "gitlab"
+url = "https://gitlab.example/api/v4/projects/123/packages/pypi/simple"
+publish-url = "https://gitlab.example/api/v4/projects/123/packages/pypi"
+explicit = true
 ```
 
-This will create a wheel file in the root_dir/dist folder, which you can share and install with pip.
+```{ .bash data-md-color-scheme="slate" }
+uv publish --index gitlab dist/eds_coding_aphp-2026.7.4-py3-none-any.whl
+```
+
+When `--publish-index` is set, `--code-check warn` or `--code-check error`
+checks that the inferred code dependency is available on that index. It also
+compares the registry wheel with the local project package files, so unreleased
+local code changes are reported before the model package is built.
+
+Use `code="embed"` for a self contained model package that bundles custom code
+with the weights. Avoid it for models that will be fine tuned and redistributed,
+because downstream packages can end up depending on obsolete base model weights.
+Use `code="none"` only when the runtime environment already provides every
+custom factory needed by the model.

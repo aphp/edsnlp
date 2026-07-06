@@ -1007,6 +1007,10 @@ class Pipeline(Validated):
         isolation: bool = True,
         skip_build_dependency_check: bool = False,
         readme_replacements: Dict[str, str] = {},
+        code: Literal["embed", "dependency", "none"] = "embed",
+        code_dependency: Optional[str] = None,
+        code_check: Literal["off", "warn", "error"] = "warn",
+        publish_index: Optional[str] = None,
     ):
         from edsnlp.package import package
 
@@ -1026,6 +1030,10 @@ class Pipeline(Validated):
             isolation=isolation,
             skip_build_dependency_check=skip_build_dependency_check,
             readme_replacements=readme_replacements,
+            code=code,
+            code_dependency=code_dependency,
+            code_check=code_check,
+            publish_index=publish_index,
         )
 
     if TYPE_CHECKING:

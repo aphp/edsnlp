@@ -999,7 +999,7 @@ class Pipeline(Validated):
         dist_dir: Union[str, Path] = "dist",
         artifacts_name: str = "artifacts",
         check_dependencies: bool = False,
-        project_type: Optional[Literal["poetry", "setuptools"]] = None,
+        project_type: Optional[Literal["setuptools"]] = None,
         version: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = {},
         distributions: Optional[AsList[Literal["wheel", "sdist"]]] = ["wheel"],

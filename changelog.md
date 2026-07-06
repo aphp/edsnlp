@@ -8,6 +8,7 @@
 - **Breaking**: rename and extend the `TNM` model fields (`prefix` → `tumour_prefix`, `resection_completeness` → `resection`, one `_prefix`/`_specification`/`_suffix` set per component), which are now plain strings instead of enums. The renamed fields keep a deprecated alias — see the migration guide on the `eds.tnm` documentation page
 - Add a `banned_words` parameter to `eds.tnm` to configure the post-filter that drops lookalike abbreviations (`MTX`, `atom`, ...)
 - `TNM.norm()` no longer concatenates free-text suffixes verbatim, so `span.kb_id_` stays usable for grouping: only suffixes that read as a TNM qualifier are kept (`pT1(m)` → `pT1m`, whereas `pT1(grade 2)N1M0` used to normalise to `pT1grade 2N1M0`). The `o` → `0` coercion is likewise restricted to the numeric stage fields, so a suffix such as `(foie)` is no longer stored as `f0ie`
+- `edsnlp.package` now only supports PEP 621 projects, old style poetry packaging support has been removed.
 
 ### Fixed
 

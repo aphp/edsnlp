@@ -157,7 +157,7 @@ nlp = edsnlp.load("path/to/your/model")
 
 ## Sharing a pipeline
 
-To share the pipeline and turn it into a pip installable package, you can use the `package` method, which will use or create a pyproject.toml file, fill it accordingly, and create a wheel file. At the moment, we only support the poetry package manager.
+To share the pipeline and turn it into a pip installable package, you can use the `package` method, which will use or create a PEP 621 pyproject.toml file, fill it accordingly, and create a wheel file.
 
 ```{ .python .no-check }
 nlp.package(

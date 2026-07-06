@@ -11,7 +11,6 @@ from edsnlp.package import package
 
 
 def test_blank_package(nlp, tmp_path):
-    # Missing metadata makes poetry fail due to missing author / description
     if not isinstance(nlp, edsnlp.Pipeline):
         pytest.skip("Only running for edsnlp.Pipeline")
 
@@ -20,7 +19,6 @@ def test_blank_package(nlp, tmp_path):
         root_dir=tmp_path,
         name="test-model-fail",
         metadata={},
-        project_type="poetry",
     )
 
     nlp.package(
@@ -30,7 +28,6 @@ def test_blank_package(nlp, tmp_path):
             "description": "A test model",
             "authors": "Test Author <test.author@mail.com>",
         },
-        project_type="poetry",
         distributions=["wheel"],
     )
     assert (tmp_path / "dist").is_dir()
@@ -39,8 +36,7 @@ def test_blank_package(nlp, tmp_path):
 
 
 @pytest.mark.parametrize("package_name", ["my-test-model", None])
-@pytest.mark.parametrize("manager", ["poetry", "setuptools"])
-def test_package_with_files(nlp, tmp_path, package_name, manager):
+def test_package_with_files(nlp, tmp_path, package_name):
     if not isinstance(nlp, edsnlp.Pipeline):
         pytest.skip("Only running for edsnlp.Pipeline")
 
@@ -55,28 +51,8 @@ def test_package_with_files(nlp, tmp_path, package_name, manager):
 # Test Model
 """
     )
-    if manager == "poetry":
-        (tmp_path / "pyproject.toml").write_text(
-            """\
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry]
-name = "test-model"
-version = "0.0.0"
-description = "A test model"
-authors = ["Test Author <test.author@mail.com>"]
-readme = "README.md"
-
-[tool.poetry.dependencies]
-python = ">=3.10"
-build = "*"  # sample light package to install
-"""
-        )
-    elif manager == "setuptools":
-        (tmp_path / "pyproject.toml").write_text(
-            """\
+    (tmp_path / "pyproject.toml").write_text(
+        """\
 [build-system]
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
@@ -95,7 +71,7 @@ dependencies = [
     "build"
 ]
 """
-        )
+    )
     package(
         name=package_name,
         pipeline=tmp_path / "model",

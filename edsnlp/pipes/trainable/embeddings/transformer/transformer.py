@@ -9,7 +9,7 @@ import tokenizers.normalizers
 import torch
 from confit import VisibleDeprecationWarning, validate_arguments
 from transformers import AutoModel, AutoTokenizer
-from typing_extensions import Literal, TypedDict
+from typing_extensions import Literal, NotRequired, TypedDict
 
 from edsnlp import Pipeline
 from edsnlp.core.torch_component import cached
@@ -32,6 +32,9 @@ TransformerBatchInput = TypedDict(
         "word_indices": torch.Tensor,
         "word_offsets": ft.FoldedTensor,
         "empty_word_indices": torch.Tensor,
+        "segment_indices": NotRequired[ft.FoldedTensor],
+        "segment_token_indices": NotRequired[torch.Tensor],
+        "segment_token_groups": NotRequired[torch.Tensor],
     },
 )
 """
@@ -43,17 +46,29 @@ word_offsets: FoldedTensor
     Offsets of the word's wordpieces in the flattened input_ids
 empty_word_indices: torch.LongTensor
     Indices of empty words in the flattened input_ids
+segment_indices: FoldedTensor
+    Packed segment token positions retaining sample and context folds
+segment_token_indices: torch.LongTensor
+    Transformer positions of segment tokens repeated in every report window
+segment_token_groups: torch.LongTensor
+    Output segment token receiving every repeated token occurrence
 """
 
 TransformerBatchOutput = TypedDict(
     "TransformerBatchOutput",
     {
         "embeddings": ft.FoldedTensor,
+        "segment_embeddings": NotRequired[ft.FoldedTensor],
+        "prompt_embeddings": NotRequired[ft.FoldedTensor],
     },
 )
 """
 embeddings: FoldedTensor
     The embeddings of the words
+segment_embeddings: FoldedTensor
+    Contextual segment tokens averaged across report windows
+prompt_embeddings: FoldedTensor
+    Deprecated alias of segment_embeddings
 """
 
 
@@ -244,46 +259,137 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         cfg["model"] = f"./{path.as_posix()}"
         return cfg
 
+    def add_special_tokens(self, tokens: List[str]) -> None:
+        """Register atomic learned tokens used by a caller in joint sequences"""
+
+        added = self.tokenizer.add_tokens(tokens, special_tokens=True)
+        if added:
+            self.transformer.resize_token_embeddings(len(self.tokenizer))
+
     @cached(
-        key=lambda self, doc, *, contexts=None, prompts=(): (
+        key=lambda self, doc, *, contexts=None, prompts=(), segments=(), prompt_segments=(), prompt_suffix="": (  # noqa: E501
             (
                 hash(doc),
                 tuple(hash(c) for c in ([doc[:]] if contexts is None else contexts)),
                 tuple(prompts),
+                tuple(tuple(parts) for parts in segments),
+                tuple(tuple(segments) for segments in prompt_segments),
+                prompt_suffix,
             )
         )
     )
-    def preprocess(self, doc, *, contexts=None, prompts=()):
+    def preprocess(
+        self,
+        doc,
+        *,
+        contexts=None,
+        prompts=(),
+        segments=(),
+        prompt_segments=(),
+        prompt_suffix="",
+    ):
         res = {
             "input_ids": [],
             "word_tokens": [],
             "word_lengths": [],
             "prompts": [],
+            "segments": [],
+            "prompt_segments": [],
+            "prompt_suffixes": [],
             "stats": {"tokens": 0, "words": 0, "contexts": 0},
         }
 
-        # Tokenize prompts
-        prompts_input_ids = [
+        prompts = list(prompts)
+        segments = [list(parts) for parts in segments]
+        prompt_segments = [list(parts) for parts in prompt_segments]
+        if segments and prompt_segments:
+            raise ValueError("segments and prompt_segments cannot be combined")
+        if prompt_segments:
+            warnings.warn(
+                "prompt_segments is deprecated, use segments instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            segments = prompt_segments
+        if prompts and segments:
+            raise ValueError("prompts and segments cannot be combined")
+
+        if contexts is None:
+            if prompts:
+                contexts = [doc[:]] * len(prompts)
+            elif segments:
+                contexts = [doc[:]] * len(segments)
+            else:
+                contexts = [doc[:]]
+        else:
+            contexts = list(contexts)
+
+        if prompts:
+            assert len(contexts) == len(prompts), (
+                "The number of contexts and prompts passed to preprocess must match"
+            )
+        else:
+            prompts = [""] * len(contexts)
+        if segments:
+            assert len(contexts) == len(segments), (
+                "The number of contexts and segment lists must match"
+            )
+        else:
+            segments = [[] for _ in contexts]
+
+        prompts_input_ids = (
             self.tokenizer(
-                prompt,
+                prompts,
                 is_split_into_words=False,
                 add_special_tokens=False,
                 return_attention_mask=False,
                 return_offsets_mapping=False,
             ).input_ids
-            for prompt in prompts
-        ] or [[]]
-        if contexts is None:
-            contexts = [doc[:]] * len(prompts_input_ids)
-        elif not prompts:
-            prompts_input_ids = [[]] * len(contexts)
-        else:
-            assert len(contexts) == len(prompts_input_ids), (
-                "The number of spans and prompts passed in the `preprocess` "
-                "method should be the same."
+            if any(prompts)
+            else [[] for _ in contexts]
+        )
+        flat_segments = [
+            segment for context_segments in segments for segment in context_segments
+        ]
+        flat_segment_input_ids = (
+            self.tokenizer(
+                flat_segments,
+                is_split_into_words=False,
+                add_special_tokens=False,
+                return_attention_mask=False,
+                return_offsets_mapping=False,
+            ).input_ids
+            if flat_segments
+            else []
+        )
+        if any(not token_ids for token_ids in flat_segment_input_ids):
+            raise ValueError("Segments must contain at least one model token")
+        prompt_suffix_input_ids = (
+            self.tokenizer(
+                prompt_suffix,
+                is_split_into_words=False,
+                add_special_tokens=False,
+                return_attention_mask=False,
+                return_offsets_mapping=False,
+            ).input_ids
+            if prompt_suffix
+            else []
+        )
+        segment_offset = 0
+        segment_input_ids = []
+        for context_segments in segments:
+            next_offset = segment_offset + len(context_segments)
+            segment_input_ids.append(
+                flat_segment_input_ids[segment_offset:next_offset]
             )
+            segment_offset = next_offset
+        res["stats"]["segment_tokens"] = (
+            sum(map(len, prompts_input_ids))
+            + sum(map(len, flat_segment_input_ids))
+            + len(contexts) * len(prompt_suffix_input_ids)
+        )
 
-        for ctx, prompt in zip(contexts, prompts_input_ids):
+        for context_idx, ctx in enumerate(contexts):
             prep = self.tokenizer(
                 ctx.text,
                 is_split_into_words=False,
@@ -298,7 +404,10 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
             res["input_ids"].append(prep["input_ids"])
             res["word_tokens"].append(span_word_tokens)
             res["word_lengths"].append(span_word_lengths)
-            res["prompts"].append(prompt)
+            res["prompts"].append(prompts_input_ids[context_idx])
+            res["segments"].append(segment_input_ids[context_idx])
+            res["prompt_segments"].append(segment_input_ids[context_idx])
+            res["prompt_suffixes"].append(prompt_suffix_input_ids)
 
             res["stats"]["tokens"] += len(prep["input_ids"])
             res["stats"]["words"] += len(span_word_lengths)
@@ -331,67 +440,125 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         stride = (
             self.window if self.training and not self.training_stride else self.stride
         )
-        max_seq_size = max(
-            [
-                2  # CLS and SEP tokens
-                + (  # Prompt tokens (prompt + [SEP])
-                    len(span_prompt_input_ids) + 1 if span_prompt_input_ids else 0
-                )
-                + min(self.window, len(span_text_input_ids))  # Text tokens
-                for sample_text_input_ids, sample_prompt_input_ids in zip(
-                    batch["input_ids"],
-                    batch["prompts"],
-                )
-                for span_text_input_ids, span_prompt_input_ids in zip(
-                    sample_text_input_ids,
-                    sample_prompt_input_ids,
-                )
-            ]
-            or [0]
+        max_positions = getattr(
+            self.transformer.config, "max_position_embeddings", None
         )
+        sequence_sizes = []
+        for sample_texts, sample_prompts, sample_segments, sample_suffixes in zip(
+            batch["input_ids"],
+            batch["prompts"],
+            batch["segments"],
+            batch["prompt_suffixes"],
+        ):
+            for text, prompt, segments, suffix in zip(
+                sample_texts, sample_prompts, sample_segments, sample_suffixes
+            ):
+                prefix_size = (
+                    1
+                    + (len(prompt) + 1 if prompt else 0)
+                    + sum(len(segment) + 1 for segment in segments)
+                    + len(suffix)
+                )
+                report_window = self.window
+                if max_positions is not None:
+                    report_window = min(report_window, max_positions - prefix_size - 1)
+                if report_window < 1:
+                    raise ValueError(
+                        "Prompt segments leave no Transformer position for the report"
+                    )
+                sequence_sizes.append(prefix_size + min(report_window, len(text)) + 1)
+        max_seq_size = max(sequence_sizes or [2])
         input_ids = []
         token_indices = []
         word_indices = []
         word_offsets = []
         empty_word_indices = []
-        overlap = self.window - stride
+        segment_indices = []
+        segment_token_indices = []
+        segment_token_groups = []
+        segment_token_offset = 0
         word_offset = 0
         all_word_wp_offset = 0
         for (
             sample_text_input_ids,
             sample_prompt_input_ids,
+            sample_segments,
+            sample_prompt_suffixes,
             sample_word_lengths,
             sample_word_tokens,
         ) in zip(
             batch["input_ids"],
             batch["prompts"],
+            batch["segments"],
+            batch["prompt_suffixes"],
             batch["word_lengths"],
             batch["word_tokens"],
         ):
             sample_word_offsets = []
             word_offsets.append(sample_word_offsets)
+            sample_segment_indices = []
+            segment_indices.append(sample_segment_indices)
             for (
                 span_text_input_ids,
                 span_prompt_input_ids,
+                span_segments,
+                span_prompt_suffix,
                 span_word_lengths,
                 span_word_tokens,
             ) in zip(
                 sample_text_input_ids,
                 sample_prompt_input_ids,
+                sample_segments,
+                sample_prompt_suffixes,
                 sample_word_lengths,
                 sample_word_tokens,
             ):
                 prompt_input_ids = [self.cls_token_id]
                 if span_prompt_input_ids:
                     prompt_input_ids.extend([*span_prompt_input_ids, self.sep_token_id])
+                segment_token_positions = []
+                for segment in span_segments:
+                    start = len(prompt_input_ids)
+                    prompt_input_ids.extend([*segment, self.sep_token_id])
+                    segment_token_positions.append(
+                        list(range(start, start + len(segment)))
+                    )
+                if span_prompt_suffix:
+                    prompt_input_ids.extend(span_prompt_suffix)
+                span_segment_indices = []
+                sample_segment_indices.append(span_segment_indices)
+                for positions in segment_token_positions:
+                    span_segment_indices.append(
+                        list(
+                            range(
+                                segment_token_offset,
+                                segment_token_offset + len(positions),
+                            )
+                        )
+                    )
+                    segment_token_offset += len(positions)
+
+                report_window = self.window
+                if max_positions is not None:
+                    report_window = min(
+                        report_window,
+                        max_positions - len(prompt_input_ids) - 1,
+                    )
+                report_stride = min(stride, report_window)
+                overlap = report_window - report_stride
                 windows_offsets = list(
-                    range(0, max(len(span_text_input_ids) - overlap, 1), stride)
+                    range(
+                        0,
+                        max(len(span_text_input_ids) - overlap, 1),
+                        report_stride,
+                    )
                 )
                 span_token_indices = []
                 for idx, offset in enumerate(windows_offsets):
-                    total_offset = len(input_ids) * max_seq_size + len(prompt_input_ids)
+                    sequence_offset = len(input_ids) * max_seq_size
+                    total_offset = sequence_offset + len(prompt_input_ids)
                     window_text_input_ids = span_text_input_ids[
-                        offset : offset + self.window
+                        offset : offset + report_window
                     ]
                     window_input_ids = (
                         prompt_input_ids + window_text_input_ids + [self.sep_token_id]
@@ -407,6 +574,13 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                         )
                     )
                     span_token_indices.extend(wp_indices)
+                    for positions, groups in zip(
+                        segment_token_positions, span_segment_indices
+                    ):
+                        segment_token_indices.extend(
+                            sequence_offset + position for position in positions
+                        )
+                        segment_token_groups.extend(groups)
                     input_ids.append(window_input_ids)
 
                 token_indices.append(span_token_indices)
@@ -429,7 +603,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                     word_offset += 1
                 all_word_wp_offset += word_wp_offset
 
-        return {
+        collated = {
             "input_ids": ft.as_folded_tensor(
                 input_ids,
                 data_dims=("context", "subword"),
@@ -446,23 +620,38 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
             "empty_word_indices": torch.as_tensor(empty_word_indices, dtype=torch.long),
             "stats": {
                 "tokens": sum(batch["stats"]["tokens"]),
+                "segment_tokens": sum(batch["stats"]["segment_tokens"]),
                 "words": sum(batch["stats"]["words"]),
                 "contexts": sum(batch["stats"]["contexts"]),
             },
         }
+        if segment_token_offset:
+            collated["segment_indices"] = ft.as_folded_tensor(
+                segment_indices,
+                dtype=torch.long,
+                data_dims=("segment_token",),
+                full_names=(
+                    "sample",
+                    "context",
+                    "segment",
+                    "segment_token",
+                ),
+            )
+            collated["segment_token_indices"] = torch.as_tensor(
+                segment_token_indices, dtype=torch.long
+            )
+            collated["segment_token_groups"] = torch.as_tensor(
+                segment_token_groups, dtype=torch.long
+            )
+        return collated
 
     def forward(self, batch: TransformerBatchInput) -> TransformerBatchOutput:
         device = batch["input_ids"].device
-        input_ids = batch["input_ids"].as_tensor()
-        attention_mask = batch["input_ids"].mask
-        kwargs = dict(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-        )
+        folded_input_ids = batch["input_ids"]
         auto_batch_size = device.type == "cuda" and self.max_tokens_per_device == "auto"
         trial_idx = 1
         while True:
-            total_tokens = input_ids.numel()
+            total_tokens = folded_input_ids.as_tensor().numel()
             if auto_batch_size:  # pragma: no cover
                 max_tokens = INITIAL_MAX_TOKENS_PER_DEVICE
                 torch.cuda.synchronize(device)
@@ -480,23 +669,21 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                     else INITIAL_MAX_TOKENS_PER_DEVICE
                 )
 
-            max_windows = max(1, max_tokens // input_ids.size(1))
-            total_windows = input_ids.size(0)
             try:
-                wordpiece_embeddings = [
+                input_ids = folded_input_ids.as_tensor()
+                attention_mask = folded_input_ids.mask
+                max_rows = max(1, max_tokens // input_ids.size(1))
+                embeddings = [
                     self.transformer.base_model(
-                        **{
-                            k: None if v is None else v[offset : offset + max_windows]
-                            for k, v in kwargs.items()
-                        }
+                        input_ids=input_ids[offset : offset + max_rows],
+                        attention_mask=attention_mask[offset : offset + max_rows],
                     ).last_hidden_state
-                    for offset in range(0, total_windows, max_windows)
+                    for offset in range(0, len(input_ids), max_rows)
                 ]
-
                 wordpiece_embeddings = (
-                    torch.cat(wordpiece_embeddings, dim=0)
-                    if len(wordpiece_embeddings) > 1
-                    else wordpiece_embeddings[0]
+                    torch.cat(embeddings, dim=0)
+                    if len(embeddings) > 1
+                    else embeddings[0]
                 )
 
                 if auto_batch_size:  # pragma: no cover
@@ -511,11 +698,11 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
             except RuntimeError as e:  # pragma: no cover
                 if "out of memory" in str(e) and trial_idx <= 2:
                     print(
-                        f"Out of memory: tried to fit {max_windows} "
+                        f"Out of memory: tried to fit {max_rows} "
                         f"in {free_mem / (1024**3)} (try n°{trial_idx}/2)"
                     )
                     torch.cuda.empty_cache()
-                    self._mem_per_unit = (free_mem / max_windows) * 1.5
+                    self._mem_per_unit = (free_mem / max_rows) * 1.5
                     trial_idx += 1
                     continue
                 raise
@@ -540,9 +727,35 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
             offsets=batch["word_offsets"],
         )
         word_embeddings[batch["empty_word_indices"]] = self.empty_word_embedding
-        return {
+        output = {
             "embeddings": word_embeddings.refold("context", "word"),
         }
+        if "segment_indices" in batch:
+            flat_embeddings = wordpiece_embeddings.flatten(0, 1)
+            token_embeddings = flat_embeddings[batch["segment_token_indices"]]
+            num_segment_tokens = len(batch["segment_indices"].data)
+            token_sums = token_embeddings.new_zeros(
+                (num_segment_tokens, token_embeddings.shape[-1])
+            ).index_add_(0, batch["segment_token_groups"], token_embeddings)
+            token_counts = torch.bincount(
+                batch["segment_token_groups"], minlength=num_segment_tokens
+            ).unsqueeze(-1)
+            segment_embeddings = batch["segment_indices"].with_data(
+                token_sums / token_counts
+            )
+            output["segment_embeddings"] = segment_embeddings
+            output["prompt_embeddings"] = ft.as_folded_tensor(
+                segment_embeddings.as_tensor(),
+                lengths=segment_embeddings.lengths,
+                data_dims=("prompt_token",),
+                full_names=(
+                    "sample",
+                    "context",
+                    "prompt_segment",
+                    "prompt_token",
+                ),
+            )
+        return output
 
     @staticmethod
     def align_words_with_trf_tokens(doc, trf_char_indices):

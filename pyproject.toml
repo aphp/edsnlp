@@ -253,6 +253,7 @@ include = ["edsnlp*"]
 "eds.span_pooler"         = "edsnlp.pipes.trainable.embeddings.span_pooler.factory:create_component"
 "eds.ner_crf"             = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
 "eds.extractive_qa"      = "edsnlp.pipes.trainable.extractive_qa.factory:create_component"
+"eds.multi_query_qa"     = "edsnlp.pipes.trainable.multi_query_qa.factory:create_component"
 "eds.nested_ner"          = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
 "eds.span_qualifier"     = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
 "eds.span_classifier"     = "edsnlp.pipes.trainable.span_classifier.factory:create_component"

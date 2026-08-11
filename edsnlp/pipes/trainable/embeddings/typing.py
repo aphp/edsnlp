@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Any, Dict, Generic, List, Optional
 
 from foldedtensor import FoldedTensor
 from spacy.tokens import Doc, Span
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 from edsnlp.core.torch_component import BatchInput, TorchComponent  # noqa: F401
 from edsnlp.utils.span_getters import SpanGetter
@@ -11,6 +11,7 @@ WordEmbeddingBatchOutput = TypedDict(
     "WordEmbeddingBatchOutput",
     {
         "embeddings": FoldedTensor,
+        "segment_embeddings": NotRequired[FoldedTensor],
     },
 )
 

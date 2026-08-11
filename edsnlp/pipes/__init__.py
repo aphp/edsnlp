@@ -77,6 +77,7 @@ if TYPE_CHECKING:
     from .trainable.ner_crf.factory import create_component as ner_crf
     from .trainable.biaffine_dep_parser.factory import create_component as biaffine_dep_parser
     from .trainable.extractive_qa.factory import create_component as extractive_qa
+    from .trainable.multi_query_qa.factory import create_component as multi_query_qa
     from .trainable.span_classifier.factory import create_component as span_classifier
     from .trainable.span_linker.factory import create_component as span_linker
     from .trainable.embeddings.span_pooler.factory import create_component as span_pooler

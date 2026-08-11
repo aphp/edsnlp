@@ -314,6 +314,7 @@ class MultiLabelBIOULDecoder(LinearChainCRF):
         num_labels,
         with_start_end_transitions=True,
         learnable_transitions=True,
+        allow_overlap=False,
     ):
         """
         Create a linear chain CRF with hard constraints to enforce the BIOUL tagging
@@ -324,9 +325,12 @@ class MultiLabelBIOULDecoder(LinearChainCRF):
         num_labels: int
         with_start_end_transitions: bool
         learnable_transitions: bool
+        allow_overlap: bool
+            Allow overlapping spans of the same label
         """
         O, I, B, L, U = 0, 1, 2, 3, 4  # noqa: E741
 
+        self.allow_overlap = allow_overlap
         num_tags = 1 + num_labels * 4
         self.num_tags = num_tags
         forbidden_transitions = torch.ones(num_tags, num_tags, dtype=torch.bool)
@@ -350,6 +354,16 @@ class MultiLabelBIOULDecoder(LinearChainCRF):
             forbidden_transitions[O, U + STRIDE] = 0  # O to U-i
             forbidden_transitions[U + STRIDE, O] = 0  # U-i to O
 
+            if allow_overlap:
+                forbidden_transitions[L + STRIDE, I + STRIDE] = 0
+                forbidden_transitions[L + STRIDE, L + STRIDE] = 0
+                forbidden_transitions[I + STRIDE, B + STRIDE] = 0
+                forbidden_transitions[B + STRIDE, B + STRIDE] = 0
+                forbidden_transitions[B + STRIDE, U + STRIDE] = 0
+                forbidden_transitions[U + STRIDE, L + STRIDE] = 0
+                forbidden_transitions[U + STRIDE, I + STRIDE] = 0
+                forbidden_transitions[I + STRIDE, U + STRIDE] = 0
+
         start_forbidden_transitions = torch.zeros(num_tags, dtype=torch.bool)
         for i in range(num_labels):
             STRIDE = 4 * i
@@ -370,8 +384,7 @@ class MultiLabelBIOULDecoder(LinearChainCRF):
             learnable_transitions=learnable_transitions,
         )
 
-    @staticmethod
-    def tags_to_spans(tags):
+    def tags_to_spans(self, tags):
         """
         Convert a sequence of multiple label BIOUL tags to a sequence of spans
 
@@ -389,9 +402,22 @@ class MultiLabelBIOULDecoder(LinearChainCRF):
 
         # Note: tags are O, I, B, L, U => 0, 1, 2, 3, 4
 
-        # begins_indices = torch.nonzero((tags == 4) | (tags == 2))
-        # ends_indices = torch.nonzero((tags == 4) | (tags == 3))
         tags = tags.transpose(1, 2)
+
+        if self.allow_overlap:
+            begins = (tags == 2) | (tags == 4)
+            ends = (tags == 3) | (tags == 4)
+            outside_count = (tags == 0).long().cumsum(-1)
+            no_outside = (
+                outside_count.unsqueeze(-1) - outside_count.unsqueeze(-2)
+            ) == 0
+            spans = torch.nonzero(
+                torch.triu(begins.unsqueeze(-1) & ends.unsqueeze(-2) & no_outside)
+            )
+            return torch.stack(
+                [spans[:, 0], spans[:, 2], spans[:, 3] + 1, spans[:, 1]],
+                dim=-1,
+            )
 
         tags_after = tags.roll(-1, 2)
         tags_before = tags.roll(1, 2)

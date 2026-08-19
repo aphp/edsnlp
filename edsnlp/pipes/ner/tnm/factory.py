@@ -1,10 +1,10 @@
 from edsnlp.core import registry
 
-from .patterns_new import tnm_pattern_new
+from .patterns import tnm_pattern
 from .tnm import TNMMatcher
 
 DEFAULT_CONFIG = dict(
-    pattern=tnm_pattern_new,
+    pattern=tnm_pattern,
     attr="TEXT",
     label="tnm",
     span_setter={"ents": True, "tnm": True},

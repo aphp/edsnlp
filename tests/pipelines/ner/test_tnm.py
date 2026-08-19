@@ -1,7 +1,7 @@
 import regex
 
 from edsnlp.pipes.ner.tnm.model import TNM
-from edsnlp.pipes.ner.tnm.patterns_new import tnm_pattern_new
+from edsnlp.pipes.ner.tnm.patterns import tnm_pattern
 from edsnlp.utils.examples import parse_example
 from edsnlp.utils.typing import cast
 
@@ -52,7 +52,7 @@ examples = [
 
 
 def test_tnm(blank_nlp):
-    blank_nlp.add_pipe("eds.tnm", config=dict(pattern=tnm_pattern_new))
+    blank_nlp.add_pipe("eds.tnm", config=dict(pattern=tnm_pattern))
 
     for example in examples:
         text, entities = parse_example(example=example)
@@ -404,7 +404,7 @@ no_match_cases = [
 
 
 def _parse(text: str) -> TNM:
-    m = regex.search(tnm_pattern_new, text)
+    m = regex.search(tnm_pattern, text)
     assert m is not None, f"Pattern did not match {text!r}"
     return cast(TNM, m.groupdict())
 
@@ -427,7 +427,7 @@ def test_tnm_decomposition():
 
 def test_tnm_no_match():
     for text, reason in no_match_cases:
-        m = regex.search(tnm_pattern_new, text)
+        m = regex.search(tnm_pattern, text)
         assert m is None, (
             f"Pattern should NOT match {text!r} ({reason}), but got {m.group()!r}"
         )

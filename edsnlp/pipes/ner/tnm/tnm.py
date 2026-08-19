@@ -12,7 +12,7 @@ from edsnlp.utils.filter import filter_spans
 from edsnlp.utils.typing import cast
 
 from .model import TNM
-from .patterns_new import tnm_pattern_new
+from .patterns import tnm_pattern
 
 
 class TNMMatcher(BaseNERComponent):
@@ -132,7 +132,7 @@ class TNMMatcher(BaseNERComponent):
         The name of the pipe
     pattern : Optional[Union[List[str], str]]
         The regex pattern used to match TNM spans. Defaults to
-        `tnm_pattern_new`, which handles case-insensitive matching,
+        `tnm_pattern`, which handles case-insensitive matching,
         multiple delimiter styles, and a logic filter that rejects
         false positives.
     attr : str
@@ -155,7 +155,7 @@ class TNMMatcher(BaseNERComponent):
         nlp: Optional[PipelineProtocol],
         name: str = "tnm",
         *,
-        pattern: Optional[Union[List[str], str]] = tnm_pattern_new,
+        pattern: Optional[Union[List[str], str]] = tnm_pattern,
         attr: str = "TEXT",
         label: str = "tnm",
         span_setter: SpanSetterArg = {"ents": True, "tnm": True},

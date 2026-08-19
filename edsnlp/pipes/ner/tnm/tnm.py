@@ -188,7 +188,7 @@ class TNMMatcher(BaseNERComponent):
         if not Span.has_extension(self.label):
             Span.set_extension(self.label, default=None)
 
-    def process(self, doc: Doc) -> List[Span]:
+    def process(self, doc: Doc) -> List[Tuple[Span, Dict[str, str]]]:
         """
         Find TNM mentions in doc.
 
@@ -200,7 +200,7 @@ class TNMMatcher(BaseNERComponent):
         Returns
         -------
         spans:
-            list of tnm spans
+            list of (span, groupdict) tuples
         """
 
         spans = self.regex_matcher(
@@ -224,13 +224,12 @@ class TNMMatcher(BaseNERComponent):
             ):
                 filtered_spans.append((span, gd))
 
-        spans = filter_spans(filtered_spans)
-
-        return spans
+        # filter_spans only returns a tuple when return_discarded is set
+        return filter_spans(filtered_spans)  # type: ignore[return-value]
 
     def parse(self, spans: List[Tuple[Span, Dict[str, str]]]) -> List[Span]:
         """
-        Parse dates using the groupdict returned by the matcher.
+        Parse TNM mentions using the groupdict returned by the matcher.
 
         Parameters
         ----------
@@ -241,7 +240,7 @@ class TNMMatcher(BaseNERComponent):
         Returns
         -------
         List[Span]
-            List of processed spans, with the date parsed.
+            List of processed spans, with `span._.<label>` and `span.kb_id_` set.
         """
 
         for span, groupdict in spans:

@@ -1,5 +1,5 @@
+import re
 import warnings
-from enum import Enum
 from typing import TYPE_CHECKING, Optional, Union
 
 import pydantic
@@ -12,76 +12,33 @@ if TYPE_CHECKING:
         MappingIntStrAny,
     )
 
+# Fields holding a numeric stage, where the letter `o` is a typo for the digit
+# `0`. The coercion must NOT be applied to the other fields: they hold free
+# text (`mol+`, `OSS`, `(foie)`, ...) where an `o` is a genuine letter.
+SCORE_FIELDS = frozenset(
+    {"tumour", "node", "metastasis", "pleura", "resection"},
+)
 
-def validator(x: str, allow_reuse=True, pre=False):
-    return field_validator(x, mode="before" if pre else "after")
-
-
-class TnmEnum(Enum):
-    def __str__(self) -> str:
-        return self.value
-
-
-class Prefix(TnmEnum):
-    clinical = "c"
-    histopathology = "p"
-    histopathology2 = "P"
-    neoadjuvant_therapy = "y"
-    recurrent = "r"
-    autopsy = "a"
-    ultrasonography = "u"
-    multifocal = "m"
-    py = "yp"
-    mp = "mp"
+# A parenthesised suffix is only part of the canonical form when it reads as a
+# TNM qualifier (`(m)` multifocal, `(sn)` sentinel node, ...). The capture
+# groups are deliberately permissive, so anything else -- a classification
+# year, a free-text comment -- is kept in the field but left out of `norm()`.
+TNM_QUALIFIER = re.compile(r"[A-Za-z]{1,3}$")
 
 
-class Tumour(TnmEnum):
-    unknown = "x"
-    in_situ = "is"
-    score_0 = "0"
-    score_1 = "1"
-    score_2 = "2"
-    score_3 = "3"
-    score_4 = "4"
-    o = "o"
-
-
-class Specification(TnmEnum):
-    a = "a"
-    b = "b"
-    c = "c"
-    d = "d"
-    mi = "mi"
-    x = "x"
-
-
-class Node(TnmEnum):
-    unknown = "x"
-    score_0 = "0"
-    score_1 = "1"
-    score_2 = "2"
-    score_3 = "3"
-    o = "o"
-
-
-class Metastasis(TnmEnum):
-    unknown = "x"
-    score_0 = "0"
-    score_1 = "1"
-    o = "o"
-    score_1x = "1x"
-    score_2x = "2x"
-    ox = "ox"
+def validator(*fields: str, allow_reuse=True, pre=False):
+    return field_validator(*fields, mode="before" if pre else "after")
 
 
 class TNM(pydantic.BaseModel):
     """Structured representation of a parsed TNM staging mention.
 
-    All fields store the raw text captured by the regex (case-preserved).
+    All fields store the raw text captured by the regex (case-preserved),
+    except `version_year` which is normalised to a four-digit integer.
     Parenthesised specifications such as `(sn)` are kept with their
     parentheses in the field value; `norm()` strips them for the canonical
-    form.  The letter `o` is normalised to `0` in all fields on
-    instantiation.
+    form. The letter `o` is normalised to `0` in the numeric stage fields
+    only (see `SCORE_FIELDS`).
     """
 
     tumour_prefix: Optional[str] = None
@@ -102,11 +59,25 @@ class TNM(pydantic.BaseModel):
     resection_specification: Optional[str] = None
     resection_loc: Optional[str] = None
     resection_suffix: Optional[str] = None
+    version: Optional[str] = None
+    version_year: Optional[int] = None
 
-    @validator("*", pre=True)
+    @validator(*sorted(SCORE_FIELDS), pre=True)
     def coerce_o(cls, v):
         if isinstance(v, str):
-            v = v.replace("o", "0")
+            v = v.replace("o", "0").replace("O", "0")
+        return v
+
+    @validator("version_year")
+    def validate_year(cls, v):
+        if v is None:
+            return v
+
+        if v < 40:
+            v += 2000
+        elif v < 100:
+            v += 1900
+
         return v
 
     @staticmethod
@@ -119,6 +90,12 @@ class TNM(pydantic.BaseModel):
             v = v[1:-1]
         return v
 
+    @classmethod
+    def _norm_suffix(cls, v: Optional[str]) -> str:
+        """Keep a parenthesised suffix in `norm()` only if it is a qualifier."""
+        v = cls._norm_str(v)
+        return v if TNM_QUALIFIER.match(v) else ""
+
     def norm(self) -> str:
         norm = []
 
@@ -130,7 +107,7 @@ class TNM(pydantic.BaseModel):
             if self.tumour_specification:
                 norm.append(self._norm_str(self.tumour_specification))
             if self.tumour_suffix:
-                norm.append(self._norm_str(self.tumour_suffix))
+                norm.append(self._norm_suffix(self.tumour_suffix))
 
         if self.node_prefix:
             norm.append(self._norm_str(self.node_prefix))
@@ -140,7 +117,7 @@ class TNM(pydantic.BaseModel):
             if self.node_specification:
                 norm.append(self._norm_str(self.node_specification))
             if self.node_suffix:
-                norm.append(self._norm_str(self.node_suffix))
+                norm.append(self._norm_suffix(self.node_suffix))
 
         if self.metastasis_prefix:
             norm.append(self._norm_str(self.metastasis_prefix))
@@ -149,6 +126,8 @@ class TNM(pydantic.BaseModel):
             norm.append(f"M{self.metastasis}")
             if self.metastasis_specification:
                 norm.append(self._norm_str(self.metastasis_specification))
+            if self.metastasis_suffix:
+                norm.append(self._norm_suffix(self.metastasis_suffix))
 
         if self.pleura:
             norm.append(f"PL{self.pleura}")
@@ -162,6 +141,11 @@ class TNM(pydantic.BaseModel):
                 norm.append(self._norm_str(self.resection_specification))
             if self.resection_loc:
                 norm.append(self._norm_str(self.resection_loc))
+            if self.resection_suffix:
+                norm.append(self._norm_suffix(self.resection_suffix))
+
+        if self.version is not None and self.version_year is not None:
+            norm.append(f" ({self.version.upper()} {self.version_year})")
 
         return "".join(norm)
 
@@ -192,7 +176,7 @@ class TNM(pydantic.BaseModel):
             )
             exclude_unset = skip_defaults
 
-        d = self.model_dump(
+        return self.model_dump(
             by_alias=by_alias,
             include=include,
             exclude=exclude,
@@ -200,28 +184,3 @@ class TNM(pydantic.BaseModel):
             exclude_defaults=exclude_defaults,
             exclude_none=exclude_none,
         )
-        set_keys = set(d.keys())
-        for k in set_keys.intersection(
-            {
-                "tumour_prefix",
-                "tumour",
-                "tumour_specification",
-                "tumour_suffix",
-                "node_prefix",
-                "node",
-                "node_specification",
-                "node_suffix",
-                "metastasis_prefix",
-                "metastasis",
-                "metastasis_specification",
-                "pleura",
-                "resection",
-                "resection_specification",
-                "resection_loc",
-            }
-        ):
-            v = d[k]
-            if isinstance(v, TnmEnum):
-                d[k] = v.value
-
-        return d

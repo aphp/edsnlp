@@ -23,6 +23,10 @@ class TNMMatcher(BaseNERComponent):
 
     ## Extraction logic
 
+    Matching happens in two stages: a regex whose leading lookahead
+    (`logic_filter`) decides *whether* a candidate is a TNM mention, then a
+    post-filter that drops known lookalike abbreviations.
+
     A span is extracted when **at least one** of the following conditions holds:
 
     - **T + N/M/R present**: the T component is followed by at least one of
@@ -36,6 +40,48 @@ class TNMMatcher(BaseNERComponent):
     are all matched). Delimiters between components can be spaces, commas,
     slashes, or newlines (e.g. `pT2 / N1 / M0`, `pT2,N1,M0`).
 
+    ### What is matched
+
+    | Input                    | Why                                     |
+    |--------------------------|-----------------------------------------|
+    | `pT2N1M0`                | T with N and M                          |
+    | `T2N1`                   | T with N, prefix not required           |
+    | `pT2 / N1 / M0`          | slash, comma and newline delimiters     |
+    | `p Tx N1M 0`             | spaces inside and between components    |
+    | `pT2b`                   | standalone T, prefix **and** spec       |
+    | `pT1(m)N1M0`             | parenthesised T suffix (multifocal)     |
+    | `pT1bN0(sn)`             | parenthesised N specification           |
+    | `pT2N1(3/12)M0`          | examined/positive node ratio            |
+    | `pT2N1M1PUL`             | metastasis site specification           |
+    | `pT4N2R1(foie)`          | resection status with location          |
+    | `pT2N1M0 PL1`            | pleural invasion (lung staging)         |
+    | `pT2N1M0 (UICC 2017)`    | trailing classification version         |
+
+    ### What is deliberately not matched
+
+    | Input             | Why                                             |
+    |-------------------|-------------------------------------------------|
+    | `T2`, `pT2`       | bare T without spec and without N/M/R           |
+    | `T2a`             | spec but no prefix and no N/M/R                 |
+    | `PT`              | no T stage value                                |
+    | `N1M0`, `pN1`     | the T component is mandatory                    |
+    | `MTX`, `CTX`, `RTX`, `cyto`, `auto`, `atom` | in `banned_words` |
+
+    The `banned_words` post-filter also drops any match of two characters or
+    less that does not start with a lowercase letter, which removes the many
+    `T`/`PT` fragments produced by uppercase headings and tables.
+
+    !!! warning "Known limitations"
+        - `Ta` is not a recognised T value, so `pTa` (non-invasive papillary
+          carcinoma) is missed.
+        - A component glued to another indicator breaks the trailing word
+          boundary: `pT3(4)N2M0R0G1` yields the truncated span `pT3`, and
+          `ypT1cN0R0M0TRG2` yields nothing.
+        - Intercurrent noise, unusual spacing or non-standard prefixes break
+          the component chain: `p T2 (40 mm) 9N+/20` and `iT3a iN0 Mx` (`i`,
+          for incidental or imaging, is not a recognised prefix) yield
+          nothing, and `T1c N0- M0` yields the truncated span `T1c`.
+
     ## Decomposition
 
     Each matched span is parsed into a `TNM` Pydantic model stored on
@@ -43,29 +89,48 @@ class TNMMatcher(BaseNERComponent):
 
     | Field                      | Description                              |
     |----------------------------|------------------------------------------|
-    | `tumour_prefix`            | Modifier prefix for T (c/p/y/r/a/u/m/s) |
+    | `tumour_prefix`            | Prefix for T: one or two of c/p/y/r/a/u/m/s |
     | `tumour`                   | T stage: 0–4, `is`, `x`                 |
-    | `tumour_specification`     | T sub-spec: a/b/c/d/mi/x                |
+    | `tumour_specification`     | T sub-spec: a/b/c/d/m/mi/x              |
     | `tumour_suffix`            | Parenthesised qualifier, e.g. `(m)`→`m` |
     | `node_prefix`              | Modifier prefix for N                    |
-    | `node`                     | N stage: 0–4, `x`                       |
-    | `node_specification`       | N sub-spec: mi/sn/i±/mol±/…             |
+    | `node`                     | N stage: 0–4, `x`, `+`                  |
+    | `node_specification`       | N sub-spec: mi/sn/i±/mol±/(3/12)/…      |
     | `node_suffix`              | Parenthesised qualifier for N            |
     | `metastasis_prefix`        | Modifier prefix for M                    |
-    | `metastasis`               | M stage: 0–3, `x`                       |
-    | `metastasis_specification` | Metastasis site: PUL/OSS/HEP/…          |
+    | `metastasis`               | M stage: 0–3, `x`, `+`                  |
+    | `metastasis_specification` | Site (PUL/OSS/HEP/…) or marker (i+/mol+/cy+) |
     | `metastasis_suffix`        | Parenthesised qualifier for M            |
-    | `pleura`                   | PL stage 0–3 (lung cancer)               |
+    | `pleura`                   | PL stage 0–3 or `x` (lung cancer)        |
     | `resection_prefix`         | Modifier prefix for R                    |
-    | `resection`                | Resection completeness: 0–2, `x`        |
+    | `resection`                | Resection completeness: 0–2, `x`, `+`   |
     | `resection_specification`  | R sub-spec: is/cy+                       |
     | `resection_loc`            | Resection location qualifier             |
     | `resection_suffix`         | Parenthesised qualifier for R            |
+    | `version`                  | Classification: UICC/AJCC/ACCJ/TNM       |
+    | `version_year`             | Classification year, expanded to 4 digits |
+
+    Each component carries its **own** prefix: in `pT1 cN1 M0` the tumour is
+    pathological while the node is clinical, and both are kept.
 
     !!! note "Specification normalisation"
         Parenthesised specifications such as `(sn)` or `(mi)` are stored
         with their parentheses in the raw field but are stripped in `norm()`,
         so `N0(sn)` normalises to `N0sn`.
+
+    !!! note "Suffixes in the normalised form"
+        The `_suffix` groups are permissive on purpose, so they also pick up
+        free text: `pT2N1M0R0(marge saine)` stores `marge saine` in
+        `resection_suffix`. Only suffixes that read as a TNM qualifier (one to
+        three letters, e.g. the `(m)` of `pT1(m)`) are carried into `norm()`;
+        anything else stays available on the field but is left out of the
+        canonical string, so `span.kb_id_` remains usable for grouping.
+
+    !!! note "The letter `o`"
+        `o` and `O` are normalised to the digit `0`, but **only** in the
+        numeric stage fields (`tumour`, `node`, `metastasis`, `pleura`,
+        `resection`). Free-text fields keep their letters, so `N1(mol+)`
+        stays `mol+` and `M1OSS` stays `OSS`.
 
     ## Normalised form
 
@@ -75,9 +140,10 @@ class TNMMatcher(BaseNERComponent):
     ```
     {tumour_prefix}T{tumour}{tumour_specification}{tumour_suffix}
     {node_prefix}N{node}{node_specification}{node_suffix}
-    {metastasis_prefix}M{metastasis}{metastasis_specification}
+    {metastasis_prefix}M{metastasis}{metastasis_specification}{metastasis_suffix}
     PL{pleura}
-    {resection_prefix}R{resection}{resection_specification}{resection_loc}
+    {resection_prefix}R{resection}{resection_specification}{resection_loc}{resection_suffix}
+    ({VERSION} {version_year})
     ```
 
     This value is also stored on `span.kb_id_` for downstream filtering.
@@ -121,6 +187,8 @@ class TNMMatcher(BaseNERComponent):
     #   'resection_specification': None,
     #   'resection_loc': None,
     #   'resection_suffix': None,
+    #   'version': None,
+    #   'version_year': None,
     # }
     ```
 

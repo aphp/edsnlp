@@ -1,3 +1,4 @@
+import pytest
 import regex
 
 import edsnlp
@@ -539,6 +540,28 @@ decomposition_cases = [
         {"version": "UICC", "version_year": 1987},
         "pT2N1M0 (UICC 1987)",
     ),
+    # A 2-digit year of 40 or more belongs to the 20th century
+    (
+        "pT2N1M0 (UICC 87)",
+        {"version": "UICC", "version_year": 1987},
+        "pT2N1M0 (UICC 1987)",
+    ),
+    # --- suffix and prefix on the N, M and R components ---
+    (
+        "pT2N1mi(cap)M0",
+        {"node": "1", "node_specification": "mi", "node_suffix": "cap"},
+        "pT2N1micapM0",
+    ),
+    (
+        "pT2N1 pM0",
+        {"node": "1", "metastasis_prefix": "p", "metastasis": "0"},
+        "pT2N1pM0",
+    ),
+    (
+        "pT2N1M0 pR0",
+        {"metastasis": "0", "resection_prefix": "p", "resection": "0"},
+        "pT2N1M0pR0",
+    ),
     (
         "pT2N1M0 (TNM 2009)",
         {"version": "TNM", "version_year": 2009},
@@ -613,3 +636,44 @@ def test_tnm_banned_words():
     permissive = edsnlp.blank("eds")
     permissive.add_pipe("eds.tnm", config=dict(banned_words=[]))
     assert permissive("mtxx").ents
+
+
+# ---------------------------------------------------------------------------
+# TNM model API
+# ---------------------------------------------------------------------------
+
+
+def test_tnm_model_api():
+    """`str()`, `dict()` and the normalisation helpers."""
+    tnm = _parse("pT2N1M0")
+
+    assert str(tnm) == tnm.norm() == "pT2N1M0"
+
+    d = tnm.dict()
+    assert d["tumour_prefix"] == "p"
+    assert d["tumour"] == "2"
+    assert d["pleura"] is None
+    assert set(d) == set(TNM.model_fields)
+
+    assert tnm.dict(exclude_none=True) == {
+        "tumour_prefix": "p",
+        "tumour": "2",
+        "node": "1",
+        "metastasis": "0",
+    }
+
+    # Empty values normalise to an empty string rather than raising
+    assert TNM._norm_str(None) == ""
+    assert TNM._norm_suffix(None) == ""
+    # A suffix is only a qualifier when it is one to three letters
+    assert TNM._norm_suffix("(m)") == "m"
+    assert TNM._norm_suffix("(grade 2)") == ""
+
+
+def test_tnm_dict_skip_defaults_is_deprecated():
+    tnm = _parse("pT2N1M0")
+
+    with pytest.deprecated_call():
+        d = tnm.dict(skip_defaults=True)
+
+    assert d["tumour"] == "2"

@@ -1,6 +1,6 @@
 """`eds.tnm` pipeline."""
 
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 from pydantic import ValidationError
 from spacy.tokens import Doc, Span
@@ -12,7 +12,7 @@ from edsnlp.utils.filter import filter_spans
 from edsnlp.utils.typing import cast
 
 from .model import TNM
-from .patterns import tnm_pattern
+from .patterns import default_banned_words, tnm_pattern
 
 
 class TNMMatcher(BaseNERComponent):
@@ -135,6 +135,10 @@ class TNMMatcher(BaseNERComponent):
         `tnm_pattern`, which handles case-insensitive matching,
         multiple delimiter styles, and a logic filter that rejects
         false positives.
+    banned_words : Optional[Iterable[str]]
+        Lowercase, whitespace- and comma-free forms that must never be
+        returned as TNM mentions. Defaults to `default_banned_words`.
+        Pass an empty list to disable the post-filter.
     attr : str
         Attribute to match on, e.g. `TEXT`, `NORM`.
     label : str
@@ -156,6 +160,7 @@ class TNMMatcher(BaseNERComponent):
         name: str = "tnm",
         *,
         pattern: Optional[Union[List[str], str]] = tnm_pattern,
+        banned_words: Optional[Iterable[str]] = None,
         attr: str = "TEXT",
         label: str = "tnm",
         span_setter: SpanSetterArg = {"ents": True, "tnm": True},
@@ -166,6 +171,10 @@ class TNMMatcher(BaseNERComponent):
 
         if isinstance(pattern, str):
             pattern = [pattern]
+
+        self.banned_words = frozenset(
+            default_banned_words if banned_words is None else banned_words
+        )
 
         self.regex_matcher = RegexMatcher(attr=attr, alignment_mode="expand")
         self.regex_matcher.add(self.label, pattern)
@@ -200,34 +209,11 @@ class TNMMatcher(BaseNERComponent):
             return_groupdict=True,
         )
 
-        banned_words = {
-            "auto",
-            "ato",
-            "autoa",
-            "mtx",
-            "mtxx",
-            "mtxd",
-            "t0",
-            "t1",
-            "t2",
-            "t3",
-            "t4",
-            "tissunom",
-            "cyto",
-            "autonom",
-            "tox",
-            "mto",
-            "rtx",
-            "to",
-            "atom",
-            "ctx",
-        }
-
         filtered_spans = []
         for span, gd in spans:
             text = span.text
             clean = text.replace(" ", "").replace("\n", "").replace(",", "")
-            if clean.strip().lower() in banned_words:
+            if clean.strip().lower() in self.banned_words:
                 continue
             if (
                 # we keep it if it's longer than 2 chars

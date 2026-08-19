@@ -86,3 +86,31 @@ tnm_pattern = (
     + r"))?"
     + r"(?=[\s\(\)\.,;:/]|$)"
 )
+
+# Post-filter applied to matched spans (see `TNMMatcher.process`). These are
+# common French clinical abbreviations that read as a valid TNM mention, e.g.
+# `atom` parses as `aT0M` and `autonom` as `auT0N0m`. Some entries are already
+# unreachable now that `logic_filter` is in place; they are kept as a safety
+# net in case the pattern is loosened later.
+default_banned_words = [
+    "ato",
+    "atom",
+    "auto",
+    "autoa",
+    "autonom",
+    "ctx",
+    "cyto",
+    "mto",
+    "mtx",
+    "mtxd",
+    "mtxx",
+    "rtx",
+    "t0",
+    "t1",
+    "t2",
+    "t3",
+    "t4",
+    "tissunom",
+    "to",
+    "tox",
+]

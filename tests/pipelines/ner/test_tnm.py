@@ -1,5 +1,6 @@
 import regex
 
+import edsnlp
 from edsnlp.pipes.ner.tnm.model import TNM
 from edsnlp.pipes.ner.tnm.patterns import tnm_pattern
 from edsnlp.utils.examples import parse_example
@@ -40,6 +41,25 @@ examples = [
     "TNM: <ent norm=pT2M0>pT2M0</ent>",  # no N, M present
     "TNM: <ent norm=T2aN1M0>T2aN1M0</ent>",  # no prefix, spec+NMR present
     "TNM: <ent norm=T2R0>T2R0</ent>",  # no prefix, R present
+    # Free-text fields must keep their `o` (only stage fields are coerced)
+    "TNM: <ent norm=pT2N1mol+M0>pT2N1(mol+)M0</ent>",
+    "TNM: <ent norm=pT2N1M1oss>pT2N1M1oss</ent>",
+    "TNM: <ent norm=pT4N2R1foie>pT4N2R1(foie)</ent>",
+    # Pleural invasion, and a bare `PL` that must not be picked up
+    "TNM: <ent norm=pT2N1M0PL1>pT2N1M0 PL1</ent>",
+    "TNM: <ent norm=pT2N1M0>pT2N1M0</ent> PL",
+    # Per-component prefixes are independent
+    "TNM: <ent norm=pT1cN1M0>pT1 cN1 M0</ent>",
+    # Node ratio specification
+    "TNM: <ent norm=pT2N13/12M0>pT2N1(3/12)M0</ent>",
+    # `o`/`O` typed instead of the digit zero
+    "TNM: <ent norm=pT0N1M0>pTON1MO</ent>",
+    # Classification version: part of the span, and of the normalised value
+    "TNM: <ent norm='pT2N1M0 (UICC 2017)'>pT2N1M0 (UICC 2017)</ent>",
+    "TNM: <ent norm='pT2N1M0 (UICC 2017)'>pT2N1M0 (UICC 17)</ent>",
+    "TNM: <ent norm='pT2N1M0R0 (TNM 2009)'>pT2N1M0R0, TNM 2009</ent>",
+    # A parenthesised free text is captured as a suffix but stays out of norm()
+    "TNM: <ent norm=pT2N1M0>pT2N1M0 (2017)</ent>",
     # Logic filter — negative
     "TNM: T2a",  # spec present but no prefix and no NMR
     # Should NOT match — logic_filter rejects bare T without N/M/R or prefix+spec
@@ -391,6 +411,145 @@ decomposition_cases = [
         },
         "T2R0",
     ),
+    # --- `o` coercion is restricted to the numeric stage fields ---
+    (
+        "pT2N1(mol+)M0",
+        {
+            "tumour": "2",
+            "node": "1",
+            "node_specification": "(mol+)",
+            "metastasis": "0",
+        },
+        "pT2N1mol+M0",
+    ),
+    (
+        "pT2N1M1oss",
+        {
+            "tumour": "2",
+            "node": "1",
+            "metastasis": "1",
+            "metastasis_specification": "oss",
+        },
+        "pT2N1M1oss",
+    ),
+    (
+        "pT4N2R1(foie)",
+        {
+            "tumour": "4",
+            "node": "2",
+            "resection": "1",
+            "resection_loc": "(foie)",
+        },
+        "pT4N2R1foie",
+    ),
+    # ...but `o`/`O` typed for the digit zero still is coerced
+    (
+        "pTON1MO",
+        {"tumour": "0", "node": "1", "metastasis": "0"},
+        "pT0N1M0",
+    ),
+    # --- pleura ---
+    (
+        "pT2N1M0 PL1",
+        {"tumour": "2", "node": "1", "metastasis": "0", "pleura": "1"},
+        "pT2N1M0PL1",
+    ),
+    # --- node ratio ---
+    (
+        "pT2N1(3/12)M0",
+        {"node": "1", "node_specification": "(3/12)", "metastasis": "0"},
+        "pT2N13/12M0",
+    ),
+    # --- per-component prefixes are independent ---
+    (
+        "pT1 cN1 M0",
+        {
+            "tumour_prefix": "p",
+            "tumour": "1",
+            "node_prefix": "c",
+            "node": "1",
+            "metastasis": "0",
+        },
+        "pT1cN1M0",
+    ),
+    # --- resection specification and free-text suffix ---
+    # A free-text suffix is kept in the field but left out of norm()
+    (
+        "pT2N1M0R0(marge saine)",
+        {"resection": "0", "resection_suffix": "marge saine"},
+        "pT2N1M0R0",
+    ),
+    (
+        "pT2N1M0 (2017)",
+        {"metastasis_suffix": "2017", "version": None, "version_year": None},
+        "pT2N1M0",
+    ),
+    (
+        "pT2N0R1is",
+        {"resection": "1", "resection_specification": "is"},
+        "pT2N0R1is",
+    ),
+    # --- classification version: captured, not mistaken for a suffix ---
+    (
+        "pT2N1M0 (UICC 2017)",
+        {
+            "metastasis": "0",
+            "metastasis_suffix": None,
+            "version": "UICC",
+            "version_year": 2017,
+        },
+        "pT2N1M0 (UICC 2017)",
+    ),
+    # Two-digit years are expanded
+    (
+        "pT2N1M0 (UICC 17)",
+        {"version": "UICC", "version_year": 2017},
+        "pT2N1M0 (UICC 2017)",
+    ),
+    (
+        "pT2N1M0 uicc 2017",
+        {"version": "uicc", "version_year": 2017},
+        "pT2N1M0 (UICC 2017)",
+    ),
+    # Version placed after the resection component
+    (
+        "pT2N1M0R0 (UICC 2017)",
+        {"resection": "0", "version": "UICC", "version_year": 2017},
+        "pT2N1M0R0 (UICC 2017)",
+    ),
+    # Edition wording between the classification name and the year
+    (
+        "pT2N1M0 (UICC ed. 2017)",
+        {"version": "UICC", "version_year": 2017},
+        "pT2N1M0 (UICC 2017)",
+    ),
+    (
+        "pT2N1M0 (uicc 7eme edition 2009)",
+        {"version": "uicc", "version_year": 2009},
+        "pT2N1M0 (UICC 2009)",
+    ),
+    (
+        "pT2N1M0 (UICC 7e ed. 2009)",
+        {"version": "UICC", "version_year": 2009},
+        "pT2N1M0 (UICC 2009)",
+    ),
+    # A 4-digit year must not be split by the optional edition ordinal
+    (
+        "pT2N1M0 (UICC 1987)",
+        {"version": "UICC", "version_year": 1987},
+        "pT2N1M0 (UICC 1987)",
+    ),
+    (
+        "pT2N1M0 (TNM 2009)",
+        {"version": "TNM", "version_year": 2009},
+        "pT2N1M0 (TNM 2009)",
+    ),
+    # No year: neither a version nor a metastasis suffix -- the span stops at M0
+    (
+        "pT2N1M0 (AJCC 8)",
+        {"version": None, "version_year": None, "metastasis_suffix": None},
+        "pT2N1M0",
+    ),
 ]
 
 
@@ -400,6 +559,8 @@ no_match_cases = [
     ("T2", "bare T, no prefix, no spec, no NMR"),
     ("pT2", "prefix but no spec and no NMR"),
     ("PT", "prefix + T but no tumour value"),
+    ("N1M0", "the T component is mandatory"),
+    ("pN1", "the T component is mandatory"),
 ]
 
 
@@ -431,3 +592,24 @@ def test_tnm_no_match():
         assert m is None, (
             f"Pattern should NOT match {text!r} ({reason}), but got {m.group()!r}"
         )
+
+
+# ---------------------------------------------------------------------------
+# banned_words post-filter
+# ---------------------------------------------------------------------------
+
+
+def test_tnm_banned_words():
+    """Lookalike abbreviations are dropped, and the list is configurable."""
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe("eds.tnm")
+
+    # These would otherwise be matched: `atom` reads as aT0M, `mtxx` as mTx+x,
+    # `autonom` as auT0N0m, ...
+    for text in ["atom", "autoa", "autonom", "mtxd", "mtxx", "tissunom"]:
+        assert not nlp(text).ents, f"{text!r} should be filtered out"
+
+    # Emptying the list lets the raw regex matches through again
+    permissive = edsnlp.blank("eds")
+    permissive.add_pipe("eds.tnm", config=dict(banned_words=[]))
+    assert permissive("mtxx").ents

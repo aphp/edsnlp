@@ -252,9 +252,9 @@ edsnlp/pipes/ner/suicide_attempt/patterns.py                                    
 edsnlp/pipes/ner/suicide_attempt/suicide_attempt.py                                        28      0 100.00%
 edsnlp/pipes/ner/tnm/__init__.py                                                            0      0 100.00%
 edsnlp/pipes/ner/tnm/factory.py                                                             5      0 100.00%
-edsnlp/pipes/ner/tnm/model.py                                                             109      2  98.17%   144, 168
-edsnlp/pipes/ner/tnm/patterns.py                                                           16      0 100.00%
-edsnlp/pipes/ner/tnm/tnm.py                                                                43      0 100.00%
+edsnlp/pipes/ner/tnm/model.py                                                             113      0 100.00%
+edsnlp/pipes/ner/tnm/patterns.py                                                           13      0 100.00%
+edsnlp/pipes/ner/tnm/tnm.py                                                                45      0 100.00%
 edsnlp/pipes/ner/umls/__init__.py                                                           0      0 100.00%
 edsnlp/pipes/ner/umls/factory.py                                                           10      0 100.00%
 edsnlp/pipes/ner/umls/patterns.py                                                          43      0 100.00%
@@ -345,4 +345,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      81      9  88.89%   103, 119, 122-128, 144
 edsnlp/utils/typing.py                                                                     48      1  97.92%   45
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   13550    261  98.07%
+TOTAL                                                                                   13553    259  98.09%

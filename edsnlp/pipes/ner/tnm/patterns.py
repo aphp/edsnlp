@@ -128,10 +128,12 @@ tnm_pattern = (
 )
 
 # Post-filter applied to matched spans (see `TNMMatcher.process`). These are
-# common French clinical abbreviations that read as a valid TNM mention, e.g.
-# `atom` parses as `aT0M` and `autonom` as `auT0N0m`. Some entries are already
-# unreachable now that `logic_filter` is in place; they are kept as a safety
-# net in case the pattern is loosened later.
+# common French clinical abbreviations that read as a valid TNM mention: `atom`
+# parses as `aT0M`, `autonom` as `auT0N0m`. The bare `t0`-`t4` are needed too,
+# because `o` is a valid stage value: a following word starting with `no`, `mo`
+# or `ro` opens `logic_filter`, the component then fails to match and the span
+# degrades to the T alone (`t4 nodule` -> `t4`). The lookup lowercases the
+# cleaned span text, so these spellings cover every casing.
 default_banned_words = [
     "ato",
     "atom",

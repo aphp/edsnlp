@@ -79,6 +79,13 @@ class TNMMatcher(BaseNERComponent):
           values is deliberately left out for now: accepting the letter `o`
           as a `0` already accounts for most of the observed false positives,
           and a bare letter as a stage value is expected to behave the same.
+        - The anchor rule is a lookahead, so a component only has to
+          *look* like an N/M/R to open it. `o` being a valid stage value, a
+          following word starting with `no`, `mo` or `ro` opens it and the
+          span degrades to the T alone: `pT2 nodulaire` yields `pT2`.
+          `banned_words` catches the bare forms, not the prefixed ones. A
+          follow-up will enforce the rule on the parsed components instead,
+          which removes this class of false positives.
         - A component glued to another indicator breaks the trailing word
           boundary: `pT3(4)N2M0R0G1` yields the truncated span `pT3`, and
           `ypT1cN0R0M0TRG2` yields nothing.

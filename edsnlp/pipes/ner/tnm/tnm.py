@@ -72,8 +72,13 @@ class TNMMatcher(BaseNERComponent):
     `T`/`PT` fragments produced by uppercase headings and tables.
 
     !!! warning "Known limitations"
-        - `Ta` is not a recognised T value, so `pTa` (non-invasive papillary
-          carcinoma) is missed.
+        - `a` (non-invasive papillary carcinoma) is not a recognised T stage
+          value, alongside `0`-`4`, `is` and `x`, so a full mention such as
+          `pTaN0M0` is missed. The standalone `pTa` would be rejected by the
+          anchor rule anyway, like `pT2` or `pTis`. Adding `a` to the stage
+          values is deliberately left out for now: accepting the letter `o`
+          as a `0` already accounts for most of the observed false positives,
+          and a bare letter as a stage value is expected to behave the same.
         - A component glued to another indicator breaks the trailing word
           boundary: `pT3(4)N2M0R0G1` yields the truncated span `pT3`, and
           `ypT1cN0R0M0TRG2` yields nothing.

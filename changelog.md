@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Rewrite the `eds.tnm` regex, which now covers more staging notations and rejects most lookalike abbreviations. Qualified against annotations from two physicians: precision 98.64% ± 1% (95% CI), entity-level recall 79.40% ± 1% (99% CI), document-level recall 95.53% ± 1% (99% CI)
+- **Breaking**: rename and extend the `TNM` model fields (`prefix` → `tumour_prefix`, `resection_completeness` → `resection`, one `_prefix`/`_specification`/`_suffix` set per component), which are now plain strings instead of enums. The renamed fields keep a deprecated alias — see the migration guide on the `eds.tnm` documentation page
+- Add a `banned_words` parameter to `eds.tnm` to configure the post-filter that drops lookalike abbreviations (`MTX`, `atom`, ...)
+- `TNM.norm()` no longer concatenates free-text suffixes verbatim, so `span.kb_id_` stays usable for grouping: only suffixes that read as a TNM qualifier are kept (`pT1(m)` → `pT1m`, whereas `pT1(grade 2)N1M0` used to normalise to `pT1grade 2N1M0`). The `o` → `0` coercion is likewise restricted to the numeric stage fields, so a suffix such as `(foie)` is no longer stored as `f0ie`
+
 ## v0.22.0 (2026-06-17)
 
 ### Added

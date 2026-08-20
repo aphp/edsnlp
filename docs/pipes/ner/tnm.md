@@ -99,12 +99,6 @@ full text remains available on the field.
 - **`banned_words`** is a new parameter. Pass an empty list to restore the
   unfiltered regex output.
 
-### Patterns module
-
-`patterns_new.py` was merged into `patterns.py` and the old pattern removed.
-Import `tnm_pattern` from `edsnlp.pipes.ner.tnm.patterns`; `tnm_pattern_new`
-no longer exists.
-
 ## Evaluation {: #evaluation }
 
 The pipe was qualified by two physicians before production use, on an initial sample of 20 million

@@ -207,14 +207,14 @@ class TNMMatcher(BaseNERComponent):
     ```
 
 
-    ## Migrating from the previous version
+    # Migrating from the previous version
 
     The regex and the `TNM` model were rewritten. Extracted spans and `norm()`
     values are broadly compatible, and the two renamed fields keep a
     deprecated alias, so most code reading `span._.tnm.<field>` keeps
     working.
 
-    ### Renamed fields
+    ## Renamed fields
 
     | Before                   | Now             | Note                       |
     |--------------------------|-----------------|----------------------------|
@@ -231,7 +231,7 @@ class TNMMatcher(BaseNERComponent):
     tnm.resection_completeness # -> deprecated, use tnm.resection
     ```
 
-    ### Enums replaced by strings
+    ## Enums replaced by strings
 
     `Prefix`, `Tumour`, `Specification`, `Node`, `Metastasis` and `TnmEnum`
     were removed from `edsnlp.pipes.ner.tnm.model`. Every field now holds the
@@ -255,7 +255,7 @@ class TNMMatcher(BaseNERComponent):
     as `PUL` -- is accepted now. Only the free-text fields are genuinely open:
     `*_suffix`, `resection_loc`, and node ratios such as `(3/12)`.
 
-    ### New fields
+    ## New fields
 
     `node_prefix`, `metastasis_prefix`, `resection_prefix`,
     `metastasis_specification`, `metastasis_suffix`, `resection_specification`,
@@ -264,7 +264,7 @@ class TNMMatcher(BaseNERComponent):
     include them, which means a normalised value may be longer than before for
     the same text.
 
-    ### Behaviour changes to be aware of
+    ## Behaviour changes to be aware of
 
     - **Matching is case-insensitive.** `pt2n1m0` and `PT2N1M0` are now
       extracted; previously only certain case combinations were.
@@ -282,12 +282,11 @@ class TNMMatcher(BaseNERComponent):
     - **`banned_words`** is a new parameter. Pass an empty list to restore the
       unfiltered regex output.
 
-    ## Evaluation
+    # Evaluation
 
-    The pipe was qualified before production use, on an initial sample of 20
+    The pipe was qualified by two physicians before production use, on an initial sample of 20
     million clinical notes stratified by year, restricted to the ~5 million
-    documents belonging to patients followed for cancer. Both samples were
-    annotated by two physicians. Sampling used Neyman allocation over strata,
+    documents belonging to patients followed for cancer. Sampling used Neyman allocation over strata,
     with a minimum of 5 documents per stratum; the figures below are the
     corresponding stratum-weighted estimates.
 
@@ -316,10 +315,7 @@ class TNMMatcher(BaseNERComponent):
     mentions whose format is a valid TNM but whose context is not.
 
     **Recall errors.** 27 false negatives, matching the patterns listed under
-    Known limitations above. The isolated `M+` mention was excluded from the
-    count after review, as it is not considered a valid TNM here; keeping it
-    would lower the estimates to 57.60 % and 60.74 % respectively, since it
-    falls in a stratum representing a third of the population.
+    Known limitations above.
 
     !!! note "Scope of these figures"
         The review was run on the first version of this pattern. Additional

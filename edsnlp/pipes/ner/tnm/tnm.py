@@ -204,6 +204,123 @@ class TNMMatcher(BaseNERComponent):
     # }
     ```
 
+
+    ## Migrating from the previous version
+
+    The regex and the `TNM` model were rewritten. Extracted spans and `norm()`
+    values are broadly compatible, but **the model fields changed**, so any
+    code reading `span._.tnm.<field>` needs updating.
+
+    ### Renamed fields
+
+    | Before                   | Now             | Note                       |
+    |--------------------------|-----------------|----------------------------|
+    | `prefix`                 | `tumour_prefix` | Each component has its own |
+    | `resection_completeness` | `resection`     | Was an `int`, now a `str`  |
+
+    ```{ .python .no-check }
+    # Before
+    tnm.prefix, tnm.resection_completeness
+
+    # Now
+    tnm.tumour_prefix, tnm.resection
+    ```
+
+    ### Enums replaced by strings
+
+    `Prefix`, `Tumour`, `Specification`, `Node`, `Metastasis` and `TnmEnum`
+    were removed from `edsnlp.pipes.ner.tnm.model`. Every field now holds the
+    raw matched text as a `str` (except `version_year`, an `int`).
+
+    ```{ .python .no-check }
+    # Before -- fields were enum members
+    from edsnlp.pipes.ner.tnm.model import Tumour
+    tnm.tumour is Tumour.score_2
+
+    # Now -- fields are plain strings
+    tnm.tumour == "2"
+    ```
+
+    The value space is not open, though. The pattern has always been the gate
+    -- the previous one restricted stages just as narrowly (`[0-4o]|is` for T,
+    `[0-3o]|x` for N, `[01o]|x` for M) and the enums merely duplicated that
+    check in the model. Only the duplicate is gone, and the accepted values
+    are those listed in the decomposition table above. What the enums could
+    not represent -- `N4`, `M2`, `M3`, `Rx`, `R+`, metastasis site codes such
+    as `PUL` -- is accepted now. Only the free-text fields are genuinely open:
+    `*_suffix`, `resection_loc`, and node ratios such as `(3/12)`.
+
+    ### New fields
+
+    `node_prefix`, `metastasis_prefix`, `resection_prefix`,
+    `metastasis_specification`, `metastasis_suffix`, `resection_specification`,
+    `resection_loc`, `resection_suffix` and `pleura`. They default to `None`,
+    so existing code keeps working -- but `norm()` and `span.kb_id_` now
+    include them, which means a normalised value may be longer than before for
+    the same text.
+
+    ### Behaviour changes to be aware of
+
+    - **Matching is case-insensitive.** `pt2n1m0` and `PT2N1M0` are now
+      extracted; previously only certain case combinations were.
+    - **A lone T is no longer extracted** unless it carries both a prefix and
+      a specification (`pT2b`), or is followed by an N, M or R component.
+      `pT2` and `pTx` used to match and no longer do. This is the main driver
+      of the precision gain.
+    - **`o` to `0` coercion is now restricted** to the numeric stage fields,
+      so `M1OSS` keeps its `O`. Previously every field was coerced.
+    - **A component prefix binds to its own component.** In `pT1 cN1 M0` the
+      `c` is now `node_prefix`; it used to land in `tumour_specification`.
+    - **`norm()` no longer concatenates free-text suffixes verbatim** --
+      `pT1(grade 2)N1M0` used to give `pT1grade 2N1M0`. Only suffixes that
+      read as a TNM qualifier are kept; the full text stays on the field.
+    - **`banned_words`** is a new parameter. Pass an empty list to restore the
+      unfiltered regex output.
+
+    ## Evaluation
+
+    The pipe was qualified before production use, on an initial sample of 20
+    million clinical notes stratified by year, restricted to the ~5 million
+    documents belonging to patients followed for cancer. Both samples were
+    annotated by two physicians. Sampling used Neyman allocation over strata,
+    with a minimum of 5 documents per stratum; the figures below are the
+    corresponding stratum-weighted estimates.
+
+    | Metric                  | Estimate | Interval        | Unit     | N   |
+    |-------------------------|----------|-----------------|----------|-----|
+    | Precision               | 98.64 %  | +/- 1 % (95 %)  | mention  | 366 |
+    | Recall (entity level)   | 79.40 %  | +/- 1 % (99 %)  | mention  | 120 |
+    | Recall (document level) | 95.53 %  | +/- 1 % (99 %)  | document | 120 |
+
+    Document-level recall is the share of documents containing at least one
+    TNM mention for which at least one mention is retrieved. It is much higher
+    than the entity-level figure because staging is usually repeated within a
+    report.
+
+    Strata were built on the document type (pathology report / tumour board
+    report vs. other), the oncological density of the issuing care unit, and
+    -- for precision -- whether the mention carried only a T component, the
+    configuration most prone to false positives. Recall strata additionally
+    split on whether the pipe found a mention and whether the raw text
+    contained the word `TNM`.
+
+    **Precision errors.** 21 false positives out of 366 annotations. Most come
+    from the rule accepting the letter `o` as a substitute for the digit `0`
+    (`p t o m`, `TOM`, `TOC`, `CS tox`). The rest are interfering acronyms
+    (`CMT1A`, `RT 3D`), numbering or temporal wording (`Tour 1`, `au T1`), and
+    mentions whose format is a valid TNM but whose context is not.
+
+    **Recall errors.** 27 false negatives, matching the patterns listed under
+    Known limitations above. The isolated `M+` mention was excluded from the
+    count after review, as it is not considered a valid TNM here; keeping it
+    would lower the estimates to 57.60 % and 60.74 % respectively, since it
+    falls in a stratum representing a third of the population.
+
+    !!! note "Scope of these figures"
+        The review was run on the first version of this pattern. Additional
+        prefixes and specifications were added afterwards without re-running
+        it, so the estimates are conservative.
+
     Parameters
     ----------
     nlp : Optional[PipelineProtocol]

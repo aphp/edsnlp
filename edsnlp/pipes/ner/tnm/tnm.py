@@ -208,8 +208,9 @@ class TNMMatcher(BaseNERComponent):
     ## Migrating from the previous version
 
     The regex and the `TNM` model were rewritten. Extracted spans and `norm()`
-    values are broadly compatible, but **the model fields changed**, so any
-    code reading `span._.tnm.<field>` needs updating.
+    values are broadly compatible, and the two renamed fields keep a
+    deprecated alias, so most code reading `span._.tnm.<field>` keeps
+    working.
 
     ### Renamed fields
 
@@ -218,12 +219,14 @@ class TNMMatcher(BaseNERComponent):
     | `prefix`                 | `tumour_prefix` | Each component has its own |
     | `resection_completeness` | `resection`     | Was an `int`, now a `str`  |
 
-    ```{ .python .no-check }
-    # Before
-    tnm.prefix, tnm.resection_completeness
+    The old names still read, with a `DeprecationWarning`, so existing code
+    keeps working. `resection_completeness` still returns an `int` for a
+    numeric status, and a `str` for the `x` and `+` values the previous model
+    could not represent.
 
-    # Now
-    tnm.tumour_prefix, tnm.resection
+    ```{ .python .no-check }
+    tnm.prefix                 # -> deprecated, use tnm.tumour_prefix
+    tnm.resection_completeness # -> deprecated, use tnm.resection
     ```
 
     ### Enums replaced by strings

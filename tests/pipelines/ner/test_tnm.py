@@ -688,6 +688,25 @@ def test_tnm_model_api():
     assert TNM._norm_suffix("(grade 2)") == ""
 
 
+def test_tnm_renamed_fields_are_still_readable():
+    """The fields renamed in the rewrite keep a deprecated alias."""
+    tnm = TNM(tumour_prefix="p", tumour="2", resection="0")
+
+    with pytest.deprecated_call():
+        assert tnm.prefix == "p"
+    with pytest.deprecated_call():
+        # the field used to be an int, and still reads as one
+        assert tnm.resection_completeness == 0
+
+    # values the previous model could not represent stay strings
+    with pytest.deprecated_call():
+        assert TNM(resection="x").resection_completeness == "x"
+
+    # the aliases are not fields, so serialisation is unaffected
+    assert "prefix" not in tnm.dict()
+    assert "resection_completeness" not in tnm.dict()
+
+
 def test_tnm_dict_skip_defaults_is_deprecated():
     tnm = _parse("pT2N1M0")
 

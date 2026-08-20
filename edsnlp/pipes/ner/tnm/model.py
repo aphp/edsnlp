@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Optional, Union
 
 import pydantic
 from pydantic import field_validator
+from typing_extensions import deprecated
 
 if TYPE_CHECKING:
     from pydantic.typing import (
@@ -79,6 +80,24 @@ class TNM(pydantic.BaseModel):
             v += 1900
 
         return v
+
+    @property
+    @deprecated("`prefix` is deprecated, use `tumour_prefix` instead")
+    def prefix(self) -> Optional[str]:
+        """Deprecated alias for `tumour_prefix`."""
+        return self.tumour_prefix
+
+    @property
+    @deprecated("`resection_completeness` is deprecated, use `resection` instead")
+    def resection_completeness(self) -> Optional[Union[int, str]]:
+        """Deprecated alias for `resection`.
+
+        The field used to be an `int`, so a numeric status is returned as one.
+        The values the previous model could not represent (`x`, `+`) are
+        returned as strings.
+        """
+        v = self.resection
+        return int(v) if v is not None and v.isdigit() else v
 
     @staticmethod
     def _norm_str(v: Optional[str]) -> str:

@@ -222,8 +222,9 @@ class TNMMatcher(BaseNERComponent):
 
     Authors and citation
     --------------------
-    The TNM pipe was originally developed by S. Priou, B. Rance and
-    E. Kempf ([@kempf:hal-03519085]).
+    The `eds.tnm` component was originally developed by S. Priou, B. Rance
+    and E. Kempf ([@kempf:hal-03519085]), and later refined by AP-HP's Data
+    Science team.
     """
 
     # noinspection PyProtectedMember

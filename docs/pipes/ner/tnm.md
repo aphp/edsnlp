@@ -88,3 +88,39 @@ full text remains available on the field.
 `patterns_new.py` was merged into `patterns.py` and the old pattern removed.
 Import `tnm_pattern` from `edsnlp.pipes.ner.tnm.patterns`; `tnm_pattern_new`
 no longer exists.
+
+## Evaluation {: #evaluation }
+
+The pipe was qualified by two physicians before production use, on an initial sample of 20 million
+clinical notes stratified by year, restricted to the ~5 million documents
+belonging to patients followed for cancer.
+
+Sampling used Neyman allocation over strata, with a minimum of 5 documents per
+stratum, and the reported figures are the corresponding stratum-weighted
+estimates.
+
+| Metric                     | Estimate  | Confidence interval | Unit      | Sample |
+|----------------------------|-----------|---------------------|-----------|--------|
+| Precision                  | 98.64 %   | ± 1 % (95 % CI)     | mention   | 366    |
+| Recall (entity level)      | 79.40 %   | ± 1 % (99 % CI)     | mention   | 120    |
+| Recall (document level)    | 95.53 %   | ± 1 % (99 % CI)     | document  | 120    |
+
+Document-level recall is the share of documents containing at least one TNM
+mention for which at least one mention is retrieved. It is much higher than the
+entity-level figure because staging is usually repeated within a report.
+
+Strata were built on the document type (pathology report / multidisciplinary meeting report
+vs. other), oncological activity of the care unit measured with the prevalence of cancer related ICD10 codes, and — for
+precision — whether the mention carried only a T component, which is the
+configuration most prone to false positives. Recall strata additionally split on
+whether the pipe found a mention and whether the raw text contained the word
+`TNM`.
+
+**Precision — error analysis.** 21 false positives out of 366 annotations. Most
+come from the rule accepting the letter `o` as a substitute for the digit `0`
+(`p t o m`, `TOM`, `TOC`, `CS tox`). The rest are interfering acronyms (`CMT1A`,
+`RT 3D`), numbering or temporal wording (`Tour 1`, `au T1`), and mentions whose
+format is a valid TNM but whose context is not (`T1 (bloc n°3)`).
+
+**Recall — error analysis.** 27 false negatives, matching the patterns listed in
+the "Known limitations" warning above.

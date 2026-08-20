@@ -638,15 +638,29 @@ def test_tnm_banned_words():
     # These would otherwise be matched: `atom` reads as aT0M, `mtxx` as mTx+x,
     # `autonom` as auT0N0m, ...
     # The lookup lowercases the cleaned span text, so casing is irrelevant.
-    for text in ["atom", "ATOM", "Atom", "autoa", "autonom", "mtxd", "mtxx",
-                 "tissunom"]:
+    for text in [
+        "atom",
+        "ATOM",
+        "Atom",
+        "autoa",
+        "autonom",
+        "mtxd",
+        "mtxx",
+        "tissunom",
+    ]:
         assert not nlp(text).ents, f"{text!r} should be filtered out"
 
     # `logic_filter` only checks that something looks like an N/M/R component;
     # when it then fails to match, the span degrades to the T alone. `o` being
     # a valid stage value, any word starting with `no`/`mo`/`ro` triggers this.
-    for text in ["t4 nodule", "T4 nodule", "t2 nodulaire", "t1 normal",
-                 "t3 mois", "t4 r3"]:
+    for text in [
+        "t4 nodule",
+        "T4 nodule",
+        "t2 nodulaire",
+        "t1 normal",
+        "t3 mois",
+        "t4 r3",
+    ]:
         assert not nlp(text).ents, f"{text!r} should be filtered out"
 
     # Emptying the list lets the raw regex matches through again

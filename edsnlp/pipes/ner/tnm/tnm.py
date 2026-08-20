@@ -284,11 +284,12 @@ class TNMMatcher(BaseNERComponent):
 
     # Evaluation
 
-    The pipe was qualified by two physicians before production use, on an initial sample of 20
-    million clinical notes stratified by year, restricted to the ~5 million
-    documents belonging to patients followed for cancer. Sampling used Neyman allocation over strata,
-    with a minimum of 5 documents per stratum; the figures below are the
-    corresponding stratum-weighted estimates.
+    The pipe was qualified by two physicians before production use, on an
+    initial sample of 20 million clinical notes stratified by year, restricted
+    to the ~5 million documents belonging to patients followed for cancer.
+    Sampling used Neyman allocation over strata, with a minimum of 5 documents
+    per stratum; the figures below are the corresponding stratum-weighted
+    estimates.
 
     | Metric                  | Estimate | Interval        | Unit     | N   |
     |-------------------------|----------|-----------------|----------|-----|

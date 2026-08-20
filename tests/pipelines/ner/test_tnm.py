@@ -584,6 +584,14 @@ no_match_cases = [
     ("PT", "prefix + T but no tumour value"),
     ("N1M0", "the T component is mandatory"),
     ("pN1", "the T component is mandatory"),
+    # Stage values are a closed set: validation lives in the pattern, not in
+    # the model, so an out-of-range value invalidates the whole mention.
+    ("pT7N1M0", "T is limited to 0-4, is, x"),
+    ("pT2N5M0", "N is limited to 0-4, x, +"),
+    ("pT2N50M0", "N is limited to a single character"),
+    ("pT2N1M4", "M is limited to 0-3, x, +"),
+    ("pT2N1M0PL4", "PL is limited to 0-3, x"),
+    ("pT2N1M0R5", "R is limited to 0-2, x, +"),
 ]
 
 

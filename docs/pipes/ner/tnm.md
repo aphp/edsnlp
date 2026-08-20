@@ -46,10 +46,26 @@ str(tnm.tumour) == "2"
 tnm.tumour == "2"
 ```
 
-The trade-off is deliberate: the new pattern accepts values the enums could not
-represent (`N4`, `M2`, `M3`, `Rx`, `R+`, site codes such as `PUL`), so values
-are no longer validated against a closed set. Validate downstream if your use
-case requires it.
+The trade-off is deliberate, but the value space is not open. The pattern has
+always been the gate — the previous one restricted stages just as narrowly
+(`[0-4o]|is` for T, `[0-3o]|x` for N, `[01o]|x` for M) and the enums merely
+duplicated that check in the model. Only the duplicate is gone; the pattern
+still constrains every stage to a closed set.
+
+| Field        | Accepted values                     |
+|--------------|-------------------------------------|
+| `tumour`     | `0`-`4`, `is`, `x`                  |
+| `node`       | `0`-`4`, `x`, `+`                   |
+| `metastasis` | `0`-`3`, `x`, `+`                   |
+| `pleura`     | `0`-`3`, `x`                        |
+| `resection`  | `0`, `1`, `2`, `x`, `+`             |
+
+So `pT2N50M0` is not matched, and neither are `N5`, `M4`, `T7` or `R5`. What
+the enums could not represent — `N4`, `M2`, `M3`, `Rx`, `R+`, metastasis site
+codes such as `PUL` — is accepted now. Only the free-text fields are genuinely
+open: `*_suffix`, `resection_loc`, and node ratios such as `(3/12)`. Enforce
+your own constraints if you build `TNM` instances by hand rather than through
+the pipe.
 
 ### New fields
 

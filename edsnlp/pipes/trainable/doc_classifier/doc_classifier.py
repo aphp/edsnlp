@@ -282,10 +282,8 @@ class TrainableDocClassifier(
         super().__init__(nlp, name)
         self.embedding = embedding
 
-        if not hasattr(self.embedding, "output_size"):
-            raise ValueError(
-                "The embedding component must have an 'output_size' attribute."
-            )
+        # `output_size` is part of the WordEmbeddingComponent contract, which
+        # confit checks before we get here.
         self.embedding_size = self.embedding.output_size
 
         self.heads = nn.ModuleDict(heads)

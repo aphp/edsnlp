@@ -341,3 +341,112 @@ def test_to_disk_from_disk_roundtrip(tmp_path):
     assert after._.dp == before._.dp
     assert after._.das == before._.das
     assert after._.das_count == before._.das_count
+
+
+@pytest.mark.parametrize(
+    "reduction,expected_shape",
+    [("mean", ()), ("sum", ()), ("none", (3,))],
+)
+def test_focal_loss_reductions(reduction, expected_shape):
+    import torch
+
+    from edsnlp.pipes.trainable.doc_classifier.heads import FocalLoss
+
+    loss = FocalLoss(reduction=reduction)(torch.randn(3, 2), torch.tensor([0, 1, 0]))
+    assert tuple(loss.shape) == expected_shape
+
+
+def test_gold_scan_skips_unannotated_documents():
+    """A document with no value for a head must not contribute to its label set."""
+    nlp = _classifier(das=MultiLabelHead(loss="bce"))
+    clf = nlp.get_pipe("doc_classifier")
+    gold = _gold_docs(nlp, [{"das": ["X", "Y"]}, {"das": None}, {"das": ["Z"]}])
+
+    clf.post_init(gold, set())
+    assert clf.heads["das"].label2id == {"X": 0, "Y": 1, "Z": 2}
+
+
+def test_single_label_targets():
+    """Gold values are mapped to class indices; unknown labels are rejected."""
+    nlp = _classifier(dp=SingleLabelHead(labels=["A", "B"], loss="ce"))
+    head = nlp.get_pipe("doc_classifier").heads["dp"]
+
+    labelled, unlabelled, unknown = _gold_docs(
+        nlp, [{"dp": "B"}, {"dp": None}, {"dp": "Z"}]
+    )
+    assert head.build_target(labelled, "dp").item() == 1
+    assert head.build_target(unlabelled, "dp") is None
+    with pytest.raises(ValueError, match="not in label2id"):
+        head.build_target(unknown, "dp")
+
+
+def test_multi_label_target_accepts_a_single_string():
+    """A gold value that is a bare string counts as a one-element label set."""
+    nlp = _classifier(das=MultiLabelHead(labels=["X", "Y", "Z"], loss="bce"))
+    head = nlp.get_pipe("doc_classifier").heads["das"]
+
+    (doc,) = _gold_docs(nlp, [{"das": "Y"}])
+    assert head.build_target(doc, "das").tolist() == [0.0, 1.0, 0.0]
+
+
+@pytest.mark.parametrize(
+    "head_cls,loss,target",
+    [
+        (SingleLabelHead, "ce", [0, 1]),
+        (MultiLabelHead, "bce", [[1.0, 0.0], [0.0, 1.0]]),
+    ],
+)
+def test_class_weights_follow_the_logits_device(head_cls, loss, target):
+    """Weights are built on the CPU and must be moved next to the logits."""
+    import torch
+
+    head = head_cls(
+        labels=["rare", "frequent"],
+        class_weights={"rare": 1, "frequent": 99},
+        loss=loss,
+    )
+    head.build(input_size=4)
+    logits = torch.zeros(2, 2, requires_grad=True)
+    value = head.compute_loss(logits, torch.tensor(target))
+    assert value.ndim == 0 and torch.isfinite(value)
+
+
+def test_postprocess_is_a_noop_without_logits():
+    """In training mode the forward returns no logits, and nothing is decoded."""
+    import torch
+
+    nlp = _classifier(dp=SingleLabelHead(labels=["A", "B"], loss="ce"))
+    clf = nlp.get_pipe("doc_classifier")
+    docs = [nlp.make_doc("Compte rendu.")]
+
+    out = clf.postprocess(docs, {"loss": torch.tensor(0.0), "logits": None}, {})
+    assert out is docs
+    assert docs[0]._.dp is None
+
+
+def test_roundtrip_rebuilds_heads_whose_labels_came_from_gold(tmp_path):
+    """Heads built at `post_init` are unbuilt on load, and `from_disk` rebuilds them."""
+    nlp = _classifier(
+        dp=SingleLabelHead(loss="ce"),
+        das=MultiLabelHead(loss="bce"),
+    )
+    clf = nlp.get_pipe("doc_classifier")
+    clf.post_init(
+        _gold_docs(nlp, [{"dp": "A", "das": ["X"]}, {"dp": "B", "das": ["Y"]}]),
+        set(),
+    )
+    before = nlp("Compte rendu d'hospitalisation.")
+
+    nlp.to_disk(tmp_path / "model")
+    reloaded = edsnlp.load(tmp_path / "model")
+
+    heads = reloaded.pipes.doc_classifier.heads
+    assert heads["dp"].label2id == {"A": 0, "B": 1}
+    assert heads["das"].built
+    after = reloaded("Compte rendu d'hospitalisation.")
+    assert (after._.dp, after._.das) == (before._.dp, before._.das)
+
+
+def test_head_cannot_be_built_before_its_labels_are_known():
+    with pytest.raises(ValueError, match="before its labels are known"):
+        SingleLabelHead(loss="ce").build(input_size=4)

@@ -269,14 +269,16 @@ class TrainableDocClassifier(
         # can only be assigned after `nn.Module.__init__` has run.
         self.head_names: List[str] = list(heads)
         self._multilabel_names: List[str] = [
-            name for name, head in heads.items() if getattr(head, "multilabel", False)
+            head_name
+            for head_name, head in heads.items()
+            if getattr(head, "multilabel", False)
         ]
-        for name in self._multilabel_names:
-            count_head = heads[name].count_head
+        for head_name in self._multilabel_names:
+            count_head = heads[head_name].count_head
             if count_head is not None and count_head not in heads:
                 raise ValueError(
-                    f"Head {name!r} refers to a count head {count_head!r} that is "
-                    f"not one of the heads ({', '.join(map(repr, heads))})."
+                    f"Head {head_name!r} refers to a count head {count_head!r} that "
+                    f"is not one of the heads ({', '.join(map(repr, heads))})."
                 )
 
         super().__init__(nlp, name)

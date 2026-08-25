@@ -447,6 +447,25 @@ def test_roundtrip_rebuilds_heads_whose_labels_came_from_gold(tmp_path):
     assert (after._.dp, after._.das) == (before._.dp, before._.das)
 
 
+def test_component_keeps_its_name_with_multi_label_heads():
+    """The `name` parameter used to be clobbered by the count-head check loop."""
+    component = eds.doc_classifier(
+        embedding=_pooler("mean"),
+        heads={
+            "dp": SingleLabelHead(labels=["A"], loss="ce"),
+            "das": MultiLabelHead(labels=["X"], loss="bce"),
+        },
+    )
+    assert component.name == "doc_classifier"
+
+    renamed = eds.doc_classifier(
+        name="my_classifier",
+        embedding=_pooler("mean"),
+        heads={"das": MultiLabelHead(labels=["X"], loss="bce")},
+    )
+    assert renamed.name == "my_classifier"
+
+
 def test_head_cannot_be_built_before_its_labels_are_known():
     with pytest.raises(ValueError, match="before its labels are known"):
         SingleLabelHead(loss="ce").build(input_size=4)

@@ -49,11 +49,17 @@ TransformerBatchOutput = TypedDict(
     "TransformerBatchOutput",
     {
         "embeddings": ft.FoldedTensor,
+        "cls": torch.Tensor,
     },
 )
 """
 embeddings: FoldedTensor
     The embeddings of the words
+cls: torch.Tensor
+    The embedding of the first wordpiece of each context (the `[CLS]` token for
+    BERT-like models), of shape `(n_contexts, embedding_size)`. Note that a long
+    document is split into several overlapping contexts (see `window`/`stride`), so
+    there is one `cls` vector per context, not per document.
 """
 
 
@@ -542,6 +548,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         word_embeddings[batch["empty_word_indices"]] = self.empty_word_embedding
         return {
             "embeddings": word_embeddings.refold("context", "word"),
+            "cls": wordpiece_embeddings[:, 0, :],
         }
 
     @staticmethod

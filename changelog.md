@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Added
+
+- New `eds.doc_classifier` trainable component to predict an attribute of a whole document, such as its type or a diagnosis. It is configured with one *head* per predicted attribute: `eds.single_label_head` when a document carries exactly one label (cross-entropy or focal loss, `argmax` decoding), `eds.multi_label_head` when it carries a set of them (`BCEWithLogitsLoss`, decoded by thresholding the probabilities or by keeping the top-k logits, `k` being predicted by a companion count head). Several heads can share a single pooled document embedding to predict several attributes at once, and a document that lacks a gold value for a head simply does not supervise it, so partially labelled corpora can be mixed in the same training run
+- New `eds.doc_pooler` embedding component, which aggregates the word embeddings of a document into a single vector (`mean`, `max`, `sum`, `cls` or a learned `attention` pooling)
+- New `eds.doc_classification` metric to score document-level classification, for one or several `Doc._` attributes at a time. Attributes holding a single value are scored with per-label, micro and macro P-R-F1 (micro then amounting to the accuracy); attributes holding a list of values are scored as a multi-label task. Documents with no gold value for an attribute are left out of its score
+- `eds.transformer` now also returns the embedding of the first wordpiece of each context under the `cls` key
+
 ### Changed
 
 - Rewrite the `eds.tnm` regex, which now covers more staging notations and rejects most lookalike abbreviations. Qualified against annotations from two physicians: precision 98.64% ± 1% (95% CI), entity-level recall 79.40% ± 1% (99% CI), document-level recall 95.53% ± 1% (99% CI)

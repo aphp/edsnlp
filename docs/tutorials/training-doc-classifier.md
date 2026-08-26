@@ -336,11 +336,11 @@ Plenty of document-level attributes hold a *set* of labels rather than one: the 
 
 The head then trains with a binary cross-entropy instead of a cross-entropy, and decides on its own *how many* labels to predict: it keeps every label whose probability exceeds `threshold`. A note with no relevant label gets an empty list, one with three gets three. `threshold` is worth tuning on your dev set — lower it to favour recall, raise it to favour precision. On the gold side, the only difference is that the column holds a JSON list instead of a string.
 
-The second corpus you downloaded has such a column. `coding_train.jsonl` lists, for each hospital stay, the **associated diagnoses** (*diagnostics associés*, DAS) coded alongside the main one — between zero and three ICD-10 codes per note:
+The second corpus you downloaded has such a column. `coding_train.jsonl` lists, for each hospital stay, its **associated diagnoses** (*diagnostics associés significatifs*, DAS): the other conditions that were managed during the stay and added to the care effort, on top of the main one. Between zero and three ICD-10 codes per note:
 
 ```json { title="dataset/coding_train.jsonl" }
-{"note_id": "201", "note_text": "COMPTE RENDU D'HOSPITALISATION — séjour du 23/04/2025 au 28/04/2025\nExacerbation aiguë d'une BPCO connue …\nAntécédents : Tabagisme sevré depuis deux ans, 25 paquets-années.", "dp": "J44.0", "das": ["F17.2"]}
-{"note_id": "202", "note_text": "COMPTE RENDU D'HOSPITALISATION — séjour du 05/02/2025 au 12/02/2025\nColique hépatique fébrile …\nAntécédents : Pas d'antécédent notable.", "dp": "K80.2", "das": []}
+{"note_id": "201", "note_text": "COMPTE RENDU D'HOSPITALISATION — séjour du 23/04/2025 au 28/04/2025\nExacerbation aiguë d'une BPCO connue …\nPris en charge pendant le séjour : Dépendance tabagique persistante, consultation de tabacologie organisée avant la sortie.", "dp": "J44.0", "das": ["F17.2"]}
+{"note_id": "202", "note_text": "COMPTE RENDU D'HOSPITALISATION — séjour du 07/02/2025 au 14/02/2025\nColique hépatique fébrile …\nPris en charge pendant le séjour : Aucune comorbidité n'a nécessité de prise en charge spécifique.", "dp": "K80.2", "das": []}
 ```
 
 We ignore its `dp` column for now — the next section picks it up. Note that this config declares no optimizer: left out, `train` builds a sensible default one.
@@ -495,13 +495,16 @@ The prediction is now a list, empty when the model finds nothing above the thres
 
 ```python { .no-check }
 nlp = edsnlp.load("artifacts/model-last")
-nlp("Antécédents : diabète de type 2, hypertension artérielle traitée.")._.das
+nlp(
+    "Pris en charge pendant le séjour : diabète de type 2 déséquilibré, insuline "
+    "adaptée ; hypertension artérielle mal contrôlée, traitement majoré."
+)._.das
 # ['E11.9', 'I10']
 ```
 
 ## Several heads: predicting the DP and the DAS together
 
-A stay also has exactly one **principal diagnosis** (*diagnostic principal*, DP), which the corpus above carries in its `dp` column. That's a single-label problem sitting on the very same notes as the multi-label one we just trained. Rather than training two models, we add a second head: both read the **same document embedding**, computed once.
+A stay also has exactly one **principal diagnosis** (*diagnostic principal*, DP) — the condition that motivated the admission, as opposed to the DAS that were managed along the way. The corpus carries it in its `dp` column, so that's a single-label problem sitting on the very same notes as the multi-label one we just trained. Rather than training two models, we add a second head: both read the **same document embedding**, computed once.
 
 === "From the command line"
 
@@ -776,7 +779,8 @@ doc = nlp(
     "Admission pour douleur thoracique constrictive prolongée. "
     "La coronarographie retrouve une occlusion de l'artère interventriculaire "
     "antérieure, traitée par angioplastie. "
-    "Antécédents : diabète de type 2, hypertension artérielle traitée."
+    "Pris en charge pendant le séjour : diabète de type 2 déséquilibré, "
+    "insuline adaptée ; hypertension artérielle mal contrôlée."
 )
 
 doc._.dp   # (1)!

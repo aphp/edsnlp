@@ -103,9 +103,11 @@ It holds five files, one train/dev pair per use case:
 
 ## A single head, one label per document
 
-We start by predicting the **type** of a document. A note has exactly one, so this is a **single-label** problem: we use one `eds.single_label_head`, keyed by the name of the attribute it fills in.
+We start by predicting the **type** of a document. A note has exactly one, so this is a **single-label** problem: we use one [`eds.single_label_head`][edsnlp.pipes.trainable.doc_classifier.heads.SingleLabelHead], keyed by the name of the attribute it fills in.
 
 Note that we do not list the labels: left out, they are inferred from the training data when `nlp.post_init(...)` is called by `train`. Pass `labels=[...]` explicitly if you'd rather pin them down — or a path to a pickled list, which is handier when there are thousands of them.
+
+Beyond `labels` and `loss`, a head takes an optional hidden block, a dropout rate, class weights and a loss weight — the full list lives under [Heads](../pipes/trainable/doc-classifier.md#heads) on the component's reference page.
 
 === "From the command line"
 
@@ -330,7 +332,7 @@ That's the whole single-label story.
 
 ## A single head, several labels at once
 
-Plenty of document-level attributes hold a *set* of labels rather than one: the topics a note covers, the body sites it mentions, the comorbidities it documents. That is still **one head** — you only swap `eds.single_label_head` for `eds.multi_label_head`.
+Plenty of document-level attributes hold a *set* of labels rather than one: the topics a note covers, the body sites it mentions, the comorbidities it documents. That is still **one head** — you only swap [`eds.single_label_head`][edsnlp.pipes.trainable.doc_classifier.heads.SingleLabelHead] for [`eds.multi_label_head`][edsnlp.pipes.trainable.doc_classifier.heads.MultiLabelHead].
 
 The head then trains with a binary cross-entropy instead of a cross-entropy, and decides on its own *how many* labels to predict: it keeps every label whose probability exceeds `threshold`. A note with no relevant label gets an empty list, one with three gets three. `threshold` is worth tuning on your dev set — lower it to favour recall, raise it to favour precision. On the gold side, the only difference is that the column holds a JSON list instead of a string.
 

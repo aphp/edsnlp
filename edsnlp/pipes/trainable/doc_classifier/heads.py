@@ -94,11 +94,12 @@ class FocalLoss(nn.Module):
 
 class ClassificationHead(nn.Module):
     """
-    Base class for document classification heads.
+    Base class for document classification heads. Every head — single-label or
+    multi-label — accepts the parameters below, on top of its own.
 
-    Owns an optional hidden block (``Linear -> activation -> [LayerNorm] ->
-    Dropout``) followed by a linear classifier, plus the head's label mapping,
-    class weights and loss weight. Subclasses implement target building, loss
+    A head owns an optional hidden block (``Linear -> activation -> [LayerNorm]
+    -> Dropout``) followed by a linear classifier, plus its label mapping, class
+    weights and loss weight. Subclasses implement target building, loss
     computation and decoding.
 
     Parameters
@@ -289,8 +290,13 @@ class SingleLabelHead(ClassificationHead):
     Single-label (multi-class) head. Each document has exactly one label for
     this head. Uses cross-entropy or focal loss and decodes via ``argmax``.
 
-    Suitable for the principal diagnosis (`dp`), the mode of care (`mdp`) and
-    the DAS count head (whose labels are the integers ``0..K``).
+    Suitable for the type of a document, or for a principal diagnosis (`dp`).
+
+    Parameters
+    ----------
+    loss : {"ce", "focal"}, default="ce"
+        Cross-entropy, or focal loss to down-weight the frequent classes of a
+        long-tailed label distribution.
     """
 
     multilabel = False

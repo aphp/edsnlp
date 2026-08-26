@@ -63,10 +63,13 @@ class TrainableDocClassifier(
     embedding, and stores the prediction in a `Doc._` extension.
 
     Most of the time you want to predict **one** attribute, and the component is
-    configured with a single *head*: `eds.single_label_head` when a document has
-    exactly one label, `eds.multi_label_head` when it has a variable-length set
-    of them. Heads can then be combined to predict several attributes at once,
-    over a shared embedding — see [Multiple heads](#multiple-heads) below.
+    configured with a single *head*:
+    [`eds.single_label_head`][edsnlp.pipes.trainable.doc_classifier.heads.SingleLabelHead]
+    when a document has exactly one label,
+    [`eds.multi_label_head`][edsnlp.pipes.trainable.doc_classifier.heads.MultiLabelHead]
+    when it has a variable-length set of them. Heads can then be combined to
+    predict several attributes at once, over a shared embedding — see
+    [Multiple heads](#multiple-heads) below.
 
     Architecture
     ------------
@@ -225,7 +228,9 @@ class TrainableDocClassifier(
     heads : Dict[str, ClassificationHead]
         The heads of the classifier, keyed by the name of the `Doc._` attribute
         each one fills in. A single entry is the common case; see
-        [Multiple heads](#multiple-heads).
+        [Multiple heads](#multiple-heads). Every head also accepts the usual
+        [head options][edsnlp.pipes.trainable.doc_classifier.heads.ClassificationHead]:
+        a label set, an optional hidden block, class weights and a loss weight.
 
     Authors and citation
     --------------------

@@ -125,6 +125,14 @@ We also provide tutorials on how to train deep-learning models with EDS-NLP. The
     ---
     Learn how to quickly train a biopsy date classifier model model with `edsnlp.train`.
 
+=== card {: href=/tutorials/training-doc-classifier }
+
+    :fontawesome-regular-file-lines:
+    **Training a Document Classifier model**
+
+    ---
+    Learn how to classify whole documents — their type, their diagnoses — with `edsnlp.train`.
+
 === card {: href=/tutorials/tuning }
 
     :fontawesome-solid-gears:

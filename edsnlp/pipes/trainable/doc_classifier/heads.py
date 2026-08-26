@@ -290,8 +290,6 @@ class SingleLabelHead(ClassificationHead):
     Single-label (multi-class) head. Each document has exactly one label for
     this head. Uses cross-entropy or focal loss and decodes via ``argmax``.
 
-    Suitable for the type of a document, or for a principal diagnosis (`dp`).
-
     Parameters
     ----------
     loss : {"ce", "focal"}, default="ce"
@@ -343,8 +341,6 @@ class MultiLabelHead(ClassificationHead):
     Multi-label head. Each document has a (variable-length) set of labels for
     this head. Uses ``BCEWithLogitsLoss`` and decodes by keeping every label
     whose probability exceeds ``threshold``.
-
-    Suitable for associated diagnoses (`das`).
 
     Parameters
     ----------

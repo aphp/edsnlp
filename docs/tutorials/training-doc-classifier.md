@@ -68,13 +68,33 @@ uv pip install -e . --group dev
 
 Document-level labels don't fit the [standoff format](https://brat.nlplab.org/standoff), which annotates offsets inside a text. We'll store them next to the text instead, in a JSONL file — one JSON object per line — which `edsnlp.data.read_json` reads and the `eds.omop_dict2doc` converter turns into `Doc` objects:
 
-```json { title="dataset/train.jsonl" }
-{"note_id": "1", "note_text": "Le patient a été hospitalisé du 12/03 au 18/03 …", "doc_type": "compte_rendu_hospitalisation"}
-{"note_id": "2", "note_text": "Consultation de suivi. Le patient va bien …", "doc_type": "compte_rendu_consultation"}
-{"note_id": "3", "note_text": "Hémoglobine 12.4 g/dL, leucocytes 7.2 G/L …", "doc_type": "compte_rendu_biologie"}
+```json { title="dataset/doc_types_train.jsonl" }
+{"note_id": "1", "note_text": "CONSULTATION DU 07/03/2025\nMotif : réévaluation d'une dyspnée d'effort. …", "doc_type": "compte_rendu_consultation"}
+{"note_id": "2", "note_text": "RÉSULTATS DE BIOLOGIE — prélèvement du 14/05/2025\nHémogramme : hémoglobine 14,9 g/dL …", "doc_type": "compte_rendu_biologie"}
 ```
 
-Any column listed in `doc_attributes` is copied to the matching `Doc._` extension, so `doc_type` above becomes `doc._.doc_type`. The same mechanism works for a *list* of labels, which is what we'll use in the second part of this tutorial. Split your notes into a `dataset/train.jsonl` and a `dataset/dev.jsonl` file, and you're ready to train.
+Any column listed in `doc_attributes` is copied to the matching `Doc._` extension, so `doc_type` above becomes `doc._.doc_type`. The same mechanism works for a *list* of labels, which is what we'll use in the second part of this tutorial.
+
+We'll use a small synthetic corpus of French clinical notes, available under the [`tests/training/dataset_3`](https://github.com/aphp/edsnlp/tree/master/tests/training/dataset_3) directory of EDS-NLP's repository. To use it, download and copy it into a local `dataset` directory:
+
+- You can clone the repository and copy it yourself, or
+- Use this direct downloader [link](https://download-directory.github.io/?url=https%3A%2F%2Fgithub.com%2Faphp%2Fedsnlp%2Ftree%2Fmaster%2Ftests%2Ftraining%2Fdataset_3) and unzip the downloaded archive.
+
+It holds five files, one train/dev pair per use case:
+
+| File | Documents | Annotated with |
+|---|---|---|
+| `doc_types_train.jsonl` | 60 | `doc_type` |
+| `doc_types_dev.jsonl` | 16 | `doc_type` |
+| `coding_train.jsonl` | 60 | `dp`, `das`, `das_count` |
+| `coding_dev.jsonl` | 15 | `dp`, `das`, `das_count` |
+| `coding_dp_only.jsonl` | 30 | `dp` only — used to illustrate partial supervision |
+
+!!! warning "A toy corpus"
+
+    These notes are synthetic and were generated from a handful of templates, so a model will
+    fit them very quickly and reach scores that mean nothing. They are here to make the code
+    below runnable end to end, not to benchmark anything.
 
 !!! note "Other formats"
 
@@ -92,8 +112,8 @@ Note that we do not list the labels: left out, they are inferred from the traini
 
     ```yaml { title="configs/doc_type.yml" }
     vars:
-      train: './dataset/train.jsonl'
-      dev: './dataset/dev.jsonl'
+      train: './dataset/doc_types_train.jsonl'
+      dev: './dataset/doc_types_dev.jsonl'
 
     # 🤖 PIPELINE DEFINITION
     nlp:
@@ -171,7 +191,7 @@ Note that we do not list the labels: left out, they are inferred from the traini
       nlp: ${nlp}
       train_data: ${train_data}
       val_data: ${val_data}
-      max_steps: 1000
+      max_steps: 400
       validation_interval: 100
       max_grad_norm: 1.0
       scorer: ${scorer}
@@ -235,13 +255,13 @@ Note that we do not list the labels: left out, they are inferred from the traini
 
     # 📚 DATA
     train_docs = edsnlp.data.read_json(
-        "./dataset/train.jsonl",
+        "./dataset/doc_types_train.jsonl",
         converter="omop",
         # Copy the `doc_type` column to `doc._.doc_type`
         doc_attributes=["doc_type"],
     )
     val_docs = edsnlp.data.read_json(
-        "./dataset/dev.jsonl",
+        "./dataset/doc_types_dev.jsonl",
         converter="omop",
         doc_attributes=["doc_type"],
     )
@@ -283,7 +303,7 @@ Note that we do not list the labels: left out, they are inferred from the traini
         val_data=val_docs,
         scorer={"classif": metric},
         optimizer=optimizer,
-        max_steps=1000,
+        max_steps=400,
         validation_interval=100,
         grad_max_norm=1.0,
         num_workers=0,
@@ -309,18 +329,18 @@ That's the whole single-head story. Swapping `eds.single_label_head` for `eds.mu
 
 ## Several heads: coding a stay with its DP and DAS
 
-French hospital stays are coded with exactly one **principal diagnosis** (*diagnostic principal*, DP) and a variable number of **associated diagnoses** (*diagnostics associés significatifs*, DAS), all ICD-10 codes. That's two different problems on the same note: a single-label one and a multi-label one. Rather than training two models, we give the classifier two heads over a **shared document embedding**, computed once.
+French hospital stays are coded with exactly one **principal diagnosis** (*diagnostic principal*, DP) and a variable number of **associated diagnoses** (*diagnostics associés*, DAS), all ICD-10 codes. That's two different problems on the same note: a single-label one and a multi-label one. Rather than training two models, we give the classifier two heads over a **shared document embedding**, computed once.
 
 A multi-label head must also decide *how many* labels to keep. Two strategies are available:
 
 - `selection="threshold"` keeps every label whose probability exceeds `threshold` ;
 - `selection="topk"` keeps the `k` best labels, `k` being predicted by a companion single-label head whose labels are the integers `0..K`. Point the multi-label head at it with `count_head`.
 
-We'll use the second one, which needs a third head, `das_count`. Our dataset therefore carries three columns:
+We'll use the second one, which needs a third head, `das_count`. `coding_train.jsonl` therefore carries three columns:
 
-```json { title="dataset/train.jsonl" }
-{"note_id": "1", "note_text": "…", "dp": "C34.1", "das": ["E11.9", "I10"], "das_count": 2}
-{"note_id": "2", "note_text": "…", "dp": "I21.9", "das": [], "das_count": 0}
+```json { title="dataset/coding_train.jsonl" }
+{"note_id": "201", "note_text": "COMPTE RENDU D'HOSPITALISATION — séjour du 23/04/2025 au 28/04/2025\nExacerbation aiguë d'une BPCO connue …\nAntécédents : Tabagisme sevré depuis deux ans, 25 paquets-années.", "dp": "J44.0", "das": ["F17.2"], "das_count": 1}
+{"note_id": "202", "note_text": "COMPTE RENDU D'HOSPITALISATION — séjour du 05/02/2025 au 12/02/2025\nColique hépatique fébrile …\nAntécédents : Pas d'antécédent notable.", "dp": "K80.2", "das": [], "das_count": 0}
 ```
 
 `das_count` is just `len(das)`, clipped to the largest count you want the model to predict — hence the explicit `labels: [0, 1, 2, 3]` on that head below, so that a count never seen in training still exists as a class.
@@ -329,8 +349,8 @@ We'll use the second one, which needs a third head, `das_count`. Our dataset the
 
     ```yaml { title="configs/coding.yml" }
     vars:
-      train: './dataset/train.jsonl'
-      dev: './dataset/dev.jsonl'
+      train: './dataset/coding_train.jsonl'
+      dev: './dataset/coding_dev.jsonl'
 
     # 🤖 PIPELINE DEFINITION
     nlp:
@@ -422,8 +442,8 @@ We'll use the second one, which needs a third head, `das_count`. Our dataset the
       nlp: ${nlp}
       train_data: ${train_data}
       val_data: ${val_data}
-      max_steps: 2000
-      validation_interval: 200
+      max_steps: 600
+      validation_interval: 150
       max_grad_norm: 1.0
       scorer: ${scorer}
       num_workers: 1
@@ -500,12 +520,12 @@ We'll use the second one, which needs a third head, `das_count`. Our dataset the
 
     # 📚 DATA
     train_docs = edsnlp.data.read_json(
-        "./dataset/train.jsonl",
+        "./dataset/coding_train.jsonl",
         converter="omop",
         doc_attributes=["dp", "das", "das_count"],
     )
     val_docs = edsnlp.data.read_json(
-        "./dataset/dev.jsonl",
+        "./dataset/coding_dev.jsonl",
         converter="omop",
         doc_attributes=["dp", "das", "das_count"],
     )
@@ -547,8 +567,8 @@ We'll use the second one, which needs a third head, `das_count`. Our dataset the
         val_data=val_docs,
         scorer={"codes": metric},
         optimizer=optimizer,
-        max_steps=2000,
-        validation_interval=200,
+        max_steps=600,
+        validation_interval=150,
         grad_max_norm=1.0,
         num_workers=0,
         output_dir="artifacts",
@@ -582,7 +602,7 @@ We'll use the second one, which needs a third head, `das_count`. Our dataset the
             ),
             TrainingData(
                 data=edsnlp.data.read_json(
-                    "./dataset/dp_only.jsonl",
+                    "./dataset/coding_dp_only.jsonl",
                     converter="omop",
                     doc_attributes=["dp"],  # nothing else is annotated
                 ),
@@ -607,7 +627,12 @@ import edsnlp
 
 nlp = edsnlp.load("artifacts/model-last")
 
-doc = nlp("Le patient a été hospitalisé pour une décompensation cardiaque …")
+doc = nlp(
+    "Admission pour douleur thoracique constrictive prolongée. "
+    "La coronarographie retrouve une occlusion de l'artère interventriculaire "
+    "antérieure, traitée par angioplastie. "
+    "Antécédents : diabète de type 2, hypertension artérielle traitée."
+)
 
 doc._.dp   # (1)!
 doc._.das  # (2)!

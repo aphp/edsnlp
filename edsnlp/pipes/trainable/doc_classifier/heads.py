@@ -23,8 +23,7 @@ registered under `registry.misc` so they can be instantiated from a config
         '@misc': eds.multi_label_head
         labels: .../valid_labels_das.pkl
         loss: bce
-        selection: topk
-        count_head: das_count
+        threshold: 0.5
 """
 
 from __future__ import annotations
@@ -336,21 +335,15 @@ class SingleLabelHead(ClassificationHead):
 class MultiLabelHead(ClassificationHead):
     """
     Multi-label head. Each document has a (variable-length) set of labels for
-    this head. Uses ``BCEWithLogitsLoss`` and decodes either by thresholding
-    the per-class probabilities or by selecting the top-``k`` logits, where
-    ``k`` is supplied by a companion count head.
+    this head. Uses ``BCEWithLogitsLoss`` and decodes by keeping every label
+    whose probability exceeds ``threshold``.
 
     Suitable for associated diagnoses (`das`).
 
     Parameters
     ----------
-    selection : {"threshold", "topk"}, default="threshold"
-        How to turn logits into a label set at inference.
     threshold : float, default=0.5
-        Probability threshold used when ``selection == "threshold"``.
-    count_head : str, optional
-        Name of the head whose prediction gives the number of labels ``k`` when
-        ``selection == "topk"``.
+        Probability threshold above which a label is kept.
     """
 
     multilabel = True

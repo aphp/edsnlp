@@ -164,16 +164,10 @@ class TrainableDocClassifier(
     document embedding, which is computed once and shared. This is cheaper than
     running two pipelines, and lets the tasks regularize each other.
 
-    Two mechanisms are worth knowing about:
-
-    - **Partial supervision.** A document whose gold value is `None` for a head
-      simply does not supervise it. A corpus annotated only for the principal
-      diagnosis can therefore be mixed, in the same training run, with one
-      annotated for everything.
-    - **Count heads.** Rather than a fixed `threshold`, a multi-label head can
-      keep its top-`k` labels, `k` being predicted by a companion single-label
-      head whose labels are the integers `0..K`. Point the multi-label head at
-      it with `count_head`, and set `selection="topk"`.
+    **Partial supervision** is what makes this practical: a document whose gold
+    value is `None` for a head simply does not supervise it. A corpus annotated
+    only for the principal diagnosis can therefore be mixed, in the same
+    training run, with one annotated for everything.
 
     ```{ .python }
     import edsnlp, edsnlp.pipes as eds
@@ -196,19 +190,11 @@ class TrainableDocClassifier(
             heads={
                 # the principal diagnosis: exactly one per document
                 "dp": SingleLabelHead(labels=["C34", "I21"], loss="ce"),
-                # the associated diagnoses: as many as `das_count` predicts
+                # the associated diagnoses: a set, of any size
                 "das": MultiLabelHead(
                     labels=["E11", "I10", "N18"],
                     loss="bce",
-                    selection="topk",
-                    count_head="das_count",
-                    loss_weight=1.0,
-                ),
-                # how many associated diagnoses to keep
-                "das_count": SingleLabelHead(
-                    labels=[0, 1, 2, 3],
-                    loss="ce",
-                    loss_weight=0.5,
+                    threshold=0.5,
                 ),
             },
         ),
@@ -216,8 +202,8 @@ class TrainableDocClassifier(
     )
 
     doc = nlp("Compte rendu d'hospitalisation.")
-    print(len(doc._.das) == int(doc._.das_count))
-    # Out: True
+    print(doc._.dp in ["C34", "I21"], isinstance(doc._.das, list))
+    # Out: True True
     ```
 
     Extensions
@@ -227,13 +213,6 @@ class TrainableDocClassifier(
 
     - `doc._.<head>`: the label predicted by the head, a string for a
     single-label head and a list of strings for a multi-label one.
-
-    Multi-label heads declare a second extension:
-
-    - `doc._.<head>_alt`: the labels the head would have predicted with the
-    *other* selection strategy (`topk` if `selection="threshold"`, and
-    conversely). It lets both strategies be scored from a single inference pass,
-    without retraining.
 
     Parameters
     ----------

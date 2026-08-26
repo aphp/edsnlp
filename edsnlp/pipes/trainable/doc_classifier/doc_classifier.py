@@ -294,7 +294,7 @@ class TrainableDocClassifier(
         for head_name in self.head_names:
             if not Doc.has_extension(head_name):
                 Doc.set_extension(head_name, default=None)
-        # Secondary extension to compare the alternative DAS selection strategy.
+        # Secondary extension to compare selection strategy (multi-label only).
         for head_name in getattr(self, "_multilabel_names", []):
             alt = f"{head_name}_alt"
             if not Doc.has_extension(alt):
@@ -453,7 +453,7 @@ class TrainableDocClassifier(
 
         logits = {name: t.detach().cpu() for name, t in logits.items()}
 
-        # Single-label heads (incl. count heads) decode independently.
+        # Single-label heads decode independently.
         decoded: Dict[str, List] = {}
         counts: Dict[str, List[int]] = {}
         for head_name, head in self.heads.items():

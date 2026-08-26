@@ -8,6 +8,27 @@ We'll go through three use cases, from the most common to the most involved:
 - a **single head** predicting a *set* of labels per document — the diagnoses associated with a hospital stay ;
 - **several heads** sharing one document embedding, to predict both at once.
 
+## How the pieces fit together
+
+Every model below is built from the same three layers, nested inside one another in the configs:
+
+1. **A transformer** ([`eds.transformer`][edsnlp.pipes.trainable.embeddings.transformer.factory.create_component]) reads the note and produces one vector **per word**. On a long note that's thousands of vectors — far too many to classify a document with.
+2. **A document pooler** ([`eds.doc_pooler`][edsnlp.pipes.trainable.embeddings.doc_pooler.factory.create_component]) collapses them into a **single vector for the whole document**. That's the piece that turns a word-level model into a document-level one. How it collapses them is up to you: average them (`mean`), keep the strongest signal per dimension (`max`), sum them (`sum`), let the model learn which words deserve attention (`attention`), or reuse the transformer's own `[CLS]` vector (`cls`).
+3. **One or more heads** ([`eds.doc_classifier`][edsnlp.pipes.trainable.doc_classifier.factory.create_component]) turn that vector into the predicted label(s), and write them to a `Doc._` extension.
+
+Only the last two are specific to document classification; the transformer is the same one the NER and span-classifier tutorials use. In a config the three are nested, so a pipeline reads inside-out — a classifier wrapping a pooler wrapping a transformer:
+
+```yaml
+doc_classifier:              # 3. heads -> doc._.<attribute>
+  '@factory': eds.doc_classifier
+  embedding:
+    '@factory': eds.doc_pooler   # 2. one vector per document
+    embedding:
+      '@factory': eds.transformer  # 1. one vector per word
+```
+
+`mean` is a solid default for the pooler. `attention` usually helps on long notes, where a handful of sentences carry the label and the rest dilutes it. `cls` is only available on top of `eds.transformer`, since it reuses a vector that model computes for itself.
+
 !!! warning "Hardware requirements"
 
     Training modern deep-learning models is compute-intensive. A GPU with **≥ 16 GB VRAM** is recommended. Training on CPU is possible but much slower. On macOS, PyTorch's MPS backend may not support all operations and you'll likely hit `NotImplementedError` messages : in this case, fall back to CPU using the `cpu=True` option.
@@ -202,10 +223,8 @@ Beyond `labels` and `loss`, a head takes an optional hidden block, a dropout rat
       output_dir: 'artifacts'
     ```
 
-    1. `eds.doc_pooler` supports `mean`, `max`, `sum`, `attention` and `cls`. `mean` is a solid
-    default ; `attention` learns which words matter and usually helps on long notes ; `cls`
-    reuses the transformer's own `[CLS]` vector, and therefore requires `eds.transformer` as the
-    underlying embedding.
+    1. How the per-word vectors are collapsed into a single document vector — see
+    [How the pieces fit together](#how-the-pieces-fit-together).
     2. What does "draft" mean here ? We'll let the train function pass the nlp object
     to the optimizer after it has been been `post_init`'ed : `post_init` is the operation that
     looks at some data, finds how many label the model must learn, and updates the model weights
@@ -315,10 +334,8 @@ Beyond `labels` and `loss`, a head takes an optional hidden block, a dropout rat
     )
     ```
 
-    1. `eds.doc_pooler` supports `mean`, `max`, `sum`, `attention` and `cls`. `mean` is a solid
-    default ; `attention` learns which words matter and usually helps on long notes ; `cls`
-    reuses the transformer's own `[CLS]` vector, and therefore requires `eds.transformer` as the
-    underlying embedding.
+    1. How the per-word vectors are collapsed into a single document vector — see
+    [How the pieces fit together](#how-the-pieces-fit-together).
     2. What does "draft" mean here ? We'll let the train function pass the nlp object
     to the optimizer after it has been been `post_init`'ed : `post_init` is the operation that
     looks at some data, finds how many label the model must learn, and updates the model weights

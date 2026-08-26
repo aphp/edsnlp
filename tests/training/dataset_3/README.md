@@ -9,8 +9,8 @@ real patient data, and the scores obtained on them are not meaningful.
 |---|---|---|
 | `doc_types_train.jsonl` | 60 | `doc_type` |
 | `doc_types_dev.jsonl` | 16 | `doc_type` |
-| `coding_train.jsonl` | 60 | `dp`, `das`, `das_count` |
-| `coding_dev.jsonl` | 15 | `dp`, `das`, `das_count` |
+| `coding_train.jsonl` | 60 | `dp`, `das` |
+| `coding_dev.jsonl` | 15 | `dp`, `das` |
 | `coding_dp_only.jsonl` | 30 | `dp` only, to illustrate partial supervision |
 
 Each line is a JSON object with a `note_id`, a `note_text` and the annotated

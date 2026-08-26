@@ -86,8 +86,8 @@ It holds five files, one train/dev pair per use case:
 |---|---|---|
 | `doc_types_train.jsonl` | 60 | `doc_type` |
 | `doc_types_dev.jsonl` | 16 | `doc_type` |
-| `coding_train.jsonl` | 60 | `dp`, `das`, `das_count` |
-| `coding_dev.jsonl` | 15 | `dp`, `das`, `das_count` |
+| `coding_train.jsonl` | 60 | `dp`, `das` |
+| `coding_dev.jsonl` | 15 | `dp`, `das` |
 | `coding_dp_only.jsonl` | 30 | `dp` only — used to illustrate partial supervision |
 
 !!! warning "A toy corpus"
@@ -331,19 +331,14 @@ That's the whole single-head story. Swapping `eds.single_label_head` for `eds.mu
 
 French hospital stays are coded with exactly one **principal diagnosis** (*diagnostic principal*, DP) and a variable number of **associated diagnoses** (*diagnostics associés*, DAS), all ICD-10 codes. That's two different problems on the same note: a single-label one and a multi-label one. Rather than training two models, we give the classifier two heads over a **shared document embedding**, computed once.
 
-A multi-label head must also decide *how many* labels to keep. Two strategies are available:
+The multi-label head decides on its own *how many* labels to predict: it keeps every label whose probability exceeds `threshold`, so a note with no relevant comorbidity gets an empty list, and one with three gets three. `threshold` is worth tuning on your dev set — lower it to favour recall, raise it to favour precision.
 
-- `selection="threshold"` keeps every label whose probability exceeds `threshold` ;
-- `selection="topk"` keeps the `k` best labels, `k` being predicted by a companion single-label head whose labels are the integers `0..K`. Point the multi-label head at it with `count_head`.
-
-We'll use the second one, which needs a third head, `das_count`. `coding_train.jsonl` therefore carries three columns:
+`coding_train.jsonl` therefore carries two label columns, a string for the DP and a list for the DAS:
 
 ```json { title="dataset/coding_train.jsonl" }
-{"note_id": "201", "note_text": "COMPTE RENDU D'HOSPITALISATION — séjour du 23/04/2025 au 28/04/2025\nExacerbation aiguë d'une BPCO connue …\nAntécédents : Tabagisme sevré depuis deux ans, 25 paquets-années.", "dp": "J44.0", "das": ["F17.2"], "das_count": 1}
-{"note_id": "202", "note_text": "COMPTE RENDU D'HOSPITALISATION — séjour du 05/02/2025 au 12/02/2025\nColique hépatique fébrile …\nAntécédents : Pas d'antécédent notable.", "dp": "K80.2", "das": [], "das_count": 0}
+{"note_id": "201", "note_text": "COMPTE RENDU D'HOSPITALISATION — séjour du 23/04/2025 au 28/04/2025\nExacerbation aiguë d'une BPCO connue …\nAntécédents : Tabagisme sevré depuis deux ans, 25 paquets-années.", "dp": "J44.0", "das": ["F17.2"]}
+{"note_id": "202", "note_text": "COMPTE RENDU D'HOSPITALISATION — séjour du 05/02/2025 au 12/02/2025\nColique hépatique fébrile …\nAntécédents : Pas d'antécédent notable.", "dp": "K80.2", "das": []}
 ```
-
-`das_count` is just `len(das)`, clipped to the largest count you want the model to predict — hence the explicit `labels: [0, 1, 2, 3]` on that head below, so that a count never seen in training still exists as a class.
 
 === "From the command line"
 
@@ -378,21 +373,13 @@ We'll use the second one, which needs a third head, `das_count`. `coding_train.j
               hidden_size: 256
               dropout_rate: 0.1
 
-            # The associated diagnoses: as many as `das_count` predicts
+            # The associated diagnoses: a set, of any size
             das:
               '@misc': eds.multi_label_head
               loss: 'bce'
-              selection: 'topk'
-              count_head: 'das_count'
+              threshold: 0.5  # (2)!
               hidden_size: 256
               dropout_rate: 0.1
-
-            # How many associated diagnoses to keep
-            das_count:
-              '@misc': eds.single_label_head
-              labels: [ 0, 1, 2, 3 ]
-              loss: 'ce'
-              loss_weight: 0.5  # (2)!
 
     # 📈 SCORER
     scorer:
@@ -425,7 +412,7 @@ We'll use the second one, which needs a third head, `das_count`. `coding_train.j
           path: ${vars.train}
           converter:
             - '@factory': eds.omop_dict2doc
-              doc_attributes: [ 'dp', 'das', 'das_count' ]
+              doc_attributes: [ 'dp', 'das' ]
         shuffle: dataset
         batch_size: 8 docs
         pipe_names: [ "coder" ]
@@ -435,7 +422,7 @@ We'll use the second one, which needs a third head, `das_count`. `coding_train.j
       path: ${vars.dev}
       converter:
         - '@factory': eds.omop_dict2doc
-          doc_attributes: [ 'dp', 'das', 'das_count' ]
+          doc_attributes: [ 'dp', 'das' ]
 
     # 🚀 TRAIN SCRIPT OPTIONS
     train:
@@ -454,8 +441,9 @@ We'll use the second one, which needs a third head, `das_count`. `coding_train.j
     frequent codes so that the rare ones keep contributing to the gradient. Class weights are
     available too, through the `class_weights` argument — a label → frequency mapping, or the
     path to a pickled one.
-    2. Each head contributes its loss to a weighted mean. Counting the diagnoses is an auxiliary
-    task here, so we let it weigh half as much as the diagnoses themselves.
+    2. The decision threshold above which a diagnosis is kept. Lower it to favour recall,
+    raise it to favour precision — it costs nothing to re-tune on the dev set after training,
+    since it only affects decoding.
 
     And train the model:
 
@@ -496,19 +484,12 @@ We'll use the second one, which needs a third head, `das_count`. `coding_train.j
                     hidden_size=256,
                     dropout_rate=0.1,
                 ),
-                # The associated diagnoses: as many as `das_count` predicts
+                # The associated diagnoses: a set, of any size
                 "das": MultiLabelHead(
                     loss="bce",
-                    selection="topk",
-                    count_head="das_count",
+                    threshold=0.5,  # (2)!
                     hidden_size=256,
                     dropout_rate=0.1,
-                ),
-                # How many associated diagnoses to keep
-                "das_count": SingleLabelHead(
-                    labels=[0, 1, 2, 3],
-                    loss="ce",
-                    loss_weight=0.5,  # (2)!
                 ),
             },
         ),
@@ -522,12 +503,12 @@ We'll use the second one, which needs a third head, `das_count`. `coding_train.j
     train_docs = edsnlp.data.read_json(
         "./dataset/coding_train.jsonl",
         converter="omop",
-        doc_attributes=["dp", "das", "das_count"],
+        doc_attributes=["dp", "das"],
     )
     val_docs = edsnlp.data.read_json(
         "./dataset/coding_dev.jsonl",
         converter="omop",
-        doc_attributes=["dp", "das", "das_count"],
+        doc_attributes=["dp", "das"],
     )
 
     # 🎛️ OPTIMIZER
@@ -580,8 +561,9 @@ We'll use the second one, which needs a third head, `das_count`. `coding_train.j
     frequent codes so that the rare ones keep contributing to the gradient. Class weights are
     available too, through the `class_weights` argument — a label → frequency mapping, or the
     path to a pickled one.
-    2. Each head contributes its loss to a weighted mean. Counting the diagnoses is an auxiliary
-    task here, so we let it weigh half as much as the diagnoses themselves.
+    2. The decision threshold above which a diagnosis is kept. Lower it to favour recall,
+    raise it to favour precision — it costs nothing to re-tune on the dev set after training,
+    since it only affects decoding.
 
 !!! tip "Mixing partially annotated corpora"
 
@@ -595,7 +577,7 @@ We'll use the second one, which needs a third head, `das_count`. `coding_train.j
         nlp=nlp,
         train_data=[
             TrainingData(
-                data=train_docs,  # annotated with dp, das and das_count
+                data=train_docs,  # annotated with both dp and das
                 batch_size="8 docs",
                 pipe_names=["coder"],
                 shuffle="dataset",
@@ -639,9 +621,7 @@ doc._.das  # (2)!
 ```
 
 1. `'I21.9'` — a single code, since `dp` is a single-label head.
-2. `['E11.9', 'I10']` — a list, whose length is what the `das_count` head predicted.
-
-Multi-label heads also expose a `doc._.<head>_alt` extension, holding what the *other* selection strategy would have predicted (`threshold` when the head is configured with `topk`, and conversely). It lets you compare both decodings from a single inference pass, without retraining.
+2. `['E11.9', 'I10']` — a list, holding every code whose probability passed the threshold.
 
 To run the model over a whole corpus, use the [stream API](../concepts/inference.md):
 

@@ -2,10 +2,11 @@
 
 In this tutorial, we'll train **document-level classifiers** with EDS-NLP using the `edsnlp.train` API. Unlike a NER or a span classifier, which label *parts* of a document, a document classifier reads the whole note and predicts an attribute of the document itself: its type, the diagnoses it should be coded with, the topics it covers.
 
-We'll go through two use cases:
+We'll go through three use cases, from the most common to the most involved:
 
-- a **single head**, predicting the type of a document — the most common case ;
-- **several heads** sharing a single document embedding, to code a hospital stay with its principal diagnosis (DP) and its associated diagnoses (DAS).
+- a **single head** predicting one label per document — its type ;
+- a **single head** predicting a *set* of labels per document — the diagnoses associated with a hospital stay ;
+- **several heads** sharing one document embedding, to predict both at once.
 
 !!! warning "Hardware requirements"
 
@@ -100,9 +101,9 @@ It holds five files, one train/dev pair per use case:
 
     JSONL is convenient, but nothing here is specific to it: any [reader](../data/index.md) producing dicts with a `note_text` key will do, including `edsnlp.data.read_parquet` and `edsnlp.data.from_pandas`. On a large corpus, Parquet is usually the better choice.
 
-## A single head: predicting the document type
+## A single head, one label per document
 
-A document has exactly one type, so this is a **single-label** problem: we use one `eds.single_label_head`, keyed by the name of the attribute it fills in.
+We start by predicting the **type** of a document. A note has exactly one, so this is a **single-label** problem: we use one `eds.single_label_head`, keyed by the name of the attribute it fills in.
 
 Note that we do not list the labels: left out, they are inferred from the training data when `nlp.post_init(...)` is called by `train`. Pass `labels=[...]` explicitly if you'd rather pin them down — or a path to a pickled list, which is handier when there are thousands of them.
 
@@ -325,20 +326,180 @@ Note that we do not list the labels: left out, they are inferred from the traini
     a "Draft", which will be instantiated inside the `train` function, once all the required
     parameters are set.
 
-That's the whole single-head story. Swapping `eds.single_label_head` for `eds.multi_label_head` is all it takes to move to an attribute that holds a *set* of labels — the topics a note covers, say — the gold column becoming a JSON list instead of a string.
+That's the whole single-label story.
 
-## Several heads: coding a stay with its DP and DAS
+## A single head, several labels at once
 
-French hospital stays are coded with exactly one **principal diagnosis** (*diagnostic principal*, DP) and a variable number of **associated diagnoses** (*diagnostics associés*, DAS), all ICD-10 codes. That's two different problems on the same note: a single-label one and a multi-label one. Rather than training two models, we give the classifier two heads over a **shared document embedding**, computed once.
+Plenty of document-level attributes hold a *set* of labels rather than one: the topics a note covers, the body sites it mentions, the comorbidities it documents. That is still **one head** — you only swap `eds.single_label_head` for `eds.multi_label_head`.
 
-The multi-label head decides on its own *how many* labels to predict: it keeps every label whose probability exceeds `threshold`, so a note with no relevant comorbidity gets an empty list, and one with three gets three. `threshold` is worth tuning on your dev set — lower it to favour recall, raise it to favour precision.
+The head then trains with a binary cross-entropy instead of a cross-entropy, and decides on its own *how many* labels to predict: it keeps every label whose probability exceeds `threshold`. A note with no relevant label gets an empty list, one with three gets three. `threshold` is worth tuning on your dev set — lower it to favour recall, raise it to favour precision. On the gold side, the only difference is that the column holds a JSON list instead of a string.
 
-`coding_train.jsonl` therefore carries two label columns, a string for the DP and a list for the DAS:
+The second corpus you downloaded has such a column. `coding_train.jsonl` lists, for each hospital stay, the **associated diagnoses** (*diagnostics associés*, DAS) coded alongside the main one — between zero and three ICD-10 codes per note:
 
 ```json { title="dataset/coding_train.jsonl" }
 {"note_id": "201", "note_text": "COMPTE RENDU D'HOSPITALISATION — séjour du 23/04/2025 au 28/04/2025\nExacerbation aiguë d'une BPCO connue …\nAntécédents : Tabagisme sevré depuis deux ans, 25 paquets-années.", "dp": "J44.0", "das": ["F17.2"]}
 {"note_id": "202", "note_text": "COMPTE RENDU D'HOSPITALISATION — séjour du 05/02/2025 au 12/02/2025\nColique hépatique fébrile …\nAntécédents : Pas d'antécédent notable.", "dp": "K80.2", "das": []}
 ```
+
+We ignore its `dp` column for now — the next section picks it up. Note that this config declares no optimizer: left out, `train` builds a sensible default one.
+
+=== "From the command line"
+
+    ```yaml { title="configs/das.yml" }
+    vars:
+      train: './dataset/coding_train.jsonl'
+      dev: './dataset/coding_dev.jsonl'
+
+    # 🤖 PIPELINE DEFINITION
+    nlp:
+      '@core': pipeline
+      lang: eds
+
+      components:
+        doc_classifier:
+          '@factory': eds.doc_classifier
+          embedding:
+            '@factory': eds.doc_pooler
+            pooling_mode: 'mean'
+            embedding:
+              '@factory': eds.transformer
+              model: 'almanach/camembert-bio-base'
+              window: 128
+              stride: 96
+          heads:
+            # The only change: a multi-label head, writing to `doc._.das`
+            das:
+              '@misc': eds.multi_label_head
+              loss: 'bce'
+              threshold: 0.5  # (1)!
+              dropout_rate: 0.1
+
+    # 📈 SCORER
+    scorer:
+      classif:
+        '@metrics': eds.doc_classification
+        label_attr: [ 'das' ]
+
+    # 📚 DATA
+    train_data:
+      - data:
+          '@readers': json
+          path: ${vars.train}
+          converter:
+            - '@factory': eds.omop_dict2doc
+              # The column holds a list; `doc._.das` will too
+              doc_attributes: [ 'das' ]
+        shuffle: dataset
+        batch_size: 8 docs
+        pipe_names: [ "doc_classifier" ]
+
+    val_data:
+      '@readers': json
+      path: ${vars.dev}
+      converter:
+        - '@factory': eds.omop_dict2doc
+          doc_attributes: [ 'das' ]
+
+    # 🚀 TRAIN SCRIPT OPTIONS
+    train:
+      nlp: ${nlp}
+      train_data: ${train_data}
+      val_data: ${val_data}
+      max_steps: 400
+      validation_interval: 100
+      max_grad_norm: 1.0
+      scorer: ${scorer}
+      num_workers: 1
+      output_dir: 'artifacts'
+    ```
+
+    1. The decision threshold above which a label is kept. It only affects decoding, so you can
+    re-tune it on the dev set after training, without touching the weights.
+
+    ```bash { data-md-color-scheme="slate" }
+    python -m edsnlp.train --config configs/das.yml --seed 42
+    ```
+
+=== "From a script or a notebook"
+
+    ```python { .no-check }
+    import edsnlp
+    import edsnlp.pipes as eds
+    from edsnlp.metrics.doc_classification import DocClassificationMetric
+    from edsnlp.pipes.trainable.doc_classifier.heads import MultiLabelHead
+    from edsnlp.training import TrainingData, train
+
+    # 🤖 PIPELINE DEFINITION
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(
+        eds.doc_classifier(
+            embedding=eds.doc_pooler(
+                pooling_mode="mean",
+                embedding=eds.transformer(
+                    model="almanach/camembert-bio-base",
+                    window=128,
+                    stride=96,
+                ),
+            ),
+            # The only change: a multi-label head, writing to `doc._.das`
+            heads={
+                "das": MultiLabelHead(
+                    loss="bce",
+                    threshold=0.5,  # (1)!
+                    dropout_rate=0.1,
+                ),
+            },
+        ),
+        name="doc_classifier",
+    )
+
+    # 📚 DATA
+    train_docs = edsnlp.data.read_json(
+        "./dataset/coding_train.jsonl",
+        converter="omop",
+        # The column holds a list; `doc._.das` will too
+        doc_attributes=["das"],
+    )
+    val_docs = edsnlp.data.read_json(
+        "./dataset/coding_dev.jsonl",
+        converter="omop",
+        doc_attributes=["das"],
+    )
+
+    # 🚀 TRAIN
+    train(
+        nlp=nlp,
+        train_data=TrainingData(
+            data=train_docs,
+            batch_size="8 docs",
+            pipe_names=["doc_classifier"],
+            shuffle="dataset",
+        ),
+        val_data=val_docs,
+        scorer={"classif": DocClassificationMetric(label_attr=["das"])},
+        max_steps=400,
+        validation_interval=100,
+        grad_max_norm=1.0,
+        num_workers=0,
+        output_dir="artifacts",
+        # cpu=True,  # (optional) use CPU instead of GPU/MPS
+    )
+    ```
+
+    1. The decision threshold above which a label is kept. It only affects decoding, so you can
+    re-tune it on the dev set after training, without touching the weights.
+
+The prediction is now a list, empty when the model finds nothing above the threshold:
+
+```python { .no-check }
+nlp = edsnlp.load("artifacts/model-last")
+nlp("Antécédents : diabète de type 2, hypertension artérielle traitée.")._.das
+# ['E11.9', 'I10']
+```
+
+## Several heads: predicting the DP and the DAS together
+
+A stay also has exactly one **principal diagnosis** (*diagnostic principal*, DP), which the corpus above carries in its `dp` column. That's a single-label problem sitting on the very same notes as the multi-label one we just trained. Rather than training two models, we add a second head: both read the **same document embedding**, computed once.
 
 === "From the command line"
 

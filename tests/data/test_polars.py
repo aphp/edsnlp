@@ -46,7 +46,10 @@ def test_read_shuffle_loop(num_cpu_workers: int):
             loop=True,
         )
         .map(lambda x: x["note_id"])
-        .set_processing(num_cpu_workers=num_cpu_workers)
+        .set_processing(
+            num_cpu_workers=num_cpu_workers,
+            preserve_output_order=True,
+        )
         for _ in range(2)
     )
     # This test differs from other data rand perm test as polars rng has changed

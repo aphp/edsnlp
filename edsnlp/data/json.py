@@ -93,12 +93,19 @@ class JsonReader(FileBasedReader):
             if not self.loop:
                 break
 
+    def read_tasks(self) -> Iterable[Any]:
+        if self.shuffle == "dataset":
+            yield from self.read_records()
+        else:
+            yield from super().read_tasks()
+
+    def extract_task(self, task: Union[str, Dict]) -> Iterable[Dict]:
+        return [task] if isinstance(task, dict) else self.read_file(task)
+
     def __repr__(self):
         return (
-            f"{self.__class__.__name__}("
-            f"path={self.path!r}, "
-            f"shuffle={self.shuffle}, "
-            f"loop={self.loop})"
+            f"{self.__class__.__name__}(path={self.path!r}, "
+            f"shuffle={self.shuffle}, loop={self.loop})"
         )
 
 
@@ -150,8 +157,8 @@ class JsonWriter(BaseWriter):
 
             elif not overwrite:
                 raise FileExistsError(
-                    f"File {self.path} already exists. Use overwrite=True to write "
-                    "anyway."
+                    f"File {self.path} already exists. "
+                    "Use overwrite=True to write anyway."
                 )
 
         if might_be_file != lines:
@@ -272,9 +279,8 @@ def read_json(
     """
     if "read_in_worker" in kwargs:
         warnings.warn(
-            "The `read_in_worker` parameter of "
-            "edsnlp.data.read_parquet is deprecated and set "
-            "to True by default.",
+            "The `read_in_worker` parameter of edsnlp.data.read_parquet is "
+            "deprecated and set to True by default.",
             FutureWarning,
         )
 

@@ -353,11 +353,14 @@ note_nlp = docs.to_pandas(
 )
 ```
 
-!!! note "Deterministic processing"
+!!! note "Worker assignment and output order"
 
-    By default, from version 0.14.0, EDS-NLP dispatches tasks to workers in a round-robin fashion to ensure deterministic processing. This mechanism can be disabled to send documents to workers as soon as they are available, which may result in faster processing but out-of-order results.
+    By default, EDS-NLP sends each task to the next available CPU worker and returns results as soon as they are ready.
+    This dynamic assignment avoids slow documents blocking a fixed worker task list and usually improves throughput.
 
-    To disable processing determinism, use `set_processing(deterministic=False)`. Note that this parameter is only used when using the `multiprocessing` backend.
+    Use `set_processing(worker_assignment="static", preserve_output_order=True)` when output order matters. Static
+    assignment sends tasks round-robin and ordered output reads each worker task list in the corresponding order. EDS-NLP
+    also selects static assignment automatically when an operation needs dataset or fragment boundaries.
 
 ### In a distributed fashion with spark
 

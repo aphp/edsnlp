@@ -14,7 +14,7 @@ from confit import validate_arguments
 from typing_extensions import Literal
 
 from ..core.stream import Stream
-from ..utils.collections import flatten
+from ..utils.collections import flatten, shuffle
 from ..utils.stream_sentinels import DatasetEndSentinel
 from ..utils.typing import AsList
 from .converters import FILENAME, get_dict2doc_converter, get_doc2dict_converter
@@ -29,6 +29,12 @@ class BaseReader:
 
     def read_records(self) -> Iterable[Any]:
         raise NotImplementedError()
+
+    def read_tasks(self) -> Iterable[Any]:
+        """
+        Yield work descriptions expanded by :meth:`extract_task` in CPU workers
+        """
+        return self.read_records()
 
     def extract_task(self, item):
         return [item]
@@ -52,6 +58,14 @@ class FileBasedReader(BaseReader):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.read_in_worker = True
+
+    def read_tasks(self) -> Iterable[Any]:
+        while True:
+            tasks = shuffle(self.files, self.rng) if self.shuffle else self.files
+            yield from tasks
+            yield DatasetEndSentinel()
+            if not self.loop:
+                break
 
 
 class MemoryBasedReader(BaseReader):

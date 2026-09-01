@@ -89,7 +89,7 @@ def execute_spark_backend(
             df = spark.sparkContext.parallelize(
                 [
                     {"content": pickle.dumps(item, -1)}
-                    for item in reader.read_records()
+                    for item in reader.read_tasks()
                     if not isinstance(item, StreamSentinel)
                 ]
             ).toDF(T.StructType([T.StructField("content", T.BinaryType())]))

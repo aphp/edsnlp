@@ -152,12 +152,16 @@ class ConllReader(FileBasedReader):
             if not self.loop:
                 break
 
+    def extract_task(self, file: str) -> Iterable[Dict]:
+        for anns in parse_conll(file, cols=self.columns, fs=self.fs):
+            anns[FILENAME] = os.path.relpath(file, self.path).rsplit(".", 1)[0]
+            anns["doc_id"] = anns[FILENAME]
+            yield anns
+
     def __repr__(self):
         return (
-            f"{self.__class__.__name__}("
-            f"path={self.path!r}, "
-            f"shuffle={self.shuffle}, "
-            f"loop={self.loop})"
+            f"{self.__class__.__name__}(path={self.path!r}, "
+            f"shuffle={self.shuffle}, loop={self.loop})"
         )
 
 

@@ -44,7 +44,10 @@ def test_read_shuffle_loop(num_cpu_workers: int):
             loop=True,
         )
         .map(lambda x: x["note_id"])
-        .set_processing(num_cpu_workers=num_cpu_workers)
+        .set_processing(
+            num_cpu_workers=num_cpu_workers,
+            preserve_output_order=True,
+        )
     )
     notes = list(islice(notes, 6))
     assert notes == [

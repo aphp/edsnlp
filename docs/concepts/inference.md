@@ -214,5 +214,6 @@ lengths = data.map_batches(len, batch_size="fragments")
 
 Note that these batch functions are only available under specific conditions:
 
-- either `backend="simple"` or `deterministic=True` (default) if `backend="multiprocessing"`, otherwise elements might be processed out of order
+- either `backend="simple"` or static worker assignment if `backend="multiprocessing"`, while `worker_assignment="auto"`
+  selects static assignment when a batching operation requires these boundaries
 - if every op before was elementwise (e.g. `map()`, `map_gpu()`, `map_pipeline()` and no generator function), or `sentinel_mode` was explicitly set to `"split"` in `map_batches()`, otherwise the sentinel are dropped by default when the user requires batching.

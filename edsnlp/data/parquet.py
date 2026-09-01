@@ -33,8 +33,12 @@ class ParquetReader(FileBasedReader):
         seed: Optional[int] = None,
         loop: bool = False,
         work_unit: Literal["record", "fragment"] = "record",
+        read_in_worker: Optional[bool] = None,
     ):
         super().__init__()
+        self.read_in_worker = (
+            work_unit == "fragment" if read_in_worker is None else read_in_worker
+        )
         self.shuffle = shuffle
         self.emitted_sentinels = {"dataset"} | (
             set() if shuffle == "dataset" else {"fragment"}
@@ -70,13 +74,28 @@ class ParquetReader(FileBasedReader):
         )
 
     def extract_task(self, item):
-        if self.work_unit == "fragment":
+        if isinstance(item, ParquetFileFragment):
             records = self.read_fragment(item)
             if self.shuffle == "fragment":
                 records = shuffle(records, self.rng)
             yield from records
         else:
             yield item
+
+    def read_tasks(self) -> Iterable[Any]:
+        if self.shuffle == "dataset":
+            yield from self.read_records()
+            return
+        while True:
+            fragments = self.fragments
+            if self.shuffle:
+                fragments = shuffle(fragments, self.rng)
+            for fragment in fragments:
+                yield fragment
+                yield FragmentEndSentinel(fragment.path)
+            yield DatasetEndSentinel()
+            if not self.loop:
+                break
 
     def read_records(self) -> Iterable[Any]:
         while True:
@@ -85,10 +104,7 @@ class ParquetReader(FileBasedReader):
                 files = shuffle(files, self.rng)
             if self.shuffle == "fragment":
                 for file in files:
-                    if self.work_unit == "fragment":
-                        yield file
-                    else:
-                        yield from shuffle(self.read_fragment(file), self.rng)
+                    yield from shuffle(self.read_fragment(file), self.rng)
                     yield FragmentEndSentinel(file.path)
             elif self.shuffle == "dataset":
                 assert self.work_unit == "record"
@@ -96,10 +112,7 @@ class ParquetReader(FileBasedReader):
                 yield from shuffle(records, self.rng)
             else:
                 for file in files:
-                    if self.work_unit == "fragment":
-                        yield file
-                    else:
-                        yield from self.read_fragment(file)
+                    yield from self.read_fragment(file)
                     yield FragmentEndSentinel(file.path)
             yield DatasetEndSentinel()
             if not self.loop:
@@ -107,10 +120,8 @@ class ParquetReader(FileBasedReader):
 
     def __repr__(self):
         return (
-            f"{self.__class__.__name__}("
-            f"path={self.path!r}, "
-            f"shuffle={self.shuffle}, "
-            f"loop={self.loop})"
+            f"{self.__class__.__name__}(path={self.path!r}, "
+            f"shuffle={self.shuffle}, loop={self.loop})"
         )
 
 
@@ -152,8 +163,8 @@ class ParquetWriter(BatchWriter):
         batch_size, batch_by = Stream.validate_batching(batch_size, batch_by)
         if batch_by in ("docs", "doc", None, batchify) and batch_size is None:
             warnings.warn(
-                "You should specify a batch size when using record-wise batch writing. "
-                "Setting batch size to 1024."
+                "You should specify a batch size when using record-wise batch "
+                "writing. Setting batch size to 1024."
             )
             batch_size = 1024
         batch_by = batch_by or "docs"
@@ -193,6 +204,7 @@ def read_parquet(
     seed: Optional[int] = None,
     loop: bool = False,
     work_unit: Literal["record", "fragment"] = "record",
+    read_in_worker: Optional[bool] = None,
     **kwargs,
 ) -> Stream:
     """
@@ -256,6 +268,10 @@ def read_parquet(
         first worker will every record of the 1st parquet file, the second worker will
         read every record of the 2nd parquet file, and so on. This way, no record is
         "wasted" and every record loaded in memory is yielded.
+    read_in_worker
+        Whether parquet fragments are read directly by multiprocessing workers. By
+        default, this is inferred from `work_unit`: `False` for `"record"` to avoid
+        redundant input scans, `True` for `"fragment"` to parallelize file reads.
 
     converter: Optional[AsList[Union[str, Callable]]]
         Converters to use to convert the parquet rows of the data source to Doc objects
@@ -268,14 +284,6 @@ def read_parquet(
     -------
     Stream
     """
-    if "read_in_worker" in kwargs:
-        warnings.warn(
-            "The `read_in_worker` parameter of edsnlp.data.read_parquet is deprecated "
-            "and set to True by default.",
-            FutureWarning,
-        )
-        kwargs.pop("read_in_worker")
-
     data = Stream(
         reader=ParquetReader(
             path,
@@ -284,6 +292,7 @@ def read_parquet(
             seed=seed,
             loop=loop,
             work_unit=work_unit,
+            read_in_worker=read_in_worker,
         )
     )
     if converter:
@@ -351,10 +360,10 @@ def write_parquet(
         For instance, a worker may read the 1st, 3rd, 5th, ... documents, while another
         reads the 2nd, 4th, 6th, ... documents.
 
-        If `write_in_worker` is False, `deterministic` is True (default) and no
-        operation adds or remove document from the stream (e.g., no `map_batches`), the
-        original order of the documents will be recovered in the main process, and
-        batching there can produce fragments that respect the original order.
+        If `write_in_worker` is False, `preserve_output_order` is True and no operation
+        adds or removes documents from the stream (e.g., no generator `map_batches`),
+        the original document order is recovered in the main process. Batching there can
+        then produce fragments in input order.
     overwrite: bool
         Whether to overwrite existing directories.
     filesystem: Optional[Union[FileSystem, str]] = None,

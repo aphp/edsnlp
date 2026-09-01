@@ -1,3 +1,4 @@
+import os
 from itertools import islice
 from pathlib import Path
 
@@ -9,6 +10,7 @@ from typing_extensions import Literal
 
 import edsnlp
 from edsnlp.data.converters import get_dict2doc_converter, get_doc2dict_converter
+from edsnlp.data.parquet import ParquetReader
 from edsnlp.utils.collections import dl_to_ld
 
 
@@ -407,6 +409,8 @@ def test_read_work_unit(
         input_dir, work_unit=work_unit, shuffle=shuffle
     ).set_processing(
         num_cpu_workers=num_cpu_workers,
+        worker_assignment="static",
+        preserve_output_order=True,
     )
     stream = stream.map_batches(
         lambda b: "|".join(sorted([x["note_id"] for x in b])), batch_size=1000
@@ -415,6 +419,42 @@ def test_read_work_unit(
         assert list(stream) == ["subfolder/doc-1|subfolder/doc-2|subfolder/doc-3"]
     else:
         assert list(stream) == ["subfolder/doc-1|subfolder/doc-3", "subfolder/doc-2"]
+
+
+@pytest.mark.parametrize(
+    "worker_assignment,shuffle",
+    [("dynamic", False), ("static", "dataset")],
+)
+def test_record_work_is_read_in_workers(monkeypatch, worker_assignment, shuffle):
+    input_dir = Path(__file__).parent.parent.resolve() / "resources" / "docs.parquet"
+    main_pid = os.getpid()
+    read_fragment = ParquetReader.read_fragment
+
+    def read_fragment_in_worker(reader, fragment):
+        assert os.getpid() != main_pid
+        return read_fragment(reader, fragment)
+
+    monkeypatch.setattr(ParquetReader, "read_fragment", read_fragment_in_worker)
+    stream = (
+        edsnlp.data.read_parquet(
+            input_dir,
+            work_unit="record",
+            read_in_worker=True,
+            shuffle=shuffle,
+        )
+        .map(lambda row: row["note_id"])
+        .set_processing(
+            backend="multiprocessing",
+            num_cpu_workers=2,
+            worker_assignment=worker_assignment,
+        )
+    )
+
+    assert sorted(stream) == [
+        "subfolder/doc-1",
+        "subfolder/doc-2",
+        "subfolder/doc-3",
+    ]
 
 
 @pytest.mark.parametrize(
@@ -434,7 +474,8 @@ def test_write_parquet_fragment(tmpdir, num_cpu_workers, write_in_worker):
     )
     notes = notes.set_processing(
         num_cpu_workers=num_cpu_workers,
-        deterministic=True,  # by default
+        worker_assignment="static",
+        preserve_output_order=True,
     )
     notes.write_parquet(
         output_dir,

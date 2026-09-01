@@ -18,6 +18,8 @@ def test_map_batches():
     stream = stream.map_batches(lambda x: [sum(x)])
     stream = stream.set_processing(
         num_cpu_workers=2,
+        worker_assignment="static",
+        preserve_output_order=True,
         sort_chunks=False,
         batch_size=2,
     )
@@ -25,10 +27,13 @@ def test_map_batches():
     assert res == [6, 8, 6]  # 2+4, 3+5, 6
 
 
-@pytest.mark.parametrize("num_cpu_workers", [1, 2])
-def test_flat_iterable(num_cpu_workers):
+@pytest.mark.parametrize(
+    "num_cpu_workers,read_in_worker",
+    [(1, False), (2, False), (2, True)],
+)
+def test_flat_iterable(num_cpu_workers, read_in_worker):
     items = [1, 2, 3, 4]
-    stream = edsnlp.data.from_iterable(items)
+    stream = edsnlp.data.from_iterable(items, read_in_worker=read_in_worker)
     stream = stream.set_processing(num_cpu_workers=num_cpu_workers)
     stream = stream.map(lambda x: [x] * x)
     stream = stream.flatten()
@@ -65,6 +70,45 @@ def test_map_gpu(num_gpu_workers):
     res = ld_to_dl(stream)
     res = torch.cat(res["outputs"])
     assert set(res.tolist()) == {i * 2 for i in range(15)}
+
+
+@pytest.mark.skipif(torch is None, reason="torch not installed")
+@pytest.mark.parametrize(
+    "device,cuda_available,expected_devices,raises",
+    [
+        ("auto", True, ["cuda"], None),
+        ("preserve", True, [None], None),
+        ("cuda:0", False, [], ValueError),
+    ],
+)
+def test_simple_backend_device(
+    monkeypatch,
+    device,
+    cuda_available,
+    expected_devices,
+    raises,
+):
+    import torch
+
+    seen_devices = []
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: cuda_available)
+
+    def prepare_batch(batch, device):
+        seen_devices.append(device)
+        return batch
+
+    stream = (
+        edsnlp.data.from_iterable([1, 2])
+        .map_gpu(prepare_batch, lambda batch: batch, batch_size=2)
+        .set_processing(backend="simple", device=device)
+    )
+
+    if raises is None:
+        assert list(stream) == [1, 2]
+    else:
+        with pytest.raises(raises, match="requires CUDA"):
+            list(stream)
+    assert seen_devices == expected_devices
 
 
 # fmt: off
@@ -106,6 +150,8 @@ def test_map_with_batching(sort, num_cpu_workers, batch_kwargs, expected):
     stream = stream.map_batches(len)
     stream = stream.set_processing(
         num_cpu_workers=num_cpu_workers,
+        worker_assignment="static",
+        preserve_output_order=True,
         **batch_kwargs,
         chunk_size=1000,  # deprecated
         split_into_batches_after="matcher",

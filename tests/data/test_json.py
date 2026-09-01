@@ -186,7 +186,8 @@ def assert_doc_write(exported_obj):
     }
 
 
-def test_read_in_worker(blank_nlp, tmpdir):
+@pytest.mark.parametrize("num_cpu_workers", [0, 2])
+def test_read_in_worker(blank_nlp, tmpdir, num_cpu_workers):
     input_dir = Path(__file__).parent.parent.resolve() / "resources" / "docs.jsonl"
     list(
         edsnlp.data.read_json(
@@ -194,7 +195,7 @@ def test_read_in_worker(blank_nlp, tmpdir):
             converter="omop",
             span_attributes=["etat", "assertion"],
             read_in_worker=True,
-        )
+        ).set_processing(num_cpu_workers=num_cpu_workers)
     )[0]
 
 
@@ -278,7 +279,11 @@ def test_read_shuffle_loop(
             loop=True,
         )
         .map(lambda x: x["note_id"])
-        .set_processing(num_cpu_workers=num_cpu_workers)
+        .set_processing(
+            num_cpu_workers=num_cpu_workers,
+            worker_assignment="static",
+            preserve_output_order=True,
+        )
     )
     notes = list(islice(notes, 6))
     assert notes == [

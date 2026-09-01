@@ -15,6 +15,14 @@
 - `TNM.norm()` no longer concatenates free-text suffixes verbatim, so `span.kb_id_` stays usable for grouping: only suffixes that read as a TNM qualifier are kept (`pT1(m)` → `pT1m`, whereas `pT1(grade 2)N1M0` used to normalise to `pT1grade 2N1M0`). The `o` → `0` coercion is likewise restricted to the numeric stage fields, so a suffix such as `(foie)` is no longer stored as `f0ie`
 - `edsnlp.package` now only supports PEP 621 projects, old style poetry packaging support has been removed.
 - Use Confit 0.13 structured errors for nested component validation and validate converter options with Pydantic directly
+- Multiprocessing defaults to dynamic CPU worker assignment and unordered output for higher throughput. Set
+  `worker_assignment="static"` and `preserve_output_order=True` when input order matters. The deprecated `deterministic`
+  option remains available as an alias
+- CPU and GPU workers exchange tensor storage as NumPy byte arrays, avoiding CUDA tensor transfers and PyTorch tensor
+  IPC, which is faster
+- CPU worker counts and internal queue sizes now use defaults measured across several GPU models and pipelines.
+- Readers can send file or fragment work descriptions to dynamically assigned CPU workers, keeping file reads out of
+  the main process when the reader supports worker-side reads
 
 ### Fixed
 
@@ -23,6 +31,8 @@
 - `eds.dates` now parses the hour correctly when a date and time include seconds and a minute from `00` to `23`
 - Restore Spark inference functions after successful and failed schema inference
 - Reduce normalizer pollution regex backtracking on long lines, namely for information notices, biology tables, coding sections, footers and web addresses
+- Parquet `read_in_worker` now overrides reader placement. By default, `record` work units are read centrally while
+  `fragment` work units are read in workers
 
 ## v0.22.0 (2026-06-17)
 

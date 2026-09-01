@@ -234,13 +234,30 @@ class QuickTorchPipe:
         self.forward = forward
         self.postprocess = postprocess
         self.elementwise = elementwise
+        self.device = None
 
     def __call__(self, *args, **kwargs):
         return self.forward(*args, **kwargs)
 
     def batch_process(self, batch):
-        res = self.forward(self.prepare_batch(batch, None))
-        return self.postprocess(batch, res) if self.postprocess is not None else res
+        docs = batch
+        batch = self.prepare_batch(docs, self.device)
+        if self.device is not None:
+            batch = self.batch_to_device(batch, self.device)
+        res = self.forward(batch)
+        return self.postprocess(docs, res) if self.postprocess is not None else res
+
+    def batch_to_device(self, batch, device):
+        def move(value):
+            if hasattr(value, "to"):
+                return value.to(device)
+            if isinstance(value, dict):
+                return {name: move(item) for name, item in value.items()}
+            if isinstance(value, (list, tuple, set)):
+                return type(value)(move(item) for item in value)
+            return value
+
+        return move(batch)
 
     def enable_cache(self, cache_id=None):
         pass
@@ -341,6 +358,10 @@ class Stream(metaclass=MetaStream):
         return self.config.get("autocast", True)
 
     @property
+    def device(self):
+        return self.config.get("device", "auto")
+
+    @property
     def backend(self):
         backend = self.config.get("backend")
         return {"mp": "multiprocessing"}.get(backend, backend)
@@ -354,8 +375,54 @@ class Stream(metaclass=MetaStream):
         return self.config.get("process_start_method")
 
     @property
+    def worker_assignment(self):
+        return self.config.get("worker_assignment", "auto")
+
+    @property
+    def preserve_output_order(self):
+        return self.config.get("preserve_output_order", False)
+
+    @property
     def deterministic(self):
-        return self.config.get("deterministic", True)
+        return self._resolve_worker_assignment() == "static"
+
+    def _resolve_worker_assignment(self, requires_sentinels: bool = False) -> str:
+        """
+        Resolve CPU worker assignment for the multiprocessing backend.
+
+        Parameters
+        ----------
+        requires_sentinels
+            Whether an operation needs fragment or dataset boundaries
+
+        Returns
+        -------
+        str
+            `static` or `dynamic` for worker setup
+        """
+        assignment = self.worker_assignment
+        if assignment not in ("auto", "static", "dynamic"):
+            raise ValueError(
+                "worker_assignment must be 'auto', 'static', or 'dynamic'."
+            )
+        if assignment == "auto":
+            return (
+                "static"
+                if self.preserve_output_order or requires_sentinels
+                else "dynamic"
+            )
+        if assignment == "dynamic" and self.preserve_output_order:
+            raise ValueError(
+                "worker_assignment='dynamic' cannot preserve input order. "
+                "Use worker_assignment='static' or set preserve_output_order=False."
+            )
+        if assignment == "dynamic" and requires_sentinels:
+            raise ValueError(
+                "worker_assignment='dynamic' cannot preserve fragment or dataset "
+                "boundaries. "
+                "Use worker_assignment='static' or 'auto'."
+            )
+        return assignment
 
     # noinspection PyIncorrectDocstring
     @with_non_default_args
@@ -369,12 +436,15 @@ class Stream(metaclass=MetaStream):
         disable_implicit_parallelism: bool = True,
         backend: Optional[Literal["simple", "multiprocessing", "mp", "spark"]] = None,
         autocast: Union[bool, Any] = None,
+        device: Any = "auto",
         show_progress: bool = False,
         gpu_pipe_names: Optional[List[str]] = None,
-        process_start_method: Optional[Literal["fork", "spawn"]] = None,
+        process_start_method: Optional[Literal["fork", "forkserver", "spawn"]] = None,
         gpu_worker_devices: Optional[List[str]] = None,
         cpu_worker_devices: Optional[List[str]] = None,
-        deterministic: bool = True,
+        worker_assignment: Literal["auto", "static", "dynamic"] = "auto",
+        preserve_output_order: Optional[bool] = None,
+        deterministic: Optional[bool] = None,
         chunk_size: int = None,
         sort_chunks: bool = False,
         _non_default_args: Iterable[str] = (),
@@ -418,6 +488,11 @@ class Stream(metaclass=MetaStream):
             AMP will be used with the default settings. If False, AMP will not be used.
             If a dtype is provided, it will be passed to the `torch.autocast` context
             manager.
+        device: Any
+            Device used for torch components. Defaults to "auto", which uses CUDA when
+            available in the current execution context, otherwise CPU. Set to "cpu" or
+            a CUDA device to force a device. Set to "preserve" to keep the current
+            component placement in simple backend.
         show_progress: Optional[bool]
             Whether to show progress bars (only applicable with "simple" and
             "multiprocessing" backends).
@@ -425,9 +500,10 @@ class Stream(metaclass=MetaStream):
             List of pipe names to accelerate on a GPUWorker, defaults to all pipes
             that inherit from TorchComponent. Only used with "multiprocessing" backend.
             Inferred from the pipeline if not set.
-        process_start_method: Optional[Literal["fork", "spawn"]]
-            Whether to use "fork" or "spawn" as the start method for the multiprocessing
-            backend. The default is "fork" on Unix systems and "spawn" on Windows.
+        process_start_method: Optional[Literal["fork", "forkserver", "spawn"]]
+            Whether to use "fork", "forkserver" or "spawn" as the start method for the
+            multiprocessing backend. The default is "fork" on Unix systems and "spawn"
+            on Windows.
 
             - "fork" is the default start method on Unix systems and is the fastest
                 start method, but it is not available on Windows, can cause issues
@@ -440,18 +516,36 @@ class Stream(metaclass=MetaStream):
             devices, one worker per device. Only used with "multiprocessing" backend.
         cpu_worker_devices: Optional[List[str]]
             List of GPU devices to use for the CPU workers. Used for debugging purposes.
-        deterministic: bool
-            Whether to try and preserve the order of the documents in "multiprocessing"
-            mode. If set to `False`, workers will process documents whenever they are
-            available in a dynamic fashion, which may result in out-of-order but usually
-            faster processing. If set to true, tasks will be distributed in a
-            static, round-robin fashion to workers. Defaults to `True`.
+        worker_assignment: Literal["auto", "static", "dynamic"]
+            How multiprocessing assigns work to CPU workers. `dynamic` lets the next
+            available worker consume each task. `static` assigns tasks round-robin.
+            `auto` selects dynamic assignment unless output order or stream boundaries
+            require static assignment
+        preserve_output_order: Optional[bool]
+            Whether multiprocessing must emit records in input order. Ordered output
+            requires static assignment
+        deterministic: Optional[bool]
+            Deprecated. `True` selects static ordered processing and `False` selects
+            dynamic unordered processing
 
         Returns
         -------
         Stream
         """
-        kwargs = {k: v for k, v in locals().items() if k in _non_default_args}
+        explicit = set(_non_default_args)
+        kwargs = {k: v for k, v in locals().items() if k in explicit}
+        if deterministic is not None and "deterministic" in explicit:
+            if "worker_assignment" in explicit:
+                raise ValueError("Cannot set both deterministic and worker_assignment.")
+            warnings.warn(
+                "deterministic is deprecated, use worker_assignment and "
+                "preserve_output_order instead.",
+                VisibleDeprecationWarning,
+            )
+            kwargs.pop("deterministic")
+            kwargs["worker_assignment"] = "static" if deterministic else "dynamic"
+            if "preserve_output_order" not in explicit:
+                kwargs["preserve_output_order"] = deterministic
         if (
             kwargs.pop("chunk_size", None) is not None
             or kwargs.pop("sort_chunks", None) is not None
@@ -465,7 +559,7 @@ class Stream(metaclass=MetaStream):
             warnings.warn(
                 "split_into_batches_after is deprecated.", VisibleDeprecationWarning
             )
-        return Stream(
+        stream = Stream(
             reader=self.reader,
             writer=self.writer,
             ops=self.ops,
@@ -474,6 +568,8 @@ class Stream(metaclass=MetaStream):
                 **{k: v for k, v in kwargs.items() if v is not None},
             },
         )
+        stream._resolve_worker_assignment()
+        return stream
 
     @classmethod
     def ensure_stream(cls, data):
@@ -1007,6 +1103,7 @@ class Stream(metaclass=MetaStream):
     def validate_ops(self, ops, update: bool = False):
         # Check batchify requirements
         requires_sentinels = set()
+        preserves_sentinels = set()
 
         self_batch_size, self_batch_by = self.validate_batching(
             self.batch_size, self.batch_by
@@ -1053,6 +1150,8 @@ class Stream(metaclass=MetaStream):
                     op.size = batch_size
                     op.batch_fn = batch_fn
                     op.sentinel_mode = sentinel_mode
+                if sentinel_mode in ("keep", "split"):
+                    preserves_sentinels.add("stream")
 
                 if hasattr(op.batch_fn, "requires_sentinel"):
                     requires_sentinels.add(op.batch_fn.requires_sentinel)
@@ -1063,12 +1162,14 @@ class Stream(metaclass=MetaStream):
                 f"Some operations require sentinel values ({sentinel_str}), "
                 f"but the Spark backend does not support sentinel values."
             )
-        if requires_sentinels and not self.deterministic:
-            raise ValueError(
-                f"Some operations require sentinel values ({sentinel_str}), "
-                f"but these are not supported in when `deterministic=False`."
-            )
-        if not (requires_sentinels <= self.reader.emitted_sentinels):
+        assignment = self._resolve_worker_assignment(
+            requires_sentinels=bool(requires_sentinels or preserves_sentinels)
+        )
+        if update:
+            self.config["resolved_worker_assignment"] = assignment
+        if self.reader is not None and not (
+            requires_sentinels <= self.reader.emitted_sentinels
+        ):
             raise ValueError(
                 f"Some operations require sentinel values ({sentinel_str}), "
                 f"but the reader does not emit these values "

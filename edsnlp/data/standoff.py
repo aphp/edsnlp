@@ -332,12 +332,17 @@ class StandoffReader(FileBasedReader):
             if not self.loop:
                 break
 
+    def extract_task(self, paths) -> Iterable[Dict]:
+        txt_path, ann_paths = paths
+        anns = parse_standoff_file(txt_path, ann_paths, fs=self.fs)
+        anns[FILENAME] = os.path.relpath(txt_path, self.path).rsplit(".", 1)[0]
+        anns["doc_id"] = anns[FILENAME]
+        yield anns
+
     def __repr__(self):
         return (
-            f"{self.__class__.__name__}("
-            f"path={self.path!r}, "
-            f"shuffle={self.shuffle}, "
-            f"loop={self.loop})"
+            f"{self.__class__.__name__}(path={self.path!r}, "
+            f"shuffle={self.shuffle}, loop={self.loop})"
         )
 
 

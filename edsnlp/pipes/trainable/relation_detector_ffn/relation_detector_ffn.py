@@ -267,7 +267,10 @@ class RelationDetectorFFN(
             "rel_tails": rel_tail_idx,
             "inter_embedding": (
                 self.inter_span_embedding.preprocess(
-                    doc, spans=inter_spans, contexts=contexts, pre_aligned=pre_aligned
+                    doc,
+                    spans=inter_spans,
+                    contexts=inter_spans,
+                    pre_aligned=pre_aligned,
                 )
                 if self.inter_span_embedding is not None
                 else None

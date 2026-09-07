@@ -1,3 +1,4 @@
+import datetime
 import string
 from typing import List, cast
 
@@ -7,7 +8,7 @@ from spacy.tokens import Span
 from edsnlp import registry
 from edsnlp.core import PipelineProtocol
 from edsnlp.pipes.base import BaseComponent
-from edsnlp.pipes.misc.dates.models import AbsoluteDate
+from edsnlp.pipes.misc.dates.models import AbsoluteDate, normalize_year
 from edsnlp.utils.span_getters import SpanGetterArg, get_spans, validate_span_getter
 
 noun_regex = r"""(?xi)
@@ -123,7 +124,7 @@ class DatesNormalizer(BaseComponent):
             Span.set_extension("date_format", default=None)
 
     @staticmethod
-    def extract_date(s, next_date=None, next_offsets=None):
+    def extract_date(s, next_date=None, next_offsets=None, reference_year=None):
         date_conf = {}
 
         m = regex.search(full_regex, s)
@@ -131,7 +132,10 @@ class DatesNormalizer(BaseComponent):
             date = AbsoluteDate(
                 day=int(m.group("day").replace(" ", "").replace("Û", "0")),
                 month=int(m.group("month").replace(" ", "").replace("Û", "0")),
-                year=int(m.group("year").replace(" ", "").replace("Û", "0")),
+                year=normalize_year(
+                    int(m.group("year").replace(" ", "").replace("Û", "0")),
+                    reference_year,
+                ),
             )
             return date, sorted(
                 [
@@ -167,10 +171,8 @@ class DatesNormalizer(BaseComponent):
                     matches.append((match.start(), match.end(), "dmy", value))
             elif value <= 31:
                 matches.append((match.start(), match.end(), "dy", value))
-            elif value <= 40:
-                matches.append((match.start(), match.end(), "y", 2000 + value))
-            elif 40 < value < 100:
-                matches.append((match.start(), match.end(), "y", 1900 + value))
+            elif value < 100:
+                matches.append((match.start(), match.end(), "y", value))
             elif 1900 <= value <= 2100:
                 matches.append((match.start(), match.end(), "y", value))
             elif 1900 <= int(snippet[:4]) <= 2100:
@@ -267,7 +269,7 @@ class DatesNormalizer(BaseComponent):
             elif m[2] == "m":
                 date_conf["month"] = m[3]
             elif m[2] == "y":
-                date_conf["year"] = m[3]
+                date_conf["year"] = normalize_year(m[3], reference_year)
 
         date = cast(AbsoluteDate, date_conf)
 
@@ -313,6 +315,12 @@ class DatesNormalizer(BaseComponent):
 
     def __call__(self, doc):
         spans = list(get_spans(doc, self.span_getter))
+        note_datetime = doc._.note_datetime
+        reference_year = (
+            note_datetime.year
+            if note_datetime is not None
+            else datetime.date.today().year
+        )
         last_date = None
         last_date_offsets = None
         last_span = None
@@ -326,6 +334,7 @@ class DatesNormalizer(BaseComponent):
                 text,
                 last_date,
                 last_date_offsets,
+                reference_year,
             )
             span._.date = date
             span._.datetime = date.to_datetime(doc._.note_datetime)

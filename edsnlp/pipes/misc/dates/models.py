@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Any, Dict, Optional, Union
 
 from pandas._libs.tslibs.nattype import NaTType
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator, model_validator
 from pytz import timezone
 from spacy.tokens import Span
 
@@ -16,6 +16,24 @@ def validator(x, allow_reuse=True, pre=False):
 
 def root_validator(allow_reuse=True, pre=False):
     return model_validator(mode="before" if pre else "after")
+
+
+def normalize_year(
+    year: int,
+    reference_year: Optional[int] = None,
+    threshold: int = 1,
+) -> int:
+    """
+    Expand a two-digit year up to a threshold after the reference year
+    """
+    if year >= 100:
+        return year
+
+    if reference_year is None:
+        reference_year = datetime.date.today().year
+    max_year = reference_year + threshold
+    expanded = max_year // 100 * 100 + year
+    return expanded if expanded <= max_year else expanded - 100
 
 
 class Direction(str, Enum):
@@ -212,12 +230,18 @@ class AbsoluteDate(BaseDate):
         return norm
 
     @validator("year")
-    def validate_year(cls, v):
-        if v > 100:
-            return v
-
-        if v < 25:
-            return 2000 + v
+    def validate_year(cls, v, info: ValidationInfo):
+        """
+        Expand two-digit years relative to the document date or current date
+        """
+        doc = info.data.get("doc")
+        note_datetime = doc._.note_datetime if doc is not None else None
+        reference_year = (
+            note_datetime.year
+            if note_datetime is not None and not isinstance(note_datetime, NaTType)
+            else None
+        )
+        return normalize_year(v, reference_year)
 
 
 class Relative(BaseDate):

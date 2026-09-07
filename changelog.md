@@ -22,6 +22,7 @@
 - Readers can send file or fragment work descriptions to dynamically assigned CPU workers, keeping file reads out of
   the main process when the reader supports worker-side reads
 - Improved CRF tag-to-span decoding step performance
+- Improved span pooler to prepare indice tensors in preprocessing/collate instead of forward and pool embeddings in one op
 
 ### Fixed
 

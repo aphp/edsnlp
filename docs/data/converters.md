@@ -165,7 +165,7 @@ the annotations should be stored in a JSON-like schema. We use the following sch
       "entity_id": 0,
       "label": "drug",
       "fragments": [{
-        "start": 0,
+        "begin": 0,
         "end": 10
       }],
       "attributes": {

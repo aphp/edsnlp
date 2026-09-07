@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 IMPOSSIBLE = -10000
@@ -373,56 +374,38 @@ class MultiLabelBIOULDecoder(LinearChainCRF):
     @staticmethod
     def tags_to_spans(tags):
         """
-        Convert a sequence of multiple label BIOUL tags to a sequence of spans
+        Convert BIOUL tags to spans for span extraction (NER or QA)
 
         Parameters
         ----------
         tags: torch.LongTensor
-            Shape: n_samples * n_tokens * n_labels
+            Shape = n_samples x n_tokens x n_labels
 
         Returns
         -------
         torch.LongTensor
-            Shape: n_spans *  4
-            (doc_idx, begin, end, label_idx)
+            Shape = n_spans by 4, columns sample, label, begin, end
         """
-
-        # Note: tags are O, I, B, L, U => 0, 1, 2, 3, 4
-
-        # begins_indices = torch.nonzero((tags == 4) | (tags == 2))
-        # ends_indices = torch.nonzero((tags == 4) | (tags == 3))
+        # NumPy avoids Torch operator dispatch during CPU postprocessing
+        cpu = tags.device.type == "cpu"
         tags = tags.transpose(1, 2)
+        if cpu:
+            tags = tags.detach().numpy()
+        ops = np if cpu else torch
 
-        tags_after = tags.roll(-1, 2)
-        tags_before = tags.roll(1, 2)
+        inside = tags == 1
+        begin = tags == 2
+        last = tags == 3
+        unit = tags == 4
+        before = ops.roll(inside | begin, 1, 2)
+        after = ops.roll(inside | last, -1, 2)
         if 0 not in tags.shape:
-            tags_after[..., -1] = 0
-            tags_before[..., 0] = 0
+            before[..., 0] = False
+            after[..., -1] = False
+        # Split spans at missing or invalid neighboring BIOUL transitions
+        begins = unit | begin | ((inside | last) & ~before)
+        ends = unit | last | ((inside | begin) & ~after)
 
-        # A span starts if:
-        # - tags is B / U
-        # - tags is I / L and tags_before is not B / I (illegal transition)
-        #   this gives: O -> I, L -> I, U -> I
-
-        # A span ends if:
-        # - tags is L / U
-        # - tags is I / B and tags_after is not L / I (illegal transition)
-
-        begins_indices = torch.nonzero(
-            (tags == 4)
-            | (tags == 2)
-            | (((tags == 1) | (tags == 3)) & (tags_before != 2) & (tags_before != 1))
-        )
-        ends_indices = torch.nonzero(
-            (tags == 4)
-            | (tags == 3)
-            | (((tags == 1) | (tags == 2)) & (tags_after != 3) & (tags_after != 1))
-        )
-
-        return torch.cat(
-            [
-                begins_indices[..., :3],
-                ends_indices[..., [2]] + 1,
-            ],
-            dim=-1,
-        )
+        begins = ops.where(begins)
+        ends = ops.where(ends)[2] + 1
+        return torch.as_tensor(ops.stack((*begins, ends), 1), dtype=torch.long)

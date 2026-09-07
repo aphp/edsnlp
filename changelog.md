@@ -21,6 +21,7 @@
 - CPU worker counts and internal queue sizes now use defaults measured across several GPU models and pipelines.
 - Readers can send file or fragment work descriptions to dynamically assigned CPU workers, keeping file reads out of
   the main process when the reader supports worker-side reads
+- Improved CRF tag-to-span decoding step performance
 
 ### Fixed
 

@@ -261,10 +261,14 @@ class RelationDetectorFFN(
             "num_spans": len(all_spans),
             "rel_heads": rel_head_idx,
             "rel_tails": rel_tail_idx,
-            "inter_embedding": self.inter_span_embedding.preprocess(
-                doc,
-                spans=inter_spans,
-                contexts=None,
+            "inter_embedding": (
+                self.inter_span_embedding.preprocess(
+                    doc,
+                    spans=inter_spans,
+                    contexts=None,
+                )
+                if self.inter_span_embedding is not None
+                else None
             ),
             "span_embedding": self.span_embedding.preprocess(
                 doc,
@@ -304,8 +308,10 @@ class RelationDetectorFFN(
             "rel_tail_idx": torch.as_tensor(rel_tails, dtype=torch.long),
             "rel_doc_idx": torch.as_tensor(rel_doc_idx, dtype=torch.long),
             "span_embedding": self.span_embedding.collate(batch["span_embedding"]),
-            "inter_embedding": self.inter_span_embedding.collate(
-                batch["inter_embedding"]
+            "inter_embedding": (
+                self.inter_span_embedding.collate(batch["inter_embedding"])
+                if self.inter_span_embedding is not None
+                else None
             ),
             "stats": {"relation_candidates": len(rel_heads)},
         }

@@ -278,6 +278,47 @@ Tumeur mammaire benigne.
     assert ent._.assigned["size"]._.value.cm == 3
 
 
+@pytest.mark.parametrize(
+    "filter_name,filter_config,expected",
+    [
+        ("include", dict(span_getter="dates"), [["cancer"], [], ["cancer"]]),
+        ("exclude", dict(span_getter="dates"), [[], ["cancer"], []]),
+        (
+            "include",
+            dict(regex="patient", span_getter="dates"),
+            [["cancer"], [], []],
+        ),
+        (
+            "exclude",
+            dict(regex="patient", span_getter="dates"),
+            [[], [], []],
+        ),
+    ],
+)
+def test_contextual_matcher_filter_span_getter(filter_name, filter_config, expected):
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(eds.sentences())
+    nlp.add_pipe(eds.dates())
+    nlp.add_pipe(
+        eds.contextual_matcher(
+            patterns=[
+                dict(
+                    regex="cancer",
+                    **{filter_name: filter_config},
+                )
+            ],
+            label="cancer",
+        )
+    )
+
+    texts = [
+        "Le patient a eu un cancer le 26/05/23",
+        "Le patient a eu un cancer sans date",
+        "cancer le 26/05/23",
+    ]
+    assert [[ent.text for ent in nlp(text).ents] for text in texts] == expected
+
+
 # Checks https://github.com/aphp/edsnlp/issues/394
 def test_contextual_matcher_exclude_outside():
     import edsnlp

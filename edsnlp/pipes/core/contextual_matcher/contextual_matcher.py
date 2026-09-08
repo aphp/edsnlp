@@ -133,7 +133,7 @@ class ContextualMatcher(BaseNERComponent):
             pattern.regex_matcher = regex_matcher
 
             for exclude in pattern.exclude:
-                if exclude.regex is not None:
+                if exclude.regex:
                     matcher = RegexMatcher(
                         attr=exclude.regex_attr or pattern.regex_attr or self.attr,
                         flags=exclude.regex_flags
@@ -147,7 +147,7 @@ class ContextualMatcher(BaseNERComponent):
                     exclude.regex_matcher = matcher
 
             for include in pattern.include:
-                if include.regex is not None:
+                if include.regex:
                     matcher = RegexMatcher(
                         attr=include.regex_attr or pattern.regex_attr or self.attr,
                         flags=include.regex_flags

@@ -222,6 +222,7 @@ class RelationDetectorFFN(
         rel_labels = []
         rel_getter_indices = []
         inter_spans = []
+        inter_contexts = []
 
         all_spans = defaultdict(lambda: len(all_spans))
         seen = set()
@@ -241,7 +242,15 @@ class RelationDetectorFFN(
                 rel_tail_idx.append(all_spans[tail])
                 inter_beg = min(head.end, tail.end)
                 inter_end = max(head.start, tail.start)
-                inter_spans.append(doc[inter_beg:inter_end])
+                if inter_beg > inter_end:
+                    inter_beg = inter_end
+                inter_span = doc[inter_beg:inter_end]
+                inter_spans.append(inter_span)
+                if len(inter_span) == 0:
+                    context_start = min(inter_beg, max(0, len(doc) - 1))
+                    inter_contexts.append(doc[context_start : context_start + 1])
+                else:
+                    inter_contexts.append(inter_span)
                 rel_getter_indices.append(getter_idx)
                 if supervised:
                     rel_labels.append(
@@ -268,8 +277,8 @@ class RelationDetectorFFN(
                 self.inter_span_embedding.preprocess(
                     doc,
                     spans=inter_spans,
-                    contexts=inter_spans,
-                    pre_aligned=pre_aligned,
+                    contexts=inter_contexts,
+                    pre_aligned=True,
                 )
                 if self.inter_span_embedding is not None
                 else None

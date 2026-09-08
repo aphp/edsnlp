@@ -103,3 +103,42 @@ def test_relation_detector_ffn_with_inter_span_embedding():
     assert isinstance(head._.rel["treats"], set)
     assert tail in head._.rel["treats"]
     assert head in tail._.rel["treats"]
+
+
+def test_relation_detector_ffn_with_empty_inter_span_embedding():
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(
+        eds.relation_detector_ffn(
+            span_embedding=eds.span_pooler(
+                embedding=DummyEmbeddings(dim=4, word_pooling_mode=False),
+                pooling_mode="mean",
+            ),
+            inter_span_embedding=eds.span_pooler(
+                embedding=DummyEmbeddings(dim=4, word_pooling_mode=False),
+                pooling_mode="mean",
+            ),
+            candidate_getter=[
+                {
+                    "head": {"ents": ["drug"]},
+                    "tail": {"ents": ["problem"]},
+                    "labels": ["treats"],
+                    "symmetric": True,
+                }
+            ],
+            hidden_size=4,
+        ),
+        name="relations",
+    )
+    detector = nlp.get_pipe("relations")
+
+    doc = nlp.make_doc("aspirin pain")
+    head = Span(doc, 0, 1, "drug")
+    tail = Span(doc, 1, 2, "problem")
+    doc.ents = [head, tail]
+    head._.rel["treats"] = [tail]
+
+    batch = detector.prepare_batch([doc], supervision=True)
+    result = detector.module_forward(batch)
+
+    assert batch["inter_embedding"] is not None
+    assert result["loss"].item() > 0

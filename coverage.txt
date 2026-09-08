@@ -41,7 +41,7 @@ edsnlp/pipes/__init__.py                                                        
 edsnlp/pipes/base.py                                                                       68      0 100.00%
 edsnlp/pipes/core/__init__.py                                                               0      0 100.00%
 edsnlp/pipes/core/contextual_matcher/__init__.py                                            1      0 100.00%
-edsnlp/pipes/core/contextual_matcher/contextual_matcher.py                                130      2  98.46%   243-244
+edsnlp/pipes/core/contextual_matcher/contextual_matcher.py                                130      0 100.00%
 edsnlp/pipes/core/contextual_matcher/factory.py                                             4      0 100.00%
 edsnlp/pipes/core/contextual_matcher/models.py                                            101      0 100.00%
 edsnlp/pipes/core/endlines/__init__.py                                                      0      0 100.00%
@@ -95,7 +95,7 @@ edsnlp/pipes/misc/consultation_dates/patterns.py                                
 edsnlp/pipes/misc/dates/__init__.py                                                         1      0 100.00%
 edsnlp/pipes/misc/dates/dates.py                                                          153     14  90.85%   250, 252, 254, 358-366, 463-464
 edsnlp/pipes/misc/dates/factory.py                                                          4      0 100.00%
-edsnlp/pipes/misc/dates/models.py                                                         203     11  94.58%   158, 162-167, 176-177, 194, 210
+edsnlp/pipes/misc/dates/models.py                                                         211     11  94.79%   176, 180-185, 194-195, 212, 228
 edsnlp/pipes/misc/dates/patterns/__init__.py                                                5      0 100.00%
 edsnlp/pipes/misc/dates/patterns/absolute.py                                               24      0 100.00%
 edsnlp/pipes/misc/dates/patterns/atomic/__init__.py                                         0      0 100.00%
@@ -252,9 +252,9 @@ edsnlp/pipes/ner/suicide_attempt/patterns.py                                    
 edsnlp/pipes/ner/suicide_attempt/suicide_attempt.py                                        28      0 100.00%
 edsnlp/pipes/ner/tnm/__init__.py                                                            0      0 100.00%
 edsnlp/pipes/ner/tnm/factory.py                                                             5      0 100.00%
-edsnlp/pipes/ner/tnm/model.py                                                             113     36  68.14%   7, 47-48, 56-57, 66, 75, 100, 105, 107, 110, 113, 118, 122, 127, 131, 134, 137, 142-145, 147-148, 157-161, 163-169, 190-198
-edsnlp/pipes/ner/tnm/patterns.py                                                           13     10  23.08%   16, 34-137
-edsnlp/pipes/ner/tnm/tnm.py                                                                45     34  24.44%   357-474
+edsnlp/pipes/ner/tnm/model.py                                                             113      0 100.00%
+edsnlp/pipes/ner/tnm/patterns.py                                                           13      0 100.00%
+edsnlp/pipes/ner/tnm/tnm.py                                                                45      0 100.00%
 edsnlp/pipes/ner/umls/__init__.py                                                           0      0 100.00%
 edsnlp/pipes/ner/umls/factory.py                                                           10      0 100.00%
 edsnlp/pipes/ner/umls/patterns.py                                                          43      0 100.00%
@@ -345,4 +345,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      81      9  88.89%   103, 119, 122-128, 144
 edsnlp/utils/typing.py                                                                     48      1  97.92%   45
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   13553    339  97.50%
+TOTAL                                                                                   13561    257  98.10%

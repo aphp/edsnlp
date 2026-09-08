@@ -13,7 +13,7 @@ mytype = namedtuple("mytype", ["a", "b", "c", "z"])
 
 def test_infer_schema():
     from pyspark import Row
-    from pyspark.sql.types import StringType
+    from pyspark.sql.types import StringType, _infer_schema
 
     from edsnlp.utils.spark_dtypes import (
         PySparkPrettyPrinter,
@@ -124,3 +124,9 @@ def test_infer_schema():
 
         assert len(warned) == 1
         assert "The following schema was inferred" in warned[0].message.args[0]
+
+    # Native Spark inference keeps working after our dtype inference trick
+    assert _infer_schema({"id": 1}).simpleString() == "struct<id:bigint>"
+    with pytest.raises(TypeError), spark_interpret_dicts_as_rows():
+        infer_schema({"invalid": object()})
+    assert _infer_schema({"id": 1}).simpleString() == "struct<id:bigint>"

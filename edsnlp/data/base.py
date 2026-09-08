@@ -1,4 +1,5 @@
 import random
+import warnings
 from typing import (
     Any,
     Callable,
@@ -10,7 +11,7 @@ from typing import (
     Union,
 )
 
-from confit import validate_arguments
+from confit import VisibleDeprecationWarning, validate_arguments
 from typing_extensions import Literal
 
 from ..core.stream import Stream
@@ -18,6 +19,37 @@ from ..utils.collections import flatten
 from ..utils.stream_sentinels import DatasetEndSentinel
 from ..utils.typing import AsList
 from .converters import FILENAME, get_dict2doc_converter, get_doc2dict_converter
+
+
+def validate_schema_overrides(columns, schema_overrides):
+    """
+    Reject dtype overrides for columns absent from the output
+    """
+    unknown = set(schema_overrides or ()) - set(columns)
+    if unknown:
+        raise ValueError(
+            f"schema_overrides contains unknown columns: {sorted(unknown)}"
+        )
+
+
+def validate_schema(schema, schema_overrides, dtypes=None, dtypes_as="schema"):
+    """
+    Reject incompatible export options and warn when dtypes is used
+    """
+    if dtypes is not None:
+        if schema is not None or schema_overrides is not None:
+            raise ValueError("Cannot combine dtypes with schema or schema_overrides")
+        warnings.warn(
+            f"dtypes is deprecated, use {dtypes_as} instead",
+            VisibleDeprecationWarning,
+            stacklevel=3,
+        )
+    for types in (schema if isinstance(schema, dict) else {}, schema_overrides or {}):
+        if None in types.values():
+            raise ValueError("Use concrete types in schema and schema_overrides")
+    if isinstance(schema, (list, dict)):
+        if not schema or len(set(schema)) != len(schema):
+            raise ValueError("schema must be nonempty and contain unique column names")
 
 
 class BaseReader:

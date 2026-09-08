@@ -12,6 +12,7 @@
 ### Fixed
 
 - `eds.contextual_matcher` now checks `span_getter` in span-only `include` rules instead of rejecting every anchor
+- Correctly normalize two-digit years matched by `eds.dates`, allowing at most one year after the report date
 
 ## v0.22.0 (2026-06-17)
 

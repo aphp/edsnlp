@@ -155,6 +155,19 @@ def test_dates_component(blank_nlp: PipelineProtocol):
                 assert date.to_datetime(note_datetime=note_datetime)
 
 
+def test_two_digit_year_normalization(blank_nlp: PipelineProtocol):
+    cases = [
+        (None, "24/03/25 24/03/26 24/03/27", [2025, 2026, 2027]),
+        (datetime.datetime(2029, 1, 1), "24/03/30 24/03/31", [2030, 1931]),
+        (datetime.datetime(2010, 1, 1), "24/03/11 24/03/12", [2011, 1912]),
+    ]
+    for note_datetime, text, expected in cases:
+        doc = blank_nlp.make_doc(text)
+        doc._.note_datetime = note_datetime
+        doc = blank_nlp(doc)
+        assert [span._.date.year for span in doc.spans["dates"]] == expected
+
+
 def test_periods(blank_nlp: PipelineProtocol):
     period_examples = [
         "à partir de <ent>juin 2017 pendant trois semaines</ent>",

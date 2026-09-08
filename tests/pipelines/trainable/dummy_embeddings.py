@@ -60,26 +60,19 @@ class DummyEmbeddings(WordEmbeddingComponent[dict]):
         )
         item_indices = span_offsets = span_indices = None
         if self.word_pooling_mode == "mean":
-            samples = torch.arange(max(inputs.lengths["sample"]))
-            words = torch.arange(max(inputs.lengths["word"]))
+            samples = torch.arange(max(inputs.lengths[0]))
+            words = torch.arange(max(inputs.lengths[2]))
             n_words = len(words)
             n_samples = len(samples)
             words = words[None, :].expand(n_samples, -1)
             samples = samples[:, None].expand(-1, n_words)
-            words = words.masked_fill(
-                ~inputs.refold("sample", "word", "token").mask.any(-1), 0
-            )
-            item_indices, span_offsets, span_indices = (
-                inputs.lengths.make_indices_ranges(
-                    begins=(samples, words),
-                    ends=(samples, words + 1),
-                    indice_dims=(
-                        "sample",
-                        "word",
-                    ),
-                    return_tensors="pt",
-                )
-            )
+            word_tokens = inputs.refold("sample", "word", "token")
+            word_mask = word_tokens.mask
+            word_lengths = word_mask.sum(-1)
+            item_indices = word_tokens.as_tensor()[word_mask]
+            span_offsets = word_lengths.flatten().cumsum(0).roll(1)
+            span_offsets[0] = 0
+            span_offsets = span_offsets.view(n_samples, n_words)
             span_offsets = ft.as_folded_tensor(
                 span_offsets,
                 data_dims=(

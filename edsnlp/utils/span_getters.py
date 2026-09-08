@@ -53,6 +53,8 @@ def get_spans(doclike, span_getter, deduplicate=True):
                 candidates = (s for grp in doclike.spans.values() for s in grp)
             elif k == "ents":
                 candidates = doclike.ents
+            elif k == "sents":
+                candidates = doclike.sents
             elif k == "doc":
                 candidates = (doclike[:],)
             else:
@@ -68,6 +70,8 @@ def get_spans(doclike, span_getter, deduplicate=True):
                 )
             elif k == "ents":
                 candidates = doclike.ents
+            elif k == "sents":
+                candidates = doc.sents
             elif k == "doc":
                 candidates = (doclike[:],)
             else:
@@ -95,15 +99,27 @@ def get_spans_with_group(doclike, span_getter):
         doc = doclike if isinstance(doclike, Doc) else doclike.doc
         if key == "*":
             candidates = (
-                (span, name) for name, group in doc.spans.items() for span in group
+                (span, name)
+                for name, group in doc.spans.items()
+                for span in group
+                if isinstance(doclike, Doc)
+                or not (span.end < doclike.start or span.start > doclike.end)
             )
         elif key == "ents":
-            candidates = ((span, key) for span in doc.ents)
+            ents = doc.ents if isinstance(doclike, Doc) else doclike.ents
+            candidates = ((span, key) for span in ents)
+        elif key == "sents":
+            candidates = ((span, key) for span in doc.sents)
         elif key == "doc":
             candidates = ((doc[:], "doc"),)
         else:
             candidates = doc.spans.get(key, ())
-            candidates = ((span, key) for span in candidates)
+            candidates = (
+                (span, key)
+                for span in candidates
+                if isinstance(doclike, Doc)
+                or not (span.end < doclike.start or span.start > doclike.end)
+            )
         if span_filter is True:
             yield from candidates
         else:

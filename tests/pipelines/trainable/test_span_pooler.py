@@ -40,7 +40,7 @@ def test_dummy_embeddings(word_pooling_mode, shape):
     assert out.shape == shape
 
 
-@pytest.mark.parametrize("span_pooling_mode", ["max", "mean", "attention"])
+@pytest.mark.parametrize("span_pooling_mode", ["max", "mean"])
 def test_span_pooler_on_words(span_pooling_mode):
     confit.utils.random.set_seed(42)
     converter = MarkupToDocConverter()
@@ -85,7 +85,7 @@ def test_span_pooler_on_words(span_pooling_mode):
     assert torch.allclose(out, torch.tensor(expected), atol=1e-4)
 
 
-@pytest.mark.parametrize("span_pooling_mode", ["max", "mean", "attention"])
+@pytest.mark.parametrize("span_pooling_mode", ["max", "mean"])
 def test_span_pooler_on_tokens(span_pooling_mode):
     confit.utils.random.set_seed(42)
     converter = MarkupToDocConverter()
@@ -117,13 +117,13 @@ def test_span_pooler_on_tokens(span_pooling_mode):
         ]
     elif span_pooling_mode == "mean":
         expected = [
-            [[0.0000, 0.0000], [3.0000, 3.0000], [9.0000, 9.0000]],
-            [[2.5000, 2.5000], [0.0000, 0.0000], [0.0000, 0.0000]],
+            [[0.0000, 0.0000], [2.5000, 2.5000], [7.5000, 7.5000]],
+            [[2.0000, 2.0000], [0.0000, 0.0000], [0.0000, 0.0000]],
         ]
     elif span_pooling_mode == "max":
         expected = [
-            [[0.0000, 0.0000], [4.0000, 4.0000], [10.0000, 10.0000]],
-            [[4.0000, 4.0000], [0.0000, 0.0000], [0.0000, 0.0000]],
+            [[0.0000, 0.0000], [3.0000, 3.0000], [8.0000, 8.0000]],
+            [[3.0000, 3.0000], [0.0000, 0.0000], [0.0000, 0.0000]],
         ]
     else:
         raise ValueError(f"Unknown pooling mode: {span_pooling_mode}")
@@ -191,20 +191,20 @@ def test_span_pooler_on_flat_hf_tokens():
     out = pooler.forward(batch)["embeddings"]
 
     word_embeddings = pooler.embedding(batch["embedding"])["embeddings"]
-    assert word_embeddings.shape == (21, 768)
+    assert word_embeddings.shape == (20, 768)
 
     assert out.shape == (5, 768)
 
-    # item_indices: [0, 2, 3, 7, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19]
-    #                -  ----  ---------------  ------  --------------
-    # span_offsets: [0, 1,    3,               8,      10]
-    # span_indices: [0, 1, 1, 2, 2, 2, 2,  2,  3,  3,  4,  4,  4,  4]
+    # item_indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+    #                -  ----  ---------------  ----  -------------
+    # span_offsets: [0, 1,    3,               8,    9]
+    # span_indices: [0, 1, 1, 2, 2, 2, 2,  2,  3,  4,  4,  4,  4]
 
     assert torch.allclose(out[0], word_embeddings[0])
     assert torch.allclose(out[1], word_embeddings[2:4].mean(0))
     assert torch.allclose(out[2], word_embeddings[7:12].mean(0))
-    assert torch.allclose(out[3], word_embeddings[14:16].mean(0))
-    assert torch.allclose(out[4], word_embeddings[16:20].mean(0))
+    assert torch.allclose(out[3], word_embeddings[14:15].mean(0))
+    assert torch.allclose(out[4], word_embeddings[15:19].mean(0))
 
 
 def test_span_pooler_on_pooled_hf_tokens():

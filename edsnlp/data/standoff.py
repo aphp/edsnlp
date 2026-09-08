@@ -32,7 +32,7 @@ REGEX_RELATION = re.compile(r"^(R\d+)\t(\S+) Arg1:(\S+) Arg2:(\S+)")
 REGEX_ATTRIBUTE = re.compile(r"^([AM]\d+)\t(.+?) ([TE]\d+)(?: (.+))?$")
 REGEX_EVENT = re.compile(r"^(E\d+)\t(.+)$")
 REGEX_EVENT_PART = re.compile(r"(\S+):([TE]\d+)")
-REGEX_STATUS = re.compile(r"^(#\d+)\tStatus ([^\t]+)\t(.*)$")
+REGEX_STATUS = re.compile(r"^(#\d+)\s+Status\s+([^\s]+)\s+(.*)$")
 
 
 class BratParsingError(ValueError):

@@ -257,8 +257,7 @@ class RelationDetectorFFN(
                         ]
                     )
 
-        # FIXME
-        contexts = list(get_spans(doc, {"ents": True, "*": True}))
+        contexts = [doc[:]]
         pre_aligned = False
 
         result = {
@@ -372,7 +371,7 @@ class RelationDetectorFFN(
             num_relation_candidates = batch["stats"]["relation_candidates"]
             losses.append(
                 F.binary_cross_entropy_with_logits(logits, target, reduction="sum")
-                / num_relation_candidates
+                / max(1, num_relation_candidates)
             )
         else:
             pred = logits > 0

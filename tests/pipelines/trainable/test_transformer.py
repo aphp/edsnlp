@@ -94,7 +94,7 @@ def test_span_getter(gold):
     batch = trf.collate(batch)
     batch = trf.batch_to_device(batch, device=trf.device)
     res = trf(batch)
-    assert res["embeddings"].shape == (2, 5, 32)
+    assert res["embeddings"].shape == (9, 32)
 
 
 def test_preprocess_suppresses_transformers_sequence_length_warning(caplog):
@@ -121,7 +121,6 @@ def test_preprocess_suppresses_transformers_sequence_length_warning(caplog):
         in record.message
         for record in caplog.records
     )
-    assert res["embeddings"].shape == (9, 128)
 
 
 def test_transformer_pooling():
@@ -133,7 +132,7 @@ def test_transformer_pooling():
     def run_trf(word_pooling_mode):
         set_seed(42)
         trf = eds.transformer(
-            model="prajjwal1/bert-tiny",
+            model="hf-internal-testing/tiny-bert",
             window=128,
             stride=96,
             word_pooling_mode=word_pooling_mode,

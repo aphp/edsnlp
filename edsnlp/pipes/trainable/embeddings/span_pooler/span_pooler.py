@@ -75,6 +75,8 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         *,
         embedding: WordEmbeddingComponent,
         pooling_mode: Literal["max", "sum", "mean"] = "mean",
+        activation: Optional[Literal["relu", "gelu", "silu"]] = None,
+        norm: Optional[Literal["layernorm", "batchnorm"]] = None,
         hidden_size: Optional[int] = None,
         span_getter: Any = None,
     ):
@@ -99,11 +101,31 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         self.pooling_mode = pooling_mode
         self.span_getter = span_getter
         self.embedding = embedding
-        self.projector = (
-            torch.nn.Linear(self.embedding.output_size, hidden_size)
-            if hidden_size is not None
-            else torch.nn.Identity()
-        )
+        self.activation = activation
+        self.projector = torch.nn.Sequential()
+        if hidden_size is not None:
+            self.projector.append(
+                torch.nn.Linear(self.embedding.output_size, hidden_size)
+            )
+        if activation is not None:
+            self.projector.append(
+                {
+                    "relu": torch.nn.ReLU,
+                    "gelu": torch.nn.GELU,
+                    "silu": torch.nn.SiLU,
+                }[activation]()
+            )
+        if norm is not None:
+            self.projector.append(
+                {
+                    "layernorm": torch.nn.LayerNorm,
+                    "batchnorm": torch.nn.BatchNorm1d,
+                }[norm](
+                    hidden_size
+                    if hidden_size is not None
+                    else self.embedding.output_size
+                )
+            )
 
     def feed_forward(self, span_embeds: torch.Tensor) -> torch.Tensor:
         return self.projector(span_embeds)
@@ -196,7 +218,7 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         -------
         BatchOutput
         """
-        device = next(self.parameters()).device
+        device = batch["begins"].as_tensor().device
         if len(batch["begins"]) == 0:
             span_embeds = torch.empty(0, self.output_size, device=device)
             return {
@@ -204,6 +226,47 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
             }
 
         embeds = self.embedding(batch["embedding"])["embeddings"]
+        if embeds.dim() == 2:
+            structure = batch["embedding"]["out_structure"]
+            context_word_lengths = [
+                context for sample in structure for context in sample
+            ]
+            context_starts = []
+            offset = 0
+            for context in context_word_lengths:
+                context_starts.append(offset)
+                offset += sum(context)
+
+            span_starts = []
+            span_ends = []
+            for context_idx, begin, end in zip(
+                batch["sequence_idx"].tolist(),
+                batch["begins"].as_tensor().tolist(),
+                batch["ends"].as_tensor().tolist(),
+            ):
+                lengths = context_word_lengths[context_idx]
+                span_starts.append(context_starts[context_idx] + sum(lengths[:begin]))
+                span_ends.append(context_starts[context_idx] + sum(lengths[:end]))
+
+            offsets = torch.as_tensor(span_starts, device=device)
+            ends = torch.as_tensor(span_ends, device=device)
+            item_indices = torch.cat(
+                [
+                    torch.arange(start, end, device=device)
+                    for start, end in zip(offsets, ends)
+                ]
+            )
+            offsets = (ends - offsets).cumsum(0).roll(1)
+            offsets[0] = 0
+            span_embeds = torch.nn.functional.embedding_bag(
+                item_indices,
+                embeds.as_tensor() if hasattr(embeds, "as_tensor") else embeds,
+                offsets=offsets,
+                mode=self.pooling_mode,
+            )
+            span_embeds = self.feed_forward(span_embeds)
+            return {"embeddings": batch["begins"].with_data(span_embeds)}
+
         _, n_words, dim = embeds.shape
         device = embeds.device
 

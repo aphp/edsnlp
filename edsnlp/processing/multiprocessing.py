@@ -17,12 +17,11 @@ import warnings
 import weakref
 from collections import defaultdict
 from contextlib import nullcontext
-from itertools import tee
+from dataclasses import dataclass
 from multiprocessing.connection import wait
-from multiprocessing.queues import Empty
+from multiprocessing.queues import Empty, Full
 from typing import (
     Dict,
-    Iterable,
     List,
     Sequence,
     TypeVar,
@@ -32,7 +31,12 @@ from typing import (
 import dill
 from tqdm import tqdm
 
-from edsnlp.core.stream import Stage, Stream, StreamSentinel
+from edsnlp.core.stream import (
+    Stage,
+    Stream,
+    StreamSentinel,
+)
+from edsnlp.core.torch_component import hash_batch
 from edsnlp.data.base import BatchWriter
 from edsnlp.reducers import pickler_dont_save_module_dict
 from edsnlp.utils.collections import (
@@ -41,6 +45,10 @@ from edsnlp.utils.collections import (
 )
 
 WORKER_STOP_CHECK_INTERVAL = 5.0  # seconds
+GPU_PREFETCH = 4
+DEFAULT_SHARED_CPU_INPUT_QUEUE_SIZE = 2
+DEFAULT_DEDICATED_CPU_INPUT_QUEUE_SIZE = 64
+CPU_OUTPUT_QUEUE_SIZE = 2
 
 
 class StopType:
@@ -59,6 +67,137 @@ class StopType:
 
 
 STOP = StopType()
+
+
+@dataclass
+class BytesTensor:
+    data: object
+    dtype: object
+    shape: tuple
+    stride: tuple
+    storage_offset: int
+    names: object = None
+
+
+@dataclass
+class BytesFoldedTensor(BytesTensor):
+    lengths: object = None
+    data_dims: object = None
+    full_names: object = None
+    indexer: object = None
+    mask: object = None
+
+
+def is_folded_tensor(value):
+    return (
+        value.__class__.__name__ == "FoldedTensor"
+        and hasattr(value, "lengths")
+        and hasattr(value, "data_dims")
+        and hasattr(value, "full_names")
+    )
+
+
+def batch_to_bytes(value):
+    import numpy as np
+    import torch
+
+    def tensor_to_bytes(tensor):
+        tensor = tensor.detach().cpu()
+        shape = tuple(tensor.shape)
+        stride = tuple(tensor.stride())
+        storage_offset = tensor.storage_offset()
+        tensor_names = getattr(tensor, "names", None)
+        names = tuple(tensor_names) if tensor_names and any(tensor_names) else None
+        if tensor.numel():
+            min_offset = max_offset = storage_offset
+            for size, step in zip(shape, stride):
+                extent = (size - 1) * step
+                if extent >= 0:
+                    max_offset += extent
+                else:  # pragma: no cover - PyTorch generally rejects negative strides
+                    min_offset += extent
+            element_size = tensor.element_size()
+            start = min_offset * element_size
+            stop = (max_offset + 1) * element_size
+            storage_offset -= min_offset
+            storage_view = torch.empty(0, dtype=torch.uint8).set_(
+                tensor.untyped_storage(),
+                start,
+                (stop - start,),
+                (1,),
+            )
+            data = storage_view.numpy().copy()
+        else:
+            data = np.empty(0, dtype=np.uint8)
+            storage_offset = 0
+        return data, tensor.dtype, shape, stride, storage_offset, names
+
+    if is_folded_tensor(value):
+        data, dtype, shape, stride, storage_offset, names = tensor_to_bytes(
+            value.as_tensor()
+        )
+        return BytesFoldedTensor(
+            data=data,
+            dtype=dtype,
+            shape=shape,
+            stride=stride,
+            storage_offset=storage_offset,
+            names=names,
+            lengths=value.lengths,
+            data_dims=value.data_dims,
+            full_names=value.full_names,
+            indexer=batch_to_bytes(value.indexer),
+            mask=batch_to_bytes(value._mask),
+        )
+    if isinstance(value, torch.Tensor):
+        return BytesTensor(*tensor_to_bytes(value))
+    if isinstance(value, dict):
+        return {key: batch_to_bytes(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [batch_to_bytes(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(batch_to_bytes(item) for item in value)
+    return value
+
+
+def batch_from_bytes(value):
+    import torch
+
+    def tensor_from_bytes(value):
+        if len(value.data) == 0:
+            tensor = torch.empty_strided(value.shape, value.stride, dtype=value.dtype)
+        else:
+            storage = torch.from_numpy(value.data).view(value.dtype)
+            tensor = torch.as_strided(
+                storage,
+                size=value.shape,
+                stride=value.stride,
+                storage_offset=value.storage_offset,
+            )
+        if value.names is not None:  # pragma: no cover
+            tensor = tensor.refine_names(*value.names)
+        return tensor
+
+    if isinstance(value, BytesFoldedTensor):
+        import foldedtensor as ft
+
+        return ft.FoldedTensor(
+            data=tensor_from_bytes(value),
+            lengths=value.lengths,
+            data_dims=value.data_dims,
+            full_names=value.full_names,
+            indexer=batch_from_bytes(value.indexer),
+            mask=batch_from_bytes(value.mask),
+        )
+    if isinstance(value, BytesTensor):
+        return tensor_from_bytes(value)
+    if isinstance(value, dict):
+        return {key: batch_from_bytes(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [batch_from_bytes(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(batch_from_bytes(item) for item in value)
+    return value
 
 
 class ForkingPickler(dill.Pickler):
@@ -252,7 +391,6 @@ def get_multiprocessing_context(has_torch_pipes, process_start_method):
             "Using fork start method with GPU workers may lead to deadlocks. "
             "Consider using process_start_method='spawn' instead."
         )
-        method = "spawn"
 
     # Avoid fork if HDFS/JVM already loaded
     if has_hdfs and method == "fork":
@@ -556,7 +694,9 @@ class CPUWorker(Worker):
     def iter_tasks(self, stage, stop_mode=False):
         if stop_mode and self.stop:
             return
-        if self.stream.reader.read_in_worker and stage == 0:
+        assignment = self.stream.config["resolved_worker_assignment"]
+        read_tasks_in_main = self.stream.config.get("read_tasks_in_main", False)
+        if self.stream.reader.read_in_worker and not read_tasks_in_main and stage == 0:
             local_rank = int(os.environ.get("LOCAL_RANK", 0))
             world_size = int(os.environ.get("WORLD_SIZE", 1))
             worker_idx = int(self.uid[3:]) + self.num_cpu_workers * local_rank
@@ -565,7 +705,7 @@ class CPUWorker(Worker):
             if stop_mode:
                 return
             task_idx = 0
-            for item in iter(self.stream.reader.read_records()):
+            for item in self.stream.reader.read_tasks():
                 if self.stop:  # pragma: no cover
                     # I don't know why, sometimes when a KeyboardInterrupt is captured
                     # by the main process, and converted to a stop=True in the workers,
@@ -590,7 +730,7 @@ class CPUWorker(Worker):
                 task_idx += 1
         else:
             last_task_idx = -1
-            deterministic = self.stream.deterministic
+            static = assignment == "static"
             schedule = self.stage_schedule[stage]
 
             while self.num_producers_alive[stage] > 0:
@@ -602,7 +742,7 @@ class CPUWorker(Worker):
                     while schedule[task_idx] is None:  # pragma: no cover
                         task_idx = (task_idx + 1) % len(schedule)
 
-                    if deterministic:
+                    if static:
                         prod = schedule[task_idx]
                     else:
                         rolled = schedule[task_idx:] + schedule[:task_idx]
@@ -627,33 +767,49 @@ class CPUWorker(Worker):
                     item = queue.get(timeout=WORKER_STOP_CHECK_INTERVAL)
                 except Empty:  # pragma: no cover
                     continue
-                else:
-                    if stage > 0:
-                        last_task_idx = task_idx
-                    self.waiting_times["get-" + name] += time.time() - t
+                if stage > 0:
+                    last_task_idx = task_idx
+                self.waiting_times["get-" + name] += time.time() - t
 
                 if item is STOP:
                     schedule[:] = [s if s != prod else None for s in schedule]
                     self.num_producers_alive[stage] -= 1
                     continue
-                yield item
+                if (
+                    stage == 0
+                    and read_tasks_in_main
+                    and not isinstance(item, StreamSentinel)
+                ):
+                    for record in self.stream.reader.extract_task(item):
+                        if self.stop:  # pragma: no cover
+                            raise StopSignal()
+                        yield record
+                else:
+                    yield item
 
     def postprocess_after_forward(self, items, stage):
         postprocess = getattr(self.stages[stage - 1].gpu_op, "postprocess", None)
-        deterministic = self.stream.deterministic
+        preserve_output_order = self.stream.preserve_output_order
         for batch_id, result in items:
+            result = batch_from_bytes(result)
             x = self.active_batches[stage - 1]
             slot = next(s for s in x if s[0] == batch_id)
-            result = {
-                k: v.to("cpu") if hasattr(v, "to") else v for k, v in result.items()
-            }
-            _, docs, inputs, _ = slot
-            if postprocess:
-                docs = postprocess(docs, result, inputs)
-            else:
+            _, docs, inputs, output = slot
+            if output is not None:  # pragma: no cover
+                docs = output
+            elif isinstance(result, Exception):
+                raise result
+            elif postprocess is None:
                 docs = result
+            else:
+                docs = postprocess(docs, result, inputs)
+            if self.stages[stage].gpu_op is not None and batch_id in self.batch_devices:
+                next_batch_id = (
+                    str(hash(tuple(id(x) for x in docs)))[-8:] + "-" + self.uid
+                )
+                self.batch_devices[next_batch_id] = self.batch_devices.pop(batch_id)
             slot[3] = docs
-            if deterministic:
+            if preserve_output_order:
                 while x and x[0][3] is not None:
                     docs = x.pop(0)[3]
                     yield docs
@@ -669,32 +825,29 @@ class CPUWorker(Worker):
         task_idx = 0
         torch_pipe = self.stages[stage].gpu_op
         for docs in items:
-            if isinstance(docs, StreamSentinel):
+            if isinstance(docs, StreamSentinel):  # pragma: no cover
                 self.active_batches[stage].append([None, None, None, docs])
                 continue
             batch_id = str(hash(tuple(id(x) for x in docs)))[-8:] + "-" + self.uid
-            torch_pipe.enable_cache(batch_id)
             if stage == 0:
                 gpu_idx = self.schedule[task_idx % len(self.schedule)]
                 self.batch_devices[batch_id] = gpu_idx
             else:
                 # Ensure we send the batch to the same device as the previous stages.
-                # In deterministic mode, using schedule[task_idx % len(schedule)]
-                # we shouldn't need this, but in non-deterministic mode, the order
-                # in which batches are returned to cpu workers may change depending
-                # on the speed at which gpu workers process them, rendering
-                # the above gpu_idx computation inconsistent over time.
+                # Static assignment keeps this schedule stable. Dynamic assignment
+                # can return batches in another order, so reuse the previous device
                 gpu_idx = self.batch_devices[batch_id]
             task_idx += 1
-            device = self.devices[gpu_idx]
+            torch_pipe.enable_cache(batch_id)
             if hasattr(torch_pipe, "preprocess"):
-                inputs = [torch_pipe.preprocess(x) for x in docs]
+                inputs = [torch_pipe.preprocess(doc) for doc in docs]
                 batch = decompress_dict(list(batch_compress_dict(inputs)))
                 batch = torch_pipe.collate(batch)
-                batch = torch_pipe.batch_to_device(batch, device=device)
             else:
-                batch = torch_pipe.prepare_batch(docs, device=device)
+                batch = torch_pipe.prepare_batch(docs, device=None)
                 inputs = None
+            hash_batch(batch)
+            batch = batch_to_bytes(batch)
 
             self.active_batches[stage].append([batch_id, docs, inputs, None])
 
@@ -746,6 +899,7 @@ class CPUWorker(Worker):
         name = f"from-{self.uid}_to-main"
         queue = self.data_queues[name]
         for item in items:
+            item = batch_to_bytes(item)
             t = time.time()
             queue.put(item)
 
@@ -793,7 +947,13 @@ class GPUWorker(Worker):
 
                     pipe = self.stages[stage].gpu_op
                     pipe.enable_cache(batch_id)
-                    batch = pipe(batch)
+                    try:
+                        batch = batch_from_bytes(batch)
+                        batch = pipe.batch_to_device(batch, device=device)
+                        batch = pipe(batch)
+                        batch = batch_to_bytes(batch)
+                    except Exception as exc:
+                        batch = exc
 
                     # Put item into the queue
                     name = f"from-{self.uid}_to-stage-{stage + 1}_of-{cpu_id}"
@@ -868,24 +1028,6 @@ class GPUWorker(Worker):
         return [(name, self.data_queues[name]) for name in names]
 
 
-class SafeNext:
-    def __init__(self, it, lock):
-        self.it = it
-        self.lock = lock
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        with self.lock:
-            return next(self.it)
-
-
-def thread_safe_tee(it: Iterable[T], n: int):
-    lock = threading.Lock()
-    return tuple(SafeNext(iter(sub_it), lock) for sub_it in tee(it, n))
-
-
 class MultiprocessingStreamExecutor:
     def __init__(self, stream):
         (
@@ -898,13 +1040,21 @@ class MultiprocessingStreamExecutor:
         self.stream = stream
         self.stages = stream._make_stages(split_torch_pipes=num_gpu_workers > 0)
         self.has_torch_pipes = has_torch_pipes
+        self.assignment = stream.config["resolved_worker_assignment"]
+        self.read_tasks_in_main = (
+            stream.reader.read_in_worker and self.assignment == "dynamic"
+        )
+        self.feed_reader_in_main = (
+            not stream.reader.read_in_worker or self.read_tasks_in_main
+        )
+        stream.config["read_tasks_in_main"] = self.read_tasks_in_main
         mp = get_multiprocessing_context(
             has_torch_pipes=has_torch_pipes,
             process_start_method=stream.process_start_method,
         )
 
         # Queues definition
-        share_queues = not stream.deterministic
+        share_queues = self.assignment == "dynamic"
 
         self.cpu_worker_names = [f"cpu{i}" for i in range(num_cpu_workers)]
         self.gpu_worker_names = [f"gpu{i}" for i in range(num_gpu_workers)]
@@ -918,7 +1068,11 @@ class MultiprocessingStreamExecutor:
             )
             for cpu in self.cpu_worker_names
         }
-
+        cpu_input_queue_size = (
+            DEFAULT_SHARED_CPU_INPUT_QUEUE_SIZE
+            if share_queues
+            else DEFAULT_DEDICATED_CPU_INPUT_QUEUE_SIZE
+        )
         self.main_control_queue = mp.Queue()
         self.worker_control_queues = {
             name: mp.Queue() for name in self.all_worker_names
@@ -933,20 +1087,24 @@ class MultiprocessingStreamExecutor:
         # This is to avoid the situation where a single producer occupies all
         # slots, leading to congestions affecting the whole workers pool.
 
-        # Input queues for each CPU worker
-        if not self.stream.reader.read_in_worker:
-            queue = mp.Queue(2 * num_cpu_workers) if share_queues else None
+        # A dynamic worker-side reader receives lightweight tasks from the main process
+        if self.feed_reader_in_main:
+            queue = (
+                mp.Queue(cpu_input_queue_size * num_cpu_workers)
+                if share_queues
+                else None
+            )
             for cpu in self.cpu_worker_names:
                 name = f"from-main_to-stage-0_of-{cpu}"
                 if not share_queues:
-                    queue = mp.Queue()
+                    queue = mp.Queue(cpu_input_queue_size)
                 self.data_queues[name] = queue
                 self.input_queue_names.append(name)
 
         for cpu in set(self.cpu_worker_names):
             for gpu in set(self.cpu_to_gpu_schedules[cpu]):
                 # Control the number of active items for each CPU -> GPU pair
-                self.gpu_semaphores[(cpu, gpu)] = mp.Semaphore(2)
+                self.gpu_semaphores[(cpu, gpu)] = mp.Semaphore(GPU_PREFETCH)
 
                 for stage in range(0, len(self.stages) - 1):
                     # Queue to send data from CPU to GPU
@@ -959,7 +1117,7 @@ class MultiprocessingStreamExecutor:
 
             # Final output queue for each CPU worker
             name = f"from-{cpu}_to-main"
-            self.data_queues[name] = mp.Queue(2)
+            self.data_queues[name] = mp.Queue(CPU_OUTPUT_QUEUE_SIZE)
 
         self.cpu_temp_file = self.gpu_temp_file = None
         if len(self.cpu_worker_names):
@@ -1088,19 +1246,15 @@ class MultiprocessingStreamExecutor:
         )
         self.dequeue_notifications_thread.start()
 
-        # Start enqueuing inputs if needed
-        if not self.stream.reader.read_in_worker:
-            queues = {self.data_queues[name] for name in self.input_queue_names}
-            tee_items = thread_safe_tee(self.stream.reader.read_records(), len(queues))
-            for queue, items in zip(queues, tee_items):
-                thread = threading.Thread(
-                    target=self.feed_queue,
-                    name="Main-Enqueue-Inputs",
-                    daemon=True,
-                    args=(queue, items),
-                )
-                thread.start()
-                self.queue_feeder_threads.append(thread)
+        # Start enqueuing records or worker-side reader tasks
+        if self.feed_reader_in_main:
+            thread = threading.Thread(
+                target=self.feed_input_queues,
+                name="Main-Enqueue-Inputs",
+                daemon=True,
+            )
+            thread.start()
+            self.queue_feeder_threads.append(thread)
 
         # Create the main iterator
         items = self.dequeue_outputs()
@@ -1108,11 +1262,11 @@ class MultiprocessingStreamExecutor:
         if getattr(writer, "write_in_worker", None) is False:
             writer: BatchWriter
             items = writer.batch_fn(items, writer.batch_size, sentinel_mode="drop")
-            # get the 1st element (2nd is the count)
+
             items = (
-                writer.handle_batch(b)[0]
-                for b in items
-                if not isinstance(b, StreamSentinel)
+                writer.handle_batch(batch)[0]
+                for batch in items
+                if not isinstance(batch, StreamSentinel)
             )
 
         # If we are garbage collected, stop the execution
@@ -1147,7 +1301,7 @@ class MultiprocessingStreamExecutor:
             self.teardown()
 
     def iter_outputs(self, stop_mode=False):
-        deterministic = self.stream.deterministic
+        preserve_order = self.stream.preserve_output_order
         requires_sentinel = (
             hasattr(self.stream.writer, "batch_fn")
             and getattr(self.stream.writer.batch_fn, "requires_sentinel", None)
@@ -1160,7 +1314,7 @@ class MultiprocessingStreamExecutor:
             if self.stopped and not stop_mode:  # pragma: no cover
                 raise StopSignal()
 
-            if deterministic:
+            if preserve_order:
                 worker_idx = self.current_worker_idx
             else:
                 workers = [
@@ -1198,6 +1352,7 @@ class MultiprocessingStreamExecutor:
                 self.num_alive_workers -= 1
                 self.workers_status[worker_idx] = False
                 continue
+            out = batch_from_bytes(out)
             if isinstance(out[0], StreamSentinel):
                 if out[0].kind == requires_sentinel:
                     missing_sentinels -= 1
@@ -1213,39 +1368,44 @@ class MultiprocessingStreamExecutor:
                 yield out
         yield from buffer
 
-    def feed_queue(self, queue, items):
+    def feed_input_queues(self):
         """
-        Enqueue items in a queue.
-        Note that a queue may be shared between multiple workers, so have to send
-        items destined multiple workers in the same queue. For that, we first
-        determine which worker should receive the item based on the item index
-        and some other env variables. Then we lookup the worker queue, and if it
-        matches the current queue, we send the item, even if all workers share the
-        same queue, in which case there is only on queue feeder thread that sends
-        all the items (non-deterministic mode).
+        Enqueue reader records or tasks for CPU workers
 
-        Parameters
-        ----------
-        queue: multiprocessing.Queue
-            The queue to feed
-        items: Iterator
-            The items to send. Note that this iterator is a tee of the main
-            iterator, such that each worker can process items at its own pace.
+        Static assignment uses one queue per worker. Dynamic assignment uses one shared
+        queue
         """
         queues = [
             self.data_queues[f"from-main_to-stage-0_of-{cpu}"]
             for cpu in self.cpu_worker_names
         ]
+        unique_queues = list(dict.fromkeys(queues))
+
+        def enqueue(queue, value):
+            while not self.stopped:
+                try:
+                    queue.put(value, timeout=WORKER_STOP_CHECK_INTERVAL)
+                    break
+                except Full:
+                    pass
+
         try:
             local_rank = int(os.environ.get("LOCAL_RANK", 0))
             world_size = int(os.environ.get("WORLD_SIZE", 1))
 
             task_idx = 0
-            for item in items:
+            source = (
+                self.stream.reader.read_tasks()
+                if self.read_tasks_in_main
+                else self.stream.reader.read_records()
+            )
+            for item in source:
                 if self.stopped:
                     break
                 if isinstance(item, StreamSentinel):
-                    queue.put(item)
+                    if self.assignment == "static":
+                        for queue in queues:
+                            enqueue(queue, item)
                     continue
                 # tasks:         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ...]
                 # world_size = 2
@@ -1254,26 +1414,24 @@ class MultiprocessingStreamExecutor:
                 # worker_idx = 1
                 # num_cpu_workers = 3
                 # -> kept tasks: [         3,                9, ...]
-                if (
-                    # check that this task is for us
-                    (task_idx % world_size) == local_rank
-                    # check that this task is for the queue
-                    and queues[(task_idx // world_size) % len(queues)] is queue
-                ):
-                    queue.put(item)
+                if (task_idx % world_size) == local_rank:
+                    queue = queues[(task_idx // world_size) % len(queues)]
+                    enqueue(queue, item)
                 task_idx += 1
         except BaseException as e:
             print(f"Error in input enqueueing:\n{traceback.format_exc()}", flush=True)
             self.main_control_queue.put(e)
         finally:
-            # Send the stop sentinel to all workers
-            for q in queues:
-                if q is queue:
-                    queue.put(STOP)
-            if hasattr(queue, "close"):
-                queue.close()
-            if hasattr(queue, "join_thread"):
-                queue.join_thread()
+            if not self.stopped:
+                for queue in queues:
+                    enqueue(queue, STOP)
+            for queue in unique_queues:
+                if hasattr(queue, "close"):
+                    queue.close()
+                if self.stopped and hasattr(queue, "cancel_join_thread"):
+                    queue.cancel_join_thread()
+                elif hasattr(queue, "join_thread"):
+                    queue.join_thread()
 
     def dequeue_notifications(self):
         while True:
@@ -1313,6 +1471,25 @@ class MultiprocessingStreamExecutor:
         for thread in self.queue_feeder_threads:
             thread.join()
         self.final_barrier.wait()
+        for worker in (*self.cpu_workers, *self.gpu_workers):
+            worker.join()
+
+        queues = [
+            self.main_control_queue,
+            *self.worker_control_queues.values(),
+            *self.data_queues.values(),
+        ]
+        seen_queues = set()
+        for queue in queues:
+            if id(queue) in seen_queues:
+                continue
+            seen_queues.add(id(queue))
+            try:
+                queue.close()
+                if hasattr(queue, "join_thread"):
+                    queue.join_thread()
+            except (OSError, ValueError):  # pragma: no cover
+                pass
 
     def send_stop_signals(self):
         if self.stopped:
@@ -1326,19 +1503,50 @@ class MultiprocessingStreamExecutor:
 
     @staticmethod
     def adjust_num_workers(stream: Stream):
+        device = stream.device
+        if device == "preserve":
+            raise ValueError(
+                "device='preserve' is only supported by the simple backend, "
+                "multiprocessing workers reload the stream on explicit devices."
+            )
         num_gpu_workers = (
             stream.num_gpu_workers
             if stream.num_gpu_workers is not None or stream.gpu_worker_devices is None
             else len(stream.gpu_worker_devices)
         )
-        has_torch_pipes = any(stream.torch_components())
-        requires_gpu_workers = has_torch_pipes and (
-            num_gpu_workers is None
-            or num_gpu_workers is not None
-            and num_gpu_workers > 0
+        torch_components = list(stream.torch_components())
+        has_torch_pipes = bool(torch_components)
+        if device == "cpu":
+            if num_gpu_workers is not None and num_gpu_workers > 0:
+                raise ValueError(
+                    "device='cpu' cannot be used with num_gpu_workers > 0."
+                )
+            num_gpu_workers = 0
+        requires_gpu_workers = (
+            has_torch_pipes
+            and (
+                num_gpu_workers is None
+                or num_gpu_workers is not None
+                and num_gpu_workers > 0
+            )
+            and device != "cpu"
         )
         num_cpus = int(os.environ.get("EDSNLP_MAX_CPU_WORKERS") or cpu_count())
         num_devices = 0
+        device = str(device)
+        explicit_cuda_device = (
+            device.startswith("cuda:")
+            and stream.gpu_worker_devices is None
+            and requires_gpu_workers
+        )
+        if explicit_cuda_device:
+            if num_gpu_workers is None:
+                num_gpu_workers = 1
+            elif num_gpu_workers != 1:
+                raise ValueError(
+                    "Set gpu_worker_devices to use multiple GPU workers with an "
+                    "explicit CUDA device."
+                )
         if requires_gpu_workers:
             import torch
 
@@ -1347,16 +1555,25 @@ class MultiprocessingStreamExecutor:
 
             if num_gpu_workers is None:
                 num_gpu_workers = min(num_devices, num_cpus // 2)
+            if device.startswith("cuda") and num_devices == 0:
+                raise ValueError(
+                    f"Stream device {device!r} requires CUDA, but CUDA is not "
+                    "available."
+                )
         else:
             num_gpu_workers = 0
 
         max_cpu_workers = max(num_cpus - num_gpu_workers - 1, 0)
-        default_cpu_workers = max(
-            min(max_cpu_workers, num_gpu_workers * 4)
-            if num_gpu_workers > 0
-            else max_cpu_workers,
-            1,
-        )
+        if num_gpu_workers > 0:
+            # Empirical tests found 12 CPU workers per GPU to be a good default
+            # across several GPU models and pipelines
+            cpu_workers_for_gpu = num_gpu_workers * 12
+            default_cpu_workers = max(
+                min(max_cpu_workers, cpu_workers_for_gpu),
+                1,
+            )
+        else:
+            default_cpu_workers = max(max_cpu_workers, 1)
         num_cpu_workers = (
             default_cpu_workers
             if stream.num_cpu_workers is None
@@ -1367,7 +1584,9 @@ class MultiprocessingStreamExecutor:
 
         gpu_worker_devices = (
             (
-                [
+                [device]
+                if explicit_cuda_device
+                else [
                     f"cuda:{gpu_idx * num_devices // num_gpu_workers}"
                     for gpu_idx in range(num_gpu_workers)
                 ]

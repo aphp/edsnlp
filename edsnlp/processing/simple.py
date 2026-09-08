@@ -17,10 +17,21 @@ def execute_simple_backend(stream: Stream):
     This is the default execution mode which batches the documents and processes each
     batch on the current process in a sequential manner.
     """
+    execution_device = None
     try:
         torch = sys.modules["torch"]
         no_grad_ctx = torch.no_grad()
-        device = next(
+        execution_device = stream.device
+        if execution_device == "auto":
+            execution_device = "cuda" if torch.cuda.is_available() else "cpu"
+        elif execution_device == "preserve":
+            execution_device = None
+        elif str(execution_device).startswith("cuda") and not torch.cuda.is_available():
+            raise ValueError(
+                f"Stream device {execution_device!r} requires CUDA, "
+                "but CUDA is not available."
+            )
+        device = execution_device or next(
             (p.device for pipe in stream.torch_components() for p in pipe.parameters()),
             torch.device("cpu"),
         )
@@ -49,6 +60,12 @@ def execute_simple_backend(stream: Stream):
     stages = stream._make_stages(split_torch_pipes=True)
 
     def make_torch_pipe(torch_pipe, disable_after):
+        if execution_device is not None:
+            if hasattr(torch_pipe, "to"):
+                torch_pipe.to(execution_device)
+            else:
+                torch_pipe.device = execution_device
+
         def wrapped(batches):
             for batch in batches:
                 with autocast_ctx, inference_mode_ctx, no_grad_ctx:
@@ -66,15 +83,6 @@ def execute_simple_backend(stream: Stream):
 
         with bar, stream.eval():
             items = reader.read_records()
-            items = (
-                task
-                for item in items
-                for task in (
-                    (item,)
-                    if isinstance(item, StreamSentinel)
-                    else reader.extract_task(item)
-                )
-            )
 
             for stage_idx, stage in enumerate(stages):
                 for op in stage.cpu_ops:

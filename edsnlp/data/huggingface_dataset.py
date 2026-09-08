@@ -40,11 +40,23 @@ class HFDatasetReader(FileBasedReader):
             if not self.loop:
                 break
 
+    def read_tasks(self) -> Iterable[Any]:
+        while True:
+            rows = list(range(len(self.dataset)))
+            if self.shuffle == "dataset":
+                self.rng.shuffle(rows)
+            yield from rows
+            yield DatasetEndSentinel()
+            if not self.loop:
+                break
+
+    def extract_task(self, row_idx: int) -> Iterable[Any]:
+        yield self.dataset[row_idx]
+
     def __repr__(self):
         return (
             f"{self.__class__.__name__}(data={object.__repr__(self.dataset)}, "
-            f"shuffle={self.shuffle}, "
-            f"loop={self.loop})"
+            f"shuffle={self.shuffle}, loop={self.loop})"
         )
 
 

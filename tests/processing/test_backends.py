@@ -6,13 +6,19 @@ from typing import Any, Dict, List, Sequence
 
 import pandas as pd
 import pytest
-from confit import validate_arguments
+from confit import VisibleDeprecationWarning, validate_arguments
 from spacy.tokens import Doc
 
 import edsnlp.data
 import edsnlp.processing
+from edsnlp.core.stream import Stream
 from edsnlp.data.converters import get_current_tokenizer
-from edsnlp.processing.multiprocessing import get_dispatch_schedule
+from edsnlp.processing.multiprocessing import (
+    MultiprocessingStreamExecutor,
+    batch_from_bytes,
+    batch_to_bytes,
+    get_dispatch_schedule,
+)
 
 pytestmark = pytest.mark.processing
 
@@ -50,6 +56,154 @@ docs = [
         "entities": None,
     },
 ]
+
+
+@pytest.mark.skipif(torch is None, reason="torch is not installed")
+def test_tensor_byte_transport_preserves_layout():
+    class TensorWithoutNames(torch.Tensor):
+        @property
+        def names(self):
+            raise AttributeError("names")
+
+    tensors = [
+        torch.arange(12, dtype=torch.float32).reshape(3, 4).to(torch.bfloat16)[:, ::2],
+        torch.empty((0, 3)),
+        torch.tensor(3),
+        torch.tensor([1]).expand(4, 1),
+        torch.arange(4).as_subclass(TensorWithoutNames),
+    ]
+    supports_named_tensors = hasattr(torch.Tensor, "refine_names")
+    if supports_named_tensors:
+        tensors.append(torch.arange(6).reshape(2, 3).refine_names("row", "column"))
+
+    restored = batch_from_bytes(batch_to_bytes(tensors))
+
+    assert all(
+        actual.dtype == expected.dtype
+        and actual.shape == expected.shape
+        and actual.stride() == expected.stride()
+        and torch.equal(actual, expected)
+        for actual, expected in zip(restored, tensors)
+    )
+    if supports_named_tensors:
+        assert restored[-1].names == tensors[-1].names
+
+
+@pytest.mark.skipif(torch is None, reason="torch is not installed")
+def test_tensor_byte_transport_preserves_folded_tensor():
+    ft = pytest.importorskip("foldedtensor")
+    tensor = ft.as_folded_tensor([[1.0, 2.0], [3.0]]).to(torch.bfloat16)
+
+    restored = batch_from_bytes(batch_to_bytes(tensor))
+
+    assert restored.dtype == tensor.dtype
+    assert restored.lengths == tensor.lengths
+    assert restored.data_dims == tensor.data_dims
+    assert restored.full_names == tensor.full_names
+    assert torch.equal(restored, tensor)
+
+
+def make_gpu_stream():
+    return Stream().map_gpu(
+        prepare_batch=lambda docs, device: docs,
+        forward=lambda batch: batch,
+        postprocess=lambda docs, result, inputs=None: docs,
+    )
+
+
+def test_processing_assignment_config():
+    stream = Stream().set_processing(preserve_output_order=False)
+
+    assert stream.worker_assignment == "auto"
+    assert stream.deterministic is False
+    assert stream.preserve_output_order is False
+
+    for deterministic, assignment in [(True, "static"), (False, "dynamic")]:
+        with pytest.warns(
+            VisibleDeprecationWarning,
+            match="deterministic is deprecated",
+        ):
+            stream = Stream().set_processing(deterministic=deterministic)
+        assert stream.worker_assignment == assignment
+        assert stream.preserve_output_order is deterministic
+
+    with pytest.raises(ValueError, match="both deterministic and worker_assignment"):
+        Stream().set_processing(deterministic=False, worker_assignment="dynamic")
+    with pytest.raises(ValueError, match="cannot preserve input order"):
+        Stream().set_processing(
+            worker_assignment="dynamic",
+            preserve_output_order=True,
+        )
+
+
+@pytest.mark.skipif(torch is None, reason="torch is not installed")
+def test_default_cpu_workers_are_stage_agnostic(monkeypatch):
+    monkeypatch.setenv("EDSNLP_MAX_CPU_WORKERS", "16")
+
+    single_stage = make_gpu_stream().set_processing(num_gpu_workers=1)
+    multi_stage = single_stage.map_gpu(
+        prepare_batch=lambda docs, device: docs,
+        forward=lambda batch: batch,
+        postprocess=lambda docs, result, inputs=None: docs,
+    )
+
+    assert MultiprocessingStreamExecutor.adjust_num_workers(single_stage)[0] == 12
+    assert MultiprocessingStreamExecutor.adjust_num_workers(multi_stage)[0] == 12
+
+
+@pytest.mark.skipif(torch is None, reason="torch is not installed")
+def test_multiprocessing_device_cpu_disables_gpu_workers(monkeypatch):
+    monkeypatch.setenv("EDSNLP_MAX_CPU_WORKERS", "4")
+
+    stream = make_gpu_stream().set_processing(
+        backend="multiprocessing",
+        num_cpu_workers=1,
+        device="cpu",
+    )
+
+    assert MultiprocessingStreamExecutor.adjust_num_workers(stream)[:4] == (
+        1,
+        0,
+        ["cpu"],
+        [],
+    )
+
+
+@pytest.mark.skipif(torch is None, reason="torch is not installed")
+def test_multiprocessing_rejects_preserve_device():
+    stream = make_gpu_stream().set_processing(
+        backend="multiprocessing",
+        device="preserve",
+    )
+
+    with pytest.raises(ValueError, match="preserve"):
+        MultiprocessingStreamExecutor.adjust_num_workers(stream)
+
+
+@pytest.mark.skipif(torch is None, reason="torch is not installed")
+def test_multiprocessing_explicit_cuda_device(monkeypatch):
+    monkeypatch.setenv("EDSNLP_MAX_CPU_WORKERS", "4")
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 1)
+
+    stream = make_gpu_stream().set_processing(
+        backend="multiprocessing",
+        device="cuda:0",
+    )
+
+    assert MultiprocessingStreamExecutor.adjust_num_workers(stream)[1:4] == (
+        1,
+        ["cpu", "cpu"],
+        ["cuda:0"],
+    )
+
+    stream = make_gpu_stream().set_processing(
+        backend="multiprocessing",
+        device="cuda:0",
+        num_gpu_workers=2,
+    )
+
+    with pytest.raises(ValueError, match="explicit CUDA device"):
+        MultiprocessingStreamExecutor.adjust_num_workers(stream)
 
 
 @pytest.mark.parametrize(
@@ -171,15 +325,20 @@ def error_pipe(doc: Doc):
 
 @pytest.mark.ml
 @pytest.mark.parametrize(
-    "backend,deterministic",
+    "backend,worker_assignment,preserve_output_order",
     [
-        ("simple", True),
-        ("multiprocessing", True),
-        ("multiprocessing", False),
-        ("spark", True),
+        ("simple", None, None),
+        ("multiprocessing", "static", True),
+        ("multiprocessing", "dynamic", False),
+        ("spark", None, None),
     ],
 )
-def test_multiprocessing_gpu_stub_backend(frozen_ml_nlp, backend, deterministic):
+def test_multiprocessing_gpu_stub_backend(
+    frozen_ml_nlp,
+    backend,
+    worker_assignment,
+    preserve_output_order,
+):
     text1 = "Ceci est un exemple"
     text2 = "Ceci est un autre exemple"
     stream = frozen_ml_nlp.pipe(
@@ -199,7 +358,8 @@ def test_multiprocessing_gpu_stub_backend(frozen_ml_nlp, backend, deterministic)
             num_gpu_workers=1,
             num_cpu_workers=1,
             gpu_worker_devices=["cpu"],
-            deterministic=deterministic,
+            worker_assignment=worker_assignment,
+            preserve_output_order=preserve_output_order,
         )
     elif backend == "spark":
         stream = stream.set_processing(backend="spark")
@@ -207,7 +367,7 @@ def test_multiprocessing_gpu_stub_backend(frozen_ml_nlp, backend, deterministic)
 
 
 @pytest.mark.ml
-def test_multiprocessing_gpu_stub_multi_cpu_deterministic_backend(frozen_ml_nlp):
+def test_multiprocessing_gpu_stub_multi_cpu_static_backend(frozen_ml_nlp):
     text1 = "Exemple"
     text2 = "Ceci est un autre exemple"
     text3 = "Ceci est un très long exemple ! Regardez tous ces mots !"
@@ -218,7 +378,8 @@ def test_multiprocessing_gpu_stub_multi_cpu_deterministic_backend(frozen_ml_nlp)
         batch_size="15 words",
         num_gpu_workers=1,
         num_cpu_workers=2,
-        deterministic=True,
+        worker_assignment="static",
+        preserve_output_order=True,
         # show_progress=True,
         # just to test in gpu-less environments
         gpu_worker_devices=["cpu"],
@@ -300,7 +461,7 @@ def test_multiprocessing_rb_error(ml_nlp):
 
 
 if torch is not None:
-    from edsnlp.core.torch_component import TorchComponent
+    from edsnlp.core.torch_component import BatchInput, BatchOutput, TorchComponent
 
     class DeepLearningError(TorchComponent):
         def __init__(self, *args, **kwargs):
@@ -379,8 +540,11 @@ def test_generator(backend):
     assert set(items) == {"a", "d", "b", "e", "c", "f", "g", "h", "i", "j"}
 
 
-@pytest.mark.parametrize("deterministic", [True, False])
-def test_multiprocessing_sleep(deterministic):
+@pytest.mark.parametrize(
+    "worker_assignment,preserve_output_order,ordered",
+    [("static", True, True), ("dynamic", False, False), ("static", False, False)],
+)
+def test_multiprocessing_sleep(worker_assignment, preserve_output_order, ordered):
     def process(x):
         if x % 2 == 0:
             time.sleep(0.1)
@@ -391,18 +555,19 @@ def test_multiprocessing_sleep(deterministic):
     items = items.map(process)
     items = items.set_processing(
         backend="multiprocessing",
-        deterministic=deterministic,
+        worker_assignment=worker_assignment,
+        preserve_output_order=preserve_output_order,
         num_cpu_workers=2,
     )
     items = list(items)
-    if deterministic:
+    if ordered:
         assert items == list(range(100))
     else:
         assert items != list(range(100))
 
 
 @pytest.mark.parametrize("num_cpu_workers", [0, 1, 2])
-def test_deterministic_skip(num_cpu_workers):
+def test_static_ordered_skip(num_cpu_workers):
     def process_batch(x):
         return [i for i in x if i < 10 or i % 2 == 0]
 
@@ -410,31 +575,18 @@ def test_deterministic_skip(num_cpu_workers):
     items = edsnlp.data.from_iterable(items)
     items = items.map_batches(process_batch)
     items = items.set_processing(
-        deterministic=True,
+        worker_assignment="static",
+        preserve_output_order=True,
         num_cpu_workers=num_cpu_workers,
     )
     items = list(items)
     assert items == [*range(0, 10), *range(10, 100, 2)]
 
 
-@pytest.mark.parametrize(
-    "backend",
-    ["simple", "multiprocesing"],
-)
-@pytest.mark.skipif(torch is None, reason="torch not installed")
-@pytest.mark.ml
-def test_backend_cache(backend):
-    import torch
-
-    from edsnlp.core.torch_component import (
-        BatchInput,
-        BatchOutput,
-        TorchComponent,
-        _caches,
-    )
+if torch is not None:
 
     @validate_arguments
-    class InnerComponent(TorchComponent):
+    class CacheInnerComponent(TorchComponent):
         def __init__(self, nlp=None, *args, **kwargs):
             super().__init__()
             self.called_forward = False
@@ -451,7 +603,7 @@ def test_backend_cache(backend):
             return {"sizes": batch["sizes"] * 2}
 
     @validate_arguments
-    class OuterComponent(TorchComponent):
+    class CacheOuterComponent(TorchComponent):
         def __init__(self, inner):
             super().__init__()
             self.inner = inner
@@ -473,9 +625,19 @@ def test_backend_cache(backend):
         ) -> Sequence[Doc]:
             return docs
 
+
+@pytest.mark.parametrize(
+    "backend",
+    ["simple", "multiprocessing"],
+)
+@pytest.mark.skipif(torch is None, reason="torch not installed")
+@pytest.mark.ml
+def test_backend_cache(backend):
+    from edsnlp.core.torch_component import _caches
+
     nlp = edsnlp.blank("eds")
-    nlp.add_pipe(InnerComponent(), name="inner")
-    nlp.add_pipe(OuterComponent(nlp.pipes.inner), name="outer")
+    nlp.add_pipe(CacheInnerComponent(), name="inner")
+    nlp.add_pipe(CacheOuterComponent(nlp.pipes.inner), name="outer")
     text1 = "Word"
     text2 = "A phrase"
     text3 = "This is a sentence"

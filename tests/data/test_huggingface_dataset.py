@@ -45,6 +45,19 @@ def test_from_huggingface_dataset_allows_omitted_split_for_single_dataset(
     assert next(iter(stream)) == {"text": "hello"}
 
 
+@pytest.mark.processing
+def test_from_huggingface_dataset_multiprocessing():
+    dataset = datasets.Dataset.from_dict({"id": ["a", "b", "c"]})
+    stream = from_huggingface_dataset(
+        dataset,
+        converter="",
+        shuffle="dataset",
+        seed=42,
+    ).set_processing(num_cpu_workers=2)
+
+    assert sorted(row["id"] for row in stream) == ["a", "b", "c"]
+
+
 def test_from_huggingface_dataset_conll2003_from_dataset_wrong_split_name():
     conll2003 = datasets.load_dataset(
         "lhoestq/conll2003",

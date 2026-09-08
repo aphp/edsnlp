@@ -35,7 +35,7 @@ edsnlp/metrics/__init__.py                                                      
 edsnlp/metrics/dep_parsing.py                                                              24      0 100.00%
 edsnlp/metrics/ner.py                                                                     114      0 100.00%
 edsnlp/metrics/span_attribute.py                                                           93      2  97.85%   69-70
-edsnlp/package.py                                                                         214      3  98.60%   475-476, 481
+edsnlp/package.py                                                                         277      0 100.00%
 edsnlp/patch_spacy.py                                                                      31      2  93.55%   68-69
 edsnlp/pipes/__init__.py                                                                    3      0 100.00%
 edsnlp/pipes/base.py                                                                       68      0 100.00%
@@ -345,4 +345,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      81      9  88.89%   103, 119, 122-128, 144
 edsnlp/utils/typing.py                                                                     48      1  97.92%   45
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   13561    257  98.10%
+TOTAL                                                                                   13624    254  98.14%

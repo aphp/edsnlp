@@ -9,7 +9,12 @@ from typing_extensions import Literal
 
 from edsnlp import registry
 from edsnlp.core.stream import Stream
-from edsnlp.data.base import BaseWriter, MemoryBasedReader
+from edsnlp.data.base import (
+    BaseWriter,
+    MemoryBasedReader,
+    validate_schema,
+    validate_schema_overrides,
+)
 from edsnlp.data.converters import get_dict2doc_converter, get_doc2dict_converter
 from edsnlp.utils.collections import flatten
 from edsnlp.utils.stream_sentinels import DatasetEndSentinel
@@ -136,11 +141,26 @@ def from_polars(
 
 
 class PolarsWriter(BaseWriter):
-    def __init__(self, dtypes: Optional[dict] = None):
+    def __init__(
+        self,
+        dtypes: Optional[dict] = None,
+        *,
+        schema: Optional[Union[list[str], dict]] = None,
+        schema_overrides: Optional[dict] = None,
+    ):
+        validate_schema(schema, schema_overrides, dtypes)
+        self.schema = dict.fromkeys(schema) if isinstance(schema, list) else schema
         self.dtypes = dtypes
+        self.schema_overrides = schema_overrides
 
     def consolidate(self, items: Iterable[Any]):
-        return pl.from_dicts(flatten(items), schema=self.dtypes)
+        if self.dtypes is not None:
+            return pl.from_dicts(flatten(items), schema=self.dtypes)
+        res = pl.from_dicts(
+            flatten(items), schema=self.schema, schema_overrides=self.schema_overrides
+        )
+        validate_schema_overrides(res.columns, self.schema_overrides)
+        return res
 
 
 @registry.writers.register("polars")
@@ -149,6 +169,9 @@ def to_polars(
     converter: Optional[Union[str, Callable]] = None,
     dtypes: Optional[dict] = None,
     execute: bool = True,
+    *,
+    schema: Optional[Union[list[str], dict]] = None,
+    schema_overrides: Optional[dict] = None,
     **kwargs,
 ) -> pl.DataFrame:
     """
@@ -173,8 +196,12 @@ def to_polars(
     data: Union[Any, Stream],
         The data to write (either a list of documents or a Stream).
     dtypes: Optional[dict]
-        Dictionary of column names to dtypes. This is passed to the schema parameter of
-        `pl.from_dicts`.
+        Deprecated, use schema instead
+    schema: Optional[Union[list[str], dict]]
+        Column names to keep or a mapping from column names to Polars dtypes
+    schema_overrides: Optional[dict]
+        Column dtypes to change without filtering columns, taking precedence
+        over schema
     converter: Optional[Union[str, Callable]]
         Converter to use to convert the documents to dictionary objects before storing
         them in the dataframe. These are documented on the
@@ -190,4 +217,7 @@ def to_polars(
         converter, kwargs = get_doc2dict_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)
 
-    return data.write(PolarsWriter(dtypes), execute=execute)
+    return data.write(
+        PolarsWriter(dtypes, schema=schema, schema_overrides=schema_overrides),
+        execute=execute,
+    )

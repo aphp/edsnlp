@@ -44,7 +44,7 @@ def execute_spark_backend(
     import pyspark.sql.types as T
     from pyspark.sql import SparkSession
 
-    from edsnlp.utils.spark_dtypes import schema_warning, spark_interpret_dicts_as_rows
+    from edsnlp.utils.spark_dtypes import spark_interpret_dicts_as_rows
 
     try:
         getActiveSession = SparkSession.getActiveSession
@@ -153,12 +153,7 @@ def execute_spark_backend(
 
         if isinstance(writer, SparkWriter):
             rdd = df.rdd.mapPartitions(process_partition)
-            with spark_interpret_dicts_as_rows():
-                results = spark.createDataFrame(rdd, schema=writer.dtypes)
-
-            if writer.dtypes is None and writer.show_dtypes:
-                schema_warning(results.schema)
-            return results
+            return writer.consolidate(rdd)
 
         items = flatten_once(
             pickle.loads(item["content"])

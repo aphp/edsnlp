@@ -55,3 +55,35 @@ def test_read_shuffle_loop(num_cpu_workers: int):
         "subfolder/doc-1",
         "subfolder/doc-2",
     ]
+
+
+def test_dataframe_schema():
+    from confit import VisibleDeprecationWarning
+
+    rows = [{"text": "hello", "id": 1}]
+    frame = edsnlp.data.to_pandas(
+        rows, schema_overrides={"id": "Int32"}, execute=False
+    ).execute()
+    assert list(frame.columns) == ["text", "id"]
+    assert frame["id"].dtype == "Int32"
+
+    frame = edsnlp.data.to_pandas(
+        [{**rows[0], "discarded": None}], schema=["id", "text"]
+    )
+    assert list(frame.columns) == ["id", "text"]
+    for data in (rows, [], [{"id": None}]):
+        frame = edsnlp.data.to_pandas(
+            data,
+            schema=["missing", "id"],
+            schema_overrides={"missing": "Int32", "id": "Int32"},
+        )
+        assert list(frame.columns) == ["missing", "id"]
+        assert frame.astype(object).where(frame.notna(), None).to_dict("records") == [
+            {"missing": None, "id": row.get("id")} for row in data
+        ]
+    frame = edsnlp.data.to_pandas([], schema={"id": "Int32"})
+    assert list(frame.columns) == ["id"]
+    assert frame["id"].dtype == "Int32"
+    with pytest.warns(VisibleDeprecationWarning):
+        frame = edsnlp.data.to_pandas(rows, dtypes={"id": "Int32"})
+    assert list(frame.columns) == ["text", "id"]

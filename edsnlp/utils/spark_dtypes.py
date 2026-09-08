@@ -67,7 +67,7 @@ def schema_warning(schema):
         "it to `edsnlp.data.to_spark` (and maybe fix it) to speed up the process "
         "and avoid surprises:\n"
         "import pyspark.sql.types as T\n"
-        "dtypes = " + PySparkPrettyPrinter().pformat(schema),
+        "schema = " + PySparkPrettyPrinter().pformat(schema),
         Warning,
     )
 
@@ -151,7 +151,7 @@ def spark_interpret_dicts_as_rows():
     # Replace the code object inside _infer_type
     # with a code object that has the same bytecode
     old_infer_type_code = _infer_type.__code__
-    old_infer_schema_code = _infer_type.__code__
+    old_infer_schema_code = _infer_schema.__code__
     old_infer_type_defaults = _infer_type.__defaults__
     old_infer_schema_defaults = _infer_schema.__defaults__
 
@@ -160,9 +160,10 @@ def spark_interpret_dicts_as_rows():
     _infer_type.__defaults__ = infer_type.__defaults__
     _infer_schema.__defaults__ = infer_schema.__defaults__
 
-    yield
-
-    _infer_type.__code__ = old_infer_type_code
-    _infer_schema.__code__ = old_infer_schema_code
-    _infer_type.__defaults__ = old_infer_type_defaults
-    _infer_schema.__defaults__ = old_infer_schema_defaults
+    try:
+        yield
+    finally:
+        _infer_type.__code__ = old_infer_type_code
+        _infer_schema.__code__ = old_infer_schema_code
+        _infer_type.__defaults__ = old_infer_type_defaults
+        _infer_schema.__defaults__ = old_infer_schema_defaults

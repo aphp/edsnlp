@@ -8,7 +8,12 @@ from typing_extensions import Literal
 
 from edsnlp import registry
 from edsnlp.core.stream import Stream
-from edsnlp.data.base import BaseWriter, MemoryBasedReader
+from edsnlp.data.base import (
+    BaseWriter,
+    MemoryBasedReader,
+    validate_schema,
+    validate_schema_overrides,
+)
 from edsnlp.data.converters import get_dict2doc_converter, get_doc2dict_converter
 from edsnlp.utils.collections import dl_to_ld, flatten, ld_to_dl
 from edsnlp.utils.stream_sentinels import DatasetEndSentinel
@@ -128,13 +133,29 @@ def from_pandas(
 
 
 class PandasWriter(BaseWriter):
-    def __init__(self, dtypes: Optional[dict] = None):
+    def __init__(self, dtypes=None, *, schema=None, schema_overrides=None):
+        validate_schema(schema, schema_overrides, dtypes, dtypes_as="schema_overrides")
         self.dtypes = dtypes
+        self.schema = dict.fromkeys(schema) if isinstance(schema, list) else schema
+        self.schema_overrides = schema_overrides
 
     def consolidate(self, items):
-        columns = ld_to_dl(flatten(items))
-        res = pd.DataFrame(columns)
-        return res.astype(self.dtypes) if self.dtypes else res
+        items = flatten(items)
+        if self.schema is not None:
+            items = ({name: row.get(name) for name in self.schema} for row in items)
+        res = pd.DataFrame(ld_to_dl(items), columns=self.schema)
+        if self.dtypes is not None:
+            return res.astype(self.dtypes) if self.dtypes else res
+        validate_schema_overrides(res.columns, self.schema_overrides)
+        dtypes = {
+            name: dtype
+            for name, dtype in {
+                **(self.schema or {}),
+                **(self.schema_overrides or {}),
+            }.items()
+            if dtype is not None
+        }
+        return res.astype(dtypes) if dtypes else res
 
 
 @registry.writers.register("pandas")
@@ -143,6 +164,9 @@ def to_pandas(
     execute: bool = True,
     converter: Optional[Union[str, Callable]] = None,
     dtypes: Optional[dict] = None,
+    *,
+    schema: Optional[Union[list[str], dict]] = None,
+    schema_overrides: Optional[dict] = None,
     **kwargs,
 ) -> pd.DataFrame:
     """
@@ -167,7 +191,12 @@ def to_pandas(
     data: Union[Any, Stream],
         The data to write (either a list of documents or a Stream).
     dtypes: Optional[dict]
-        Dictionary of column names to dtypes. This is passed to `pd.DataFrame.astype`.
+        Deprecated, use schema_overrides instead
+    schema: Optional[Union[list[str], dict]]
+        Column names to keep or a mapping from column names to Pandas dtypes
+    schema_overrides: Optional[dict]
+        Column dtypes to change without filtering columns, taking precedence
+        over schema
     execute: bool
         Whether to execute the writing operation immediately or to return a stream
     converter: Optional[Union[str, Callable]]
@@ -183,4 +212,7 @@ def to_pandas(
         converter, kwargs = get_doc2dict_converter(converter, kwargs)
         data = data.map(converter, kwargs=kwargs)
 
-    return data.write(PandasWriter(dtypes), execute=execute)
+    return data.write(
+        PandasWriter(dtypes, schema=schema, schema_overrides=schema_overrides),
+        execute=execute,
+    )

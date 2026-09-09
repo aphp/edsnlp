@@ -148,7 +148,7 @@ def validate_attributes(value: Union[SeqStr, Dict[str, SpanFilter]]) -> Attribut
         return new_value
     else:
         raise TypeError(
-            f"Invalid entry {value} ({type(value)}) for SpanSetterArg, "
+            f"Invalid entry {value} ({type(value)}) for Attributes, "
             f"expected bool/string(s), dict of bool/string(s) or callable"
         )
 

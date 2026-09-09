@@ -249,6 +249,14 @@ def test_callable_converter():
     assert get_dict2doc_converter(raw, {}) == (raw, {})
     assert get_doc2dict_converter(raw, {}) == (raw, {})
 
+    def converter(doc, schema: int = 1):
+        raise AssertionError("Validating options must not call the converter")
+
+    assert get_doc2dict_converter(converter, {"schema": "2"}) == (
+        converter,
+        {"schema": 2},
+    )
+
 
 def test_method_converter(blank_nlp):
     data = ["Ceci", "est", "un", "test"]
@@ -265,12 +273,10 @@ def test_converter_types(blank_nlp):
         def __init__(self, text):
             self.text = text
 
-    for converter in (blank_nlp.make_doc, Text, lambda x, k=2: Text(x)):
+    for converter in (blank_nlp.make_doc, lambda x, k=2: Text(x)):
         data = ["Ceci", "est", "un", "test"]
         texts = list(
-            edsnlp.data.from_iterable(data, converter=blank_nlp.make_doc).map(
-                lambda x: x.text
-            )
+            edsnlp.data.from_iterable(data, converter=converter).map(lambda x: x.text)
         )
         assert texts == data
 

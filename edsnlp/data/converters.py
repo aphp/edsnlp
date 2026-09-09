@@ -6,8 +6,6 @@ Doc objects, and writers convert Doc objects to dictionaries.
 
 import inspect
 import warnings
-from copy import copy
-from types import FunctionType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -19,10 +17,11 @@ from typing import (
     Sequence,
     Tuple,
     Union,
+    get_type_hints,
 )
 
 import spacy
-from confit.registry import ValidatedFunction
+from pydantic import validate_call
 from spacy.tokenizer import Tokenizer
 from spacy.tokens import Doc, Span
 from typing_extensions import Literal
@@ -57,56 +56,24 @@ def without_filename(d):
 
 
 def validate_kwargs(func, kwargs):
-    if (
-        hasattr(func, "__call__")
-        and not hasattr(func, "__defaults__")
-        and hasattr(func.__call__, "__self__")
-    ):
+    if not inspect.isroutine(func) and not isinstance(func, type):
         func = func.__call__
-    has_self = restore = False
-    spec = inspect.getfullargspec(func)
-    try:
-        if hasattr(func, "__func__"):
-            has_self = hasattr(func, "__self__")
-            func = func.__func__.__get__(None, func.__func__.__class__)
-            old_annotations = func.__annotations__
-            old_defaults = func.__defaults__
-            restore = True
-            func.__annotations__ = copy(func.__annotations__)
-            func.__annotations__[spec.args[0]] = Optional[Any]
-            func.__annotations__[spec.args[1]] = Optional[Any]
-            func.__defaults__ = (
-                None,
-                None,
-                *(spec.defaults or ())[-len(spec.args) + 2 :],
-            )
-        else:
-            func: FunctionType = copy(func)
-            old_annotations = func.__annotations__
-            old_defaults = func.__defaults__
-            restore = True
-            func.__annotations__[spec.args[0]] = Optional[Any]
-            func.__defaults__ = (None, *(spec.defaults or ())[-len(spec.args) + 1 :])
-        vd = ValidatedFunction(func, {"arbitrary_types_allowed": True})
-        model = vd.init_model_instance(
-            **{k: v for k, v in kwargs.items() if k in spec.args}
-        )
-        fields = vd.model.model_fields
-        d = {
-            k: v
-            for k, v in model.__dict__.items()
-            if (k in fields or fields[k].default_factory)
-        }
-        d.pop("v__duplicate_kwargs", None)  # see pydantic ValidatedFunction code
-        d.pop(vd.v_args_name, None)
-        d.pop(spec.args[0], None)
-        if has_self:
-            d.pop(spec.args[1], None)
-        return {**(d.pop(vd.v_kwargs_name, None) or {}), **d}
-    finally:
-        if restore:
-            func.__annotations__ = old_annotations
-            func.__defaults__ = old_defaults
+    hints = get_type_hints(
+        func.__init__ if isinstance(func, type) else func, include_extras=True
+    )
+    # The stream supplies the first argument, only validate converter options here
+    parameters = list(inspect.signature(func).parameters.values())[1:]
+    signature = inspect.Signature(
+        [p.replace(annotation=hints.get(p.name, p.annotation)) for p in parameters]
+    )
+
+    def collect(*args, **kwargs):
+        return dict(signature.bind(*args, **kwargs).arguments)
+
+    collect.__signature__ = signature
+    collect.__annotations__ = hints
+    validated = validate_call(collect, config={"arbitrary_types_allowed": True})
+    return validated(**{k: v for k, v in kwargs.items() if k in signature.parameters})
 
 
 class AttributesMappingArg(Validated):

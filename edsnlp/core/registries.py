@@ -24,7 +24,7 @@ import confit
 import spacy
 import spacy.registrations
 from confit import Config, RegistryCollection, Validatable, set_default_registry
-from confit.errors import ConfitValidationError, patch_errors
+from confit.errors import ConfitValidationError
 from confit.registry import Draft
 from spacy.pipe_analysis import validate_attrs
 from spacy.pipeline.factories import register_factories
@@ -188,14 +188,9 @@ class DraftPipe(Draft[T]):
                 self.instantiated = self._func(**kwargs)
             except ConfitValidationError as e:
                 self.error = e
-                raise ConfitValidationError(
-                    patch_errors(e.raw_errors, path, model=e.model),
-                    model=e.model,
-                    name=self._func.__module__ + "." + self._func.__qualname__,
-                )  # .with_traceback(None)
-            # except Exception as e:
-            #     obj.error = e
-            #     raise ConfitValidationError([ErrorWrapper(e, path)])
+                raise e.with_path(
+                    path, name=self._func.__module__ + "." + self._func.__qualname__
+                )
             return self.instantiated
         elif isinstance(self, dict):
             instantiated = {}
@@ -208,9 +203,9 @@ class DraftPipe(Draft[T]):
                         path=(*path, key),
                     )
                 except ConfitValidationError as e:
-                    errors.extend(e.raw_errors)
+                    errors.append(e)
             if errors:
-                raise ConfitValidationError(errors)
+                raise ConfitValidationError.combine(errors)
             return instantiated
         elif isinstance(self, (tuple, list)):
             instantiated = []
@@ -221,9 +216,9 @@ class DraftPipe(Draft[T]):
                         DraftPipe.instantiate(value, nlp, (*path, str(i)))
                     )
                 except ConfitValidationError as e:  # pragma: no cover
-                    errors.append(e.raw_errors)
+                    errors.append(e)
             if errors:
-                raise ConfitValidationError(errors)
+                raise ConfitValidationError.combine(errors)
             return type(self)(instantiated)
         else:
             return self

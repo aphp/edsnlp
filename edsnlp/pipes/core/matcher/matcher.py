@@ -56,6 +56,22 @@ class GenericMatcher(BaseNERComponent):
      the label of the extracted entities. Dictionary values are either a single
      expression or a list of expressions that match the concept.
 
+    By default, matches are added to `doc.ents`, which is also the default input of
+    qualifier components such as `eds.negation`. When matches are written only to a
+    custom span group, pass the same group as the qualifier's `span_getter`:
+
+    ```python
+    nlp.add_pipe(eds.sentences())
+    nlp.add_pipe(eds.matcher(terms={"diabetes": ["diabète"]}, span_setter="mygroup"))
+    nlp.add_pipe(eds.negation(span_getter="mygroup"))
+
+    doc = nlp("Pas de diabète.")
+    assert doc.spans["mygroup"][0]._.negation is True
+    ```
+
+    Alternatively, use `span_setter=["ents", "mygroup"]` on the matcher to expose
+    the same matches through both locations and keep the qualifier's default input.
+
     Parameters
     ----------
     nlp : PipelineProtocol
@@ -83,7 +99,7 @@ class GenericMatcher(BaseNERComponent):
     term_matcher_config : Dict[str,Any]
         Parameters of the matcher class
     span_setter : SpanSetterArg
-        How to set the spans in the doc.
+        Where to store matches, by default in `doc.ents`
     span_from_group : bool
         Whether regex spans should use the first matching capturing group instead
         of the full regex match.

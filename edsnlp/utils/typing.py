@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Generic, List, TypeVar, Union
 
 import pydantic
 from confit import Validatable
-from confit.errors import patch_errors
+from confit.errors import ConfitValidationError
 from pydantic import BaseModel
 from pydantic.type_adapter import ConfigDict, TypeAdapter
 from pydantic_core import core_schema
@@ -37,9 +37,7 @@ class MetaAsList(type):
         try:
             return cast(List[cls.type_], value)
         except pydantic.ValidationError as e:
-            e = patch_errors(e, drop_names=("__root__",))
-            e.model = cls
-            raise e
+            raise ConfitValidationError.from_exception(e, source=cls)
 
     def __get_validators__(cls):
         yield cls.validate

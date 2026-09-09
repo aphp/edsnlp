@@ -1,5 +1,6 @@
 # ruff:noqa:E402
 import os.path
+import sys
 
 import pytest
 
@@ -129,6 +130,9 @@ def test_ner_qualif_train_diff_bert(run_in_test_dir, tmp_path):
 def test_ner_qualif_train_same_bert(run_in_test_dir, tmp_path):
     set_seed(42)
     config = Config.from_disk("ner_qlf_same_bert_config.yml")
+    # Aim is excluded from the test dependencies on Python 3.13 and later
+    if sys.version_info >= (3, 13):
+        config["train"]["logger"].remove("aim")
     shutil.rmtree(tmp_path, ignore_errors=True)
     kwargs = Config.resolve(config["train"], registry=registry, root=config)
     nlp = train(

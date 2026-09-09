@@ -34,7 +34,7 @@ from typing import (
 import spacy
 import srsly
 from confit import Config
-from confit.errors import ConfitValidationError, patch_errors
+from confit.errors import ConfitValidationError
 from confit.utils.xjson import Reference
 from packaging.requirements import Requirement
 from packaging.version import Version
@@ -595,13 +595,10 @@ class Pipeline(Validated):
         try:
             components = DraftPipe.instantiate(components, nlp=self)
         except ConfitValidationError as e:
-            e = ConfitValidationError(
-                e.raw_errors,
-                model=self.__class__,
+            raise e.with_path(
+                ("components",),
                 name=self.__class__.__module__ + "." + self.__class__.__qualname__,
             )
-            e.raw_errors = patch_errors(e.raw_errors, ("components",))
-            raise e
 
         for name in pipeline:
             if name in exclude:

@@ -287,7 +287,7 @@ def test_pooler_cnn_layout_and_gradients(mode):
     batch = pooler.collate(decompress_dict(list(batch_compress_dict(prep))))
     embeddings = pooler.embedding(batch["embedding"])["embeddings"]
     expected = []
-    for row, selected in zip(embeddings.as_tensor(), spans):
+    for row, selected in zip(embeddings.refold("context", "word").as_tensor(), spans):
         for span in selected:
             values = row[span.start : span.end]
             if not len(span):

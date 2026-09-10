@@ -396,7 +396,13 @@ class RelationDetectorFFN(
             head = all_heads[pair_idx]
             tail = all_tails[pair_idx]
             label = self.labels[label_idx]
-            head._.rel.setdefault(label, set()).add(tail)
+            related_spans = head._.rel.setdefault(label, set())
+            if not isinstance(related_spans, set):
+                related_spans = head._.rel[label] = set(related_spans)
+            related_spans.add(tail)
             if self.candidate_getter[getter_indices[pair_idx]]["symmetric"]:
-                tail._.rel.setdefault(label, set()).add(head)
+                related_spans = tail._.rel.setdefault(label, set())
+                if not isinstance(related_spans, set):
+                    related_spans = tail._.rel[label] = set(related_spans)
+                related_spans.add(head)
         return docs

@@ -193,6 +193,7 @@ def test_time(with_time: bool):
     if with_time:
         time_examples = [
             "Vu le <ent norm='2012-01-11 11h34m'>11/01/2012 à 11h34</ent> pour radio.",
+            "Vu le <ent norm='2012-01-11 18h'>11/01/2012 à 18:00:00</ent> pour radio.",
         ]
     else:
         time_examples = [

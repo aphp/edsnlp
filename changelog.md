@@ -20,6 +20,7 @@
 
 - `eds.contextual_matcher` now checks `span_getter` in span-only `include` rules instead of rejecting every anchor
 - Correctly normalize two-digit years matched by `eds.dates`, allowing at most one year after the report date
+- `eds.dates` now parses the hour correctly when a date and time include seconds and a minute from `00` to `23`
 - Restore Spark inference functions after successful and failed schema inference
 
 ## v0.22.0 (2026-06-17)

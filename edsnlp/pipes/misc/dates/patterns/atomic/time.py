@@ -9,7 +9,7 @@ lz_second_pattern = r"(?<!\d)(?P<second>0[0-9]|[1-5]\d)(?!\d)"
 
 # The time pattern is always optional
 time_pattern = (
-    r"(\s.{,3}"
+    r"(\s.{,3}?"
     + f"{hour_pattern}[h:]({lz_minute_pattern})?"
     + f"((:|m|min){lz_second_pattern})?"
     + ")?"

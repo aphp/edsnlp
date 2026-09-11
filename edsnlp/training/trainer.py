@@ -194,7 +194,8 @@ class GenericScorer:
                     pipe = nlp.get_pipe(name)
                     for span in get_spans(doc, pipe.span_getter):
                         for qlf in nlp.get_pipe(name).attributes:
-                            BINDING_SETTERS[(qlf, None)](span)
+                            binding = qlf if qlf.startswith("_.") else f"_.{qlf}"
+                            BINDING_SETTERS[(binding, None)](span)
             with nlp.select_pipes(disable=ner_pipes):
                 qlf_preds = list(
                     nlp.pipe(tqdm(clean_qlf_docs, desc="Predicting")).set_processing(

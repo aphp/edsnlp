@@ -29,6 +29,7 @@ def test_relation_candidates_and_metric():
         }
         relation = eds.relation_detector_ffn(
             span_embedding=eds.span_pooler(embedding=DummyEmbeddings(dim=2)),
+            inter_span_embedding=eds.span_pooler(embedding=DummyEmbeddings(dim=2)),
             candidate_getter=[getter, getter],
         )
         for doc in docs:

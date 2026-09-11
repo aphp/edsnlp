@@ -145,9 +145,7 @@ class RelationDetectorFFN(
     span._.rel = {"RELATION_LABEL": [related_span1, related_span2, ...]}
 
     For example, to indicate that a drug (span1) treats a problem (span2), you would do:
-    ```python
-    span1._.rel = {"treats": (span2,)}
-    ```
+    `span1._.rel = {"treats": (span2,)}`
 
 
     Extensions

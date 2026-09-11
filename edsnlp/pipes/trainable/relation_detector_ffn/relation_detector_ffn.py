@@ -141,7 +141,14 @@ class RelationDetectorFFN(
     To train the model, provide supervision by filling, for each head span, the
     extension `span._.rel` as a mapping from label to a set of tail spans. For
     symmetric relations, you may annotate only one side when `symmetric=True` in the
-    candidate configuration.
+    candidate configuration. We should have
+    span._.rel = {"RELATION_LABEL": [related_span1, related_span2, ...]}
+
+    For example, to indicate that a drug (span1) treats a problem (span2), you would do:
+    ```python
+    span1._.rel = {"treats": (span2,)}
+    ```
+
 
     Extensions
     ----------

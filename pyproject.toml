@@ -33,7 +33,7 @@ dependencies = [
 ml = [
     "rich-logger>=0.3.1",
     "torch>=2",
-    "foldedtensor>=0.4.0",
+    "foldedtensor>=0.5.0.dev1",
     "safetensors>=0.3.0",
     "transformers>=4.0.0",
     "accelerate>=0.20.3",
@@ -248,16 +248,17 @@ include = ["edsnlp*"]
 # edsnlp will look both in the above dict and in the one below.
 [project.entry-points."edsnlp_factories"]
 # Trainable
-"eds.transformer"         = "edsnlp.pipes.trainable.embeddings.transformer.factory:create_component"
-"eds.text_cnn"            = "edsnlp.pipes.trainable.embeddings.text_cnn.factory:create_component"
-"eds.span_pooler"         = "edsnlp.pipes.trainable.embeddings.span_pooler.factory:create_component"
-"eds.ner_crf"             = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
-"eds.extractive_qa"      = "edsnlp.pipes.trainable.extractive_qa.factory:create_component"
-"eds.nested_ner"          = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
-"eds.span_qualifier"     = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
-"eds.span_classifier"     = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
-"eds.span_linker"         = "edsnlp.pipes.trainable.span_linker.factory:create_component"
-"eds.biaffine_dep_parser" = "edsnlp.pipes.trainable.biaffine_dep_parser.factory:create_component"
+"eds.transformer"           = "edsnlp.pipes.trainable.embeddings.transformer.factory:create_component"
+"eds.text_cnn"              = "edsnlp.pipes.trainable.embeddings.text_cnn.factory:create_component"
+"eds.span_pooler"           = "edsnlp.pipes.trainable.embeddings.span_pooler.factory:create_component"
+"eds.ner_crf"               = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
+"eds.extractive_qa"         = "edsnlp.pipes.trainable.extractive_qa.factory:create_component"
+"eds.nested_ner"            = "edsnlp.pipes.trainable.ner_crf.factory:create_component"
+"eds.span_qualifier"        = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
+"eds.span_classifier"       = "edsnlp.pipes.trainable.span_classifier.factory:create_component"
+"eds.span_linker"           = "edsnlp.pipes.trainable.span_linker.factory:create_component"
+"eds.biaffine_dep_parser"   = "edsnlp.pipes.trainable.biaffine_dep_parser.factory:create_component"
+"eds.relation_detector_ffn" = "edsnlp.pipes.trainable.relation_detector_ffn.factory:create_component"
 
 [project.entry-points."edsnlp_schedules"]
 "linear" = "edsnlp.training.optimizer:LinearSchedule"
@@ -268,6 +269,7 @@ include = ["edsnlp*"]
 "eds.ner_overlap"            = "edsnlp.metrics.ner:NerOverlapMetric"
 "eds.span_attribute"         = "edsnlp.metrics.span_attribute:SpanAttributeMetric"
 "eds.dep_parsing"            = "edsnlp.metrics.dep_parsing:DependencyParsingMetric"
+"eds.relations"              = "edsnlp.metrics.relations:RelationsMetric"
 
 # Deprecated
 "eds.ner_exact_metric"       = "edsnlp.metrics.ner:NerExactMetric"

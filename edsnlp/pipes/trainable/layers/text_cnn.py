@@ -75,60 +75,45 @@ class TextCnn(torch.nn.Module):
         self.residual = Residual(normalize=normalize) if residual else None
 
     def forward(
-        self, embeddings: torch.FloatTensor, mask: torch.BoolTensor
-    ) -> torch.FloatTensor:
-        # shape: samples words dim
-        if 0 in embeddings.shape:
-            return embeddings.view((*embeddings.shape[:-1], self.linear.out_features))  # type: ignore
-        max_k = max(conv.kernel_size[0] for conv in self.convolutions)
-        left_pad = (max_k) // 2
-        right_pad = (max_k - 1) // 2
-        n_samples, n_words, dim = embeddings.shape
-        n_words_with_pad = n_words + left_pad + right_pad
+        self,
+        embeddings: torch.Tensor,
+        word_indices: torch.LongTensor,
+        padded_length: int,
+    ) -> torch.Tensor:
+        """
+        Convolve flat words separated by zeros at context boundaries
 
-        # shape: samples (left_pad... words ...right_pad) dim
-        padded_x = F.pad(embeddings, pad=(0, 0, max_k // 2, (max_k - 1) // 2))
-        padded_mask = F.pad(mask, pad=(max_k // 2 + (max_k - 1) // 2, 0), value=True)
+        Parameters
+        ----------
+        embeddings: torch.Tensor
+            Word embeddings of shape words by input size
+        word_indices: torch.LongTensor
+            Word positions in the padded sequence from TextCnnEncoder.collate
+        padded_length: int
+            Total sequence length including the padding around each context
 
-        # shape: (un-padded sample words) dim
-        flat_x = padded_x[padded_mask]
+        Returns
+        -------
+        torch.Tensor
+            Contextualized words of shape words by output size
+        """
+        if len(embeddings) == 0:
+            return (
+                self.linear(embeddings.new_empty((0, self.linear.in_features)))
+                + embeddings.sum() * 0
+            )
 
-        # Conv-1d expects sample * dim * words
-        flat_x = flat_x.permute(1, 0).unsqueeze(0)
+        padded = embeddings.new_zeros((padded_length, embeddings.size(-1)))
+        padded[word_indices] = embeddings
+        padded = padded.T.unsqueeze(0)
 
-        # Apply the convolutions over the flattened input
-        conv_results = []
-        for conv_idx, conv in enumerate(self.convolutions):
-            k = conv.kernel_size[0]
-            conv_x = conv(flat_x)
-            offset_left = left_pad - (k // 2)
-            offset_right = conv_x.size(2) - (right_pad - ((k - 1) // 2))
-            conv_results.append(conv_x[0, :, offset_left:offset_right])
-        flat_x = torch.cat(conv_results, dim=0)
-        flat_x = flat_x.transpose(1, 0)  # n_words * dim
-
-        # Apply the non-linearities
-        flat_x = torch.relu(flat_x)
-        flat_x = self.linear(flat_x)
-
-        # Reshape the output to the original shape
-        new_dim = flat_x.size(-1)
-        x = torch.empty(
-            n_samples * n_words_with_pad,
-            new_dim,
-            device=flat_x.device,
-            dtype=flat_x.dtype,
+        # Select word positions before projection and residual normalization
+        convoluted = torch.cat(
+            [
+                conv(padded)[0, :, word_indices - conv.kernel_size[0] // 2].T
+                for conv in self.convolutions
+            ],
+            dim=-1,
         )
-        flat_mask = padded_mask.clone()
-        flat_mask[-1, padded_mask[-1].sum() - right_pad :] = False
-        flat_mask[0, :left_pad] = False
-        flat_mask = flat_mask.view(-1)
-        x[flat_mask] = flat_x
-        x = x.view(n_samples, n_words_with_pad, new_dim)
-        x = x[:, left_pad:-right_pad]
-
-        # Apply the residual connection
-        if self.residual is not None:
-            x = self.residual(embeddings, x)
-
-        return x.masked_fill_((~mask).unsqueeze(-1), 0)
+        x = self.linear(torch.relu(convoluted))
+        return self.residual(embeddings, x) if self.residual is not None else x

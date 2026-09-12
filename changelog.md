@@ -5,6 +5,11 @@
 ### Added
 
 - `edsnlp.package` now supports `code="dependency"` and `code="none"` to build model packages without embedding project code, which is better for model finetuning with custom code, since finetuned models only require the custom code and not the original model weights. Dependency mode infers the project package requirement from `pyproject.toml` and can check the selected uv index for unreleased local code changes.
+- Add attention pooling to `eds.span_pooler`
+- Add `word_pooling_mode=False` to `eds.transformer` to return wordpiece embeddings for `eds.span_pooler`
+- Add `eds.relation_detector_ffn` to predict relations between entities, stored as sets of tail spans in `head._.rel`
+- Load "Status" annotator notes as `status` dict attribute
+- Support different poolers for span embedding and inter-span embeddings in `eds.relation_detector_ffn`
 
 ### Changed
 
@@ -15,6 +20,7 @@
 - `TNM.norm()` no longer concatenates free-text suffixes verbatim, so `span.kb_id_` stays usable for grouping: only suffixes that read as a TNM qualifier are kept (`pT1(m)` → `pT1m`, whereas `pT1(grade 2)N1M0` used to normalise to `pT1grade 2N1M0`). The `o` → `0` coercion is likewise restricted to the numeric stage fields, so a suffix such as `(foie)` is no longer stored as `f0ie`
 - `edsnlp.package` now only supports PEP 621 projects, old style poetry packaging support has been removed.
 - Use Confit 0.13 structured errors for nested component validation and validate converter options with Pydantic directly
+- Avoid padded tensors in text CNN, by pre-computing flattening indice mappings in the collate method
 
 ### Fixed
 
@@ -23,6 +29,10 @@
 - `eds.dates` now parses the hour correctly when a date and time include seconds and a minute from `00` to `23`
 - Restore Spark inference functions after successful and failed schema inference
 - Reduce normalizer pollution regex backtracking on long lines, namely for information notices, biology tables, coding sections, footers and web addresses
+
+### Fixed
+
+- Correctly initialize labels when training pipe names are left unset
 
 ## v0.22.0 (2026-06-17)
 

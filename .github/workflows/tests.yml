@@ -201,7 +201,7 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Install dependencies
-        run: uv pip install -e . --group dev
+        run: uv pip install -e ".[ml]" --group dev
 
       - name: Run Pytest on Python ${{ matrix.python-version }} (${{ matrix.name }})
         env:
@@ -287,7 +287,7 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Install dependencies
-        run: uv pip install -e . --group docs
+        run: uv pip install -e ".[ml]" --group docs
 
       - name: Compute docs preview metadata
         id: docs_meta

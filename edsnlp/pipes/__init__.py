@@ -18,11 +18,15 @@ if TYPE_CHECKING:
     from .core.normalizer.spaces.factory import create_component as spaces
     from .core.sentences.factory import create_component as sentences
     from .core.terminology.factory import create_component as terminology
+    from .llm.llm_markup_extractor.factory import create_component as llm_markup_extractor
+    from .llm.llm_span_qualifier.factory import create_component as llm_span_qualifier
     from .misc.consultation_dates.factory import create_component as consultation_dates
     from .misc.dates.factory import create_component as dates
+    from .misc.explode import Explode as explode
     from .misc.quantities.factory import create_component as quantities
     from .misc.reason.factory import create_component as reason
     from .misc.sections.factory import create_component as sections
+    from .misc.split import Split as split
     from .misc.tables.factory import create_component as tables
     from .ner.adicap.factory import create_component as adicap
     from .ner.behaviors.alcohol.factory import create_component as alcohol
@@ -74,15 +78,12 @@ if TYPE_CHECKING:
     from .qualifiers.negation.factory import create_component as negation
     from .qualifiers.reported_speech.factory import create_component as reported_speech
     from .qualifiers.reported_speech.factory import create_component as rspeech
-    from .trainable.ner_crf.factory import create_component as ner_crf
     from .trainable.biaffine_dep_parser.factory import create_component as biaffine_dep_parser
+    from .trainable.embeddings.span_pooler.factory import create_component as span_pooler
+    from .trainable.embeddings.text_cnn.factory import create_component as text_cnn
+    from .trainable.embeddings.transformer.factory import create_component as transformer
     from .trainable.extractive_qa.factory import create_component as extractive_qa
+    from .trainable.ner_crf.factory import create_component as ner_crf
+    from .trainable.relation_detector_ffn.factory import create_component as relation_detector_ffn
     from .trainable.span_classifier.factory import create_component as span_classifier
     from .trainable.span_linker.factory import create_component as span_linker
-    from .trainable.embeddings.span_pooler.factory import create_component as span_pooler
-    from .trainable.embeddings.transformer.factory import create_component as transformer
-    from .trainable.embeddings.text_cnn.factory import create_component as text_cnn
-    from .misc.split import Split as split
-    from .misc.explode import Explode as explode
-    from .llm.llm_markup_extractor.factory import create_component as llm_markup_extractor
-    from .llm.llm_span_qualifier.factory import create_component as llm_span_qualifier

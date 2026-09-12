@@ -12,6 +12,8 @@ import pytest
 import edsnlp
 from edsnlp.connectors.brat import BratConnector
 from edsnlp.core import PipelineProtocol
+from edsnlp.data.converters import StandoffDict2DocConverter
+from edsnlp.data.standoff import dump_standoff_file, parse_standoff_file
 
 
 def random_word():
@@ -286,3 +288,38 @@ def test_read_shuffle_loop(num_cpu_workers: int):
         "subfolder/doc-2",
         "subfolder/doc-1",
     ]
+
+
+def test_standoff_relations(tmp_path):
+    """
+    Check Brat relation export and conversion including malformed relation labels
+    """
+    record = {
+        "text": "Aspirin pain",
+        "entities": [
+            {
+                "entity_id": "drug",
+                "label": "drug",
+                "fragments": [{"begin": 0, "end": 7}],
+            },
+            {
+                "entity_id": "pain",
+                "label": "problem",
+                "fragments": [{"begin": 8, "end": 12}],
+            },
+        ],
+        "relations": [
+            {"from_entity_id": "drug", "to_entity_id": "pain", "label": "treats"}
+        ],
+    }
+    path = tmp_path / "example.txt"
+    dump_standoff_file(record, str(path))
+    assert "R1\ttreats Arg1:T1 Arg2:T2" in path.with_suffix(".ann").read_text()
+    parsed = parse_standoff_file(str(path), [str(path.with_suffix(".ann"))])
+    parsed["doc_id"] = "example"
+    converter = StandoffDict2DocConverter(tokenizer=edsnlp.blank("eds").tokenizer)
+    doc = converter(parsed)
+    assert doc.ents[0]._.rel == {"treats": {doc.ents[1]}}
+    parsed["relations"] = [{"from_entity_id": "T1", "to_entity_id": "T2"}]
+    with pytest.raises(ValueError, match="Error when processing example"):
+        converter(parsed)

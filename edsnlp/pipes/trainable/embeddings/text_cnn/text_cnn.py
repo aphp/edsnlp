@@ -1,5 +1,6 @@
-from typing import Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 
+import foldedtensor as ft
 import torch
 from typing_extensions import Literal, TypedDict
 
@@ -16,8 +17,10 @@ from edsnlp.utils.torch import ActivationFunction
 TextCnnBatchInput = TypedDict(
     "TextCnnBatchInput",
     {
-        "embeddings": torch.Tensor,
-        "mask": torch.Tensor,
+        "embedding": BatchInput,
+        "word_indices": torch.LongTensor,
+        "padded_length": int,
+        "out_structure": ft.FoldedTensorLayout,
     },
 )
 
@@ -87,32 +90,45 @@ class TextCnnEncoder(WordContextualizerComponent):
             normalize=normalize,
         )
 
-    def forward(self, batch: BatchInput) -> WordEmbeddingBatchOutput:
+    def collate(self, batch: Dict[str, Any]) -> TextCnnBatchInput:
         """
-        Encode embeddings with a 1d convolutional network
-
-        Parameters
-        ----------
-        batch: WordEmbeddingBatchOutput
-            - embeddings: embeddings of shape (batch_size, seq_len, input_size)
-            - mask: mask of shape (batch_size, seq_len)
-
-        Returns
-        -------
-        WordEmbeddingBatchOutput
-            - embeddings: encoded embeddings of shape (batch_size, seq_len, input_size)
-            - mask: (same) mask of shape (batch_size, seq_len)
+        Map words into a flat sequence with zero padding around each context
         """
-        embedding = self.embedding(batch["embedding"])["embeddings"]
-        embedding = embedding.refold("context", "word")
-        convoluted = (
-            self.module(
-                embedding.as_tensor(),
-                embedding.mask,
-            )
-            if embedding.size(0) > 0
-            else embedding
+        emb = self.embedding.collate(batch["embedding"])
+        lengths = emb["out_structure"]["word"]
+        max_kernel = max(conv.kernel_size[0] for conv in self.module.convolutions)
+        padded_lengths = [length + max_kernel - 1 for length in lengths]
+        layout = ft.FoldedTensorLayout(
+            [[len(lengths)], padded_lengths],
+            full_names=("context", "word"),
+            data_dims=("word",),
+        )
+        contexts = torch.arange(len(lengths))
+        word_indices, _, _ = layout.make_indices_ranges(
+            begins=(contexts, max_kernel // 2),
+            ends=(contexts, [length + max_kernel // 2 for length in lengths]),
+            indice_dims=("context", "word"),
         )
         return {
-            "embeddings": embedding.with_data(convoluted),
+            "embedding": emb,
+            "word_indices": word_indices,
+            "padded_length": sum(padded_lengths),
+            "out_structure": ft.FoldedTensorLayout(
+                emb["out_structure"],
+                full_names=emb["out_structure"].full_names,
+                data_dims=("word",),
+            ),
+        }
+
+    def forward(self, batch: TextCnnBatchInput) -> WordEmbeddingBatchOutput:
+        """
+        Return flat contextualized words preserving virtual dimensions
+        """
+        embedding = self.embedding(batch["embedding"])["embeddings"].refold("word")
+        return {
+            "embeddings": embedding.with_data(
+                self.module(
+                    embedding.as_tensor(), batch["word_indices"], batch["padded_length"]
+                )
+            ),
         }

@@ -409,7 +409,12 @@ def RichLogger(
 
         - key: a regex to match columns
         - value: either a Dict or False to hide the column, the dict format is
-            - name: the name of the column
+            - name: the name to display in the table.
+            For example, r"\1_\2" will display the first and second capture
+            groups of the regex of key. r"ner_\2" will display "ner_" followed by
+            the second capture group of the regex of key.
+            # Note: if you use it in config file you need only one backslash,
+            # for example "ner_\2"
             - goal: "lower_is_better" or "higher_is_better"
 
         This defaults to a set of metrics and stats that are commonly

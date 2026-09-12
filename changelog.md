@@ -22,6 +22,7 @@
 - Correctly normalize two-digit years matched by `eds.dates`, allowing at most one year after the report date
 - `eds.dates` now parses the hour correctly when a date and time include seconds and a minute from `00` to `23`
 - Restore Spark inference functions after successful and failed schema inference
+- Reduce normalizer pollution regex backtracking on long lines, namely for information notices, biology tables, coding sections, footers and web addresses
 
 ## v0.22.0 (2026-06-17)
 

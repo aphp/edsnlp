@@ -1,7 +1,8 @@
 # noinspection SpellCheckingInspection
 information = [
     (
-        r"(?s)(=====+\s*)?(L\s*e\s*s\sdonnées\s*administratives,\s*sociales\s*|"
+        # Avoid retrying the optional separator from inside the same equals run
+        r"(?s)((?<![=])=====+\s*)?(L\s*e\s*s\sdonnées\s*administratives,\s*sociales\s*|"
         r"I?nfo\s*rmation\s*aux?\s*patients?|"
         r"L[’']AP-HP\s*collecte\s*vos\s*données\s*administratives|"
         r"L[’']Assistance\s*Publique\s*-\s*Hôpitaux\s*de\s*Paris\s*"
@@ -17,7 +18,10 @@ information = [
 bars = r"(?i)([nbw]|_|-|=){5,}"
 
 # Biology tables: Prone to false positive with disease names
-biology = r"(\b.*[|¦].*\n)+"
+# Word characters include superscript numbers and exclude combining marks
+word = r"[\p{L}\p{N}_]"
+# Scan each line once and exclude leading punctuation from the pollution span
+biology = rf"^[^\p{{L}}\p{{N}}_\n]*\K({word}[^\n|¦]*[|¦][^\n]*\n)+"
 
 # Leftside note with doctor names
 doctors = r"(?mi)(^((dr)|(pr))(\.|\s|of).*)+"
@@ -25,20 +29,30 @@ doctors = r"(?mi)(^((dr)|(pr))(\.|\s|of).*)+"
 # Mails or websites
 web = [
     r"(www\.\S*)",
-    r"(\S*@\S*)",
-    r"\S*\.(?:fr|com|net|org)",
+    r"(?<!\S)(\S*@\S*)",
+    r"(?<!\S)\S*\.(?:fr|com|net|org)",
 ]
 
 # Subsection with ICD-10 Codes
-coding = r".*? \(\d+\) [a-zA-Z]\d{2,4}.*?(\n|[a-zA-Z]\d{2,4})"
+# Resume at the previous match end for multiple coding sections on one line
+coding = r"(?:^|\G).*? \(\d+\) [a-zA-Z]\d{2,4}.*?(\n|[a-zA-Z]\d{2,4})"
 
 
 # New page
-date = r"\b\d\d/\d\d/\d\d\d\d\b"
+date = rf"(?<!{word})\d\d/\d\d/\d\d\d\d(?!{word})"
 ipp = r"80\d{8}"
-page = r"((^\d\/\d\s?)|(^\d\d?\/\d\d\?))"
-footer = rf"(?i)({page}.*\n?pat.*(ipp)?.*\n?(courrier valid.*)?)"
-footer += rf"|(.*{date}.*{ipp}.*)|(imprim.\sle\s{date}.*\d/\d.*\n?pat.*{date})"
+# Notice separators include Unicode whitespace and control separators
+space = r"[\s\x1c-\x1f]"
+page = rf"((^\d\/\d{space}?)|(^\d\d?\/\d\d\?))"
+# Footer words accept dotless i as a case variant
+footer = rf"(?i)({page}.*\n?pat.*\n?(courr[iı]er val[iı]d.*)?)"
+# The first date is sufficient to find an IPP later on the same line
+footer += rf"|((?:^|\G)(?>.*?{date}).*{ipp}.*)"
+# Commit to the first page number and prefer a patient line after the newline
+footer += (
+    rf"|((?:^|\G)(?>.*?\K[iı]mpr[iı]m.{space}le{space}{date})"
+    rf"(?>.*?\d/\d)(?:.*\npat.*{date}|(?>.*?pat).*{date}))"
+)
 
 # Word split in the middle due to line break
 intraword_split = r"(?<![\W\d_])-\n"

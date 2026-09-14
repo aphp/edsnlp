@@ -534,6 +534,10 @@ class TrainableSpanLinker(
             if cui is not None:
                 labels_to_cuis[label].add(cui)
 
+        # Ensure that there are no None concepts since it could
+        # be inferred from training data.
+        concepts = [cui for cui in concepts if cui is not None]
+
         self.update_concepts(
             concepts=concepts,
             mapping=labels_to_cuis,

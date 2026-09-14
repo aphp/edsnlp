@@ -480,8 +480,17 @@ class TrainableSpanLinker(
                 spans = [
                     span for doc in docs for span in get_spans(doc, self.span_getter)
                 ]
-            batch_concepts = [s._.get(self.attribute) for s in spans]
-            batch_labels = [s.label_ for s in spans]
+
+            batch_concepts = []
+            batch_labels = []
+            for s in spans:
+                attr_value = s._.get(self.attribute)
+                if attr_value:
+                    batch_concepts.append(attr_value)
+                    batch_labels.append(s.label_)
+
+            # batch_concepts = [s._.get(self.attribute) for s in spans]
+            # batch_labels = [s.label_ for s in spans]
             res.update(
                 {
                     "concepts": batch_concepts,
@@ -601,15 +610,22 @@ class TrainableSpanLinker(
         if targets is not None:
             #  TRAINING
             num_classes = self.classifier.weight.shape[0]
+
+            # We can have none targets if the span does not have a concept, so we need
+            # to filter them out
+            mask = targets != -100
+            scores = scores[mask]
+            targets = targets[mask]
+
             loss = (
                 F.binary_cross_entropy_with_logits(
                     scores,
                     F.one_hot(targets, num_classes=num_classes).float(),
-                    reduction="sum",
+                    reduction="mean",  # target dimension could be variable, so we need to average over the batch dimension  # noqa: E501
                 )
                 / num_classes
                 if self.probability_mode == "sigmoid"
-                else F.cross_entropy(scores, targets, reduction="sum")
+                else F.cross_entropy(scores, targets, reduction="mean")
             )
         else:
             # PREDICTION

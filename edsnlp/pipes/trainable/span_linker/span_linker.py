@@ -627,6 +627,8 @@ class TrainableSpanLinker(
                 if self.probability_mode == "sigmoid"
                 else F.cross_entropy(scores, targets, reduction="mean")
             )
+            if loss.isnan().any().item():
+                loss = None
         else:
             # PREDICTION
             probs = (

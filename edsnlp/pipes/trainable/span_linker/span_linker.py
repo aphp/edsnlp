@@ -628,7 +628,7 @@ class TrainableSpanLinker(
                 else F.cross_entropy(scores, targets, reduction="mean")
             )
             if loss.isnan().any().item():
-                loss = None
+                loss = torch.tensor(0)
         else:
             # PREDICTION
             probs = (

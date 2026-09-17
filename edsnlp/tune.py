@@ -757,26 +757,29 @@ def _objective_inprocess(
     training_seeds: Optional[List[int]],
 ):
     kwargs, _ = update_config(config, tuned_parameters, trial=trial)
+    last_score = None
 
     def extract_metric(score_dict: Dict) -> float:
         return _extract_metric_from_validation(score_dict, metric_paths)
 
     def on_validation_callback(all_metrics):
+        nonlocal last_score
         step = all_metrics["step"]
-        score = extract_metric(all_metrics["validation"])
-        trial.report(score, step)
+        last_score = extract_metric(all_metrics["validation"])
+        trial.report(last_score, step)
         if trial.should_prune():
             raise optuna.TrialPruned()
 
     def run_with_seed(run_seed: int) -> float:
-        from edsnlp.training.trainer import GenericScorer, train
+        nonlocal last_score
+        from edsnlp.training.trainer import train
 
+        last_score = None
         set_seed(run_seed)
-        nlp = train(**kwargs, on_validation_callback=on_validation_callback)
-        scorer = GenericScorer(**kwargs["scorer"])
-        val_data = kwargs["val_data"]
-        score = scorer(nlp, val_data)
-        return extract_metric(score)
+        train(**kwargs, on_validation_callback=on_validation_callback)
+        if last_score is None:
+            raise RuntimeError("Training completed without validation metrics")
+        return last_score
 
     try:
         if training_seeds:

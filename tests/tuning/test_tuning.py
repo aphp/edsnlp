@@ -792,21 +792,19 @@ def test_objective_dvc_raises_when_run_fails():
                             )
 
 
-@patch("edsnlp.training.trainer.GenericScorer")
 @patch("edsnlp.training.trainer.train")
 @patch("edsnlp.tune.update_config")
 def test_objective_inprocess_averages_training_seeds(
     mock_update_config,
     mock_train,
-    mock_generic_scorer,
 ):
-    mock_update_config.return_value = ({"scorer": {}, "val_data": object()}, {})
-
-    scorer = Mock(side_effect=[{"score": 0.4}, {"score": 0.6}])
-    mock_generic_scorer.return_value = scorer
+    mock_update_config.return_value = ({"val_data": [object(), object()]}, {})
+    scores = iter([0.4, 0.6])
 
     def fake_train(**kwargs):
-        kwargs["on_validation_callback"]({"step": 1, "validation": {"score": 0.2}})
+        kwargs["on_validation_callback"](
+            {"step": 1, "validation": {"score": next(scores)}}
+        )
         return object()
 
     mock_train.side_effect = fake_train

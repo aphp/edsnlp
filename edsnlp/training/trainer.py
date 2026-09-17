@@ -513,7 +513,8 @@ def train(
                     show_source: false
                     show_toc: false
     validation_interval: Optional[int]
-        The number of steps between each evaluation. Defaults to 1/10 of max_steps
+        The number of steps between each evaluation. Defaults to 1/10 of max_steps.
+        Validation also runs at the final training step.
     checkpoint_interval: Optional[int]
         The number of steps between each model save. Defaults to validation_interval
     grad_max_norm: float
@@ -819,7 +820,9 @@ def train(
             ):
                 if save_model and is_main_process and (step % checkpoint_interval) == 0:
                     nlp.to_disk(output_model_dir)
-                if step > 0 and (step % validation_interval) == 0:
+                if step > 0 and (
+                    (step % validation_interval) == 0 or step == max_steps
+                ):
                     flat_cum_res = {
                         k: sum(v)
                         for k, v in ld_to_dl(gather_object([flat_cum_res])).items()

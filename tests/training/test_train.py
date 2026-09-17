@@ -187,11 +187,14 @@ def test_dep_parser_train(run_in_test_dir, tmp_path):
     config = Config.from_disk("dep_parser_config.yml")
     shutil.rmtree(tmp_path, ignore_errors=True)
     kwargs = Config.resolve(config["train"], registry=registry, root=config)
+    kwargs["validation_interval"] = 13
+    validation_steps = []
     nlp = train(
         **kwargs,
         logger=CSVLogger.draft(),
         output_dir=tmp_path,
         cpu=True,
+        on_validation_callback=lambda metrics: validation_steps.append(metrics["step"]),
         config_meta={
             "config_path": ["dep_parser_config.yml"],
             "resolved_config": kwargs,
@@ -212,6 +215,7 @@ def test_dep_parser_train(run_in_test_dir, tmp_path):
     # Check empty doc
     nlp("")
 
+    assert validation_steps == [13, 20]
     assert last_scores["dep"]["las"] >= 0.4
 
 

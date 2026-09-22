@@ -1,9 +1,10 @@
 import pytest
-from spacy.tokens import Span
+from spacy.tokens import Doc, Span
 
 import edsnlp
 from edsnlp.data.converters import MarkupToDocConverter
 from edsnlp.metrics import average_precision
+from edsnlp.metrics.doc_classification import DocClassificationMetric
 from edsnlp.metrics.ner import NerExactScorer, NerOverlapScorer, NerTokenScorer
 from edsnlp.metrics.span_attribute import SpanAttributeMetric, SpanAttributeScorer
 
@@ -249,3 +250,82 @@ def test_span_attribute_metric_self_comparison_uses_assigned_value_prob():
     assert result["status"]["r"] == 1.0
     assert result["status"]["f"] == 1.0
     assert result["status"]["ap"] == 1.0
+
+
+@pytest.fixture
+def doc_classif_examples():
+    """Two gold/pred pairs for a single-label (`dp`) and a multi-label (`das`) head."""
+    for attr in ("dp", "das"):
+        Doc.set_extension(attr, default=None, force=True)
+
+    nlp = edsnlp.blank("eds")
+    golds, preds = [], []
+    cases = [
+        # (gold dp, pred dp, gold das, pred das)
+        ("C34", "C34", ["E11", "I10"], ["E11", "N18"]),
+        ("I21", "C34", ["E11"], ["E11"]),
+    ]
+    for i, (gold_dp, pred_dp, gold_das, pred_das) in enumerate(cases):
+        gold, pred = nlp(f"Compte rendu {i}."), nlp(f"Compte rendu {i}.")
+        gold._.dp, gold._.das = gold_dp, gold_das
+        pred._.dp, pred._.das = pred_dp, pred_das
+        golds.append(gold)
+        preds.append(pred)
+    return golds, preds
+
+
+def test_doc_classification_metric(doc_classif_examples):
+    scores = DocClassificationMetric(label_attr=["dp", "das"])(*doc_classif_examples)
+
+    # Single-label attribute: one item per document, so micro F1 is the accuracy.
+    assert scores["dp"]["micro"] == {
+        "f": 0.5,
+        "p": 0.5,
+        "r": 0.5,
+        "tp": 1,
+        "support": 2,
+        "positives": 2,
+    }
+    assert scores["dp"]["C34"]["p"] == 0.5
+    assert scores["dp"]["C34"]["r"] == 1.0
+    assert scores["dp"]["I21"]["r"] == 0.0
+
+    # Multi-label attribute: one item per predicted label.
+    assert scores["das"]["micro"] == {
+        "f": 2 / 3,
+        "p": 2 / 3,
+        "r": 2 / 3,
+        "tp": 2,
+        "support": 3,
+        "positives": 3,
+    }
+    assert scores["das"]["E11"]["f"] == 1.0
+    assert scores["das"]["I10"]["tp"] == 0
+    assert scores["das"]["macro"]["classes"] == 3
+
+
+def test_doc_classification_metric_ignores_unannotated_docs(doc_classif_examples):
+    """A document with no gold value for an attribute is left out of its score."""
+    golds, preds = doc_classif_examples
+    golds[1]._.dp = None
+    preds[1]._.dp = None
+
+    scores = DocClassificationMetric(label_attr=["dp"])(golds, preds)
+    assert scores["dp"]["micro"]["support"] == 1
+    assert scores["dp"]["micro"]["f"] == 1.0
+
+
+def test_doc_classification_metric_accepts_a_single_attribute(doc_classif_examples):
+    scores = DocClassificationMetric(label_attr="dp")(*doc_classif_examples)
+    assert set(scores) == {"dp"}
+
+
+def test_doc_classification_metric_filter_expr(doc_classif_examples):
+    metric = DocClassificationMetric(
+        label_attr=["dp"],
+        filter_expr="doc.text.endswith('1.')",
+    )
+    scores = metric(*doc_classif_examples)
+    # Only the second document is kept, and it is misclassified.
+    assert scores["dp"]["micro"]["support"] == 1
+    assert scores["dp"]["micro"]["f"] == 0.0

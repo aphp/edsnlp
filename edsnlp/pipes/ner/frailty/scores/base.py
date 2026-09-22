@@ -1,0 +1,250 @@
+import re
+from typing import Any, Callable, Iterable, Optional, Tuple, Union
+
+from loguru import logger
+from spacy.tokens import Doc, Span
+
+from edsnlp.core import PipelineProtocol, registry
+from edsnlp.matchers.regex import RegexMatcher, create_span
+from edsnlp.pipes.base import SpanSetterArg
+from edsnlp.pipes.core.contextual_matcher import ContextualMatcher
+from edsnlp.pipes.core.contextual_matcher.models import FullConfig, SingleAssignModel
+from edsnlp.utils.doc_to_text import get_text
+from edsnlp.utils.filter import start_sort_key
+from edsnlp.utils.span_getters import (
+    IntersectionContextWindow,
+    WordContextWindow,
+    get_spans,
+)
+
+
+class FrailtyScoreMatcher(ContextualMatcher):
+    """
+    Matcher component to extract scores related to frailty evaluation.
+
+    Works similarly to eds.scores, with a few differences :
+    - its patterns argument allows for 'limit' assigns, which help
+    restrain the context windows for the other 'regular' assigns. This
+    is mainly useful when two scores are often put close to one another,
+    and we don't want the context window of one to overlap on the other.
+    - it has a domain argument, which is used to store the severity of the span,
+    given the value found for this score. As an example, adl_score 3/4 would set
+    span._.functional_status to 'altered_nondescript'."""
+
+    def __init__(
+        self,
+        nlp: PipelineProtocol,
+        name: str,
+        domain: str,
+        *,
+        patterns: FullConfig,
+        attr: str = "NORM",
+        score_normalization: Union[str, Callable[[Span], Any]] = None,
+        severity_assigner: Callable[
+            [Union[str, Tuple[float, int], Tuple[int, int]]], Any
+        ] = None,
+        ignore_excluded: bool = False,
+        ignore_space_tokens: bool = False,
+        flags: Union[re.RegexFlag, int] = 0,
+        label: str = None,
+        span_setter: Optional[SpanSetterArg] = None,
+        include_assigned: bool = False,
+    ):
+        if label is None:
+            raise ValueError("`label` parameter is required.")
+
+        if span_setter is None:
+            span_setter = {"ents": True, label: True}
+
+        self.domain = domain
+
+        super().__init__(
+            nlp=nlp,
+            name=name,
+            patterns=patterns,
+            assign_as_span=False,
+            alignment_mode="expand",
+            ignore_excluded=ignore_excluded,
+            ignore_space_tokens=ignore_space_tokens,
+            attr=attr,
+            regex_flags=flags,
+            include_assigned=include_assigned,
+            label=label,
+            span_setter=span_setter,
+        )
+
+        if isinstance(score_normalization, str):
+            self.score_normalization = registry.misc.get(score_normalization)
+        else:
+            self.score_normalization = score_normalization
+        self.severity_assigner = severity_assigner
+
+    def set_extensions(self):
+        super().set_extensions()
+        if not Span.has_extension(self.label):
+            Span.set_extension(self.label, default=None)
+        if not Span.has_extension(self.domain):
+            Span.set_extension(self.domain, default=None)
+
+    def assign_one(self, span: Span, pattern) -> Iterable[Span]:
+        """
+        Functions similarly to ContextualMatcher assign_one, but with added
+        feature of "limit" assigns. Assigns with the keyword "limit" in their
+        name will function as "limit" assigns : they they reduce the context
+        window of all other assigns if they match something. This is mainly
+        useful for the frailty scores, which can have the whole detail of their
+        sub-items listed with the overall score at the end, thus needing a large
+        context window to capture the score, but are also often right next to
+        another frailty score, meaning a "naive" large window risks confusing
+        the scores of several different clinical scores.
+        Limit assigns help to alleviate that issue, by giving a large context
+        window to find the overall score while allowing to restrain this window
+        if another score name is found in this window.
+
+        Get additional information in the context
+        of each entity. This function will populate two custom attributes:
+
+        - `ent._.source`
+        - `ent._.assigned`, a dictionary with all retrieved information
+
+        Parameters
+        ----------
+        span : Span
+            Span to enrich
+
+        Returns
+        -------
+        List[Span]
+            Spans with additional information
+        """
+
+        # Assigned matches is a list of tuples, each containing:
+        # - the span matched by the "assign" regex (or returned by the span getter)
+        # - the span corresponding to the match group of the regex (or the full match,
+        #   ie same as above)
+        assigned_dict = {}
+        reduce_modes = {}
+        attrs = {}
+
+        # First we look for potential limits for our "real" assign context windows
+        limit_window = None
+        for limit_assign in pattern.assign:
+            if "limit" not in limit_assign.name:
+                continue
+            window = limit_assign.window
+            snippet = window(span)
+            matcher: RegexMatcher = limit_assign.regex_matcher
+            matches = list(matcher(snippet, as_spans=True))
+            if len(matches) == 0:
+                continue
+            # We have found limiting elements, we must restrain the context windows
+            matches = sorted(matches, key=start_sort_key)
+            limit = matches[0].start - span.end
+            if limit_window is None:
+                limit_window = WordContextWindow(before=0, after=limit)
+            elif limit < limit_window.after:
+                limit_window.after = limit
+
+        for assign in pattern.assign:
+            if "limit" in assign.name:
+                continue
+            assign: SingleAssignModel
+            window = assign.window
+            if limit_window is not None:
+                window = IntersectionContextWindow([window, limit_window])
+            snippet = window(span)
+            reduce_modes[assign.name] = assign.reduce_mode
+            matcher: RegexMatcher = assign.regex_matcher
+            attrs[assign.name] = matcher.regex[0][2]
+            if matcher is not None:
+                # Getting the matches
+                matches = list(matcher.match(snippet))
+                assigned = [
+                    (
+                        (matched_span, matched_span)
+                        if not re_match.groups()
+                        else (
+                            matched_span,
+                            create_span(
+                                doclike=snippet,
+                                start_char=re_match.start(0),
+                                end_char=re_match.end(0),
+                                key=matcher.regex[0][0],
+                                attr=matcher.regex[0][2],
+                                alignment_mode=matcher.regex[0][5],
+                                ignore_excluded=matcher.regex[0][3],
+                                ignore_space_tokens=matcher.regex[0][4],
+                            ),
+                            # matcher.regex[0][0],
+                        )
+                    )
+                    for (matched_span, re_match) in matches
+                ]
+            if assign.span_getter is not None:
+                assigned = [
+                    (matched_span, matched_span)
+                    for matched_span in get_spans(snippet, assign.span_getter)
+                    # if matched_span.start >= snippet.start
+                    # and matched_span.end <= snippet.end
+                ]
+
+            if assign.required and not assigned:
+                logger.trace(f"Entity {span} was filtered out")
+                return []
+
+            if len(assigned) == 0:
+                continue
+
+            if assign.reduce_mode == "keep_first":  # closest
+                assigned = [min(assigned, key=lambda e: abs(e[0].start - span.start))]
+            elif assign.reduce_mode == "keep_last":
+                assigned = [max(assigned, key=lambda e: abs(e[0].start - span.start))]
+
+            assigned_dict[assign.name] = assigned
+
+        ext = {
+            n: (
+                None
+                if reduce_modes[n] is not None and len(g) == 0
+                else (
+                    [s[0] for s in g][slice(None) if reduce_modes[n] is None else 0]
+                    if self.assign_as_span
+                    else [
+                        get_text(
+                            s[0],
+                            attr=attrs[n],
+                            ignore_excluded=self.ignore_excluded,
+                            ignore_space_tokens=self.ignore_space_tokens,
+                        )
+                        for s in g
+                    ][slice(None) if reduce_modes[n] is None else 0]
+                )
+            )
+            for n, g in assigned_dict.items()
+        }
+
+        if self.include_assigned:
+            merged = [span, *(x[1] for name, g in assigned_dict.items() for x in g)]
+            span = Span(
+                span.doc,
+                min(s.start for s in merged),
+                max(s.end for s in merged),
+                span.label_,
+            )
+        span._.source = pattern.source
+        span.label_ = self.label
+        span._.assigned = ext
+        new_spans = [span]
+
+        return new_spans
+
+    def process(self, doc: Doc) -> Iterable[Span]:
+        for ent in super().process(doc):
+            ent = self.score_normalization(ent)
+            if ent is None:
+                continue
+            normalized_value = ent._.assigned.get("value", None)
+            if normalized_value is not None:
+                ent._.set(self.label, normalized_value)
+                ent._.set(self.domain, self.severity_assigner(ent))
+                yield ent

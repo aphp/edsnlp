@@ -43,3 +43,25 @@ def test_relation_candidates_and_metric():
             filter_expr="not doc.text.startswith('Ignore')",
         )(docs, docs)["micro"]
         assert scores["tp"] == scores["positives"] == scores["support"] == expected
+
+
+def test_relation_candidates_with_adjacent_spans_and_inter_embedding():
+    converter = MarkupToDocConverter()
+    doc = converter("[Aspirin](drug) [pain](problem)")
+    relation = eds.relation_detector_ffn(
+        span_embedding=eds.span_pooler(embedding=DummyEmbeddings(dim=2)),
+        inter_span_embedding=eds.span_pooler(embedding=DummyEmbeddings(dim=2)),
+        candidate_getter=[
+            {
+                "head": {"ents": "drug"},
+                "tail": {"ents": "problem"},
+                "labels": ["treats"],
+                "symmetric": False,
+            }
+        ],
+    )
+
+    prepared = relation.preprocess_supervised(doc)
+
+    assert prepared["stats"]["relation_candidates"] == 1
+    assert prepared["inter_embedding"]["stats"]["spans"] == 1

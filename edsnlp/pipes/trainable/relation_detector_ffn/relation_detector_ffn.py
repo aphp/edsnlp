@@ -240,12 +240,9 @@ class RelationDetectorFFN(
                 seen.add((head, tail))
                 rel_head_idx.append(all_spans[head])
                 rel_tail_idx.append(all_spans[tail])
-                inter_beg = min(head.end, tail.end)
-                inter_end = max(head.start, tail.start)
-                if inter_beg >= inter_end:
-                    # take the span that covers both head and tail, to avoid empty spans
-                    inter_beg = min(head.start, tail.start)
-                    inter_end = max(head.end, tail.end)
+                # take the span that covers both head and tail, to avoid empty spans
+                inter_beg = min(head.start, tail.start)
+                inter_end = max(head.end, tail.end)
                 inter_span = doc[inter_beg:inter_end]
                 inter_spans.append(inter_span)
                 rel_getter_indices.append(getter_idx)

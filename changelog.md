@@ -1,10 +1,6 @@
 # Changelog
 
-## v0.23.0 (2026-09-22)
-
-### Added
-
-- `edsnlp.package` now supports `code="dependency"` and `code="none"` to build model packages without embedding project code, which is better for model finetuning with custom code, since finetuned models only require the custom code and not the original model weights. Dependency mode infers the project package requirement from `pyproject.toml` and can check the selected uv index for unreleased local code changes.
+## Unreleased
 
 ### Added
 
@@ -13,6 +9,12 @@
 - New [`eds.doc_classification`](https://aphp.github.io/edsnlp/latest/metrics/doc-classification/) metric to score document-level classification, for one or several `Doc._` attributes at a time. Attributes holding a single value are scored with per-label, micro and macro P-R-F1 (micro then amounting to the accuracy); attributes holding a list of values are scored as a multi-label task. Documents with no gold value for an attribute are left out of its score
 - `eds.transformer` now also returns the embedding of the first wordpiece of each context under the `cls` key
 - New [Training a document classifier](https://aphp.github.io/edsnlp/latest/tutorials/training-doc-classifier/) tutorial, covering a single-label head (a document type classifier), a multi-label head (the diagnoses associated with a hospital stay) and a two-head model predicting both a principal diagnosis and its associated ones over a shared embedding
+
+## v0.23.0 (2026-09-22)
+
+### Added
+
+- `edsnlp.package` now supports `code="dependency"` and `code="none"` to build model packages without embedding project code, which is better for model finetuning with custom code, since finetuned models only require the custom code and not the original model weights. Dependency mode infers the project package requirement from `pyproject.toml` and can check the selected uv index for unreleased local code changes.
 
 ### Changed
 

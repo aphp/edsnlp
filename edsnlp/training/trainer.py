@@ -206,6 +206,9 @@ class GenericScorer:
         # Custom metrics
         for name, metric in metrics.items():
             pred_docs = [d.copy() for d in tqdm(docs, desc="Copying docs")]
+            for d in pred_docs:
+                d.ents = []
+                d.spans.clear()
             preds = list(
                 nlp.pipe(tqdm(pred_docs, desc="Predicting")).set_processing(
                     batch_size=self.batch_size,

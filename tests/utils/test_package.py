@@ -219,6 +219,7 @@ authors = [
     {{name = "Test Author", email = "test.author@mail.com"}}
 ]
 requires-python = ">=3.10"
+dependencies = ["regex"]
 
 [project.entry-points."edsnlp_factories"]
 "project_code.dummy" = "project_code.pipes:create_component"
@@ -287,8 +288,10 @@ include = ["project_code*"]
         assert "project_code/__init__.py" not in names
         assert "project_code/pipes.py" not in names
         assert "project_code_model/artifacts/config.cfg" in names
+        assert "project_code_model-2026.7.4.dist-info/entry_points.txt" not in names
         metadata = zf.read("project_code_model-2026.7.4.dist-info/METADATA").decode()
         assert "Requires-Dist: project-code<1.5,>=1.4" in metadata
+        assert "Requires-Dist: regex" not in metadata
         meta = zf.read("project_code_model/artifacts/meta.json").decode()
         assert '"dependency": "project-code>=1.4,<1.5"' in meta
 

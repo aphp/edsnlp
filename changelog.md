@@ -9,6 +9,7 @@
 ### Fixed
 
 - `eds.split` no longer cuts annotated spans when splitting on `regex` or `max_length`, the new `span_getter` parameter (default `ents`) selects the spans to keep whole
+- Custom metrics in `GenericScorer` now predict on copies of the docs without their gold entities and span groups
 
 ## v0.23.0 (2026-09-22)
 

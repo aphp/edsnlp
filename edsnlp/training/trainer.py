@@ -920,6 +920,14 @@ def train(
                     )
                     try:
                         with cache_ctx, no_sync_ctx:
+                            # Move CPU worker batches to the training device
+                            if num_workers:
+                                batch = {
+                                    name: trained_pipes_local[name].batch_to_device(
+                                        values, device=device
+                                    )
+                                    for name, values in batch.items()
+                                }
                             all_res, loss = trained_pipes(
                                 batch,
                                 enable=batch_pipe_names,

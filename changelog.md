@@ -10,6 +10,7 @@
 
 - `eds.split` no longer cuts annotated spans when splitting on `regex` or `max_length`, the new `span_getter` parameter (default `ents`) selects the spans to keep whole
 - Custom metrics in `GenericScorer` now predict on copies of the docs without their gold entities and span groups
+- `edsnlp.train` now moves the batches prepared by CPU workers (`num_workers > 0`) to the training device before the forward pass
 
 ## v0.23.0 (2026-09-22)
 

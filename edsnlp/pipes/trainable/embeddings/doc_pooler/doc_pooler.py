@@ -31,7 +31,7 @@ class DocPooler(WordEmbeddingComponent, BaseComponent):
     """
     The `eds.doc_pooler` component aggregates the word embeddings of a document
     into a single embedding per document, to be consumed by a document-level
-    component such as [`eds.doc_classifier`](/pipes/trainable/doc-classifier).
+    component such as `eds.doc_classifier`.
 
     Examples
     --------

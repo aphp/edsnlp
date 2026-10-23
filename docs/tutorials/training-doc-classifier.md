@@ -13,9 +13,9 @@ We'll train a model that codes hospital stays, and predicts at once:
 
 The model is built from three layers, nested inside one another in the config:
 
-1. **A transformer** ([`eds.transformer`][edsnlp.pipes.trainable.embeddings.transformer.factory.create_component]) reads the note and produces one vector **per word**.
-2. **A document pooler** ([`eds.doc_pooler`][edsnlp.pipes.trainable.embeddings.doc_pooler.factory.create_component]) collapses them into a **single vector for the whole document**, by averaging them (`mean`), keeping the strongest signal per dimension (`max`), summing them (`sum`), learning which words deserve attention (`attention`), or reusing the transformer's own `[CLS]` vector (`cls`).
-3. **The classifier** ([`eds.doc_classifier`][edsnlp.pipes.trainable.doc_classifier.factory.create_component]) feeds that vector to one **head** per predicted attribute. Each head writes its prediction to the `Doc._` extension it is named after.
+1. **A transformer** (`eds.transformer`) reads the note and produces one vector **per word**.
+2. **A document pooler** (`eds.doc_pooler`) collapses them into a **single vector for the whole document**, by averaging them (`mean`), keeping the strongest signal per dimension (`max`), summing them (`sum`), learning which words deserve attention (`attention`), or reusing the transformer's own `[CLS]` vector (`cls`).
+3. **The classifier** (`eds.doc_classifier`) feeds that vector to one **head** per predicted attribute. Each head writes its prediction to the `Doc._` extension it is named after.
 
 !!! warning "Hardware requirements"
 

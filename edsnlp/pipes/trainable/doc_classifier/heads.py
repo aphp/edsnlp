@@ -18,18 +18,16 @@ registered under `registry.misc` so they can be instantiated from a config
       dp:
         '@misc': eds.single_label_head
         labels: .../valid_labels_dp.pkl
-        loss: ce
       das:
         '@misc': eds.multi_label_head
         labels: .../valid_labels_das.pkl
-        loss: bce
         threshold: 0.5
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 import pandas as pd
 import torch
@@ -38,6 +36,10 @@ from spacy.tokens import Doc
 from typing_extensions import Literal
 
 import edsnlp
+
+#: Target value of a document that has no gold value for a head. It matches the
+#: default ``ignore_index`` of ``nn.CrossEntropyLoss``.
+IGNORE_INDEX = -100
 
 ACTIVATIONS = {
     "relu": nn.ReLU,
@@ -53,49 +55,10 @@ def _maybe_load(value: Any) -> Any:
     return value
 
 
-@edsnlp.registry.misc.register("focal_loss")
-class FocalLoss(nn.Module):
-    """
-    Focal Loss for single-label multi-class classification.
-
-    Parameters
-    ----------
-    alpha : torch.Tensor or float, optional
-        Class weights. If None, no weighting is applied.
-    gamma : float, default=2.0
-        Focusing parameter. Higher values give more weight to hard examples.
-    reduction : {"none", "mean", "sum"}, default="mean"
-        Reduction applied to the output.
-    """
-
-    def __init__(
-        self,
-        alpha: Optional[Union[torch.Tensor, float]] = None,
-        gamma: float = 2.0,
-        reduction: Literal["none", "mean", "sum"] = "mean",
-    ):
-        super().__init__()
-        self.alpha = alpha
-        self.gamma = gamma
-        self.reduction = reduction
-
-    def forward(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
-        ce_loss = torch.nn.functional.cross_entropy(
-            inputs, targets, weight=self.alpha, reduction="none"
-        )
-        pt = torch.exp(-ce_loss)
-        focal_loss = (1 - pt) ** self.gamma * ce_loss
-        if self.reduction == "mean":
-            return focal_loss.mean()
-        elif self.reduction == "sum":
-            return focal_loss.sum()
-        return focal_loss
-
-
 class ClassificationHead(nn.Module):
     """
-    Base class for document classification heads. Every head — single-label or
-    multi-label — accepts the parameters below, on top of its own.
+    Base class for document classification heads. Every head, single-label or
+    multi-label, accepts the parameters below, on top of its own.
 
     A head owns an optional hidden block (``Linear -> activation -> [LayerNorm]
     -> Dropout``) followed by a linear classifier, plus its label mapping, class
@@ -121,17 +84,12 @@ class ClassificationHead(nn.Module):
         Dropout applied after the activation.
     layer_norm : bool, default=False
         Whether to apply layer normalization in the hidden block.
-    loss : str, default="ce"
-        Loss identifier (interpreted by the subclass).
     loss_weight : float, default=1.0
         Weight of this head in the aggregated training loss.
     """
 
     #: Whether the head predicts a set of labels (multi-label) rather than one.
     multilabel: bool = False
-
-    #: The loss identifiers this head accepts, checked at instantiation.
-    losses: Tuple[str, ...] = ()
 
     def __init__(
         self,
@@ -142,20 +100,13 @@ class ClassificationHead(nn.Module):
         activation_mode: Literal["relu", "gelu", "silu"] = "relu",
         dropout_rate: float = 0.0,
         layer_norm: bool = False,
-        loss: str = "ce",
         loss_weight: float = 1.0,
     ):
         super().__init__()
-        if loss not in self.losses:
-            raise ValueError(
-                f"Unsupported loss {loss!r} for a {type(self).__name__}, expected "
-                f"one of {', '.join(map(repr, self.losses))}."
-            )
         self.hidden_size = hidden_size
         self.activation_mode = activation_mode
         self.dropout_rate = dropout_rate or 0.0
         self.layer_norm = layer_norm
-        self.loss = loss
         self.loss_weight = loss_weight
 
         self.label2id: Dict[str, int] = {}
@@ -235,13 +186,23 @@ class ClassificationHead(nn.Module):
         """Instantiate ``self.loss_fn``. Implemented by subclasses."""
         raise NotImplementedError  # pragma: no cover
 
-    def build_target(self, doc: Doc, attr: str) -> Optional[torch.Tensor]:
+    def build_target(self, doc: Doc, attr: str) -> torch.Tensor:
         """
         Build the training target tensor for ``doc._.<attr>``.
 
-        Returns ``None`` when the document has no gold value for this head, so
-        the orchestrator can skip it. Implemented by subclasses.
+        When the document has no gold value for this head, the target is filled
+        with ``IGNORE_INDEX``, so that documents with and without a gold value
+        can be batched together. Implemented by subclasses.
         """
+        raise NotImplementedError  # pragma: no cover
+
+    @staticmethod
+    def is_supervised(target: torch.Tensor) -> torch.Tensor:
+        """Boolean mask of the documents of a batch that have a gold value."""
+        return target.reshape(len(target), -1)[:, 0] != IGNORE_INDEX
+
+    def probs(self, logits: torch.Tensor) -> torch.Tensor:
+        """Turn a batch of logits into per-class probabilities."""
         raise NotImplementedError  # pragma: no cover
 
     def compute_loss(self, logits: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
@@ -267,7 +228,6 @@ class ClassificationHead(nn.Module):
             "activation_mode": self.activation_mode,
             "dropout_rate": self.dropout_rate,
             "layer_norm": self.layer_norm,
-            "loss": self.loss,
             "loss_weight": self.loss_weight,
         }
 
@@ -280,7 +240,6 @@ class ClassificationHead(nn.Module):
         self.activation_mode = meta.get("activation_mode", self.activation_mode)
         self.dropout_rate = meta.get("dropout_rate", self.dropout_rate)
         self.layer_norm = meta.get("layer_norm", self.layer_norm)
-        self.loss = meta.get("loss", self.loss)
         self.loss_weight = meta.get("loss_weight", self.loss_weight)
 
 
@@ -288,31 +247,20 @@ class ClassificationHead(nn.Module):
 class SingleLabelHead(ClassificationHead):
     """
     Single-label (multi-class) head. Each document has exactly one label for
-    this head. Uses cross-entropy or focal loss and decodes via ``argmax``.
-
-    Parameters
-    ----------
-    loss : {"ce", "focal"}, default="ce"
-        Cross-entropy, or focal loss to down-weight the frequent classes of a
-        long-tailed label distribution.
+    this head. Uses a cross-entropy loss and decodes via ``argmax``.
     """
 
     multilabel = False
-    losses = ("ce", "focal")
 
     def init_loss(self) -> None:
-        """Build a cross-entropy (``ce``) or focal (``focal``) loss."""
-        weight = self._weight_tensor()
-        if self.loss == "focal":
-            self.loss_fn = FocalLoss(alpha=weight, gamma=2.0, reduction="mean")
-        else:
-            self.loss_fn = nn.CrossEntropyLoss(weight=weight)
+        """Build a cross-entropy loss, weighted by the class weights if any."""
+        self.loss_fn = nn.CrossEntropyLoss(weight=self._weight_tensor())
 
-    def build_target(self, doc: Doc, attr: str) -> Optional[torch.Tensor]:
+    def build_target(self, doc: Doc, attr: str) -> torch.Tensor:
         """Map the gold label at ``doc._.<attr>`` to a scalar class-index tensor."""
         label = getattr(doc._, attr, None)
         if label is None:
-            return None
+            return torch.tensor(IGNORE_INDEX, dtype=torch.long)
         if label in self.label2id:
             label = self.label2id[label]
         elif isinstance(label, str):
@@ -320,14 +268,14 @@ class SingleLabelHead(ClassificationHead):
         return torch.tensor(int(label), dtype=torch.long)
 
     def compute_loss(self, logits: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        """Cross-entropy / focal loss, moving class weights to the logits device."""
-        weight = getattr(self.loss_fn, "weight", None)
-        if weight is not None:
-            self.loss_fn.weight = weight.to(logits.device)
-        alpha = getattr(self.loss_fn, "alpha", None)
-        if isinstance(alpha, torch.Tensor):
-            self.loss_fn.alpha = alpha.to(logits.device)
+        """Cross-entropy loss, moving class weights to the logits device."""
+        if self.loss_fn.weight is not None:
+            self.loss_fn.weight = self.loss_fn.weight.to(logits.device)
         return self.loss_fn(logits, target.to(logits.device))
+
+    def probs(self, logits: torch.Tensor) -> torch.Tensor:
+        """Softmax over the classes."""
+        return torch.softmax(logits, dim=-1)
 
     def decode(self, logits: torch.Tensor, **ctx) -> List:
         """Return the ``argmax`` label string for each document in the batch."""
@@ -349,37 +297,20 @@ class MultiLabelHead(ClassificationHead):
     """
 
     multilabel = True
-    losses = ("bce",)
 
-    def __init__(
-        self,
-        *,
-        selection: Literal["threshold", "topk"] = "threshold",
-        threshold: float = 0.5,
-        count_head: Optional[str] = None,
-        **kwargs,
-    ):
+    def __init__(self, *, threshold: float = 0.5, **kwargs):
         super().__init__(**kwargs)
-        if selection == "topk" and count_head is None:
-            raise ValueError(
-                "A multi-label head with selection='topk' needs a `count_head` to "
-                "tell it how many labels to keep. Either name the head that "
-                "predicts that count, or use selection='threshold'."
-            )
-        self.selection = selection
         self.threshold = threshold
-        self.count_head = count_head
 
     def init_loss(self) -> None:
         """Build a ``BCEWithLogitsLoss``; class weights act as ``pos_weight``."""
-        pos_weight = self._weight_tensor()
-        self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+        self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=self._weight_tensor())
 
-    def build_target(self, doc: Doc, attr: str) -> Optional[torch.Tensor]:
+    def build_target(self, doc: Doc, attr: str) -> torch.Tensor:
         """Build a multi-hot target vector from the label list at ``doc._.<attr>``."""
         labels = getattr(doc._, attr, None)
         if labels is None:
-            return None
+            return torch.full((self.num_classes,), IGNORE_INDEX, dtype=torch.float)
         if isinstance(labels, str):
             labels = [labels]
         target = torch.zeros(self.num_classes, dtype=torch.float)
@@ -390,76 +321,33 @@ class MultiLabelHead(ClassificationHead):
 
     def compute_loss(self, logits: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """Binary cross-entropy loss, moving ``pos_weight`` to the logits device."""
-        pos_weight = getattr(self.loss_fn, "pos_weight", None)
-        if pos_weight is not None:
-            self.loss_fn.pos_weight = pos_weight.to(logits.device)
+        if self.loss_fn.pos_weight is not None:
+            self.loss_fn.pos_weight = self.loss_fn.pos_weight.to(logits.device)
         return self.loss_fn(logits, target.to(logits.device))
 
-    def _select(
-        self, logits: torch.Tensor, selection: str, counts: Optional[List[int]]
-    ) -> List[List]:
-        """
-        Turn logits into a label set per document with the given strategy.
+    def probs(self, logits: torch.Tensor) -> torch.Tensor:
+        """Independent sigmoid per class."""
+        return torch.sigmoid(logits)
 
-        ``topk`` keeps the ``counts[i]`` highest logits; ``threshold`` keeps all
-        labels whose sigmoid probability is ``>= self.threshold``.
-        """
-        probs = torch.sigmoid(logits)
-        n_classes = logits.size(-1)
-        results = []
-        for i in range(logits.size(0)):
-            if selection == "topk":
-                k = int(counts[i]) if counts is not None else 0
-                k = max(0, min(k, n_classes))
-                idx = torch.topk(logits[i], k).indices.tolist() if k > 0 else []
-            else:
-                idx = (probs[i] >= self.threshold).nonzero(as_tuple=True)[0].tolist()
-            results.append([self.id2label.get(j, j) for j in idx])
-        return results
-
-    def decode(
-        self, logits: torch.Tensor, counts: Optional[List[int]] = None, **ctx
-    ) -> List[List]:
-        """
-        Decode logits into a label set per document using ``self.selection``.
-
-        Parameters
-        ----------
-        logits : torch.Tensor
-            Per-class logits, shape ``(batch_size, num_classes)``.
-        counts : List[int], optional
-            Number of labels to keep per document, supplied by the companion
-            count head when ``selection == "topk"``.
-        """
-        return self._select(logits, self.selection, counts)
-
-    def decode_alt(
-        self, logits: torch.Tensor, counts: Optional[List[int]] = None
-    ) -> List[List]:
-        """Decode with the *other* selection strategy (for comparison)."""
-        other = "threshold" if self.selection == "topk" else "topk"
-        return self._select(logits, other, counts)
+    def decode(self, logits: torch.Tensor, **ctx) -> List[List]:
+        """Keep, per document, every label whose probability is ``>= threshold``."""
+        keep = self.probs(logits) >= self.threshold
+        return [
+            [self.id2label.get(j, j) for j in row.nonzero(as_tuple=True)[0].tolist()]
+            for row in keep
+        ]
 
     def state_meta(self) -> Dict:
-        """Extend the base metadata with the selection configuration."""
-        meta = super().state_meta()
-        meta.update(
-            selection=self.selection,
-            threshold=self.threshold,
-            count_head=self.count_head,
-        )
-        return meta
+        """Extend the base metadata with the decision threshold."""
+        return {**super().state_meta(), "threshold": self.threshold}
 
     def load_meta(self, meta: Dict) -> None:
-        """Restore the base metadata and the selection configuration."""
+        """Restore the base metadata and the decision threshold."""
         super().load_meta(meta)
-        self.selection = meta.get("selection", self.selection)
         self.threshold = meta.get("threshold", self.threshold)
-        self.count_head = meta.get("count_head", self.count_head)
 
 
 __all__ = [
-    "FocalLoss",
     "ClassificationHead",
     "SingleLabelHead",
     "MultiLabelHead",

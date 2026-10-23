@@ -62,6 +62,17 @@ def test_doc_classifier(pooling_mode):
     assert len(dp_probs) == 2 and dp_probs == sorted(dp_probs, reverse=True)
     assert next(iter(doc._.prob["dp"])) == doc._.dp
 
+    # Batching documents of very different lengths does not change their prediction
+    texts = ["Compte rendu d'hospitalisation. " * 40, "Court.", "Moyen. " * 5]
+    batched = [d._.prob for d in nlp.pipe(texts, batch_size=3)]
+    one_by_one = [d._.prob for d in nlp.pipe(texts, batch_size=1)]
+    for alone, probs in zip(one_by_one, batched):
+        for head in ("dp", "das"):
+            assert list(alone[head]) == list(probs[head])
+            assert list(alone[head].values()) == pytest.approx(
+                list(probs[head].values()), abs=1e-5
+            )
+
 
 def test_training_with_partial_supervision():
     """Documents with and without a gold value for a head can share a batch."""

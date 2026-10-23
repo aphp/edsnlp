@@ -64,16 +64,11 @@ class DocPooler(WordEmbeddingComponent, BaseComponent):
         - `"attention"`: weighted sum of the word embeddings, the weights being
           produced by a learned linear attention layer.
         - `"cls"`: use the embedding of the first wordpiece of the underlying
-          transformer (the `[CLS]` token) instead of pooling word embeddings.
-
-        !!! warning "`cls` and long documents"
-
-            The `"cls"` mode returns one vector per *context*, and a document
-            longer than the transformer `window` is split into several
-            overlapping contexts. It should therefore only be used when
-            documents are known to fit in a single window. It also requires the
-            embedding to expose a `cls` output, which only `eds.transformer`
-            does.
+          transformer (the `[CLS]` token) instead of pooling word embeddings. A
+          document longer than the transformer `window` is split into several
+          windows, whose `[CLS]` embeddings are averaged. This mode is mostly
+          meant for short texts, and requires an embedding that exposes a `cls`
+          output, such as `eds.transformer`.
     """
 
     def __init__(

@@ -12,16 +12,18 @@ Each head is a self-contained `nn.Module` that owns:
 `eds.doc_classifier` is a thin orchestrator that shares a pooled document
 embedding across heads and delegates everything else to the heads. Heads are
 registered under `registry.misc` so they can be instantiated from a config
-``heads:`` mapping, e.g.::
+`heads:` mapping, e.g.:
 
-    heads:
-      dp:
-        '@misc': eds.single_label_head
-        labels: .../valid_labels_dp.pkl
-      das:
-        '@misc': eds.multi_label_head
-        labels: .../valid_labels_das.pkl
-        threshold: 0.5
+```yaml
+heads:
+  dp:
+    '@misc': eds.single_label_head
+    labels: .../valid_labels_dp.pkl
+  das:
+    '@misc': eds.multi_label_head
+    labels: .../valid_labels_das.pkl
+    threshold: 0.5
+```
 """
 
 from __future__ import annotations
@@ -38,7 +40,7 @@ from typing_extensions import Literal
 import edsnlp
 
 #: Target value of a document that has no gold value for a head. It matches the
-#: default ``ignore_index`` of ``nn.CrossEntropyLoss``.
+#: default `ignore_index` of `nn.CrossEntropyLoss`.
 IGNORE_INDEX = -100
 
 ACTIVATIONS = {
@@ -60,8 +62,8 @@ class ClassificationHead(nn.Module):
     Base class for document classification heads. Every head, single-label or
     multi-label, accepts the parameters below, on top of its own.
 
-    A head owns an optional hidden block (``Linear -> activation -> [LayerNorm]
-    -> Dropout``) followed by a linear classifier, plus its label mapping, class
+    A head owns an optional hidden block (`Linear -> activation -> [LayerNorm]
+    -> Dropout`) followed by a linear classifier, plus its label mapping, class
     weights and loss weight. Subclasses implement target building, loss
     computation and decoding.
 
@@ -74,7 +76,7 @@ class ClassificationHead(nn.Module):
         The labels can also be inferred from the data during
         `nlp.post_init(...)`, by leaving this parameter to None.
     class_weights : Union[Dict, str, Path], optional
-        A ``{label: frequency}`` mapping used to build per-class weights, either
+        A `{label: frequency}` mapping used to build per-class weights, either
         given directly or as the path to a pickle file holding it.
     hidden_size : int, optional
         Size of the hidden layer. If None, no hidden layer is used.
@@ -183,15 +185,15 @@ class ClassificationHead(nn.Module):
         return self.classifier(x)
 
     def init_loss(self) -> None:
-        """Instantiate ``self.loss_fn``. Implemented by subclasses."""
+        """Instantiate `self.loss_fn`. Implemented by subclasses."""
         raise NotImplementedError  # pragma: no cover
 
     def build_target(self, doc: Doc, attr: str) -> torch.Tensor:
         """
-        Build the training target tensor for ``doc._.<attr>``.
+        Build the training target tensor for `doc._.<attr>`.
 
         When the document has no gold value for this head, the target is filled
-        with ``IGNORE_INDEX``, so that documents with and without a gold value
+        with `IGNORE_INDEX`, so that documents with and without a gold value
         can be batched together. Implemented by subclasses.
         """
         raise NotImplementedError  # pragma: no cover
@@ -213,41 +215,27 @@ class ClassificationHead(nn.Module):
         """
         Decode a batch of logits into one prediction per document.
 
-        Returns a list of length ``batch_size``. Implemented by subclasses.
+        Returns a list of length `batch_size`. Implemented by subclasses.
         """
         raise NotImplementedError  # pragma: no cover
 
     def state_meta(self) -> Dict:
-        """Non-tensor state needed to reconstruct/decode the head."""
-        return {
-            "multilabel": self.multilabel,
-            "label2id": self.label2id,
-            "id2label": self.id2label,
-            "num_classes": self.num_classes,
-            "hidden_size": self.hidden_size,
-            "activation_mode": self.activation_mode,
-            "dropout_rate": self.dropout_rate,
-            "layer_norm": self.layer_norm,
-            "loss_weight": self.loss_weight,
-        }
+        """
+        The labels of the head, which are saved next to its weights. Everything
+        else comes from the config, so that it can be edited before fine-tuning.
+        """
+        return {"labels": [self.id2label[i] for i in range(len(self.id2label))]}
 
     def load_meta(self, meta: Dict) -> None:
-        """Restore the head's label mappings and configuration from `state_meta`."""
-        self.label2id = meta.get("label2id", {})
-        self.id2label = {int(k): v for k, v in meta.get("id2label", {}).items()}
-        self.num_classes = meta.get("num_classes")
-        self.hidden_size = meta.get("hidden_size", self.hidden_size)
-        self.activation_mode = meta.get("activation_mode", self.activation_mode)
-        self.dropout_rate = meta.get("dropout_rate", self.dropout_rate)
-        self.layer_norm = meta.get("layer_norm", self.layer_norm)
-        self.loss_weight = meta.get("loss_weight", self.loss_weight)
+        """Restore the labels saved by `state_meta`."""
+        self.set_labels(meta["labels"])
 
 
 @edsnlp.registry.misc.register("eds.single_label_head")
 class SingleLabelHead(ClassificationHead):
     """
     Single-label (multi-class) head. Each document has exactly one label for
-    this head. Uses a cross-entropy loss and decodes via ``argmax``.
+    this head. Uses a cross-entropy loss and decodes via `argmax`.
     """
 
     multilabel = False
@@ -257,7 +245,7 @@ class SingleLabelHead(ClassificationHead):
         self.loss_fn = nn.CrossEntropyLoss(weight=self._weight_tensor())
 
     def build_target(self, doc: Doc, attr: str) -> torch.Tensor:
-        """Map the gold label at ``doc._.<attr>`` to a scalar class-index tensor."""
+        """Map the gold label at `doc._.<attr>` to a scalar class-index tensor."""
         label = getattr(doc._, attr, None)
         if label is None:
             return torch.tensor(IGNORE_INDEX, dtype=torch.long)
@@ -278,7 +266,7 @@ class SingleLabelHead(ClassificationHead):
         return torch.softmax(logits, dim=-1)
 
     def decode(self, logits: torch.Tensor, **ctx) -> List:
-        """Return the ``argmax`` label string for each document in the batch."""
+        """Return the `argmax` label string for each document in the batch."""
         ids = torch.argmax(logits, dim=-1).tolist()
         return [self.id2label.get(i, i) for i in ids]
 
@@ -287,8 +275,8 @@ class SingleLabelHead(ClassificationHead):
 class MultiLabelHead(ClassificationHead):
     """
     Multi-label head. Each document has a (variable-length) set of labels for
-    this head. Uses ``BCEWithLogitsLoss`` and decodes by keeping every label
-    whose probability exceeds ``threshold``.
+    this head. Uses `BCEWithLogitsLoss` and decodes by keeping every label
+    whose probability exceeds `threshold`.
 
     Parameters
     ----------
@@ -303,11 +291,11 @@ class MultiLabelHead(ClassificationHead):
         self.threshold = threshold
 
     def init_loss(self) -> None:
-        """Build a ``BCEWithLogitsLoss``; class weights act as ``pos_weight``."""
+        """Build a `BCEWithLogitsLoss`; class weights act as `pos_weight`."""
         self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=self._weight_tensor())
 
     def build_target(self, doc: Doc, attr: str) -> torch.Tensor:
-        """Build a multi-hot target vector from the label list at ``doc._.<attr>``."""
+        """Build a multi-hot target vector from the label list at `doc._.<attr>`."""
         labels = getattr(doc._, attr, None)
         if labels is None:
             return torch.full((self.num_classes,), IGNORE_INDEX, dtype=torch.float)
@@ -320,7 +308,7 @@ class MultiLabelHead(ClassificationHead):
         return target
 
     def compute_loss(self, logits: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        """Binary cross-entropy loss, moving ``pos_weight`` to the logits device."""
+        """Binary cross-entropy loss, moving `pos_weight` to the logits device."""
         if self.loss_fn.pos_weight is not None:
             self.loss_fn.pos_weight = self.loss_fn.pos_weight.to(logits.device)
         return self.loss_fn(logits, target.to(logits.device))
@@ -330,21 +318,12 @@ class MultiLabelHead(ClassificationHead):
         return torch.sigmoid(logits)
 
     def decode(self, logits: torch.Tensor, **ctx) -> List[List]:
-        """Keep, per document, every label whose probability is ``>= threshold``."""
+        """Keep, per document, every label whose probability is `>= threshold`."""
         keep = self.probs(logits) >= self.threshold
         return [
             [self.id2label.get(j, j) for j in row.nonzero(as_tuple=True)[0].tolist()]
             for row in keep
         ]
-
-    def state_meta(self) -> Dict:
-        """Extend the base metadata with the decision threshold."""
-        return {**super().state_meta(), "threshold": self.threshold}
-
-    def load_meta(self, meta: Dict) -> None:
-        """Restore the base metadata and the decision threshold."""
-        super().load_meta(meta)
-        self.threshold = meta.get("threshold", self.threshold)
 
 
 __all__ = [

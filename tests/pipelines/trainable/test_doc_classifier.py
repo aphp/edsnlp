@@ -154,3 +154,12 @@ def test_config_and_serialization(tmp_path):
     assert head.label2id == {"X": 0, "Y": 1}
     after = reloaded("Compte rendu d'hospitalisation.")
     assert (after._.dp, after._.das) == (before._.dp, before._.das)
+
+    # A config edited before reloading, e.g. to fine-tune, takes precedence
+    config_path = tmp_path / "model" / "config.cfg"
+    config_path.write_text(
+        config_path.read_text().replace("threshold = 0.3", "threshold = 0.7")
+    )
+    assert edsnlp.load(tmp_path / "model").pipes.doc_classifier.heads[
+        "das"
+    ].threshold == pytest.approx(0.7)

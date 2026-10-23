@@ -147,7 +147,7 @@ class TrainableDocClassifier(
     name : str, default="doc_classifier"
         Component name.
     embedding : WordEmbeddingComponent or WordContextualizerComponent
-        Document embedding component. Must expose an ``output_size`` attribute.
+        Document embedding component. Must expose an `output_size` attribute.
     heads : Dict[str, ClassificationHead]
         The heads of the classifier, keyed by the name of the `Doc._` attribute
         each one fills in. Every head also accepts the usual
@@ -207,8 +207,8 @@ class TrainableDocClassifier(
 
     def set_extensions(self) -> None:
         """
-        Register the ``Doc._`` extensions used to store predictions: one per
-        head, named after it, and ``prob`` for the per-label probabilities.
+        Register the `Doc._` extensions used to store predictions: one per
+        head, named after it, and `prob` for the per-label probabilities.
         """
         super().set_extensions()
         for head_name in self.head_names:
@@ -223,13 +223,13 @@ class TrainableDocClassifier(
 
         For every head whose label set is still unknown (i.e. no label list was
         provided at construction), the labels are inferred by scanning
-        ``gold_data``. Each head is then built (hidden block, classifier and
+        `gold_data`. Each head is then built (hidden block, classifier and
         loss) against the embedding output size.
 
         Parameters
         ----------
         gold_data : Iterable[Doc]
-            Training documents carrying gold labels in ``doc._.<head_name>``.
+            Training documents carrying gold labels in `doc._.<head_name>`.
         exclude : Set[str]
             Set of already-initialized component ids, used to avoid
             re-initializing shared sub-components.
@@ -256,8 +256,8 @@ class TrainableDocClassifier(
         """
         Preprocess a document for training.
 
-        Adds one target tensor per head under the key ``targets_<head_name>``.
-        A head whose gold attribute is missing (``None``) gets an ignored
+        Adds one target tensor per head under the key `targets_<head_name>`.
+        A head whose gold attribute is missing (`None`) gets an ignored
         target, so a document only supervises the heads it actually has labels
         for (e.g. data labelled with the principal diagnosis only).
         """
@@ -293,9 +293,9 @@ class TrainableDocClassifier(
         Run the shared embedding and every head.
 
         In training mode (targets present) it returns the aggregated loss, a
-        ``loss_weight``-weighted mean over the heads supervised by at least one
+        `loss_weight`-weighted mean over the heads supervised by at least one
         document of the batch. In inference mode it returns the raw per-head
-        logits, which :meth:`postprocess` decodes.
+        logits, which `postprocess` decodes.
 
         Parameters
         ----------
@@ -305,8 +305,8 @@ class TrainableDocClassifier(
         Returns
         -------
         DocClassifierBatchOutput
-            ``{"loss": tensor, "logits": None}`` in training mode, or
-            ``{"loss": None, "logits": {head: tensor}}`` in inference mode.
+            `{"loss": tensor, "logits": None}` in training mode, or
+            `{"loss": None, "logits": {head: tensor}}` in inference mode.
         """
         shared = self.embedding(batch["embedding"])["embeddings"]
 
@@ -342,17 +342,17 @@ class TrainableDocClassifier(
         """
         Decode the per-head logits and store predictions on the documents.
 
-        Each head writes its prediction to ``doc._.<head_name>``. When
-        ``store_probs`` is set, the probabilities of the labels selected by
-        ``probs_topk`` and ``probs_threshold`` are also written to
-        ``doc._.prob[<head_name>]``.
+        Each head writes its prediction to `doc._.<head_name>`. When
+        `store_probs` is set, the probabilities of the labels selected by
+        `probs_topk` and `probs_threshold` are also written to
+        `doc._.prob[<head_name>]`.
 
         Parameters
         ----------
         docs : Sequence[Doc]
             The documents processed in this batch.
         results : DocClassifierBatchOutput
-            The forward output holding the per-head ``logits``.
+            The forward output holding the per-head `logits`.
         input : DocClassifierBatchInput
             The collated batch (unused, kept for interface compatibility).
 
@@ -381,10 +381,10 @@ class TrainableDocClassifier(
         self, head: ClassificationHead, logits: torch.Tensor
     ) -> List[Dict[Any, float]]:
         """
-        Turn a batch of logits into one ``{label: probability}`` mapping per
+        Turn a batch of logits into one `{label: probability}` mapping per
         document, sorted by decreasing probability and restricted to the
-        ``probs_topk`` most probable labels whose probability is at least
-        ``probs_threshold``.
+        `probs_topk` most probable labels whose probability is at least
+        `probs_threshold`.
         """
         probs = head.probs(logits)
         k = probs.size(-1)
@@ -406,9 +406,10 @@ class TrainableDocClassifier(
         """
         Save the component to disk.
 
-        Writes the per-head non-tensor state (label mappings and configuration)
-        to ``multi_head_data.pkl``; the head tensors themselves are saved by the
-        parent :class:`TorchComponent` along with the rest of the module tree.
+        Writes the labels of each head to `multi_head_data.pkl`; the head
+        tensors themselves are saved by the parent `TorchComponent` along with
+        the rest of the module tree. The other head parameters come from the
+        config.
 
         Parameters
         ----------
@@ -422,10 +423,7 @@ class TrainableDocClassifier(
         if repr_id in exclude:
             return
         os.makedirs(path, exist_ok=True)
-        meta = {
-            "head_names": self.head_names,
-            "heads": {name: head.state_meta() for name, head in self.heads.items()},
-        }
+        meta = {"heads": {name: head.state_meta() for name, head in self.heads.items()}}
         with open(path / "multi_head_data.pkl", "wb") as f:
             pickle.dump(meta, f)
         return super().to_disk(path, exclude=exclude)
@@ -434,10 +432,9 @@ class TrainableDocClassifier(
         """
         Load the component from disk.
 
-        Restores the per-head label mappings and configuration from
-        ``multi_head_data.pkl`` and rebuilds any head that was not already built
-        at construction, so the parameter shapes match before the parent
-        :class:`TorchComponent` loads the tensors.
+        Restores the labels of each head from `multi_head_data.pkl` and
+        rebuilds the head, so that the parameter shapes match before the parent
+        `TorchComponent` loads the tensors.
 
         Parameters
         ----------
@@ -452,11 +449,7 @@ class TrainableDocClassifier(
             return
         with open(path / "multi_head_data.pkl", "rb") as f:
             meta = pickle.load(f)
-        self.head_names = meta.get("head_names", self.head_names)
-        for head_name, head_meta in meta.get("heads", {}).items():
-            if head_name in self.heads:
-                head = self.heads[head_name]
-                head.load_meta(head_meta)
-                if not head.built and head.num_classes is not None:
-                    head.build(self.embedding_size)
+        for head_name, head in self.heads.items():
+            head.load_meta(meta["heads"][head_name])
+            head.build(self.embedding_size)
         super().from_disk(path, exclude=exclude)

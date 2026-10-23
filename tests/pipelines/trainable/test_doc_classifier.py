@@ -143,6 +143,7 @@ def test_config_and_serialization(tmp_path):
         make_gold(nlp, [{"dp": "A", "das": ["X"]}, {"dp": "B", "das": ["Y"]}]),
         set(),
     )
+    nlp.train(False)
     before = nlp("Compte rendu d'hospitalisation.")
     assert len(before._.prob["das"]) == 2
 

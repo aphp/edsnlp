@@ -284,6 +284,7 @@ def test_illegal_dates(blank_nlp):
         BASE_DATE.strftime("%Y-%m-%d %H:%M:%S"),
         BASE_DATE,
         BASE_DATE.timestamp(),
+        BASE_DATE.timestamp() * 1000,
         BASE_DATE.date(),
         "un truc",
         None,

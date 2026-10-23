@@ -13,6 +13,7 @@
 - `edsnlp.train` now moves the batches prepared by CPU workers (`num_workers > 0`) to the training device before the forward pass
 - Model packages built with `code="dependency"` or `code="none"` no longer copy the dependencies, optional dependencies, scripts and entry points of the project `pyproject.toml`, which belong to the code package
 - `eds.transformer` `new_tokens` now works with tokenizers that have no normalizer
+- Numeric `note_datetime` values in milliseconds, microseconds or nanoseconds are now converted to seconds instead of raising an out of range error
 
 ## v0.23.0 (2026-09-22)
 

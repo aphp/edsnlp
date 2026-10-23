@@ -15,6 +15,8 @@ def set_note_datetime(doc, dt):
         elif isinstance(dt, str):
             dt = parse_date(dt)
         elif isinstance(dt, (int, float)):
+            while abs(dt) >= 100_000_000_000:
+                dt /= 1000
             dt = datetime.fromtimestamp(dt)
         elif isinstance(dt, date):
             dt = datetime(dt.year, dt.month, dt.day)

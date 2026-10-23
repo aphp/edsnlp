@@ -6,6 +6,7 @@ from spacy.tokens import Doc, Span
 
 import edsnlp
 from edsnlp import Pipeline
+from edsnlp.utils.span_getters import SpanGetterArg, get_spans, validate_span_getter
 
 EMPTY = object()
 
@@ -99,6 +100,7 @@ class Split:
         regex: Optional[str] = "\n{2,}",
         filter_expr: Optional[str] = None,
         randomize: float = 0.0,
+        span_getter: SpanGetterArg = "ents",
     ):
         """
         The `eds.split` component splits a document into multiple documents
@@ -153,11 +155,14 @@ class Split:
             (0 means all documents will have the maximum possible length
             while 1 will produce documents with a length varying between
             0 and `max_length` uniformly)
+        span_getter: SpanGetterArg
+            Spans that regex and maximum length boundaries must not cut
         """
         self.max_length = max_length
         self.regex = re.compile(regex) if regex else None
         self.filter_fn = eval(f"lambda doc:{filter_expr}") if filter_expr else None
         self.randomize = randomize
+        self.span_getter = validate_span_getter(span_getter)
 
     def __call__(self, doc: Doc) -> Iterable[Doc]:
         for sub_doc in self.split_doc(doc):
@@ -204,8 +209,14 @@ class Split:
         ) + [len(doc.text)]
         word_ends = doc.to_array("IDX") + doc.to_array("LENGTH")
         segments_end = word_ends.searchsorted([m for m in matches], side="right")
+        protected_spans = sorted(
+            get_spans(doc, self.span_getter), key=lambda span: (span.start, span.end)
+        )
 
         for end in segments_end:
+            for span in protected_spans:
+                if span.start < end < span.end:
+                    end = span.end
             # If the sentence adds too many tokens
             if end - start > max_length > 0:
                 # But the current buffer too large
@@ -215,6 +226,11 @@ class Split:
                         if self.randomize
                         else start + max_length
                     )
+                    # Keep annotated spans whole so training windows preserve offsets
+                    for span in protected_spans:
+                        if span.start < subset_end < span.end:
+                            subset_end = span.end
+                    end = max(end, subset_end)
                     yield subset_doc(doc, start, subset_end)
                     start = subset_end
                 yield subset_doc(doc, start, end)

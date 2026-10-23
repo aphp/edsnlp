@@ -68,3 +68,29 @@ def test_max_length():
         "est donc un peu ballonné, mais pense revenir à un régime ",
         "plus équilibré en mangeant des légumes et des fruits.",
     ]
+
+
+def test_max_length_does_not_cut_annotated_spans():
+    doc = edsnlp.blank("eds")("zero one two Alice Dupont five six seven")
+    doc.spans["gold"] = [Span(doc, 3, 5, label="PERSON")]
+    chunks = list(eds.split(max_length=4, randomize=False, span_getter="gold")(doc))
+
+    assert "".join(chunk.text_with_ws for chunk in chunks).strip() == doc.text
+    assert [span.text for chunk in chunks for span in chunk.spans["gold"]] == [
+        "Alice Dupont"
+    ]
+
+
+def test_regex_boundary_does_not_cut_annotated_spans():
+    doc = edsnlp.blank("eds")("zero one two Alice\nDupont five six seven")
+    doc.spans["gold"] = [
+        Span(doc, 3, 6, label="PERSON"),
+        Span(doc, 4, 6, label="PERSON"),
+    ]
+    chunks = list(eds.split(regex="\\n", span_getter="gold")(doc))
+
+    assert "".join(chunk.text_with_ws for chunk in chunks).strip() == doc.text
+    assert [span.text for chunk in chunks for span in chunk.spans["gold"]] == [
+        "Alice\nDupont",
+        "\nDupont",
+    ]

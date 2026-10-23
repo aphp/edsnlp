@@ -304,28 +304,24 @@ def test_doc_classification_metric(doc_classif_examples):
     assert scores["das"]["macro"]["classes"] == 3
 
 
-def test_doc_classification_metric_ignores_unannotated_docs(doc_classif_examples):
-    """A document with no gold value for an attribute is left out of its score."""
+def test_doc_classification_metric_options(doc_classif_examples):
     golds, preds = doc_classif_examples
+    metric = DocClassificationMetric(label_attr="dp")
+    assert set(metric(golds, preds)) == {"dp"}
+
+    # A document with no gold value for an attribute is left out of its score
     golds[1]._.dp = None
     preds[1]._.dp = None
-
-    scores = DocClassificationMetric(label_attr=["dp"])(golds, preds)
+    scores = metric(golds, preds)
     assert scores["dp"]["micro"]["support"] == 1
     assert scores["dp"]["micro"]["f"] == 1.0
 
-
-def test_doc_classification_metric_accepts_a_single_attribute(doc_classif_examples):
-    scores = DocClassificationMetric(label_attr="dp")(*doc_classif_examples)
-    assert set(scores) == {"dp"}
-
-
-def test_doc_classification_metric_filter_expr(doc_classif_examples):
+    # Only the second document passes the filter, and it is misclassified
+    golds[1]._.dp, preds[1]._.dp = "I21", "C34"
     metric = DocClassificationMetric(
         label_attr=["dp"],
         filter_expr="doc.text.endswith('1.')",
     )
-    scores = metric(*doc_classif_examples)
-    # Only the second document is kept, and it is misclassified.
+    scores = metric(golds, preds)
     assert scores["dp"]["micro"]["support"] == 1
     assert scores["dp"]["micro"]["f"] == 0.0

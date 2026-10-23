@@ -5,9 +5,10 @@ float_regex = r"\d+(?:[,.]\d*)?|[,.]\d+"
 int_regex = r"\d+"
 
 # We reject a value attached to a letter, a sign or another number, e.g. `G6`, `-2`
-# or the `5` of `7.5`. Since a slash left after the value and its reference means a
-# date or a malformed score, e.g. `3/7.5`, we reject those too
-score_value = rf"(?<![\w/.,+-])(?:{float_regex})(?![.,]?\w)"
+# or the `5` of `7.5`, and a value after a slash, e.g. `10` in `EVA / 10 : 0`.
+# Since a slash left after the value and its reference means a date or a malformed
+# score, e.g. `3/7.5`, we reject those too
+score_value = rf"(?<![\w/.,+-])(?<!/\s)(?:{float_regex})(?![.,]?\w)"
 score_reference = rf"\s*/\s*{int_regex}(?![.,]?\w)"
 # Assign regex capturing the value, the reference stays in the full match
 assigned_score_value = rf"({score_value})(?:{score_reference})?(?!\s*/)"

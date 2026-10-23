@@ -416,7 +416,18 @@ class SetuptoolsPackager(Packager):
 
         new_pyproject: confit.Config = confit.Config()
         if pyproject is not None:
-            new_pyproject["project"] = pyproject["project"]
+            new_pyproject["project"] = dict(pyproject["project"])
+            # Dependencies, scripts, entry points and extras belong to the code package
+            # when it is not embedded, the model package only depends on that package
+            if code != "embed":
+                for key in (
+                    "dependencies",
+                    "scripts",
+                    "gui-scripts",
+                    "entry-points",
+                    "optional-dependencies",
+                ):
+                    new_pyproject["project"].pop(key, None)
         new_pyproject = new_pyproject.merge(
             {
                 "build-system": {

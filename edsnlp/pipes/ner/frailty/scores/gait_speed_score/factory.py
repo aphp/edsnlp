@@ -1,3 +1,4 @@
+import re
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from spacy.tokens import Span
@@ -6,8 +7,25 @@ from edsnlp.core import PipelineProtocol, registry
 from edsnlp.pipes.base import SpanSetterArg
 
 from ..base import FrailtyScoreMatcher
-from ..utils import make_find_value_and_reference
+from ..utils import float_regex
 from .patterns import default_patterns
+
+
+def find_speed(span: Span):
+    """
+    Convert the assigned gait speed to metres per second, speeds above 200 are
+    rejected
+    """
+    # When no speed follows the trigger there is no value, so we reject the match
+    text = span._.assigned.get("value")
+    if text is None:
+        return None
+    value = float(re.match(float_regex, text).group().replace(",", "."))
+    if "cm" in text:
+        value /= 100
+    if value <= 200:
+        span._.assigned["value"] = value
+        return span
 
 
 def gait_speed_severity_assigner(ent: Span):
@@ -31,11 +49,7 @@ def create_component(
     name: Optional[str] = "gait_speed_score",
     *,
     patterns: List[Dict] = default_patterns,
-    score_normalization: Union[
-        str, Callable[[Span], Any]
-    ] = make_find_value_and_reference(
-        admissible_references=[200], default_reference=200
-    ),  # not a real reference for this test, just a high upper bound
+    score_normalization: Union[str, Callable[[Span], Any]] = find_speed,
     attr: str = "NORM",
     label: str = "gait_speed_score",
     span_setter: SpanSetterArg = {

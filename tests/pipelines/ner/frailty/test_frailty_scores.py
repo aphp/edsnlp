@@ -207,3 +207,21 @@ def test_frailty_score_base(normalized_nlp, test_case):
         assert len(doc.ents) == len(example["results"])
         for ent, result in zip(doc.ents, example["results"]):
             assert ent.text == result
+
+
+@pytest.mark.parametrize(
+    "include_assigned,expected_text",
+    [(True, "ADL 5/6"), (False, "ADL")],
+)
+def test_frailty_score_include_assigned(
+    normalized_nlp, include_assigned, expected_text
+):
+    normalized_nlp.add_pipe(
+        "eds.adl_score", config=dict(include_assigned=include_assigned)
+    )
+    ent = normalized_nlp("ADL 5/6").ents[0]
+    assert (ent.text, ent._.adl_score, ent._.functional_status) == (
+        expected_text,
+        5.0,
+        "altered_nondescript",
+    )

@@ -1,5 +1,5 @@
 from ...utils import normalize_space_characters
-from ..utils import float_regex
+from ..utils import assigned_duration
 
 default_patterns = normalize_space_characters(
     [
@@ -9,7 +9,8 @@ default_patterns = normalize_space_characters(
             assign=[
                 dict(
                     name="value",
-                    regex=rf"({float_regex})",
+                    # We skip the count of `5 levers de chaise`, which is not a duration
+                    regex=rf"{assigned_duration}(?!\s*levers?\b)",
                     window=(0, 7),
                     reduce_mode="keep_last",
                 ),

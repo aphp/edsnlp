@@ -1,4 +1,4 @@
-from ..utils import float_regex
+from ..utils import assigned_duration
 
 default_patterns = [
     dict(
@@ -7,7 +7,7 @@ default_patterns = [
         assign=[
             dict(
                 name="value",
-                regex=rf"({float_regex})",
+                regex=assigned_duration,
                 window=(0, 7),
                 reduce_mode="keep_first",
             ),

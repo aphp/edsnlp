@@ -1,39 +1,13 @@
-import re
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from spacy.tokens import Span
 
 from edsnlp.core import PipelineProtocol, registry
-from edsnlp.matchers.utils import get_text
 from edsnlp.pipes.base import SpanSetterArg
 
 from ..base import FrailtyScoreMatcher
-from ..utils import float_regex
+from ..utils import find_duration
 from .patterns import default_patterns
-
-
-def score_normalization(span):
-    possible_values = re.findall(
-        rf"5\s+levers de chaise|/|({float_regex})",
-        get_text(span, attr="NORM", ignore_excluded=False),
-    )
-    kept_value = None
-    to_keep = False
-
-    for value in possible_values:
-        if value == "":
-            continue
-        val = float(value.replace(",", "."))
-        kept_value = val
-        to_keep = True
-        break
-
-    if kept_value is None:
-        return
-
-    if to_keep:
-        span._.assigned["value"] = kept_value
-        return span
 
 
 def chair_stand_severity_assigner(ent: Span):
@@ -57,7 +31,7 @@ def create_component(
     name: Optional[str] = "chair_stand_score",
     *,
     patterns: List[Dict] = default_patterns,
-    score_normalization: Union[str, Callable[[Span], Any]] = score_normalization,
+    score_normalization: Union[str, Callable[[Span], Any]] = find_duration,
     attr: str = "NORM",
     label: str = "chair_stand_score",
     span_setter: SpanSetterArg = {

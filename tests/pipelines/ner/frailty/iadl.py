@@ -14,4 +14,7 @@ results_iadl = [
 traitement 0.5, aptitude à gérer son budget 0): 1.5/4""",  # noqa E501
         (1.5, "altered_nondescript"),
     ),
+    ("IADL 4 / 5", (4.0, "altered_nondescript")),
+    ("IADL 4 / 13", None),
+    ("IADL -1", None),
 ]

@@ -8,4 +8,7 @@ results_gds = [
     ("GDS 2/5", (2.0, "altered_nondescript")),
     ("mini-GDS 1", None),
     ("GDS 1/4", (1.0, "altered_nondescript")),
+    ("GDS 4 / 15", (4.0, "healthy")),
+    ("GDS 4 / 3", None),
+    ("GDS -1", None),
 ]

@@ -6,7 +6,7 @@ from edsnlp.core import PipelineProtocol, registry
 from edsnlp.pipes.base import SpanSetterArg
 
 from ..base import FrailtyScoreMatcher
-from ..utils import make_find_value_and_reference
+from ..utils import find_duration
 from .patterns import default_patterns
 
 
@@ -31,11 +31,7 @@ def create_component(
     name: Optional[str] = "timed_up_and_go_score",
     *,
     patterns: List[Dict] = default_patterns,
-    score_normalization: Union[
-        str, Callable[[Span], Any]
-    ] = make_find_value_and_reference(
-        admissible_references=[200], default_reference=200
-    ),  # not a real reference for this test, just a high upper bound
+    score_normalization: Union[str, Callable[[Span], Any]] = find_duration,
     attr: str = "NORM",
     label: str = "timed_up_and_go_score",
     span_setter: SpanSetterArg = {

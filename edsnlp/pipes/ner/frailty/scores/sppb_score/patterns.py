@@ -1,5 +1,5 @@
 from ...utils import normalize_space_characters
-from ..utils import float_regex
+from ..utils import assigned_score_value
 
 default_patterns = normalize_space_characters(
     [
@@ -9,7 +9,7 @@ default_patterns = normalize_space_characters(
             assign=[
                 dict(
                     name="value",
-                    regex=rf"({float_regex})",
+                    regex=assigned_score_value,
                     window=(0, 7),
                     reduce_mode="keep_first",
                 ),

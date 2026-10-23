@@ -1,4 +1,4 @@
-from ..utils import float_regex, int_regex
+from ..utils import assigned_score_value
 
 default_patterns = [
     dict(
@@ -7,7 +7,7 @@ default_patterns = [
         assign=[
             dict(
                 name="value",
-                regex=rf"((?<![/g]){float_regex})(?:/{int_regex})?",
+                regex=assigned_score_value,
                 window=(0, 7),
                 replace_entity=False,
                 reduce_mode="keep_first",

@@ -2,7 +2,7 @@ import re
 from typing import Any, Callable, Iterable, Optional, Tuple, Union
 
 from loguru import logger
-from spacy.tokens import Doc, Span
+from spacy.tokens import Span
 
 from edsnlp.core import PipelineProtocol, registry
 from edsnlp.matchers.regex import RegexMatcher, create_span
@@ -29,7 +29,9 @@ class FrailtyScoreMatcher(ContextualMatcher):
     and we don't want the context window of one to overlap on the other.
     - it has a domain argument, which is used to store the severity of the span,
     given the value found for this score. As an example, adl_score 3/4 would set
-    span._.functional_status to 'altered_nondescript'."""
+    span._.functional_status to 'altered_nondescript'.
+    The score normalization always receives the span covering the trigger and its
+    assigned values, `include_assigned` only selects the emitted boundaries."""
 
     def __init__(
         self,
@@ -134,7 +136,12 @@ class FrailtyScoreMatcher(ContextualMatcher):
             window = limit_assign.window
             snippet = window(span)
             matcher: RegexMatcher = limit_assign.regex_matcher
-            matches = list(matcher(snippet, as_spans=True))
+            # We ignore a limit inside the trigger itself, e.g. `gds` in `mini gds`
+            matches = [
+                match
+                for match in matcher(snippet, as_spans=True)
+                if match.start >= span.end
+            ]
             if len(matches) == 0:
                 continue
             # We have found limiting elements, we must restrain the context windows
@@ -223,28 +230,26 @@ class FrailtyScoreMatcher(ContextualMatcher):
             for n, g in assigned_dict.items()
         }
 
-        if self.include_assigned:
-            merged = [span, *(x[1] for name, g in assigned_dict.items() for x in g)]
-            span = Span(
-                span.doc,
-                min(s.start for s in merged),
-                max(s.end for s in merged),
-                span.label_,
-            )
-        span._.source = pattern.source
-        span.label_ = self.label
-        span._.assigned = ext
-        new_spans = [span]
+        # We normalize the trigger with its assigned values, so that the value and
+        # reference are found whatever boundaries `include_assigned` emits
+        merged = [span, *(x[1] for name, g in assigned_dict.items() for x in g)]
+        context = Span(
+            span.doc,
+            min(s.start for s in merged),
+            max(s.end for s in merged),
+            self.label,
+        )
+        context._.source = pattern.source
+        context._.assigned = ext
+        context = self.score_normalization(context)
+        if context is None or context._.assigned.get("value") is None:
+            return []
 
-        return new_spans
-
-    def process(self, doc: Doc) -> Iterable[Span]:
-        for ent in super().process(doc):
-            ent = self.score_normalization(ent)
-            if ent is None:
-                continue
-            normalized_value = ent._.assigned.get("value", None)
-            if normalized_value is not None:
-                ent._.set(self.label, normalized_value)
-                ent._.set(self.domain, self.severity_assigner(ent))
-                yield ent
+        if not self.include_assigned:
+            span.label_ = self.label
+            span._.source = context._.source
+            span._.assigned = context._.assigned
+            context = span
+        context._.set(self.label, context._.assigned["value"])
+        context._.set(self.domain, self.severity_assigner(context))
+        return [context]

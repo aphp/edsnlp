@@ -8,4 +8,8 @@ results_adl = [
         (5.0, "altered_nondescript"),
     ),
     ("ADL 0", (0.0, "altered_severe")),
+    ("ADL 5 / 6", (5.0, "altered_nondescript")),
+    ("ADL 3/7.5", None),
+    ("ADL -2", None),
+    ("ADL G6", None),
 ]

@@ -203,14 +203,18 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
             original_normalizer = self.tokenizer.backend_tokenizer.normalizer
             self.tokenizer.backend_tokenizer.normalizer = (
                 tokenizers.normalizers.Sequence(
-                    [  # type: ignore
+                    [
                         *(
                             tokenizers.normalizers.Replace(
                                 tokenizers.Regex(pattern), replacement
                             )
                             for pattern, replacement in new_tokens
                         ),
-                        original_normalizer,
+                        *(
+                            [original_normalizer]
+                            if original_normalizer is not None
+                            else []
+                        ),
                     ]
                 )
             )

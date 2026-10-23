@@ -60,7 +60,7 @@ class DocPooler(WordEmbeddingComponent, BaseComponent):
         How word embeddings are aggregated into a single embedding per document:
 
         - `"mean"`, `"max"`, `"sum"`: element-wise reduction over the words of
-          the document, ignoring padding.
+          the document.
         - `"attention"`: weighted sum of the word embeddings, the weights being
           produced by a learned linear attention layer.
         - `"cls"`: use the embedding of the first wordpiece of the underlying
@@ -120,36 +120,39 @@ class DocPooler(WordEmbeddingComponent, BaseComponent):
                 )
             return {"embeddings": embedding_out["cls"]}
 
-        embeds = embedding_out["embeddings"].refold("context", "word")
-        mask = embeds.mask
+        # Pool from the flat word embeddings, so that the cost of the pooling
+        # does not depend on the length of the longest document of the batch
+        embeds = embedding_out["embeddings"]
+        flat_embeds = embeds.refold("word").as_tensor()
+        device = flat_embeds.device
+        words_per_context = torch.as_tensor(embeds.lengths[-1], device=device)
+        contexts_per_doc = torch.as_tensor(embeds.lengths[-2], device=device)
+        n_docs = len(contexts_per_doc)
+        doc_of_context = torch.repeat_interleave(
+            torch.arange(n_docs, device=device), contexts_per_doc
+        )
+        doc_of_word = torch.repeat_interleave(doc_of_context, words_per_context)
 
         if self.pooling_mode == "attention":
-            attention_weights = self.attention(embeds)  # (batch_size, seq_len, 1)
-            attention_weights = attention_weights.squeeze(-1)  # (batch_size, seq_len)
-
-            attention_weights = attention_weights.masked_fill(~mask, float("-inf"))
-
-            attention_weights = torch.softmax(attention_weights, dim=1)
-
-            attention_weights = attention_weights.unsqueeze(
-                -1
-            )  # (batch_size, seq_len, 1)
-            pooled = (embeds * attention_weights).sum(dim=1)  # (batch_size, embed_dim)
-
+            # Softmax over the words of each document
+            scores = self.attention(flat_embeds)
+            max_scores = scores.new_full((n_docs, 1), float("-inf"))
+            max_scores.index_reduce_(0, doc_of_word, scores.detach(), reduce="amax")
+            exp_scores = torch.exp(scores - max_scores[doc_of_word])
+            denom = exp_scores.new_zeros(n_docs, 1)
+            denom.index_add_(0, doc_of_word, exp_scores)
+            pooled = flat_embeds.new_zeros(n_docs, flat_embeds.size(-1))
+            pooled.index_add_(0, doc_of_word, flat_embeds * exp_scores)
+            pooled = pooled / denom.clamp(min=torch.finfo(denom.dtype).tiny)
         else:
-            mask_expanded = mask.unsqueeze(-1)
-            masked_embeds = embeds * mask_expanded
-            sum_embeds = masked_embeds.sum(dim=1)
-
-            if self.pooling_mode == "mean":
-                valid_counts = mask.sum(dim=1, keepdim=True).clamp(min=1)
-                pooled = sum_embeds / valid_counts
-            elif self.pooling_mode == "max":
-                masked_embeds = embeds.masked_fill(~mask_expanded, float("-inf"))
-                pooled, _ = masked_embeds.max(dim=1)
-            elif self.pooling_mode == "sum":
-                pooled = sum_embeds
-            else:  # pragma: no cover
-                raise ValueError(f"Unknown pooling mode: {self.pooling_mode}")
+            words_per_doc = torch.zeros(n_docs, dtype=torch.long, device=device)
+            words_per_doc.index_add_(0, doc_of_context, words_per_context)
+            offsets = torch.cumsum(words_per_doc, 0) - words_per_doc
+            pooled = torch.nn.functional.embedding_bag(
+                input=torch.arange(len(flat_embeds), device=device),
+                weight=flat_embeds,
+                offsets=offsets,
+                mode=self.pooling_mode,
+            )
 
         return {"embeddings": pooled}

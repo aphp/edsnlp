@@ -32,6 +32,7 @@ TransformerBatchInput = TypedDict(
         "word_indices": torch.Tensor,
         "word_offsets": ft.FoldedTensor,
         "empty_word_indices": torch.Tensor,
+        "window_contexts": torch.Tensor,
     },
 )
 """
@@ -43,17 +44,25 @@ word_offsets: FoldedTensor
     Offsets of the word's wordpieces in the flattened input_ids
 empty_word_indices: torch.LongTensor
     Indices of empty words in the flattened input_ids
+window_contexts: torch.LongTensor
+    Index of the context each window belongs to
 """
 
 TransformerBatchOutput = TypedDict(
     "TransformerBatchOutput",
     {
         "embeddings": ft.FoldedTensor,
+        "cls": torch.Tensor,
     },
 )
 """
 embeddings: FoldedTensor
     The embeddings of the words
+cls: torch.Tensor
+    The embedding of the first wordpiece (the `[CLS]` token for BERT-like models)
+    of each context, of shape `(n_contexts, embedding_size)`. A context longer than
+    `window` is split into several windows, each with its own `[CLS]` token: their
+    embeddings are then averaged.
 """
 
 
@@ -354,6 +363,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         word_indices = []
         word_offsets = []
         empty_word_indices = []
+        window_contexts = []
         overlap = self.window - stride
         word_offset = 0
         all_word_wp_offset = 0
@@ -408,6 +418,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                     )
                     span_token_indices.extend(wp_indices)
                     input_ids.append(window_input_ids)
+                    window_contexts.append(len(token_indices))
 
                 token_indices.append(span_token_indices)
 
@@ -444,6 +455,7 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
             ),
             "word_indices": torch.as_tensor(word_indices, dtype=torch.long),
             "empty_word_indices": torch.as_tensor(empty_word_indices, dtype=torch.long),
+            "window_contexts": torch.as_tensor(window_contexts, dtype=torch.long),
             "stats": {
                 "tokens": sum(batch["stats"]["tokens"]),
                 "words": sum(batch["stats"]["words"]),
@@ -540,8 +552,18 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
             offsets=batch["word_offsets"],
         )
         word_embeddings[batch["empty_word_indices"]] = self.empty_word_embedding
+
+        # Average the [CLS] embeddings of the windows of each context
+        window_contexts = batch["window_contexts"]
+        n_contexts = int(window_contexts.max()) + 1 if len(window_contexts) else 0
+        cls = wordpiece_embeddings.new_zeros(n_contexts, wordpiece_embeddings.size(2))
+        cls.index_add_(0, window_contexts, wordpiece_embeddings[:, 0, :])
+        n_windows = torch.bincount(window_contexts, minlength=n_contexts)
+        cls = cls / n_windows.clamp(min=1).unsqueeze(-1).to(cls)
+
         return {
             "embeddings": word_embeddings.refold("context", "word"),
+            "cls": cls,
         }
 
     @staticmethod

@@ -13,7 +13,7 @@ The classifier is configured with one head per predicted attribute. Pick
 `eds.single_label_head` when a document carries exactly one label for that
 attribute, and `eds.multi_label_head` when it carries a set of them. Both accept
 the [parameters common to every head][edsnlp.pipes.trainable.doc_classifier.heads.ClassificationHead]
-— label set, hidden block, class weights — on top of their own.
+(label set, hidden block, class weights) on top of their own.
 
 ### Single-label head {: #edsnlp.pipes.trainable.doc_classifier.heads.SingleLabelHead }
 

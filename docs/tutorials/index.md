@@ -131,7 +131,7 @@ We also provide tutorials on how to train deep-learning models with EDS-NLP. The
     **Training a Document Classifier model**
 
     ---
-    Learn how to classify whole documents — their type, their diagnoses — with `edsnlp.train`.
+    Learn how to classify whole documents, e.g. to predict their diagnoses, with `edsnlp.train`.
 
 === card {: href=/tutorials/tuning }
 

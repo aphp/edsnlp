@@ -7,9 +7,33 @@ severe = dict(
         "aide totale",
         "ehpad",
         r"\bmadd?\b",
-        "mise au fauteuil",
     ],
     regex_attr="NORM",
+    # We skip EHPAD as a workplace, e.g. `infirmiere en EHPAD`
+    exclude=dict(
+        regex=r"(?:infirmiere?|travaill\w*|soignante?|employee?|agent)\s+(?:en|dans)",
+        window=-4,
+    ),
+)
+severe_chair = dict(
+    source="severe_chair",
+    regex=["mise au fauteuil"],
+    regex_attr="NORM",
+    # After surgery or in rehabilitation, the chair is a milestone rather than a
+    # dependency, so we skip it there, e.g. `lever autorise, mise au fauteuil autorisee`
+    exclude=dict(
+        regex=[
+            "autorisee?",
+            r"\blever\b",
+            "appui",
+            "reeducation",
+            "kinesitherapie",
+            r"\bj\s?\+?\s?\d",
+            "premier",
+            "a partir",
+        ],
+        window=(-8, 4),
+    ),
 )
 
 mild = dict(
@@ -59,8 +83,23 @@ other = dict(
 )
 
 
-other_orth = dict(source="other_orth", regex=["SSR"], regex_attr="ORTH")
-severe_orth = dict(source="severe_orth", regex=[r"\bEPHAD\b"], regex_attr="ORTH")
+# We skip SSR in the unit names of note headers, e.g. `GCL SSR GERIATRIQUE (UF)`
+other_orth = dict(
+    source="other_orth",
+    regex=["SSR"],
+    regex_attr="ORTH",
+    exclude=dict(regex=r"\(uf\)|\buf\b", window=(-8, 8), regex_attr="NORM"),
+)
+severe_orth = dict(
+    source="severe_orth",
+    regex=[r"\bEPHAD\b"],
+    regex_attr="ORTH",
+    exclude=dict(
+        regex=r"(?:infirmiere?|travaill\w*|soignante?|employee?|agent)\s+(?:en|dans)",
+        window=-4,
+        regex_attr="NORM",
+    ),
+)
 
 house_stay = dict(
     source="other_stay",
@@ -78,7 +117,7 @@ house_stay = dict(
 
 FAMILY_COMPLEMENTS = ["fils", "fille", "enfants", r"epou(?:x|se)", "mari", "femme"]
 ALTERED_COMPLEMENTS = [
-    r"\baidee?s?\b",
+    r"(?<!sans\s)\baidee?s?\b",
     rf"aidee? (?:par (?:la|les?|l' ?)?)?(?:{'|'.join(member for member in FAMILY_COMPLEMENTS)})",  # noqa E501
     "mauvaise?",
     "supervision",
@@ -232,8 +271,6 @@ ambiguous_items = dict(
         "toilette",
         "douche",
         "transfert",
-        "traitement",
-        r"medicaments?\b",
         "cuisine",
         "courses",
         r"\bmenage",
@@ -270,6 +307,56 @@ ambiguous_items = dict(
         ),
         window=(-4, 3),
     ),
+    exclude=[
+        # We skip item scores of ADL and IADL lists, e.g. `repas 1` or `toilettes : 0`,
+        # but keep frequencies such as `aide menagere 1 fois par semaine`
+        dict(
+            regex=(
+                r"[\s:=]\s*[01](?:[.,]5)?"
+                r"(?![\d/-]|[.,]\d|\s*(?:/|fois|x\b|h\b|heures?|jours?|par\b))"
+            ),
+            window=(0, 2),
+        ),
+        # We skip hospital transfers, e.g. `transfert en SSR`
+        dict(regex=r"transferts?\s+(?:en|vers|dans)\b", window=(0, 2)),
+        dict(regex=["dentaire", "bucco"], window=(0, 3)),
+    ],
+)
+
+# A bare `traitement` is mostly a medical therapy, e.g. `bonne tolerance du
+# traitement`, so we only keep medications when someone manages them
+medication = dict(
+    source="other_medication",
+    regex=[r"\btraitements?\b", r"\bmedicaments?\b"],
+    regex_attr="NORM",
+    assign=[
+        dict(
+            name="altered_complement",
+            regex=make_assign_regex(ALTERED_COMPLEMENTS),
+            window=(-4, 3),
+        ),
+        dict(
+            name="severe_complement",
+            regex=make_assign_regex(SEVERE_COMPLEMENTS),
+            window=(-4, 3),
+        ),
+        dict(
+            name="healthy_complement",
+            regex=make_assign_regex(HEALTHY_COMPLEMENTS),
+            window=(-4, 3),
+        ),
+    ],
+    # We leave out `prend son traitement` and `administration du medicament`, since
+    # they are about adherence or care rather than who manages the medications
+    include=dict(
+        regex=(
+            r"\b(?:gere|gerer|gestion|prepar|distribu|dispens|pilulier|infirmi|autonom)|"
+            r"\bide\b|"
+            r"\bprise (?:des|de ses) (?:medicaments|traitements)"
+        ),
+        window=(-4, 3),
+    ),
+    exclude=dict(regex=r"tolerance|observance", window=(-4, 3)),
 )
 
 readaptation = dict(
@@ -279,6 +366,7 @@ readaptation = dict(
     exclude=[
         dict(regex=["traitement", "vesicale?", "orthophonique"], window=5),
         dict(regex=["service", "unite", "medecine"], window=-10),
+        dict(regex="reinsertion", window=3),
     ],
 )
 
@@ -286,12 +374,14 @@ default_patterns = normalize_space_characters(
     [
         other_orth,
         severe,
+        severe_chair,
         other,
         other_specific_qualifers,
         activities_of_daily_life,
         readaptation,
         house_stay,
         ambiguous_items,
+        medication,
         administrative,
         severe_orth,
         mild,

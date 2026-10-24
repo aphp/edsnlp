@@ -53,7 +53,7 @@ class IncontinenceMatcher(FrailtyDomainMatcher):
 
     Below are a few examples:
 
-    --8<-- "docs/assets/fragments/incontinence_status-examples.md"
+    --8<-- "docs/assets/fragments/incontinence-status-examples.md"
 
     Parameters
     ----------

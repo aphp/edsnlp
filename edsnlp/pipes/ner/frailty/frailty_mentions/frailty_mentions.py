@@ -57,7 +57,7 @@ class FrailtyMentionsMatcher(FrailtyDomainMatcher):
 
     Below are a few examples:
 
-    --8<-- "docs/assets/fragments/frailty_mentions-examples.md"
+    --8<-- "docs/assets/fragments/frailty-examples.md"
 
     Parameters
     ----------

@@ -64,6 +64,9 @@ def create_component(
     The `eds.gait_speed_score` component extracts mentions of
     the gait speed score.
 
+    The speed is stored in m/s, e.g. `vitesse de marche 80 cm/s` gives 0.8, and a
+    number followed by another unit, e.g. `4 m en 6 s` or `3 km/h`, is ignored.
+
     Parameters
     ----------
     nlp : PipelineProtocol

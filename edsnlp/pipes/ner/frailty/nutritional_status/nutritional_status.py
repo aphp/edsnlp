@@ -53,7 +53,7 @@ class NutritionMatcher(FrailtyDomainMatcher):
 
     Below are a few examples:
 
-    --8<-- "docs/assets/fragments/nutritional_status-examples.md"
+    --8<-- "docs/assets/fragments/nutritional-status-examples.md"
 
     Parameters
     ----------

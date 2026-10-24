@@ -53,7 +53,7 @@ class SensoryMatcher(FrailtyDomainMatcher):
 
     Below are a few examples:
 
-    --8<-- "docs/assets/fragments/sensory_status-examples.md"
+    --8<-- "docs/assets/fragments/sensory-status-examples.md"
 
     Parameters
     ----------

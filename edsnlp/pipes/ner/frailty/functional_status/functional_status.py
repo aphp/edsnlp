@@ -55,7 +55,7 @@ class FunctionalStatusMatcher(FrailtyDomainMatcher):
 
     Below are a few examples:
 
-    --8<-- "docs/assets/fragments/functional_status-examples.md"
+    --8<-- "docs/assets/fragments/functional-status-examples.md"
 
     Parameters
     ----------

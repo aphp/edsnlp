@@ -53,7 +53,7 @@ class GlobalHealthStatusMatcher(FrailtyDomainMatcher):
 
     Below are a few examples:
 
-    --8<-- "docs/assets/fragments/global_health_status-examples.md"
+    --8<-- "docs/assets/fragments/global-health-status-examples.md"
 
     Parameters
     ----------

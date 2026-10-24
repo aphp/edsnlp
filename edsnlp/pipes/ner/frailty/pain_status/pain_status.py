@@ -52,7 +52,7 @@ class PainMatcher(FrailtyDomainMatcher):
 
     Below are a few examples:
 
-    --8<-- "docs/assets/fragments/pain_status-examples.md"
+    --8<-- "docs/assets/fragments/pain-status-examples.md"
 
     Parameters
     ----------

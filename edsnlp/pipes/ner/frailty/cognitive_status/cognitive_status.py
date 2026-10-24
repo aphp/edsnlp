@@ -53,7 +53,7 @@ class CognitiveStatusMatcher(FrailtyDomainMatcher):
 
     Below are a few examples:
 
-    --8<-- "docs/assets/fragments/cognitive_status-examples.md"
+    --8<-- "docs/assets/fragments/cognitive-status-examples.md"
 
     Parameters
     ----------

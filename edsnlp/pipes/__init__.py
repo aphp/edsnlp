@@ -68,6 +68,9 @@ if TYPE_CHECKING:
         create_component as cognitive_status,
     )
     from .ner.frailty.frailty_mentions.factory import create_component as frailty
+    from .ner.frailty.frailty_mentions.factory import (
+        create_component as frailty_mentions,
+    )
     from .ner.frailty.functional_status.factory import (
         create_component as functional_status,
     )
@@ -128,6 +131,7 @@ if TYPE_CHECKING:
         create_component as timed_up_and_go_score,
     )
     from .ner.frailty.sensory_status.factory import create_component as sensory_status
+    from .ner.frailty.social_status.factory import create_component as social_status
     from .ner.scores.charlson.factory import create_component as charlson
     from .ner.scores.elston_ellis.factory import create_component as elston_ellis
     from .ner.scores.emergency.ccmu.factory import create_component as emergency_ccmu

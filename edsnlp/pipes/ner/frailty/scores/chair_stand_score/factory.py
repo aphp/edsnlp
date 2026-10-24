@@ -46,6 +46,9 @@ def create_component(
     The `eds.chair_stand_score` component extracts the
     chair stand score.
 
+    The duration is stored in seconds, e.g. `5 levers de chaise en 1 min 5 s`
+    gives 65, and a number followed by another unit is ignored.
+
     Parameters
     ----------
     nlp : PipelineProtocol

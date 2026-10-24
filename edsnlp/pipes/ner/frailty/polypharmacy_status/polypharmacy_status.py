@@ -55,7 +55,7 @@ class PolypharmacyStatusMatcher(FrailtyDomainMatcher):
 
     Below are a few examples:
 
-    --8<-- "docs/assets/fragments/polypharmacy_status-examples.md"
+    --8<-- "docs/assets/fragments/polypharmacy-status-examples.md"
 
     Parameters
     ----------

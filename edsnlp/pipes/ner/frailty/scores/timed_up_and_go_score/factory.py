@@ -46,6 +46,9 @@ def create_component(
     The `eds.timed_up_and_go_score` component extracts mentions of
     the timed_up_and_go_score (Timed Up and Go) score.
 
+    The duration is stored in seconds, e.g. `TUG 1 min 20 s` gives 80, and a number
+    followed by another unit, e.g. `TUG 12 m`, is ignored.
+
     Parameters
     ----------
     nlp : PipelineProtocol

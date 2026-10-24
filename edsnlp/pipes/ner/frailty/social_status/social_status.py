@@ -52,7 +52,7 @@ class SocialMatcher(FrailtyDomainMatcher):
 
     Below are a few examples:
 
-    --8<-- "docs/assets/fragments/social_status-examples.md"
+    --8<-- "docs/assets/fragments/social-status-examples.md"
 
     Parameters
     ----------

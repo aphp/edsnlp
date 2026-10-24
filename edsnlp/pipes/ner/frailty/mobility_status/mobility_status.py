@@ -53,7 +53,7 @@ class MobilityMatcher(FrailtyDomainMatcher):
 
     Below are a few examples:
 
-    --8<-- "docs/assets/fragments/mobility_status-examples.md"
+    --8<-- "docs/assets/fragments/mobility-status-examples.md"
 
     Parameters
     ----------

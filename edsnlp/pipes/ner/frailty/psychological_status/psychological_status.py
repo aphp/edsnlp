@@ -53,7 +53,7 @@ class PsychologicalStatusMatcher(FrailtyDomainMatcher):
 
     Below are a few examples:
 
-    --8<-- "docs/assets/fragments/psychological_status-examples.md"
+    --8<-- "docs/assets/fragments/psychological-status-examples.md"
 
     Parameters
     ----------

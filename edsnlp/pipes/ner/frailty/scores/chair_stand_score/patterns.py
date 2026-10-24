@@ -15,6 +15,11 @@ default_patterns = normalize_space_characters(
                     reduce_mode="keep_last",
                 ),
             ],
+            # We skip repetitions in one minute, e.g. `sur 1 minute : 17`, another test
+            exclude=dict(
+                regex=r"(?:sur|en)\s+1\s*(?:minute|mn|min)\b(?!\s*\d)|/\s*min",
+                window=(0, 6),
+            ),
         )
     ]
 )

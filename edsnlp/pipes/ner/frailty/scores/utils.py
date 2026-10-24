@@ -5,16 +5,20 @@ float_regex = r"\d+(?:[,.]\d*)?|[,.]\d+"
 int_regex = r"\d+"
 
 # We reject a value attached to a letter, a sign or another number, e.g. `G6`, `-2`
-# or the `5` of `7.5`, a value after a slash, e.g. `10` in `EVA / 10 : 0`, and the
+# or the `5` of `7.5`, a value after a slash or `sur` unless it has its own
+# reference, e.g. `10` in `EVA sur 10 : 0` but not `0` in `IADL sur 0/8`, and the
 # items of a sum, e.g. `4+4+3`. Since a slash left after the value and its
 # reference means a date or a malformed score, e.g. `3/7.5`, we reject those too
-score_value = rf"(?<![\w/.,+-])(?<!/\s)(?:{float_regex})(?![.,]?\w|\s*\+)"
-score_reference = rf"\s*/\s*{int_regex}(?![.,]?\w)"
+score_value = (
+    rf"(?<![\w/.,+-])(?<!/\s)(?:(?<!\bsur\s)|(?=\d+\s*/))"
+    rf"(?:{float_regex})(?![.,]?\w|\s*\+)"
+)
+score_reference = rf"\s*(?:/|\bsur\b)\s*{int_regex}(?![.,]?\w)"
 # Assign regex capturing the value, the reference stays in the full match
 assigned_score_value = rf"({score_value})(?:{score_reference})?(?!\s*/)"
 # Normalization regex capturing the value and the optional reference
 value_and_reference = re.compile(
-    rf"({score_value})(?:\s*/\s*({int_regex})(?![.,]?\w))?(?!\s*/)"
+    rf"({score_value})(?:\s*(?:/|\bsur\b)\s*({int_regex})(?![.,]?\w))?(?!\s*/)"
 )
 
 

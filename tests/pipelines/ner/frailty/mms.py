@@ -9,4 +9,5 @@ results_mms = [
     ("MMSE -5", None),
     ("masse musculaire (MMS) 25", None),
     ("MMS 25 kg", None),
+    ("MMS 24 sur 30", (24.0, "healthy")),
 ]

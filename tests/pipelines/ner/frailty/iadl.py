@@ -18,4 +18,5 @@ traitement 0.5, aptitude à gérer son budget 0): 1.5/4""",  # noqa E501
     ("IADL 4 / 13", None),
     ("IADL -1", None),
     ("IADL : téléphone 1", None),
+    ("Score IADL sur 0/8", (0.0, "altered_severe")),
 ]

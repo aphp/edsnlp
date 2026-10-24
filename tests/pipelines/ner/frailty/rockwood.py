@@ -6,4 +6,5 @@ results_clinical_frailty_scale = [
     ("Rockwood 3 / 9", (3.0, "healthy")),
     ("Rockwood 3 / 8", None),
     ("Rockwood -1", None),
+    ("luxation acromio-claviculaire Rockwood 3", None),
 ]

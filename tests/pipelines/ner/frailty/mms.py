@@ -7,4 +7,6 @@ results_mms = [
     ("MMSE 20 / 30", (20.0, "altered_mild")),
     ("MMSE 20/25.5", None),
     ("MMSE -5", None),
+    ("masse musculaire (MMS) 25", None),
+    ("MMS 25 kg", None),
 ]

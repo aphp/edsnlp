@@ -2,7 +2,7 @@ from ..utils import assigned_score_value, score_limit
 
 default_patterns = [
     dict(
-        source="adl",
+        source="mms",
         regex=r"\bmmse?\b",
         assign=[
             dict(
@@ -13,6 +13,10 @@ default_patterns = [
                 reduce_mode="keep_last",
             ),
             score_limit,
+        ],
+        exclude=[
+            dict(regex=r"\bmasse\b", window=-6),
+            dict(regex=r"\bkg\b", window=(0, 4)),
         ],
     )
 ]

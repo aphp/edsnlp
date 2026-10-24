@@ -1,13 +1,13 @@
-from ..utils import assigned_score_value, score_limit
+from ..utils import make_linked_score_value, score_limit
 
 default_patterns = [
     dict(
         source="gds",
-        regex=r"(?<!-)\bgds\b",
+        regex=r"(?<!-)(?<!mini[\s-])\bgds\b",
         assign=[
             dict(
                 name="value",
-                regex=assigned_score_value,
+                regex=make_linked_score_value(r"gds"),
                 window=(0, 35),
                 replace_entity=False,
                 reduce_mode="keep_last",
@@ -19,10 +19,8 @@ default_patterns = [
                 "arteriel",
                 "artere",
                 r"\bph\b",
-                r"\bps\b",
                 "sang",
                 "gaz",
-                r"mini[\s-]*",
             ],
             window=(-4, 4),
         ),

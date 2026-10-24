@@ -6,4 +6,6 @@ results_sppb = [
     ("SPPB 6 / 12", (6.0, "altered_severe")),
     ("SPPB 6 / 13", None),
     ("SPPB -1", None),
+    ("SPPB 4+4+3", None),
+    ("SPPB 4+4+3 = 11", (11.0, "healthy")),
 ]

@@ -5,4 +5,6 @@ results_moca = [
     ("MOCA 25 / 30", (25.0, "altered_mild")),
     ("MOCA 25 / 25", None),
     ("MOCA -5", None),
+    ("MoCA version 7.1 : 25/30", (25.0, "altered_mild")),
+    ("MoCA version 8.1", None),
 ]

@@ -2,7 +2,7 @@ from ..utils import assigned_score_value
 
 default_patterns = [
     dict(
-        source="ps",
+        source="rockwood",
         regex=[r"\brockwood\b", "clinical frailty scale"],
         assign=[
             dict(
@@ -13,5 +13,6 @@ default_patterns = [
                 reduce_mode="keep_first",
             ),
         ],
+        exclude=dict(regex=r"acromio", window=-6),
     )
 ]

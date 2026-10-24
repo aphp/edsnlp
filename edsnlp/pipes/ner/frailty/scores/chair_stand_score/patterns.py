@@ -4,7 +4,7 @@ from ..utils import assigned_duration
 default_patterns = normalize_space_characters(
     [
         dict(
-            source="sppb",
+            source="chair_stand",
             regex=[r"(?:5 |cinq )?levers de chaise"],
             assign=[
                 dict(

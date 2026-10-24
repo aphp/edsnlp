@@ -1,4 +1,4 @@
-from ..utils import assigned_score_value, score_limit
+from ..utils import make_linked_score_value, score_limit
 
 default_patterns = [
     dict(
@@ -7,7 +7,7 @@ default_patterns = [
         assign=[
             dict(
                 name="value",
-                regex=assigned_score_value,
+                regex=make_linked_score_value(r"bref"),
                 window=(0, 7),
                 replace_entity=False,
                 reduce_mode="keep_first",

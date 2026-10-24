@@ -1,53 +1,13 @@
-import re
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from spacy.tokens import Span
 
 from edsnlp.core import PipelineProtocol, registry
-from edsnlp.matchers.utils import get_text
 from edsnlp.pipes.base import SpanSetterArg
 
 from ..base import FrailtyScoreMatcher
-from ..utils import float_regex, int_regex
+from ..utils import make_find_value_and_reference
 from .patterns import default_patterns
-
-
-def score_normalization(span):
-    possible_values = re.findall(
-        rf"g\s?8|/|({float_regex})(?:\s*/\s*({int_regex}))?",
-        get_text(span, attr="NORM", ignore_excluded=False),
-    )
-    kept_value = None
-    kept_reference = None
-    to_keep = False
-
-    for value, reference in possible_values:
-        if value == "":
-            continue
-        val = float(value.replace(",", "."))
-        try:
-            ref = int(reference)
-            if ref == 17 and val <= ref:
-                kept_value, kept_reference = val, ref
-                to_keep = True
-                break
-        except ValueError:
-            if (kept_reference is None) and (
-                (kept_value is None) or (kept_value < val)
-            ):
-                kept_value, kept_reference = (val, None)
-
-    if kept_value is None:
-        return
-
-    if (kept_reference is None) and (kept_value <= 17):
-        to_keep = True
-        kept_reference = 17
-
-    if to_keep:
-        span._.assigned["value"] = kept_value
-        span._.assigned["reference"] = kept_reference
-        return span
 
 
 def g8_severity_assigner(ent: Span):
@@ -68,7 +28,9 @@ def create_component(
     name: Optional[str] = "g8_score",
     *,
     patterns: List[Dict] = default_patterns,
-    score_normalization: Union[str, Callable[[Span], Any]] = score_normalization,
+    score_normalization: Union[
+        str, Callable[[Span], Any]
+    ] = make_find_value_and_reference(admissible_references=[17], default_reference=17),
     attr: str = "NORM",
     label: str = "g8_score",
     span_setter: SpanSetterArg = {"ents": True, "g8": True, "g8_score": True},

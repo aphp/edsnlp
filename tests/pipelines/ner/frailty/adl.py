@@ -12,4 +12,8 @@ results_adl = [
     ("ADL 3/7.5", None),
     ("ADL -2", None),
     ("ADL G6", None),
+    ("MG-ADL 6", None),
+    ("Schwab et England ADL 80", None),
+    ("ADL (habillage 1, repas 1)", None),
+    ("ADL : habillage 1, toilette 0,5, total 4/6", (4.0, "altered_nondescript")),
 ]

@@ -7,7 +7,8 @@ default_patterns = [
         assign=[
             dict(
                 name="value",
-                regex=make_linked_score_value(r"gds"),
+                # Since GDS scores are whole numbers, we skip decimals, e.g. `GDS 7.39`
+                regex=r"(?!\d+[.,]\d)" + make_linked_score_value(r"gds"),
                 window=(0, 35),
                 replace_entity=False,
                 reduce_mode="keep_last",

@@ -63,4 +63,6 @@ results_en_eva = [
     ("EVA AVQ = 70/100", None),
     ("EVA MARTIN 8", None),
     ("EN CAS DE DOULEURS : 5", None),
+    ("EN douleur à l'effort : 4/10", (4.0, "altered_nondescript")),
+    ("Score EN : Total = 0", (0.0, "healthy")),
 ]

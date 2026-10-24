@@ -7,7 +7,7 @@ pain_cue = re.compile(
     flags=re.IGNORECASE,
 )
 pain_template = re.compile(
-    r"[eé]valuation\s+de\s+la\s+douleur|douleurs?\s*[:=-]\s*$|"
+    r"[eé]valuation\s+de\s+la\s+douleur|douleurs?\s*[:=-]\s*$|\bscore\s*$|"
     r"v\s+douleurs?\s*[:=-]\s*$",
     flags=re.IGNORECASE,
 )
@@ -69,7 +69,7 @@ default_patterns = [
             dict(
                 name="value",
                 regex=assigned_score_value,
-                window=(0, 7),
+                window=(0, 10),
                 reduce_mode="keep_first",
             ),
         ],

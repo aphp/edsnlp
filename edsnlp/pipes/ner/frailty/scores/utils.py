@@ -24,10 +24,10 @@ def make_linked_score_value(name: str) -> str:
     another abbreviation, e.g. `en bref, 3 jours` or `GDS veineux 7.40` for blood
     gases. A value with its reference, e.g. `15/18`, can appear anywhere in the
     window but a value alone must follow the score name, possibly after `:`, `=`,
-    `score`, `est`, `a` or `de`
+    `score`, `grade`, `est`, `a` or `de`
     """
     return (
-        rf"(?:(?<=\b(?:{name})[\s:=]*(?:(?:score|est|a|de)\b[\s:=]*)*)"
+        rf"(?:(?<=\b(?:{name})[\s:=]*(?:(?:score|grade|est|a|de)\b[\s:=]*)*)"
         rf"|(?={score_value}\s*/)){assigned_score_value}"
     )
 

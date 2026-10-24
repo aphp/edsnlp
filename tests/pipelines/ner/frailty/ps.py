@@ -7,4 +7,6 @@ results_ps = [
     ("ECOG -1", None),
     ("ECOG0", (0.0, "healthy")),
     ("OMS1", (1.0, "altered_nondescript")),
+    ("ECOG grade 0", (0.0, "healthy")),
+    ("Stade OMS : A2", None),
 ]

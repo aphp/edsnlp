@@ -15,4 +15,5 @@ results_gds = [
     ("GDS 5/15 mini GDS 0/4", (5.0, "altered_nondescript")),
     ("GDS (satisfaction 1, activités 0, humeur 0): 1/15", (1.0, "healthy")),
     ("GDS veineux 7.40", None),
+    ("GDS 7.39, PCO2 38", None),
 ]

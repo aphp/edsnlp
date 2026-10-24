@@ -5,29 +5,47 @@ from ..utils import (
     normalize_space_characters,
 )
 
+# Since the frailty of a function, a tissue or a gene is not the patient frailty, we
+# skip it, e.g. `peau fragile`, `fragilite osseuse` or `syndrome de l'X fragile`
+non_frailty = [
+    dict(
+        regex=make_assign_regex(
+            [
+                "thymique",
+                "cogniti(?:f|ve)",
+                "nutritionnel(?:le)?",
+                "osseu",
+                "cutane",
+                "peau",
+                "muqueu",
+                "mnes",
+                "memoire",
+                "executi",
+            ]
+        )
+    ),
+    dict(regex=r"\bx\b", window=-2),
+]
+
 frail = dict(
     source="altered",
-    regex=["fragile"],
+    regex=[r"\b(?:pre[\s-]?)?fragiles?\b"],
     regex_attr="NORM",
-    exclude=dict(
-        regex=make_assign_regex(["thymique", "cogniti(?:f|ve)", "nutritionnel(?:le)?"])
-    ),
+    exclude=non_frailty,
 )
 
 severe = dict(
     source="severe",
     regex=[
-        r"(?:extremement|trop) fragile",
+        r"(?:extremement|trop) fragiles?\b",
     ],
     regex_attr="NORM",
-    exclude=dict(
-        regex=make_assign_regex(["thymique", "cogniti(?:f|ve)", "nutritionnel(?:le)?"])
-    ),
+    exclude=non_frailty,
 )
 
 frailty = dict(
     source="other_frailty",
-    regex=["fragilite"],
+    regex=[r"\bfragilites?\b"],
     regex_attr="NORM",
     assign=[
         dict(
@@ -41,9 +59,7 @@ frailty = dict(
             window=(-3, 3),
         ),
     ],
-    exclude=dict(
-        regex=make_assign_regex(["thymique", "cogniti(?:f|ve)", "nutritionnel(?:le)?"])
-    ),
+    exclude=non_frailty,
 )
 
 

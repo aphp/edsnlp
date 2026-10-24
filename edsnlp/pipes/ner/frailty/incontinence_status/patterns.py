@@ -43,18 +43,30 @@ altered = dict(
         window=(-3, 3),
     ),
 )
-severe_lower = dict(source="severe_lower", regex=[r"\bcouches?\b"], regex_attr="LOWER")
+# We skip `fausse couche`, `suites de couches`, `se couche` and skin layers, which
+# are not diapers
+severe_lower = dict(
+    source="severe_lower",
+    regex=[r"\bcouches?\b"],
+    regex_attr="LOWER",
+    exclude=[
+        dict(regex=[r"fausses?", "suites? de", r"\bse\b"], window=-3),
+        dict(regex=["derme", "peau"], window=(-6, 3), regex_attr="NORM"),
+    ],
+)
 protection = dict(
     source="other_protection",
-    regex=["protection"],
+    regex=[r"\bprotections?\b"],
     exclude=dict(
         regex=[
             "juridique",
             "donnees",
             "tutelle",
             "curatelle",
+            r"mesure\s+de\s+protection",
+            "peau",
         ],
-        window=5,
+        window=(-3, 5),
     ),
 )
 

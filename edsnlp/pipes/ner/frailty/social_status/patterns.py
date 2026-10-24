@@ -27,7 +27,6 @@ severe = dict(
         "sauvegarde de justice",
         "maison de retraite",
         "protection juridique",
-        r"intitution(nalisee?)?",
         r"\bmadd\b",
     ],
     regex_attr="NORM",
@@ -35,10 +34,31 @@ severe = dict(
 altered = dict(
     source="altered",
     regex=[
-        r"\bapa\b",
         "peu entouree?",
     ],
     regex_attr="NORM",
+)
+institution = dict(
+    source="severe_institution",
+    regex=[r"institution(?:nalisee?)?"],
+    regex_attr="NORM",
+    # We skip data privacy footers and treatment starts, e.g. `institution d'un
+    # traitement`
+    exclude=dict(
+        regex=[r"\bdonnees\b", "pseudonym", "destinataire", r"institution d'un"],
+        window=(-12, 12),
+    ),
+)
+# We keep APA as the personalized autonomy allowance, so we skip adapted physical
+# activity
+allowance = dict(
+    source="altered_allowance",
+    regex=[r"\bapa\b"],
+    regex_attr="NORM",
+    exclude=dict(
+        regex=["activite physique", "seance", "sport", "enseignant"],
+        window=(-5, 8),
+    ),
 )
 
 mild = dict(
@@ -79,12 +99,26 @@ house_stay = dict(
 isolation = dict(
     source="altered_isolation",
     regex=[
-        r"isole(e?|ment)",
+        # The word boundaries keep `isoleucine` and `cortisolemie` out
+        r"\bisole(?:e?s?|ment)\b",
     ],
     exclude=[
         dict(regex=["progression"], window=(-5, 5)),
         dict(regex=[r"\besa\b", "nodule", "hepatomegalie"], window=(-5, 5)),
         dict(regex=["contact", "bmr"], window=(-5, 5)),
+        # We skip isolated lab or ECG findings and infectious isolation
+        dict(
+            regex=[
+                "extrasystol",
+                r"\bes[av]\b",
+                "anemi",
+                "thrombopen",
+                "lesion",
+                "infectieux",
+                "covid",
+            ],
+            window=(-8, 8),
+        ),
     ],
     regex_attr="NORM",
 )
@@ -106,7 +140,7 @@ other = dict(
     regex_attr="NORM",
 )
 
-HEALTHY_FAMILY_COMPLEMENTS = ["vit avec", "presente?s?"]
+HEALTHY_FAMILY_COMPLEMENTS = ["vit avec", r"\bpresente?s?\b"]
 ALTERED_FAMILY_COMPLEMENTS = [
     "decedee?s?",
     "morte?s?",
@@ -216,6 +250,8 @@ default_patterns = normalize_space_characters(
         severe_orth,
         isolation,
         severe,
+        institution,
+        allowance,
         mild,
         other,
         family_members,

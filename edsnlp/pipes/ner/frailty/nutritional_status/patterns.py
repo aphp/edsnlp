@@ -10,6 +10,7 @@ healthy = dict(
     regex=[
         "ingesta normal",
         "bonne prise alimentaire",
+        "prise ponderale",
     ],
     regex_attr="NORM",
 )
@@ -87,10 +88,23 @@ altered_orth = dict(
     source="altered_orth",
     regex=[r"\bFR\b"],  # False positive : "fréquence respiratoire"
     regex_attr="ORTH",
-    exclude=dict(
-        regex=[r"\d+", "frequence", r"respirat(?:ion|oire)", "poumon"],
-        window=2,
-    ),
+    exclude=[
+        dict(
+            regex=[r"\d+", "frequence", r"respirat(?:ion|oire)", "poumon"],
+            window=2,
+        ),
+        # We skip FR in vital signs and rheumatoid factor tables
+        dict(
+            regex=[
+                r"\b(?:fc|pa|ta|spo2|sao2)\b",
+                "constantes",
+                "rhumatoide",
+                r"\bccp\b",
+            ],
+            window="words[-8:12]",
+            regex_attr="NORM",
+        ),
+    ],
 )
 
 ca = dict(
@@ -118,7 +132,7 @@ other = dict(
         "renutrition",
         r"\brealimentation",
         r"s'alimente",
-        r"reprise (alimentaire|de l'appetit)",
+        r"reprise (alimentaire|de l'appetit|d'appetit)",
         "enrichissement de l'alimentation",
         "appetit",
         "amelioration nutritionnelle",
@@ -174,21 +188,23 @@ weight = dict(
 
 kilograms = dict(
     source="other_kg",
-    regex=["kgs?", r"kilos?(?:[\s-]?grammes?)?"],
+    regex=[r"(?<![/a-z])kgs?(?![a-z])", r"\bkilos?(?:[\s-]?grammes?)?\b"],
     regex_attr="NORM",
     assign=[
         dict(
             name="mild_complements",
-            regex=make_assign_regex(["perte"]),
+            regex=make_assign_regex([r"\bperte"]),
             window=(-3, 3),
         ),
         dict(
             name="healthy_complement",
-            regex=make_assign_regex(["prise"]),
+            regex=make_assign_regex([r"\bprise"]),
             window=(-3, 3),
         ),
     ],
-    include=dict(regex=make_assign_regex(["perte", "prise"]), window=(-3, 3)),
+    # The word boundary keeps `reprise` out, and we skip doses in mg/kg
+    include=dict(regex=make_assign_regex([r"\bperte", r"\bprise"]), window=(-3, 3)),
+    exclude=dict(regex=r"\b(?:mg|mcg)\s*(?:/|par)\s*kg", window=-5),
 )
 
 vitamin = dict(
@@ -221,9 +237,9 @@ troubles = dict(
 )
 
 ALIMENTATION_COMPLEMENTS = [
-    "hyperprotidique",
-    "hypercalorique",
-    "hyperenergetique",
+    r"hyper[\s-]?protidique",
+    r"hyper[\s-]?calorique",
+    r"hyper[\s-]?energetique",
     "hp",
     "hc",
 ]
@@ -240,7 +256,7 @@ alimentation = dict(
         dict(name="per_os", regex=make_assign_regex(["per os"]), window=4),
     ],
     include=dict(
-        regex=make_assign_regex(ALIMENTATION_COMPLEMENTS + ["per os"]), winodw=(-4, 4)
+        regex=make_assign_regex(ALIMENTATION_COMPLEMENTS + ["per os"]), window=(-4, 4)
     ),
 )
 

@@ -31,11 +31,14 @@ altered = dict(
         regex=make_assign_regex(["abdominale?s?", "aigue?s?"]), window=(-4, 2)
     ),
 )
-mild = dict(source="mild", regex=[r"pall?iers? (?:1|2|i(?:i)?)"], regex_attr="NORM")
+# The boundaries keep `palier 10` and `palier 1.5` out of the analgesic levels
+mild = dict(
+    source="mild", regex=[r"\bpall?iers? (?:1|2|ii?)\b(?![.,]\d)"], regex_attr="NORM"
+)
 
 severe = dict(
     source="severe",
-    regex=["hyperalgie", "etat de souffrance", r"pall?iers? (?:3|iii)"],
+    regex=["hyperalgie", "etat de souffrance", r"\bpall?iers? (?:3|iii)\b(?![.,]\d)"],
     regex_attr="NORM",
 )
 

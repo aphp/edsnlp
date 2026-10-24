@@ -15,8 +15,10 @@ onco_geriatry = dict(
     assign=[
         dict(
             name="complements",
-            regex=make_assign_regex(["evaluation", "avis"]),
-            window=-3,
+            regex=make_assign_regex(
+                ["evaluation", "avis", "examen", "accord", "bilan"]
+            ),
+            window=-5,
             required=True,
         )
     ],

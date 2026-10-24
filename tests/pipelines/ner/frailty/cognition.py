@@ -7,4 +7,7 @@ results_cognition = [
     ("troubles du sommeil", "other"),
     ("troubles du sommeil paradoxal", "altered_nondescript"),
     ("dort bien", "healthy"),
+    ("Patiente orientée", "healthy"),
+    ("l'oriente vers le CMP", None),
+    ("carte mémoire", None),
 ]

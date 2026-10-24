@@ -29,7 +29,10 @@ severe = dict(
 altered = dict(
     source="altered",
     regex=[
-        r"troubles? de l'equilibre",
+        r"troubles? (?:de l'|d')equilibre",
+        r"pertes? d'equilibre",
+        "instabilite a la marche",
+        "marche ebrieuse",
         r"syndromes? extra(?:[\s-])?pyramida(?:l|ux)",
         r"signes? extra(?:[\s-])?pyramida(?:l|ux)",
         r"syndromes? parkinsonn?iens?",
@@ -56,8 +59,9 @@ altered_equilibrium = dict(
         "desequilibre",
     ],
     regex_attr="NORM",
+    # We skip blood pressure and glucose imbalances, e.g. `desequilibre tensionnel`
     exclude=dict(
-        regex=["profondeur", "diabete"],
+        regex=["profondeur", "diabete", "tension", "glycem"],
         window=5,
     ),
 )
@@ -67,7 +71,16 @@ reeducation = dict(
     regex=["reeducation"],
     regex_attr="NORM",
     exclude=[
-        dict(regex=["traitement", "vesicale?", "orthophonique"], window=5),
+        dict(
+            regex=[
+                "traitement",
+                "vesicale?",
+                "orthophonique",
+                "perineale?",
+                "nutritionnel",
+            ],
+            window=5,
+        ),
         dict(regex=["service", "unite", "medecine"], window=-10),
     ],
 )
@@ -98,15 +111,21 @@ other = dict(
 mild = dict(
     source="mild",
     regex=[
-        r"\bcanne\b",
+        r"\bcannes?\b",
         r"syndrome post[\s-]chute",
         "deambulateur",
         r"rollator",
-        r"\bchutes?( a repetitions?)?",
         "petit perimetre",
         "se mobilisant difficilement",
     ],
     regex_attr="NORM",
+)
+falls = dict(
+    source="mild_falls",
+    regex=[r"\bchutes?( a repetitions?)?"],
+    regex_attr="NORM",
+    # We skip drops of a flow or a blood pressure, e.g. `chute du debit`
+    exclude=dict(regex=["debits?", "tension"], window=5),
 )
 
 ralentissement = dict(
@@ -130,7 +149,9 @@ WALKING_ALTERED_COMPLEMENTS = [
     "precaire",
     "instable",
     "instabilite",
-    "limite",
+    # The word boundary keeps `illimite` out of the limitations
+    r"\blimitee?s?\b",
+    "anormale?",
     "difficile",
     "(?<!sans )difficultes?",
     "(?<!sans )aides?",
@@ -143,9 +164,10 @@ WALKING_HEALTHY_COMPLEMENTS = [
     r"\bcapable",
     "amelioree?s?",
     r"amelior(?:er|ation)",
-    "normale?",
-    "normalement",
-    "correcte?s?",
+    # The word boundaries keep `anormale` and `incorrecte` out of the healthy cues
+    r"\bnormale?",
+    r"\bnormalement",
+    r"\bcorrecte?s?",
     "bon(?:ne)?",
     "reprise",
     r"\bstable",
@@ -177,7 +199,9 @@ walking = dict(
             window=(-4, 6),
         )
     ],
-    exclude=dict(regex=["diabete", "profondeur"], window=3),
+    exclude=dict(
+        regex=["diabete", "profondeur", "tension", "glycem", "alimentaire"], window=3
+    ),
 )
 
 walking_perimeter = dict(
@@ -188,10 +212,12 @@ walking_perimeter = dict(
         dict(
             name="altered_complement",
             regex=make_assign_regex(
-                ["reduit", "retreci", "limite", "inferieur a (?:5|cinq) ?m"]
+                ["reduit", "retreci", r"\blimite", "inferieur a (?:5|cinq) ?m"]
             ),
         ),
-        dict(name="healthy_complement", regex=make_assign_regex(["normal"])),
+        dict(
+            name="healthy_complement", regex=make_assign_regex(["normal", "illimite"])
+        ),
     ],
 )
 
@@ -209,6 +235,7 @@ default_patterns = normalize_space_characters(
         severe,
         other,
         mild,
+        falls,
         sarcopenia,
         ralentissement,
         walking,

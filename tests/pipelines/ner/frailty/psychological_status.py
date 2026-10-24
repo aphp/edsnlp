@@ -7,4 +7,6 @@ results_psychological_status = [
     ("dort bien", "healthy"),
     ("insomnie à réveil précoce", "altered_nondescript"),
     ("insomnie d'endormissement", "altered_nondescript"),
+    ("a le moral bas", "altered_nondescript"),
+    ("lipothymie", None),
 ]

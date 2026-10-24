@@ -11,7 +11,7 @@ healthy = dict(
     source="healthy",
     regex=[
         "etat thymique correct",
-        "a le moral",
+        r"a le moral(?! (?:moyen|bas)\b)",
         "euthymique",
     ],
     regex_attr="NORM",
@@ -159,7 +159,8 @@ other = dict(
     regex=[
         "avis psychiatrique",
         "antecedent psy",
-        "thymie",
+        # We skip `lipothymie`, which is a fainting
+        r"(?<!lipo)thymie",
         "(?:sur le )?plan thymique",
         "examen psychiatrique",
         "persecution",

@@ -98,6 +98,8 @@ memory = dict(
     regex_attr="NORM",
     assign=make_status_assign(),
     include=make_include_dict_from_list(make_status_assign()),
+    # We skip `pour memoire` and `carte memoire`, which are not about the patient memory
+    exclude=dict(regex=["carte", "pour"], window=-2),
 )
 
 TROUBLE_COMPLEMENTS_ALTERED = [
@@ -204,7 +206,7 @@ desorientation = dict(
 orientation_healthy = dict(
     source="healthy_orientation",
     regex=[
-        r"(?:patiente? )?orientee?\b",
+        r"\b(?:patiente? )?orientee?\b",
     ],
     assign=dict(
         name="complement",
@@ -213,12 +215,14 @@ orientation_healthy = dict(
         reduce_mode=None,
     ),
     regex_attr="NORM",
+    # We skip referrals and specimen orientation, e.g. `l'oriente vers`
+    exclude=dict(regex=[r"\bvers\b", "fragment", "piece"], window=(-5, 3)),
 )
 
 orientation_other = dict(
     source="other_orientation",
     regex=[
-        r"orientation",
+        r"\borientation",
     ],
     assign=make_status_assign(-2, 2)
     + [
@@ -296,6 +300,7 @@ bilan = dict(
         dict(
             name="complement",
             regex=make_assign_regex(BILAN_COMPLEMENTS),
+            window=(-3, 5),
             required=True,
         )
     ],

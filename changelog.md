@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- New `attention` pooling mode in `eds.span_pooler`, a softmax over the words of each span of scores given by a learned linear layer, computed on the flat word indices without padding
+
 ## v0.23.0 (2026-09-22)
 
 ### Added

@@ -46,7 +46,7 @@ def embedding():
 
 
 # Compare pooled values and gradients across contexts and overlapping or empty spans
-@pytest.mark.parametrize("mode", ["mean", "sum", "max"])
+@pytest.mark.parametrize("mode", ["mean", "sum", "max", "attention"])
 @pytest.mark.parametrize("hidden_size", [None, 2])
 @pytest.mark.parametrize(
     "bounds",
@@ -65,7 +65,10 @@ def test_span_pooler(embedding, mode, hidden_size, bounds):
     docs = [nlp.make_doc("0 1 2 3 4 5 6 7 8"), nlp.make_doc("9 10 11 12")]
     # Use two embedding contexts in the first document and one in the second
     contexts = [[docs[0][:5], docs[0][5:]], [docs[1][:]]]
-    pooler = SpanPooler(embedding=embedding, pooling_mode=mode, hidden_size=hidden_size)
+    # Double precision, since the attention gradients sum large terms in another order
+    pooler = SpanPooler(
+        embedding=embedding, pooling_mode=mode, hidden_size=hidden_size
+    ).double()
     inputs = [
         pooler.preprocess(
             doc,
@@ -89,6 +92,9 @@ def test_span_pooler(embedding, mode, hidden_size, bounds):
                 expected.append(words.new_zeros(embedding.output_size))
             elif mode == "max":
                 expected.append(words.max(0).values)
+            elif mode == "attention":
+                weights = pooler.pooling.attention(words).softmax(0)
+                expected.append((words * weights).sum(0))
             else:
                 expected.append(getattr(words, mode)(0))
     expected = pooler.projector(torch.stack(expected))

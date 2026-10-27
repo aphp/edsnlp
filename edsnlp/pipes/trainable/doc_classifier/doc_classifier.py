@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
-import pickle
 from pathlib import Path
 from typing import (
     Any,
@@ -113,9 +113,10 @@ class TrainableDocClassifier(
 
     To predict a single attribute, keep only the corresponding head.
 
-    `labels` may also be the path to a pickle file holding the list of labels,
-    which is convenient for large label sets, or be left out entirely, in which
-    case the labels are inferred from the gold data during `nlp.post_init(...)`.
+    `labels` may also be the path to a JSON file holding the list of labels, or to
+    a text file with one label per line, which is convenient for large label sets.
+    It can also be left out entirely, in which case the labels are inferred from
+    the gold data during `nlp.post_init(...)`.
 
     A document whose gold value is `None` for a head does not supervise it. A
     corpus annotated only for the principal diagnosis can therefore be mixed,
@@ -195,7 +196,7 @@ class TrainableDocClassifier(
 
         self.heads = nn.ModuleDict(heads)
 
-        # Build heads whose labels are already known (e.g. loaded from a pickle).
+        # Build heads whose labels are already known (e.g. given in the config).
         # Heads without labels yet are built later in `post_init` after scanning
         # the gold data.
         for head in self.heads.values():
@@ -403,7 +404,7 @@ class TrainableDocClassifier(
         """
         Save the component to disk.
 
-        Writes the labels of each head to `multi_head_data.pkl`; the head
+        Writes the labels of each head to `vocab.json`; the head
         tensors themselves are saved by the parent `TorchComponent` along with
         the rest of the module tree. The other head parameters come from the
         config.
@@ -421,15 +422,15 @@ class TrainableDocClassifier(
             return
         os.makedirs(path, exist_ok=True)
         meta = {"heads": {name: head.state_meta() for name, head in self.heads.items()}}
-        with open(path / "multi_head_data.pkl", "wb") as f:
-            pickle.dump(meta, f)
+        with open(path / "vocab.json", "w") as f:
+            json.dump(meta, f)
         return super().to_disk(path, exclude=exclude)
 
     def from_disk(self, path: Path, exclude: Tuple = tuple()) -> None:
         """
         Load the component from disk.
 
-        Restores the labels of each head from `multi_head_data.pkl` and
+        Restores the labels of each head from `vocab.json` and
         rebuilds the head, so that the parameter shapes match before the parent
         `TorchComponent` loads the tensors.
 
@@ -444,8 +445,8 @@ class TrainableDocClassifier(
         repr_id = object.__repr__(self)
         if repr_id in exclude:
             return
-        with open(path / "multi_head_data.pkl", "rb") as f:
-            meta = pickle.load(f)
+        with open(path / "vocab.json") as f:
+            meta = json.load(f)
         for head_name, head in self.heads.items():
             head.load_meta(meta["heads"][head_name])
             head.build(self.embedding_size)

@@ -158,7 +158,11 @@ def test_training_with_partial_supervision():
 
 
 def test_config_and_serialization(tmp_path):
+    import json
+
     from confit import Config
+
+    (tmp_path / "dp.txt").write_text("A\nB\n")
 
     nlp = edsnlp.load(
         Config.from_str(
@@ -184,7 +188,7 @@ def test_config_and_serialization(tmp_path):
 
             [nlp.components.doc_classifier.heads.dp]
             @misc = "eds.single_label_head"
-            labels = ["A", "B"]
+            labels = "{tmp_path}/dp.txt"
             hidden_size = 8
             activation_mode = "gelu"
             dropout_rate = 0.1
@@ -193,9 +197,10 @@ def test_config_and_serialization(tmp_path):
             [nlp.components.doc_classifier.heads.das]
             @misc = "eds.multi_label_head"
             threshold = 0.3
-            """
+            """.replace("{tmp_path}", str(tmp_path))
         )
     )
+    assert nlp.pipes.doc_classifier.heads["dp"].label2id == {"A": 0, "B": 1}
     nlp.pipes.doc_classifier.post_init(
         make_gold(nlp, [{"dp": "A", "das": ["X"]}, {"dp": "B", "das": ["Y"]}]),
         set(),
@@ -205,6 +210,15 @@ def test_config_and_serialization(tmp_path):
     assert len(before._.prob["das"]) == 2
 
     nlp.to_disk(tmp_path / "model")
+    vocab = json.loads(
+        (tmp_path / "model" / "doc_classifier" / "vocab.json").read_text()
+    )
+    assert vocab == {
+        "heads": {"dp": {"labels": ["A", "B"]}, "das": {"labels": ["X", "Y"]}}
+    }
+    (tmp_path / "das.json").write_text(json.dumps(vocab["heads"]["das"]["labels"]))
+    assert MultiLabelHead(labels=tmp_path / "das.json").label2id == {"X": 0, "Y": 1}
+
     reloaded = edsnlp.load(tmp_path / "model")
 
     head = reloaded.pipes.doc_classifier.heads["das"]

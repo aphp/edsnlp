@@ -18,20 +18,20 @@ registered under `registry.misc` so they can be instantiated from a config
 heads:
   dp:
     '@misc': eds.single_label_head
-    labels: .../valid_labels_dp.pkl
+    labels: .../labels_dp.txt
   das:
     '@misc': eds.multi_label_head
-    labels: .../valid_labels_das.pkl
+    labels: .../labels_das.json
     threshold: 0.5
 ```
 """
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-import pandas as pd
 import torch
 import torch.nn as nn
 from spacy.tokens import Doc
@@ -51,9 +51,15 @@ ACTIVATIONS = {
 
 
 def _maybe_load(value: Any) -> Any:
-    """Read `value` from disk if it is a path to a pickle file, else return it as-is."""
+    """
+    Read `value` from disk if it is a path, else return it as-is. A `.txt` file is
+    read as one item per line, any other file as JSON.
+    """
     if isinstance(value, (str, Path)):
-        return pd.read_pickle(value)
+        path = Path(value)
+        if path.suffix == ".txt":
+            return [line for line in path.read_text().splitlines() if line.strip()]
+        return json.loads(path.read_text())
     return value
 
 
@@ -70,14 +76,15 @@ class ClassificationHead(nn.Module):
     Parameters
     ----------
     labels : Union[List, str, Path], optional
-        The labels this head predicts, either as an explicit list or as the path
-        to a pickle file holding that list. Passing a path is convenient for
+        The labels this head predicts, either as an explicit list, as the path to
+        a JSON file holding that list, or as the path to a text file with one label
+        per line. Passing a path is convenient for
         large label sets, which would otherwise have to be inlined in the config.
         The labels can also be inferred from the data during
         `nlp.post_init(...)`, by leaving this parameter to None.
     class_weights : Union[Dict, str, Path], optional
         A `{label: frequency}` mapping used to build per-class weights, either
-        given directly or as the path to a pickle file holding it.
+        given directly or as the path to a JSON file holding it.
     hidden_size : int, optional
         Size of the hidden layer. If None, no hidden layer is used.
     activation_mode : {"relu", "gelu", "silu"}, default="relu"

@@ -39,7 +39,7 @@ We'll use a small synthetic corpus of French clinical notes, available under the
 
 ## Training the model
 
-Note that we do not list the labels: they are inferred from the training data when `train` calls `nlp.post_init(...)`. You can also pass `labels` explicitly, as a list or as the path to a pickled list.
+Note that we do not list the labels: they are inferred from the training data when `train` calls `nlp.post_init(...)`. You can also pass `labels` explicitly, as a list, as the path to a JSON list, or as the path to a text file with one label per line.
 
 === "From the command line"
 

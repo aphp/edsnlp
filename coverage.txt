@@ -288,7 +288,7 @@ edsnlp/pipes/trainable/biaffine_dep_parser/factory.py                           
 edsnlp/pipes/trainable/embeddings/__init__.py                                               0      0 100.00%
 edsnlp/pipes/trainable/embeddings/span_pooler/__init__.py                                   0      0 100.00%
 edsnlp/pipes/trainable/embeddings/span_pooler/factory.py                                    3      0 100.00%
-edsnlp/pipes/trainable/embeddings/span_pooler/span_pooler.py                               69      0 100.00%
+edsnlp/pipes/trainable/embeddings/span_pooler/span_pooler.py                               71      0 100.00%
 edsnlp/pipes/trainable/embeddings/text_cnn/__init__.py                                      0      0 100.00%
 edsnlp/pipes/trainable/embeddings/text_cnn/factory.py                                       3      0 100.00%
 edsnlp/pipes/trainable/embeddings/text_cnn/text_cnn.py                                     22      0 100.00%
@@ -302,6 +302,7 @@ edsnlp/pipes/trainable/extractive_qa/factory.py                                 
 edsnlp/pipes/trainable/layers/__init__.py                                                   0      0 100.00%
 edsnlp/pipes/trainable/layers/crf.py                                                      149      3  97.99%   82, 92, 101
 edsnlp/pipes/trainable/layers/metric.py                                                    42      0 100.00%
+edsnlp/pipes/trainable/layers/pooling.py                                                   21      0 100.00%
 edsnlp/pipes/trainable/layers/text_cnn.py                                                  56      0 100.00%
 edsnlp/pipes/trainable/ner_crf/__init__.py                                                  1      0 100.00%
 edsnlp/pipes/trainable/ner_crf/factory.py                                                   3      0 100.00%
@@ -345,4 +346,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      81      9  88.89%   103, 119, 122-128, 144
 edsnlp/utils/typing.py                                                                     45      1  97.78%   43
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   13886    251  98.19%
+TOTAL                                                                                   13909    251  98.20%

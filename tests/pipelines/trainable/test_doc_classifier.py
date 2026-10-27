@@ -13,18 +13,23 @@ from edsnlp.pipes.trainable.doc_classifier.heads import (  # noqa: E402
 )
 
 
-def make_nlp(pooling_mode="mean", **kwargs):
+def make_pooler(pooling_mode="mean", use_cls=False):
+    return eds.doc_pooler(
+        pooling_mode=pooling_mode,
+        use_cls=use_cls,
+        embedding=eds.transformer(
+            model="hf-internal-testing/tiny-random-bert",
+            window=128,
+            stride=96,
+        ),
+    )
+
+
+def make_nlp(pooling_mode="mean", use_cls=False, **kwargs):
     nlp = edsnlp.blank("eds")
     nlp.add_pipe(
         eds.doc_classifier(
-            embedding=eds.doc_pooler(
-                pooling_mode=pooling_mode,
-                embedding=eds.transformer(
-                    model="hf-internal-testing/tiny-random-bert",
-                    window=128,
-                    stride=96,
-                ),
-            ),
+            embedding=make_pooler(pooling_mode, use_cls),
             **kwargs,
         ),
         name="doc_classifier",
@@ -42,10 +47,21 @@ def make_gold(nlp, values):
     return docs
 
 
-@pytest.mark.parametrize("pooling_mode", ["mean", "max", "sum", "cls", "attention"])
-def test_doc_classifier(pooling_mode):
+@pytest.mark.parametrize(
+    "pooling_mode,use_cls",
+    [
+        ("mean", False),
+        ("max", False),
+        ("sum", False),
+        ("attention", False),
+        ("mean", True),
+        ("attention", True),
+    ],
+)
+def test_doc_classifier(pooling_mode, use_cls):
     nlp = make_nlp(
         pooling_mode,
+        use_cls,
         heads={
             "dp": SingleLabelHead(labels=["A", "B", "C"]),
             "das": MultiLabelHead(labels=["X", "Y", "Z"], threshold=0.5),
@@ -72,6 +88,36 @@ def test_doc_classifier(pooling_mode):
             assert list(alone[head].values()) == pytest.approx(
                 list(probs[head].values()), abs=1e-5
             )
+
+
+@pytest.mark.parametrize("use_cls", [False, True])
+def test_doc_pooler_pools_the_contexts_of_a_doc_together(use_cls):
+    from edsnlp.utils.collections import batch_compress_dict, decompress_dict
+
+    nlp = edsnlp.blank("eds")
+    pooler = make_pooler("mean", use_cls)
+    docs = [nlp("Premier contexte. Second contexte."), nlp("Court.")]
+    contexts = [[docs[0][:3], docs[0][3:]], None]
+    batch = [pooler.preprocess(doc, contexts=ctx) for doc, ctx in zip(docs, contexts)]
+    batch = pooler.collate(decompress_dict(list(batch_compress_dict(batch))))
+
+    pooler.eval()
+    with torch.no_grad():
+        embedding_out = pooler.embedding(batch["embedding"])
+        pooled = pooler(batch)["embeddings"]
+
+    words = embedding_out["embeddings"]
+    assert words.lengths[-2] == [2, 1]
+    assert pooled.shape == (2, pooler.output_size)
+    if use_cls:
+        cls, cls_contexts = embedding_out["cls"], embedding_out["cls_contexts"]
+        expected = [cls[cls_contexts < 2].mean(0), cls[cls_contexts == 2].mean(0)]
+    else:
+        flat = words.refold("word").as_tensor()
+        n_first = sum(words.lengths[-1][:2])
+        expected = [flat[:n_first].mean(0), flat[n_first:].mean(0)]
+    torch.testing.assert_close(pooled[0], expected[0])
+    torch.testing.assert_close(pooled[1], expected[1])
 
 
 def test_training_with_partial_supervision():

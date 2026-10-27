@@ -53,6 +53,7 @@ TransformerBatchOutput = TypedDict(
     {
         "embeddings": ft.FoldedTensor,
         "cls": torch.Tensor,
+        "cls_contexts": torch.Tensor,
     },
 )
 """
@@ -60,9 +61,10 @@ embeddings: FoldedTensor
     The embeddings of the words
 cls: torch.Tensor
     The embedding of the first wordpiece (the `[CLS]` token for BERT-like models)
-    of each context, of shape `(n_contexts, embedding_size)`. A context longer than
-    `window` is split into several windows, each with its own `[CLS]` token: their
-    embeddings are then averaged.
+    of each window, of shape `(n_windows, embedding_size)`. A context longer than
+    `window` is split into several windows, each with its own `[CLS]` token.
+cls_contexts: torch.LongTensor
+    Index of the context each `cls` embedding belongs to
 """
 
 
@@ -553,17 +555,10 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
         )
         word_embeddings[batch["empty_word_indices"]] = self.empty_word_embedding
 
-        # Average the [CLS] embeddings of the windows of each context
-        window_contexts = batch["window_contexts"]
-        n_contexts = int(window_contexts.max()) + 1 if len(window_contexts) else 0
-        cls = wordpiece_embeddings.new_zeros(n_contexts, wordpiece_embeddings.size(2))
-        cls.index_add_(0, window_contexts, wordpiece_embeddings[:, 0, :])
-        n_windows = torch.bincount(window_contexts, minlength=n_contexts)
-        cls = cls / n_windows.clamp(min=1).unsqueeze(-1).to(cls)
-
         return {
             "embeddings": word_embeddings.refold("context", "word"),
-            "cls": cls,
+            "cls": wordpiece_embeddings[:, 0, :],
+            "cls_contexts": batch["window_contexts"],
         }
 
     @staticmethod

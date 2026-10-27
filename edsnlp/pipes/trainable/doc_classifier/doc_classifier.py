@@ -13,7 +13,6 @@ from typing import (
     Sequence,
     Set,
     Tuple,
-    Union,
 )
 
 import torch
@@ -25,10 +24,7 @@ from edsnlp.core.pipeline import PipelineProtocol
 from edsnlp.core.torch_component import BatchInput, TorchComponent
 from edsnlp.pipes.base import BaseComponent
 from edsnlp.pipes.trainable.doc_classifier.heads import ClassificationHead
-from edsnlp.pipes.trainable.embeddings.typing import (
-    WordContextualizerComponent,
-    WordEmbeddingComponent,
-)
+from edsnlp.pipes.trainable.embeddings.typing import DocEmbeddingComponent
 
 logger = logging.getLogger(__name__)
 
@@ -67,8 +63,8 @@ class TrainableDocClassifier(
 
     Architecture
     ------------
-    A document embedding component (`eds.doc_pooler`) turns the document into a
-    single vector, which is fed to each head. A head owns its own MLP, label set,
+    A document embedding component, such as `eds.doc_pooler`, turns the document
+    into a single vector, which is fed to each head. A head owns its own MLP, label set,
     loss and decoding logic, and writes to the `Doc._` attribute it is named
     after. At training time the per-head losses are aggregated into a single
     loss, weighted by each head's `loss_weight`.
@@ -146,8 +142,9 @@ class TrainableDocClassifier(
         The pipeline the component belongs to.
     name : str, default="doc_classifier"
         Component name.
-    embedding : WordEmbeddingComponent or WordContextualizerComponent
-        Document embedding component. Must expose an `output_size` attribute.
+    embedding : DocEmbeddingComponent
+        Document embedding component, which returns one embedding per document,
+        such as `eds.doc_pooler`.
     heads : Dict[str, ClassificationHead]
         The heads of the classifier, keyed by the name of the `Doc._` attribute
         each one fills in. Every head also accepts the usual
@@ -172,7 +169,7 @@ class TrainableDocClassifier(
         nlp: Optional[PipelineProtocol] = None,
         name: str = "doc_classifier",
         *,
-        embedding: Union[WordEmbeddingComponent, WordContextualizerComponent],
+        embedding: DocEmbeddingComponent,
         heads: Dict[str, ClassificationHead],
         store_probs: bool = False,
         probs_topk: Optional[int] = None,
@@ -192,7 +189,7 @@ class TrainableDocClassifier(
         super().__init__(nlp, name)
         self.embedding = embedding
 
-        # `output_size` is part of the WordEmbeddingComponent contract, which
+        # `output_size` is part of the DocEmbeddingComponent contract, which
         # confit checks before we get here.
         self.embedding_size = self.embedding.output_size
 

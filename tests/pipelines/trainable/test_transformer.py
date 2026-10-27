@@ -120,7 +120,7 @@ def test_preprocess_suppresses_transformers_sequence_length_warning(caplog):
     )
 
 
-def test_cls_is_averaged_over_windows():
+def test_cls_of_each_window():
     import torch
 
     import edsnlp.pipes as eds
@@ -148,9 +148,10 @@ def test_cls_is_averaged_over_windows():
         batch = transformer.prepare_batch(
             [long_doc, short_doc], device=torch.device("cpu")
         )
-        cls = transformer(batch)["cls"]
+        out = transformer(batch)
 
-    assert len(expected_long) > 1
-    assert cls.shape == (2, transformer.output_size)
-    torch.testing.assert_close(cls[0], expected_long.mean(0))
-    torch.testing.assert_close(cls[1], expected_short[0])
+    n_long = len(expected_long)
+    assert n_long > 1
+    assert out["cls_contexts"].tolist() == [0] * n_long + [1]
+    torch.testing.assert_close(out["cls"][:n_long], expected_long)
+    torch.testing.assert_close(out["cls"][n_long], expected_short[0])

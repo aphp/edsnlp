@@ -16,6 +16,7 @@ from edsnlp.pipes.trainable.embeddings.typing import (
     SpanEmbeddingComponent,
     WordEmbeddingComponent,
 )
+from edsnlp.pipes.trainable.layers.pooling import Pooling
 from edsnlp.utils.filter import align_spans
 
 SpanPoolerBatchInput = TypedDict(
@@ -64,8 +65,12 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         Name of the component
     embedding : WordEmbeddingComponent
         The word embedding component
-    pooling_mode: Literal["max", "sum", "mean"]
-        How word embeddings are aggregated into a single embedding per span.
+    pooling_mode: Literal["max", "sum", "mean", "attention"]
+        How word embeddings are aggregated into a single embedding per span:
+
+        - `"max"`, `"sum"`, `"mean"`: element-wise reduction over the words of the span
+        - `"attention"`: weighted sum of the words of the span, the weights being a
+          softmax of scores given by a learned linear layer
     hidden_size : Optional[int]
         The size of the hidden layer. If None, no projection is done and the output
         of the span pooler is used directly.
@@ -77,7 +82,7 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         name: str = "span_pooler",
         *,
         embedding: WordEmbeddingComponent,
-        pooling_mode: Literal["max", "sum", "mean"] = "mean",
+        pooling_mode: Literal["max", "sum", "mean", "attention"] = "mean",
         hidden_size: Optional[int] = None,
         span_getter: Any = None,
     ):
@@ -102,6 +107,7 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         self.pooling_mode = pooling_mode
         self.span_getter = span_getter
         self.embedding = embedding
+        self.pooling = Pooling(self.embedding.output_size, pooling_mode)
         self.projector = (
             torch.nn.Linear(self.embedding.output_size, hidden_size)
             if hidden_size is not None
@@ -215,12 +221,7 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
         flat_embeds = embeds.view(-1, dim)
         # The embedding shape supplies the padded context width for each word index
         flat_indices = n_words * batch["sequence_idx"] + batch["word_indices"]
-        span_embeds = torch.nn.functional.embedding_bag(  # type: ignore
-            input=flat_indices,
-            weight=flat_embeds,
-            offsets=batch["offsets"],
-            mode=self.pooling_mode,
-        )
+        span_embeds = self.pooling(flat_embeds, flat_indices, batch["offsets"])
         span_embeds = self.feed_forward(span_embeds)
 
         return {

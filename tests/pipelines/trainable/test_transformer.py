@@ -118,3 +118,40 @@ def test_preprocess_suppresses_transformers_sequence_length_warning(caplog):
         in record.message
         for record in caplog.records
     )
+
+
+def test_cls_of_each_window():
+    import torch
+
+    import edsnlp.pipes as eds
+
+    transformer = eds.transformer(
+        model="hf-internal-testing/tiny-random-bert",
+        window=16,
+        stride=8,
+    )
+    nlp = edsnlp.blank("eds")
+    long_doc, short_doc = nlp("mot " * 50), nlp("court")
+
+    def window_cls(docs):
+        batch = transformer.prepare_batch(docs, device=torch.device("cpu"))
+        input_ids = batch["input_ids"]
+        hidden = transformer.transformer.base_model(
+            input_ids=input_ids.as_tensor(), attention_mask=input_ids.mask
+        ).last_hidden_state
+        return hidden[:, 0]
+
+    transformer.eval()
+    with torch.no_grad():
+        expected_long = window_cls([long_doc])
+        expected_short = window_cls([short_doc])
+        batch = transformer.prepare_batch(
+            [long_doc, short_doc], device=torch.device("cpu")
+        )
+        out = transformer(batch)
+
+    n_long = len(expected_long)
+    assert n_long > 1
+    assert out["cls_contexts"].tolist() == [0] * n_long + [1]
+    torch.testing.assert_close(out["cls"][:n_long], expected_long)
+    torch.testing.assert_close(out["cls"][n_long], expected_short[0])

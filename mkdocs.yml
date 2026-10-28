@@ -113,6 +113,38 @@ nav:
             - pipes/ner/disorders/peripheral-vascular-disease.md
             - pipes/ner/disorders/solid-tumor.md
             - pipes/ner/covid.md
+          - Frailty:
+            - pipes/ner/frailty/index.md
+            - pipes/ner/frailty/functional_status.md
+            - pipes/ner/frailty/cognitive_status.md
+            - pipes/ner/frailty/frailty_mentions.md
+            - pipes/ner/frailty/global_health_status.md
+            - pipes/ner/frailty/geriatric_assessment.md
+            - pipes/ner/frailty/incontinence_status.md
+            - pipes/ner/frailty/mobility_status.md
+            - pipes/ner/frailty/nutritional_status.md
+            - pipes/ner/frailty/pain_status.md
+            - pipes/ner/frailty/polypharmacy_status.md
+            - pipes/ner/frailty/sensory_status.md
+            - pipes/ner/frailty/social_status.md
+            - pipes/ner/frailty/psychological_status.md
+            - Frailty scores:
+              - pipes/ner/frailty/scores/adl_score.md
+              - pipes/ner/frailty/scores/iadl_score.md
+              - pipes/ner/frailty/scores/geriatric_depression_scale_score.md
+              - pipes/ner/frailty/scores/mini_gds_score.md
+              - pipes/ner/frailty/scores/mini_cog_score.md
+              - pipes/ner/frailty/scores/bref_score.md
+              - pipes/ner/frailty/scores/chair_stand_score.md
+              - pipes/ner/frailty/scores/pain_rating_score.md
+              - pipes/ner/frailty/scores/g8_score.md
+              - pipes/ner/frailty/scores/gait_speed_score.md
+              - pipes/ner/frailty/scores/mini_mental_state_score.md
+              - pipes/ner/frailty/scores/moca_score.md
+              - pipes/ner/frailty/scores/ecog_performance_status_score.md
+              - pipes/ner/frailty/scores/clinical_frailty_scale_score.md
+              - pipes/ner/frailty/scores/sppb_score.md
+              - pipes/ner/frailty/scores/timed_up_and_go_score.md
           - Behaviors:
             - pipes/ner/behaviors/index.md
             - pipes/ner/behaviors/alcohol.md

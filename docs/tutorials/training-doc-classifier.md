@@ -7,7 +7,7 @@ We'll train a model that codes hospital stays, and predicts at once:
 - the **principal diagnosis** (*diagnostic principal*, DP): the condition that motivated the admission. A stay has exactly one, so this is a **single-label** task;
 - the **associated diagnoses** (*diagnostics associés significatifs*, DAS): the other conditions managed during the stay. A stay has any number of them, so this is a **multi-label** task.
 
-## How the pieces fit together
+## Architecture
 
 ![Document classifier architecture](/assets/images/doc-classifier.svg)
 
@@ -15,7 +15,7 @@ The model is built from three layers, nested inside one another in the config:
 
 1. **A transformer** (`eds.transformer`) reads the note and produces one vector **per word**.
 2. **A document pooler** (`eds.doc_pooler`) collapses them into a **single vector for the whole document**, by averaging them (`mean`), keeping the strongest signal per dimension (`max`), summing them (`sum`), or learning which words deserve attention (`attention`). With `use_cls`, it pools the transformer's own `[CLS]` vectors, one per window, instead of the words.
-3. **The classifier** (`eds.doc_classifier`) feeds that vector to one **head** per predicted attribute. Each head writes its prediction to the `Doc._` extension it is named after.
+3. **The classifier** (`eds.doc_classifier`) feeds that vector to one **head** per predicted attribute: a [`eds.single_label_head`][edsnlp.pipes.trainable.doc_classifier.heads.SingleLabelHead] when a document carries exactly one label, a [`eds.multi_label_head`][edsnlp.pipes.trainable.doc_classifier.heads.MultiLabelHead] when it carries a set of them. Each head writes its prediction to the `Doc._` extension it is named after.
 
 !!! warning "Hardware requirements"
 

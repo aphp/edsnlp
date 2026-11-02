@@ -371,7 +371,14 @@ class TrainingData:
         self.pipe_names = set(pipe_names) if pipe_names else None
         self.post_init = post_init
 
-    def __call__(self, nlp, device):
+    def __call__(self, nlp, device=None):
+        # Batches are collated on CPU, possibly in data workers that must not open a
+        # CUDA context, and moved to the training device by the training loop
+        if device is not None:
+            warnings.warn(
+                "The 'device' argument of TrainingData is deprecated and ignored, "
+                "batches are collated on CPU and moved by the training loop."
+            )
         data = self.data.loop()
         if self.shuffle:
             data = data.shuffle(self.shuffle)
@@ -385,19 +392,19 @@ class TrainingData:
                 batch_by=batcher,
             )
             data = data.batchify(batch_size=self.sub_batch_size[0])
-            data = data.map(lambda b: [nlp.collate(sb, device=device) for sb in b])
+            data = data.map(lambda b: [nlp.collate(sb) for sb in b])
         elif self.sub_batch_size:
             data = data.batchify(batch_size=self.batch_size[0], batch_by=batcher)
             sub_batcher = stat_batchify(self.sub_batch_size[1] or "docs")
             data = data.map(
                 lambda batch: [
-                    nlp.collate(sub_batch, device=device)
+                    nlp.collate(sub_batch)
                     for sub_batch in sub_batcher(batch, self.sub_batch_size[0])
                 ]
             )
         else:
             data = data.batchify(batch_size=self.batch_size[0], batch_by=batcher)
-            data = data.map(nlp.collate, kwargs=dict(device=device))
+            data = data.map(nlp.collate)
         return data
 
 
@@ -793,7 +800,7 @@ def train(
             nlp.train(True)
 
             phase_datasets = [
-                td(nlp, device).set_processing(
+                td(nlp).set_processing(
                     num_cpu_workers=num_workers,
                     process_start_method="spawn",
                 )
@@ -920,14 +927,13 @@ def train(
                     )
                     try:
                         with cache_ctx, no_sync_ctx:
-                            # Move CPU worker batches to the training device
-                            if num_workers:
-                                batch = {
-                                    name: trained_pipes_local[name].batch_to_device(
-                                        values, device=device
-                                    )
-                                    for name, values in batch.items()
-                                }
+                            # Move CPU collated batches to the training device
+                            batch = {
+                                name: trained_pipes_local[name].batch_to_device(
+                                    values, device=device
+                                )
+                                for name, values in batch.items()
+                            }
                             all_res, loss = trained_pipes(
                                 batch,
                                 enable=batch_pipe_names,

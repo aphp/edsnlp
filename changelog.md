@@ -10,7 +10,7 @@
 
 - `eds.split` no longer cuts annotated spans when splitting on `regex` or `max_length`, the new `span_getter` parameter (default `ents`) selects the spans to keep whole
 - Custom metrics in `GenericScorer` now predict on copies of the docs without their gold entities and span groups
-- `edsnlp.train` now moves the batches prepared by CPU workers (`num_workers > 0`) to the training device before the forward pass
+- `edsnlp.train` now collates training batches on CPU and moves them to the training device before the forward pass, so data workers (`num_workers > 0`) no longer open a CUDA context nor allocate batches on the GPU
 - Model packages built with `code="dependency"` or `code="none"` no longer copy the dependencies, optional dependencies, scripts and entry points of the project `pyproject.toml`, which belong to the code package
 - `eds.transformer` `new_tokens` now works with tokenizers that have no normalizer
 - Numeric `note_datetime` values in milliseconds, microseconds or nanoseconds are now converted to seconds instead of raising an out of range error

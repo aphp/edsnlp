@@ -359,7 +359,7 @@ class Stream(metaclass=MetaStream):
 
     @property
     def device(self):
-        return self.config.get("device", "auto")
+        return self.config.get("device")
 
     @property
     def backend(self):
@@ -436,7 +436,7 @@ class Stream(metaclass=MetaStream):
         disable_implicit_parallelism: bool = True,
         backend: Optional[Literal["simple", "multiprocessing", "mp", "spark"]] = None,
         autocast: Union[bool, Any] = None,
-        device: Any = "auto",
+        device: Any = None,
         show_progress: bool = False,
         gpu_pipe_names: Optional[List[str]] = None,
         process_start_method: Optional[Literal["fork", "forkserver", "spawn"]] = None,
@@ -489,10 +489,10 @@ class Stream(metaclass=MetaStream):
             If a dtype is provided, it will be passed to the `torch.autocast` context
             manager.
         device: Any
-            Device used for torch components. Defaults to "auto", which uses CUDA when
-            available in the current execution context, otherwise CPU. Set to "cpu" or
-            a CUDA device to force a device. Set to "preserve" to keep the current
-            component placement in simple backend.
+            Device used for torch components. By default, the simple backend keeps
+            components on their current device and the multiprocessing backend runs
+            them on the available CUDA devices. Set to "auto" to use CUDA when
+            available, otherwise CPU, or to "cpu" or a CUDA device to force a device.
         show_progress: Optional[bool]
             Whether to show progress bars (only applicable with "simple" and
             "multiprocessing" backends).

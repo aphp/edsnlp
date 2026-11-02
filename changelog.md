@@ -6,6 +6,10 @@
 
 - New `attention` pooling mode in `eds.span_pooler`, a softmax over the words of each span of scores given by a learned linear layer, computed on the flat word indices without padding
 
+### Changed
+
+- **Breaking**: the simple backend keeps torch components on their current device by default again, as before v0.23.0, instead of moving them to CUDA when available. Set `device="auto"` in `set_processing` to use CUDA when available, or `device="cuda"` to force it. The multiprocessing backend still runs torch components on the available CUDA devices by default
+
 ### Fixed
 
 - `eds.split` no longer cuts annotated spans when splitting on `regex` or `max_length`, the new `span_getter` parameter (default `ents`) selects the spans to keep whole

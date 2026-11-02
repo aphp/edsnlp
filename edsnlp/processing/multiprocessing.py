@@ -1503,7 +1503,8 @@ class MultiprocessingStreamExecutor:
 
     @staticmethod
     def adjust_num_workers(stream: Stream):
-        device = stream.device
+        # Workers reload the pipeline, so they run it on CUDA when available by default
+        device = "auto" if stream.device is None else stream.device
         if device == "preserve":
             raise ValueError(
                 "device='preserve' is only supported by the simple backend, "

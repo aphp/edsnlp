@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1310 250" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <!-- edges -->
+  <g fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrow)">
+    <path d="M144,130 L188,130"/>
+    <path d="M328,130 L352,130"/>
+    <path d="M496,130 L520,130"/>
+    <path d="M684,130 L740,130"/>
+    <path d="M900,130 C928,130 920,88 952,88"/>
+    <path d="M900,130 C928,130 920,172 952,172"/>
+    <path d="M1128,88 L1170,88"/>
+    <path d="M1128,172 L1170,172"/>
+  </g>
+
+  <!-- grouping box: embedding -->
+  <rect x="168" y="62" width="540" height="136" rx="10" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="5 4"/>
+  <text x="438" y="80" text-anchor="middle" font-size="12" fill="#64748b">embedding</text>
+
+  <!-- grouping box: heads -->
+  <rect x="936" y="30" width="208" height="200" rx="10" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="5 4"/>
+  <text x="1040" y="48" text-anchor="middle" font-size="12" fill="#64748b">heads</text>
+
+  <!-- data: Document tokens -->
+  <rect x="12" y="108" width="132" height="44" rx="22" fill="#64748b" stroke="#475569"/>
+  <text x="78" y="130" text-anchor="middle" dominant-baseline="central" font-size="13" fill="#f8fafc">Document tokens</text>
+
+  <!-- proc: Encoder -->
+  <rect x="192" y="100" width="136" height="60" rx="9" fill="#1e293b" stroke="#334155"/>
+  <text x="260" y="130" text-anchor="middle" font-size="13" fill="#f8fafc">
+    <tspan x="260" dy="-4" font-weight="700">Encoder</tspan>
+    <tspan x="260" dy="17" font-size="10.5" fill="#cbd5e1">eds.transformer</tspan>
+  </text>
+
+  <!-- data: Word embeddings -->
+  <rect x="356" y="108" width="140" height="44" rx="22" fill="#64748b" stroke="#475569"/>
+  <text x="426" y="130" text-anchor="middle" dominant-baseline="central" font-size="13" fill="#f8fafc">Word embeddings</text>
+
+  <!-- proc: Pooler -->
+  <rect x="524" y="100" width="160" height="60" rx="9" fill="#1e293b" stroke="#334155"/>
+  <text x="604" y="130" text-anchor="middle" font-size="13" fill="#f8fafc">
+    <tspan x="604" dy="-4" font-weight="700">Pooler</tspan>
+    <tspan x="604" dy="17" font-size="10.5" fill="#cbd5e1">eds.doc_pooler</tspan>
+  </text>
+
+  <!-- data: Document embedding -->
+  <rect x="740" y="108" width="160" height="44" rx="22" fill="#64748b" stroke="#475569"/>
+  <text x="820" y="130" text-anchor="middle" dominant-baseline="central" font-size="13" fill="#f8fafc">Document embedding</text>
+
+  <!-- head: dp -->
+  <rect x="952" y="60" width="176" height="56" rx="9" fill="#2563eb" stroke="#1d4ed8"/>
+  <text x="1040" y="88" text-anchor="middle" font-size="13" fill="#ffffff">
+    <tspan x="1040" dy="-4" font-weight="700">dp</tspan>
+    <tspan x="1040" dy="17" font-size="10.5" fill="#dbeafe">eds.single_label_head</tspan>
+  </text>
+
+  <!-- head: das -->
+  <rect x="952" y="144" width="176" height="56" rx="9" fill="#7c3aed" stroke="#6d28d9"/>
+  <text x="1040" y="172" text-anchor="middle" font-size="13" fill="#ffffff">
+    <tspan x="1040" dy="-4" font-weight="700">das</tspan>
+    <tspan x="1040" dy="17" font-size="10.5" fill="#ede9fe">eds.multi_label_head</tspan>
+  </text>
+
+  <!-- outputs -->
+  <rect x="1170" y="68" width="128" height="40" rx="20" fill="#64748b" stroke="#475569"/>
+  <text x="1234" y="88" text-anchor="middle" dominant-baseline="central" font-size="13" fill="#f8fafc">doc._.dp: 1 label</text>
+
+  <rect x="1170" y="152" width="128" height="40" rx="20" fill="#64748b" stroke="#475569"/>
+  <text x="1234" y="172" text-anchor="middle" dominant-baseline="central" font-size="13" fill="#f8fafc">doc._.das: 0..N</text>
+</svg>

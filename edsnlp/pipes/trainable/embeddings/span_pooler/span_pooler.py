@@ -216,7 +216,10 @@ class SpanPooler(SpanEmbeddingComponent, BaseComponent):
                 "embeddings": batch["begins"].with_data(span_embeds),
             }
 
-        embeds = self.embedding(batch["embedding"])["embeddings"]
+        # Embeddings may also come as flat words, the indices below need padded contexts
+        embeds = self.embedding(batch["embedding"])["embeddings"].refold(
+            "context", "word"
+        )
         _, n_words, dim = embeds.shape
         flat_embeds = embeds.view(-1, dim)
         # The embedding shape supplies the padded context width for each word index

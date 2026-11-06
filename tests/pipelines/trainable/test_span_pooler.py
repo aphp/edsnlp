@@ -18,6 +18,7 @@ def embedding():
     # Use numbered token text as embedding row indices for pooling comparisons
     class TokenEmbedding(WordEmbeddingComponent):
         output_size = 3
+        data_dims = ("context", "word")
 
         def __init__(self, nlp=None):
             super().__init__()
@@ -33,7 +34,7 @@ def embedding():
                 "words": ft.as_folded_tensor(
                     batch["words"],
                     full_names=("sample", "context", "word"),
-                    data_dims=("context", "word"),
+                    data_dims=self.data_dims,
                     dtype=torch.long,
                 )
             }
@@ -48,6 +49,7 @@ def embedding():
 # Compare pooled values and gradients across contexts and overlapping or empty spans
 @pytest.mark.parametrize("mode", ["mean", "sum", "max", "attention"])
 @pytest.mark.parametrize("hidden_size", [None, 2])
+@pytest.mark.parametrize("data_dims", [("context", "word"), ("word",)])
 @pytest.mark.parametrize(
     "bounds",
     [
@@ -56,11 +58,12 @@ def embedding():
         [[], []],
     ],
 )
-def test_span_pooler(embedding, mode, hidden_size, bounds):
+def test_span_pooler(embedding, mode, hidden_size, data_dims, bounds):
     import torch
 
     from edsnlp.pipes.trainable.embeddings.span_pooler.span_pooler import SpanPooler
 
+    embedding.data_dims = data_dims
     nlp = edsnlp.blank("eds")
     docs = [nlp.make_doc("0 1 2 3 4 5 6 7 8"), nlp.make_doc("9 10 11 12")]
     # Use two embedding contexts in the first document and one in the second

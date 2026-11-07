@@ -78,6 +78,8 @@ dev = [
     "configobj>=5.0.9",
     "tensorboardx>=2.6.4",
     "aim>=3.29.1; python_version<'3.13'",
+    # aim needs boto3, without a lower bound resolvers pick boto3 0.0.3 to allow python-dateutil 3
+    "boto3>=1.26; python_version<'3.13'",
     "dvc>=3.67.0",
     "pip>=26.0.1",
 ]

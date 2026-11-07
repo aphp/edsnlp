@@ -17,6 +17,8 @@
 - `edsnlp.train` now collates training batches on CPU and moves them to the training device before the forward pass, so data workers (`num_workers > 0`) no longer open a CUDA context nor allocate batches on the GPU
 - Model packages built with `code="dependency"` or `code="none"` no longer copy the dependencies, optional dependencies, scripts and entry points of the project `pyproject.toml`, which belong to the code package
 - `eds.transformer` `new_tokens` now works with tokenizers that have no normalizer
+- `eds.transformer` now reloads the normalizer saved in `tokenizer.json`, since transformers 5 drops nested normalizers when it rebuilds tokenizers like CamemBERT, which changed the tokenization of saved models
+- `eds.transformer` no longer wraps the normalizer in one more layer of `new_tokens` replacements at each reload of a saved model
 - Numeric `note_datetime` values in milliseconds, microseconds or nanoseconds are now converted to seconds instead of raising an out of range error
 - `eds.span_pooler` now accepts embeddings that return flat words instead of padded contexts
 

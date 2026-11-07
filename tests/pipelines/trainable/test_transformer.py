@@ -118,3 +118,74 @@ def test_preprocess_suppresses_transformers_sequence_length_warning(caplog):
         in record.message
         for record in caplog.records
     )
+
+
+def test_saved_normalizer_survives_reload(tmp_path):
+    import tokenizers
+    from tokenizers import normalizers, pre_tokenizers
+    from tokenizers.models import Unigram
+    from transformers import CamembertConfig, CamembertModel
+
+    # Since transformers 5 only keeps a top level `Precompiled` when it rebuilds a
+    # CamemBERT tokenizer, we use a nested normalizer that it would lose at load
+    specials = [
+        "<s>NOTUSED",
+        "<pad>",
+        "</s>NOTUSED",
+        "<unk>",
+        "<unk>NOTUSED",
+        "<s>",
+        "</s>",
+        "<mask>",
+    ]
+    pieces = ["▁", "fin", "▁fin", "f", "i", "n", "ﬁ"]
+    tokenizer = tokenizers.Tokenizer(
+        Unigram([(p, 0.0) for p in specials] + [(p, -1.0) for p in pieces], unk_id=3)
+    )
+    tokenizer.normalizer = normalizers.Sequence(
+        [normalizers.Sequence([normalizers.NFKC()])]
+    )
+    tokenizer.pre_tokenizer = pre_tokenizers.Metaspace()
+    base = tmp_path / "base"
+    base.mkdir()
+    tokenizer.save(str(base / "tokenizer.json"))
+    (base / "tokenizer_config.json").write_text(
+        '{"tokenizer_class": "CamembertTokenizer"}'
+    )
+    config = CamembertConfig(
+        vocab_size=tokenizer.get_vocab_size(),
+        hidden_size=8,
+        intermediate_size=8,
+        num_hidden_layers=1,
+        num_attention_heads=1,
+    )
+    CamembertModel(config).save_pretrained(base)
+
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(
+        "eds.transformer",
+        name="transformer",
+        config=dict(model=str(base), new_tokens=[["\n", "⏎"]], window=128, stride=96),
+    )
+    nlp.to_disk(tmp_path / "saved")
+    reloaded = edsnlp.load(tmp_path / "saved")
+
+    first, second = (
+        nlp.pipes.transformer.tokenizer,
+        reloaded.pipes.transformer.tokenizer,
+    )
+    newline_id = first.convert_tokens_to_ids("⏎")
+    for tok in (first, second):
+        # The ligature must go through NFKC, and the line break through `new_tokens`
+        assert tok("ﬁn\nfin", add_special_tokens=False).input_ids == [
+            *tok("fin", add_special_tokens=False).input_ids,
+            newline_id,
+            *tok("fin", add_special_tokens=False).input_ids,
+        ]
+
+    # Reloading a saved model must not wrap its normalizer in one more layer
+    assert second.backend_tokenizer.to_str() == first.backend_tokenizer.to_str()
+    assert (
+        reloaded.pipes.transformer.transformer.get_input_embeddings().weight.shape[0]
+        == newline_id + 1
+    )

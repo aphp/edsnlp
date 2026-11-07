@@ -198,6 +198,18 @@ class Transformer(WordEmbeddingComponent[TransformerBatchInput]):
                 [self.tokenizer.special_tokens_map["eos_token"]]
             )
 
+        # Since transformers 5 rebuilds some tokenizers from their vocabulary and only
+        # keeps a top level `Precompiled`, we reload the normalizer saved in the model
+        tokenizer_file = Path(model) / "tokenizer.json"
+        if tokenizer_file.is_file():
+            self.tokenizer.backend_tokenizer.normalizer = (
+                tokenizers.Tokenizer.from_file(str(tokenizer_file)).normalizer
+            )
+
+        # A saved tokenizer already has its added tokens and their replacements, so we
+        # only add the missing ones and the normalizer doesn't grow at each reload
+        added_vocab = self.tokenizer.get_added_vocab()
+        new_tokens = [t for t in new_tokens or [] if t[1] not in added_vocab]
         if new_tokens:
             self.tokenizer.add_tokens(sorted(set(t[1] for t in new_tokens)))
             original_normalizer = self.tokenizer.backend_tokenizer.normalizer

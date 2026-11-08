@@ -316,13 +316,13 @@ edsnlp/pipes/trainable/span_linker/span_linker.py                               
 edsnlp/processing/__init__.py                                                               3      0 100.00%
 edsnlp/processing/deprecated_pipe.py                                                       53      2  96.23%   208-209
 edsnlp/processing/multiprocessing.py                                                      797     21  97.37%   362-369, 373-374, 397-402, 593-595, 1299, 1358-1363
-edsnlp/processing/simple.py                                                                71      1  98.59%   65
+edsnlp/processing/simple.py                                                                71      0 100.00%
 edsnlp/processing/spark.py                                                                 43      1  97.67%   51
 edsnlp/reducers.py                                                                         68      2  97.06%   116, 118
 edsnlp/training/__init__.py                                                                 2      0 100.00%
 edsnlp/training/loggers.py                                                                160      4  97.50%   66, 103, 226, 294
 edsnlp/training/optimizer.py                                                              184      0 100.00%
-edsnlp/training/trainer.py                                                                362     13  96.41%   60, 119, 390-395, 959-965, 993-994, 1002, 1006
+edsnlp/training/trainer.py                                                                362     13  96.41%   60, 119, 397-402, 966-972, 1000-1001, 1009, 1013
 edsnlp/tune.py                                                                            622      8  98.71%   222, 292, 400, 651-652, 838, 1066, 1201
 edsnlp/utils/__init__.py                                                                    0      0 100.00%
 edsnlp/utils/batching.py                                                                  190      0 100.00%
@@ -346,4 +346,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      81      9  88.89%   103, 119, 122-128, 144
 edsnlp/utils/typing.py                                                                     45      1  97.78%   43
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   13934    253  98.18%
+TOTAL                                                                                   13934    252  98.19%

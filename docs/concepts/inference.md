@@ -30,6 +30,8 @@ nlp.to("cuda")  # same semantics as pytorch
 doc = nlp(text)
 ```
 
+Streams created with `nlp.pipe` use the GPU by default when one is available (`device="auto"` in `set_processing`), and move the model there in place. Pass `device="preserve"` to keep the model where it is, for instance when computing validation scores in a custom training loop.
+
 To leverage multiple GPUs when processing multiple documents, refer to the [multiprocessing backend][edsnlp.processing.multiprocessing.execute_multiprocessing_backend] description below.
 
 ## Streams {: #edsnlp.core.stream.Stream }

@@ -6,15 +6,12 @@
 
 - New `attention` pooling mode in `eds.span_pooler`, a softmax over the words of each span of scores given by a learned linear layer, computed on the flat word indices without padding
 
-### Changed
-
-- **Breaking**: the simple backend keeps torch components on their current device by default again, as before v0.23.0, instead of moving them to CUDA when available. Set `device="auto"` in `set_processing` to use CUDA when available, or `device="cuda"` to force it. The multiprocessing backend still runs torch components on the available CUDA devices by default
-
 ### Fixed
 
 - `eds.split` no longer cuts annotated spans when splitting on `regex` or `max_length`, the new `span_getter` parameter (default `ents`) selects the spans to keep whole
 - Custom metrics in `GenericScorer` now predict on copies of the docs without their gold entities and span groups
 - `edsnlp.train` now collates training batches on CPU and moves them to the training device before the forward pass, so data workers (`num_workers > 0`) no longer open a CUDA context nor allocate batches on the GPU
+- `GenericScorer` now predicts on the device where training placed the model, so validation no longer moves a model trained with `cpu=True` to an available GPU, which made the next training step fail
 - Model packages built with `code="dependency"` or `code="none"` no longer copy the dependencies, optional dependencies, scripts and entry points of the project `pyproject.toml`, which belong to the code package
 - `eds.transformer` `new_tokens` now works with tokenizers that have no normalizer
 - `eds.transformer` now reloads the normalizer saved in `tokenizer.json`, since transformers 5 drops nested normalizers when it rebuilds tokenizers like CamemBERT, which changed the tokenization of saved models

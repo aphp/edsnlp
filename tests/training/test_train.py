@@ -174,9 +174,12 @@ def test_qualif_train(run_in_test_dir, tmp_path, monkeypatch, num_workers):
             "unresolved_config": config,
         },
     )
+    # We make CUDA look available, so scoring must keep the CPU trained model on CPU
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
     scorer = GenericScorer(**kwargs["scorer"])
     val_data = kwargs["val_data"]
     last_scores = scorer(nlp, val_data)
+    assert all(p.device.type == "cpu" for p in nlp.parameters())
 
     # Check empty doc
     nlp("")

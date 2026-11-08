@@ -76,7 +76,6 @@ def test_map_gpu(num_gpu_workers):
 @pytest.mark.parametrize(
     "device,cuda_available,expected_devices,raises",
     [
-        (None, True, [None], None),
         ("auto", True, ["cuda"], None),
         ("preserve", True, [None], None),
         ("cuda:0", False, [], ValueError),

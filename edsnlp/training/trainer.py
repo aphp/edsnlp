@@ -133,6 +133,9 @@ class GenericScorer:
         docs = list(docs)
         metrics = dict(self.metrics)
 
+        # Since training already placed the model, we predict with device="preserve" so
+        # that validation doesn't move a model trained on CPU or on another GPU to cuda
+
         # Speed
         if self.speed:
             t0 = time.time()
@@ -142,6 +145,7 @@ class GenericScorer:
                 ).set_processing(
                     batch_size=self.batch_size,
                     autocast=self.autocast,
+                    device="preserve",
                 )
             )
             duration = time.time() - t0
@@ -169,6 +173,7 @@ class GenericScorer:
                     nlp.pipe(tqdm(clean_ner_docs, desc="Predicting")).set_processing(
                         batch_size=self.batch_size,
                         autocast=self.autocast,
+                        device="preserve",
                     )
                 )
             for name, metric in ner_metrics.items():
@@ -198,6 +203,7 @@ class GenericScorer:
                     nlp.pipe(tqdm(clean_qlf_docs, desc="Predicting")).set_processing(
                         batch_size=self.batch_size,
                         autocast=self.autocast,
+                        device="preserve",
                     )
                 )
             for name, metric in span_attr_metrics.items():
@@ -213,6 +219,7 @@ class GenericScorer:
                 nlp.pipe(tqdm(pred_docs, desc="Predicting")).set_processing(
                     batch_size=self.batch_size,
                     autocast=self.autocast,
+                    device="preserve",
                 )
             )
             scores[name] = metric(docs, preds)

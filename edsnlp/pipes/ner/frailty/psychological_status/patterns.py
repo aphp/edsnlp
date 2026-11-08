@@ -1,0 +1,207 @@
+from ..utils import (
+    ALTERED_STATUS_COMPLEMENTS,
+    HEALTHY_STATUS_COMPLEMENTS,
+    make_assign_regex,
+    make_include_dict_from_list,
+    make_status_assign,
+    normalize_space_characters,
+)
+
+healthy = dict(
+    source="healthy",
+    regex=[
+        "etat thymique correct",
+        "a le moral",
+        "euthymique",
+    ],
+    regex_attr="NORM",
+)
+severe = dict(
+    source="severe",
+    regex=[
+        "perte de l'elan vital",
+        r"idees? suicidaires?",
+        r"idees? noires?",
+    ],
+    regex_attr="NORM",
+)
+altered = dict(
+    source="altered",
+    regex=[
+        r"angoissee?",
+        "anhedonie",
+        r"anti[\s-]?depresseur",
+        r"anxieu(se|x)",
+        "anxiete",
+        "axiolytique",
+        "depreciation",
+        "depression",
+        r"deprimee?",
+        r"(?:anxio[-\s]?)?depressi(?:f|ve)",
+        "souffrance psychique",
+        r"syndrome (?:anxio[-\s]?)?depressif",
+        "thymie basse",
+        "tristesse",
+        "triste",
+        r"moral (?:moyen|bas)",
+        r"anxiolytique",
+        r"anxiolyse",
+        r"dysthymi(?:e|que)",
+        "desesperee?",
+        "desespoir",
+        "perte d'envie",
+    ],
+    regex_attr="NORM",
+)
+
+sleep = dict(
+    source="other_sleep",
+    regex=["sommeil", "endormissement", r"\bdort\b"],
+    regex_attr="NORM",
+    exclude=[
+        dict(name="apnee", regex=["apnee"], window=-4),
+        dict(
+            name="medecine",
+            regex=["gelule", "cachet", "comprime", "souhaite"],
+            window=(-6, 6),
+        ),
+        dict(
+            name="paradoxal",
+            regex=["paradoxal"],
+            window=3,
+        ),
+    ],
+    assign=[
+        dict(
+            name="sleep_healthy",
+            regex=make_assign_regex(HEALTHY_STATUS_COMPLEMENTS),
+            window=(-4, 4),
+        ),
+        dict(
+            name="sleep_bad",
+            regex=make_assign_regex(ALTERED_STATUS_COMPLEMENTS),
+            window=(-4, 4),
+        ),
+    ],
+)
+
+insomnia = dict(
+    source="altered_insomnia",
+    regex=["insomnie"],
+    regex_attr="NORM",
+    assign=[
+        dict(
+            name="thymic_insomnia",
+            regex=make_assign_regex([r"reveil\sprecoce", "endormissement"]),
+            window=4,
+        )
+    ],
+)
+
+night = dict(
+    source="other_night",
+    regex=["nuits?"],
+    regex_attr="NORM",
+    assign=make_status_assign(-2, 2, priority=False),
+    include=make_include_dict_from_list(make_status_assign(-2, 2)),
+)
+
+troubles = dict(
+    source="other_troubles",
+    regex=[r"(?<!bilan de )(?<!bilan )troubles?", "anomalies?"],
+    regex_attr="NORM",
+    assign=dict(
+        name="trouble_complement",
+        regex=make_assign_regex(["sommeil"]),
+        window=8,
+        required=True,
+    ),
+    exclude=dict(
+        name="paradoxal",
+        regex=["paradoxal"],
+        window=9,
+    ),
+)
+
+frailty = dict(
+    source="altered_frailty",
+    regex=["fragilite", "fragile"],
+    regex_attr="NORM",
+    assign=dict(
+        name="frailty_complement",
+        regex=make_assign_regex(["thymique"]),
+        window=6,
+        required=True,
+    ),
+)
+
+ralentissement = dict(
+    source="other_ralentissement",
+    regex=["ralentissement"],
+    assign=dict(
+        name="complement",
+        regex=make_assign_regex(["ideatoire"]),
+        window=3,
+        required=True,
+    ),
+)
+
+morale = dict(
+    source="other_morale",
+    regex=[r"\bmoral\b"],
+    regex_attr="NORM",
+    assign=make_status_assign(-4, 4),
+    include=make_include_dict_from_list(make_status_assign(-4, 4)),
+)
+
+other = dict(
+    source="other",
+    regex=[
+        "avis psychiatrique",
+        "antecedent psy",
+        "thymie",
+        "(?:sur le )?plan thymique",
+        "examen psychiatrique",
+        "persecution",
+        r"nuits? difficiles?",
+        "delire",
+        "delirant",
+        "insomnie",
+        "somnolence",
+        "psychiatre",
+        "psychologue",
+        "tendance a l'endormissement",
+        r"\bapathi(?:e|que)",
+        r"hallucinations?",
+        "clinophilie",
+    ],
+    regex_attr="NORM",
+)
+
+status = dict(
+    source="other_status",
+    regex=[
+        "statut thymique",
+        "etat thymique",
+        r"etat (?:neuro[\s-]?)?psychologique",
+        r"statut (?:neuro[\s-]?)?psychologique",
+    ],
+    assign=make_status_assign(),
+)
+
+default_patterns = normalize_space_characters(
+    [
+        healthy,
+        altered,
+        severe,
+        other,
+        ralentissement,
+        sleep,
+        insomnia,
+        troubles,
+        morale,
+        night,
+        status,
+        frailty,
+    ]
+)

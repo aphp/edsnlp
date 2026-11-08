@@ -1,0 +1,90 @@
+from typing import Optional
+
+from edsnlp.core import PipelineProtocol
+from edsnlp.pipes.base import SpanSetterArg
+from edsnlp.pipes.core.contextual_matcher.models import FullConfig
+
+from ..base import FrailtyDomainMatcher
+from .patterns import default_patterns
+
+
+class PolypharmacyStatusMatcher(FrailtyDomainMatcher):
+    """
+    The `eds.polypharmacy_status` pipeline component extracts mentions of
+    polymedication.
+    It is best used in conjuction with the eds.drugs components, since those
+    explicit mentions are relatively rare.
+
+    ??? info "Details of the used patterns"
+        ```{ .python .no-check }
+        # fmt: off
+        --8<-- "edsnlp/pipes/ner/frailty/polypharmacy_status/patterns.py"
+        # fmt: on
+        ```
+
+    Extensions
+    ----------
+    On each span `span` that match, the following attribute is available:
+
+    - `span._.polypharmacy_status`: set to None.\n
+    It will specify the severity of the mention regarding the polymedication
+    of the patient.\n
+    Possible values are:
+
+    - `healthy` : this span suggests the patient is well regarding that domain.
+    - `altered_nondescript` : this span suggests the patient is not well, but
+        it is not yet possible to ascertain the degree of alteration.
+    - `altered_mild` : this span suggests a light alteration regarding
+        this domain.
+    - `altered_severe` : this span suggests a severe alteration regarding
+        this domain.
+    - `other` : this span is not indicative of the level of  alteration
+        regarding this domain. Still, it hints that this domain has
+        been evaluated.
+
+    Examples
+    --------
+    ```python
+    import edsnlp, edsnlp.pipes as eds
+
+    nlp = edsnlp.blank("eds")
+    nlp.add_pipe(eds.sentences())
+    nlp.add_pipe(eds.normalizer())
+    nlp.add_pipe(f"eds.polypharmacy_status")
+    ```
+
+    Below are a few examples:
+
+    --8<-- "docs/assets/fragments/polypharmacy_status-examples.md"
+
+    Parameters
+    ----------
+    nlp : Optional[PipelineProtocol]
+        The pipeline
+    name : Optional[str]
+        The name of the component
+    patterns: FullConfig
+        The patterns to use for matching
+    label : str
+        The label to use for the `Span` object and the extension
+    span_setter : SpanSetterArg
+        How to set matches on the doc
+    """
+
+    def __init__(
+        self,
+        nlp: Optional[PipelineProtocol],
+        *,
+        name: str = "polypharmacy_status",
+        patterns: FullConfig = default_patterns,
+        label: str = "polypharmacy_status",
+        span_setter: SpanSetterArg = {"ents": True, "polypharmacy_status": True},
+    ):
+        super().__init__(
+            nlp=nlp,
+            domain="polypharmacy_status",
+            patterns=patterns,
+            name=name,
+            label=label,
+            span_setter=span_setter,
+        )

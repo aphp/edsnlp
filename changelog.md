@@ -9,6 +9,7 @@
 - New `eds.doc_pooler` embedding component, which aggregates the word embeddings of a document, or the `[CLS]` embeddings of its transformer windows with `use_cls`, into a single vector (`mean`, `max`, `sum` or a learned `attention` pooling, through the shared `Pooling` layer). `eds.doc_classifier` accepts any component returning one embedding per document
 - New [`eds.doc_classification`](https://aphp.github.io/edsnlp/latest/metrics/doc-classification/) metric to score document-level classification, for one or several `Doc._` attributes at a time. Attributes holding a single value are scored with per-label, micro and macro P-R-F1 (micro then amounting to the accuracy); attributes holding a list of values are scored as a multi-label task. Documents with no gold value for an attribute are left out of its score
 - `eds.transformer` now also returns the `[CLS]` embedding of each window under the `cls` key, and the index of the context of each window under `cls_contexts`
+- New [Training a document classifier](https://aphp.github.io/edsnlp/latest/tutorials/training-doc-classifier/) tutorial, training a model that predicts both the principal diagnosis (single-label) and the associated diagnoses (multi-label) of a hospital stay
 
 ### Fixed
 

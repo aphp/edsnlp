@@ -10,3 +10,4 @@ At the moment, we support the following metrics:
 | `eds.ner_token`      | NER metric with token-level match                  |
 | `eds.ner_overlap`    | NER metric with overlap match at the span level    |
 | `eds.span_attribute` | Span multi-label multi-class classification metric |
+| `eds.doc_classification` | Document-level classification metric           |

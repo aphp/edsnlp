@@ -162,6 +162,7 @@ nav:
       - metrics/index.md
       - metrics/ner.md
       - metrics/span-attribute.md
+      - metrics/doc-classification.md
   - Utilities:
       - utilities/index.md
       - utilities/tests/blocs.md

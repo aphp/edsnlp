@@ -270,6 +270,7 @@ include = ["edsnlp*"]
 "eds.ner_overlap"            = "edsnlp.metrics.ner:NerOverlapMetric"
 "eds.span_attribute"         = "edsnlp.metrics.span_attribute:SpanAttributeMetric"
 "eds.dep_parsing"            = "edsnlp.metrics.dep_parsing:DependencyParsingMetric"
+"eds.doc_classification"     = "edsnlp.metrics.doc_classification:DocClassificationMetric"
 
 # Deprecated
 "eds.ner_exact_metric"       = "edsnlp.metrics.ner:NerExactMetric"

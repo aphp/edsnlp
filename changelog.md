@@ -5,6 +5,7 @@
 ### Added
 
 - New `attention` pooling mode in `eds.span_pooler`, a softmax over the words of each span of scores given by a learned linear layer, computed on the flat word indices without padding
+- New [`eds.doc_classification`](https://aphp.github.io/edsnlp/latest/metrics/doc-classification/) metric to score document-level classification, for one or several `Doc._` attributes at a time. Attributes holding a single value are scored with per-label, micro and macro P-R-F1 (micro then amounting to the accuracy); attributes holding a list of values are scored as a multi-label task. Documents with no gold value for an attribute are left out of its score
 - `eds.transformer` now also returns the `[CLS]` embedding of each window under the `cls` key, and the index of the context of each window under `cls_contexts`
 
 ### Fixed

@@ -33,6 +33,7 @@ edsnlp/matchers/utils/offset.py                                                 
 edsnlp/matchers/utils/text.py                                                               1      0 100.00%
 edsnlp/metrics/__init__.py                                                                 32      0 100.00%
 edsnlp/metrics/dep_parsing.py                                                              24      0 100.00%
+edsnlp/metrics/doc_classification.py                                                       42      0 100.00%
 edsnlp/metrics/ner.py                                                                     114      0 100.00%
 edsnlp/metrics/span_attribute.py                                                           93      2  97.85%   69-70
 edsnlp/package.py                                                                         280      0 100.00%
@@ -285,7 +286,14 @@ edsnlp/pipes/trainable/__init__.py                                              
 edsnlp/pipes/trainable/biaffine_dep_parser/__init__.py                                      1      0 100.00%
 edsnlp/pipes/trainable/biaffine_dep_parser/biaffine_dep_parser.py                         267      4  98.50%   250, 698-700
 edsnlp/pipes/trainable/biaffine_dep_parser/factory.py                                       3      0 100.00%
+edsnlp/pipes/trainable/doc_classifier/__init__.py                                           1      0 100.00%
+edsnlp/pipes/trainable/doc_classifier/doc_classifier.py                                   135      1  99.26%   382
+edsnlp/pipes/trainable/doc_classifier/factory.py                                            3      0 100.00%
+edsnlp/pipes/trainable/doc_classifier/heads.py                                            109      1  99.08%   167
 edsnlp/pipes/trainable/embeddings/__init__.py                                               0      0 100.00%
+edsnlp/pipes/trainable/embeddings/doc_pooler/__init__.py                                    0      0 100.00%
+edsnlp/pipes/trainable/embeddings/doc_pooler/doc_pooler.py                                 44      0 100.00%
+edsnlp/pipes/trainable/embeddings/doc_pooler/factory.py                                     3      0 100.00%
 edsnlp/pipes/trainable/embeddings/span_pooler/__init__.py                                   0      0 100.00%
 edsnlp/pipes/trainable/embeddings/span_pooler/factory.py                                    3      0 100.00%
 edsnlp/pipes/trainable/embeddings/span_pooler/span_pooler.py                               71      0 100.00%
@@ -294,8 +302,8 @@ edsnlp/pipes/trainable/embeddings/text_cnn/factory.py                           
 edsnlp/pipes/trainable/embeddings/text_cnn/text_cnn.py                                     22      0 100.00%
 edsnlp/pipes/trainable/embeddings/transformer/__init__.py                                   0      0 100.00%
 edsnlp/pipes/trainable/embeddings/transformer/factory.py                                    3      0 100.00%
-edsnlp/pipes/trainable/embeddings/transformer/transformer.py                              173      3  98.27%   168, 193, 197
-edsnlp/pipes/trainable/embeddings/typing.py                                                18      0 100.00%
+edsnlp/pipes/trainable/embeddings/transformer/transformer.py                              175      3  98.29%   179, 204, 208
+edsnlp/pipes/trainable/embeddings/typing.py                                                22      0 100.00%
 edsnlp/pipes/trainable/extractive_qa/__init__.py                                            0      0 100.00%
 edsnlp/pipes/trainable/extractive_qa/extractive_qa.py                                      77      0 100.00%
 edsnlp/pipes/trainable/extractive_qa/factory.py                                             4      0 100.00%
@@ -346,4 +354,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      81      9  88.89%   103, 119, 122-128, 144
 edsnlp/utils/typing.py                                                                     45      1  97.78%   43
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   13934    252  98.19%
+TOTAL                                                                                   14277    254  98.22%

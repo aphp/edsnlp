@@ -5,6 +5,7 @@
 ### Added
 
 - New `attention` pooling mode in `eds.span_pooler`, a softmax over the words of each span of scores given by a learned linear layer, computed on the flat word indices without padding
+- `eds.transformer` now also returns the `[CLS]` embedding of each window under the `cls` key, and the index of the context of each window under `cls_contexts`
 
 ### Fixed
 

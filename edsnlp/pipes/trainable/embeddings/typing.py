@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Any, Dict, Generic, List, Optional
 
+import torch
 from foldedtensor import FoldedTensor
 from spacy.tokens import Doc, Span
 from typing_extensions import TypedDict
@@ -30,8 +31,7 @@ class WordEmbeddingComponent(
             *,
             contexts: Optional[List[Span]],
             **kwargs,
-        ) -> Dict[str, Any]:
-            ...
+        ) -> Dict[str, Any]: ...
 
 
 class WordContextualizerComponent(
@@ -67,5 +67,19 @@ class SpanEmbeddingComponent(
             contexts: Optional[List[Span]],
             pre_aligned: bool = False,
             **kwargs,
-        ) -> Dict[str, Any]:
-            ...
+        ) -> Dict[str, Any]: ...
+
+
+DocEmbeddingBatchOutput = TypedDict(
+    "DocEmbeddingBatchOutput",
+    {
+        "embeddings": torch.Tensor,
+    },
+)
+
+
+class DocEmbeddingComponent(
+    TorchComponent[DocEmbeddingBatchOutput, BatchInput],
+    Generic[BatchInput],
+):
+    output_size: int

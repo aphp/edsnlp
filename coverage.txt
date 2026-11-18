@@ -45,7 +45,7 @@ edsnlp/pipes/core/contextual_matcher/__init__.py                                
 edsnlp/pipes/core/contextual_matcher/contextual_matcher.py                                130      0 100.00%
 edsnlp/pipes/core/contextual_matcher/factory.py                                             4      0 100.00%
 edsnlp/pipes/core/contextual_matcher/models.py                                            101      0 100.00%
-edsnlp/pipes/core/endlines/__init__.py                                                      0      0 100.00%
+edsnlp/pipes/core/endlines/__init__.py                                                      1      0 100.00%
 edsnlp/pipes/core/endlines/endlines.py                                                     89      7  92.13%   161-164, 168-169, 201, 288
 edsnlp/pipes/core/endlines/factory.py                                                       4      0 100.00%
 edsnlp/pipes/core/endlines/functional.py                                                   13      0 100.00%
@@ -354,4 +354,4 @@ edsnlp/utils/stream_sentinels.py                                                
 edsnlp/utils/torch.py                                                                      81      9  88.89%   103, 119, 122-128, 144
 edsnlp/utils/typing.py                                                                     45      1  97.78%   43
 ----------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                   14277    254  98.22%
+TOTAL                                                                                   14278    254  98.22%

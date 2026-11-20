@@ -1,0 +1,111 @@
+import re
+from typing import Any, Callable, Dict, List, Optional, Union
+
+from spacy.tokens import Span
+
+from edsnlp.core import PipelineProtocol, registry
+from edsnlp.pipes.base import SpanSetterArg
+
+from ..base import FrailtyScoreMatcher
+from ..utils import float_regex
+from .patterns import default_patterns
+
+
+def find_speed(span: Span):
+    """
+    Convert the assigned gait speed to metres per second, speeds above 200 are
+    rejected
+    """
+    # When no speed follows the trigger there is no value, so we reject the match
+    text = span._.assigned.get("value")
+    if text is None:
+        return None
+    value = float(re.match(float_regex, text).group().replace(",", "."))
+    if "cm" in text:
+        value /= 100
+    if value <= 200:
+        span._.assigned["value"] = value
+        return span
+
+
+def gait_speed_severity_assigner(ent: Span):
+    value = ent._.assigned.get("value", None)
+    assert value is not None, "ent should have a value not None set in _.assigned"
+
+    if value > 1.0:
+        return "healthy"
+    elif value <= 0.6:
+        return "altered_severe"
+    else:
+        return "altered_mild"
+
+
+@registry.factory.register(
+    "eds.gait_speed_score",
+    assigns=["doc.ents", "doc.spans"],
+)
+def create_component(
+    nlp: PipelineProtocol,
+    name: Optional[str] = "gait_speed_score",
+    *,
+    patterns: List[Dict] = default_patterns,
+    score_normalization: Union[str, Callable[[Span], Any]] = find_speed,
+    attr: str = "NORM",
+    label: str = "gait_speed_score",
+    span_setter: SpanSetterArg = {
+        "ents": True,
+        "gait_speed_score": True,
+        "mobility_status": True,
+    },
+    include_assigned: bool = True,
+    severity_assigner: Callable[[Span], Any] = gait_speed_severity_assigner,
+):
+    """
+    The `eds.gait_speed_score` component extracts mentions of
+    the gait speed score.
+
+    The speed is stored in m/s, e.g. `vitesse de marche 80 cm/s` gives 0.8, and a
+    number followed by another unit, e.g. `4 m en 6 s` or `3 km/h`, is ignored.
+
+    Parameters
+    ----------
+    nlp : PipelineProtocol
+        The pipeline object
+    name : Optional[str]
+        Name of the component
+    patterns : List[str]
+        A list of regexes to identify the score
+    attr : str
+        Whether to match on the text ('TEXT') or on the normalized text ('NORM')
+    score_normalization : Union[str, Callable[[Union[str,None]], Any]]
+        Function that takes the "raw" value extracted from the `value_extract`
+        regex and should return:
+
+        - None if no score could be extracted
+        - The desired score value else
+    label : str
+        Label name to use for the `Span` object and the extension
+    span_setter: SpanSetterArg
+        How to set matches on the doc
+    domain : str
+        The frailty domain the score is related to
+    severity_assigner: Callable[[Union[str, Tuple[float, int], Tuple[int, int]]], Any]
+        Function that takes the score value and assigns the corresponding severity
+        for the domain.
+
+    Returns
+    -------
+    SimpleScoreMatcher
+    """
+    return FrailtyScoreMatcher(
+        nlp,
+        name=name,
+        patterns=patterns,
+        attr=attr,
+        label=label,
+        span_setter=span_setter,
+        domain="mobility_status",
+        include_assigned=include_assigned,
+        score_normalization=score_normalization,
+        severity_assigner=severity_assigner,
+    )

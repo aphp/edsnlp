@@ -67,7 +67,6 @@ if TYPE_CHECKING:
     from .ner.frailty.cognitive_status.factory import (
         create_component as cognitive_status,
     )
-    from .ner.frailty.frailty_mentions.factory import create_component as frailty
     from .ner.frailty.frailty_mentions.factory import (
         create_component as frailty_mentions,
     )

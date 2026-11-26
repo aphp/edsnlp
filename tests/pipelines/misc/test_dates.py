@@ -1,5 +1,6 @@
 import datetime
 
+import pandas as pd
 import pytest
 import spacy
 from pytest import fixture
@@ -330,3 +331,18 @@ def test_dates_bound_relative_to_duration():
     duration = date_spans[0]._.date.to_duration(note_datetime=doc._.note_datetime)
     assert duration is not None
     assert duration.days == -1  # 'hier' should yield -1 day
+
+
+@pytest.mark.parametrize(
+    "dt",
+    [
+        pd.Timestamp("2021-09-04 15:30:00"),
+        pd.Timestamp("2021-09-04 15:30:00", tz="Europe/Paris"),
+    ],
+)
+def test_note_datetime_keeps_time_of_timestamp(blank_nlp, dt):
+    doc = blank_nlp.make_doc("Le patient est venu hier.")
+    doc._.note_datetime = dt
+    assert type(doc._.note_datetime) is datetime.datetime
+    assert doc._.note_datetime == dt.to_pydatetime()
+    assert doc._.note_datetime.tzinfo == dt.tzinfo

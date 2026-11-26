@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- `doc._.note_datetime` now keeps the time and timezone of a `pandas.Timestamp` (for instance a `note_datetime` column read with `edsnlp.data.from_pandas`), which used to be cut to midnight
+
 ## v0.24.0 (2026-11-13)
 
 ### Added

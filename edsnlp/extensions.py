@@ -18,6 +18,18 @@ def set_note_datetime(doc, dt):
             while abs(dt) >= 100_000_000_000:
                 dt /= 1000
             dt = datetime.fromtimestamp(dt)
+        elif isinstance(dt, datetime):
+            # datetime subclasses, such as pandas.Timestamp
+            dt = datetime(
+                dt.year,
+                dt.month,
+                dt.day,
+                dt.hour,
+                dt.minute,
+                dt.second,
+                dt.microsecond,
+                tzinfo=dt.tzinfo,
+            )
         elif isinstance(dt, date):
             dt = datetime(dt.year, dt.month, dt.day)
         elif dt is None:

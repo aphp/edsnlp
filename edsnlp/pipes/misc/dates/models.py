@@ -218,11 +218,11 @@ class AbsoluteDate(BaseDate):
 
         norm = "-".join([year, month, day])
 
-        if self.hour:
+        if self.hour is not None:
             norm += f" {self.hour:02}h"
 
-        if self.minute:
-            norm += f"{self.minute:02}m"
+        if self.minute or self.second:
+            norm += f"{self.minute or 0:02}m"
 
         if self.second:
             norm += f"{self.second:02}s"

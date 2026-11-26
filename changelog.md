@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- The `norm()` of an `eds.dates` absolute date now keeps a zero hour or minute: `12/03/2020 à 0h30` gives `2020-03-12 00h30m` instead of `2020-03-1230m`, and `12:00:30` gives `12h00m30s` instead of `12h30s`
+
 ## v0.24.0 (2026-11-13)
 
 ### Added

@@ -28,6 +28,14 @@ examples = [
         "Le patient est venu le <ent norm='????-08-04 11h13m' day=4 month=8 "
         "hour=11 minute=13>4 août à 11h13</ent>"
     ),
+    (
+        "Le patient est venu le <ent norm='????-08-04 00h05m' day=4 month=8 "
+        "hour=0 minute=5>4 août à 0h05</ent>"
+    ),
+    (
+        "Le patient est venu le <ent norm='????-08-04 12h00m30s' day=4 month=8 "
+        "hour=12 minute=0 second=30>4 août à 12:00:30</ent>"
+    ),
     "Il est venu le <ent norm='????-09-01' day=1 month=9>1er Septembre</ent> pour",
     (
         "Il est venu en <ent norm='2020-10-??' month=10 year=2020>octobre 2020</ent> "
